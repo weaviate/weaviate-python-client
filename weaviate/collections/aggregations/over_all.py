@@ -1,27 +1,58 @@
-from typing import List, Optional
+from typing import List, Literal, Optional, Union, overload
+
+from deprecated import deprecated
 
 from weaviate.collections.aggregations.base import _Aggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     _AggregateReturn,
     _AggregateGroupByReturn,
+    _AggregateGroup,
 )
 from weaviate.collections.classes.filters import _Filters
 
 
 class _OverAll(_Aggregate):
+    @overload
     def over_all(
         self,
+        *,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> _AggregateReturn:
+        ...
+
+    @overload
+    def over_all(
+        self,
+        *,
+        filters: Optional[_Filters] = None,
+        group_by: str,
+        limit: Optional[int] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> _AggregateGroupByReturn:
+        ...
+
+    def over_all(
+        self,
+        *,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[str] = None,
+        limit: Optional[int] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> Union[_AggregateReturn, _AggregateGroupByReturn]:
         """Aggregate metrics over all the objects in this collection without any vector search.
 
         Arguments:
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                The property name to group the aggregation by.
             `limit`
                 The maximum number of aggregated objects to return.
             `total_count`
@@ -30,7 +61,7 @@ class _OverAll(_Aggregate):
                 A list of property metrics to aggregate together after the text search.
 
         Returns:
-            A `_AggregateReturn` object that includes the aggregation objects.
+            Depending on the presence of the `group_by` argument, either a `_AggregateReturn` object or a `_AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:
@@ -42,11 +73,23 @@ class _OverAll(_Aggregate):
             else [return_metrics]
         )
         builder = self._base(return_metrics, filters, limit, total_count)
+        if group_by is not None:
+            builder = builder.with_group_by_filter([group_by]).with_fields(
+                " groupedBy { path value } "
+            )
         res = self._do(builder)
-        return self._to_aggregate_result(res, return_metrics)
+        return (
+            self._to_aggregate_result(res, return_metrics)
+            if group_by is None
+            else self._to_group_by_result(res, return_metrics)
+        )
 
 
 class _OverAllGroupBy(_Aggregate):
+    @deprecated(
+        version="4.4b6",
+        reason="Use `aggregate.over_all` with the `group_by` argument instead. The `aggregate_group_by` namespace will be removed in GA.",
+    )
     def over_all(
         self,
         group_by: str,
@@ -54,7 +97,7 @@ class _OverAllGroupBy(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> List[_AggregateGroupByReturn]:
+    ) -> List[_AggregateGroup]:
         """Aggregate metrics over all the objects in this collection without any vector search grouping the results by a property.
 
         Arguments:
@@ -70,7 +113,7 @@ class _OverAllGroupBy(_Aggregate):
                 A list of property metrics to aggregate together after the text search.
 
         Returns:
-            A `_AggregateGroupByReturn` object that includes the aggregation objects.
+            A list of `_AggregateGroup` objects that includes the aggregation objects.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:
@@ -87,4 +130,4 @@ class _OverAllGroupBy(_Aggregate):
             .with_fields(" groupedBy { path value } ")
         )
         res = self._do(builder)
-        return self._to_group_by_result(res, return_metrics)
+        return self._to_group_by_result(res, return_metrics).groups

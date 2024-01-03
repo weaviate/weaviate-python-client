@@ -316,7 +316,7 @@ def test_near_image_missing_param(collection_factory: CollectionFactory) -> None
     )
 
 
-def test_group_by_aggregation(collection_factory: CollectionFactory) -> None:
+def test_group_by_aggregation_namespace(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -326,13 +326,14 @@ def test_group_by_aggregation(collection_factory: CollectionFactory) -> None:
     collection.data.insert({"text": "some text", "int": 1})
     collection.data.insert({"text": "some text", "int": 2})
 
-    res = collection.aggregate_group_by.over_all(
-        "text",
-        return_metrics=[
-            Metrics("text").text(count=True),
-            Metrics("int").integer(count=True),
-        ],
-    )
+    with pytest.warns(DeprecationWarning):
+        res = collection.aggregate_group_by.over_all(
+            "text",
+            return_metrics=[
+                Metrics("text").text(count=True),
+                Metrics("int").integer(count=True),
+            ],
+        )
     assert len(res) == 1
     assert res[0].grouped_by.prop == "text"
     assert res[0].grouped_by.value == "some text"
@@ -341,13 +342,14 @@ def test_group_by_aggregation(collection_factory: CollectionFactory) -> None:
     assert isinstance(res[0].properties["int"], AggregateInteger)
     assert res[0].properties["int"].count == 2
 
-    res = collection.aggregate_group_by.over_all(
-        "int",
-        return_metrics=[
-            Metrics("text").text(count=True),
-            Metrics("int").integer(count=True),
-        ],
-    )
+    with pytest.warns(DeprecationWarning):
+        res = collection.aggregate_group_by.over_all(
+            "int",
+            return_metrics=[
+                Metrics("text").text(count=True),
+                Metrics("int").integer(count=True),
+            ],
+        )
     assert len(res) == 2
     assert res[0].grouped_by.prop == "int"
     assert res[0].grouped_by.value == "1" or res[1].grouped_by.value == "1"
@@ -361,6 +363,55 @@ def test_group_by_aggregation(collection_factory: CollectionFactory) -> None:
     assert res[1].properties["text"].count == 1
     assert isinstance(res[1].properties["int"], AggregateInteger)
     assert res[1].properties["int"].count == 1
+
+
+def test_group_by_aggregation_argument(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="int", data_type=DataType.INT),
+        ],
+    )
+    collection.data.insert({"text": "some text", "int": 1})
+    collection.data.insert({"text": "some text", "int": 2})
+
+    res = collection.aggregate.over_all(
+        group_by="text",
+        return_metrics=[
+            Metrics("text").text(count=True),
+            Metrics("int").integer(count=True),
+        ],
+    )
+    groups = res.groups
+    assert len(groups) == 1
+    assert groups[0].grouped_by.prop == "text"
+    assert groups[0].grouped_by.value == "some text"
+    assert isinstance(groups[0].properties["text"], AggregateText)
+    assert groups[0].properties["text"].count == 2
+    assert isinstance(groups[0].properties["int"], AggregateInteger)
+    assert groups[0].properties["int"].count == 2
+
+    res = collection.aggregate.over_all(
+        group_by="int",
+        return_metrics=[
+            Metrics("text").text(count=True),
+            Metrics("int").integer(count=True),
+        ],
+    )
+    groups = res.groups
+    assert len(groups) == 2
+    assert groups[0].grouped_by.prop == "int"
+    assert groups[0].grouped_by.value == "1" or groups[1].grouped_by.value == "1"
+    assert isinstance(groups[0].properties["text"], AggregateText)
+    assert groups[0].properties["text"].count == 1
+    assert isinstance(groups[0].properties["int"], AggregateInteger)
+    assert groups[0].properties["int"].count == 1
+    assert groups[1].grouped_by.prop == "int"
+    assert groups[1].grouped_by.value == "2" or groups[0].grouped_by.value == "2"
+    assert isinstance(groups[1].properties["text"], AggregateText)
+    assert groups[1].properties["text"].count == 1
+    assert isinstance(groups[1].properties["int"], AggregateInteger)
+    assert groups[1].properties["int"].count == 1
 
 
 @pytest.mark.skip(reason="Validation logic is not robust enough currently")
