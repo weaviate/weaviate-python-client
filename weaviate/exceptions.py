@@ -3,7 +3,7 @@ Weaviate Exceptions.
 """
 
 from typing import Union
-import httpx  # type: ignore
+import httpx
 from requests import Response, exceptions
 
 ERROR_CODE_EXPLANATION = {

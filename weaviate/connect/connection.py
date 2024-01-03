@@ -9,7 +9,7 @@ import time
 from threading import Thread, Event
 from typing import Any, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
-import httpx  # type: ignore
+import httpx
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
