@@ -184,9 +184,9 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
                 The references to return for each object.
 
         NOTE:
-            If `return_properties` is not provided then all non-reference properties are returned including nested properties.
-            If `return_metadata` is not provided then no metadata is provided.
-            If `return_references` is not provided then no references are provided.
+            - If `return_properties` is not provided then all properties are returned except for blob properties.
+            - If `return_metadata` is not provided then no metadata is provided.
+            - If `return_references` is not provided then no references are provided.
 
         Returns:
             A `_QueryReturn` object that includes the searched objects.
@@ -403,9 +403,9 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
                 The references to return for each object.
 
         NOTE:
-            If `return_properties` is not provided then all properties are returned including nested properties.
-            If `return_metadata` is not provided then no metadata is provided.
-            If `return_references` is not provided then no references are provided.
+            - If `return_properties` is not provided then all properties are returned except for blob properties.
+            - If `return_metadata` is not provided then no metadata is provided.
+            - If `return_references` is not provided then no references are provided.
 
         Returns:
             A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
@@ -593,47 +593,47 @@ class _NearVectorGroupBy(Generic[Properties, References], _BaseQuery[Properties,
     ]:
         """Group the results of a by-vector object search in this collection using a vector-based similarity search.
 
-        #         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#nearobject) for a more detailed explanation.
+        See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#nearobject) for a more detailed explanation.
 
-                Arguments:
-                    `near_vector`
-                        The vector to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
-                    `group_by_property`
-                        The property to group by, REQUIRED.
-                    `number_of_groups`
-                        The number of groups to return, REQUIRED.
-                    `objects_per_group`
-                        The number of objects to return per group, REQUIRED.
-                    `certainty`
-                        The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
-                    `distance`
-                        The maximum distance to search. If not specified, the default distance specified by the server is used.
-                    `limit`
-                        The maximum number of results to return. If not specified, the default limit specified by the server is returned.
-                    `auto_limit`
-                        The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
-                    `filters`
-                        The filters to apply to the search.
-                    `include_vector`
-                        Whether to include the vector in the results. If not specified, this is set to False.
-                    `return_metadata`
-                        The metadata to return for each object, defaults to `None`.
-                    `return_properties`
-                        The properties to return for each object.
-                    `return_references`
-                        The references to return for each object.
+        Arguments:
+            `near_vector`
+                The vector to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
+            `group_by_property`
+                The property to group by, REQUIRED.
+            `number_of_groups`
+                The number of groups to return, REQUIRED.
+            `objects_per_group`
+                The number of objects to return per group, REQUIRED.
+            `certainty`
+                The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
+            `distance`
+                The maximum distance to search. If not specified, the default distance specified by the server is used.
+            `limit`
+                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            `auto_limit`
+                The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            `filters`
+                The filters to apply to the search.
+            `include_vector`
+                Whether to include the vector in the results. If not specified, this is set to False.
+            `return_metadata`
+                The metadata to return for each object, defaults to `None`.
+            `return_properties`
+                The properties to return for each object.
+            `return_references`
+                The references to return for each object.
 
-                NOTE:
-                    If `return_properties` is not provided then all properties are returned including nested properties.
-                    If `return_metadata` is not provided then no metadata is provided.
-                    If `return_references` is not provided then no references are provided.
+        NOTE:
+            - If `return_properties` is not provided then all properties are returned except for blob properties.
+            - If `return_metadata` is not provided then no metadata is provided.
+            - If `return_references` is not provided then no references are provided.
 
-                Returns:
-                    A `_GroupByReturn` object that includes the searched objects grouped by the specified property.
+        Returns:
+            A `_GroupByReturn` object that includes the searched objects grouped by the specified property.
 
-                Raises:
-                    `weaviate.exceptions.WeaviateQueryException`:
-                        If the request to the Weaviate server fails.
+        Raises:
+            `weaviate.exceptions.WeaviateQueryException`:
+                If the request to the Weaviate server fails.
         """
         res = self._query().near_vector(
             near_vector=near_vector,

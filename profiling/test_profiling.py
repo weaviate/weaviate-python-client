@@ -10,6 +10,8 @@ from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import MetadataQuery
 
+from .constants import WEAVIATE_LOGO_OLD_ENCODED
+
 
 def are_floats_equal(num1: float, num2: float, decimal_places: int = 4) -> bool:
     # Use round to limit the precision to the desired decimal places
@@ -159,6 +161,29 @@ def test_vector_search(client: weaviate.WeaviateClient) -> None:
         assert query_ret.objects[0].uuid in _ret.uuids.values()
 
 
+@pytest.mark.profiling
+def test_blob_properties(client: weaviate.WeaviateClient) -> None:
+    name = "TestProfileBlobProperties"
+    client.collections.delete(name)
+
+    col = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="index", data_type=DataType.INT),
+            Property(name="blob", data_type=DataType.BLOB),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    col = client.collections.get(name)
+
+    col.data.insert_many([{"index": i, "blob": WEAVIATE_LOGO_OLD_ENCODED} for i in range(1000)])
+
+    for _i in range(1000):
+        objs = col.query.fetch_objects(limit=100, return_properties=["blob"]).objects
+        assert len(objs) == 100
+
+
 def test_benchmark_get_vector(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_get_vector, client)
 
@@ -173,3 +198,7 @@ def test_benchmark_get_object_by_id(benchmark: Any, client: weaviate.WeaviateCli
 
 def test_benchmark_vector_search(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_vector_search, client)
+
+
+def test_benchmark_blob_properties(benchmark: Any, client: weaviate.WeaviateClient) -> None:
+    benchmark(test_blob_properties, client)

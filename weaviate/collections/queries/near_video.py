@@ -189,9 +189,9 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
                 The references to return for each object.
 
         NOTE:
-            If `return_properties` is not provided then all non-reference properties are returned including nested properties.
-            If `return_metadata` is not provided then no metadata is provided.
-            If `return_references` is not provided then no references are provided.
+            - If `return_properties` is not provided then all properties are returned except for blob properties.
+            - If `return_metadata` is not provided then no metadata is provided.
+            - If `return_references` is not provided then no references are provided.
 
         Returns:
             A `_QueryReturn` object that includes the searched objects.
@@ -411,9 +411,9 @@ class _NearVideoGenerate(Generic[Properties, References], _BaseQuery[Properties,
                 The references to return for each object.
 
         NOTE:
-            If `return_properties` is not provided then all properties are returned including nested properties.
-            If `return_metadata` is not provided then no metadata is provided.
-            If `return_references` is not provided then no references are provided.
+            - If `return_properties` is not provided then all properties are returned except for blob properties.
+            - If `return_metadata` is not provided then no metadata is provided.
+            - If `return_references` is not provided then no references are provided.
 
         Returns:
             A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
@@ -635,9 +635,9 @@ class _NearVideoGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
                 The references to return for each object.
 
         NOTE:
-            If `return_properties` is not provided then all properties are returned including nested properties.
-            If `return_metadata` is not provided then no metadata is provided.
-            If `return_references` is not provided then no references are provided.
+            - If `return_properties` is not provided then all properties are returned except for blob properties.
+            - If `return_metadata` is not provided then no metadata is provided.
+            - If `return_references` is not provided then no references are provided.
 
         Returns:
             A `_GroupByReturn` object that includes the searched objects grouped by the specified property.

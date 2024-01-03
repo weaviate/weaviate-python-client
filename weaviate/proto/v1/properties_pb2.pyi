@@ -38,6 +38,7 @@ class Value(_message.Message):
         "uuid_value",
         "int_value",
         "geo_value",
+        "blob_value",
     ]
     NUMBER_VALUE_FIELD_NUMBER: _ClassVar[int]
     STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -48,6 +49,7 @@ class Value(_message.Message):
     UUID_VALUE_FIELD_NUMBER: _ClassVar[int]
     INT_VALUE_FIELD_NUMBER: _ClassVar[int]
     GEO_VALUE_FIELD_NUMBER: _ClassVar[int]
+    BLOB_VALUE_FIELD_NUMBER: _ClassVar[int]
     number_value: float
     string_value: str
     bool_value: bool
@@ -57,6 +59,7 @@ class Value(_message.Message):
     uuid_value: str
     int_value: int
     geo_value: GeoCoordinate
+    blob_value: str
     def __init__(
         self,
         number_value: _Optional[float] = ...,
@@ -68,6 +71,7 @@ class Value(_message.Message):
         uuid_value: _Optional[str] = ...,
         int_value: _Optional[int] = ...,
         geo_value: _Optional[_Union[GeoCoordinate, _Mapping]] = ...,
+        blob_value: _Optional[str] = ...,
     ) -> None: ...
 
 class ListValue(_message.Message):

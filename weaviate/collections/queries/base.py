@@ -173,6 +173,8 @@ class _BaseQuery(Generic[Properties, References]):
             return GeoCoordinate(
                 latitude=value.geo_value.latitude, longitude=value.geo_value.longitude
             )
+        if value.HasField("blob_value"):
+            return value.blob_value
         return value
 
     def __parse_nonref_properties_result(

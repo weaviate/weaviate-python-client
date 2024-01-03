@@ -1502,6 +1502,22 @@ def test_return_properties_with_type_hint_generic(
     assert objects[0].properties["name"] == value
 
 
+def test_return_blob_property(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="blob", data_type=DataType.BLOB),
+        ]
+    )
+    uuid = collection.data.insert({"blob": WEAVIATE_LOGO_OLD_ENCODED})
+    collection.data.insert_many([{"blob": WEAVIATE_LOGO_OLD_ENCODED}])
+    obj = collection.query.fetch_object_by_id(uuid, return_properties=["blob"])
+    objs = collection.query.fetch_objects(return_properties=["blob"]).objects
+    assert len(objs) == 2
+    assert obj.properties["blob"] == WEAVIATE_LOGO_OLD_ENCODED
+    assert objs[0].properties["blob"] == WEAVIATE_LOGO_OLD_ENCODED
+    assert objs[1].properties["blob"] == WEAVIATE_LOGO_OLD_ENCODED
+
+
 def test_collection_shards(collection_factory: CollectionFactory) -> None:
     collection = collection_factory()
     shards = collection.shards()
