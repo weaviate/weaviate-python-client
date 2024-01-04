@@ -10,6 +10,7 @@ from weaviate.collections.classes.grpc import (
     QueryReference,
     QueryReferenceMultiTarget,
     Rerank,
+    Sort,
 )
 
 
@@ -26,4 +27,5 @@ __all__ = [
     "QueryReference",
     "QueryReferenceMultiTarget",
     "Rerank",
+    "Sort",
 ]
