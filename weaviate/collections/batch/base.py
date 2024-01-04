@@ -1,19 +1,19 @@
+import asyncio
 import math
+import threading
 import time
 from abc import ABC, abstractmethod
-from collections import deque
-from concurrent.futures import Future, as_completed
 from copy import copy
-from threading import Event, Thread
-from typing import Any, Deque, Dict, Generic, List, Optional, Sequence, Set, Tuple, TypeVar, cast
+from typing import Any, Dict, Generic, List, Optional, Sequence, Set, TypeVar, cast
 
 from pydantic import ValidationError
-
 from requests import ReadTimeout
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import HTTPError as RequestsHTTPError
 
 from weaviate.cluster import Cluster
+from weaviate.collections.batch.grpc import _BatchGRPC
+from weaviate.collections.batch.rest import _BatchRESTAsync
 from weaviate.collections.classes.batch import (
     BatchObject,
     BatchReference,
@@ -29,15 +29,11 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import WeaviateReferences
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.collections.batch.executor import BatchExecutor
-from weaviate.collections.batch.grpc import _BatchGRPC
-from weaviate.collections.batch.rest import _BatchREST
 from weaviate.connect import Connection
 from weaviate.exceptions import WeaviateBatchValidationError
+from weaviate.types import UUID
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 from weaviate.warnings import _Warnings
-from weaviate.types import UUID
-
 
 BatchResponse = List[Dict[str, Any]]
 
@@ -50,18 +46,11 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
     """`BatchRequest` abstract class used as a interface for batch requests."""
 
     def __init__(self) -> None:
-        self.__items: Deque[TBatchInput] = deque([])
+        self.__items: List[TBatchInput] = []
+        self.__lock = threading.Lock()
 
     def __len__(self) -> int:
         return len(self.__items)
-
-    def is_empty(self) -> bool:
-        """Check if `BatchRequest` is empty.
-
-        Returns
-            `bool` Whether the `BatchRequest` is empty.
-        """
-        return len(self.__items) == 0
 
     def clear(self) -> None:
         """Remove all the items from the BatchRequest."""
@@ -69,10 +58,12 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
 
     def add(self, item: TBatchInput) -> None:
         """Add an item to the BatchRequest."""
+        self.__lock.acquire()
         self.__items.append(item)
+        self.__lock.release()
 
     @property
-    def items(self) -> Deque[TBatchInput]:
+    def items(self) -> List[TBatchInput]:
         """
         Get all items from the BatchRequest.
 
@@ -80,6 +71,23 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
             `Deque[TBatchInput]` All items from the BatchRequest.
         """
         return self.__items
+
+    def pop_items(self, pop_amount: int) -> List[TBatchInput]:
+        """Pop the given number of items from the BatchRequest queue.
+
+        Returns
+            `List[TBatchInput]` items from the BatchRequest.
+        """
+        self.__lock.acquire()
+        if pop_amount >= len(self.__items):
+            ret = copy(self.__items)
+            self.__items.clear()
+        else:
+            ret = copy(self.__items[:pop_amount])
+            self.__items = self.__items[pop_amount:]
+
+        self.__lock.release()
+        return ret
 
     @abstractmethod
     def _add_failed_objects_from_response(
@@ -184,37 +192,217 @@ class _BatchBase:
     def __init__(
         self,
         connection: Connection,
-        executor: BatchExecutor,
         objects_: Optional[ObjectsBatchRequest] = None,
         references: Optional[ReferencesBatchRequest] = None,
     ) -> None:
         self.__batch_objects = objects_ or ObjectsBatchRequest()
         self.__batch_references = references or ReferencesBatchRequest()
-        self.__batch_size: Optional[int] = None
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = None
-        self.__creation_time = min(self.__connection.timeout_config[1] / 10, 2)
+
         self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
-        self.__batch_rest = _BatchREST(connection, self.__consistency_level)
-        self.__executor: BatchExecutor = executor
+        self.__batch_rest = _BatchRESTAsync(connection, self.__consistency_level)
+
+        self.__dynamic_batching = True
+
         self.__result: BatchResult = BatchResult()
         self.__failed_objects: List[ErrorObject] = []
         self.__failed_references: List[ErrorReference] = []
-        self.__future_pool_objects: Deque[Future[Tuple[BatchObjectReturn, int, bool]]] = deque([])
-        self.__future_pool_references: Deque[
-            Future[Tuple[BatchReferenceReturn, int, bool]]
-        ] = deque([])
-        self.__dynamic_batching = True
-        self.__num_workers: Optional[int] = None
-        self.__objects_throughput_frame: Deque[float] = deque(maxlen=5)
-        self.__recommended_num_objects: Optional[int] = 1000
-        self.__recommended_num_references: Optional[int] = 1000
-        self.__reference_batch_queue: Deque[List[_BatchReference]] = deque([])
-        self.__references_throughput_frame: Deque[float] = deque(maxlen=5)
+        self.__results_lock = threading.Lock()
+
         self.__retry_failed_objects: bool = False
         self.__retry_failed_references: bool = False
-        self.__shut_background_thread_down: Optional[Event] = None
         self.__imported_shards: Set[Shard] = set()
+
+        self.__cluster = Cluster(self.__connection)
+
+        self._max_batch_size: int = 1000
+        self._recommended_num_objects: int = 10
+        # there seems to be a bug with weaviate when sending > 50 refs at once
+        self._recommended_num_refs: int = 50
+
+        self.__num_workers: int = 2
+        self._active_threads = 0
+        self._active_thread_lock = threading.Lock()
+        self._last_scale_up: float = 0
+        self._max_observed_rate: int = 0
+
+        self._loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+
+    def __start_bg_thread(self) -> None:
+        """Create a background process that periodically checks how congested the batch queue is."""
+        self.__shut_background_thread_down = threading.Event()
+
+        def start_event_loop_thread() -> None:
+            while (
+                self.__shut_background_thread_down is not None
+                and not self.__shut_background_thread_down.is_set()
+            ):
+                if self._loop.is_running():
+                    continue
+                else:
+                    self._loop.run_forever()
+
+        event_loop = threading.Thread(
+            target=start_event_loop_thread,
+            daemon=True,
+            name="eventLoop",
+        )
+        event_loop.start()
+
+        def periodic_check() -> None:
+            while (
+                self.__shut_background_thread_down is not None
+                and not self.__shut_background_thread_down.is_set()
+            ):
+                if not self.__dynamic_batching:
+                    refresh_time: float = 0.1
+                else:
+                    try:
+                        status = self.__cluster.get_nodes_status()
+                        if (
+                            "batchStats" not in status[0]
+                            or "queueLength" not in status[0]["batchStats"]
+                        ):
+                            # async indexing - just send a lot
+                            self.__dynamic_batching = False
+                            self._recommended_num_objects = 1000
+                            self.__num_workers = 10
+                            continue
+
+                        rate = status[0]["batchStats"]["ratePerSecond"]
+                        rate_per_worker = rate / self.__num_workers
+
+                        batch_length = status[0]["batchStats"]["queueLength"]
+
+                        if rate > self._max_observed_rate:
+                            self._max_observed_rate = rate
+
+                        if batch_length == 0:  # scale up if queue is empty
+                            self._recommended_num_objects = min(
+                                self._recommended_num_objects + 50,
+                                self._max_batch_size,
+                            )
+
+                            if (
+                                self._max_batch_size == self._recommended_num_objects
+                                and time.time() - self._last_scale_up > 1
+                            ):
+                                self.__num_workers += 1
+                                self._last_scale_up = time.time()
+
+                        else:
+                            ratio = batch_length / rate
+                            if (
+                                2.1 > ratio > 1.9
+                            ):  # ideal, send exactly as many objects as weaviate can process
+                                self._recommended_num_objects = math.floor(rate_per_worker)
+                            elif ratio <= 1.9:  # we can send more
+                                self._recommended_num_objects = math.floor(
+                                    min(
+                                        self._recommended_num_objects * 1.5,
+                                        rate_per_worker * 2 / ratio,
+                                    )
+                                )
+
+                                if self._max_batch_size == self._recommended_num_objects:
+                                    self.__num_workers += 1
+
+                            elif ratio < 10:  # too high, scale down
+                                self._recommended_num_objects = math.floor(
+                                    rate_per_worker * 2 / ratio
+                                )
+
+                                if self._recommended_num_objects < 100 and self.__num_workers > 2:
+                                    self.__num_workers -= 1
+
+                            else:  # way too high, stop sending new batches
+                                self._recommended_num_objects = 0
+                                self.__num_workers = 2
+
+                        refresh_time = 0.01
+                    except (RequestsHTTPError, ReadTimeout):
+                        refresh_time = 0.1
+                    except Exception as e:
+                        _Warnings.batch_refresh_failed(repr(e))
+                        refresh_time = 10
+
+                if self._active_threads < self.__num_workers and (
+                    len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
+                ):
+                    self._active_thread_lock.acquire()
+                    self._active_threads += 1
+                    self._active_thread_lock.release()
+                    asyncio.run_coroutine_threadsafe(
+                        self.__send_batch_async(
+                            self.__batch_objects.pop_items(self._recommended_num_objects),
+                            self.__batch_references.pop_items(self._recommended_num_refs),
+                        ),
+                        self._loop,
+                    )
+
+                time.sleep(refresh_time)
+
+        demon = threading.Thread(
+            target=periodic_check,
+            daemon=True,
+            name="batchSizeRefresh",
+        )
+        demon.start()
+
+    async def __send_batch_async(
+        self, objs: List[_BatchObject], refs: List[_BatchReference]
+    ) -> None:
+        if len(objs) > 0:
+            start = time.time()
+            try:
+                response_obj = await self.__batch_grpc.objects_async(objects=objs)
+            except Exception as e:
+                print(repr(e), objs)
+                errors_obj = {
+                    idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
+                }
+                response_obj = BatchObjectReturn(
+                    all_responses=list(errors_obj.values()),
+                    elapsed_seconds=time.time() - start,
+                    errors=errors_obj,
+                    has_errors=True,
+                    uuids={},
+                )
+            self.__results_lock.acquire()
+            self.__result.objs += response_obj
+            self.__failed_objects.extend(response_obj.errors.values())
+            self.__results_lock.release()
+
+            if self.__retry_failed_objects and response_obj.has_errors:
+                self.__batch_objects._add_failed_objects_from_response(response_obj)
+
+        if len(refs) > 0:
+            start = time.time()
+            try:
+                response_ref = await self.__batch_rest.references(references=refs)
+
+            except Exception as e:
+                print(repr(e), refs)
+                errors_ref = {
+                    idx: ErrorReference(message=repr(e), reference=ref)
+                    for idx, ref in enumerate(refs)
+                }
+                response_ref = BatchReferenceReturn(
+                    elapsed_seconds=time.time() - start,
+                    errors=errors_ref,
+                    has_errors=True,
+                )
+            if self.__retry_failed_references and response_ref.has_errors:
+                self.__batch_references._add_failed_objects_from_response(response_ref)
+            self.__results_lock.acquire()
+            self.__result.refs += response_ref
+            self.__failed_references.extend(response_ref.errors.values())
+            self.__results_lock.release()
+
+        self._active_thread_lock.acquire()
+        self._active_threads -= 1
+        self._active_thread_lock.release()
 
     def configure(
         self,
@@ -222,8 +410,8 @@ class _BatchBase:
         batch_size: Optional[int] = 1000,
         consistency_level: Optional[ConsistencyLevel] = None,
         num_workers: Optional[int] = None,
-        retry_failed_objects: bool = False,
-        retry_failed_references: bool = False,
+        # retry_failed_objects: bool = False,  # disable temporarly for causing endless loops
+        # retry_failed_references: bool = False,
     ) -> None:
         """
         Configure your batch manager.
@@ -261,31 +449,8 @@ class _BatchBase:
         self.__num_workers = num_workers or self.__num_workers
         self.__recommended_num_objects = batch_size
         self.__recommended_num_references = batch_size
-        self.__retry_failed_objects = retry_failed_objects
-        self.__retry_failed_references = retry_failed_references
-
-    def __is_auto(self) -> bool:
-        return self.__dynamic_batching or self.__batch_size is not None
-
-    def num_objects(self) -> int:
-        """
-        Get current number of objects in the batch.
-
-        Returns:
-            `int`
-                The number of objects in the batch.
-        """
-        return len(self.__batch_objects)
-
-    def num_references(self) -> int:
-        """
-        Get current number of references in the batch.
-
-        Returns:
-            `int`
-                The number of references in the batch.
-        """
-        return len(self.__batch_references)
+        # self.__retry_failed_objects = retry_failed_objects
+        # self.__retry_failed_references = retry_failed_references
 
     def failed_objects(self) -> List[ErrorObject]:
         """
@@ -323,54 +488,32 @@ class _BatchBase:
         """
         return copy(self.__result)
 
-    def start(self: B) -> B:
-        """
-        Start the BatchExecutor if it was closed.
-
-        Returns:
-            `Batch`
-                The batch object with an open BatchExecutor and background running thread.
-        """
-        if self.__executor._is_shutdown():
-            self.__executor = BatchExecutor(max_workers=self.__executor._max_workers)
-
-        if self.__dynamic_batching and (
-            self.__shut_background_thread_down is None
-            or self.__shut_background_thread_down.is_set()
+    def flush(self) -> None:
+        # bg thread is sending objs+refs automatically, so simply wait for everything to be done
+        while (
+            self._active_threads > 0
+            or len(self.__batch_objects) > 0
+            or len(self.__batch_references) > 0
         ):
-            self.__update_recommended_batch_size()
+            time.sleep(0.01)
 
-        return self
-
-    def shutdown(self: B) -> None:
-        """Shutdown the BatchExecutor."""
-        if self.__shut_background_thread_down is not None:
-            self.__shut_background_thread_down.set()
-
-    def flush(self: B) -> None:
-        """Flush the batch queue to ensure all batches are sent."""
-        self.__send_batch_requests(force_wait=True)
+        # we are done, shut bg thread down
+        self.__shut_background_thread_down.set()
+        self._loop.stop()
 
     def __enter__(self: B) -> B:
-        if not self.__dynamic_batching and self.__batch_size is None:
-            raise WeaviateBatchValidationError(
-                "Cannot use the batch context manager without dynamic batching. If you are doing manual batching, you must create them manually outside of the context manager with create_objects()"
-            )
         self.__reset()
-        return self.start()
+        self.__start_bg_thread()
+        return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.flush()
-        self.shutdown()
 
     def __reset(self: B) -> None:
         self.__batch_objects.clear()
         self.__batch_references.clear()
-        self.__future_pool_objects.clear()
-        self.__future_pool_references.clear()
         self.__failed_objects.clear()
         self.__failed_references.clear()
-        self.__reference_batch_queue.clear()
 
     def _add_object(
         self,
@@ -394,8 +537,15 @@ class _BatchBase:
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         self.__batch_objects.add(batch_object._to_internal())
-        if self.__is_auto():
-            self.__auto_create()
+
+        # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
+        # not need a long queue
+        while (
+            self._recommended_num_objects == 0
+            or len(self.__batch_objects) >= self._recommended_num_objects * 10
+        ):
+            time.sleep(1)
+
         assert batch_object.uuid is not None
         return batch_object.uuid
 
@@ -443,272 +593,10 @@ class _BatchBase:
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         self.__batch_references.add(batch_reference._to_internal())
-        if self.__is_auto():
-            self.__auto_create()
 
-    def create_objects(self) -> BatchObjectReturn:
-        """
-        Send all the currently batched objects to Weaviate manually.
-
-        This function will do nothing unless you set `dynamic` to `False` in `configure`.
-        """
-        if self.__is_auto():
-            _Warnings.batch_create_automatic("objects")
-            return BatchObjectReturn(
-                all_responses=[],
-                uuids={},
-                errors={},
-                elapsed_seconds=0,
-                has_errors=False,
-            )
-        res = self.__flush_objects(list(self.__batch_objects.items))
-        self.__batch_objects.clear()
-        return res[0]
-
-    def create_references(self) -> BatchReferenceReturn:
-        """
-        Send all the currently batched references to Weaviate manually.
-
-        This function will do nothing unless you set `dynamic` to `False` in `configure`.
-        """
-        if self.__is_auto():
-            _Warnings.batch_create_automatic("references")
-            return BatchReferenceReturn(
-                elapsed_seconds=0,
-                errors={},
-                has_errors=False,
-            )
-        res = self.__flush_references(list(self.__batch_references.items))
-        self.__batch_references.clear()
-        return res[0]
-
-    def __auto_create(self) -> None:
-        assert self.__recommended_num_objects is not None
-        assert self.__recommended_num_references is not None
-        if (
-            self.num_objects() >= self.__recommended_num_objects
-            or self.num_references() >= self.__recommended_num_references
-        ):
-            while self.__recommended_num_objects == 0 or self.__recommended_num_references == 0:
-                sleep = 1
-                _Warnings.batch_weaviate_overloaded_sleeping(sleep)
-                time.sleep(sleep)  # block if weaviate is overloaded
-            self.__send_batch_requests(force_wait=False)
-
-    def __flush_objects(self, batch: List[_BatchObject]) -> Tuple[BatchObjectReturn, int, bool]:
-        start = time.time()
-        try:
-            return_ = self.__batch_grpc.objects(
-                objects=batch,
-            )
-            return return_, len(batch), False
-        except Exception as e:
-            print(repr(e), batch)
-            errors = {
-                idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(batch)
-            }
-            return (
-                BatchObjectReturn(
-                    all_responses=list(errors.values()),
-                    elapsed_seconds=time.time() - start,
-                    errors=errors,
-                    has_errors=True,
-                    uuids={},
-                ),
-                0,
-                True,
-            )
-
-    def __flush_references(
-        self, batch: List[_BatchReference]
-    ) -> Tuple[BatchReferenceReturn, int, bool]:
-        start = time.time()
-        try:
-            response = self.__batch_rest.references(
-                references=batch,
-            )
-            return response, len(batch), False
-        except Exception as e:
-            print(repr(e), batch)
-            errors = {
-                idx: ErrorReference(message=repr(e), reference=ref) for idx, ref in enumerate(batch)
-            }
-            return (
-                BatchReferenceReturn(
-                    elapsed_seconds=time.time() - start,
-                    errors=errors,
-                    has_errors=True,
-                ),
-                0,
-                True,
-            )
-
-    def __send_batch_requests(self, force_wait: bool, how_many_recursions: int = 0) -> None:
-        if self.__executor._is_shutdown():
-            _Warnings.batch_executor_is_shutdown()
-            self.start()
-
-        assert self.__executor is not None
-
-        if len(self.__batch_objects) > 0:
-            self.__future_pool_objects.append(
-                self.__executor.submit(
-                    self.__flush_objects,
-                    batch=list(self.__batch_objects.items),
-                )
-            )
-        if len(self.__batch_references) > 0:
-            # convert deque to list to ensure data is copied before being cleared below
-            self.__reference_batch_queue.append(list(self.__batch_references.items))
-
-        self.__batch_objects.clear()
-        self.__batch_references.clear()
-
-        if (
-            not force_wait
-            and self.__executor._max_workers > 1
-            and len(self.__future_pool_objects) < self.__executor._max_workers
-        ):
-            return
-
-        for done_obj_future in as_completed(self.__future_pool_objects):
-            ret_objs, nr_objs, exception_raised = done_obj_future.result()
-            self.__result.objs += ret_objs
-            self.__failed_objects.extend(ret_objs.errors.values())
-            if self.__retry_failed_objects and (exception_raised or ret_objs.has_errors):
-                self.__batch_objects._add_failed_objects_from_response(ret_objs)
-                self.__backoff_recommended_object_batch_size(exception_raised)
-            else:
-                self.__objects_throughput_frame.append(nr_objs / ret_objs.elapsed_seconds)
-
-        for ref_batch_items in self.__reference_batch_queue:
-            self.__future_pool_references.append(
-                self.__executor.submit(
-                    self.__flush_references,
-                    batch=list(ref_batch_items),
-                )
-            )
-
-        for done_ref_future in as_completed(self.__future_pool_references):
-            ret_refs, nr_refs, exception_raised = done_ref_future.result()
-            self.__result.refs += ret_refs
-            self.__failed_references.extend(ret_refs.errors.values())
-            if self.__retry_failed_references and (exception_raised or ret_refs.has_errors):
-                self.__batch_references._add_failed_objects_from_response(ret_refs)
-                self.__backoff_recommended_reference_batch_size(exception_raised)
-            else:
-                self.__references_throughput_frame.append(nr_refs / ret_refs.elapsed_seconds)
-
-        # Clear futures before checking if we need to retry
-        self.__future_pool_objects.clear()
-        self.__future_pool_references.clear()
-        self.__reference_batch_queue.clear()
-
-        if len(self.__batch_objects) > 0 or len(self.__batch_references) > 0:
-            if how_many_recursions == 4:
-                _Warnings.batch_retrying_failed_batches_hit_hard_limit(5)
-            else:
-                self.__failed_objects.clear()
-                self.__failed_references.clear()
-                self.__send_batch_requests(
-                    force_wait=True, how_many_recursions=how_many_recursions + 1
-                )
-
-    def __backoff_recommended_object_batch_size(self, exception_occurred: bool) -> None:
-        if exception_occurred and self.__recommended_num_objects is not None:
-            self.__recommended_num_objects = max(self.__recommended_num_objects // 2, 1)
-        elif (
-            len(self.__objects_throughput_frame) != 0 and self.__recommended_num_objects is not None
-        ):
-            obj_per_second = (
-                sum(self.__objects_throughput_frame) / len(self.__objects_throughput_frame) * 0.75
-            )
-            self.__recommended_num_objects = max(
-                min(
-                    round(obj_per_second * self.__creation_time),
-                    self.__recommended_num_objects + 250,
-                ),
-                1,
-            )
-
-    def __backoff_recommended_reference_batch_size(self, exception_occurred: bool) -> None:
-        if exception_occurred and self.__recommended_num_references is not None:
-            self.__recommended_num_references = max(self.__recommended_num_references // 2, 1)
-        elif (
-            len(self.__references_throughput_frame) != 0
-            and self.__recommended_num_references is not None
-        ):
-            ref_per_sec = sum(self.__references_throughput_frame) / len(
-                self.__references_throughput_frame
-            )
-            self.__recommended_num_references = min(
-                round(ref_per_sec * self.__creation_time),
-                self.__recommended_num_references * 2,
-            )
-
-    def __update_recommended_batch_size(self) -> None:
-        """Create a background process that periodically checks how congested the batch queue is."""
-        self.__shut_background_thread_down = Event()
-
-        def periodic_check() -> None:
-            cluster = Cluster(self.__connection)
-
-            assert self.__recommended_num_objects is not None
-            assert self.__recommended_num_references is not None
-            assert self.__executor is not None
-
-            while (
-                self.__shut_background_thread_down is not None
-                and not self.__shut_background_thread_down.is_set()
-            ):
-                try:
-                    status = cluster.get_nodes_status()
-                    if "stats" not in status[0] or "ratePerSecond" not in status[0]["stats"]:
-                        self.__dynamic_batching = False
-                        return
-                    rate = status[0]["batchStats"]["ratePerSecond"]
-                    rate_per_worker = rate / self.__executor._max_workers
-                    batch_length = status[0]["batchStats"]["queueLength"]
-
-                    if batch_length == 0:  # scale up if queue is empty
-                        self.__recommended_num_objects = self.__recommended_num_objects + min(
-                            self.__recommended_num_objects * 2, 25
-                        )
-                    else:
-                        ratio = batch_length / rate
-                        if (
-                            2.1 > ratio > 1.9
-                        ):  # ideal, send exactly as many objects as weaviate can process
-                            self.__recommended_num_objects = math.floor(rate_per_worker)
-                        elif ratio <= 1.9:  # we can send more
-                            self.__recommended_num_objects = math.floor(
-                                min(
-                                    self.__recommended_num_objects * 1.5,
-                                    rate_per_worker * 2 / ratio,
-                                )
-                            )
-                        elif ratio < 10:  # too high, scale down
-                            self.__recommended_num_objects = math.floor(rate_per_worker * 2 / ratio)
-                        else:  # way too high, stop sending new batches
-                            self.__recommended_num_objects = 0
-
-                    refresh_time: float = 2
-                except (RequestsHTTPError, ReadTimeout):
-                    refresh_time = 0.1
-                except Exception as e:
-                    _Warnings.batch_refresh_failed(repr(e))
-                    refresh_time = 10
-
-                time.sleep(refresh_time)
-            self.__recommended_num_objects = 10  # in case some batch needs to be send afterwards
-            self.__shut_background_thread_down = None
-
-        demon = Thread(
-            target=periodic_check,
-            daemon=True,
-            name="batchSizeRefresh",
-        )
-        demon.start()
+        # block if queue gets too long or weaviate is overloaded
+        while self._recommended_num_objects == 0:
+            time.sleep(1)  # block if weaviate is overloaded, also do not send any refs
 
     def wait_for_vector_indexing(
         self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5

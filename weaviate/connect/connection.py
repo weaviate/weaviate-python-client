@@ -4,12 +4,17 @@ from __future__ import annotations
 import datetime
 import os
 import time
+from copy import copy
 from threading import Thread, Event
 from typing import Any, Dict, Optional, Tuple, Union, cast
 from urllib.parse import urlparse
 
+import grpc  # type: ignore
+import httpx
 import requests
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
+from grpc import Channel, _channel, ssl_channel_credentials
+from grpc_health.v1 import health_pb2  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 from requests.adapters import HTTPAdapter
 from requests.exceptions import ReadTimeout
@@ -26,6 +31,7 @@ from weaviate.exceptions import (
     WeaviateGrpcUnavailable,
     WeaviateStartUpError,
 )
+from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.types import NUMBER
 from weaviate.util import (
     is_weaviate_domain,
@@ -36,10 +42,6 @@ from weaviate.util import (
     _ServerVersion,
 )
 from weaviate.warnings import _Warnings
-
-from grpc import Channel, _channel, secure_channel, insecure_channel, ssl_channel_credentials  # type: ignore
-from grpc_health.v1 import health_pb2  # type: ignore
-from weaviate.proto.v1 import weaviate_pb2_grpc
 
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
@@ -148,17 +150,23 @@ class ConnectionParams(BaseModel):
             return None
         return f"{self.grpc.host}:{self.grpc.port}"
 
-    def _grpc_channel(self) -> Optional[Channel]:
+    def _grpc_channel(self, async_channel: bool) -> Optional[Channel]:
         if self.grpc is None:
             return None
+
+        if async_channel:
+            import_path = grpc.aio
+        else:
+            import_path = grpc
+
         if self.grpc.secure:
-            return secure_channel(
+            return import_path.secure_channel(
                 target=self._grpc_target,
                 credentials=ssl_channel_credentials(),
                 options=GRPC_OPTIONS,
             )
         else:
-            return insecure_channel(
+            return import_path.insecure_channel(
                 target=self._grpc_target,
                 options=GRPC_OPTIONS,
             )
@@ -239,6 +247,7 @@ class Connection:
 
         self._grpc_available: bool = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+        self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self.__additional_headers: Dict[str, str] = {}
 
         self._headers = {"content-type": "application/json"}
@@ -264,6 +273,7 @@ class Connection:
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
         self._session: Session
+        self._httpx_async_client: httpx.AsyncClient = httpx.AsyncClient()
         self._shutdown_background_event: Optional[Event] = None
 
     def connect(self, skip_init_checks: bool) -> None:
@@ -452,6 +462,34 @@ class Connection:
             Request header as a dict.
         """
         return self._headers
+
+    def __get_headers_for_async_client(self) -> Dict[str, str]:
+        if "authorization" in self._headers:
+            return self._headers
+
+        auth_token = self.get_current_bearer_token()
+        if auth_token == "":
+            return self._headers
+
+        # bearer token can change over time (OIDC) so we need to get the current one for each request
+        copied_headers = copy(self._headers)
+        copied_headers.update({"authorization": self.get_current_bearer_token()})
+        return copied_headers
+
+    async def post_async(
+        self,
+        path: str,
+        weaviate_object: JSONPayload,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> httpx._models.Response:
+        r = await self._httpx_async_client.post(
+            url=self.url + self._api_version_path + path,
+            json=weaviate_object,
+            headers=self.__get_headers_for_async_client(),
+            # timeout=self._timeout_config,
+            params=params,
+        )
+        return r
 
     def delete(
         self,
@@ -739,6 +777,10 @@ class Connection:
         return self._grpc_stub
 
     @property
+    def grpc_stub_async(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
+        return self._grpc_stub_async
+
+    @property
     def server_version(self) -> str:
         """
         Version of the weaviate instance.
@@ -786,9 +828,14 @@ class GRPCConnection(Connection):
         super().connect(skip_init_checks)
         # create GRPC channel. If Weaviate does not support GRPC then error now.
         if self._connection_params._has_grpc:
-            grpc_channel = self._connection_params._grpc_channel()
+            grpc_channel = self._connection_params._grpc_channel(async_channel=False)
             assert grpc_channel is not None
             self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
+
+            grpc_channel_async = self._connection_params._grpc_channel(async_channel=True)
+            assert grpc_channel_async is not None
+            self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(grpc_channel_async)
+
             self._grpc_available = True
             if not skip_init_checks:
                 try:

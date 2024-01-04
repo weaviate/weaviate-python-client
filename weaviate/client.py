@@ -5,17 +5,16 @@ from typing import Optional, Tuple, Union, Dict, Any
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 from weaviate.backup.backup import _Backup
 from weaviate.warnings import _Warnings
-
+from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
 from .collections import _Collections
-from .collections.batch import _BatchClient, BatchExecutor
+from .collections.batch import _BatchClient
 from .collections.cluster import _Cluster
 from .config import AdditionalConfig, Config
 from .connect.connection import (
@@ -31,8 +30,8 @@ from .embedded import EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeException
 from .gql import Query
 from .schema import Schema
-from .util import _decode_json_response_dict, _get_valid_timeout_config, _type_request_response
 from .types import NUMBER
+from .util import _decode_json_response_dict, _get_valid_timeout_config, _type_request_response
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
@@ -250,17 +249,13 @@ class WeaviateClient(_ClientBase):
         )
         self._connection.connect(skip_init_checks)
 
-        batch_executor = (
-            BatchExecutor()
-        )  # max_workers = None uses the concurrent.futures defined default of min(32, (os.cpu_count() or 1) + 4)
-
-        self.batch = _BatchClient(self._connection, batch_executor)
+        self.batch = _BatchClient(self._connection)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
         self.cluster = _Cluster(self._connection)
         """This namespace contains all functionality to inspect the connected Weaviate cluster."""
-        self.collections = _Collections(self._connection, batch_executor)
+        self.collections = _Collections(self._connection)
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.

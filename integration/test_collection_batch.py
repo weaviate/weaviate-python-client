@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Generator, Optional, Sequence, Union, Any, Protocol
 
 import pytest
-from _pytest.fixtures import SubRequest
 
 from integration.conftest import CollectionFactory
 from weaviate import Collection
@@ -98,8 +97,6 @@ def test_add_object(
             uuid=uuid,
             vector=vector,
         )
-        assert batch.num_objects() == 1
-        assert batch.num_references() == 0
     assert len(batch.failed_objects()) == 0
     assert len(batch.failed_references()) == 0
     objs = collection.query.fetch_objects().objects
@@ -110,7 +107,6 @@ def test_add_object(
 @pytest.mark.parametrize("to_uuid", [UUID4.hex, UUID5, str(UUID6)])
 def test_add_reference(
     batch_collection: BatchCollection,
-    request: SubRequest,
     from_uuid: UUID,
     to_uuid: UUID,
 ) -> None:
@@ -119,14 +115,8 @@ def test_add_reference(
 
     with collection.batch as batch:
         batch.add_object(uuid=from_uuid)
-        assert batch.num_objects() == 1
-        assert batch.num_references() == 0
         batch.add_object(uuid=to_uuid)
-        assert batch.num_objects() == 2
-        assert batch.num_references() == 0
         batch.add_reference(from_uuid=from_uuid, from_property="test", to=Reference.to(to_uuid))
-        assert batch.num_objects() == 2
-        assert batch.num_references() == 1
     assert len(batch.failed_objects()) == 0
     assert len(batch.failed_references()) == 0
     objs = collection.query.fetch_objects().objects

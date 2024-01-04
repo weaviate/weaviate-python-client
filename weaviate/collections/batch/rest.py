@@ -9,8 +9,8 @@ from weaviate.collections.classes.batch import (
     BatchReferenceReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.filters import _FilterToREST
 from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.filters import _FilterToREST
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _decode_json_response_dict
@@ -73,6 +73,46 @@ class _BatchREST:
         ]
 
         response = self.__connection.post(
+            path="/batch/references", weaviate_object=refs, params=params
+        )
+        if response.status_code == 200:
+            payload = response.json()
+            errors = {
+                idx: ErrorReference(
+                    message=entry["result"]["errors"]["error"][0]["message"],
+                    reference=references[idx],
+                )
+                for idx, entry in enumerate(payload)
+                if entry["result"]["status"] == "FAILED"
+            }
+            return BatchReferenceReturn(
+                elapsed_seconds=response.elapsed.total_seconds(),
+                errors=errors,
+                has_errors=len(errors) > 0,
+            )
+        raise UnexpectedStatusCodeException("Send ref batch", response)
+
+
+class _BatchRESTAsync:
+    def __init__(
+        self, connection: Connection, consistency_level: Optional[ConsistencyLevel]
+    ) -> None:
+        self.__consistency_level = consistency_level
+        self.__connection = connection
+
+    async def references(self, references: List[_BatchReference]) -> BatchReferenceReturn:
+        params: Dict[str, str] = {}
+        if self.__consistency_level is not None:
+            params["consistency_level"] = self.__consistency_level
+
+        refs = [
+            {"from": ref.from_, "to": ref.to}
+            if ref.tenant is None
+            else {"from": ref.from_, "to": ref.to, "tenant": ref.tenant}
+            for ref in references
+        ]
+
+        response = await self.__connection.post_async(
             path="/batch/references", weaviate_object=refs, params=params
         )
         if response.status_code == 200:

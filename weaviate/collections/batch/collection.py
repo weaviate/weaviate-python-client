@@ -1,6 +1,5 @@
 from typing import Generic, Optional, Sequence
 
-from weaviate.collections.batch.executor import BatchExecutor
 from weaviate.collections.batch.base import _BatchBase
 from weaviate.collections.classes.internal import WeaviateReferences, WeaviateReference
 from weaviate.collections.classes.types import Properties
@@ -13,10 +12,9 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         self,
         connection: Connection,
         name: str,
-        batch_executor: BatchExecutor,
         tenant: Optional[str] = None,
     ) -> None:
-        super().__init__(connection, batch_executor)
+        super().__init__(connection)
         self.__name = name
         self.__tenant = tenant
 
