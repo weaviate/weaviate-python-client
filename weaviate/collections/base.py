@@ -1,4 +1,4 @@
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -16,9 +16,6 @@ from weaviate.collections.cluster import _Cluster
 from weaviate.connect import Connection
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
-
-if TYPE_CHECKING:
-    pass
 
 
 class _CollectionBase:

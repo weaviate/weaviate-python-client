@@ -5,7 +5,7 @@ from typing import Generic, Literal, Optional, Type, Union, cast, overload
 from weaviate.collections.aggregate import _AggregateCollection, _AggregateGroupByCollection
 from weaviate.collections.backups import _CollectionBackup
 from weaviate.collections.base import _CollectionBase
-from weaviate.collections.batch import _BatchCollection
+from weaviate.collections.batch.collection import _BatchCollectionWrapper
 from weaviate.collections.classes.config import (
     ConsistencyLevel,
 )
@@ -75,7 +75,9 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             self._connection, self.name, consistency_level, tenant
         )
         """This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities."""
-        self.batch = _BatchCollection[Properties](connection, self.name, tenant)
+        self.batch = _BatchCollectionWrapper[Properties](
+            connection, consistency_level, self.name, tenant
+        )
         """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
         self.config = _ConfigCollection(self._connection, self.name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""

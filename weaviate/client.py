@@ -14,7 +14,7 @@ from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
 from .collections import _Collections
-from .collections.batch import _BatchClient
+from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster
 from .config import AdditionalConfig, Config
 from .connect.connection import (
@@ -249,7 +249,7 @@ class WeaviateClient(_ClientBase):
         )
         self._connection.connect(skip_init_checks)
 
-        self.batch = _BatchClient(self._connection)
+        self.batch = _BatchClientWrapper(self._connection)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""

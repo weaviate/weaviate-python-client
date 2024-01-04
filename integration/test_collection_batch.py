@@ -86,9 +86,7 @@ def batch_collection(
 )
 @pytest.mark.parametrize("uuid", [None, UUID1, str(UUID2), UUID3.hex])
 def test_add_object(
-    batch_collection: BatchCollection,
-    uuid: Optional[UUID],
-    vector: Optional[Sequence],
+    batch_collection: BatchCollection, uuid: Optional[UUID], vector: Optional[Sequence]
 ) -> None:
     collection = batch_collection()
 
@@ -97,8 +95,8 @@ def test_add_object(
             uuid=uuid,
             vector=vector,
         )
-    assert len(batch.failed_objects()) == 0
-    assert len(batch.failed_references()) == 0
+    assert len(collection.batch.failed_objects()) == 0
+    assert len(collection.batch.failed_references()) == 0
     objs = collection.query.fetch_objects().objects
     assert len(objs) == 1
 
@@ -136,8 +134,8 @@ def test_add_object_batch_with_tenant(batch_collection: BatchCollection) -> None
             batch.add_object(
                 properties={"name": "tenant" + str(i % 5)},
             )
-    assert len(batch.failed_objects()) == 0
-    assert len(batch.failed_references()) == 0
+    assert len(mt_collection.batch.failed_objects()) == 0
+    assert len(mt_collection.batch.failed_references()) == 0
     objs = mt_collection.with_tenant("tenant1").query.fetch_objects().objects
     assert len(objs) == 1
     for obj in objs:

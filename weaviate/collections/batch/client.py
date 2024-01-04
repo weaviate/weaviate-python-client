@@ -1,8 +1,11 @@
 from typing import Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase
-from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.collections.batch.batch_wrapper import _BatchWrapper
+from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.connect import Connection
 from weaviate.types import UUID
 
 
@@ -91,3 +94,70 @@ class _BatchClient(_BatchBase):
             to_object_collection=to_object_collection,
             tenant=tenant,
         )
+
+
+class _BatchClientWrapper(_BatchWrapper):
+    def __init__(self, connection: Connection) -> None:
+        super().__init__(connection, None)
+
+    def __enter__(self) -> _BatchClient:
+        self._current_batch = _BatchClient(
+            connection=self._connection,
+            consistency_level=self._consistency_level,
+            fixed_batch_size=self._batch_size,
+            fixed_concurrent_requests=self._concurrent_requests,
+        )
+        return self._current_batch
+
+    def configure(
+        self,
+        consistency_level: Optional[ConsistencyLevel] = None,
+        # retry_failed_objects: bool = False,  # disable temporarily for causing endless loops
+        # retry_failed_references: bool = False,
+    ) -> None:
+        """Configure dynamic batching.
+
+        Arguments:
+            `consistency_level`
+                The consistency level to be used to send the batch. If not provided, the default value is `None`.
+        """
+        self._consistency_level = consistency_level
+
+    def configure_fixed_size(
+        self,
+        batch_size: int = 100,
+        concurrent_requests: int = 2,
+        consistency_level: Optional[ConsistencyLevel] = None,
+        # retry_failed_objects: bool = False,  # disable temporarly for causing endless loops
+        # retry_failed_references: bool = False,
+    ) -> None:
+        """
+        Configure your batch manager.
+
+        Every time you run this command, the `client.batch` object will
+        be updated with the new configuration. To enter the batching context manager, which handles automatically
+        sending batches dynamically, use `with client.batch as batch` and then loop through your data within the context manager
+        adding objects and references to the batch.
+
+        Batches are constructed automatically and sent dynamically depending on Weaviate's load.
+        When you exit the context manager, the final batch will be sent automatically.
+
+        Arguments:
+            `batch_size`
+                The number of objects/references to be sent in one batch. If not provided, the default value is 100.
+            `consistency_level`
+                The consistency level to be used to send the batch. If not provided, the default value is `None`.
+            `concurrent_requests`
+                The number of workers to be used when sending the batches. If not provided, the default value is `None` which uses the Python defined
+                default value of `min(32, (os.cpu_count() or 1) + 4)`.
+                This controls the number of concurrent requests made to Weaviate and not the speed of batch creation within Python.
+            `retry_failed_objects`
+                Whether to retry failed objects or not. If not provided, the default value is False.
+            `retry_failed_references`
+                Whether to retry failed references or not. If not provided, the default value is False.
+        """
+        self._batch_size = batch_size
+        self._consistency_level = consistency_level
+        self._concurrent_requests = concurrent_requests
+        # self.__retry_failed_objects = retry_failed_objects
+        # self.__retry_failed_references = retry_failed_references

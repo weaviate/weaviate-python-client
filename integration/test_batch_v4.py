@@ -245,7 +245,6 @@ def test_add_ten_thousand_data_objects(client_factory: ClientFactory, request: S
     client, name = client_factory()
 
     nr_objects = 10000
-    client.batch.configure(num_workers=4)
     with client.batch as batch:
         for i in range(nr_objects):
             batch.add_object(
@@ -279,7 +278,6 @@ def test_add_one_hundred_objects_and_references_between_all(client_factory: Clie
     """Test adding one hundred objects and references between all of them"""
     client, name = client_factory()
     nr_objects = 100
-    client.batch.configure(num_workers=4)
     uuids: List[UUID] = []
     with client.batch as batch:
         for i in range(nr_objects):
