@@ -190,7 +190,7 @@ class _Data:
                 batch.appendleft(
                     _BatchReference(
                         from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
-                        to=f"{BEACON}{self.name}/{ref.to_uuid}",
+                        to=f"{BEACON}{ref.to_uuid}",
                         tenant=self._tenant,
                     )
                 )
