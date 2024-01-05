@@ -8,13 +8,11 @@ from weaviate.collections.classes.filters import (
 from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
     _GroupBy,
-    _GroupByReturn,
-    _QueryReturn,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
+    QueryNearMediaReturn,
     References,
-    CrossReferences,
     TReferences,
 )
 from weaviate.collections.classes.types import (
@@ -40,20 +38,7 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Union[
-        _QueryReturn[Properties, References],
-        _QueryReturn[Properties, CrossReferences],
-        _QueryReturn[Properties, TReferences],
-        _QueryReturn[TProperties, References],
-        _QueryReturn[TProperties, CrossReferences],
-        _QueryReturn[TProperties, TReferences],
-        _GroupByReturn[Properties, References],
-        _GroupByReturn[Properties, CrossReferences],
-        _GroupByReturn[Properties, TReferences],
-        _GroupByReturn[TProperties, References],
-        _GroupByReturn[TProperties, CrossReferences],
-        _GroupByReturn[TProperties, TReferences],
-    ]:
+    ) -> QueryNearMediaReturn[Properties, References, TProperties, TReferences]:
         """Search for objects by video in this collection using an video-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.

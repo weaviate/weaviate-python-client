@@ -16,8 +16,9 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import (
-    _MetadataSingleObjectReturn,
     _ObjectSingleReturn,
+    _MetadataSingleObjectReturn,
+    QuerySingleReturn,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
@@ -42,15 +43,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Union[
-        None,
-        _ObjectSingleReturn[Properties, References],
-        _ObjectSingleReturn[Properties, CrossReferences],
-        _ObjectSingleReturn[Properties, TReferences],
-        _ObjectSingleReturn[TProperties, References],
-        _ObjectSingleReturn[TProperties, CrossReferences],
-        _ObjectSingleReturn[TProperties, TReferences],
-    ]:
+    ) -> Optional[QuerySingleReturn]:
         """Retrieve an object from the server by its UUID.
 
         Arguments:

@@ -8,13 +8,12 @@ from weaviate.collections.classes.grpc import (
     Sort,
 )
 from weaviate.collections.classes.internal import (
-    _QueryReturn,
+    QueryReturn,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
     References,
     TReferences,
-    CrossReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
@@ -34,14 +33,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
-    ) -> Union[
-        _QueryReturn[Properties, References],
-        _QueryReturn[Properties, CrossReferences],
-        _QueryReturn[Properties, TReferences],
-        _QueryReturn[TProperties, References],
-        _QueryReturn[TProperties, CrossReferences],
-        _QueryReturn[TProperties, TReferences],
-    ]:
+    ) -> QueryReturn[Properties, References, TProperties, TReferences]:
         """Retrieve the objects in this collection without any search.
 
         Arguments:

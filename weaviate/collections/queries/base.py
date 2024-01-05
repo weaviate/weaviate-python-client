@@ -29,8 +29,8 @@ from weaviate.collections.classes.internal import (
     _GroupedObject,
     _extract_properties_from_data_model,
     _extract_references_from_data_model,
-    GenerativeReturn,
-    _GenerativeQueryReturn,
+    GenerativeNearMediaReturn,
+    _GenerativeReturn,
     _GenerativeGroupByReturn,
     _GroupByReturn,
     _Group,
@@ -450,14 +450,14 @@ class _BaseQuery(Generic[Properties, References]):
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> Union[
-        _GenerativeQueryReturn[Properties, References],
-        _GenerativeQueryReturn[Properties, CrossReferences],
-        _GenerativeQueryReturn[Properties, TReferences],
-        _GenerativeQueryReturn[TProperties, References],
-        _GenerativeQueryReturn[TProperties, CrossReferences],
-        _GenerativeQueryReturn[TProperties, TReferences],
+        _GenerativeReturn[Properties, References],
+        _GenerativeReturn[Properties, CrossReferences],
+        _GenerativeReturn[Properties, TReferences],
+        _GenerativeReturn[TProperties, References],
+        _GenerativeReturn[TProperties, CrossReferences],
+        _GenerativeReturn[TProperties, TReferences],
     ]:
-        return _GenerativeQueryReturn(
+        return _GenerativeReturn(
             objects=[
                 self.__result_to_generative_object(obj.properties, obj.metadata, options)
                 for obj in res.results
@@ -477,7 +477,7 @@ class _BaseQuery(Generic[Properties, References]):
         references: Optional[
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
-    ) -> GenerativeReturn[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeNearMediaReturn[Properties, References, TProperties, TReferences]:
         return (
             self._result_to_generative_query_return(res, options, properties, references)
             if options.is_group_by is False

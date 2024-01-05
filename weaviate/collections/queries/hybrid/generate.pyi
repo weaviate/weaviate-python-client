@@ -5,7 +5,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, HybridFusion, Rerank
 from weaviate.collections.classes.internal import (
-    _GenerativeQueryReturn,
+    _GenerativeReturn,
     References,
     TReferences,
     CrossReferences,
@@ -34,7 +34,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _GenerativeQueryReturn[Properties, References]: ...
+    ) -> _GenerativeReturn[Properties, References]: ...
     @overload
     def hybrid(
         self,
@@ -55,7 +55,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GenerativeQueryReturn[Properties, CrossReferences]: ...
+    ) -> _GenerativeReturn[Properties, CrossReferences]: ...
     @overload
     def hybrid(
         self,
@@ -76,7 +76,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _GenerativeQueryReturn[Properties, TReferences]: ...
+    ) -> _GenerativeReturn[Properties, TReferences]: ...
     @overload
     def hybrid(
         self,
@@ -97,7 +97,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _GenerativeQueryReturn[TProperties, References]: ...
+    ) -> _GenerativeReturn[TProperties, References]: ...
     @overload
     def hybrid(
         self,
@@ -118,7 +118,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GenerativeQueryReturn[TProperties, CrossReferences]: ...
+    ) -> _GenerativeReturn[TProperties, CrossReferences]: ...
     @overload
     def hybrid(
         self,
@@ -139,4 +139,4 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _GenerativeQueryReturn[TProperties, TReferences]: ...
+    ) -> _GenerativeReturn[TProperties, TReferences]: ...

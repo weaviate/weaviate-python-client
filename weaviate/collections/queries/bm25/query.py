@@ -1,17 +1,16 @@
-from typing import Generic, List, Optional, Union
+from typing import Generic, List, Optional
 
 from weaviate.collections.classes.filters import (
     _Filters,
 )
 from weaviate.collections.classes.grpc import Rerank, METADATA
 from weaviate.collections.classes.internal import (
-    _QueryReturn,
+    QueryReturn,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
     References,
     TReferences,
-    CrossReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
@@ -31,14 +30,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Union[
-        _QueryReturn[Properties, References],
-        _QueryReturn[Properties, CrossReferences],
-        _QueryReturn[Properties, TReferences],
-        _QueryReturn[TProperties, References],
-        _QueryReturn[TProperties, CrossReferences],
-        _QueryReturn[TProperties, TReferences],
-    ]:
+    ) -> QueryReturn[Properties, References, TProperties, TReferences]:
         """Search for objects in this collection using the keyword-based BM25 algorithm.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.

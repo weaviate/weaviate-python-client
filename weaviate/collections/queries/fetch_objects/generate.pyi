@@ -10,7 +10,7 @@ from weaviate.collections.classes.grpc import (
     Sort,
 )
 from weaviate.collections.classes.internal import (
-    _GenerativeQueryReturn,
+    _GenerativeReturn,
     References,
     TReferences,
     CrossReferences,
@@ -36,7 +36,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None
-    ) -> _GenerativeQueryReturn[Properties, References]: ...
+    ) -> _GenerativeReturn[Properties, References]: ...
     @overload
     def fetch_objects(
         self,
@@ -53,7 +53,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES
-    ) -> _GenerativeQueryReturn[Properties, CrossReferences]: ...
+    ) -> _GenerativeReturn[Properties, CrossReferences]: ...
     @overload
     def fetch_objects(
         self,
@@ -70,7 +70,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences]
-    ) -> _GenerativeQueryReturn[Properties, TReferences]: ...
+    ) -> _GenerativeReturn[Properties, TReferences]: ...
     @overload
     def fetch_objects(
         self,
@@ -87,7 +87,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None
-    ) -> _GenerativeQueryReturn[TProperties, References]: ...
+    ) -> _GenerativeReturn[TProperties, References]: ...
     @overload
     def fetch_objects(
         self,
@@ -104,7 +104,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES
-    ) -> _GenerativeQueryReturn[TProperties, CrossReferences]: ...
+    ) -> _GenerativeReturn[TProperties, CrossReferences]: ...
     @overload
     def fetch_objects(
         self,
@@ -121,4 +121,4 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences]
-    ) -> _GenerativeQueryReturn[TProperties, TReferences]: ...
+    ) -> _GenerativeReturn[TProperties, TReferences]: ...
