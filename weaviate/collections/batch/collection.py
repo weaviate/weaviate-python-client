@@ -1,6 +1,6 @@
 from typing import Generic, Optional, Sequence
 
-from weaviate.collections.batch.base import _BatchBase
+from weaviate.collections.batch.base import _BatchBase, _BatchDataWrapper
 from weaviate.collections.batch.batch_wrapper import _BatchWrapper
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import WeaviateReferences, WeaviateReference
@@ -14,12 +14,15 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         self,
         connection: Connection,
         consistency_level: Optional[ConsistencyLevel],
+        results: _BatchDataWrapper,
         fixed_batch_size: Optional[int],
         fixed_concurrent_requests: Optional[int],
         name: str,
         tenant: Optional[str] = None,
     ) -> None:
-        super().__init__(connection, consistency_level, fixed_batch_size, fixed_concurrent_requests)
+        super().__init__(
+            connection, consistency_level, results, fixed_batch_size, fixed_concurrent_requests
+        )
         self.__name = name
         self.__tenant = tenant
 
@@ -30,8 +33,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
     ) -> UUID:
-        """
-        Add one object to this batch.
+        """Add one object to this batch.
 
         NOTE: If the UUID of one of the objects already exists then the existing object will be replaced by the new object.
 
@@ -64,8 +66,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         )
 
     def add_reference(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
-        """
-        Add one reference to this batch.
+        """Add a reference to this batch.
 
         Arguments:
             `from_uuid`
@@ -107,6 +108,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self._current_batch = _BatchCollection[Properties](
             connection=self._connection,
             consistency_level=self._consistency_level,
+            results=self._batch_data,
             fixed_batch_size=self._batch_size,
             fixed_concurrent_requests=self._concurrent_requests,
             name=self.__name,
@@ -121,8 +123,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         # retry_failed_objects: bool = False,  # disable temporarily for causing endless loops
         # retry_failed_references: bool = False,
     ) -> None:
-        """
-        Configure your batch manager for fixed size batches. Note that the default is dynamic batching.
+        """Configure fixed size batches. Note that the default is dynamic batching.
 
         When you exit the context manager, the final batch will be sent automatically.
 

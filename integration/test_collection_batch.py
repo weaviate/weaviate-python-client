@@ -115,8 +115,8 @@ def test_add_reference(
         batch.add_object(uuid=from_uuid)
         batch.add_object(uuid=to_uuid)
         batch.add_reference(from_uuid=from_uuid, from_property="test", to=Reference.to(to_uuid))
-    assert len(batch.failed_objects()) == 0
-    assert len(batch.failed_references()) == 0
+    assert len(collection.batch.failed_objects()) == 0
+    assert len(collection.batch.failed_references()) == 0
     objs = collection.query.fetch_objects().objects
     obj = collection.query.fetch_object_by_id(
         from_uuid, return_references=FromReference(link_on="test")
@@ -169,8 +169,8 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
             to=Reference.to_multi_target(obj_uuid1, target_collection=mt_collection.name),
         )
         # target collection required when inserting references into multi-tenancy collections
-    assert len(batch.failed_objects()) == 0
-    assert len(batch.failed_references()) == 0
+    assert len(mt_collection.batch.failed_objects()) == 0
+    assert len(mt_collection.batch.failed_references()) == 0
     ret_obj = mt_collection.with_tenant("tenant1").query.fetch_object_by_id(
         obj_uuid0, return_references=FromReference(link_on="test")
     )

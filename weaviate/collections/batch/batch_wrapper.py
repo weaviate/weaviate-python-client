@@ -1,10 +1,10 @@
 import time
 from copy import copy
-from typing import List, Optional, Any, cast, Set
+from typing import List, Optional, Any, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collections.batch.base import _BatchBase
+from weaviate.collections.batch.base import _BatchBase, _BatchDataWrapper
 from weaviate.collections.classes.batch import BatchResult, ErrorObject, ErrorReference, Shard
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.connect import Connection
@@ -22,22 +22,12 @@ class _BatchWrapper:
         self._batch_size: Optional[int] = None
         self._concurrent_requests: int = 2
 
-        # results
-        self._result: BatchResult = BatchResult()
-        self._failed_objects: List[ErrorObject] = []
-        self._failed_references: List[ErrorReference] = []
-        self._imported_shards: Set[Shard] = set()
+        self._batch_data = _BatchDataWrapper()
 
     # enter is in inherited classes
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         assert self._current_batch is not None
         self._current_batch.flush()
-
-        self._result += self._current_batch.results()
-        self._failed_objects += self._current_batch.failed_objects()
-        self._failed_references += self._current_batch.failed_references()
-        self._imported_shards.update(self._current_batch._imported_shards)
-
         self.__current_batch = None
 
     def wait_for_vector_indexing(
@@ -64,7 +54,7 @@ class _BatchWrapper:
             try:
                 return all(
                     all(self._get_shards_readiness(shard))
-                    for shard in shards or self._imported_shards
+                    for shard in shards or self._batch_data.imported_shards
                 )
             except RequestsConnectionError as e:
                 print(
@@ -113,7 +103,7 @@ class _BatchWrapper:
             `List[ErrorObject]`
                 A list of all the failed objects from the batch.
         """
-        return copy(self._failed_objects)
+        return copy(self._batch_data.failed_objects)
 
     def failed_references(self) -> List[ErrorReference]:
         """
@@ -125,7 +115,7 @@ class _BatchWrapper:
             `List[ErrorReference]`
                 A list of all the failed references from the batch.
         """
-        return copy(self._failed_references)
+        return copy(self._batch_data.failed_references)
 
     def results(self) -> BatchResult:
         """
@@ -137,4 +127,4 @@ class _BatchWrapper:
             `BatchResult`
                 The results of the batch operation.
         """
-        return copy(self._result)
+        return copy(self._batch_data.results)
