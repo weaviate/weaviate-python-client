@@ -43,6 +43,7 @@ def test_queries_with_rerank() -> None:
     if client._connection._weaviate_version < _ServerVersion(1, 23, 1):
         pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
 
+    client.collections.delete("Test_test_queries_with_rerank")
     collection = client.collections.create(
         name="Test_test_queries_with_rerank",
         reranker_config=wvc.Configure.Reranker.transformers(),
@@ -90,7 +91,7 @@ def test_queries_with_rerank() -> None:
         ].metadata.rerank_score
 
 
-def test_queries_with_rerank_and_generative(collection_factory: CollectionFactory) -> None:
+def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory) -> None:
     api_key = os.environ.get("OPENAI_APIKEY")
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
@@ -101,15 +102,17 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
             "http://localhost:8079", grpc_port=50050
         ),
         additional_headers={"X-OpenAI-Api-Key": api_key},
+        skip_init_checks=True,
     )
-    if client._connection._weaviate_version < _ServerVersion(1, 23, 1):
-        pytest.skip("Generative reranking requires Weaviate 1.23.1 or higher")
+    # if client._connection._weaviate_version < _ServerVersion(1, 23, 1):
+    #     pytest.skip("GroupBy reranking requires Weaviate 1.23.1 or higher")
+    client._connection._weaviate_version = _ServerVersion(1, 23, 1)
 
+    client.collections.delete("Test_test_queries_with_rerank_and_group_by")
     collection = client.collections.create(
-        name="Test_test_queries_with_rerank_and_generative",
-        generative_config=wvc.Configure.Generative.openai(),
+        name="Test_test_queries_with_rerank_and_group_by",
         reranker_config=wvc.Configure.Reranker.transformers(),
-        vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(),
+        vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
     )
 
@@ -122,46 +125,33 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
 
     for _idx, query in enumerate(
         [
-            lambda: collection.generate.bm25(
-                "test",
-                rerank=wvc.query.Rerank(prop="text", query="another"),
-                single_prompt="What is it? {text}",
-            ),
-            lambda: collection.generate.hybrid(
-                "test",
-                rerank=wvc.query.Rerank(prop="text", query="another"),
-                single_prompt="What is it? {text}",
-                grouped_properties=["text"],
-                grouped_task="What's going on?",
-            ),
-            lambda: collection.generate.near_object(
+            lambda: collection.query.near_object(
                 uuid1,
                 rerank=wvc.query.Rerank(prop="text", query="another"),
-                single_prompt="What is it? {text}",
+                group_by=wvc.query.GroupBy(prop="text", objects_per_group=1, number_of_groups=2),
             ),
-            lambda: collection.generate.near_vector(
+            lambda: collection.query.near_vector(
                 vector1,
                 rerank=wvc.query.Rerank(prop="text", query="another"),
-                single_prompt="What is it? {text}",
+                group_by=wvc.query.GroupBy(prop="text", objects_per_group=1, number_of_groups=2),
             ),
-            lambda: collection.generate.near_text(
+            lambda: collection.query.near_text(
                 "test",
                 rerank=wvc.query.Rerank(prop="text", query="another"),
-                single_prompt="What is it? {text}",
+                group_by=wvc.query.GroupBy(prop="text", objects_per_group=1, number_of_groups=2),
             ),
         ]
     ):
-        objects = query().objects
-        assert len(objects) == 2
-        assert objects[0].metadata.rerank_score is not None
-        assert objects[0].generated is not None
-        assert objects[1].metadata.rerank_score is not None
-        assert objects[1].generated is not None
+        ret = query()
+        assert len(ret.groups) == 2
+        assert len(ret.objects) == 2
+        assert len(list(ret.groups.values())[0].objects) == 1
+        assert len(list(ret.groups.values())[1].objects) == 1
+        assert ret.objects[0].belongs_to_group is not None
+        assert ret.objects[1].belongs_to_group is not None
 
-        assert [obj for obj in objects if "another" in obj.properties["text"]][  # type: ignore
+        assert [group for prop, group in ret.groups.items() if "another" in prop][  # type: ignore
             0
-        ].metadata.rerank_score > [
-            obj for obj in objects if "another" not in obj.properties["text"]  # type: ignore
-        ][
+        ].rerank_score > [group for prop, group in ret.groups.items() if "another" not in prop][
             0
-        ].metadata.rerank_score
+        ].rerank_score

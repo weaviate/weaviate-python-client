@@ -67,6 +67,9 @@ QProperties = TypeVar("QProperties", bound=Mapping[str, Any], default=WeaviatePr
 
 NProperties = TypeVar("NProperties", bound=Optional[Mapping[str, Any]], default=None)
 
+M = TypeVar("M")
+"""`M` is a completely general type that is used wherever generic metadata objects are defined that can be used"""
+
 P = TypeVar("P")
 """`P` is a completely general type that is used wherever generic properties objects are defined that can be used
 within the non-ORM and ORM APIs interchangeably"""

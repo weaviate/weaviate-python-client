@@ -559,18 +559,42 @@ class SearchReply(_message.Message):
         group_by_results: _Optional[_Iterable[_Union[GroupByResult, _Mapping]]] = ...,
     ) -> None: ...
 
+class RerankReply(_message.Message):
+    __slots__ = ["score"]
+    SCORE_FIELD_NUMBER: _ClassVar[int]
+    score: float
+    def __init__(self, score: _Optional[float] = ...) -> None: ...
+
+class GenerativeReply(_message.Message):
+    __slots__ = ["result"]
+    RESULT_FIELD_NUMBER: _ClassVar[int]
+    result: str
+    def __init__(self, result: _Optional[str] = ...) -> None: ...
+
 class GroupByResult(_message.Message):
-    __slots__ = ["name", "min_distance", "max_distance", "number_of_objects", "objects"]
+    __slots__ = [
+        "name",
+        "min_distance",
+        "max_distance",
+        "number_of_objects",
+        "objects",
+        "rerank",
+        "generative",
+    ]
     NAME_FIELD_NUMBER: _ClassVar[int]
     MIN_DISTANCE_FIELD_NUMBER: _ClassVar[int]
     MAX_DISTANCE_FIELD_NUMBER: _ClassVar[int]
     NUMBER_OF_OBJECTS_FIELD_NUMBER: _ClassVar[int]
     OBJECTS_FIELD_NUMBER: _ClassVar[int]
+    RERANK_FIELD_NUMBER: _ClassVar[int]
+    GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     name: str
     min_distance: float
     max_distance: float
     number_of_objects: int
     objects: _containers.RepeatedCompositeFieldContainer[SearchResult]
+    rerank: RerankReply
+    generative: GenerativeReply
     def __init__(
         self,
         name: _Optional[str] = ...,
@@ -578,6 +602,8 @@ class GroupByResult(_message.Message):
         max_distance: _Optional[float] = ...,
         number_of_objects: _Optional[int] = ...,
         objects: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ...,
+        rerank: _Optional[_Union[RerankReply, _Mapping]] = ...,
+        generative: _Optional[_Union[GenerativeReply, _Mapping]] = ...,
     ) -> None: ...
 
 class SearchResult(_message.Message):

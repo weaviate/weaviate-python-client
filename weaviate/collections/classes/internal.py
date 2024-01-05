@@ -24,7 +24,7 @@ from weaviate.collections.classes.grpc import (
     REFERENCES,
     Rerank,
 )
-from weaviate.collections.classes.types import Properties, P, R, TProperties, WeaviateProperties
+from weaviate.collections.classes.types import Properties, M, P, R, TProperties, WeaviateProperties
 from weaviate.exceptions import WeaviateQueryException, InvalidDataModelException
 from weaviate.util import _to_beacons
 from weaviate.types import UUIDS
@@ -97,12 +97,25 @@ class _MetadataReturn:
 
 
 @dataclass
-class _Object(Generic[P, R]):
+class _GroupByMetadataReturn:
+    distance: Optional[float] = None
+
+    def _is_empty(self) -> bool:
+        return self.distance is None
+
+
+@dataclass
+class _InternalObject(Generic[P, R, M]):
     uuid: uuid_package.UUID
-    metadata: _MetadataReturn
+    metadata: M
     properties: P
     references: R
     vector: Optional[List[float]]
+
+
+@dataclass
+class _Object(Generic[P, R], _InternalObject[P, R, _MetadataReturn]):
+    pass
 
 
 @dataclass
@@ -113,17 +126,18 @@ class _MetadataSingleObjectReturn:
 
 
 @dataclass
-class _ObjectSingleReturn(Generic[P, R]):
-    uuid: uuid_package.UUID
-    metadata: _MetadataSingleObjectReturn
-    properties: P
-    references: R
-    vector: Optional[List[float]]
+class _ObjectSingleReturn(Generic[P, R], _InternalObject[P, R, _MetadataSingleObjectReturn]):
+    pass
 
 
 @dataclass
-class _GroupByObject(Generic[P, R], _Object[P, R]):
+class _GroupByObject(Generic[P, R], _InternalObject[P, R, _GroupByMetadataReturn]):
     belongs_to_group: str
+
+
+@dataclass
+class _GroupedObject(Generic[P, R], _InternalObject[P, R, _GroupByMetadataReturn]):
+    pass
 
 
 @dataclass
@@ -132,24 +146,37 @@ class _GenerativeObject(Generic[P, R], _Object[P, R]):
 
 
 @dataclass
-class _GenerativeReturn(Generic[P, R]):
+class _GenerativeQueryReturn(Generic[P, R]):
     objects: List[_GenerativeObject[P, R]]
     generated: Optional[str]
 
 
 @dataclass
-class _GroupByResult(Generic[P, R]):
+class _Group(Generic[P, R]):
     name: str
     min_distance: float
     max_distance: float
     number_of_objects: int
-    objects: List[_Object[P, R]]
+    objects: List[_GroupedObject[P, R]]
+    rerank_score: Optional[float]
+
+
+@dataclass
+class _GenerativeGroup(Generic[P, R], _Group[P, R]):
+    generated: Optional[str]
+
+
+@dataclass
+class _GenerativeGroupByReturn(Generic[P, R]):
+    objects: List[_GroupByObject[P, R]]
+    groups: Dict[str, _GenerativeGroup[P, R]]
+    generated: Optional[str]
 
 
 @dataclass
 class _GroupByReturn(Generic[P, R]):
     objects: List[_GroupByObject[P, R]]
-    groups: Dict[str, _GroupByResult[P, R]]
+    groups: Dict[str, _Group[P, R]]
 
 
 @dataclass
@@ -563,3 +590,28 @@ class _QueryOptions(Generic[Properties, References, TReferences]):
             include_vector=include_vector,
             is_group_by=group_by is not None,
         )
+
+
+_GenerativeReturn = Union[_GenerativeQueryReturn[P, R], _GenerativeGroupByReturn[P, R]]
+
+# The way in which generic typealiases work requires that all the generic arguments
+# are listed first and in the order of their apperance in the typealias.
+# GenerativeReturn[Properties, References, TProperties, TReferences] is the intended use and so
+# these four generics appear first. All others resolve afterwards correctly
+GenerativeReturn = Union[
+    _GenerativeReturn[Properties, References],
+    _GenerativeReturn[TProperties, TReferences],
+    _GenerativeReturn[Properties, CrossReferences],
+    _GenerativeReturn[Properties, TReferences],
+    _GenerativeReturn[TProperties, References],
+    _GenerativeReturn[TProperties, CrossReferences],
+]
+
+GenerativeQueryReturn = Union[
+    _GenerativeQueryReturn[Properties, References],
+    _GenerativeQueryReturn[TProperties, TReferences],
+    _GenerativeQueryReturn[Properties, CrossReferences],
+    _GenerativeQueryReturn[Properties, TReferences],
+    _GenerativeQueryReturn[TProperties, References],
+    _GenerativeQueryReturn[TProperties, CrossReferences],
+]
