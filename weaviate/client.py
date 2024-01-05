@@ -411,7 +411,7 @@ class Client(_ClientBase):
         )
 
         if startup_period is not None:
-            _Warnings.startup_pertion_deprecated()
+            _Warnings.startup_period_deprecated()
 
         self._connection = Connection(
             connection_params=connection_params,

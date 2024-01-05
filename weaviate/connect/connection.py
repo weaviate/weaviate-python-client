@@ -271,7 +271,12 @@ class Connection:
         self._add_adapter_to_session(self._connection_config)
 
         if not skip_init_checks:
-            self._server_version = self.get_meta()["version"]
+            # first connection attempt
+            try:
+                self._server_version = self.get_meta()["version"]
+            except requests.exceptions.ConnectionError as e:
+                raise WeaviateStartUpError(f"Could not connect to Weaviate:{e.strerror}.") from e
+
             if self._server_version < "1.14":
                 _Warnings.weaviate_server_older_than_1_14(self._server_version)
             if is_weaviate_too_old(self._server_version):
@@ -649,16 +654,13 @@ class Connection:
         else:
             request_url = self.url + self._api_version_path + path
 
-        try:
-            return self._session.get(
-                url=request_url,
-                headers=self._get_request_header(),
-                timeout=self._timeout_config,
-                params=params,
-                proxies=self._proxies,
-            )
-        except requests.exceptions.ConnectionError as e:
-            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e.strerror}.") from e
+        return self._session.get(
+            url=request_url,
+            headers=self._get_request_header(),
+            timeout=self._timeout_config,
+            params=params,
+            proxies=self._proxies,
+        )
 
     def head(
         self,

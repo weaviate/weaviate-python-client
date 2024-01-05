@@ -97,7 +97,7 @@ class _Warnings:
         )
 
     @staticmethod
-    def startup_pertion_deprecated() -> None:
+    def startup_period_deprecated() -> None:
         warnings.warn(
             message="""Dep004: startup_period is deprecated and has no effect. Please remove it from your code.""",
             category=DeprecationWarning,
