@@ -179,7 +179,8 @@ class _BatchBase:
         self.__last_scale_up: float = 0
         self.__max_observed_rate: int = 0
 
-        self.__loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+        self.__loop = asyncio.get_event_loop()
+
         self.__start_bg_thread()
 
     def __start_bg_thread(self) -> None:

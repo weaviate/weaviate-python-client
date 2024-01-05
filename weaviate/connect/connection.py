@@ -1,13 +1,12 @@
 """Connection class definition."""
 from __future__ import annotations
-import asyncio
 
 import datetime
 import os
 import time
 from copy import copy
 from threading import Thread, Event
-from typing import Any, Dict, Optional, Tuple, Union, cast
+from typing import Any, Dict, Literal, Optional, Tuple, Union, cast, overload
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -15,6 +14,7 @@ import httpx
 import requests
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 from grpc import Channel, _channel, ssl_channel_credentials
+from grpc.aio import Channel as AsyncChannel  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 from requests.adapters import HTTPAdapter
@@ -151,7 +151,15 @@ class ConnectionParams(BaseModel):
             return None
         return f"{self.grpc.host}:{self.grpc.port}"
 
-    def _grpc_channel(self, async_channel: bool) -> Optional[Channel]:
+    @overload
+    def _grpc_channel(self, async_channel: Literal[False]) -> Optional[Channel]:
+        ...
+
+    @overload
+    def _grpc_channel(self, async_channel: Literal[True]) -> Optional[AsyncChannel]:
+        ...
+
+    def _grpc_channel(self, async_channel: bool) -> Union[Channel, AsyncChannel, None]:
         if self.grpc is None:
             return None
 
@@ -443,10 +451,12 @@ class Connection:
         demon.start()
 
     def open_async(self) -> None:
+        # Careful, this method is not async but it must be called from an async context where
+        # there is a running event loop since grpc.aio.Channel makes a call to cygrpc.get_working_loop()
         if self._httpx_async_client is None:
             self._httpx_async_client = httpx.AsyncClient()
         if self._grpc_stub_async is None:
-            grpc_channel_async: Channel | None = self._connection_params._grpc_channel(async_channel=True)
+            grpc_channel_async = self._connection_params._grpc_channel(async_channel=True)
             assert grpc_channel_async is not None
             self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(grpc_channel_async)
 

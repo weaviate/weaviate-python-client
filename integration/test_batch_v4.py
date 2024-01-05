@@ -101,7 +101,6 @@ def test_add_object_multiple_batches(client_factory: ClientFactory) -> None:
     assert len(objs) == 3
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "vector",
     [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],

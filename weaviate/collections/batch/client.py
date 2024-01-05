@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase
@@ -100,6 +101,12 @@ class _BatchClientWrapper(_BatchWrapper):
         super().__init__(connection, None)
 
     def __enter__(self) -> _BatchClient:
+        try:
+            self.__loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self.__loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.__loop)
+
         self._connection.open_async()
 
         self._current_batch = _BatchClient(
