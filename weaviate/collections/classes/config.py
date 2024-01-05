@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Sequence, Union, cast
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
+from weaviate.collections.classes.types import SHARD_TYPES
 
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -1789,7 +1790,7 @@ class _CollectionConfigSimple(_ConfigBase):
 @dataclass
 class _ShardStatus:
     name: str
-    status: Literal["READONLY", "READY", "INDEXING"]
+    status: SHARD_TYPES
     vector_queue_size: int
 
 
