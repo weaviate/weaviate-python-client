@@ -9,7 +9,7 @@ from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
     _Generative,
     _GroupBy,
-    GenerativeReturn,
+    GenerativeNearMediaReturn,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
@@ -42,7 +42,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> GenerativeReturn[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeNearMediaReturn[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-audio object search in this collection using an audio-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
@@ -80,7 +80,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
+            A `_GenerativeNearMediaReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:

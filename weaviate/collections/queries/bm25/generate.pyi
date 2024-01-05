@@ -5,7 +5,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import Rerank, METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
-    _GenerativeQueryReturn,
+    _GenerativeReturn,
     References,
     TReferences,
     CrossReferences,
@@ -31,7 +31,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _GenerativeQueryReturn[Properties, References]: ...
+    ) -> _GenerativeReturn[Properties, References]: ...
     @overload
     def bm25(
         self,
@@ -49,7 +49,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GenerativeQueryReturn[Properties, CrossReferences]: ...
+    ) -> _GenerativeReturn[Properties, CrossReferences]: ...
     @overload
     def bm25(
         self,
@@ -67,7 +67,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _GenerativeQueryReturn[Properties, TReferences]: ...
+    ) -> _GenerativeReturn[Properties, TReferences]: ...
     @overload
     def bm25(
         self,
@@ -85,7 +85,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _GenerativeQueryReturn[TProperties, References]: ...
+    ) -> _GenerativeReturn[TProperties, References]: ...
     @overload
     def bm25(
         self,
@@ -103,7 +103,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GenerativeQueryReturn[TProperties, CrossReferences]: ...
+    ) -> _GenerativeReturn[TProperties, CrossReferences]: ...
     @overload
     def bm25(
         self,
@@ -121,4 +121,4 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _GenerativeQueryReturn[TProperties, TReferences]: ...
+    ) -> _GenerativeReturn[TProperties, TReferences]: ...

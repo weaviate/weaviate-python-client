@@ -5,7 +5,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import Rerank, METADATA
 from weaviate.collections.classes.internal import (
-    GenerativeQueryReturn,
+    GenerativeReturn,
     _Generative,
     ReturnProperties,
     ReturnReferences,
@@ -34,7 +34,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> GenerativeQueryReturn[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeReturn[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a keyword-based BM25 search of objects in this collection.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
@@ -73,7 +73,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
             If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `_GenerativeReturn` object that includes the searched objects with per-object generated results and group generated results.
+            A `_GenerativeNearMediaReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:

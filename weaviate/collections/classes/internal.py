@@ -146,7 +146,7 @@ class _GenerativeObject(Generic[P, R], _Object[P, R]):
 
 
 @dataclass
-class _GenerativeQueryReturn(Generic[P, R]):
+class _GenerativeReturn(Generic[P, R]):
     objects: List[_GenerativeObject[P, R]]
     generated: Optional[str]
 
@@ -592,12 +592,30 @@ class _QueryOptions(Generic[Properties, References, TReferences]):
         )
 
 
-_GenerativeReturn = Union[_GenerativeQueryReturn[P, R], _GenerativeGroupByReturn[P, R]]
+QuerySingleReturn = Union[
+    _ObjectSingleReturn[Properties, References],
+    _ObjectSingleReturn[Properties, CrossReferences],
+    _ObjectSingleReturn[Properties, TReferences],
+    _ObjectSingleReturn[TProperties, References],
+    _ObjectSingleReturn[TProperties, CrossReferences],
+    _ObjectSingleReturn[TProperties, TReferences],
+]
+
+_GenerativeNearMediaReturn = Union[_GenerativeReturn[P, R], _GenerativeGroupByReturn[P, R]]
 
 # The way in which generic typealiases work requires that all the generic arguments
 # are listed first and in the order of their apperance in the typealias.
-# GenerativeReturn[Properties, References, TProperties, TReferences] is the intended use and so
+# GenerativeNearMediaReturn[Properties, References, TProperties, TReferences] is the intended use and so
 # these four generics appear first. All others resolve afterwards correctly
+GenerativeNearMediaReturn = Union[
+    _GenerativeNearMediaReturn[Properties, References],
+    _GenerativeNearMediaReturn[TProperties, TReferences],
+    _GenerativeNearMediaReturn[Properties, CrossReferences],
+    _GenerativeNearMediaReturn[Properties, TReferences],
+    _GenerativeNearMediaReturn[TProperties, References],
+    _GenerativeNearMediaReturn[TProperties, CrossReferences],
+]
+
 GenerativeReturn = Union[
     _GenerativeReturn[Properties, References],
     _GenerativeReturn[TProperties, TReferences],
@@ -607,11 +625,22 @@ GenerativeReturn = Union[
     _GenerativeReturn[TProperties, CrossReferences],
 ]
 
-GenerativeQueryReturn = Union[
-    _GenerativeQueryReturn[Properties, References],
-    _GenerativeQueryReturn[TProperties, TReferences],
-    _GenerativeQueryReturn[Properties, CrossReferences],
-    _GenerativeQueryReturn[Properties, TReferences],
-    _GenerativeQueryReturn[TProperties, References],
-    _GenerativeQueryReturn[TProperties, CrossReferences],
+_QueryNearMediaReturn = Union[_QueryReturn[P, R], _GroupByReturn[P, R]]
+
+QueryNearMediaReturn = Union[
+    _QueryNearMediaReturn[Properties, References],
+    _QueryNearMediaReturn[TProperties, TReferences],
+    _QueryNearMediaReturn[Properties, CrossReferences],
+    _QueryNearMediaReturn[Properties, TReferences],
+    _QueryNearMediaReturn[TProperties, References],
+    _QueryNearMediaReturn[TProperties, CrossReferences],
+]
+
+QueryReturn = Union[
+    _QueryReturn[Properties, References],
+    _QueryReturn[TProperties, TReferences],
+    _QueryReturn[Properties, CrossReferences],
+    _QueryReturn[Properties, TReferences],
+    _QueryReturn[TProperties, References],
+    _QueryReturn[TProperties, CrossReferences],
 ]

@@ -1,4 +1,4 @@
-from typing import Generic, Optional, Union
+from typing import Generic, Optional
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -6,14 +6,12 @@ from weaviate.collections.classes.filters import (
 from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
     _GroupBy,
-    _GroupByReturn,
-    _QueryReturn,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
+    QueryNearMediaReturn,
     References,
     TReferences,
-    CrossReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
@@ -36,20 +34,7 @@ class _NearObjectQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Union[
-        _QueryReturn[Properties, References],
-        _QueryReturn[Properties, CrossReferences],
-        _QueryReturn[Properties, TReferences],
-        _QueryReturn[TProperties, References],
-        _QueryReturn[TProperties, CrossReferences],
-        _QueryReturn[TProperties, TReferences],
-        _GroupByReturn[Properties, References],
-        _GroupByReturn[Properties, CrossReferences],
-        _GroupByReturn[Properties, TReferences],
-        _GroupByReturn[TProperties, References],
-        _GroupByReturn[TProperties, CrossReferences],
-        _GroupByReturn[TProperties, TReferences],
-    ]:
+    ) -> QueryNearMediaReturn[Properties, References, TProperties, TReferences]:
         """Search for objects in this collection by another object using a vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#nearobject) for a more detailed explanation.
