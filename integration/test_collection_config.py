@@ -497,6 +497,35 @@ def test_collection_config_get_shards(collection_factory: CollectionFactory) -> 
     assert shards[0].vector_queue_size == 0
 
 
+def test_collection_update_shards(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+
+    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
+    assert all(shard.status == "READY" for shard in collection.config.get_shards())
+
+    # all possibilites of calling the function
+    updated_shards = collection.config.update_shards(status="READONLY", shard_names="tenant1")
+    assert len(updated_shards) == 1
+    assert updated_shards["tenant1"] == "READONLY"
+
+    updated_shards = collection.config.update_shards(status="READY", shard_names=["tenant1"])
+    assert len(updated_shards) == 1
+    assert updated_shards["tenant1"] == "READY"
+
+    updated_shards = collection.config.update_shards(
+        status="READONLY", shard_names=["tenant1", "tenant2"]
+    )
+    assert all(shard == "READONLY" for shard in updated_shards.values())
+
+    updated_shards = collection.config.update_shards(
+        status="READY", shard_names=["tenant1", "tenant2"]
+    )
+    assert all(shard == "READY" for shard in updated_shards.values())
+
+
 def test_collection_config_get_shards_multi_tenancy(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
