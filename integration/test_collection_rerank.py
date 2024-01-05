@@ -2,7 +2,6 @@ import os
 
 import pytest
 
-import weaviate
 import weaviate.classes as wvc
 from weaviate.util import _ServerVersion
 
@@ -16,6 +15,8 @@ def test_query_using_rerank_with_old_server(collection_factory: CollectionFactor
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
         ports=(8079, 50050),
     )
+    if collection._connection._weaviate_version >= _ServerVersion(1, 23, 1):
+        pytest.skip("Reranking works with 1.23.1 or higher so no need to test this")
 
     collection.data.insert_many([{"text": "This is a test"}, {"text": "This is another test"}])
 
@@ -28,28 +29,21 @@ def test_query_using_rerank_with_old_server(collection_factory: CollectionFactor
         assert objs[1].metadata.rerank_score is None
 
 
-def test_queries_with_rerank() -> None:
+def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
     api_key = os.environ.get("OPENAI_APIKEY")
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    # Make specific client so that we can hard code the correct server version and avoid the BC reranking checks
-    client = weaviate.WeaviateClient(
-        connection_params=weaviate.ConnectionParams.from_url(
-            "http://localhost:8079", grpc_port=50050
-        ),
-        additional_headers={"X-OpenAI-Api-Key": api_key},
-    )
-    if client._connection._weaviate_version < _ServerVersion(1, 23, 1):
-        pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
-
-    client.collections.delete("Test_test_queries_with_rerank")
-    collection = client.collections.create(
+    collection = collection_factory(
         name="Test_test_queries_with_rerank",
         reranker_config=wvc.Configure.Reranker.transformers(),
         vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(),
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
+        ports=(8079, 50050),
+        headers={"X-OpenAI-Api-Key": api_key},
     )
+    if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
+        pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
 
     insert = collection.data.insert_many(
         [{"text": "This is a test"}, {"text": "This is another test"}]
@@ -85,7 +79,7 @@ def test_queries_with_rerank() -> None:
         assert [obj for obj in objects if "another" in obj.properties["text"]][  # type: ignore
             0
         ].metadata.rerank_score > [
-            obj for obj in objects if "another" not in obj.properties["text"]  # type: ignore
+            obj for obj in objects if "another" not in obj.properties["text"]
         ][
             0
         ].metadata.rerank_score
@@ -96,25 +90,16 @@ def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory)
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    # Make specific client so that we can hard code the correct server version and avoid the BC reranking checks
-    client = weaviate.WeaviateClient(
-        connection_params=weaviate.ConnectionParams.from_url(
-            "http://localhost:8079", grpc_port=50050
-        ),
-        additional_headers={"X-OpenAI-Api-Key": api_key},
-        skip_init_checks=True,
-    )
-    # if client._connection._weaviate_version < _ServerVersion(1, 23, 1):
-    #     pytest.skip("GroupBy reranking requires Weaviate 1.23.1 or higher")
-    client._connection._weaviate_version = _ServerVersion(1, 23, 1)
-
-    client.collections.delete("Test_test_queries_with_rerank_and_group_by")
-    collection = client.collections.create(
+    collection = collection_factory(
         name="Test_test_queries_with_rerank_and_group_by",
         reranker_config=wvc.Configure.Reranker.transformers(),
         vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
         properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
+        ports=(8079, 50050),
+        headers={"X-OpenAI-Api-Key": api_key},
     )
+    if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
+        pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
 
     insert = collection.data.insert_many(
         [{"text": "This is a test"}, {"text": "This is another test"}]
