@@ -105,6 +105,8 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__tenant = tenant
 
     def __enter__(self) -> _BatchCollection[Properties]:
+        self._connection.open_async()
+
         self._current_batch = _BatchCollection[Properties](
             connection=self._connection,
             consistency_level=self._consistency_level,

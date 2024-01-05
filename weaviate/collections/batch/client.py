@@ -100,6 +100,8 @@ class _BatchClientWrapper(_BatchWrapper):
         super().__init__(connection, None)
 
     def __enter__(self) -> _BatchClient:
+        self._connection.open_async()
+
         self._current_batch = _BatchClient(
             connection=self._connection,
             consistency_level=self._consistency_level,

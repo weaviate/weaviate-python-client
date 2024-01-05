@@ -1,3 +1,4 @@
+import asyncio
 import time
 from copy import copy
 from typing import List, Optional, Any, cast
@@ -28,7 +29,8 @@ class _BatchWrapper:
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         assert self._current_batch is not None
         self._current_batch.flush()
-        self.__current_batch = None
+
+        self._current_batch = None
 
     def wait_for_vector_indexing(
         self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5

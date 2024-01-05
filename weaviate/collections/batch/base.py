@@ -180,7 +180,6 @@ class _BatchBase:
         self.__max_observed_rate: int = 0
 
         self.__loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
-
         self.__start_bg_thread()
 
     def __start_bg_thread(self) -> None:
@@ -372,6 +371,7 @@ class _BatchBase:
 
         # we are done, shut bg thread down
         self.__shut_background_thread_down.set()
+        asyncio.run(self.__connection.aclose())
         self.__loop.stop()
 
     def _add_object(

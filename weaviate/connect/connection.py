@@ -1,5 +1,6 @@
 """Connection class definition."""
 from __future__ import annotations
+import asyncio
 
 import datetime
 import os
@@ -273,7 +274,7 @@ class Connection:
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
         self._session: Session
-        self._httpx_async_client: httpx.AsyncClient = httpx.AsyncClient()
+        self._httpx_async_client: Optional[httpx.AsyncClient] = None
         self._shutdown_background_event: Optional[Event] = None
 
     def connect(self, skip_init_checks: bool) -> None:
@@ -441,6 +442,20 @@ class Connection:
         )
         demon.start()
 
+    def open_async(self) -> None:
+        if self._httpx_async_client is None:
+            self._httpx_async_client = httpx.AsyncClient()
+        if self._grpc_stub_async is None:
+            grpc_channel_async: Channel | None = self._connection_params._grpc_channel(async_channel=True)
+            assert grpc_channel_async is not None
+            self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(grpc_channel_async)
+
+    async def aclose(self) -> None:
+        if self._httpx_async_client is not None:
+            await self._httpx_async_client.aclose()
+            self._httpx_async_client = None
+            self._grpc_stub_async = None
+
     def close(self) -> None:
         """Shutdown connection class gracefully."""
         # in case an exception happens before definition of these members
@@ -482,6 +497,7 @@ class Connection:
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
     ) -> httpx._models.Response:
+        assert self._httpx_async_client is not None
         r = await self._httpx_async_client.post(
             url=self.url + self._api_version_path + path,
             json=weaviate_object,
@@ -831,10 +847,6 @@ class GRPCConnection(Connection):
             grpc_channel = self._connection_params._grpc_channel(async_channel=False)
             assert grpc_channel is not None
             self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
-
-            grpc_channel_async = self._connection_params._grpc_channel(async_channel=True)
-            assert grpc_channel_async is not None
-            self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(grpc_channel_async)
 
             self._grpc_available = True
             if not skip_init_checks:

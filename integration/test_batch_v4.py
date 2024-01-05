@@ -89,6 +89,19 @@ def client_factory(
         client_fixture.collections.delete(name_fixture)
 
 
+def test_add_object_multiple_batches(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    with client.batch as batch:
+        batch.add_object(collection=name, properties={})
+    with client.batch as batch:
+        batch.add_object(collection=name, properties={})
+    with client.batch as batch:
+        batch.add_object(collection=name, properties={})
+    objs = client.collections.get(name).query.fetch_objects().objects
+    assert len(objs) == 3
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "vector",
     [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],
