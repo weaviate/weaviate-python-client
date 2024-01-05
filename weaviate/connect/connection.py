@@ -24,6 +24,7 @@ from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
     WeaviateGrpcUnavailable,
+    WeaviateStartUpError,
 )
 from weaviate.types import NUMBER
 from weaviate.util import (
@@ -648,13 +649,16 @@ class Connection:
         else:
             request_url = self.url + self._api_version_path + path
 
-        return self._session.get(
-            url=request_url,
-            headers=self._get_request_header(),
-            timeout=self._timeout_config,
-            params=params,
-            proxies=self._proxies,
-        )
+        try:
+            return self._session.get(
+                url=request_url,
+                headers=self._get_request_header(),
+                timeout=self._timeout_config,
+                params=params,
+                proxies=self._proxies,
+            )
+        except requests.exceptions.ConnectionError as e:
+            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e.strerror}.") from e
 
     def head(
         self,

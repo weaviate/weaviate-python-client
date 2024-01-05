@@ -2,6 +2,7 @@ from typing import Generator
 
 import pytest
 from _pytest.fixtures import SubRequest
+from weaviate import WeaviateStartUpError
 
 import weaviate
 from weaviate import Collection
@@ -39,7 +40,7 @@ def test_fail_to_connect_to_unspecified_grpc_port() -> None:
 
 
 def test_fail_to_connect_with_bad_wcs_url() -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+    with pytest.raises(WeaviateStartUpError):
         weaviate.connect_to_wcs(
             WCS_URL + "bad",
             auth_credentials=WCS_CREDS,
@@ -76,7 +77,7 @@ def test_fail_to_connect_with_bad_wcs_url() -> None:
     ],
 )
 def test_fail_to_connect_with_bad_custom_wcs_setup_rest(bad_config: dict) -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+    with pytest.raises(WeaviateStartUpError):
         weaviate.connect_to_custom(**bad_config, auth_credentials=WCS_CREDS)
 
 
@@ -116,7 +117,7 @@ def test_fail_to_connect_with_bad_custom_wcs_setup_grpc(bad_config: dict) -> Non
 
 def test_fail_to_connect_with_bad_custom_wcs_setup_rest_and_grpc() -> None:
     """Test that REST checks take precendence to gRPC checks by throwing REST error rather than gRPC error."""
-    with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+    with pytest.raises(WeaviateStartUpError):
         weaviate.connect_to_custom(
             http_secure=True,
             http_host=WCS_HOST + "bad",
