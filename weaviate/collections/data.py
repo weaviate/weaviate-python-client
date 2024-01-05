@@ -27,7 +27,7 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReference, DataReferenceOneToMany
 from weaviate.collections.classes.internal import (
-    _Object,
+    Object,
     _metadata_from_dict,
     _Reference,
     WeaviateReference,
@@ -542,7 +542,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         super().__init__(connection, name, consistency_level, tenant)
         self.__model = model
 
-    def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model, dict]:
+    def _json_to_object(self, obj: Dict[str, Any]) -> Object[Model, dict]:
         for ref in self.__model.get_ref_fields(self.__model):
             if ref not in obj["properties"]:
                 continue
@@ -562,7 +562,7 @@ class _DataCollectionModel(Generic[Model], _Data):
                 obj["properties"][prop] = None
 
         uuid, vector, metadata = _metadata_from_dict(obj)
-        model_object = _Object[Model, dict](
+        model_object = Object[Model, dict](
             properties=self.__model.model_validate(
                 {
                     **obj["properties"],

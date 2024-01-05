@@ -8,7 +8,7 @@ from weaviate.collections.classes.grpc import (
     Sort,
 )
 from weaviate.collections.classes.internal import (
-    GenerativeReturn,
+    GenerativeReturnType,
     _Generative,
     ReturnProperties,
     ReturnReferences,
@@ -37,7 +37,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
-    ) -> GenerativeReturn[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
 
         Arguments:

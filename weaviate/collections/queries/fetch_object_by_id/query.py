@@ -16,8 +16,8 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import (
-    _ObjectSingleReturn,
-    _MetadataSingleObjectReturn,
+    ObjectSingleReturn,
+    MetadataSingleObjectReturn,
     QuerySingleReturn,
     ReturnProperties,
     ReturnReferences,
@@ -102,18 +102,18 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
             return cast(
                 Union[
                     None,
-                    _ObjectSingleReturn[Properties, References],
-                    _ObjectSingleReturn[Properties, CrossReferences],
-                    _ObjectSingleReturn[Properties, TReferences],
-                    _ObjectSingleReturn[TProperties, References],
-                    _ObjectSingleReturn[TProperties, CrossReferences],
-                    _ObjectSingleReturn[TProperties, TReferences],
+                    ObjectSingleReturn[Properties, References],
+                    ObjectSingleReturn[Properties, CrossReferences],
+                    ObjectSingleReturn[Properties, TReferences],
+                    ObjectSingleReturn[TProperties, References],
+                    ObjectSingleReturn[TProperties, CrossReferences],
+                    ObjectSingleReturn[TProperties, TReferences],
                 ],
-                _ObjectSingleReturn(
+                ObjectSingleReturn(
                     uuid=obj.uuid,
                     vector=obj.vector,
                     properties=obj.properties,
-                    metadata=_MetadataSingleObjectReturn(
+                    metadata=MetadataSingleObjectReturn(
                         creation_time=obj.metadata.creation_time,
                         last_update_time=obj.metadata.last_update_time,
                         is_consistent=obj.metadata.is_consistent,
@@ -125,12 +125,12 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
             return cast(
                 Union[
                     None,
-                    _ObjectSingleReturn[Properties, References],
-                    _ObjectSingleReturn[Properties, CrossReferences],
-                    _ObjectSingleReturn[Properties, TReferences],
-                    _ObjectSingleReturn[TProperties, References],
-                    _ObjectSingleReturn[TProperties, CrossReferences],
-                    _ObjectSingleReturn[TProperties, TReferences],
+                    ObjectSingleReturn[Properties, References],
+                    ObjectSingleReturn[Properties, CrossReferences],
+                    ObjectSingleReturn[Properties, TReferences],
+                    ObjectSingleReturn[TProperties, References],
+                    ObjectSingleReturn[TProperties, CrossReferences],
+                    ObjectSingleReturn[TProperties, TReferences],
                 ],
                 self._get_with_rest(
                     self._name, uuid, include_vector, return_properties, return_references
@@ -144,7 +144,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         include_vector: bool = False,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Optional[_ObjectSingleReturn[Any, Any]]:
+    ) -> Optional[ObjectSingleReturn[Any, Any]]:
         res = self._get_by_id_rest(collection, uuid, include_vector)
         if res is None:
             return None
@@ -237,11 +237,11 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
             if all(ref is None for ref in refs.values()):
                 refs = None
 
-        return _ObjectSingleReturn(
+        return ObjectSingleReturn(
             uuid=uuid_lib.UUID(obj_rest["id"]),
             vector=obj_rest.get("vector", None),
             properties=props,
-            metadata=_MetadataSingleObjectReturn(
+            metadata=MetadataSingleObjectReturn(
                 creation_time=datetime.datetime.fromtimestamp(
                     obj_rest["creationTimeUnix"] / 1000, tz=datetime.timezone.utc
                 ),

@@ -11,7 +11,7 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
-    QueryNearMediaReturn,
+    QueryNearMediaReturnType,
     References,
     TReferences,
 )
@@ -38,7 +38,7 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryNearMediaReturn[Properties, References, TProperties, TReferences]:
+    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects by video in this collection using an video-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
@@ -76,7 +76,7 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `_QueryReturn` object that includes the searched objects.
+            A `QueryReturn` object that includes the searched objects.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:

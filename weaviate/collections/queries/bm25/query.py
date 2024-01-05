@@ -5,7 +5,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import Rerank, METADATA
 from weaviate.collections.classes.internal import (
-    QueryReturn,
+    QueryReturnType,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
@@ -30,7 +30,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryReturn[Properties, References, TProperties, TReferences]:
+    ) -> QueryReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects in this collection using the keyword-based BM25 algorithm.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
@@ -61,7 +61,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
             If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `_QueryReturn` object that includes the searched objects.
+            A `QueryReturn` object that includes the searched objects.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:

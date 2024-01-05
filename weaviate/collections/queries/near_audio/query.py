@@ -12,7 +12,7 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     _QueryOptions,
     References,
-    QueryNearMediaReturn,
+    QueryNearMediaReturnType,
     TReferences,
 )
 from weaviate.collections.classes.types import (
@@ -38,7 +38,7 @@ class _NearAudioQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryNearMediaReturn[Properties, References, TProperties, TReferences]:
+    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects by audio in this collection using an audio-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
@@ -76,8 +76,8 @@ class _NearAudioQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `_QueryReturn` or `_GroupByReturn` object that includes the searched objects.
-            If `group_by` is provided then a `_GroupByReturn` object is returned, otherwise a `_QueryReturn` object is returned.
+            A `QueryReturn` or `_GroupByReturn` object that includes the searched objects.
+            If `group_by` is provided then a `_GroupByReturn` object is returned, otherwise a `QueryReturn` object is returned.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:
