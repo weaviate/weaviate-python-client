@@ -150,7 +150,7 @@ class InvalidDataModelException(WeaviateBaseError):
 
 
 class WeaviateStartUpError(WeaviateBaseError):
-    """Is raised if weaviate does not start up in time."""
+    """Is raised if weaviate is not availabe on the given url+port."""
 
 
 class WeaviateEmbeddedInvalidVersion(WeaviateBaseError):

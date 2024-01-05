@@ -16,7 +16,7 @@ from weaviate import (
     AuthBearerToken,
 )
 from weaviate.auth import AuthApiKey
-from weaviate.exceptions import WeaviateStartUpError, UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 ANON_PORT = 8080
 AZURE_PORT = 8081
@@ -25,7 +25,7 @@ OKTA_PORT_USERS = 8083
 WCS_PORT = 8085
 
 
-def wait_for_weaviate(url: str):
+def wait_for_weaviate(url: str) -> None:
     ready_url = url + "/v1/.well-known/ready"
     for _i in range(5):
         try:
@@ -39,9 +39,7 @@ def wait_for_weaviate(url: str):
         return
     except (RequestsHTTPError, RequestsConnectionError):
         pass
-    raise WeaviateStartUpError(
-        f"Weaviate did not start up in 5 seconds. Either the Weaviate URL {url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
-    )
+    raise ValueError
 
 
 def is_auth_enabled(url: str):

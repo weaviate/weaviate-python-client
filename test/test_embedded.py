@@ -191,7 +191,7 @@ def test_custom_env_vars(tmp_path_factory: pytest.TempPathFactory):
     assert len(meta["modules"]) == 0
 
 
-def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory):
+def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory) -> None:
     """Test that weaviate keeps the state between different runs."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     port = 36545
@@ -204,7 +204,6 @@ def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory):
             additional_env_vars={"GRPC_PORT": "50058"},
             grpc_port=50058,
         ),
-        startup_period=10,
     )
     client.data_object.create({"name": "Name"}, "Person", uuid.uuid4())
     assert sock.connect_ex(("127.0.0.1", port)) == 0  # running
@@ -222,8 +221,7 @@ def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory):
             persistence_data_path=data_path,
             additional_env_vars={"GRPC_PORT": "50059"},
             grpc_port=50059,
-        ),
-        startup_period=10,
+        )
     )
     count = client.query.aggregate("Person").with_meta_count().do()
     assert count["data"]["Aggregate"]["Person"][0]["meta"]["count"] == 1

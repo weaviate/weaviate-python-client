@@ -1,6 +1,4 @@
-"""
-Connection class definition.
-"""
+"""Connection class definition."""
 from __future__ import annotations
 
 import datetime
@@ -14,7 +12,7 @@ import requests
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 from requests.adapters import HTTPAdapter
-from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
+from requests.exceptions import ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
 
@@ -25,12 +23,11 @@ from weaviate.connect.authentication import _Auth
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
-    WeaviateStartUpError,
     WeaviateGrpcUnavailable,
+    WeaviateStartUpError,
 )
 from weaviate.types import NUMBER
 from weaviate.util import (
-    _check_positive_num,
     is_weaviate_domain,
     is_weaviate_too_old,
     is_weaviate_client_too_old,
@@ -192,7 +189,6 @@ class Connection:
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
-        startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
     ):
@@ -224,9 +220,6 @@ class Connection:
         additional_headers : Dict[str, Any] or None
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
-        startup_period : int or None
-            How long the client will wait for weaviate to start before raising a RequestsConnectionError.
-            If None the client will not wait at all.
 
         Raises
         ------
@@ -242,7 +235,6 @@ class Connection:
         self._auth_client_secret = auth_client_secret
         self._connection_params = connection_params
         self._connection_config = connection_config
-        self._startup_period = startup_period
         self._weaviate_version: _ServerVersion
 
         self._grpc_available: bool = False
@@ -275,15 +267,16 @@ class Connection:
         self._shutdown_background_event: Optional[Event] = None
 
     def connect(self, skip_init_checks: bool) -> None:
-        if self._startup_period is not None and not skip_init_checks:
-            _check_positive_num(self._startup_period, "startup_period", int, include_zero=True)
-            self.wait_for_weaviate(self._startup_period)
-
         self._create_sessions(self._auth_client_secret)
         self._add_adapter_to_session(self._connection_config)
 
         if not skip_init_checks:
-            self._server_version = self.get_meta()["version"]
+            # first connection attempt
+            try:
+                self._server_version = self.get_meta()["version"]
+            except requests.exceptions.ConnectionError as e:
+                raise WeaviateStartUpError(f"Could not connect to Weaviate:{e.strerror}.") from e
+
             if self._server_version < "1.14":
                 _Warnings.weaviate_server_older_than_1_14(self._server_version)
             if is_weaviate_too_old(self._server_version):
@@ -741,42 +734,6 @@ class Connection:
     def proxies(self) -> dict:
         return self._proxies
 
-    def wait_for_weaviate(self, startup_period: int) -> None:
-        """
-        Waits until weaviate is ready or the timelimit given in 'startup_period' has passed.
-
-        Parameters
-        ----------
-        startup_period : int
-            Describes how long the client will wait for weaviate to start in seconds.
-
-        Raises
-        ------
-        WeaviateStartUpError
-            If weaviate takes longer than the timelimit to respond.
-        """
-        ready_url = self.url + self._api_version_path + "/.well-known/ready"
-        for _i in range(startup_period):
-            try:
-                requests.get(
-                    ready_url,
-                    headers=self._get_request_header(),
-                    timeout=(1, 5),  # 1s connect, 5s read
-                ).raise_for_status()
-                return
-            except (RequestsHTTPError, RequestsConnectionError):
-                time.sleep(1)
-
-        try:
-            requests.get(
-                ready_url, headers=self._get_request_header(), timeout=(1, 5)  # 1s connect, 5s read
-            ).raise_for_status()
-            return
-        except (RequestsHTTPError, RequestsConnectionError) as error:
-            raise WeaviateStartUpError(
-                f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
-            ) from error
-
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
         return self._grpc_stub
@@ -811,7 +768,6 @@ class GRPCConnection(Connection):
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
-        startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
     ):
@@ -822,7 +778,6 @@ class GRPCConnection(Connection):
             proxies,
             trust_env,
             additional_headers,
-            startup_period,
             connection_config,
             embedded_db,
         )

@@ -7,6 +7,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 from weaviate.backup.backup import _Backup
+from weaviate.warnings import _Warnings
 
 from .auth import AuthCredentials
 from .backup import Backup
@@ -246,7 +247,6 @@ class WeaviateClient(_ClientBase):
             connection_config=config.connection,
             proxies=config.proxies,
             trust_env=config.trust_env,
-            startup_period=config.startup_period,
         )
         self._connection.connect(skip_init_checks)
 
@@ -352,7 +352,7 @@ class Client(_ClientBase):
         proxies: Union[dict, str, None] = None,
         trust_env: bool = False,
         additional_headers: Optional[dict] = None,
-        startup_period: Optional[int] = 5,
+        startup_period: Optional[int] = None,
         embedded_options: Optional[EmbeddedOptions] = None,
         additional_config: Optional[Config] = None,
     ) -> None:
@@ -392,8 +392,7 @@ class Client(_ClientBase):
                 {"X-OpenAI-Api-Key": "<THE-KEY>"}, {"X-HuggingFace-Api-Key": "<THE-KEY>"}
             by default None
         startup_period : int or None
-            How long the client will wait for Weaviate to start before raising a RequestsConnectionError.
-            If None, the client won't wait at all. Default timeout is 5s.
+            deprecated, has no effect
         embedded_options : weaviate.embedded.EmbeddedOptions or None, optional
             Create an embedded Weaviate cluster inside the client
             - You can pass weaviate.embedded.EmbeddedOptions() with default values
@@ -411,6 +410,9 @@ class Client(_ClientBase):
             url, config.grpc_port_experimental, embedded_options
         )
 
+        if startup_period is not None:
+            _Warnings.startup_period_deprecated()
+
         self._connection = Connection(
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
@@ -418,7 +420,6 @@ class Client(_ClientBase):
             proxies=proxies,
             trust_env=trust_env,
             additional_headers=additional_headers,
-            startup_period=startup_period,
             embedded_db=embedded_db,
             connection_config=config.connection_config,
         )
