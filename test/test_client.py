@@ -41,7 +41,6 @@ class TestClient(unittest.TestCase):
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 additional_headers=None,
-                startup_period=None,
             )
             mock_obj.assert_called_with(
                 connection_params=ConnectionParams(
@@ -56,7 +55,6 @@ class TestClient(unittest.TestCase):
                 proxies=None,
                 trust_env=False,
                 additional_headers=None,
-                startup_period=None,
                 embedded_db=None,
                 connection_config=ConnectionConfig(),
             )
@@ -70,7 +68,6 @@ class TestClient(unittest.TestCase):
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 additional_headers={"Test": True},
-                startup_period=None,
             )
             mock_obj.assert_called_with(
                 connection_params=ConnectionParams(
@@ -85,7 +82,6 @@ class TestClient(unittest.TestCase):
                 proxies=None,
                 trust_env=False,
                 additional_headers={"Test": True},
-                startup_period=None,
                 embedded_db=None,
                 connection_config=ConnectionConfig(),
             )
@@ -98,7 +94,6 @@ class TestClient(unittest.TestCase):
                 url="http://localhost:8080",
                 auth_client_secret=None,
                 timeout_config=(5, 20),
-                startup_period=None,
             )
             mock_obj.assert_called_with(
                 connection_params=ConnectionParams(
@@ -113,7 +108,6 @@ class TestClient(unittest.TestCase):
                 proxies=None,
                 trust_env=False,
                 additional_headers=None,
-                startup_period=None,
                 embedded_db=None,
                 connection_config=ConnectionConfig(),
             )
@@ -129,7 +123,6 @@ class TestClient(unittest.TestCase):
                 proxies={"http": "test"},
                 trust_env=True,
                 additional_headers=None,
-                startup_period=None,
             )
             mock_obj.assert_called_with(
                 connection_params=ConnectionParams(
@@ -144,7 +137,6 @@ class TestClient(unittest.TestCase):
                 proxies={"http": "test"},
                 trust_env=True,
                 additional_headers=None,
-                startup_period=None,
                 embedded_db=None,
                 connection_config=ConnectionConfig(),
             )
