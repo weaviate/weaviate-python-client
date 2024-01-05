@@ -3,9 +3,10 @@ from typing import Generic, List, Literal, Optional, Type, overload
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Rerank
+from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
-    _GenerativeReturn,
+    _GenerativeQueryReturn,
+    _GenerativeGroupByReturn,
     References,
     TReferences,
     CrossReferences,
@@ -19,6 +20,7 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
     def near_object(
         self,
         near_object: UUID,
+        *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -27,17 +29,18 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _GenerativeReturn[Properties, References]: ...
+    ) -> _GenerativeQueryReturn[Properties, References]: ...
     @overload
     def near_object(
         self,
         near_object: UUID,
+        *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -46,17 +49,18 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GenerativeReturn[Properties, CrossReferences]: ...
+    ) -> _GenerativeQueryReturn[Properties, CrossReferences]: ...
     @overload
     def near_object(
         self,
         near_object: UUID,
+        *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -65,17 +69,18 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _GenerativeReturn[Properties, TReferences]: ...
+    ) -> _GenerativeQueryReturn[Properties, TReferences]: ...
     @overload
     def near_object(
         self,
         near_object: UUID,
+        *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -84,17 +89,18 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _GenerativeReturn[TProperties, References]: ...
+    ) -> _GenerativeQueryReturn[TProperties, References]: ...
     @overload
     def near_object(
         self,
         near_object: UUID,
+        *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -103,17 +109,18 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GenerativeReturn[TProperties, CrossReferences]: ...
+    ) -> _GenerativeQueryReturn[TProperties, CrossReferences]: ...
     @overload
     def near_object(
         self,
         near_object: UUID,
+        *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -122,10 +129,131 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _GenerativeReturn[TProperties, TReferences]: ...
+    ) -> _GenerativeQueryReturn[TProperties, TReferences]: ...
+    ### GroupBy ###
+    @overload
+    def near_object(
+        self,
+        near_object: UUID,
+        *,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Literal[None] = None,
+    ) -> _GenerativeGroupByReturn[Properties, References]: ...
+    @overload
+    def near_object(
+        self,
+        near_object: UUID,
+        *,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES,
+    ) -> _GenerativeGroupByReturn[Properties, CrossReferences]: ...
+    @overload
+    def near_object(
+        self,
+        near_object: UUID,
+        *,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences],
+    ) -> _GenerativeGroupByReturn[Properties, TReferences]: ...
+    @overload
+    def near_object(
+        self,
+        near_object: UUID,
+        *,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Type[TProperties],
+        return_references: Literal[None] = None,
+    ) -> _GenerativeGroupByReturn[TProperties, References]: ...
+    @overload
+    def near_object(
+        self,
+        near_object: UUID,
+        *,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Type[TProperties],
+        return_references: REFERENCES,
+    ) -> _GenerativeGroupByReturn[TProperties, CrossReferences]: ...
+    @overload
+    def near_object(
+        self,
+        near_object: UUID,
+        *,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        limit: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: GroupBy,
+        rerank: Optional[Rerank] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences],
+    ) -> _GenerativeGroupByReturn[TProperties, TReferences]: ...

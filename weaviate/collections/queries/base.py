@@ -23,13 +23,18 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.internal import (
     _GroupByObject,
     _MetadataReturn,
+    _GroupByMetadataReturn,
     _GenerativeObject,
     _Object,
+    _GroupedObject,
     _extract_properties_from_data_model,
     _extract_references_from_data_model,
-    _GenerativeReturn,
-    _GroupByResult,
+    GenerativeReturn,
+    _GenerativeQueryReturn,
+    _GenerativeGroupByReturn,
     _GroupByReturn,
+    _Group,
+    _GenerativeGroup,
     _QueryReturn,
     _QueryOptions,
     ReturnProperties,
@@ -44,7 +49,7 @@ from weaviate.collections.classes.types import (
     Properties,
     TProperties,
 )
-from weaviate.collections.grpc.query import _QueryGRPC, GroupByResult, SearchResponse
+from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
@@ -116,6 +121,15 @@ class _BaseQuery(Generic[Properties, References]):
             explain_score=add_props.explain_score if add_props.explain_score_present else None,
             is_consistent=add_props.is_consistent if add_props.is_consistent_present else None,
             rerank_score=add_props.rerank_score if add_props.rerank_score_present else None,
+        )
+        return meta
+
+    def __extract_metadata_for_group_by_object(
+        self,
+        add_props: "search_get_pb2.MetadataResult",
+    ) -> _GroupByMetadataReturn:
+        meta = _GroupByMetadataReturn(
+            distance=add_props.distance if add_props.distance_present else None,
         )
         return meta
 
@@ -339,23 +353,70 @@ class _BaseQuery(Generic[Properties, References]):
 
     def __result_to_group(
         self,
-        res: GroupByResult,
+        res: search_get_pb2.GroupByResult,
         options: _QueryOptions,
-    ) -> _GroupByResult[Any, Any]:
-        return _GroupByResult(
+    ) -> _Group[Any, Any]:
+        return _Group(
             objects=[
-                self.__result_to_query_object(obj.properties, obj.metadata, options)
+                self.__result_to_group_by_object(obj.properties, obj.metadata, options)
                 for obj in res.objects
             ],
             name=res.name,
             number_of_objects=res.number_of_objects,
             min_distance=res.min_distance,
             max_distance=res.max_distance,
+            rerank_score=res.rerank.score if res.rerank is not None else None,
+        )
+
+    def __result_to_generative_group(
+        self,
+        res: search_get_pb2.GroupByResult,
+        options: _QueryOptions,
+    ) -> _GenerativeGroup[Any, Any]:
+        return _GenerativeGroup(
+            objects=[
+                self.__result_to_group_by_object(obj.properties, obj.metadata, options)
+                for obj in res.objects
+            ],
+            name=res.name,
+            number_of_objects=res.number_of_objects,
+            min_distance=res.min_distance,
+            max_distance=res.max_distance,
+            rerank_score=res.rerank.score if res.rerank is not None else None,
+            generated=res.generative.result if res.generative is not None else None,
+        )
+
+    def __result_to_group_by_object(
+        self,
+        props: search_get_pb2.PropertiesResult,
+        meta: search_get_pb2.MetadataResult,
+        options: _QueryOptions,
+    ) -> _GroupedObject[Any, Any]:
+        return _GroupedObject(
+            properties=(
+                self.__parse_nonref_properties_result(props.non_ref_props)
+                if self._is_weaviate_version_123
+                else self.__parse_nonref_properties_result_122(props)
+            )
+            if options.include_properties
+            else {},
+            metadata=self.__extract_metadata_for_group_by_object(meta)
+            if options.include_metadata
+            else _GroupByMetadataReturn(),
+            references=(
+                self.__parse_ref_properties_result(props.ref_props)
+                if self._is_weaviate_version_123
+                else self.__parse_ref_properties_result_122(props)
+            )
+            if options.include_references
+            else None,
+            uuid=self.__extract_id_for_object(meta),
+            vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
         )
 
     def _result_to_query_return(
         self,
-        res: SearchResponse,
+        res: search_get_pb2.SearchReply,
         options: _QueryOptions,
         properties: Optional[
             ReturnProperties[TProperties]
@@ -378,9 +439,9 @@ class _BaseQuery(Generic[Properties, References]):
             ]
         )
 
-    def _result_to_generative_return(
+    def _result_to_generative_query_return(
         self,
-        res: SearchResponse,
+        res: search_get_pb2.SearchReply,
         options: _QueryOptions,
         properties: Optional[
             ReturnProperties[TProperties]
@@ -389,14 +450,14 @@ class _BaseQuery(Generic[Properties, References]):
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> Union[
-        _GenerativeReturn[Properties, References],
-        _GenerativeReturn[Properties, CrossReferences],
-        _GenerativeReturn[Properties, TReferences],
-        _GenerativeReturn[TProperties, References],
-        _GenerativeReturn[TProperties, CrossReferences],
-        _GenerativeReturn[TProperties, TReferences],
+        _GenerativeQueryReturn[Properties, References],
+        _GenerativeQueryReturn[Properties, CrossReferences],
+        _GenerativeQueryReturn[Properties, TReferences],
+        _GenerativeQueryReturn[TProperties, References],
+        _GenerativeQueryReturn[TProperties, CrossReferences],
+        _GenerativeQueryReturn[TProperties, TReferences],
     ]:
-        return _GenerativeReturn(
+        return _GenerativeQueryReturn(
             objects=[
                 self.__result_to_generative_object(obj.properties, obj.metadata, options)
                 for obj in res.results
@@ -406,9 +467,26 @@ class _BaseQuery(Generic[Properties, References]):
             else None,
         )
 
+    def _result_to_generative_return(
+        self,
+        res: search_get_pb2.SearchReply,
+        options: _QueryOptions,
+        properties: Optional[
+            ReturnProperties[TProperties]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
+        references: Optional[
+            ReturnReferences[TReferences]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
+    ) -> GenerativeReturn[Properties, References, TProperties, TReferences]:
+        return (
+            self._result_to_generative_query_return(res, options, properties, references)
+            if options.is_group_by is False
+            else self._result_to_generative_groupby_return(res, options, properties, references)
+        )
+
     def _result_to_groupby_return(
         self,
-        res: SearchResponse,
+        res: search_get_pb2.SearchReply,
         options: _QueryOptions,
         properties: Optional[
             ReturnProperties[TProperties]
@@ -439,18 +517,53 @@ class _BaseQuery(Generic[Properties, References]):
             for group in groups.values()
             for obj in group.objects
         ]
-        return_ = _GroupByReturn(objects=objects_group_by, groups=groups)
-        return cast(
-            Union[
-                _GroupByReturn[Properties, TReferences],
-                _GroupByReturn[TProperties, TReferences],
-            ],
-            return_,
+        return _GroupByReturn(objects=objects_group_by, groups=groups)
+
+    def _result_to_generative_groupby_return(
+        self,
+        res: search_get_pb2.SearchReply,
+        options: _QueryOptions,
+        properties: Optional[
+            ReturnProperties[TProperties]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
+        references: Optional[
+            ReturnReferences[TReferences]
+        ],  # required until 3.12 is minimum supported version to use new generics syntax
+    ) -> Union[
+        _GenerativeGroupByReturn[Properties, References],
+        _GenerativeGroupByReturn[Properties, CrossReferences],
+        _GenerativeGroupByReturn[Properties, TReferences],
+        _GenerativeGroupByReturn[TProperties, References],
+        _GenerativeGroupByReturn[TProperties, CrossReferences],
+        _GenerativeGroupByReturn[TProperties, TReferences],
+    ]:
+        groups = {
+            group.name: self.__result_to_generative_group(group, options)
+            for group in res.group_by_results
+        }
+        objects_group_by: List[_GroupByObject] = [
+            _GroupByObject(
+                properties=obj.properties,
+                references=obj.references,
+                metadata=obj.metadata,
+                belongs_to_group=group.name,
+                uuid=obj.uuid,
+                vector=obj.vector,
+            )
+            for group in groups.values()
+            for obj in group.objects
+        ]
+        return _GenerativeGroupByReturn(
+            objects=objects_group_by,
+            groups=groups,
+            generated=res.generative_grouped_result
+            if res.generative_grouped_result != ""
+            else None,
         )
 
     def _result_to_query_or_groupby_return(
         self,
-        res: SearchResponse,
+        res: search_get_pb2.SearchReply,
         options: _QueryOptions,
         properties: Optional[
             ReturnProperties[TProperties]

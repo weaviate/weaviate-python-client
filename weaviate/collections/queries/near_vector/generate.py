@@ -1,17 +1,17 @@
-from typing import Generic, List, Optional, Union
+from typing import Generic, List, Optional
 
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, Rerank
+from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
     _Generative,
-    _GenerativeReturn,
+    GenerativeReturn,
+    _GroupBy,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
     References,
-    CrossReferences,
     TReferences,
 )
 from weaviate.collections.classes.types import (
@@ -25,6 +25,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     def near_vector(
         self,
         near_vector: List[float],
+        *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -33,20 +34,13 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Union[
-        _GenerativeReturn[Properties, References],
-        _GenerativeReturn[Properties, CrossReferences],
-        _GenerativeReturn[Properties, TReferences],
-        _GenerativeReturn[TProperties, References],
-        _GenerativeReturn[TProperties, CrossReferences],
-        _GenerativeReturn[TProperties, TReferences],
-    ]:
+    ) -> GenerativeReturn[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-vector object search in this collection using vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/similarity) for a more detailed explanation.
@@ -92,6 +86,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
             certainty=certainty,
             distance=distance,
             filters=filters,
+            group_by=_GroupBy.from_input(group_by),
             generative=_Generative(
                 single=single_prompt,
                 grouped=grouped_task,
@@ -113,6 +108,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
                 self._references,
                 return_references,
                 rerank,
+                group_by,
             ),
             return_properties,
             return_references,

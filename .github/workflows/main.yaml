@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview-add-support-for-returning-blob-properties-in-grpc-queries-d566dd6
+  NEW_WEAVIATE_VERSION: preview-grpc-support-groupby-with-gen-and-rerank-65fdf17
 
 jobs:
   lint-and-format:

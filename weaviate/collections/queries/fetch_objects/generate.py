@@ -8,14 +8,13 @@ from weaviate.collections.classes.grpc import (
     Sort,
 )
 from weaviate.collections.classes.internal import (
-    _GenerativeReturn,
+    GenerativeQueryReturn,
     _Generative,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
     References,
     TReferences,
-    CrossReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
@@ -38,14 +37,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
-    ) -> Union[
-        _GenerativeReturn[Properties, References],
-        _GenerativeReturn[Properties, CrossReferences],
-        _GenerativeReturn[Properties, TReferences],
-        _GenerativeReturn[TProperties, References],
-        _GenerativeReturn[TProperties, CrossReferences],
-        _GenerativeReturn[TProperties, TReferences],
-    ]:
+    ) -> GenerativeQueryReturn[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
 
         Arguments:

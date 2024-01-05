@@ -5,15 +5,15 @@ from typing import Generic, List, Optional, Union
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, Rerank
+from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
     _Generative,
-    _GenerativeReturn,
+    _GroupBy,
+    GenerativeReturn,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
     References,
-    CrossReferences,
     TReferences,
 )
 from weaviate.collections.classes.types import (
@@ -27,6 +27,7 @@ class _NearImageGenerate(Generic[Properties, References], _BaseQuery[Properties,
     def near_image(
         self,
         near_image: Union[str, Path, BufferedReader],
+        *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -35,20 +36,13 @@ class _NearImageGenerate(Generic[Properties, References], _BaseQuery[Properties,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
-        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Union[
-        _GenerativeReturn[Properties, References],
-        _GenerativeReturn[Properties, CrossReferences],
-        _GenerativeReturn[Properties, TReferences],
-        _GenerativeReturn[TProperties, References],
-        _GenerativeReturn[TProperties, CrossReferences],
-        _GenerativeReturn[TProperties, TReferences],
-    ]:
+    ) -> GenerativeReturn[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-image object search in this collection using an image-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/image) for a more detailed explanation.
@@ -97,6 +91,7 @@ class _NearImageGenerate(Generic[Properties, References], _BaseQuery[Properties,
             certainty=certainty,
             distance=distance,
             filters=filters,
+            group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
             generative=_Generative(
                 single=single_prompt,
@@ -118,6 +113,7 @@ class _NearImageGenerate(Generic[Properties, References], _BaseQuery[Properties,
                 self._references,
                 return_references,
                 rerank,
+                group_by,
             ),
             return_properties,
             return_references,
