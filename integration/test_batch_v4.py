@@ -89,13 +89,27 @@ def client_factory(
         client_fixture.collections.delete(name_fixture)
 
 
-def test_add_object_multiple_batches(client_factory: ClientFactory) -> None:
+def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
     client, name = client_factory()
     with client.batch as batch:
         batch.add_object(collection=name, properties={})
     with client.batch as batch:
         batch.add_object(collection=name, properties={})
     with client.batch as batch:
+        batch.add_object(collection=name, properties={})
+    objs = client.collections.get(name).query.fetch_objects().objects
+    assert len(objs) == 3
+
+
+def test_flushing(client_factory: ClientFactory) -> None:
+    """Test that batch is working normally after flushing."""
+    client, name = client_factory()
+    with client.batch as batch:
+        batch.add_object(collection=name, properties={})
+        batch.flush()
+        objs = client.collections.get(name).query.fetch_objects().objects
+        assert len(objs) == 1
+        batch.add_object(collection=name, properties={})
         batch.add_object(collection=name, properties={})
     objs = client.collections.get(name).query.fetch_objects().objects
     assert len(objs) == 3

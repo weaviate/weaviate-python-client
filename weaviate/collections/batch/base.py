@@ -362,6 +362,7 @@ class _BatchBase:
         self.__active_requests_lock.release()
 
     def flush(self) -> None:
+        """Flush the batch queue and wait for all requests to be finished."""
         # bg thread is sending objs+refs automatically, so simply wait for everything to be done
         while (
             self.__active_requests > 0
@@ -370,7 +371,11 @@ class _BatchBase:
         ):
             time.sleep(0.01)
 
-        # we are done, shut bg thread down
+    def _shutdown(self) -> None:
+        """Shutdown the current batch and wait for all requests to be finished."""
+        self.flush()
+
+        # we are done, shut bg threads down and end the event loop
         self.__shut_background_thread_down.set()
         asyncio.run(self.__connection.aclose())
         self.__loop.stop()

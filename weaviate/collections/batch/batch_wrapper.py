@@ -25,11 +25,19 @@ class _BatchWrapper:
 
         self._batch_data = _BatchDataWrapper()
 
+    def _open_async_connection(self) -> None:
+        try:
+            self.__loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self.__loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.__loop)
+
+        self._connection.open_async()
+
     # enter is in inherited classes
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         assert self._current_batch is not None
-        self._current_batch.flush()
-
+        self._current_batch._shutdown()
         self._current_batch = None
 
     def wait_for_vector_indexing(

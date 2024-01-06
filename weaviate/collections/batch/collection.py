@@ -105,7 +105,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__tenant = tenant
 
     def __enter__(self) -> _BatchCollection[Properties]:
-        self._connection.open_async()
+        self._open_async_connection()
 
         self._current_batch = _BatchCollection[Properties](
             connection=self._connection,
@@ -122,8 +122,6 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self,
         batch_size: int = 100,
         concurrent_requests: int = 2,
-        # retry_failed_objects: bool = False,  # disable temporarily for causing endless loops
-        # retry_failed_references: bool = False,
     ) -> None:
         """Configure fixed size batches. Note that the default is dynamic batching.
 
@@ -135,10 +133,6 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
             `concurrent_requests`
                 The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate and not the speed of batch creation within Python.
-            `retry_failed_objects`
-                Whether to retry failed objects or not. If not provided, the default value is False.
-            `retry_failed_references`
-                Whether to retry failed references or not. If not provided, the default value is False.
         """
         self._batch_size = batch_size
         self._concurrent_requests = concurrent_requests

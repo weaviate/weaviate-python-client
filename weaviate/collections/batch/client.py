@@ -1,4 +1,3 @@
-import asyncio
 from typing import Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase
@@ -6,7 +5,6 @@ from weaviate.collections.batch.batch_wrapper import _BatchWrapper
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.connect import Connection
 from weaviate.types import UUID
 
 
@@ -97,17 +95,8 @@ class _BatchClient(_BatchBase):
 
 
 class _BatchClientWrapper(_BatchWrapper):
-    def __init__(self, connection: Connection) -> None:
-        super().__init__(connection, None)
-
     def __enter__(self) -> _BatchClient:
-        try:
-            self.__loop = asyncio.get_running_loop()
-        except RuntimeError:
-            self.__loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.__loop)
-
-        self._connection.open_async()
+        self._open_async_connection()
 
         self._current_batch = _BatchClient(
             connection=self._connection,
@@ -118,12 +107,7 @@ class _BatchClientWrapper(_BatchWrapper):
         )
         return self._current_batch
 
-    def configure(
-        self,
-        consistency_level: Optional[ConsistencyLevel] = None,
-        # retry_failed_objects: bool = False,  # disable temporarily for causing endless loops
-        # retry_failed_references: bool = False,
-    ) -> None:
+    def configure(self, consistency_level: Optional[ConsistencyLevel] = None) -> None:
         """Configure dynamic batching.
 
         Arguments:
@@ -137,8 +121,6 @@ class _BatchClientWrapper(_BatchWrapper):
         batch_size: int = 100,
         concurrent_requests: int = 2,
         consistency_level: Optional[ConsistencyLevel] = None,
-        # retry_failed_objects: bool = False,  # disable temporarly for causing endless loops
-        # retry_failed_references: bool = False,
     ) -> None:
         """Configure fixed size batches. Note that the default is dynamic batching.
 
@@ -150,13 +132,7 @@ class _BatchClientWrapper(_BatchWrapper):
             `concurrent_requests`
                 The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate and not the speed of batch creation within Python.
-            `retry_failed_objects`
-                Whether to retry failed objects or not. If not provided, the default value is False.
-            `retry_failed_references`
-                Whether to retry failed references or not. If not provided, the default value is False.
         """
         self._batch_size = batch_size
         self._consistency_level = consistency_level
         self._concurrent_requests = concurrent_requests
-        # self.__retry_failed_objects = retry_failed_objects
-        # self.__retry_failed_references = retry_failed_references
