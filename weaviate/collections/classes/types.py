@@ -4,7 +4,7 @@ import uuid as uuid_package
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Type, Union, get_origin
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from weaviate.exceptions import InvalidDataModelException
 
@@ -20,7 +20,41 @@ class GeoCoordinate(_WeaviateInput):
     longitude: float
 
     def _to_dict(self) -> Dict[str, float]:
-        return {"latitude": self.latitude, "longitude": self.longitude}
+        return self.model_dump(exclude_none=True)
+
+
+class _PhoneNumberBase(_WeaviateInput):
+    number: str
+
+
+class PhoneNumber(_PhoneNumberBase):
+    """Input for the phone number datatype.
+
+    `default_country` should correspond to the ISO 3166-1 alpha-2 country code.
+    This is used to figure out the correct countryCode and international format if only a national number (e.g. 0123 4567) is provided.
+    """
+
+    default_country: Optional["ISOCountryCode"] = Field(default=None)
+
+    def _to_dict(self) -> Dict[str, str]:
+        out = {"input": self.number}
+        if self.default_country is not None:
+            out["defaultCountry"] = self.default_country
+        return out
+
+
+class _PhoneNumber(_PhoneNumberBase):
+    """Output for the phone number datatype."""
+
+    country_code: int
+    default_country: str
+    international_formatted: str
+    national: int
+    national_formatted: str
+    valid: bool
+
+
+PhoneNumberType: TypeAlias = _PhoneNumber
 
 
 WeaviateField: TypeAlias = Union[
@@ -32,6 +66,7 @@ WeaviateField: TypeAlias = Union[
     datetime.datetime,  # date
     uuid_package.UUID,  # uuid
     GeoCoordinate,  # geoCoordinates
+    Union[PhoneNumber, PhoneNumberType],  # phoneNumber
     Mapping[str, "WeaviateField"],  # object
     List[str],  # text[]
     List[bool],  # boolean[]
@@ -100,3 +135,256 @@ def _check_properties_generic(properties: Optional[Type[Properties]]) -> None:
         and not is_typeddict(properties)
     ):
         raise InvalidDataModelException("properties")
+
+
+ISOCountryCode = Literal[
+    "AD",
+    "AE",
+    "AF",
+    "AG",
+    "AI",
+    "AL",
+    "AM",
+    "AO",
+    "AQ",
+    "AR",
+    "AS",
+    "AT",
+    "AU",
+    "AW",
+    "AX",
+    "AZ",
+    "BA",
+    "BB",
+    "BD",
+    "BE",
+    "BF",
+    "BG",
+    "BH",
+    "BI",
+    "BJ",
+    "BL",
+    "BM",
+    "BN",
+    "BO",
+    "BQ",
+    "BR",
+    "BS",
+    "BT",
+    "BV",
+    "BW",
+    "BY",
+    "BZ",
+    "CA",
+    "CC",
+    "CD",
+    "CF",
+    "CG",
+    "CH",
+    "CI",
+    "CK",
+    "CL",
+    "CM",
+    "CN",
+    "CO",
+    "CR",
+    "CU",
+    "CV",
+    "CW",
+    "CX",
+    "CY",
+    "CZ",
+    "DE",
+    "DJ",
+    "DK",
+    "DM",
+    "DO",
+    "DZ",
+    "EC",
+    "EE",
+    "EG",
+    "EH",
+    "ER",
+    "ES",
+    "ET",
+    "FI",
+    "FJ",
+    "FK",
+    "FM",
+    "FO",
+    "FR",
+    "GA",
+    "GB",
+    "GD",
+    "GE",
+    "GF",
+    "GG",
+    "GH",
+    "GI",
+    "GL",
+    "GM",
+    "GN",
+    "GP",
+    "GQ",
+    "GR",
+    "GS",
+    "GT",
+    "GU",
+    "GW",
+    "GY",
+    "HK",
+    "HM",
+    "HN",
+    "HR",
+    "HT",
+    "HU",
+    "ID",
+    "IE",
+    "IL",
+    "IM",
+    "IN",
+    "IO",
+    "IQ",
+    "IR",
+    "IS",
+    "IT",
+    "JE",
+    "JM",
+    "JO",
+    "JP",
+    "KE",
+    "KG",
+    "KH",
+    "KI",
+    "KM",
+    "KN",
+    "KP",
+    "KR",
+    "KW",
+    "KY",
+    "KZ",
+    "LA",
+    "LB",
+    "LC",
+    "LI",
+    "LK",
+    "LR",
+    "LS",
+    "LT",
+    "LU",
+    "LV",
+    "LY",
+    "MA",
+    "MC",
+    "MD",
+    "ME",
+    "MF",
+    "MG",
+    "MH",
+    "MK",
+    "ML",
+    "MM",
+    "MN",
+    "MO",
+    "MP",
+    "MQ",
+    "MR",
+    "MS",
+    "MT",
+    "MU",
+    "MV",
+    "MW",
+    "MX",
+    "MY",
+    "MZ",
+    "NA",
+    "NC",
+    "NE",
+    "NF",
+    "NG",
+    "NI",
+    "NL",
+    "NO",
+    "NP",
+    "NR",
+    "NU",
+    "NZ",
+    "OM",
+    "PA",
+    "PE",
+    "PF",
+    "PG",
+    "PH",
+    "PK",
+    "PL",
+    "PM",
+    "PN",
+    "PR",
+    "PS",
+    "PT",
+    "PW",
+    "PY",
+    "QA",
+    "RE",
+    "RO",
+    "RS",
+    "RU",
+    "RW",
+    "SA",
+    "SB",
+    "SC",
+    "SD",
+    "SE",
+    "SG",
+    "SH",
+    "SI",
+    "SJ",
+    "SK",
+    "SL",
+    "SM",
+    "SN",
+    "SO",
+    "SR",
+    "SS",
+    "ST",
+    "SV",
+    "SX",
+    "SY",
+    "SZ",
+    "TC",
+    "TD",
+    "TF",
+    "TG",
+    "TH",
+    "TJ",
+    "TK",
+    "TL",
+    "TM",
+    "TN",
+    "TO",
+    "TR",
+    "TT",
+    "TV",
+    "TW",
+    "TZ",
+    "UA",
+    "UG",
+    "UM",
+    "US",
+    "UY",
+    "UZ",
+    "VA",
+    "VC",
+    "VE",
+    "VG",
+    "VI",
+    "VN",
+    "VU",
+    "WF",
+    "WS",
+    "YE",
+    "YT",
+    "ZA",
+    "ZM",
+    "ZW",
+]

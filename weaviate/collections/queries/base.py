@@ -46,6 +46,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import (
     GeoCoordinate,
+    _PhoneNumber,
     Properties,
     TProperties,
 )
@@ -189,6 +190,16 @@ class _BaseQuery(Generic[Properties, References]):
             )
         if value.HasField("blob_value"):
             return value.blob_value
+        if value.HasField("phone_number_value"):
+            return _PhoneNumber(
+                country_code=value.phone_number_value.country_code,
+                default_country=value.phone_number_value.default_country,
+                international_formatted=value.phone_number_value.international_formatted,
+                national=value.phone_number_value.national,
+                national_formatted=value.phone_number_value.national_formatted,
+                number=value.phone_number_value.input,
+                valid=value.phone_number_value.valid,
+            )
         return value
 
     def __parse_nonref_properties_result(

@@ -38,6 +38,7 @@ from weaviate.collections.classes.orm import (
 )
 from weaviate.collections.classes.types import (
     GeoCoordinate,
+    PhoneNumber,
     Properties,
     TProperties,
     _check_properties_generic,
@@ -270,6 +271,8 @@ class _Data:
         if isinstance(value, list):
             return [self.__serialize_primitive(val) for val in value]
         if isinstance(value, GeoCoordinate):
+            return value._to_dict()
+        if isinstance(value, PhoneNumber):
             return value._to_dict()
         return value
 

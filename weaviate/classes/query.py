@@ -13,6 +13,7 @@ from weaviate.collections.classes.grpc import (
     Rerank,
     Sort,
 )
+from weaviate.collections.classes.types import PhoneNumberType
 
 
 __all__ = [
@@ -25,6 +26,7 @@ __all__ = [
     "HybridFusion",
     "MetadataQuery",
     "Move",
+    "PhoneNumberType",
     "QueryNested",
     "QueryReference",
     "QueryReferenceMultiTarget",

@@ -34,7 +34,7 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.internal import _CrossReference, Reference, _Object
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
-from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
     WeaviateQueryException,
     WeaviateInsertInvalidPropertyError,
@@ -1635,3 +1635,22 @@ def test_collection_shards(collection_factory: CollectionFactory) -> None:
     assert shards[0].collection == collection.name
     assert shards[0].name is not None
     assert shards[0].object_count == 0
+
+
+def test_return_phone_number_property(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="phone", data_type=DataType.PHONE_NUMBER),
+        ]
+    )
+    uuid = collection.data.insert(
+        {"phone": PhoneNumber(default_country="GB", number="02070354848")}
+    )
+    collection.data.insert_many(
+        [{"phone": PhoneNumber(default_country="GB", number="02070354848")}]
+    )
+    obj = collection.query.fetch_object_by_id(uuid, return_properties=["phone"])
+    objs = collection.query.fetch_objects(return_properties=["phone"]).objects
+    assert len(objs) == 2
+    assert obj.properties["phone"].number == "02070354848"
+    assert objs[0].properties["phone"].number == "02070354848"
