@@ -41,7 +41,7 @@ from weaviate.exceptions import (
     WeaviateInsertManyAllFailedError,
 )
 from weaviate.types import UUID
-from weaviate.util import parse_version_string
+from weaviate.util import parse_version_string, _ServerVersion
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
@@ -1643,6 +1643,10 @@ def test_return_phone_number_property(collection_factory: CollectionFactory) -> 
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
         ]
     )
+    if collection._connection._weaviate_version < _ServerVersion(
+        1, 23, 2
+    ):  # TODO: change to 1.23.3 when it is released
+        pytest.skip("Phone number properties are only supported on Weaviate >= 1.23.3")
     uuid = collection.data.insert(
         {"phone": PhoneNumber(default_country="GB", number="02070354848")}
     )
