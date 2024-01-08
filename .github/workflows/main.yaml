@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview-hotfix-regressions-with-gql-resp-mapping-in-grpc-api-5473659
+  NEW_WEAVIATE_VERSION: 1.23.2
 
 jobs:
   lint-and-format:
