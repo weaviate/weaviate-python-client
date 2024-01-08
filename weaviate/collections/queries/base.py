@@ -190,15 +190,15 @@ class _BaseQuery(Generic[Properties, References]):
             )
         if value.HasField("blob_value"):
             return value.blob_value
-        if value.HasField("phone_number_value"):
+        if value.HasField("phone_value"):
             return _PhoneNumber(
-                country_code=value.phone_number_value.country_code,
-                default_country=value.phone_number_value.default_country,
-                international_formatted=value.phone_number_value.international_formatted,
-                national=value.phone_number_value.national,
-                national_formatted=value.phone_number_value.national_formatted,
-                number=value.phone_number_value.input,
-                valid=value.phone_number_value.valid,
+                country_code=value.phone_value.country_code,
+                default_country=value.phone_value.default_country,
+                international_formatted=value.phone_value.international_formatted,
+                national=value.phone_value.national,
+                national_formatted=value.phone_value.national_formatted,
+                number=value.phone_value.input,
+                valid=value.phone_value.valid,
             )
         return value
 

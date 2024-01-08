@@ -39,7 +39,7 @@ class Value(_message.Message):
         "int_value",
         "geo_value",
         "blob_value",
-        "phone_number_value",
+        "phone_value",
     ]
     NUMBER_VALUE_FIELD_NUMBER: _ClassVar[int]
     STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -51,7 +51,7 @@ class Value(_message.Message):
     INT_VALUE_FIELD_NUMBER: _ClassVar[int]
     GEO_VALUE_FIELD_NUMBER: _ClassVar[int]
     BLOB_VALUE_FIELD_NUMBER: _ClassVar[int]
-    PHONE_NUMBER_VALUE_FIELD_NUMBER: _ClassVar[int]
+    PHONE_VALUE_FIELD_NUMBER: _ClassVar[int]
     number_value: float
     string_value: str
     bool_value: bool
@@ -62,7 +62,7 @@ class Value(_message.Message):
     int_value: int
     geo_value: GeoCoordinate
     blob_value: str
-    phone_number_value: PhoneNumber
+    phone_value: PhoneNumber
     def __init__(
         self,
         number_value: _Optional[float] = ...,
@@ -75,7 +75,7 @@ class Value(_message.Message):
         int_value: _Optional[int] = ...,
         geo_value: _Optional[_Union[GeoCoordinate, _Mapping]] = ...,
         blob_value: _Optional[str] = ...,
-        phone_number_value: _Optional[_Union[PhoneNumber, _Mapping]] = ...,
+        phone_value: _Optional[_Union[PhoneNumber, _Mapping]] = ...,
     ) -> None: ...
 
 class ListValue(_message.Message):
