@@ -2,6 +2,7 @@ import datetime
 import uuid as uuid_package
 from typing import Dict, Union, List, Tuple
 
+DATE = datetime.datetime
 UUID = Union[str, uuid_package.UUID]
 UUIDS = Union[List[UUID], UUID]
 NUMBER = Union[int, float]
@@ -28,5 +29,3 @@ DATATYPE_TO_PYTHON_TYPE = {
 }
 PYTHON_TYPE_TO_DATATYPE = {val: key for key, val in DATATYPE_TO_PYTHON_TYPE.items()}
 TIME = datetime.datetime
-
-WeaviateField = Union[str, bool, int, float, UUID, GEO_COORDINATES, List["WeaviateField"]]

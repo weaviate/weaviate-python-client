@@ -1,6 +1,4 @@
 """Helper functions for creating a new WeaviateClient in common scenarios."""
-import requests
-from socket import gaierror, gethostbyname
 from urllib.parse import urlparse
 from typing import Optional, Tuple
 
@@ -9,7 +7,6 @@ from weaviate.client import WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.connection import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions
-from weaviate.exceptions import WeaviateGrpcUnavailable
 
 
 def connect_to_wcs(
@@ -17,6 +14,7 @@ def connect_to_wcs(
     auth_credentials: Optional[AuthCredentials],
     headers: Optional[dict] = None,
     timeout: Tuple[int, int] = (10, 60),
+    skip_init_checks: bool = False,
 ) -> WeaviateClient:
     """
     Connect to your own Weaviate Cloud Service (WCS) instance.
@@ -25,9 +23,9 @@ def connect_to_wcs(
         `cluster_url`
             The WCS cluster URL or hostname to connect to. Usually in the form rAnD0mD1g1t5.something.weaviate.cloud
         `auth_credentials`
-            The credentials to use for authentication with your WCS instance. This can be an API key, in which case use `weaviate.auth.AuthApiKey`,
-            a bearer token, in which case use `weaviate.auth.AuthBearerToken`, a client secret, in which case use `weaviate.auth.AuthClientCredentials`
-            or a username and password, in which case use `weaviate.auth.AuthClientPassword`.
+            The credentials to use for authentication with your WCS instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
+            a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
+            or a username and password, in which case use `weaviate.AuthClientPassword`.
         `headers`
             Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorisation.
         `timeout`
@@ -42,22 +40,6 @@ def connect_to_wcs(
         # Handle the common case of copy/pasting a URL instead of the hostname.
         cluster_url = urlparse(cluster_url).netloc
     grpc_host = f"grpc-{cluster_url}"
-    # Check the grpc- endpoint is available for this cluster:
-    try:
-        gethostbyname(grpc_host)
-    except gaierror as exc:
-        raise WeaviateGrpcUnavailable(
-            "the client was unable to resolve the gRPC endpoint of your WCS cluster!"
-        ) from exc
-    # Some WCS regions have wildcard DNS, so we can get a valid DNS response even
-    # without a grpc server.
-    # An ordinary https GET will get a 415 from the grpc server if present
-    # but (usefully for us) a simple 404 from the proxy if there is no grpc backend.
-    resp = requests.get(f"https://{grpc_host}:443/", timeout=timeout)
-    if resp.status_code == 404:
-        raise WeaviateGrpcUnavailable(
-            "your cluster may need upgrading to the latest Weaviate version to support gRPC."
-        )
     return WeaviateClient(
         connection_params=ConnectionParams(
             http=ProtocolParams(host=cluster_url, port=443, secure=True),
@@ -66,6 +48,7 @@ def connect_to_wcs(
         auth_client_secret=auth_credentials,
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
+        skip_init_checks=skip_init_checks,
     )
 
 
@@ -153,6 +136,7 @@ def connect_to_custom(
     grpc_secure: bool,
     headers: Optional[dict] = None,
     timeout: Tuple[int, int] = (10, 60),
+    auth_credentials: Optional[AuthCredentials] = None,
 ) -> WeaviateClient:
     """
     Connect to a Weaviate instance with custom connection parameters.
@@ -177,7 +161,10 @@ def connect_to_custom(
         `timeout`
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
-
+        `auth_credentials`
+            The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
+            a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
+            or a username and password, in which case use `weaviate.AuthClientPassword`.
     Returns
         `weaviate.WeaviateClient`
             The client connected to the instance with the required parameters set appropriately.
@@ -191,6 +178,7 @@ def connect_to_custom(
             grpc_port=grpc_port,
             grpc_secure=grpc_secure,
         ),
+        auth_client_secret=auth_credentials,
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
     )

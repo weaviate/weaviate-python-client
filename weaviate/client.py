@@ -6,17 +6,19 @@ from typing import Optional, Tuple, Union, Dict, Any
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
-
+from weaviate.backup.backup import _Backup
+from weaviate.warnings import _Warnings
 
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
-from .collections.batch import _Batch
 from .classification import Classification
 from .cluster import Cluster
 from .collections import _Collections
+from .collections.batch import _BatchClient, BatchExecutor
+from .collections.cluster import _Cluster
 from .config import AdditionalConfig, Config
-from .connect import Connection, HttpxConnection
+from .connect import Connection, GRPCConnection
 from .connect.connection import (
     ConnectionParams,
     ProtocolParams,
@@ -35,7 +37,7 @@ TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
 class _ClientBase:
-    _connection: Union[Connection, HttpxConnection]
+    _connection: Union[Connection, GRPCConnection]
 
     def is_ready(self) -> bool:
         """
@@ -163,10 +165,11 @@ class _ClientBase:
             raise TypeError(f"URL is expected to be string but is {type(url)}")
         return ConnectionParams.from_url(url, grpc_port), None
 
-    def __del__(self) -> None:
-        # in case an exception happens before definition of these members
-        if hasattr(self, "_connection"):
-            self._connection.close()
+    def close(self) -> None:
+        """In order to clean up any resources used by the client, call this method when you are done with the client.
+
+        If you do not do this, memory leaks may occur due to stale connections."""
+        self._connection.close()
 
 
 class WeaviateClient(_ClientBase):
@@ -201,6 +204,7 @@ class WeaviateClient(_ClientBase):
         auth_client_secret: Optional[AuthCredentials] = None,
         additional_headers: Optional[dict] = None,
         additional_config: Optional[AdditionalConfig] = None,
+        skip_init_checks: bool = False,
     ) -> None:
         """Initialise a WeaviateClient class instance to use when interacting with Weaviate.
 
@@ -226,13 +230,15 @@ class WeaviateClient(_ClientBase):
                     example of how to set API keys within this parameter.
             - `additional_config`: `weaviate.AdditionalConfig` or None, optional
                 - Additional and advanced configuration options for Weaviate.
+            - `skip_init_checks`: `bool`, optional
+                - If set to `True` then the client will not perform any checks including ensuring that weaviate has started. This is useful for air-gapped environments and high-performance setups.
         """
         connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
             connection_params, embedded_options
         )
         config = additional_config or AdditionalConfig()
 
-        self._connection = HttpxConnection(
+        self._connection = GRPCConnection(
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(config.timeout),
@@ -241,13 +247,20 @@ class WeaviateClient(_ClientBase):
             connection_config=config.connection,
             proxies=config.proxies,
             trust_env=config.trust_env,
-            startup_period=config.startup_period,
         )
-        self._connection.connect()
+        self._connection.connect(skip_init_checks)
 
-        self.batch = _Batch(self._connection)
-        """This namespace contains all the functionality to upload data in batches to Weaviate."""
-        self.collections = _Collections(self._connection)
+        batch_executor = (
+            BatchExecutor()
+        )  # max_workers = None uses the concurrent.futures defined default of min(32, (os.cpu_count() or 1) + 4)
+
+        self.batch = _BatchClient(self._connection, batch_executor)
+        """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
+        self.backup = _Backup(self._connection)
+        """This namespace contains all functionality to backup data."""
+        self.cluster = _Cluster(self._connection)
+        """This namespace contains all functionality to inspect the connected Weaviate cluster."""
+        self.collections = _Collections(self._connection, batch_executor)
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
@@ -339,7 +352,7 @@ class Client(_ClientBase):
         proxies: Union[dict, str, None] = None,
         trust_env: bool = False,
         additional_headers: Optional[dict] = None,
-        startup_period: Optional[int] = 5,
+        startup_period: Optional[int] = None,
         embedded_options: Optional[EmbeddedOptions] = None,
         additional_config: Optional[Config] = None,
     ) -> None:
@@ -379,8 +392,7 @@ class Client(_ClientBase):
                 {"X-OpenAI-Api-Key": "<THE-KEY>"}, {"X-HuggingFace-Api-Key": "<THE-KEY>"}
             by default None
         startup_period : int or None
-            How long the client will wait for Weaviate to start before raising a RequestsConnectionError.
-            If None, the client won't wait at all. Default timeout is 5s.
+            deprecated, has no effect
         embedded_options : weaviate.embedded.EmbeddedOptions or None, optional
             Create an embedded Weaviate cluster inside the client
             - You can pass weaviate.embedded.EmbeddedOptions() with default values
@@ -398,6 +410,9 @@ class Client(_ClientBase):
             url, config.grpc_port_experimental, embedded_options
         )
 
+        if startup_period is not None:
+            _Warnings.startup_period_deprecated()
+
         self._connection = Connection(
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
@@ -405,10 +420,10 @@ class Client(_ClientBase):
             proxies=proxies,
             trust_env=trust_env,
             additional_headers=additional_headers,
-            startup_period=startup_period,
             embedded_db=embedded_db,
             connection_config=config.connection_config,
         )
+        self._connection.connect(False)
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
         self.contextionary = Contextionary(self._connection)

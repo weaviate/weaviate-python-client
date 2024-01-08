@@ -1,5 +1,7 @@
-__all__ = ["_Batch", "_BatchGRPC", "_BatchREST"]
+__all__ = ["_BatchClient", "_BatchCollection", "BatchExecutor", "_BatchGRPC", "_BatchREST"]
 
-from .batch import _Batch
+from .client import _BatchClient
+from .collection import _BatchCollection
+from .executor import BatchExecutor
 from .grpc import _BatchGRPC
 from .rest import _BatchREST

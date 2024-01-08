@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import socket
 import time
 
 from threading import Thread, Event
@@ -12,6 +11,7 @@ from httpx import (
     ConnectError,
     HTTPError,
     Limits,
+    ReadError,
     ReadTimeout,
     RequestError,
     Response,
@@ -34,22 +34,16 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
 )
 from weaviate.util import (
-    _check_positive_num,
     is_weaviate_domain,
     is_weaviate_too_old,
     is_weaviate_client_too_old,
     PYPI_PACKAGE_URL,
     _decode_json_response_dict,
+    _ServerVersion,
 )
 from weaviate.warnings import _Warnings
 
-try:
-    from weaviate.proto.v1 import weaviate_pb2_grpc
-
-    has_grpc = True
-
-except ImportError:
-    has_grpc = False
+from weaviate.proto.v1 import weaviate_pb2_grpc
 
 if TYPE_CHECKING:
     from .connection import ConnectionParams, JSONPayload
@@ -72,7 +66,6 @@ class HttpxConnection(_ConnectionBase):
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
-        startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
     ):
@@ -82,12 +75,12 @@ class HttpxConnection(_ConnectionBase):
         self._client: OAuth2Client
         self.__additional_headers = {}
         self.__auth = auth_client_secret
-        self.__connection_params = connection_params
+        self._connection_params = connection_params
         self._grpc_available = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
-        self.__startup_period = startup_period
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
+        self._weaviate_version: _ServerVersion
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -111,47 +104,31 @@ class HttpxConnection(_ConnectionBase):
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
-    def connect(self) -> None:
-        if self.__startup_period is not None:
-            _check_positive_num(self.__startup_period, "startup_period", int, include_zero=False)
-            self.wait_for_weaviate(self.__startup_period)
-
-        if has_grpc and self.__connection_params._has_grpc:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
-                assert self.__connection_params._grpc_address is not None
-                s.connect(self.__connection_params._grpc_address)
-                s.shutdown(2)
-                s.close()
-                grpc_channel = self.__connection_params._grpc_channel()
-                assert grpc_channel is not None
-                self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
-                self._grpc_available = True
-            except (
-                ConnectionRefusedError,
-                TimeoutError,
-                socket.timeout,
-            ) as e:  # self._grpc_stub stays None
-                print(e)
-                s.close()
-                self._grpc_available = False
+    def connect(self, skip_init_checks: bool) -> None:
         self._create_client(self.__auth)
+        if not skip_init_checks:
+            # first connection attempt
+            try:
+                self._server_version = self.get_meta()["version"]
+            except (ConnectError, ReadError) as e:
+                raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
-        self._server_version = self.get_meta()["version"]
-        if self._server_version < "1.14":
-            _Warnings.weaviate_server_older_than_1_14(self._server_version)
-        if is_weaviate_too_old(self._server_version):
-            _Warnings.weaviate_too_old_vs_latest(self._server_version)
+            if self._server_version < "1.14":
+                _Warnings.weaviate_server_older_than_1_14(self._server_version)
+            if is_weaviate_too_old(self._server_version):
+                _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
-        try:
-            pkg_info = get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
-            pkg_info = pkg_info.get("info", {})
-            latest_version = pkg_info.get("version", "unknown version")
-            if is_weaviate_client_too_old(client_version, latest_version):
-                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except RequestError:
-            pass  # ignore any errors related to requests, it is a best-effort warning
+            try:
+                pkg_info = get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+                pkg_info = pkg_info.get("info", {})
+                latest_version = pkg_info.get("version", "unknown version")
+                if is_weaviate_client_too_old(client_version, latest_version):
+                    _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
+            except RequestError:
+                pass  # ignore any errors related to requests, it is a best-effort warning
+        else:
+            self._server_version = ""
+        self._weaviate_version = _ServerVersion.from_string(self._server_version)
 
     def __make_client(self) -> Client:
         return Client(

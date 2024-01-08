@@ -145,13 +145,13 @@ class AdditionalPropertiesException(WeaviateBaseError):
 class InvalidDataModelException(WeaviateBaseError):
     """Is raised when the user provides a generic that is not supported"""
 
-    def __init__(self) -> None:
-        msg = """data_model can only be a dict type, e.g. Dict[str, str], or a class that inherits from TypedDict"""
+    def __init__(self, type_: str) -> None:
+        msg = f"""{type_} can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"""
         super().__init__(msg)
 
 
 class WeaviateStartUpError(WeaviateBaseError):
-    """Is raised if weaviate does not start up in time."""
+    """Is raised if weaviate is not availabe on the given url+port."""
 
 
 class WeaviateEmbeddedInvalidVersion(WeaviateBaseError):
@@ -218,4 +218,12 @@ class WeaviateGrpcUnavailable(WeaviateBaseError):
 
     def __init__(self, message: str = "") -> None:
         msg = f"""gRPC is not available. Please make sure that gRPC is configured correctly in the client and on the server: {message}"""
+        super().__init__(msg)
+
+
+class WeaviateInsertManyAllFailedError(WeaviateBaseError):
+    """Is raised when all objects fail to be inserted."""
+
+    def __init__(self, message: str = "") -> None:
+        msg = f"""Every object failed during insertion. {message}"""
         super().__init__(msg)

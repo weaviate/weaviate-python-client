@@ -3,7 +3,7 @@ Module communication to a Weaviate instance. Used to connect to
 Weaviate and run REST requests.
 """
 
-__all__ = ["Connection", "HttpxConnection"]
-
-from .connection import Connection
+from .connection import Connection, GRPCConnection
 from .httpx_connection import HttpxConnection
+
+__all__ = ["Connection", "GRPCConnection", "HttpxConnection"]

@@ -1,10 +1,12 @@
 from dataclasses import dataclass
+import struct
 from typing import (
     Dict,
     List,
     Optional,
     Set,
     Tuple,
+    TypeVar,
     Union,
     cast,
 )
@@ -13,21 +15,22 @@ from typing_extensions import TypeAlias
 
 import grpc  # type: ignore
 import uuid as uuid_lib
-from google.protobuf import struct_pb2
 
 from weaviate.collections.classes.config import ConsistencyLevel
 
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
     HybridFusion,
-    FromReference,
     FromReferenceMultiTarget,
     FromNested,
     _MetadataQuery,
     Move,
     PROPERTIES,
     PROPERTY,
+    REFERENCE,
+    REFERENCES,
     Sort,
+    Rerank,
 )
 from weaviate.collections.classes.internal import _Generative, _GroupBy
 from weaviate.collections.filters import _FilterToGRPC
@@ -37,24 +40,12 @@ from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import HttpxConnection as Connection
 from weaviate.exceptions import WeaviateQueryException
 from weaviate.types import UUID
+from weaviate.warnings import _Warnings
 
 from weaviate.proto.v1 import search_get_pb2
 
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
-_StructValue: TypeAlias = Union[
-    struct_pb2.Struct,
-    struct_pb2.ListValue,
-    str,
-    float,
-    bool,
-    None,
-    List[float],
-    List[int],
-    List[str],
-    List[bool],
-    List[UUID],
-]
 _PyValue: TypeAlias = Union[
     Dict[str, "_PyValue"],
     List["_PyValue"],
@@ -71,39 +62,13 @@ _PyValue: TypeAlias = Union[
 
 
 @dataclass
-class SearchResult:
-    """Represents a single search result from Weaviate."""
-
-    properties: search_get_pb2.PropertiesResult
-    metadata: search_get_pb2.MetadataResult
-
-
-@dataclass
-class GroupByResult:
-    """Represents a single group-by result from Weaviate."""
-
-    name: str
-    min_distance: float
-    max_distance: float
-    number_of_objects: int
-    objects: List[SearchResult]
-
-
-@dataclass
-class SearchResponse:
-    """Represents the response from a search request to Weaviate."""
-
-    # the name of these members must match the proto file
-    results: List[SearchResult]
-    generative_grouped_result: str
-    group_by_results: List[GroupByResult]
-
-
-@dataclass
 class _Move:
     force: float
     concepts: List[str]
     objects: List[uuid_lib.UUID]
+
+
+A = TypeVar("A")
 
 
 class _QueryGRPC(_BaseGRPC):
@@ -114,18 +79,22 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         default_properties: Optional[PROPERTIES] = None,
+        is_weaviate_version_123: bool = False,
+        has_reranking: bool = False,
     ):
-        super().__init__(connection, consistency_level)
+        super().__init__(
+            connection, consistency_level, is_weaviate_version_123=is_weaviate_version_123
+        )
         self._name: str = name
         self._tenant = tenant
+        self.__has_reranking = has_reranking
 
         if default_properties is not None:
-            self._default_props: Optional[Set[PROPERTY]] = self.__convert_properties_to_set(
-                default_properties
-            )
+            self._default_props: Optional[Set[PROPERTY]] = self.__convert_to_set(default_properties)
         else:
             self._default_props = None
         self._metadata: Optional[_MetadataQuery] = None
+        self._refs: Optional[Set[REFERENCE]] = None
 
         self._limit: Optional[int] = None
         self._offset: Optional[int] = None
@@ -155,7 +124,7 @@ class _QueryGRPC(_BaseGRPC):
         self._near_audio: Optional[str] = None
 
         self._generative: Optional[_Generative] = None
-
+        self._rerank: Optional[Rerank] = None
         self._sort: Optional[List[Sort]] = None
 
         self._group_by: Optional[_GroupBy] = None
@@ -179,8 +148,10 @@ class _QueryGRPC(_BaseGRPC):
         sort: Optional[Union[Sort, List[Sort]]] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
-    ) -> SearchResponse:
+        rerank: Optional[Rerank] = None,
+    ) -> search_get_pb2.SearchReply:
         self._limit = limit
         self._offset = offset
         self._after = after
@@ -188,7 +159,9 @@ class _QueryGRPC(_BaseGRPC):
         self._metadata = return_metadata
         self.__parse_sort(sort)
         self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
         self._generative = generative
+        self._rerank = rerank
         return self.__call()
 
     def hybrid(
@@ -203,8 +176,10 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
-    ) -> SearchResponse:
+        rerank: Optional[Rerank] = None,
+    ) -> search_get_pb2.SearchReply:
         self._hybrid_query = query
         self._hybrid_alpha = alpha
         self._hybrid_vector = vector
@@ -219,8 +194,10 @@ class _QueryGRPC(_BaseGRPC):
         self._filters = filters
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
 
         self._generative = generative
+        self._rerank = rerank
 
         return self.__call()
 
@@ -233,8 +210,10 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
-    ) -> SearchResponse:
+        rerank: Optional[Rerank] = None,
+    ) -> search_get_pb2.SearchReply:
         self._bm25_query = query
         self._bm25_properties = properties
         self._limit = limit
@@ -242,8 +221,10 @@ class _QueryGRPC(_BaseGRPC):
         self._filters = filters
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
 
         self._generative = generative
+        self._rerank = rerank
 
         return self.__call()
 
@@ -257,9 +238,11 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> SearchResponse:
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
         self._near_vector_vec = near_vector
         self._near_certainty = certainty
         self._near_distance = distance
@@ -269,7 +252,9 @@ class _QueryGRPC(_BaseGRPC):
         self._metadata = return_metadata
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
         self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
 
         return self.__call()
 
@@ -283,9 +268,11 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> SearchResponse:
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
         self._near_object_obj = near_object
         self._near_certainty = certainty
         self._near_distance = distance
@@ -294,8 +281,10 @@ class _QueryGRPC(_BaseGRPC):
         self._filters = filters
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
         return self.__call()
 
     def near_text(
@@ -310,9 +299,11 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> SearchResponse:
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
         if isinstance(near_text, str):
             near_text = [near_text]
         self._near_text = near_text
@@ -333,10 +324,12 @@ class _QueryGRPC(_BaseGRPC):
             )
 
         self._generative = generative
+        self._rerank = rerank
 
         self._group_by = group_by
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
 
         return self.__call()
 
@@ -350,9 +343,11 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> SearchResponse:
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
         self._near_image = image
         self._near_certainty = certainty
         self._near_distance = distance
@@ -361,9 +356,11 @@ class _QueryGRPC(_BaseGRPC):
         self._filters = filters
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
 
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
 
         return self.__call()
 
@@ -377,9 +374,11 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> SearchResponse:
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
         self._near_video = video
         self._near_certainty = certainty
         self._near_distance = distance
@@ -388,9 +387,11 @@ class _QueryGRPC(_BaseGRPC):
         self._filters = filters
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
 
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
 
         return self.__call()
 
@@ -404,9 +405,11 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
-    ) -> SearchResponse:
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
         self._near_audio = audio
         self._near_certainty = certainty
         self._near_distance = distance
@@ -415,15 +418,21 @@ class _QueryGRPC(_BaseGRPC):
         self._filters = filters
         self._group_by = group_by
         self._generative = generative
+        self._rerank = rerank
 
         self._metadata = return_metadata
         self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
 
         return self.__call()
 
-    def __call(self) -> SearchResponse:
+    def __call(self) -> search_get_pb2.SearchReply:
         metadata: Optional[Tuple[Tuple[str, str], ...]] = None
         access_token = self._connection.get_current_bearer_token()
+
+        if not self.__has_reranking and self._rerank is not None:
+            _Warnings.reranking_not_enabled()
+            self._rerank = None
 
         metadata_list: List[Tuple[str, str]] = []
         if len(access_token) > 0:
@@ -439,18 +448,26 @@ class _QueryGRPC(_BaseGRPC):
 
         try:
             assert self._connection.grpc_stub is not None
-            res: SearchResponse  # According to PEP-0526
+            res: search_get_pb2.SearchReply  # According to PEP-0526
             res, _ = self._connection.grpc_stub.Search.with_call(
                 search_get_pb2.SearchRequest(
+                    uses_123_api=True,
                     collection=self._name,
                     limit=self._limit,
                     offset=self._offset,
                     after=str(self._after) if self._after is not None else "",
                     autocut=self._autocut,
                     near_vector=search_get_pb2.NearVector(
-                        vector=self._near_vector_vec,
+                        vector=self._near_vector_vec
+                        if self._near_vector_vec is not None and not self._is_weaviate_version_123
+                        else None,
                         certainty=self._near_certainty,
                         distance=self._near_distance,
+                        vector_bytes=struct.pack(
+                            "{}f".format(len(self._near_vector_vec)), *self._near_vector_vec
+                        )
+                        if self._near_vector_vec is not None and self._is_weaviate_version_123
+                        else None,
                     )
                     if self._near_vector_vec is not None
                     else None,
@@ -461,7 +478,9 @@ class _QueryGRPC(_BaseGRPC):
                     )
                     if self._near_object_obj is not None
                     else None,
-                    properties=self._translate_properties_from_python_to_grpc(self._default_props),
+                    properties=self._translate_properties_from_python_to_grpc(
+                        self._default_props, self._refs
+                    ),
                     metadata=self._metadata_to_grpc(self._metadata)
                     if self._metadata is not None
                     else None,
@@ -474,10 +493,15 @@ class _QueryGRPC(_BaseGRPC):
                         properties=self._hybrid_properties,
                         query=self._hybrid_query,
                         alpha=self._hybrid_alpha,
-                        vector=self._hybrid_vector,
+                        vector=self._hybrid_vector if not self._is_weaviate_version_123 else None,
                         fusion_type=cast(
                             search_get_pb2.Hybrid.FusionType, self._hybrid_fusion_type
                         ),
+                        vector_bytes=struct.pack(
+                            "{}f".format(len(self._hybrid_vector)), *self._hybrid_vector
+                        )
+                        if self._is_weaviate_version_123 and self._hybrid_vector is not None
+                        else None,
                     )
                     if self._hybrid_query is not None
                     else None,
@@ -522,6 +546,11 @@ class _QueryGRPC(_BaseGRPC):
                     else None,
                     generative=self._generative.to_grpc() if self._generative is not None else None,
                     group_by=self._group_by.to_grpc() if self._group_by is not None else None,
+                    rerank=search_get_pb2.Rerank(
+                        property=self._rerank.prop, query=self._rerank.query
+                    )
+                    if self._rerank is not None
+                    else None,
                 ),
                 metadata=metadata,
             )
@@ -544,44 +573,53 @@ class _QueryGRPC(_BaseGRPC):
             is_consistent=metadata.is_consistent,
         )
 
-    def _translate_properties_from_python_to_grpc(
-        self, properties: Optional[Set[PROPERTY]]
-    ) -> Optional[search_get_pb2.PropertiesRequest]:
-        def resolve_property(prop: FromNested) -> search_get_pb2.ObjectPropertiesRequest:
-            props = prop.properties if isinstance(prop.properties, list) else [prop.properties]
-            return search_get_pb2.ObjectPropertiesRequest(
-                prop_name=prop.name,
-                primitive_properties=[p for p in props if isinstance(p, str)],
-                object_properties=[resolve_property(p) for p in props if isinstance(p, FromNested)],
-            )
+    def __resolve_property(self, prop: FromNested) -> search_get_pb2.ObjectPropertiesRequest:
+        props = prop.properties if isinstance(prop.properties, list) else [prop.properties]
+        return search_get_pb2.ObjectPropertiesRequest(
+            prop_name=prop.name,
+            primitive_properties=[p for p in props if isinstance(p, str)],
+            object_properties=[
+                self.__resolve_property(p) for p in props if isinstance(p, FromNested)
+            ],
+        )
 
-        return (
-            None
+    def _translate_properties_from_python_to_grpc(
+        self, properties: Optional[Set[PROPERTY]], references: Optional[Set[REFERENCE]]
+    ) -> Optional[search_get_pb2.PropertiesRequest]:
+        if properties is None and references is None:
+            return None
+        return search_get_pb2.PropertiesRequest(
+            return_all_nonref_properties=properties is None,
+            non_ref_properties=None
             if properties is None
-            else search_get_pb2.PropertiesRequest(
-                non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
-                ref_properties=[
-                    search_get_pb2.RefPropertiesRequest(
-                        reference_property=prop.link_on,
-                        properties=self._translate_properties_from_python_to_grpc(
-                            self.__convert_properties_to_set(prop.return_properties)
-                        )
-                        if prop.return_properties is not None
-                        else None,
-                        metadata=self._metadata_to_grpc(prop._return_metadata)
-                        if prop._return_metadata is not None
-                        else None,
-                        target_collection=prop.target_collection
-                        if isinstance(prop, FromReferenceMultiTarget)
-                        else None,
-                    )
-                    for prop in properties
-                    if isinstance(prop, FromReference)
-                ],
-                object_properties=[
-                    resolve_property(prop) for prop in properties if isinstance(prop, FromNested)
-                ],
-            )
+            else [prop for prop in properties if isinstance(prop, str)],
+            ref_properties=None
+            if references is None
+            else [
+                search_get_pb2.RefPropertiesRequest(
+                    reference_property=ref.link_on,
+                    properties=self._translate_properties_from_python_to_grpc(
+                        None
+                        if ref.return_properties is None
+                        else self.__convert_to_set(ref.return_properties),
+                        None
+                        if ref.return_references is None
+                        else self.__convert_to_set(ref.return_references),
+                    ),
+                    metadata=self._metadata_to_grpc(ref._return_metadata)
+                    if ref._return_metadata is not None
+                    else None,
+                    target_collection=ref.target_collection
+                    if isinstance(ref, FromReferenceMultiTarget)
+                    else None,
+                )
+                for ref in references
+            ],
+            object_properties=None
+            if properties is None
+            else [
+                self.__resolve_property(prop) for prop in properties if isinstance(prop, FromNested)
+            ],
         )
 
     def __merge_default_and_return_properties(
@@ -591,14 +629,22 @@ class _QueryGRPC(_BaseGRPC):
             return
         if self._default_props is not None:
             self._default_props = self._default_props.union(
-                self.__convert_properties_to_set(return_properties)
+                self.__convert_to_set(return_properties)
             )
         else:
-            self._default_props = self.__convert_properties_to_set(return_properties)
+            self._default_props = self.__convert_to_set(return_properties)
+
+    def __merge_return_references(self, return_references: Optional[REFERENCES]) -> None:
+        if return_references is None:
+            return None
+        if self._refs is not None:
+            self._refs = self._refs.union(self.__convert_to_set(return_references))
+        else:
+            self._refs = self.__convert_to_set(return_references)
 
     @staticmethod
-    def __convert_properties_to_set(properties: PROPERTIES) -> Set[PROPERTY]:
-        if isinstance(properties, list):
-            return set(properties)
+    def __convert_to_set(args: Union[A, List[A]]) -> Set[A]:
+        if isinstance(args, list):
+            return set(args)
         else:
-            return {properties}
+            return {cast(A, args)}

@@ -1,13 +1,20 @@
-import os
+from typing import Generator
+
 import pytest as pytest
 
 import weaviate
+from integration.conftest import OpenAICollection, CollectionFactory
+from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.config import (
+    _BQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
+    _PQConfig,
+    _VectorIndexConfigHNSW,
     Configure,
     Reconfigure,
     Property,
+    ReferenceProperty,
     DataType,
     PQEncoderType,
     PQEncoderDistribution,
@@ -16,35 +23,24 @@ from weaviate.collections.classes.config import (
     _VectorIndexType,
     Vectorizer,
     GenerativeSearches,
+    Reranker,
+    _RerankerConfigCreate,
 )
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.util import parse_version_string
 
 
 @pytest.fixture(scope="module")
-def client():
+def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local(port=8087)
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
 
 
-@pytest.fixture(scope="module")
-def generative_client():
-    api_key = os.environ.get("OPENAI_APIKEY")
-    if api_key is None:
-        pytest.skip("No OpenAI API key found.")
-
-    client = weaviate.connect_to_local(
-        port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": api_key}
-    )
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
-
-
-def test_collection_list(client: weaviate.WeaviateClient):
+def test_collections_list(client: weaviate.WeaviateClient) -> None:
     client.collections.create(
-        name="TestCollectionList",
+        name="TestCollectionsList",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -53,19 +49,18 @@ def test_collection_list(client: weaviate.WeaviateClient):
     )
 
     collections = client.collections.list_all()
-    assert list(collections.keys()) == ["TestCollectionList"]
-    assert isinstance(collections["TestCollectionList"], _CollectionConfigSimple)
+    assert list(collections.keys()) == ["TestCollectionsList"]
+    assert isinstance(collections["TestCollectionsList"], _CollectionConfigSimple)
 
     collection = client.collections.list_all(False)
-    assert list(collection.keys()) == ["TestCollectionList"]
-    assert isinstance(collection["TestCollectionList"], _CollectionConfig)
+    assert list(collection.keys()) == ["TestCollectionsList"]
+    assert isinstance(collection["TestCollectionsList"], _CollectionConfig)
 
-    client.collections.delete("TestCollectionList")
+    client.collections.delete("TestCollectionsList")
 
 
-def test_collection_get_simple(client: weaviate.WeaviateClient):
-    client.collections.create(
-        name="TestCollectionGetSimple",
+def test_collection_get_simple(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -73,17 +68,15 @@ def test_collection_get_simple(client: weaviate.WeaviateClient):
         ],
     )
 
-    collection = client.collections.get("TestCollectionGetSimple")
     config = collection.config.get(True)
     assert isinstance(config, _CollectionConfigSimple)
 
-    client.collections.delete("TestCollectionGetSimple")
 
-
-def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
-    client.collections.create(
-        name="TestCollectionVectorizerConfig",
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+def test_collection_vectorizer_config(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(
@@ -95,51 +88,40 @@ def test_collection_vectorizer_config(client: weaviate.WeaviateClient):
         ],
     )
 
-    collection = client.collections.get("TestCollectionVectorizerConfig")
     config = collection.config.get(True)
 
     assert config.properties[0].vectorizer == "text2vec-contextionary"
+    assert config.properties[0].vectorizer_config is not None
     assert config.properties[0].vectorizer_config.skip is False
     assert config.properties[0].vectorizer_config.vectorize_property_name is True
     assert config.properties[1].vectorizer == "text2vec-contextionary"
+    assert config.properties[1].vectorizer_config is not None
     assert config.properties[1].vectorizer_config.skip is True
     assert config.properties[1].vectorizer_config.vectorize_property_name is False
 
     assert config.vectorizer_config is not None
-    assert config.vectorizer_config.vectorize_class_name is False
+    assert config.vectorizer_config.vectorize_collection_name is False
     assert config.vectorizer_config.model == {}
 
-    client.collections.delete("TestCollectionVectorizerConfig")
 
-
-def test_collection_generative_config(generative_client: weaviate.WeaviateClient):
-    generative_client.collections.create(
-        name="TestCollectionGenerativeConfig",
-        generative_config=Configure.Generative.openai(),
+def test_collection_generative_config(openai_collection: OpenAICollection) -> None:
+    collection = openai_collection(
         vectorizer_config=Configure.Vectorizer.none(),
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
-        ],
     )
 
-    collection = generative_client.collections.get("TestCollectionGenerativeConfig")
     config = collection.config.get()
 
     assert config.properties[0].vectorizer == "none"
+    assert config.generative_config is not None
     assert config.generative_config.generator == GenerativeSearches.OPENAI
     assert config.generative_config.model is not None
 
-    generative_client.collections.delete("TestCollectionGenerativeConfig")
 
-
-def test_collection_config_empty(client: weaviate.WeaviateClient):
-    collection = client.collections.create(
-        name="TestCollectionConfigEmpty",
-    )
+def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory()
     config = collection.config.get()
 
-    assert config.name == "TestCollectionConfigEmpty"
+    assert config.name == collection.name
     assert config.description is None
     assert config.vectorizer == Vectorizer.NONE
 
@@ -159,6 +141,7 @@ def test_collection_config_empty(client: weaviate.WeaviateClient):
 
     assert config.replication_config.factor == 1
 
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
     assert config.vector_index_config.distance_metric == VectorDistance.COSINE
     assert config.vector_index_config.dynamic_ef_factor == 8
@@ -168,40 +151,37 @@ def test_collection_config_empty(client: weaviate.WeaviateClient):
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
     assert config.vector_index_config.max_connections == 64
-    assert config.vector_index_config.pq.bit_compression is False
-    assert config.vector_index_config.pq.centroids == 256
-    assert config.vector_index_config.pq.enabled is False
-    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.LOG_NORMAL
-    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.KMEANS
-    assert config.vector_index_config.pq.segments == 0
-    assert config.vector_index_config.pq.training_limit == 100000
+    assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
     assert config.vector_index_type == _VectorIndexType.HNSW
 
-    client.collections.delete("TestCollectionConfigDefaults")
+
+def test_bm25_config(collection_factory: CollectionFactory) -> None:
+    with pytest.raises(ValueError):
+        collection_factory(
+            inverted_index_config=Configure.inverted_index(bm25_b=0.8),
+        )
 
 
-def test_collection_config_defaults(client: weaviate.WeaviateClient):
-    collection = client.collections.create(
-        name="TestCollectionConfigDefaults",
+def test_collection_config_defaults(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         inverted_index_config=Configure.inverted_index(),
         multi_tenancy_config=Configure.multi_tenancy(),
         replication_config=Configure.replication(),
-        vector_index_config=Configure.vector_index(),
+        vector_index_config=Configure.VectorIndex.hnsw(),
         vectorizer_config=Configure.Vectorizer.none(),
     )
     config = collection.config.get()
 
-    assert config.name == "TestCollectionConfigDefaults"
+    assert config.name == collection.name
     assert config.description is None
     assert config.vectorizer == Vectorizer.NONE
 
     assert config.properties == []
 
     assert config.inverted_index_config.bm25.b == 0.75
-    assert config.inverted_index_config.bm25.k1 == 1.2
     assert config.inverted_index_config.cleanup_interval_seconds == 60
     assert config.inverted_index_config.index_timestamps is False
     assert config.inverted_index_config.index_property_length is False
@@ -210,10 +190,11 @@ def test_collection_config_defaults(client: weaviate.WeaviateClient):
     assert config.inverted_index_config.stopwords.preset == StopwordsPreset.EN
     assert config.inverted_index_config.stopwords.removals is None
 
-    assert config.multi_tenancy_config.enabled is False
+    assert config.multi_tenancy_config.enabled is True
 
     assert config.replication_config.factor == 1
 
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
     assert config.vector_index_config.distance_metric == VectorDistance.COSINE
     assert config.vector_index_config.dynamic_ef_factor == 8
@@ -223,22 +204,15 @@ def test_collection_config_defaults(client: weaviate.WeaviateClient):
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
     assert config.vector_index_config.max_connections == 64
-    assert config.vector_index_config.pq.bit_compression is False
-    assert config.vector_index_config.pq.centroids == 256
-    assert config.vector_index_config.pq.enabled is False
-    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.LOG_NORMAL
-    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.KMEANS
-    assert config.vector_index_config.pq.segments == 0
-    assert config.vector_index_config.pq.training_limit == 100000
+    assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
     assert config.vector_index_type == _VectorIndexType.HNSW
 
 
-def test_collection_config_full(client: weaviate.WeaviateClient):
-    collection = client.collections.create(
-        name="TestCollectionConfigFull",
+def test_collection_config_full(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         description="Test",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
@@ -268,7 +242,7 @@ def test_collection_config_full(client: weaviate.WeaviateClient):
         ),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         replication_config=Configure.replication(factor=2),
-        vector_index_config=Configure.vector_index(
+        vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
             distance_metric=VectorDistance.DOT,
             dynamic_ef_factor=6,
@@ -278,20 +252,24 @@ def test_collection_config_full(client: weaviate.WeaviateClient):
             ef_construction=100,
             flat_search_cutoff=41000,
             max_connections=72,
-            pq_bit_compression=True,
-            pq_centroids=128,
-            pq_enabled=True,
-            pq_encoder_distribution=PQEncoderDistribution.NORMAL,
-            pq_encoder_type=PQEncoderType.TILE,
-            pq_segments=4,
-            pq_training_limit=1000001,
+            quantizer=Configure.VectorIndex.Quantizer.pq(
+                bit_compression=True,
+                centroids=128,
+                encoder_distribution=PQEncoderDistribution.NORMAL,
+                encoder_type=PQEncoderType.TILE,
+                segments=4,
+                training_limit=1000001,
+            ),
             skip=True,
             vector_cache_max_objects=100000,
         ),
     )
+    collection.config.add_reference(
+        ReferenceProperty(name="self", target_collection=_sanitize_collection_name(collection.name))
+    )
     config = collection.config.get()
 
-    assert config.name == "TestCollectionConfigFull"
+    assert config.name == collection.name
     assert config.description == "Test"
     assert config.vectorizer == Vectorizer.NONE
 
@@ -320,6 +298,9 @@ def test_collection_config_full(client: weaviate.WeaviateClient):
     assert config.properties[11].name == "phone"
     assert config.properties[11].data_type == DataType.PHONE_NUMBER
 
+    assert config.references[0].name == "self"
+    assert config.references[0].target_collections == [collection.name]
+
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.3
     assert config.inverted_index_config.cleanup_interval_seconds == 10
@@ -334,6 +315,8 @@ def test_collection_config_full(client: weaviate.WeaviateClient):
 
     assert config.replication_config.factor == 2
 
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _PQConfig)
     assert config.vector_index_config.cleanup_interval_seconds == 10
     assert config.vector_index_config.distance_metric == VectorDistance.DOT
     assert config.vector_index_config.dynamic_ef_factor == 6
@@ -343,29 +326,26 @@ def test_collection_config_full(client: weaviate.WeaviateClient):
     assert config.vector_index_config.ef_construction == 100
     assert config.vector_index_config.flat_search_cutoff == 41000
     assert config.vector_index_config.max_connections == 72
-    assert config.vector_index_config.pq.bit_compression is True
-    assert config.vector_index_config.pq.centroids == 128
-    assert config.vector_index_config.pq.enabled is True
-    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.NORMAL
+    assert config.vector_index_config.quantizer.bit_compression is True
+    assert config.vector_index_config.quantizer.centroids == 128
+    assert config.vector_index_config.quantizer.encoder.distribution == PQEncoderDistribution.NORMAL
     # assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE # potential weaviate bug, this returns as PQEncoderType.KMEANS
-    assert config.vector_index_config.pq.segments == 4
-    assert config.vector_index_config.pq.training_limit == 1000001
+    assert config.vector_index_config.quantizer.segments == 4
+    assert config.vector_index_config.quantizer.training_limit == 1000001
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 100000
 
     assert config.vector_index_type == _VectorIndexType.HNSW
 
-    client.collections.delete("TestCollectionConfigFull")
 
-
-def test_collection_config_update(client: weaviate.WeaviateClient):
-    collection = client.collections.create(
-        name="TestCollectionConfigUpdate",
+def test_collection_config_update(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
         ],
+        ports=(8087, 50051),
     )
     config = collection.config.get()
 
@@ -382,16 +362,17 @@ def test_collection_config_update(client: weaviate.WeaviateClient):
             stopwords_removals=["the"],
         ),
         replication_config=Reconfigure.replication(factor=2),
-        vector_index_config=Reconfigure.vector_index(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
             skip=True,
-            pq_bit_compression=True,
-            pq_centroids=128,
-            pq_enabled=True,
-            pq_encoder_type=PQEncoderType.TILE,
-            pq_encoder_distribution=PQEncoderDistribution.NORMAL,
-            pq_segments=4,
-            pq_training_limit=100001,
             vector_cache_max_objects=2000000,
+            quantizer=Reconfigure.VectorIndex.Quantizer.pq(
+                bit_compression=True,
+                centroids=128,
+                encoder_type=PQEncoderType.TILE,
+                encoder_distribution=PQEncoderDistribution.NORMAL,
+                segments=4,
+                training_limit=100001,
+            ),
         ),
     )
 
@@ -407,6 +388,8 @@ def test_collection_config_update(client: weaviate.WeaviateClient):
 
     assert config.replication_config.factor == 2
 
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _PQConfig)
     assert config.vector_index_config.cleanup_interval_seconds == 300
     assert config.vector_index_config.distance_metric == VectorDistance.COSINE
     assert config.vector_index_config.dynamic_ef_factor == 8
@@ -416,24 +399,92 @@ def test_collection_config_update(client: weaviate.WeaviateClient):
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
     assert config.vector_index_config.max_connections == 64
-    assert config.vector_index_config.pq.bit_compression is True
-    assert config.vector_index_config.pq.centroids == 128
-    assert config.vector_index_config.pq.enabled is True
-    assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE
-    assert config.vector_index_config.pq.encoder.distribution == PQEncoderDistribution.NORMAL
-    assert config.vector_index_config.pq.segments == 4
-    assert config.vector_index_config.pq.training_limit == 100001
+    assert config.vector_index_config.quantizer.bit_compression is True
+    assert config.vector_index_config.quantizer.centroids == 128
+    assert config.vector_index_config.quantizer.encoder.type_ == PQEncoderType.TILE
+    assert config.vector_index_config.quantizer.encoder.distribution == PQEncoderDistribution.NORMAL
+    assert config.vector_index_config.quantizer.segments == 4
+    assert config.vector_index_config.quantizer.training_limit == 100001
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
     assert config.vector_index_type == _VectorIndexType.HNSW
 
-    client.collections.delete("TestCollectionSchemaUpdate")
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            quantizer=Reconfigure.VectorIndex.Quantizer.pq(enabled=False),
+        )
+    )
+    config = collection.config.get()
+    assert config.description == "Test"
+
+    assert config.inverted_index_config.bm25.b == 0.8
+    assert config.inverted_index_config.bm25.k1 == 1.25
+    assert config.inverted_index_config.cleanup_interval_seconds == 10
+    # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
+    assert config.inverted_index_config.stopwords.removals == ["the"]
+
+    assert config.replication_config.factor == 2
+
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.cleanup_interval_seconds == 300
+    assert config.vector_index_config.distance_metric == VectorDistance.COSINE
+    assert config.vector_index_config.dynamic_ef_factor == 8
+    assert config.vector_index_config.dynamic_ef_max == 500
+    assert config.vector_index_config.dynamic_ef_min == 100
+    assert config.vector_index_config.ef == -1
+    assert config.vector_index_config.ef_construction == 128
+    assert config.vector_index_config.flat_search_cutoff == 40000
+    assert config.vector_index_config.max_connections == 64
+    assert config.vector_index_config.quantizer is None
+    assert config.vector_index_config.skip is True
+    assert config.vector_index_config.vector_cache_max_objects == 2000000
+
+    assert config.vector_index_type == _VectorIndexType.HNSW
 
 
-def test_collection_config_get_shards(client: weaviate.WeaviateClient):
-    collection = client.collections.create(
-        name="TestCollectionConfigGetShards",
+def test_update_flat(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if parse_version_string(dummy._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("flat index is not supported in this version")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.flat(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == _VectorIndexType.FLAT
+    assert config.vector_index_config.vector_cache_max_objects == 5
+    assert isinstance(config.vector_index_config.quantizer, _BQConfig)
+    assert config.vector_index_config.quantizer.rescore_limit == 10
+
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.flat(
+            vector_cache_max_objects=10,
+            quantizer=Reconfigure.VectorIndex.Quantizer.bq(rescore_limit=20),
+        ),
+    )
+    config = collection.config.get()
+    assert config.vector_index_type == _VectorIndexType.FLAT
+    assert config.vector_index_config.vector_cache_max_objects == 10
+    assert isinstance(config.vector_index_config.quantizer, _BQConfig)
+    assert config.vector_index_config.quantizer.rescore_limit == 20
+
+    # Cannot currently disabled BQ after it has been enabled
+    # collection.config.update(
+    #     vector_index_config=Reconfigure.VectorIndex.flat(
+    #         quantizer=Reconfigure.VectorIndex.Quantizer.bq(enabled=False),
+    #     )
+    # )
+    # config = collection.config.get()
+    # assert config.vector_index_config.quantizer is None
+
+
+def test_collection_config_get_shards(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -445,12 +496,38 @@ def test_collection_config_get_shards(client: weaviate.WeaviateClient):
     assert shards[0].status == "READY"
     assert shards[0].vector_queue_size == 0
 
-    client.collections.delete("TestCollectionConfigGetShards")
+
+def test_collection_update_shards(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+
+    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
+    assert all(shard.status == "READY" for shard in collection.config.get_shards())
+
+    # all possibilites of calling the function
+    updated_shards = collection.config.update_shards(status="READONLY", shard_names="tenant1")
+    assert len(updated_shards) == 1
+    assert updated_shards["tenant1"] == "READONLY"
+
+    updated_shards = collection.config.update_shards(status="READY", shard_names=["tenant1"])
+    assert len(updated_shards) == 1
+    assert updated_shards["tenant1"] == "READY"
+
+    updated_shards = collection.config.update_shards(
+        status="READONLY", shard_names=["tenant1", "tenant2"]
+    )
+    assert all(shard == "READONLY" for shard in updated_shards.values())
+
+    updated_shards = collection.config.update_shards(
+        status="READY", shard_names=["tenant1", "tenant2"]
+    )
+    assert all(shard == "READY" for shard in updated_shards.values())
 
 
-def test_collection_config_get_shards_multi_tenancy(client: weaviate.WeaviateClient):
-    collection = client.collections.create(
-        name="TestCollectionConfigGetShardsMultiTenancy",
+def test_collection_config_get_shards_multi_tenancy(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         properties=[
@@ -471,4 +548,92 @@ def test_collection_config_get_shards_multi_tenancy(client: weaviate.WeaviateCli
     assert "tenant1" in [shard.name for shard in shards]
     assert "tenant2" in [shard.name for shard in shards]
 
-    client.collections.delete("TestCollectionConfigGetShardsMultiTenancy")
+
+def test_config_vector_index_flat_and_quantizer_bq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if parse_version_string(dummy._connection._server_version) < parse_version_string("1.23"):
+        pytest.skip("flat index is not supported in this version")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.flat(
+            vector_cache_max_objects=234,
+            quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=456),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.vector_index_type == _VectorIndexType.FLAT
+    assert conf.vector_index_config.vector_cache_max_objects == 234
+    assert isinstance(conf.vector_index_config.quantizer, _BQConfig)
+    assert conf.vector_index_config.quantizer.rescore_limit == 456
+
+
+def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=234,
+            ef_construction=789,
+            quantizer=Configure.VectorIndex.Quantizer.pq(segments=456),
+        ),
+    )
+
+    conf = collection.config.get()
+    assert conf.vector_index_type == _VectorIndexType.HNSW
+    assert conf.vector_index_config.vector_cache_max_objects == 234
+    assert isinstance(conf.vector_index_config, _VectorIndexConfigHNSW)
+    assert conf.vector_index_config.ef_construction == 789
+    assert isinstance(conf.vector_index_config.quantizer, _PQConfig)
+    assert conf.vector_index_config.quantizer.segments == 456
+
+
+@pytest.mark.parametrize(
+    "reranker_config,expected_reranker,expected_model",
+    [
+        (Configure.Reranker.cohere(), Reranker.COHERE, {}),
+        (
+            Configure.Reranker.cohere(model="rerank-english-v2.0"),
+            Reranker.COHERE,
+            {"model": "rerank-english-v2.0"},
+        ),
+        (Configure.Reranker.transformers(), Reranker.TRANSFORMERS, {}),
+    ],
+)
+def test_config_reranker_module(
+    client: weaviate.WeaviateClient,
+    reranker_config: _RerankerConfigCreate,
+    expected_reranker: Reranker,
+    expected_model: dict,
+) -> None:
+    client.collections.delete("TestCollectionConfigRerankerModule")
+    collection = client.collections.create(
+        name="TestCollectionConfigRerankerModule",
+        reranker_config=reranker_config,
+    )
+    conf = collection.config.get()
+    assert conf.reranker_config is not None
+    assert conf.reranker_config.reranker == expected_reranker
+    assert conf.reranker_config.model == expected_model
+
+
+def test_config_nested_properties(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(
+                name="name",
+                data_type=DataType.OBJECT,
+                nested_properties=[
+                    Property(name="first", data_type=DataType.TEXT),
+                    Property(name="last", data_type=DataType.TEXT),
+                ],
+            ),
+        ],
+    )
+    conf = collection.config.get()
+    assert conf.properties[0].name == "name"
+    assert conf.properties[0].data_type == DataType.OBJECT
+    assert conf.properties[0].nested_properties is not None
+    assert conf.properties[0].nested_properties[0].name == "first"
+    assert conf.properties[0].nested_properties[0].data_type == DataType.TEXT
+    assert conf.properties[0].nested_properties[1].name == "last"
+    assert conf.properties[0].nested_properties[1].data_type == DataType.TEXT

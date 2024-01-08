@@ -1,29 +1,70 @@
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union, overload
+
+from deprecated import deprecated
 
 from weaviate.collections.aggregations.base import _Aggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     _AggregateReturn,
     _AggregateGroupByReturn,
+    _AggregateGroup,
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
 
 
 class _NearText(_Aggregate):
+    @overload
     def near_text(
         self,
         query: Union[List[str], str],
+        *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> _AggregateReturn:
+        ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: str,
+        limit: Optional[int] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> _AggregateGroupByReturn:
+        ...
+
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[str] = None,
+        limit: Optional[int] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> Union[_AggregateReturn, _AggregateGroupByReturn]:
         """Aggregate metrics over the objects returned by a near text vector search on this collection.
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
@@ -45,6 +86,8 @@ class _NearText(_Aggregate):
                 The maximum number of objects to return from the text search prior to the aggregation.
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                The property name to group the aggregation by.
             `limit`
                 The maximum number of aggregated objects to return.
             `total_count`
@@ -53,7 +96,7 @@ class _NearText(_Aggregate):
                 A list of property metrics to aggregate together after the text search.
 
         Returns:
-            A `_AggregateReturn` object that includes the aggregation objects.
+            Depending on the presence of the `group_by` argument, either a `_AggregateReturn` object or a `_AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:
@@ -65,14 +108,25 @@ class _NearText(_Aggregate):
             else [return_metrics]
         )
         builder = self._base(return_metrics, filters, limit, total_count)
+        if group_by is not None:
+            builder = builder.with_group_by_filter([group_by])
+            builder = builder.with_fields(" groupedBy { path value } ")
         builder = self._add_near_text(
             builder, query, certainty, distance, move_to, move_away, object_limit
         )
         res = self._do(builder)
-        return self._to_aggregate_result(res, return_metrics)
+        return (
+            self._to_aggregate_result(res, return_metrics)
+            if group_by is None
+            else self._to_group_by_result(res, return_metrics)
+        )
 
 
 class _NearTextGroupBy(_Aggregate):
+    @deprecated(
+        version="4.4b7",
+        reason="Use `aggregate.near_text` with the `group_by` argument instead. The `aggregate_group_by` namespace will be removed in the final release.",
+    )
     def near_text(
         self,
         query: Union[List[str], str],
@@ -86,7 +140,7 @@ class _NearTextGroupBy(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> List[_AggregateGroupByReturn]:
+    ) -> List[_AggregateGroup]:
         """Aggregate metrics over the objects returned by a near text search on this collection grouping the results by a property.
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
@@ -118,7 +172,7 @@ class _NearTextGroupBy(_Aggregate):
                 A list of property metrics to aggregate together after the text search.
 
         Returns:
-            A `_AggregateGroupByReturn` object that includes the aggregation objects.
+            A list of `_AggregateGroup` objects that includes the aggregation objects.
 
         Raises:
             `weaviate.exceptions.WeaviateQueryException`:
@@ -138,4 +192,4 @@ class _NearTextGroupBy(_Aggregate):
             builder, query, certainty, distance, move_to, move_away, object_limit
         )
         res = self._do(builder)
-        return self._to_group_by_result(res, return_metrics)
+        return self._to_group_by_result(res, return_metrics).groups

@@ -1,17 +1,10 @@
-from typing import (
-    Generic,
-    Optional,
-    Type,
-)
+from typing import Generic
 
-from weaviate.collections.classes.config import ConsistencyLevel
-
-from weaviate.collections.classes.internal import _Object
+from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import TProperties
 
-from weaviate.collections.data import _DataCollection
-
 from weaviate.collections.queries.bm25 import _BM25Generate, _BM25Query
+from weaviate.collections.queries.fetch_object_by_id import _FetchObjectByIDQuery
 from weaviate.collections.queries.fetch_objects import _FetchObjectsGenerate, _FetchObjectsQuery
 from weaviate.collections.queries.hybrid import _HybridGenerate, _HybridQuery
 from weaviate.collections.queries.near_audio import (
@@ -45,83 +38,51 @@ from weaviate.collections.queries.near_video import (
     _NearVideoQuery,
 )
 
-from weaviate.connect import HttpxConnection as Connection
-from weaviate.types import UUID
-
 
 class _QueryCollection(
-    Generic[TProperties],
-    _BM25Query[TProperties],
-    _FetchObjectsQuery[TProperties],
-    _HybridQuery,
-    _NearAudioQuery,
-    _NearImageQuery,
-    _NearObjectQuery,
-    _NearTextQuery,
-    _NearVectorQuery,
-    _NearVideoQuery,
+    Generic[TProperties, References],
+    _BM25Query[TProperties, References],
+    _FetchObjectByIDQuery[TProperties, References],
+    _FetchObjectsQuery[TProperties, References],
+    _HybridQuery[TProperties, References],
+    _NearAudioQuery[TProperties, References],
+    _NearImageQuery[TProperties, References],
+    _NearObjectQuery[TProperties, References],
+    _NearTextQuery[TProperties, References],
+    _NearVectorQuery[TProperties, References],
+    _NearVideoQuery[TProperties, References],
 ):
-    def __init__(
-        self,
-        connection: Connection,
-        name: str,
-        rest_query: _DataCollection[TProperties],
-        consistency_level: Optional[ConsistencyLevel],
-        tenant: Optional[str],
-        type_: Optional[Type[TProperties]],
-    ):
-        super().__init__(connection, name, consistency_level, tenant, type_)
-        self.__data = rest_query
-
-    def fetch_object_by_id(
-        self, uuid: UUID, include_vector: bool = False
-    ) -> Optional[_Object[TProperties]]:
-        """Retrieve an object from the server by its UUID.
-
-        Arguments:
-            `uuid`
-                The UUID of the object to retrieve, REQUIRED.
-            `include_vector`
-                Whether to include the vector in the returned object.
-
-        Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
-                If the network connection to Weaviate fails.
-            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
-                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
-        """
-        ret = self.__data._get_by_id(uuid=uuid, include_vector=include_vector)
-        if ret is None:
-            return ret
-        return self.__data._json_to_object(ret)
+    pass
 
 
 class _GenerateCollection(
-    _BM25Generate,
-    _FetchObjectsGenerate,
-    _HybridGenerate,
-    _NearAudioGenerate,
-    _NearImageGenerate,
-    _NearObjectGenerate,
-    _NearTextGenerate,
-    _NearVectorGenerate,
-    _NearVideoGenerate,
+    Generic[TProperties, References],
+    _BM25Generate[TProperties, References],
+    _FetchObjectsGenerate[TProperties, References],
+    _HybridGenerate[TProperties, References],
+    _NearAudioGenerate[TProperties, References],
+    _NearImageGenerate[TProperties, References],
+    _NearObjectGenerate[TProperties, References],
+    _NearTextGenerate[TProperties, References],
+    _NearVectorGenerate[TProperties, References],
+    _NearVideoGenerate[TProperties, References],
 ):
     pass
 
 
 class _GroupByCollection(
-    _NearAudioGroupBy,
-    _NearImageGroupBy,
-    _NearObjectGroupBy,
-    _NearTextGroupBy,
-    _NearVectorGroupBy,
-    _NearVideoGroupBy,
+    Generic[TProperties, References],
+    _NearAudioGroupBy[TProperties, References],
+    _NearImageGroupBy[TProperties, References],
+    _NearObjectGroupBy[TProperties, References],
+    _NearTextGroupBy[TProperties, References],
+    _NearVectorGroupBy[TProperties, References],
+    _NearVideoGroupBy[TProperties, References],
 ):
     pass
 
 
-# class _GrpcCollectionModel(Generic[Model], _Grpc[Any]):
+# class _GrpcCollectionModel(Generic[Model], _BaseQuery[Any]):
 #     def __init__(
 #         self,
 #         connection: Connection,

@@ -1,29 +1,26 @@
 import pathlib
 
 import pytest
+from _pytest.fixtures import SubRequest
 
-import weaviate
-from weaviate.collections.classes.aggregate import Metrics
+from integration.conftest import CollectionFactory, CollectionFactoryGet
+from weaviate.collections.classes.aggregate import (
+    AggregateBoolean,
+    AggregateDate,
+    AggregateInteger,
+    AggregateNumber,
+    AggregateText,
+    Metrics,
+)
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
 from weaviate.exceptions import WeaviateInvalidInputException, WeaviateQueryException
 from weaviate.util import file_encoder_b64
 
 
-@pytest.fixture(scope="module")
-def client():
-    client = weaviate.connect_to_local()
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
-
-
 @pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
-def test_collection_length(client: weaviate.WeaviateClient, how_many: int):
+def test_collection_length(collection_factory: CollectionFactory, how_many: int) -> None:
     """Uses .aggregate behind-the-scenes"""
-    name = "TestCollectionLength"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -31,33 +28,22 @@ def test_collection_length(client: weaviate.WeaviateClient, how_many: int):
     assert len(collection) == how_many
 
 
-def test_empty_aggregation(client: weaviate.WeaviateClient):
-    name = "TestEmptyAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
-    )
+def test_empty_aggregation(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
     res = collection.aggregate.over_all()
     assert res.total_count == 0
 
 
-def test_simple_aggregation(client: weaviate.WeaviateClient):
-    name = "TestSimpleAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
-    )
+def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
     collection.data.insert({"text": "some text"})
     res = collection.aggregate.over_all(return_metrics=[Metrics("text").text(count=True)])
+    assert isinstance(res.properties["text"], AggregateText)
     assert res.properties["text"].count == 1
 
 
-def test_wrong_aggregation(client: weaviate.WeaviateClient):
-    name = "TestEmptyAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name, properties=[Property(name="text", data_type=DataType.TEXT)]
-    )
+def test_wrong_aggregation(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
     with pytest.raises(WeaviateQueryException) as e:
         collection.aggregate.over_all(total_count=False)
     assert (
@@ -77,13 +63,14 @@ def test_wrong_aggregation(client: weaviate.WeaviateClient):
         ({"distance": 0.9}, 2),
     ],
 )
-def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
-    name = "TestNearObjectAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_object_aggregation(
+    collection_factory: CollectionFactory, option: dict, expected_len: int
+) -> None:
+    collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -96,6 +83,7 @@ def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, 
         ],
         **option,
     )
+    assert isinstance(res.properties["text"], AggregateText)
     assert res.properties["text"].count == expected_len
     assert len(res.properties["text"].top_occurrences) == expected_len
     assert text_1 in [
@@ -111,13 +99,12 @@ def test_near_object_aggregation(client: weaviate.WeaviateClient, option: dict, 
         ]
 
 
-def test_near_object_missing_param(client: weaviate.WeaviateClient):
-    name = "TestNearVectorMissingParam"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_object_missing_param(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -149,18 +136,20 @@ def test_near_object_missing_param(client: weaviate.WeaviateClient):
         ({"distance": 0.9}, 2),
     ],
 )
-def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
-    name = "TestNearVectorAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_vector_aggregation(
+    collection_factory: CollectionFactory, option: dict, expected_len: int
+) -> None:
+    collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
     uuid = collection.data.insert({"text": text_1})
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
+    assert obj.vector is not None
     collection.data.insert({"text": text_2})
     res = collection.aggregate.near_vector(
         obj.vector,
@@ -169,6 +158,7 @@ def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, 
         ],
         **option,
     )
+    assert isinstance(res.properties["text"], AggregateText)
     assert res.properties["text"].count == expected_len
     assert len(res.properties["text"].top_occurrences) == expected_len
     assert text_1 in [
@@ -184,16 +174,16 @@ def test_near_vector_aggregation(client: weaviate.WeaviateClient, option: dict, 
         ]
 
 
-def test_near_vector_missing_param(client: weaviate.WeaviateClient):
-    name = "TestNearVectorMissingParam"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_vector_missing_param(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     uuid_ = collection.data.insert({"text": "some text"})
     obj = collection.query.fetch_object_by_id(uuid_, include_vector=True)
+    assert obj.vector is not None
     with pytest.raises(WeaviateInvalidInputException) as e:
         collection.aggregate.near_vector(
             obj.vector,
@@ -220,13 +210,14 @@ def test_near_vector_missing_param(client: weaviate.WeaviateClient):
         ({"distance": 0.9}, 2),
     ],
 )
-def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, expected_len: int):
-    name = "TestNearTextAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_text_aggregation(
+    collection_factory: CollectionFactory, option: dict, expected_len: int
+) -> None:
+    collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
@@ -239,6 +230,7 @@ def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, ex
         ],
         **option,
     )
+    assert isinstance(res.properties["text"], AggregateText)
     assert res.properties["text"].count == expected_len
     assert len(res.properties["text"].top_occurrences) == expected_len
     assert text_1 in [
@@ -254,13 +246,12 @@ def test_near_text_aggregation(client: weaviate.WeaviateClient, option: dict, ex
         ]
 
 
-def test_near_text_missing_param(client: weaviate.WeaviateClient):
-    name = "TestNearTextMissingParam"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_text_missing_param(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(vectorize_class_name=False),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     text_1 = "some text"
     collection.data.insert({"text": text_1})
@@ -280,11 +271,8 @@ def test_near_text_missing_param(client: weaviate.WeaviateClient):
 
 
 @pytest.mark.parametrize("option", [{"object_limit": 1}, {"certainty": 0.9}, {"distance": 0.1}])
-def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
-    name = "TestNearImageAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_image_aggregation(collection_factory: CollectionFactory, option: dict) -> None:
+    collection = collection_factory(
         properties=[
             Property(name="rating", data_type=DataType.INT),
             Property(name="image", data_type=DataType.BLOB),
@@ -298,15 +286,13 @@ def test_near_image_aggregation(client: weaviate.WeaviateClient, option: dict):
         return_metrics=[Metrics("rating").integer(count=True, maximum=True)],
         **option,
     )
+    assert isinstance(res.properties["rating"], AggregateInteger)
     assert res.properties["rating"].count == 1
     assert res.properties["rating"].maximum == 9
 
 
-def test_near_image_missing_param(client: weaviate.WeaviateClient):
-    name = "TestNearImageMissingParam"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_near_image_missing_param(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         properties=[
             Property(name="rating", data_type=DataType.INT),
             Property(name="image", data_type=DataType.BLOB),
@@ -330,11 +316,8 @@ def test_near_image_missing_param(client: weaviate.WeaviateClient):
     )
 
 
-def test_group_by_aggregation(client: weaviate.WeaviateClient):
-    name = "TestGroupByAggregation"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_group_by_aggregation_namespace(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="int", data_type=DataType.INT),
@@ -343,59 +326,115 @@ def test_group_by_aggregation(client: weaviate.WeaviateClient):
     collection.data.insert({"text": "some text", "int": 1})
     collection.data.insert({"text": "some text", "int": 2})
 
-    res = collection.aggregate_group_by.over_all(
-        "text",
-        return_metrics=[
-            Metrics("text").text(count=True),
-            Metrics("int").integer(count=True),
-        ],
-    )
+    with pytest.warns(DeprecationWarning):
+        res = collection.aggregate_group_by.over_all(
+            "text",
+            return_metrics=[
+                Metrics("text").text(count=True),
+                Metrics("int").integer(count=True),
+            ],
+        )
     assert len(res) == 1
     assert res[0].grouped_by.prop == "text"
     assert res[0].grouped_by.value == "some text"
+    assert isinstance(res[0].properties["text"], AggregateText)
     assert res[0].properties["text"].count == 2
+    assert isinstance(res[0].properties["int"], AggregateInteger)
     assert res[0].properties["int"].count == 2
 
-    res = collection.aggregate_group_by.over_all(
-        "int",
+    with pytest.warns(DeprecationWarning):
+        res = collection.aggregate_group_by.over_all(
+            "int",
+            return_metrics=[
+                Metrics("text").text(count=True),
+                Metrics("int").integer(count=True),
+            ],
+        )
+    assert len(res) == 2
+    assert res[0].grouped_by.prop == "int"
+    assert res[0].grouped_by.value == "1" or res[1].grouped_by.value == "1"
+    assert isinstance(res[0].properties["text"], AggregateText)
+    assert res[0].properties["text"].count == 1
+    assert isinstance(res[0].properties["int"], AggregateInteger)
+    assert res[0].properties["int"].count == 1
+    assert res[1].grouped_by.prop == "int"
+    assert res[1].grouped_by.value == "2" or res[0].grouped_by.value == "2"
+    assert isinstance(res[1].properties["text"], AggregateText)
+    assert res[1].properties["text"].count == 1
+    assert isinstance(res[1].properties["int"], AggregateInteger)
+    assert res[1].properties["int"].count == 1
+
+
+def test_group_by_aggregation_argument(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="int", data_type=DataType.INT),
+        ],
+    )
+    collection.data.insert({"text": "some text", "int": 1})
+    collection.data.insert({"text": "some text", "int": 2})
+
+    res = collection.aggregate.over_all(
+        group_by="text",
         return_metrics=[
             Metrics("text").text(count=True),
             Metrics("int").integer(count=True),
         ],
     )
-    assert len(res) == 2
-    assert res[0].grouped_by.prop == "int"
-    assert res[0].grouped_by.value == "1" or res[1].grouped_by.value == "1"
-    assert res[0].properties["text"].count == 1
-    assert res[0].properties["int"].count == 1
-    assert res[1].grouped_by.prop == "int"
-    assert res[1].grouped_by.value == "2" or res[0].grouped_by.value == "2"
-    assert res[1].properties["text"].count == 1
-    assert res[1].properties["int"].count == 1
+    groups = res.groups
+    assert len(groups) == 1
+    assert groups[0].grouped_by.prop == "text"
+    assert groups[0].grouped_by.value == "some text"
+    assert isinstance(groups[0].properties["text"], AggregateText)
+    assert groups[0].properties["text"].count == 2
+    assert isinstance(groups[0].properties["int"], AggregateInteger)
+    assert groups[0].properties["int"].count == 2
+
+    res = collection.aggregate.over_all(
+        group_by="int",
+        return_metrics=[
+            Metrics("text").text(count=True),
+            Metrics("int").integer(count=True),
+        ],
+    )
+    groups = res.groups
+    assert len(groups) == 2
+    assert groups[0].grouped_by.prop == "int"
+    assert groups[0].grouped_by.value == "1" or groups[1].grouped_by.value == "1"
+    assert isinstance(groups[0].properties["text"], AggregateText)
+    assert groups[0].properties["text"].count == 1
+    assert isinstance(groups[0].properties["int"], AggregateInteger)
+    assert groups[0].properties["int"].count == 1
+    assert groups[1].grouped_by.prop == "int"
+    assert groups[1].grouped_by.value == "2" or groups[0].grouped_by.value == "2"
+    assert isinstance(groups[1].properties["text"], AggregateText)
+    assert groups[1].properties["text"].count == 1
+    assert isinstance(groups[1].properties["int"], AggregateInteger)
+    assert groups[1].properties["int"].count == 1
 
 
 @pytest.mark.skip(reason="Validation logic is not robust enough currently")
-def test_mistake_in_usage(client: weaviate.WeaviateClient):
-    collection = client.collections.get("TestMistakeInUsage")
+def test_mistake_in_usage(
+    collection_factory_get: CollectionFactoryGet, request: SubRequest
+) -> None:
+    collection = collection_factory_get(request.node.name)
     with pytest.raises(TypeError) as e:
-        collection.aggregate.over_all([Metrics("text")])
+        collection.aggregate.over_all([Metrics("text")])  # type: ignore # testing incorrect usage
     assert (
         e.value.args[0]
         == "One of the aggregations is an unexpected type: <class 'weaviate.collection.classes.aggregate.Metrics'>. Did you forget to append a method call? E.g. .text(count=True)"
     )
     with pytest.raises(TypeError) as e:
-        collection.aggregate.over_all(aggregations=[Metrics("text")])
+        collection.aggregate.over_all(aggregations=[Metrics("text")])  # type: ignore # testing incorrect usage
     assert (
         e.value.args[0]
         == "One of the aggregations is an unexpected type: <class 'weaviate.collection.classes.aggregate.Metrics'>. Did you forget to append a method call?  E.g. .text(count=True)"
     )
 
 
-def test_all_available_aggregations(client: weaviate.WeaviateClient):
-    name = "TestAllAvailableAggregations"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+def test_all_available_aggregations(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(
@@ -410,8 +449,10 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
             Property(name="bools", data_type=DataType.BOOL_ARRAY),
             Property(name="date", data_type=DataType.DATE),
             Property(name="dates", data_type=DataType.DATE_ARRAY),
-            ReferenceProperty(name="ref", target_collection="TestAllAvailableAggregations"),
         ],
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="ref", target_collection=collection.name)
     )
     collection.data.insert(
         {
@@ -506,63 +547,83 @@ def test_all_available_aggregations(client: weaviate.WeaviateClient):
         ]
     )
 
-    assert res.properties["text"].count == 1
-    assert res.properties["text"].top_occurrences[0].count == 1
-    assert res.properties["text"].top_occurrences[0].value == "some text"
+    text = res.properties["text"]
+    assert isinstance(text, AggregateText)
+    assert text.count == 1
+    assert text.top_occurrences[0].count == 1
+    assert text.top_occurrences[0].value == "some text"
 
-    assert res.properties["texts"].count == 2
-    assert res.properties["texts"].top_occurrences[0].count == 2
-    assert res.properties["texts"].top_occurrences[0].value == "some text"
+    texts = res.properties["texts"]
+    assert isinstance(texts, AggregateText)
+    assert texts.count == 2
+    assert texts.top_occurrences[0].count == 2
+    assert texts.top_occurrences[0].value == "some text"
 
-    assert res.properties["int"].count == 1
-    assert res.properties["int"].maximum == 1
-    assert res.properties["int"].mean == 1
-    assert res.properties["int"].median == 1
-    assert res.properties["int"].minimum == 1
-    assert res.properties["int"].mode == 1
-    assert res.properties["int"].sum_ == 1
+    int_ = res.properties["int"]
+    assert isinstance(int_, AggregateInteger)
+    assert int_.count == 1
+    assert int_.maximum == 1
+    assert int_.mean == 1
+    assert int_.median == 1
+    assert int_.minimum == 1
+    assert int_.mode == 1
+    assert int_.sum_ == 1
 
-    assert res.properties["ints"].count == 2
-    assert res.properties["ints"].maximum == 2
-    assert res.properties["ints"].mean == 1.5
-    assert res.properties["ints"].median == 1.5
-    assert res.properties["ints"].minimum == 1
-    assert res.properties["ints"].mode == 1
+    ints = res.properties["ints"]
+    assert isinstance(ints, AggregateInteger)
+    assert ints.count == 2
+    assert ints.maximum == 2
+    assert ints.mean == 1.5
+    assert ints.median == 1.5
+    assert ints.minimum == 1
+    assert ints.mode == 1
 
-    assert res.properties["float"].count == 1
-    assert res.properties["float"].maximum == 1.0
-    assert res.properties["float"].mean == 1.0
-    assert res.properties["float"].median == 1.0
-    assert res.properties["float"].minimum == 1.0
-    assert res.properties["float"].mode == 1.0
+    float_ = res.properties["float"]
+    assert isinstance(float_, AggregateNumber)
+    assert float_.count == 1
+    assert float_.maximum == 1.0
+    assert float_.mean == 1.0
+    assert float_.median == 1.0
+    assert float_.minimum == 1.0
+    assert float_.mode == 1.0
 
-    assert res.properties["floats"].count == 2
-    assert res.properties["floats"].maximum == 2.0
-    assert res.properties["floats"].mean == 1.5
-    assert res.properties["floats"].median == 1.5
-    assert res.properties["floats"].minimum == 1.0
-    assert res.properties["floats"].mode == 1.0
+    floats = res.properties["floats"]
+    assert isinstance(floats, AggregateNumber)
+    assert floats.count == 2
+    assert floats.maximum == 2.0
+    assert floats.mean == 1.5
+    assert floats.median == 1.5
+    assert floats.minimum == 1.0
+    assert floats.mode == 1.0
 
-    assert res.properties["bool"].count == 1
-    assert res.properties["bool"].percentage_false == 0
-    assert res.properties["bool"].percentage_true == 1
-    assert res.properties["bool"].total_false == 0
-    assert res.properties["bool"].total_true == 1
+    bool_ = res.properties["bool"]
+    assert isinstance(bool_, AggregateBoolean)
+    assert bool_.count == 1
+    assert bool_.percentage_false == 0
+    assert bool_.percentage_true == 1
+    assert bool_.total_false == 0
+    assert bool_.total_true == 1
 
-    assert res.properties["bools"].count == 2
-    assert res.properties["bools"].percentage_false == 0.5
-    assert res.properties["bools"].percentage_true == 0.5
-    assert res.properties["bools"].total_false == 1
-    assert res.properties["bools"].total_true == 1
+    bools = res.properties["bools"]
+    assert isinstance(bools, AggregateBoolean)
+    assert bools.count == 2
+    assert bools.percentage_false == 0.5
+    assert bools.percentage_true == 0.5
+    assert bools.total_false == 1
+    assert bools.total_true == 1
 
-    assert res.properties["date"].count == 1
-    assert res.properties["date"].maximum == "2021-01-01T00:00:00Z"
-    assert res.properties["date"].median == "2021-01-01T00:00:00Z"
-    assert res.properties["date"].minimum == "2021-01-01T00:00:00Z"
-    assert res.properties["date"].mode == "2021-01-01T00:00:00Z"
+    date = res.properties["date"]
+    assert isinstance(date, AggregateDate)
+    assert date.count == 1
+    assert date.maximum == "2021-01-01T00:00:00Z"
+    assert date.median == "2021-01-01T00:00:00Z"
+    assert date.minimum == "2021-01-01T00:00:00Z"
+    assert date.mode == "2021-01-01T00:00:00Z"
 
-    assert res.properties["dates"].count == 2
-    assert res.properties["dates"].maximum == "2021-01-02T00:00:00Z"
-    assert res.properties["dates"].median == "2021-01-01T12:00:00Z"
-    assert res.properties["dates"].minimum == "2021-01-01T00:00:00Z"
+    dates = res.properties["dates"]
+    assert isinstance(dates, AggregateDate)
+    assert dates.count == 2
+    assert dates.maximum == "2021-01-02T00:00:00Z"
+    assert dates.median == "2021-01-01T12:00:00Z"
+    assert dates.minimum == "2021-01-01T00:00:00Z"
     # assert res.properties["dates"].mode == "2021-01-02T00:00:00Z" # flakey: sometimes return 01, other times 02

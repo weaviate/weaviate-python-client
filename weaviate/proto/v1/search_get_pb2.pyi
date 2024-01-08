@@ -1,5 +1,6 @@
 from google.protobuf import struct_pb2 as _struct_pb2
 from weaviate.proto.v1 import base_pb2 as _base_pb2
+from weaviate.proto.v1 import properties_pb2 as _properties_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -37,6 +38,8 @@ class SearchRequest(_message.Message):
         "near_audio",
         "near_video",
         "generative",
+        "rerank",
+        "uses_123_api",
     ]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
@@ -59,6 +62,8 @@ class SearchRequest(_message.Message):
     NEAR_AUDIO_FIELD_NUMBER: _ClassVar[int]
     NEAR_VIDEO_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
+    RERANK_FIELD_NUMBER: _ClassVar[int]
+    USES_123_API_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
     consistency_level: _base_pb2.ConsistencyLevel
@@ -80,6 +85,8 @@ class SearchRequest(_message.Message):
     near_audio: NearAudioSearch
     near_video: NearVideoSearch
     generative: GenerativeSearch
+    rerank: Rerank
+    uses_123_api: bool
     def __init__(
         self,
         collection: _Optional[str] = ...,
@@ -103,6 +110,8 @@ class SearchRequest(_message.Message):
         near_audio: _Optional[_Union[NearAudioSearch, _Mapping]] = ...,
         near_video: _Optional[_Union[NearVideoSearch, _Mapping]] = ...,
         generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
+        rerank: _Optional[_Union[Rerank, _Mapping]] = ...,
+        uses_123_api: bool = ...,
     ) -> None: ...
 
 class GroupBy(_message.Message):
@@ -180,6 +189,7 @@ class Filters(_message.Message):
         "value_int_array",
         "value_boolean_array",
         "value_number_array",
+        "value_geo",
     ]
 
     class Operator(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -223,6 +233,7 @@ class Filters(_message.Message):
     VALUE_INT_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_BOOLEAN_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_NUMBER_ARRAY_FIELD_NUMBER: _ClassVar[int]
+    VALUE_GEO_FIELD_NUMBER: _ClassVar[int]
     operator: Filters.Operator
     on: _containers.RepeatedScalarFieldContainer[str]
     filters: _containers.RepeatedCompositeFieldContainer[Filters]
@@ -234,6 +245,7 @@ class Filters(_message.Message):
     value_int_array: IntArray
     value_boolean_array: BooleanArray
     value_number_array: NumberArray
+    value_geo: GeoCoordinatesFilter
     def __init__(
         self,
         operator: _Optional[_Union[Filters.Operator, str]] = ...,
@@ -247,6 +259,22 @@ class Filters(_message.Message):
         value_int_array: _Optional[_Union[IntArray, _Mapping]] = ...,
         value_boolean_array: _Optional[_Union[BooleanArray, _Mapping]] = ...,
         value_number_array: _Optional[_Union[NumberArray, _Mapping]] = ...,
+        value_geo: _Optional[_Union[GeoCoordinatesFilter, _Mapping]] = ...,
+    ) -> None: ...
+
+class GeoCoordinatesFilter(_message.Message):
+    __slots__ = ["latitude", "longitude", "distance"]
+    LATITUDE_FIELD_NUMBER: _ClassVar[int]
+    LONGITUDE_FIELD_NUMBER: _ClassVar[int]
+    DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    latitude: float
+    longitude: float
+    distance: float
+    def __init__(
+        self,
+        latitude: _Optional[float] = ...,
+        longitude: _Optional[float] = ...,
+        distance: _Optional[float] = ...,
     ) -> None: ...
 
 class MetadataRequest(_message.Message):
@@ -293,18 +321,26 @@ class MetadataRequest(_message.Message):
     ) -> None: ...
 
 class PropertiesRequest(_message.Message):
-    __slots__ = ["non_ref_properties", "ref_properties", "object_properties"]
+    __slots__ = [
+        "non_ref_properties",
+        "ref_properties",
+        "object_properties",
+        "return_all_nonref_properties",
+    ]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    RETURN_ALL_NONREF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _containers.RepeatedScalarFieldContainer[str]
     ref_properties: _containers.RepeatedCompositeFieldContainer[RefPropertiesRequest]
     object_properties: _containers.RepeatedCompositeFieldContainer[ObjectPropertiesRequest]
+    return_all_nonref_properties: bool
     def __init__(
         self,
         non_ref_properties: _Optional[_Iterable[str]] = ...,
         ref_properties: _Optional[_Iterable[_Union[RefPropertiesRequest, _Mapping]]] = ...,
         object_properties: _Optional[_Iterable[_Union[ObjectPropertiesRequest, _Mapping]]] = ...,
+        return_all_nonref_properties: bool = ...,
     ) -> None: ...
 
 class ObjectPropertiesRequest(_message.Message):
@@ -323,7 +359,7 @@ class ObjectPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class Hybrid(_message.Message):
-    __slots__ = ["query", "properties", "vector", "alpha", "fusion_type"]
+    __slots__ = ["query", "properties", "vector", "alpha", "fusion_type", "vector_bytes"]
 
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = []
@@ -338,11 +374,13 @@ class Hybrid(_message.Message):
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     ALPHA_FIELD_NUMBER: _ClassVar[int]
     FUSION_TYPE_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     query: str
     properties: _containers.RepeatedScalarFieldContainer[str]
     vector: _containers.RepeatedScalarFieldContainer[float]
     alpha: float
     fusion_type: Hybrid.FusionType
+    vector_bytes: bytes
     def __init__(
         self,
         query: _Optional[str] = ...,
@@ -350,6 +388,7 @@ class Hybrid(_message.Message):
         vector: _Optional[_Iterable[float]] = ...,
         alpha: _Optional[float] = ...,
         fusion_type: _Optional[_Union[Hybrid.FusionType, str]] = ...,
+        vector_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class NearTextSearch(_message.Message):
@@ -462,18 +501,21 @@ class RefPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class NearVector(_message.Message):
-    __slots__ = ["vector", "certainty", "distance"]
+    __slots__ = ["vector", "certainty", "distance", "vector_bytes"]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     vector: _containers.RepeatedScalarFieldContainer[float]
     certainty: float
     distance: float
+    vector_bytes: bytes
     def __init__(
         self,
         vector: _Optional[_Iterable[float]] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+        vector_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class NearObject(_message.Message):
@@ -490,6 +532,14 @@ class NearObject(_message.Message):
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
     ) -> None: ...
+
+class Rerank(_message.Message):
+    __slots__ = ["property", "query"]
+    PROPERTY_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    property: str
+    query: str
+    def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
 
 class SearchReply(_message.Message):
     __slots__ = ["took", "results", "generative_grouped_result", "group_by_results"]
@@ -509,18 +559,42 @@ class SearchReply(_message.Message):
         group_by_results: _Optional[_Iterable[_Union[GroupByResult, _Mapping]]] = ...,
     ) -> None: ...
 
+class RerankReply(_message.Message):
+    __slots__ = ["score"]
+    SCORE_FIELD_NUMBER: _ClassVar[int]
+    score: float
+    def __init__(self, score: _Optional[float] = ...) -> None: ...
+
+class GenerativeReply(_message.Message):
+    __slots__ = ["result"]
+    RESULT_FIELD_NUMBER: _ClassVar[int]
+    result: str
+    def __init__(self, result: _Optional[str] = ...) -> None: ...
+
 class GroupByResult(_message.Message):
-    __slots__ = ["name", "min_distance", "max_distance", "number_of_objects", "objects"]
+    __slots__ = [
+        "name",
+        "min_distance",
+        "max_distance",
+        "number_of_objects",
+        "objects",
+        "rerank",
+        "generative",
+    ]
     NAME_FIELD_NUMBER: _ClassVar[int]
     MIN_DISTANCE_FIELD_NUMBER: _ClassVar[int]
     MAX_DISTANCE_FIELD_NUMBER: _ClassVar[int]
     NUMBER_OF_OBJECTS_FIELD_NUMBER: _ClassVar[int]
     OBJECTS_FIELD_NUMBER: _ClassVar[int]
+    RERANK_FIELD_NUMBER: _ClassVar[int]
+    GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     name: str
     min_distance: float
     max_distance: float
     number_of_objects: int
     objects: _containers.RepeatedCompositeFieldContainer[SearchResult]
+    rerank: RerankReply
+    generative: GenerativeReply
     def __init__(
         self,
         name: _Optional[str] = ...,
@@ -528,6 +602,8 @@ class GroupByResult(_message.Message):
         max_distance: _Optional[float] = ...,
         number_of_objects: _Optional[int] = ...,
         objects: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ...,
+        rerank: _Optional[_Union[RerankReply, _Mapping]] = ...,
+        generative: _Optional[_Union[GenerativeReply, _Mapping]] = ...,
     ) -> None: ...
 
 class SearchResult(_message.Message):
@@ -562,6 +638,10 @@ class MetadataResult(_message.Message):
         "generative",
         "generative_present",
         "is_consistent_present",
+        "vector_bytes",
+        "id_as_bytes",
+        "rerank_score",
+        "rerank_score_present",
     ]
     ID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
@@ -581,6 +661,10 @@ class MetadataResult(_message.Message):
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     IS_CONSISTENT_PRESENT_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    ID_AS_BYTES_FIELD_NUMBER: _ClassVar[int]
+    RERANK_SCORE_FIELD_NUMBER: _ClassVar[int]
+    RERANK_SCORE_PRESENT_FIELD_NUMBER: _ClassVar[int]
     id: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     creation_time_unix: int
@@ -599,6 +683,10 @@ class MetadataResult(_message.Message):
     generative: str
     generative_present: bool
     is_consistent_present: bool
+    vector_bytes: bytes
+    id_as_bytes: bytes
+    rerank_score: float
+    rerank_score_present: bool
     def __init__(
         self,
         id: _Optional[str] = ...,
@@ -619,6 +707,10 @@ class MetadataResult(_message.Message):
         generative: _Optional[str] = ...,
         generative_present: bool = ...,
         is_consistent_present: bool = ...,
+        vector_bytes: _Optional[bytes] = ...,
+        id_as_bytes: _Optional[bytes] = ...,
+        rerank_score: _Optional[float] = ...,
+        rerank_score_present: bool = ...,
     ) -> None: ...
 
 class PropertiesResult(_message.Message):
@@ -633,6 +725,7 @@ class PropertiesResult(_message.Message):
         "boolean_array_properties",
         "object_properties",
         "object_array_properties",
+        "non_ref_props",
     ]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPS_FIELD_NUMBER: _ClassVar[int]
@@ -644,6 +737,7 @@ class PropertiesResult(_message.Message):
     BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    NON_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _struct_pb2.Struct
     ref_props: _containers.RepeatedCompositeFieldContainer[RefPropertiesResult]
     target_collection: str
@@ -662,6 +756,7 @@ class PropertiesResult(_message.Message):
     object_array_properties: _containers.RepeatedCompositeFieldContainer[
         _base_pb2.ObjectArrayProperties
     ]
+    non_ref_props: _properties_pb2.Properties
     def __init__(
         self,
         non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
@@ -684,6 +779,7 @@ class PropertiesResult(_message.Message):
         object_array_properties: _Optional[
             _Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]
         ] = ...,
+        non_ref_props: _Optional[_Union[_properties_pb2.Properties, _Mapping]] = ...,
     ) -> None: ...
 
 class RefPropertiesResult(_message.Message):

@@ -710,6 +710,68 @@ def parse_version_string(ver_str: str) -> tuple:
         )
 
 
+class _ServerVersion:
+    def __init__(self, major: int, minor: int, patch: int) -> None:
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _ServerVersion):
+            return NotImplemented
+        return self.major == other.major and self.minor == other.minor and self.patch == other.patch
+
+    def __neq__(self, other: object) -> bool:
+        return not self.__eq__(other)
+
+    def __gt__(self, other: "_ServerVersion") -> bool:
+        if self.major > other.major:
+            return True
+        elif self.major == other.major:
+            if self.minor > other.minor:
+                return True
+            elif self.minor == other.minor:
+                if self.patch > other.patch:
+                    return True
+        return False
+
+    def __lt__(self, other: "_ServerVersion") -> bool:
+        return not self.__gt__(other) and not self.__eq__(other)
+
+    def __ge__(self, other: "_ServerVersion") -> bool:
+        return self.__gt__(other) or self.__eq__(other)
+
+    def __le__(self, other: "_ServerVersion") -> bool:
+        return self.__lt__(other) or self.__eq__(other)
+
+    def __repr__(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def is_at_least(self, major: int, minor: int, patch: int) -> bool:
+        return self >= _ServerVersion(major, minor, patch)
+
+    @classmethod
+    def from_string(cls, version: str) -> "_ServerVersion":
+        initial = version
+        if version == "":
+            version = "0"
+        if version.count(".") == 0:
+            version = version + ".0"
+        if version.count(".") == 1:
+            version = version + ".0"
+
+        pattern = r"v?(\d+)\.(\d+)\.(\d+)"
+        match = re.match(pattern, version)
+
+        if match:
+            ver_tup = tuple(map(int, match.groups()))
+            return cls(major=ver_tup[0], minor=ver_tup[1], patch=ver_tup[2])
+        else:
+            raise ValueError(
+                f"Unable to parse a version from the input string: {initial}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
+            )
+
+
 def is_weaviate_too_old(current_version_str: str) -> bool:
     """
     Check if the user should be gently nudged to upgrade their Weaviate server version.
@@ -863,3 +925,16 @@ def _datetime_to_string(value: TIME) -> str:
         _Warnings.datetime_insertion_with_no_specified_timezone(value)
         value = value.replace(tzinfo=datetime.timezone.utc)
     return value.isoformat(sep="T", timespec="microseconds")
+
+
+def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
+    try:
+        return datetime.datetime.strptime(
+            "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+        )
+    except ValueError:  # if the string does not have microseconds
+        return datetime.datetime.strptime(
+            "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
+            "%Y-%m-%dT%H:%M:%S%z",
+        )

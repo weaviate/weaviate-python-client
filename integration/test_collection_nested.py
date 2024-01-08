@@ -1,22 +1,15 @@
+import datetime
 from typing import List, TypedDict, Union
 
 import pytest
 
-import weaviate
+from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     DataType,
     Property,
 )
 from weaviate.collections.classes.grpc import PROPERTIES, FromNested
 from weaviate.collections.classes.internal import Nested
-
-
-@pytest.fixture(scope="module")
-def client():
-    client = weaviate.connect_to_local()
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
 
 
 @pytest.mark.parametrize(
@@ -142,8 +135,35 @@ def client():
                 "ints": [42, 43],
                 "bool": True,
                 "bools": [True, False],
-                "date": "2020-01-01T00:00:00Z",
-                "dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"],
+                "date": datetime.datetime(
+                    year=2020,
+                    month=1,
+                    day=1,
+                    hour=0,
+                    minute=0,
+                    second=0,
+                    tzinfo=datetime.timezone.utc,
+                ),
+                "dates": [
+                    datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=1,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                    datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=2,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                ],
                 "obj": {"text": "Hello World"},
                 "objs": [{"text": "Hello World"}, {"text": "Hello World"}],
             },
@@ -221,8 +241,35 @@ def client():
                     "ints": [42, 43],
                     "bool": True,
                     "bools": [True, False],
-                    "date": "2020-01-01T00:00:00Z",
-                    "dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"],
+                    "date": datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=1,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                    "dates": [
+                        datetime.datetime(
+                            year=2020,
+                            month=1,
+                            day=1,
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            tzinfo=datetime.timezone.utc,
+                        ),
+                        datetime.datetime(
+                            year=2020,
+                            month=1,
+                            day=2,
+                            hour=0,
+                            minute=0,
+                            second=0,
+                            tzinfo=datetime.timezone.utc,
+                        ),
+                    ],
                     "obj": {"text": "Hello World"},
                     "objs": [{"text": "Hello World"}, {"text": "Hello World"}],
                 }
@@ -254,12 +301,11 @@ def client():
     ],
 )
 def test_nested_return_all_properties(
-    client: weaviate.WeaviateClient, property_: Property, object_: Union[dict, List[dict]]
-):
-    name = "TestInsertNestedPropertiesAll"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection_factory: CollectionFactory,
+    property_: Property,
+    object_: Union[dict, List[dict]],
+) -> None:
+    collection = collection_factory(
         properties=[property_],
     )
     res = collection.data.insert_many([{"nested": object_}])
@@ -267,6 +313,9 @@ def test_nested_return_all_properties(
 
     result = collection.query.fetch_objects()
     assert result.objects[0].properties["nested"] == object_
+
+    out = collection.query.fetch_object_by_id(res.uuids[0])
+    assert out.properties["nested"] == object_
 
 
 @pytest.mark.parametrize(
@@ -280,10 +329,44 @@ def test_nested_return_all_properties(
         (FromNested(name="nested", properties=["ints"]), {"ints": [42, 43]}),
         (FromNested(name="nested", properties=["bool"]), {"bool": True}),
         (FromNested(name="nested", properties=["bools"]), {"bools": [True, False]}),
-        (FromNested(name="nested", properties=["date"]), {"date": "2020-01-01T00:00:00Z"}),
+        (
+            FromNested(name="nested", properties=["date"]),
+            {
+                "date": datetime.datetime(
+                    year=2020,
+                    month=1,
+                    day=1,
+                    hour=0,
+                    minute=0,
+                    second=0,
+                    tzinfo=datetime.timezone.utc,
+                )
+            },
+        ),
         (
             FromNested(name="nested", properties=["dates"]),
-            {"dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"]},
+            {
+                "dates": [
+                    datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=1,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                    datetime.datetime(
+                        year=2020,
+                        month=1,
+                        day=2,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        tzinfo=datetime.timezone.utc,
+                    ),
+                ]
+            },
         ),
         (
             FromNested(name="nested", properties=[FromNested(name="obj", properties=["text"])]),
@@ -308,12 +391,11 @@ def test_nested_return_all_properties(
     ],
 )
 def test_nested_return_specific_properties(
-    client: weaviate.WeaviateClient, return_properties: PROPERTIES, expected: dict
-):
-    name = "TestInsertNestedPropertiesSpecific"
-    client.collections.delete(name)
-    collection = client.collections.create(
-        name=name,
+    collection_factory: CollectionFactory,
+    return_properties: PROPERTIES,
+    expected: dict,
+) -> None:
+    collection = collection_factory(
         properties=[
             Property(
                 name="nested",
@@ -407,8 +489,8 @@ def test_nested_return_specific_properties(
                     "ints": [42, 43],
                     "bool": True,
                     "bools": [True, False],
-                    "date": "2020-01-01T00:00:00Z",
-                    "dates": ["2020-01-01T00:00:00Z", "2020-01-02T00:00:00Z"],
+                    "date": "2020-01-01T00:00:00.000Z",
+                    "dates": ["2020-01-01T00:00:00.000Z", "2020-01-02T00:00:00.000Z"],
                     "obj": {"text": "Hello World"},
                     "objs": [{"text": "Hello World"}, {"text": "Hello World"}],
                     "a": {"b": {"c": {"d": "e"}}},
@@ -419,14 +501,11 @@ def test_nested_return_specific_properties(
     assert res.has_errors is False
     result = collection.query.fetch_objects(return_properties=return_properties)
     assert result.objects[0].properties["nested"] == expected
+    out = collection.query.fetch_object_by_id(res.uuids[0], return_properties=return_properties)
+    assert out.properties["nested"] == expected
 
 
-def test_nested_return_generic_properties(
-    client: weaviate.WeaviateClient,
-):
-    name = "TestInsertNestedPropertiesGeneric"
-    client.collections.delete(name)
-
+def test_nested_return_generic_properties(collection_factory: CollectionFactory) -> None:
     class Child(TypedDict):
         name: str
         age: int
@@ -434,8 +513,7 @@ def test_nested_return_generic_properties(
     class Parent(TypedDict):
         child: Nested[Child]
 
-    collection = client.collections.create(
-        name=name,
+    collection = collection_factory(
         properties=[
             Property(
                 name="child",
@@ -452,7 +530,7 @@ def test_nested_return_generic_properties(
                 ],
             )
         ],
-        data_model=Parent,
+        data_model_properties=Parent,
     )
 
     collection.data.insert(Parent(child=Child(name="Timmy", age=10)))

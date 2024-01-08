@@ -97,6 +97,14 @@ class _Warnings:
         )
 
     @staticmethod
+    def startup_period_deprecated() -> None:
+        warnings.warn(
+            message="""Dep004: startup_period is deprecated and has no effect. Please remove it from your code.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def token_refresh_failed(exc: Exception) -> None:
         warnings.warn(
             message=f"""Con001: Could not reach token issuer for the periodic refresh. This client will automatically
@@ -132,6 +140,15 @@ class _Warnings:
             message="""Dep006: You are using the `client.batch()` method, which will be removed in the next major release.
             Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
             See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def reference_in_properties() -> None:
+        warnings.warn(
+            message="""Dep007: You are adding references as properties, which will be removed in an upcoming release. Please use the `references`
+            parameter instead. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -198,6 +215,15 @@ class _Warnings:
         warnings.warn(
             message=f"""You are tying to manually create {type_} in an automatic batching environment. If you want to do manual batching, you need to use
             client.batch.configure() to return a new Batch object with `dynamic=False` and `batch_size=None`.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def reranking_not_enabled() -> None:
+        warnings.warn(
+            message="""Grpc001: Reranking is not in the gRPC API for this Weaviate version. You must update to the latest Weaviate server version to use this new functionality.
+            This query will execute without reranking.""",
             category=UserWarning,
             stacklevel=1,
         )

@@ -1,7 +1,8 @@
 import datetime
+import struct
 import uuid as uuid_package
 import time
-from typing import Any, Dict, List, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import grpc  # type: ignore
 from google.protobuf.struct_pb2 import Struct
@@ -11,9 +12,16 @@ from weaviate.collections.classes.batch import (
     _BatchObject,
     BatchObjectReturn,
 )
+from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
-from weaviate.exceptions import WeaviateQueryException, WeaviateInsertInvalidPropertyError
+from weaviate.connect import HttpxConnection as Connection
+from weaviate.exceptions import (
+    WeaviateQueryException,
+    WeaviateInsertInvalidPropertyError,
+    WeaviateInsertManyAllFailedError,
+)
 from weaviate.util import _datetime_to_string, get_vector
 from weaviate.proto.v1 import batch_pb2, base_pb2
 
@@ -24,6 +32,11 @@ class _BatchGRPC(_BaseGRPC):
     It is used within the `_Data` and `_Batch` classes hence the necessary generalities
     and abstractions so as not to couple to strongly to either use-case.
     """
+
+    def __init__(self, connection: Connection, consistency_level: Optional[ConsistencyLevel]):
+        is_weaviate_version_123 = connection._weaviate_version.is_at_least(1, 23, 0)
+
+        super().__init__(connection, consistency_level, is_weaviate_version_123)
 
     def objects(self, objects: List[_BatchObject]) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
@@ -37,12 +50,25 @@ class _BatchGRPC(_BaseGRPC):
             `tenant`
                 The tenant to be used for this batch operation
         """
+
+        def pack_vector(vector: Any) -> bytes:
+            vector_list = get_vector(vector)
+            return struct.pack("{}f".format(len(vector_list)), *vector_list)
+
         weaviate_objs: List[batch_pb2.BatchObject] = [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector=get_vector(obj.vector) if obj.vector is not None else None,
+                vector=get_vector(obj.vector)
+                if obj.vector is not None and not self._is_weaviate_version_123
+                else None,
+                vector_bytes=pack_vector(obj.vector)
+                if obj.vector is not None and self._is_weaviate_version_123
+                else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=self.__translate_properties_from_python_to_grpc(obj.properties, False)
+                properties=self.__translate_properties_from_python_to_grpc(
+                    {**obj.properties, **(obj.references if obj.references is not None else {})},
+                    False,
+                )
                 if obj.properties is not None
                 else None,
                 tenant=obj.tenant,
@@ -53,6 +79,14 @@ class _BatchGRPC(_BaseGRPC):
         start = time.time()
         errors = self.__send_batch(weaviate_objs)
         elapsed_time = time.time() - start
+
+        if len(errors) == len(weaviate_objs):
+            # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: Pylance
+            raise WeaviateInsertManyAllFailedError(
+                "Here is the set of all errors: {}".format(
+                    "\n".join(err for err in set(errors.values()))
+                )
+            )
 
         all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
             List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
@@ -147,6 +181,9 @@ class _BatchGRPC(_BaseGRPC):
                         ),
                     )
                 )
+            elif isinstance(val, list) and len(val) == 0:
+                # this is a dirty hack until th GRPC batch backend is fixed
+                text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], dict):
                 val = cast(List[Dict[str, Any]], val)
                 object_array_properties.append(
@@ -188,7 +225,19 @@ class _BatchGRPC(_BaseGRPC):
             elif isinstance(val, list) and isinstance(val[0], int):
                 int_arrays.append(base_pb2.IntArrayProperties(prop_name=key, values=val))
             elif isinstance(val, list) and isinstance(val[0], float):
-                float_arrays.append(base_pb2.NumberArrayProperties(prop_name=key, values=val))
+                values = val if not self._is_weaviate_version_123 else None
+                values_bytes = (
+                    struct.pack("{}d".format(len(val)), *val)
+                    if self._is_weaviate_version_123
+                    else None
+                )
+                float_arrays.append(
+                    base_pb2.NumberArrayProperties(
+                        prop_name=key, values=values, values_bytes=values_bytes
+                    )
+                )
+            elif isinstance(val, GeoCoordinate):
+                non_ref_properties.update({key: val._to_dict()})
             else:
                 non_ref_properties.update({key: _serialize_primitive(val)})
 

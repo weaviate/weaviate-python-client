@@ -6,12 +6,12 @@ Weaviate Python Client Library used to interact with a Weaviate instance.
 __all__ = [
     "Client",
     "Collection",
-    "Connect",
     "WeaviateClient",
     "AuthClientCredentials",
     "AuthClientPassword",
     "AuthBearerToken",
     "AuthApiKey",
+    "BackupStorage",
     "UnexpectedStatusCodeException",
     "ObjectAlreadyExistsException",
     "AuthenticationFailedException",
@@ -27,6 +27,7 @@ __all__ = [
     "ProtocolParams",
     "AdditionalProperties",
     "LinkTo",
+    "Shard",
     "Tenant",
     "TenantActivityStatus",
     "connect_to_custom",
@@ -45,10 +46,10 @@ except PackageNotFoundError:
     __version__ = "unknown version"
 
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
-from .batch.crud_batch import WeaviateErrorRetryConf
 from .client import Client, WeaviateClient
 from .collections.collection import Collection
 from .connect.connection import ConnectionParams, ProtocolParams
+from .batch.crud_batch import WeaviateErrorRetryConf, Shard
 from .data.replication import ConsistencyLevel
 from .schema.crud_schema import Tenant, TenantActivityStatus
 from .connect.helpers import (
@@ -67,6 +68,7 @@ from .exceptions import (
 )
 from .config import AdditionalConfig, Config, ConnectionConfig
 from .gql.get import AdditionalProperties, LinkTo
+from .backup.backup import BackupStorage
 
 if not sys.warnoptions:
     import warnings

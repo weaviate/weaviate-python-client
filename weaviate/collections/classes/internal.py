@@ -1,7 +1,8 @@
+import datetime
 import sys
-from dataclasses import dataclass
-from typing import Any, Dict, Generic, List, Optional, Tuple, Type, Union, cast
-from typing_extensions import TypeAlias
+from dataclasses import dataclass, field
+from typing import Any, Dict, Generic, List, Mapping, Optional, Tuple, Type, Union, cast
+from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 import uuid as uuid_package
 
@@ -15,16 +16,23 @@ from weaviate.collections.classes.grpc import (
     FromNested,
     FromReference,
     FromReferenceMultiTarget,
-    MetadataQuery,
-    PROPERTIES,
     Generate,
+    GroupBy,
+    MetadataQuery,
+    METADATA,
+    PROPERTIES,
+    REFERENCES,
+    Rerank,
 )
-from weaviate.collections.classes.types import Properties, P, TProperties
-from weaviate.exceptions import WeaviateQueryException
+from weaviate.collections.classes.types import Properties, M, P, R, TProperties, WeaviateProperties
+from weaviate.exceptions import WeaviateQueryException, InvalidDataModelException
 from weaviate.util import _to_beacons
 from weaviate.types import UUIDS
 
 from weaviate.proto.v1 import search_get_pb2
+
+
+IReferences = TypeVar("IReferences", bound=Optional[Mapping[str, Any]], default=None)
 
 
 @dataclass
@@ -51,8 +59,8 @@ def _metadata_from_dict(
         uuid,
         metadata.get("vector"),
         _MetadataReturn(
-            creation_time_unix=metadata.get("creationTimeUnix"),
-            last_update_time_unix=metadata.get("lastUpdateTimeUnix"),
+            creation_time=metadata.get("creationTimeUnix"),
+            last_update_time=metadata.get("lastUpdateTimeUnix"),
             distance=metadata.get("distance"),
             certainty=metadata.get("certainty"),
             explain_score=metadata.get("explainScore"),
@@ -64,70 +72,116 @@ def _metadata_from_dict(
 
 @dataclass
 class _MetadataReturn:
-    creation_time_unix: Optional[int]
-    last_update_time_unix: Optional[int]
-    distance: Optional[float]
-    certainty: Optional[float]
-    score: Optional[float]
-    explain_score: Optional[str]
-    is_consistent: Optional[bool]
+    creation_time: Optional[datetime.datetime] = None
+    last_update_time: Optional[datetime.datetime] = None
+    distance: Optional[float] = None
+    certainty: Optional[float] = None
+    score: Optional[float] = None
+    explain_score: Optional[str] = None
+    is_consistent: Optional[bool] = None
+    rerank_score: Optional[float] = None
 
     def _is_empty(self) -> bool:
         return all(
             [
-                self.creation_time_unix is None,
-                self.last_update_time_unix is None,
+                self.creation_time is None,
+                self.last_update_time is None,
                 self.distance is None,
                 self.certainty is None,
                 self.score is None,
                 self.explain_score is None,
                 self.is_consistent is None,
+                self.rerank_score is None,
             ]
         )
 
 
 @dataclass
-class _Object(Generic[P]):
+class _GroupByMetadataReturn:
+    distance: Optional[float] = None
+
+    def _is_empty(self) -> bool:
+        return self.distance is None
+
+
+@dataclass
+class _InternalObject(Generic[P, R, M]):
     uuid: uuid_package.UUID
-    metadata: Optional[_MetadataReturn]
+    metadata: M
     properties: P
+    references: R
     vector: Optional[List[float]]
 
 
 @dataclass
-class _GroupByObject(Generic[P], _Object[P]):
+class _Object(Generic[P, R], _InternalObject[P, R, _MetadataReturn]):
+    pass
+
+
+@dataclass
+class _MetadataSingleObjectReturn:
+    creation_time: datetime.datetime
+    last_update_time: datetime.datetime
+    is_consistent: Optional[bool]
+
+
+@dataclass
+class _ObjectSingleReturn(Generic[P, R], _InternalObject[P, R, _MetadataSingleObjectReturn]):
+    pass
+
+
+@dataclass
+class _GroupByObject(Generic[P, R], _InternalObject[P, R, _GroupByMetadataReturn]):
     belongs_to_group: str
 
 
 @dataclass
-class _GenerativeObject(Generic[P], _Object[P]):
+class _GroupedObject(Generic[P, R], _InternalObject[P, R, _GroupByMetadataReturn]):
+    pass
+
+
+@dataclass
+class _GenerativeObject(Generic[P, R], _Object[P, R]):
     generated: Optional[str]
 
 
 @dataclass
-class _GenerativeReturn(Generic[P]):
-    objects: List[_GenerativeObject[P]]
+class _GenerativeReturn(Generic[P, R]):
+    objects: List[_GenerativeObject[P, R]]
     generated: Optional[str]
 
 
 @dataclass
-class _GroupByResult(Generic[P]):
+class _Group(Generic[P, R]):
     name: str
     min_distance: float
     max_distance: float
     number_of_objects: int
-    objects: List[_Object[P]]
+    objects: List[_GroupedObject[P, R]]
+    rerank_score: Optional[float]
 
 
 @dataclass
-class _GroupByReturn(Generic[P]):
-    objects: List[_GroupByObject[P]]
-    groups: Dict[str, _GroupByResult[P]]
+class _GenerativeGroup(Generic[P, R], _Group[P, R]):
+    generated: Optional[str]
 
 
 @dataclass
-class _QueryReturn(Generic[P]):
-    objects: List[_Object[P]]
+class _GenerativeGroupByReturn(Generic[P, R]):
+    objects: List[_GroupByObject[P, R]]
+    groups: Dict[str, _GenerativeGroup[P, R]]
+    generated: Optional[str]
+
+
+@dataclass
+class _GroupByReturn(Generic[P, R]):
+    objects: List[_GroupByObject[P, R]]
+    groups: Dict[str, _Group[P, R]]
+
+
+@dataclass
+class _QueryReturn(Generic[P, R]):
+    objects: List[_Object[P, R]]
 
 
 _GQLEntryReturnType: TypeAlias = Dict[str, List[Dict[str, Any]]]
@@ -139,13 +193,6 @@ class _RawGQLReturn:
     explore: _GQLEntryReturnType
     get: _GQLEntryReturnType
     errors: Optional[Dict[str, Any]]
-
-
-QueryReturn: TypeAlias = Union[_QueryReturn[Properties], _QueryReturn[TProperties]]
-GenerativeReturn: TypeAlias = Union[_GenerativeReturn[Properties], _GenerativeReturn[TProperties]]
-GroupByReturn: TypeAlias = Union[_GroupByReturn[Properties], _GroupByReturn[TProperties]]
-
-ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
 
 
 class _Generative:
@@ -200,6 +247,18 @@ class _GroupBy:
             objects_per_group=self.objects_per_group,
         )
 
+    @classmethod
+    def from_input(cls, group_by: Optional[GroupBy]) -> Optional["_GroupBy"]:
+        return (
+            cls(
+                prop=group_by.prop,
+                number_of_groups=group_by.number_of_groups,
+                objects_per_group=group_by.objects_per_group,
+            )
+            if group_by
+            else None
+        )
+
 
 Nested = Annotated[P, "NESTED"]
 
@@ -227,15 +286,13 @@ def __create_nested_property_from_nested(name: str, value: Any) -> FromNested:
     )
 
 
-class _Reference(Generic[P]):
+class _Reference:
     def __init__(
         self,
-        objects: Optional[List[_Object[P]]],
         target_collection: Optional[str],
         uuids: Optional[UUIDS],
     ):
         """You should not initialise this class directly. Use the `.to()` or `.to_multi_target()` class methods instead."""
-        self.__objects = objects
         self.__target_collection = target_collection if target_collection else ""
         self.__uuids = uuids
 
@@ -243,10 +300,6 @@ class _Reference(Generic[P]):
         if self.__uuids is None:
             return []
         return _to_beacons(self.__uuids, self.__target_collection)
-
-    @classmethod
-    def _from(cls, objects: List[_Object[P]]) -> "_Reference[P]":
-        return cls(objects, None, None)
 
     @property
     def is_multi_target(self) -> bool:
@@ -266,13 +319,27 @@ class _Reference(Generic[P]):
         """Returns the target collection name."""
         return self.__target_collection
 
+
+class _CrossReference(Generic[Properties, IReferences]):
+    def __init__(
+        self,
+        objects: Optional[List[_Object[Properties, IReferences]]],
+    ):
+        self.__objects = objects
+
+    @classmethod
+    def _from(
+        cls, objects: List[_Object[Properties, IReferences]]
+    ) -> "_CrossReference[Properties, IReferences]":
+        return cls(objects)
+
     @property
-    def objects(self) -> List[_Object[P]]:
+    def objects(self) -> List[_Object[Properties, IReferences]]:
         """Returns the objects of the cross reference."""
         return self.__objects or []
 
 
-CrossReference = _Reference[P]
+CrossReference: TypeAlias = _CrossReference[Properties, IReferences]
 """Use this TypeAlias when you want to type hint a cross reference within a generic data model.
 
 If you want to define a reference property when creating your collection, use `ReferenceProperty` or `ReferencePropertyMultiTarget` instead.
@@ -290,6 +357,8 @@ Example:
     ...     one: wvc.CrossReference[One]
 """
 
+CrossReferences = Mapping[str, _CrossReference[WeaviateProperties, "CrossReferences"]]
+
 
 class Reference:
     """Factory class for cross references to other objects.
@@ -300,7 +369,10 @@ class Reference:
     """
 
     @classmethod
-    def to(cls, uuids: UUIDS, data_model: Optional[Type[P]] = None) -> CrossReference[P]:
+    def to(
+        cls,
+        uuids: UUIDS,
+    ) -> "_Reference":
         """Define cross references to other objects by their UUIDs.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
@@ -309,15 +381,14 @@ class Reference:
             `uuids`
                 List of UUIDs of the objects to which the reference should point.
         """
-        return _Reference[P](None, None, uuids)
+        return _Reference(None, uuids)
 
     @classmethod
     def to_multi_target(
         cls,
         uuids: UUIDS,
         target_collection: Union[str, _CollectionBase],
-        data_model: Optional[Type[P]] = None,
-    ) -> CrossReference[P]:
+    ) -> "_Reference":
         """Define cross references to other objects by their UUIDs and the collection in which they are stored.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
@@ -328,8 +399,7 @@ class Reference:
             `target_collection`
                 The collection in which the objects are stored. Can be either the name of the collection or the collection object itself.
         """
-        return _Reference[P](
-            None,
+        return _Reference(
             target_collection.name
             if isinstance(target_collection, _CollectionBase)
             else target_collection,
@@ -337,8 +407,12 @@ class Reference:
         )
 
 
+WeaviateReference: TypeAlias = _Reference
+WeaviateReferences: TypeAlias = Mapping[str, WeaviateReference]
+
+
 @dataclass
-class ReferenceAnnotation:
+class CrossReferenceAnnotation:
     """Dataclass to be used when annotating a generic cross reference property with options for retrieving data from the cross referenced object when querying.
 
     Example:
@@ -351,62 +425,66 @@ class ReferenceAnnotation:
         >>> class Two(typing.TypedDict):
         ...     one: typing.Annotated[
         ...         wvc.CrossReference[One],
-        ...         wvc.ReferenceAnnotation(include_vector=True)
+        ...         wvc.CrossReferenceAnnotation(include_vector=True)
         ...     ]
     """
 
-    include_vector: bool = False
-    metadata: Optional[MetadataQuery] = None
-    target_collection: Optional[str] = None
+    include_vector: bool = field(default=False)
+    metadata: Optional[MetadataQuery] = field(default=None)
+    target_collection: Optional[str] = field(default=None)
 
 
-def _extract_property_type_from_reference(type_: _Reference[P]) -> Type[P]:
-    """Extract inner type from CrossReference[Properties]."""
-    if getattr(type_, "__origin__", None) == _Reference:
-        args = cast(List[Type[P]], getattr(type_, "__args__", None))
-        return args[0]
-    raise ValueError("Type is not CrossReference[Properties]")
+ReferenceAnnotation = CrossReferenceAnnotation
+"""@deprecated: Use `CrossReferenceAnnotation` instead."""
 
 
-def _extract_property_type_from_annotated_reference(
-    type_: Annotated[_Reference[P], ReferenceAnnotation]
-) -> Type[P]:
-    """Extract inner type from Annotated[CrossReference[Properties]]."""
+def _extract_types_from_reference(
+    type_: CrossReference[Properties, "References"]
+) -> Tuple[Type[Properties], Type["References"]]:
+    """Extract first inner type from CrossReference[Properties, References]."""
+    if get_origin(type_) == _CrossReference:
+        return cast(Tuple[Type[Properties], Type[References]], get_args(type_))
+    raise ValueError("Type is not CrossReference[Properties, References]")
+
+
+def _extract_types_from_annotated_reference(
+    type_: Annotated[CrossReference[Properties, "References"], ReferenceAnnotation]
+) -> Tuple[Type[Properties], Type["References"]]:
+    """Extract inner type from Annotated[CrossReference[Properties, References]]."""
     if get_origin(type_) is Annotated:
-        args = cast(List[_Reference[Type[P]]], getattr(type_, "__args__", None))
-        inner_type = args[0]
-        if get_origin(inner_type) is _Reference:
-            inner_args = cast(List[Type[P]], getattr(inner_type, "__args__", None))
-            return inner_args[0]
-    raise ValueError("Type is not Annotated[CrossReference[Properties]]")
+        args = get_args(type_)
+        inner_type = cast(CrossReference[Properties, References], args[0])
+        return _extract_types_from_reference(inner_type)
+    raise ValueError("Type is not Annotated[CrossReference[Properties, References]]")
 
 
 def __is_annotated_reference(value: Any) -> bool:
     return (
         get_origin(value) is Annotated
         and len(get_args(value)) == 2
-        and get_origin(get_args(value)[0]) is _Reference
+        and get_origin(get_args(value)[0]) is _CrossReference
     )
 
 
 def __create_link_to_from_annotated_reference(
-    link_on: str, value: Annotated[_Reference[Properties], ReferenceAnnotation]
+    link_on: str, value: Annotated[CrossReference[Properties, "References"], ReferenceAnnotation]
 ) -> Union[FromReference, FromReferenceMultiTarget]:
     """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
     assert get_origin(value) is Annotated
-    args = cast(List[_Reference[Properties]], getattr(value, "__args__", None))
+    args = cast(List[CrossReference[Properties, References]], get_args(value))
     inner_type = args[0]
-    assert get_origin(inner_type) is _Reference
+    assert get_origin(inner_type) is _CrossReference
     inner_type_metadata = cast(Tuple[ReferenceAnnotation], getattr(value, "__metadata__", None))
     annotation = inner_type_metadata[0]
+    types = _extract_types_from_annotated_reference(value)
+    print(annotation)
     if annotation.target_collection is not None:
         return FromReferenceMultiTarget(
             link_on=link_on,
             include_vector=annotation.include_vector,
             return_metadata=annotation.metadata,
-            return_properties=_extract_properties_from_data_model(
-                _extract_property_type_from_annotated_reference(value)
-            ),
+            return_properties=_extract_properties_from_data_model(types[0]),
+            return_references=_extract_references_from_data_model(types[1]),
             target_collection=annotation.target_collection,
         )
     else:
@@ -414,26 +492,25 @@ def __create_link_to_from_annotated_reference(
             link_on=link_on,
             include_vector=annotation.include_vector,
             return_metadata=annotation.metadata,
-            return_properties=_extract_properties_from_data_model(
-                _extract_property_type_from_annotated_reference(value)
-            ),
+            return_properties=_extract_properties_from_data_model(types[0]),
+            return_references=_extract_references_from_data_model(types[1]),
         )
 
 
 def __is_reference(value: Any) -> bool:
-    return get_origin(value) is _Reference
+    return get_origin(value) is _CrossReference
 
 
 def __create_link_to_from_reference(
     link_on: str,
-    value: _Reference[Properties],
+    value: CrossReference[Properties, "References"],
 ) -> FromReference:
     """Create FromReference from CrossReference[Properties]."""
+    types = _extract_types_from_annotated_reference(value)
     return FromReference(
         link_on=link_on,
-        return_properties=_extract_properties_from_data_model(
-            _extract_property_type_from_reference(value)
-        ),
+        return_properties=_extract_properties_from_data_model(types[0]),
+        return_references=_extract_references_from_data_model(types[1]),
     )
 
 
@@ -444,12 +521,126 @@ def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
     in the data model and lists out the properties as classes readily consumable by the underlying API.
     """
     return [
-        __create_link_to_from_annotated_reference(key, value)
-        if __is_annotated_reference(value)
-        else (
-            __create_link_to_from_reference(key, value)
-            if __is_reference(value)
-            else (__create_nested_property_from_nested(key, value) if __is_nested(value) else key)
-        )
+        __create_nested_property_from_nested(key, value) if __is_nested(value) else key
         for key, value in get_type_hints(type_, include_extras=True).items()
     ]
+
+
+def _extract_references_from_data_model(type_: Type["References"]) -> Optional[REFERENCES]:
+    """Extract references of References recursively from References.
+
+    Checks to see if there is a _Reference[References], Annotated[_Reference[References]], or _Nested[References]
+    in the data model and lists out the references as classes readily consumable by the underlying API.
+    """
+    refs = [
+        __create_link_to_from_annotated_reference(key, value)
+        if __is_annotated_reference(value)
+        else __create_link_to_from_reference(key, value)
+        for key, value in get_type_hints(type_, include_extras=True).items()
+    ]
+    return refs if len(refs) > 0 else None
+
+
+References = TypeVar("References", bound=Optional[Mapping[str, Any]], default=None)
+"""`References` is used wherever a single generic type is needed for references"""
+
+# I wish we could have bound=Mapping[str, CrossReference["P", "R"]] here, but you can't have generic bounds, so Any must suffice
+TReferences = TypeVar("TReferences", bound=Mapping[str, Any])
+"""`TReferences` is used alongside `References` wherever there are two generic types needed"""
+
+
+def _check_references_generic(references: Optional[Type["References"]]) -> None:
+    if (
+        references is not None
+        and get_origin(references) is not dict
+        and not is_typeddict(references)
+    ):
+        raise InvalidDataModelException("references")
+
+
+ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
+ReturnReferences: TypeAlias = Union[Union[FromReference, List[FromReference]], Type[TReferences]]
+
+
+@dataclass
+class _QueryOptions(Generic[Properties, References, TReferences]):
+    include_metadata: bool
+    include_properties: bool
+    include_references: bool
+    include_vector: bool
+    is_group_by: bool
+
+    @classmethod
+    def from_input(
+        cls,
+        return_metadata: Optional[METADATA],
+        return_properties: Optional[ReturnProperties[Properties]],
+        include_vector: bool,
+        collection_references: Optional[Type[References]],
+        query_references: Optional[ReturnReferences[TReferences]],
+        rerank: Optional[Rerank] = None,
+        group_by: Optional[GroupBy] = None,
+    ) -> "_QueryOptions":
+        return cls(
+            include_metadata=return_metadata is not None or rerank is not None,
+            include_properties=not (
+                isinstance(return_properties, list) and len(return_properties) == 0
+            ),
+            include_references=collection_references is not None or query_references is not None,
+            include_vector=include_vector,
+            is_group_by=group_by is not None,
+        )
+
+
+QuerySingleReturn = Union[
+    _ObjectSingleReturn[Properties, References],
+    _ObjectSingleReturn[Properties, CrossReferences],
+    _ObjectSingleReturn[Properties, TReferences],
+    _ObjectSingleReturn[TProperties, References],
+    _ObjectSingleReturn[TProperties, CrossReferences],
+    _ObjectSingleReturn[TProperties, TReferences],
+]
+
+_GenerativeNearMediaReturn = Union[_GenerativeReturn[P, R], _GenerativeGroupByReturn[P, R]]
+
+# The way in which generic typealiases work requires that all the generic arguments
+# are listed first and in the order of their apperance in the typealias.
+# GenerativeNearMediaReturn[Properties, References, TProperties, TReferences] is the intended use and so
+# these four generics appear first. All others resolve afterwards correctly
+GenerativeNearMediaReturn = Union[
+    _GenerativeNearMediaReturn[Properties, References],
+    _GenerativeNearMediaReturn[TProperties, TReferences],
+    _GenerativeNearMediaReturn[Properties, CrossReferences],
+    _GenerativeNearMediaReturn[Properties, TReferences],
+    _GenerativeNearMediaReturn[TProperties, References],
+    _GenerativeNearMediaReturn[TProperties, CrossReferences],
+]
+
+GenerativeReturn = Union[
+    _GenerativeReturn[Properties, References],
+    _GenerativeReturn[TProperties, TReferences],
+    _GenerativeReturn[Properties, CrossReferences],
+    _GenerativeReturn[Properties, TReferences],
+    _GenerativeReturn[TProperties, References],
+    _GenerativeReturn[TProperties, CrossReferences],
+]
+
+_QueryNearMediaReturn = Union[_QueryReturn[P, R], _GroupByReturn[P, R]]
+
+QueryNearMediaReturn = Union[
+    _QueryNearMediaReturn[Properties, References],
+    _QueryNearMediaReturn[TProperties, TReferences],
+    _QueryNearMediaReturn[Properties, CrossReferences],
+    _QueryNearMediaReturn[Properties, TReferences],
+    _QueryNearMediaReturn[TProperties, References],
+    _QueryNearMediaReturn[TProperties, CrossReferences],
+]
+
+QueryReturn = Union[
+    _QueryReturn[Properties, References],
+    _QueryReturn[TProperties, TReferences],
+    _QueryReturn[Properties, CrossReferences],
+    _QueryReturn[Properties, TReferences],
+    _QueryReturn[TProperties, References],
+    _QueryReturn[TProperties, CrossReferences],
+]

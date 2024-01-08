@@ -51,7 +51,7 @@ class AggregateText:
     """The aggregation result for a text property."""
 
     count: Optional[int]
-    top_occurrences: Optional[List[TopOccurrence]]
+    top_occurrences: List[TopOccurrence]
 
 
 @dataclass
@@ -108,10 +108,15 @@ class _GroupedBy:
 
 
 @dataclass
-class _AggregateGroupByReturn:
+class _AggregateGroup:
     grouped_by: _GroupedBy
     properties: AProperties
     total_count: Optional[int]
+
+
+@dataclass
+class _AggregateGroupByReturn:
+    groups: List[_AggregateGroup]
 
 
 class _MetricsBase(BaseModel):

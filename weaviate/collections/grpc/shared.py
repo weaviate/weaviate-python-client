@@ -6,9 +6,15 @@ from weaviate.proto.v1 import base_pb2
 
 
 class _BaseGRPC:
-    def __init__(self, connection: Connection, consistency_level: Optional[ConsistencyLevel]):
+    def __init__(
+        self,
+        connection: Connection,
+        consistency_level: Optional[ConsistencyLevel],
+        is_weaviate_version_123: bool,
+    ):
         self._connection = connection
         self._consistency_level = self._get_consistency_level(consistency_level)
+        self._is_weaviate_version_123 = is_weaviate_version_123
 
     def _get_metadata(self) -> Optional[Tuple[Tuple[str, str], ...]]:
         metadata: Optional[Tuple[Tuple[str, str], ...]] = None

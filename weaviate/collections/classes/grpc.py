@@ -66,8 +66,8 @@ class Move:
 class MetadataQuery(_WeaviateInput):
     """Define which metadata should be returned in the query's results."""
 
-    creation_time_unix: bool = Field(default=False)
-    last_update_time_unix: bool = Field(default=False)
+    creation_time: bool = Field(default=False)
+    last_update_time: bool = Field(default=False)
     distance: bool = Field(default=False)
     certainty: bool = Field(default=False)
     score: bool = Field(default=False)
@@ -78,8 +78,8 @@ class MetadataQuery(_WeaviateInput):
     def _full(cls) -> "MetadataQuery":
         """Return a MetadataQuery with all fields set to True."""
         return cls(
-            creation_time_unix=True,
-            last_update_time_unix=True,
+            creation_time=True,
+            last_update_time=True,
             distance=True,
             certainty=True,
             score=True,
@@ -109,8 +109,8 @@ class _MetadataQuery:
             if public is None
             else cls(
                 vector=include_vector,
-                creation_time_unix=public.creation_time_unix,
-                last_update_time_unix=public.last_update_time_unix,
+                creation_time_unix=public.creation_time,
+                last_update_time_unix=public.last_update_time,
                 distance=public.distance,
                 certainty=public.certainty,
                 score=public.score,
@@ -144,6 +144,14 @@ class Generate(_WeaviateInput):
     grouped_properties: Optional[List[str]] = Field(default=None)
 
 
+class GroupBy(_WeaviateInput):
+    """Define how the query's group-by operation should be performed."""
+
+    prop: str
+    objects_per_group: int
+    number_of_groups: int
+
+
 class Sort(_WeaviateInput):
     """Define how the query's sort operation should be performed."""
 
@@ -151,13 +159,21 @@ class Sort(_WeaviateInput):
     ascending: bool = Field(default=True)
 
 
-class FromReference(_WeaviateInput):
+class Rerank(_WeaviateInput):
+    """Define how the query's rerank operation should be performed."""
+
+    prop: str
+    query: Optional[str] = Field(default=None)
+
+
+class QueryReference(_WeaviateInput):
     """Define a query-time reference to a single-target property when querying through cross-references."""
 
     link_on: str
     include_vector: bool = Field(default=False)
-    return_properties: Optional["PROPERTIES"] = Field(default=None)
     return_metadata: Optional[MetadataQuery] = Field(default=None)
+    return_properties: Optional["PROPERTIES"] = Field(default=None)
+    return_references: Optional["REFERENCES"] = Field(default=None)
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))
@@ -167,23 +183,39 @@ class FromReference(_WeaviateInput):
         return _MetadataQuery.from_public(self.return_metadata, self.include_vector)
 
 
-class FromReferenceMultiTarget(FromReference):
+class QueryReferenceMultiTarget(QueryReference):
     """Define a query-time reference to a multi-target property when querying through cross-references."""
 
     target_collection: str
 
 
-class FromNested(_WeaviateInput):
-    """Define the return properties of a nested property."""
+class QueryNested(_WeaviateInput):
+    """Define the query-time return properties of a nested property."""
 
     name: str
-    properties: "NestedProperties"
+    properties: "PROPERTIES"
 
     def __hash__(self) -> int:  # for set
         return hash(str(self))
 
 
-PROPERTY = Union[str, FromReference, FromNested]
+# deprecated and should be removed in v4 GA
+FromReference = QueryReference
+"""@deprecated: Use `QueryReference` instead."""
+FromReferenceMultiTarget = QueryReferenceMultiTarget
+"""@deprecated: Use `QueryReferenceMultiTarget` instead."""
+FromNested = QueryNested
+"""@deprecated: Use `QueryNested` instead."""
+
+REFERENCE = Union[
+    FromReference, FromReferenceMultiTarget, QueryReference, QueryReferenceMultiTarget
+]
+REFERENCES = Union[List[REFERENCE], REFERENCE]
+
+PROPERTY = Union[str, FromNested, QueryNested]
 PROPERTIES = Union[List[PROPERTY], PROPERTY]
 
-NestedProperties = Union[List[Union[str, FromNested]], str, FromNested]
+NestedProperties = Union[List[Union[str, FromNested, QueryNested]], str, FromNested, QueryNested]
+
+_PROPERTY = Union[PROPERTY, REFERENCE]
+_PROPERTIES = Union[PROPERTIES, REFERENCES]

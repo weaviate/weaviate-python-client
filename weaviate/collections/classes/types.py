@@ -1,14 +1,61 @@
-from typing import Any, Dict, Mapping, Optional, Type, get_origin
-from typing_extensions import TypeVar, is_typeddict
+import datetime
+import uuid as uuid_package
+
+from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Type, Union, get_origin
+from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 from pydantic import BaseModel, ConfigDict
 
 from weaviate.exceptions import InvalidDataModelException
 
-Properties = TypeVar("Properties", bound=Mapping[str, Any], default=Dict[str, Any])
-"""`Properties` is used wherever a single generic type is needed"""
 
-TProperties = TypeVar("TProperties", bound=Mapping[str, Any], default=Dict[str, Any])
+class _WeaviateInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class GeoCoordinate(_WeaviateInput):
+    """Input for the geo-coordinate datatype."""
+
+    latitude: float
+    longitude: float
+
+    def _to_dict(self) -> Dict[str, float]:
+        return {"latitude": self.latitude, "longitude": self.longitude}
+
+
+WeaviateField: TypeAlias = Union[
+    None,  # null
+    str,  # text
+    bool,  # boolean
+    int,  # int
+    float,  # number
+    datetime.datetime,  # date
+    uuid_package.UUID,  # uuid
+    GeoCoordinate,  # geoCoordinates
+    Mapping[str, "WeaviateField"],  # object
+    List[str],  # text[]
+    List[bool],  # boolean[]
+    List[int],  # int[]
+    List[float],  # number[]
+    List[datetime.datetime],  # date[]
+    List[uuid_package.UUID],  # uuid[]
+    Sequence[Mapping[str, "WeaviateField"]],  # object[]
+    # Sequence is covariant while List is not, so we use Sequence here to allow for
+    # List[Dict[str, WeaviateField]] to be used interchangeably with List[Dict[str, Any]]
+]
+
+WeaviateProperties: TypeAlias = Mapping[str, WeaviateField]
+# current limitation of mypy is that Dict[str, WeaviateField] is not successfully inferred
+# when used in DataObject. It can't understand that DataObject[Dict[str, str], None] is covariant
+# with DataObject[Dict[str, WeaviateField], None]
+
+SHARD_TYPES = Literal["READONLY", "READY", "INDEXING"]
+
+
+Properties = TypeVar("Properties", bound=Mapping[str, Any], default=WeaviateProperties)
+"""`Properties` is used wherever a single generic type is needed for properties"""
+
+TProperties = TypeVar("TProperties", bound=Mapping[str, Any], default=WeaviateProperties)
 """`TProperties` is used alongside `Properties` wherever there are two generic types needed
 
 E.g., in `_DataCollection`, `Properties` is used when defining the generic of the class while
@@ -18,22 +65,38 @@ a new instance of `_DataCollection` with a different `Properties` type.
 To be clear: `_DataCollection[Properties]().with_data_model(TProperties) -> _DataCollection[TProperties]()`
 """
 
+DProperties = TypeVar("DProperties", bound=Mapping[str, Any], default=Dict[str, Any])
+QProperties = TypeVar("QProperties", bound=Mapping[str, Any], default=WeaviateProperties)
+
+NProperties = TypeVar("NProperties", bound=Optional[Mapping[str, Any]], default=None)
+
+M = TypeVar("M")
+"""`M` is a completely general type that is used wherever generic metadata objects are defined that can be used"""
+
 P = TypeVar("P")
 """`P` is a completely general type that is used wherever generic properties objects are defined that can be used
+within the non-ORM and ORM APIs interchangeably"""
+
+QP = TypeVar("QP")
+"""`QP` is a completely general type that is used wherever generic properties objects are defined that can be used
+within the non-ORM and ORM APIs interchangeably"""
+
+R = TypeVar("R")
+"""`R` is a completely general type that is used wherever generic reference objects are defined that can be used
+within the non-ORM and ORM APIs interchangeably"""
+
+QR = TypeVar("QR")
+"""`QR` is a completely general type that is used wherever generic reference objects are defined that can be used
 within the non-ORM and ORM APIs interchangeably"""
 
 T = TypeVar("T")
 """`T` is a completely general type that is used in any kind of generic"""
 
 
-def _check_data_model(data_model: Optional[Type[Properties]]) -> None:
+def _check_properties_generic(properties: Optional[Type[Properties]]) -> None:
     if (
-        data_model is not None
-        and get_origin(data_model) is not dict
-        and not is_typeddict(data_model)
+        properties is not None
+        and get_origin(properties) is not dict
+        and not is_typeddict(properties)
     ):
-        raise InvalidDataModelException()
-
-
-class _WeaviateInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+        raise InvalidDataModelException("properties")

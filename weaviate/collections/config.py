@@ -6,8 +6,12 @@ from weaviate.collections.classes.config import (
     _CollectionConfigUpdate,
     _InvertedIndexConfigUpdate,
     _ReplicationConfigUpdate,
+    _VectorIndexConfigFlatUpdate,
     PropertyType,
-    _VectorIndexConfigUpdate,
+    Property,
+    ReferenceProperty,
+    ReferencePropertyMultiTarget,
+    _VectorIndexConfigHNSWUpdate,
     _CollectionConfig,
     _CollectionConfigSimple,
     _Property,
@@ -18,13 +22,15 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.orm import Model
+from weaviate.collections.classes.types import SHARD_TYPES
+from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import HttpxConnection as Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
     WeaviateAddInvalidPropertyError,
 )
-from weaviate.util import _decode_json_response_list
+from weaviate.util import _decode_json_response_dict, _decode_json_response_list
 
 
 class _ConfigBase:
@@ -64,6 +70,8 @@ class _ConfigBase:
             `weaviate.UnexpectedStatusCodeException`
                 If Weaviate reports a non-OK status.
         """
+        if not isinstance(simple, bool):
+            _raise_invalid_input("simple", simple, bool)
         schema = self.__get()
         if simple:
             return _collection_config_simple_from_json(schema)
@@ -74,7 +82,9 @@ class _ConfigBase:
         description: Optional[str] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
-        vector_index_config: Optional[_VectorIndexConfigUpdate] = None,
+        vector_index_config: Optional[
+            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
+        ] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
@@ -164,13 +174,62 @@ class _ConfigBase:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Shard statuses could not be retrieved.") from conn_err
 
+    def update_shards(
+        self,
+        status: Literal["READY", "READONLY"],
+        shard_names: Optional[Union[str, List[str]]] = None,
+    ) -> Dict[str, SHARD_TYPES]:
+        """Update the status of one or all shards of this collection.
+
+        Returns:
+            `Dict[str, SHARD_TYPES]`: All updated shards idexed by their name.
+
+        Parameters
+        ----------
+            status: The new status of the shard. The available options are: 'READY' and 'READONLY'.
+            shard_name: The shard name for which to update the status of the class of the shard. If None all shards are going to be updated.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+        """
+        if shard_names is None:
+            shards_config = self.get_shards()
+            shard_names = [shard_config.name for shard_config in shards_config]
+        elif isinstance(shard_names, str):
+            shard_names = [shard_names]
+
+        data = {"status": status}
+
+        to_return: Dict[str, SHARD_TYPES] = {}
+
+        for _shard_name in shard_names:
+            path = f"/schema/{self._name}/shards/{_shard_name}"
+            try:
+                response = self.__connection.put(
+                    path=path,
+                    weaviate_object=data,
+                )
+            except RequestsConnectionError as conn_err:
+                raise RequestsConnectionError(
+                    f"Class shards' status could not be updated for shard '{_shard_name}' due to "
+                    "connection error."
+                ) from conn_err
+            resp = _decode_json_response_dict(response, f"Update shard '{_shard_name}' status")
+            assert resp is not None
+            to_return[_shard_name] = resp["status"]
+
+        return to_return
+
 
 class _ConfigCollection(_ConfigBase):
-    def add_property(self, additional_property: PropertyType) -> None:
+    def add_property(self, prop: Property) -> None:
         """Add a property to the collection in Weaviate.
 
         Arguments:
-            additional_property : The property to add to the collection.
+            prop : The property to add to the collection.
 
         Raises:
             `requests.ConnectionError`:
@@ -180,11 +239,45 @@ class _ConfigCollection(_ConfigBase):
             `weaviate.ObjectAlreadyExistsException`:
                 If the property already exists in the collection.
         """
-        if self._get_property_by_name(additional_property.name) is not None:
-            raise ObjectAlreadyExistsException(
-                f"Property with name '{additional_property.name}' already exists in collection '{self._name}'."
+        if not isinstance(prop, Property):
+            _raise_invalid_input(
+                "prop",
+                prop,
+                Property,
             )
-        self._add_property(additional_property)
+        if self._get_property_by_name(prop.name) is not None:
+            raise ObjectAlreadyExistsException(
+                f"Property with name '{prop.name}' already exists in collection '{self._name}'."
+            )
+        self._add_property(prop)
+
+    def add_reference(self, ref: Union[ReferenceProperty, ReferencePropertyMultiTarget]) -> None:
+        """Add a reference to the collection in Weaviate.
+
+        Arguments:
+            ref : The reference to add to the collection.
+
+        Raises:
+            `requests.ConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`:
+                If Weaviate reports a non-OK status.
+            `weaviate.ObjectAlreadyExistsException`:
+                If the reference already exists in the collection.
+        """
+        if not isinstance(ref, ReferenceProperty) and not isinstance(
+            ref, ReferencePropertyMultiTarget
+        ):
+            _raise_invalid_input(
+                "ref",
+                ref,
+                Union[ReferenceProperty, ReferencePropertyMultiTarget],
+            )
+        if self._get_property_by_name(ref.name) is not None:
+            raise ObjectAlreadyExistsException(
+                f"Reference with name '{ref.name}' already exists in collection '{self._name}'."
+            )
+        self._add_property(ref)
 
 
 class _ConfigCollectionModel(_ConfigBase):
@@ -197,7 +290,7 @@ class _ConfigCollectionModel(_ConfigBase):
         schema_props_simple = [
             {
                 "name": prop.name,
-                "dataType": prop.to_weaviate_dict().get("dataType"),
+                "dataType": prop._to_dict().get("dataType"),
             }
             for prop in schema_props
         ]
