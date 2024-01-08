@@ -3,7 +3,7 @@ from typing import List, Literal, Optional, Union, overload
 from httpx import ConnectError
 
 from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST
-from weaviate.connect import HttpxConnection as Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     EmptyResponseException,
 )
@@ -11,7 +11,7 @@ from ..util import _capitalize_first_letter, _decode_json_response_dict
 
 
 class _Cluster:
-    def __init__(self, connection: Connection):
+    def __init__(self, connection: ConnectionV4):
         self._connection = connection
 
     @overload

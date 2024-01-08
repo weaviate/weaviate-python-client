@@ -50,7 +50,7 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
-from weaviate.connect import HttpxConnection as Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateGrpcUnavailable,
     WeaviateQueryException,
@@ -73,7 +73,7 @@ class _WeaviateUUIDInt(uuid_lib.UUID):
 class _BaseQuery(Generic[Properties, References]):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],

@@ -1,33 +1,51 @@
-"""Connection class definition."""
 from __future__ import annotations
 
 import datetime
-import os
 import time
+
 from threading import Thread, Event
 from typing import Any, Dict, Optional, Tuple, Union, cast
-from urllib.parse import urlparse
 
-import requests
-from authlib.integrations.requests_client import OAuth2Session  # type: ignore
-from pydantic import BaseModel, field_validator, model_validator
-from requests.adapters import HTTPAdapter
-from requests.exceptions import ReadTimeout
-from requests.exceptions import HTTPError as RequestsHTTPError
-from requests.exceptions import JSONDecodeError
+from grpc import _channel  # type: ignore
+from grpc_health.v1 import health_pb2  # type: ignore
+from httpx import (
+    AsyncClient,
+    Client,
+    ConnectError,
+    HTTPError,
+    Limits,
+    ReadError,
+    ReadTimeout,
+    RemoteProtocolError,
+    RequestError,
+    Response,
+    Timeout,
+    get,
+)
+from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client  # type: ignore
 
 from weaviate import __version__ as client_version
-from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
+from weaviate.auth import (
+    AuthCredentials,
+    AuthApiKey,
+    AuthClientCredentials,
+)
 from weaviate.config import ConnectionConfig
-from weaviate.connect.authentication import _Auth
-from weaviate.connect.httpx_connection import HttpxConnection
+from weaviate.connect.auth import _Auth
+from weaviate.connect.base import (
+    _ConnectionBase,
+    ConnectionParams,
+    JSONPayload,
+    _get_proxies,
+    PYPI_TIMEOUT,
+    TIMEOUT_TYPE_RETURN,
+)
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
     WeaviateGrpcUnavailable,
     WeaviateStartUpError,
 )
-from weaviate.types import NUMBER
 from weaviate.util import (
     is_weaviate_domain,
     is_weaviate_too_old,
@@ -38,146 +56,13 @@ from weaviate.util import (
 )
 from weaviate.warnings import _Warnings
 
-from grpc import Channel, _channel, secure_channel, insecure_channel, ssl_channel_credentials  # type: ignore
-from grpc_health.v1 import health_pb2  # type: ignore
 from weaviate.proto.v1 import weaviate_pb2_grpc
 
-JSONPayload = Union[dict, list]
-Session = Union[requests.sessions.Session, OAuth2Session]
-TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
-PYPI_TIMEOUT = 0.1
-MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
-GRPC_OPTIONS = [
-    ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
-    ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
-]
+Session = Union[Client, OAuth2Client]
+AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 
 
-class ProtocolParams(BaseModel):
-    host: str
-    port: int
-    secure: bool
-
-    @field_validator("host")
-    def _check_host(cls, v: str) -> str:
-        if v == "":
-            raise ValueError("host must not be empty")
-        return v
-
-    @field_validator("port")
-    def _check_port(cls, v: int) -> int:
-        if v < 0 or v > 65535:
-            raise ValueError("port must be between 0 and 65535")
-        return v
-
-
-class ConnectionParams(BaseModel):
-    http: ProtocolParams
-    grpc: Optional[ProtocolParams] = None
-
-    @classmethod
-    def from_url(
-        cls, url: str, grpc_port: Optional[int] = None, grpc_secure: bool = False
-    ) -> ConnectionParams:
-        parsed_url = urlparse(url)
-        if parsed_url.scheme not in ["http", "https"]:
-            raise ValueError(f"Unsupported scheme: {parsed_url.scheme}")
-        if parsed_url.port is None:
-            port = 443 if parsed_url.scheme == "https" else 80
-        else:
-            port = parsed_url.port
-
-        return cls(
-            http=ProtocolParams(
-                host=cast(str, parsed_url.hostname),
-                port=port,
-                secure=parsed_url.scheme == "https",
-            ),
-            grpc=ProtocolParams(
-                host=cast(str, parsed_url.hostname),
-                port=grpc_port,
-                secure=grpc_secure or parsed_url.scheme == "https",
-            )
-            if grpc_port is not None
-            else None,
-        )
-
-    @classmethod
-    def from_params(
-        cls,
-        http_host: str,
-        http_port: int,
-        http_secure: bool,
-        grpc_host: Optional[str] = None,
-        grpc_port: Optional[int] = None,
-        grpc_secure: Optional[bool] = None,
-    ) -> ConnectionParams:
-        return cls(
-            http=ProtocolParams(
-                host=http_host,
-                port=http_port,
-                secure=http_secure,
-            ),
-            grpc=ProtocolParams(
-                host=grpc_host,
-                port=grpc_port,
-                secure=grpc_secure,
-            )
-            if (grpc_host is not None and grpc_port is not None and grpc_secure is not None)
-            else None,
-        )
-
-    @model_validator(mode="after")
-    def _check_port_collision(self) -> ConnectionParams:
-        if (
-            self.grpc is not None
-            and self.http.host == self.grpc.host
-            and self.http.port == self.grpc.port
-        ):
-            raise ValueError("http.port and grpc.port must be different if using the same host")
-        return self
-
-    @property
-    def _grpc_address(self) -> Optional[Tuple[str, int]]:
-        if self.grpc is None:
-            return None
-        return (self.grpc.host, self.grpc.port)
-
-    @property
-    def _grpc_target(self) -> Optional[str]:
-        if self.grpc is None:
-            return None
-        return f"{self.grpc.host}:{self.grpc.port}"
-
-    def _grpc_channel(self) -> Optional[Channel]:
-        if self.grpc is None:
-            return None
-        if self.grpc.secure:
-            return secure_channel(
-                target=self._grpc_target,
-                credentials=ssl_channel_credentials(),
-                options=GRPC_OPTIONS,
-            )
-        else:
-            return insecure_channel(
-                target=self._grpc_target,
-                options=GRPC_OPTIONS,
-            )
-
-    @property
-    def _http_scheme(self) -> str:
-        return "https" if self.http.secure else "http"
-
-    @property
-    def _http_url(self) -> str:
-        return f"{self._http_scheme}://{self.http.host}:{self.http.port}"
-
-    @property
-    def _has_grpc(self) -> bool:
-        return self.grpc is not None
-
-
-class Connection:
+class _Connection(_ConnectionBase):
     """
     Connection class used to communicate to a weaviate instance.
     """
@@ -186,61 +71,27 @@ class Connection:
         self,
         connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
-        timeout_config: TIMEOUT_TYPE_RETURN,
+        timeout_config: Tuple[float, float],
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
     ):
-        """
-        Initialize a Connection class instance.
-
-        Parameters
-        ----------
-        url : str
-            URL to a running weaviate instance.
-        auth_client_secret : weaviate.auth.AuthCredentials, optional
-            Credentials to authenticate with a weaviate instance. The credentials are not saved within the client and
-            authentication is done via authentication tokens.
-        timeout_config : tuple(float, float) or float, optional
-            Set the timeout configuration for all requests to the Weaviate server. It can be a
-            float or, a tuple of two floats: (connect timeout, read timeout).
-            If only one float is passed then both connect and read timeout will be set to
-            that value.
-        proxies : dict, str or None, optional
-            Proxies to be used for requests. Are used by both 'requests' and 'aiohttp'. Can be
-            passed as a dict ('requests' format:
-            https://docs.python-requests.org/en/stable/user/advanced/#proxies), str (HTTP/HTTPS
-            protocols are going to use this proxy) or None.
-        trust_env : bool, optional
-            Whether to read proxies from the ENV variables: (HTTP_PROXY or http_proxy, HTTPS_PROXY
-            or https_proxy).
-            NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None,
-            'trust_env' is ignored.
-        additional_headers : Dict[str, Any] or None
-            Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
-            like this: {'X-OpenAI-Api-Key': 'KEY'}.
-
-        Raises
-        ------
-        ValueError
-            If no authentication credentials provided but the Weaviate server has an OpenID
-            configured.
-        """
-
-        self._api_version_path = "/v1"
-        self.url = connection_params._http_url  # e.g. http://localhost:80
-        self.timeout_config: TIMEOUT_TYPE_RETURN = timeout_config
+        self.url = connection_params._http_url
         self.embedded_db = embedded_db
-        self._auth_client_secret = auth_client_secret
+        self._api_version_path = "/v1"
+        self._aclient: Optional[AsyncSession] = None
+        self._client: Session
+        self.__additional_headers = {}
+        self.__auth = auth_client_secret
         self._connection_params = connection_params
-        self._connection_config = connection_config
-        self._weaviate_version: _ServerVersion
-
-        self._grpc_available: bool = False
+        self._grpc_available = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
-        self.__additional_headers: Dict[str, str] = {}
+        self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+        self.timeout_config = timeout_config
+        self.__connection_config = connection_config
+        self._weaviate_version: _ServerVersion
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -264,19 +115,14 @@ class Connection:
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
-        self._session: Session
-        self._shutdown_background_event: Optional[Event] = None
-
     def connect(self, skip_init_checks: bool) -> None:
-        self._create_sessions(self._auth_client_secret)
-        self._add_adapter_to_session(self._connection_config)
-
+        self._create_clients(self.__auth)
         if not skip_init_checks:
             # first connection attempt
             try:
                 self._server_version = self.get_meta()["version"]
-            except requests.exceptions.ConnectionError as e:
-                raise WeaviateStartUpError(f"Could not connect to Weaviate:{e.strerror}.") from e
+            except (ConnectError, ReadError, RemoteProtocolError) as e:
+                raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
             if self._server_version < "1.14":
                 _Warnings.weaviate_server_older_than_1_14(self._server_version)
@@ -284,21 +130,46 @@ class Connection:
                 _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
             try:
-                pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+                pkg_info = get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
                 pkg_info = pkg_info.get("info", {})
                 latest_version = pkg_info.get("version", "unknown version")
                 if is_weaviate_client_too_old(client_version, latest_version):
                     _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-            except requests.exceptions.RequestException:
+            except RequestError:
                 pass  # ignore any errors related to requests, it is a best-effort warning
         else:
             self._server_version = ""
         self._weaviate_version = _ServerVersion.from_string(self._server_version)
 
-    def _create_sessions(self, auth_client_secret: Optional[AuthCredentials]) -> None:
-        """Creates a async httpx session and a sync request session.
+    def __make_sync_client(self) -> Client:
+        return Client(
+            headers=self._get_request_header(),
+            timeout=Timeout(None, connect=self.timeout_config[0], read=self.timeout_config[1]),
+            proxies=self._proxies,
+            limits=Limits(
+                max_connections=self.__connection_config.session_pool_maxsize,
+                max_keepalive_connections=self.__connection_config.session_pool_connections,
+            ),
+        )
 
-        Either through authlib.oauth2 if authentication is enabled or a normal request session otherwise.
+    def __make_async_client(self) -> AsyncClient:
+        return AsyncClient(
+            headers=self._get_request_header(),
+            timeout=Timeout(None, connect=self.timeout_config[0], read=self.timeout_config[1]),
+            proxies=self._proxies,
+            limits=Limits(
+                max_connections=self.__connection_config.session_pool_maxsize,
+                max_keepalive_connections=self.__connection_config.session_pool_connections,
+            ),
+        )
+
+    def __make_clients(self) -> None:
+        self._client = self.__make_sync_client()
+
+    def _create_clients(self, auth_client_secret: Optional[AuthCredentials]) -> None:
+        """Creates sync and async httpx clients.
+
+        Either through authlib.oauth2 if authentication is enabled or a normal httpx sync client otherwise.
 
         Raises
         ------
@@ -307,40 +178,39 @@ class Connection:
         """
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
-            self._session = requests.Session()
+            self.__make_clients()
             return
 
         if "authorization" in self._headers and auth_client_secret is None:
-            self._session = requests.Session()
+            self.__make_clients()
             return
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
-        response = requests.get(
-            oidc_url,
-            headers=self._get_request_header(),
-            timeout=self._timeout_config,
-            proxies=self._proxies,
-        )
+        with self.__make_sync_client() as client:
+            response = client.get(
+                oidc_url,
+            )
         if response.status_code == 200:
             # Some setups are behind proxies that return some default page - for example a login - for all requests.
             # If the response is not json, we assume that this is the case and try unauthenticated access. Any auth
             # header provided by the user is unaffected.
             try:
                 resp = response.json()
-            except JSONDecodeError:
+            except Exception:
                 _Warnings.auth_cannot_parse_oidc_config(oidc_url)
-                self._session = requests.Session()
+                self.__make_clients()
                 return
 
             if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
                 _auth = _Auth(resp, auth_client_secret, self)
-                self._session = _auth.get_auth_session()
+                self._client = _auth.get_sync_auth_client()
 
                 if isinstance(auth_client_secret, AuthClientCredentials):
                     # credentials should only be saved for client credentials, otherwise use refresh token
                     self._create_background_token_refresh(_auth)
                 else:
                     self._create_background_token_refresh()
+
             else:
                 msg = f""""No login credentials provided. The weaviate instance at {self.url} requires login credentials.
 
@@ -362,25 +232,16 @@ class Connection:
                 raise AuthenticationFailedException(msg)
         elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
-            self._session = requests.Session()
+            self.__make_clients()
         else:
-            self._session = requests.Session()
+            self.__make_clients()
 
     def get_current_bearer_token(self) -> str:
         if "authorization" in self._headers:
             return self._headers["authorization"]
-        elif isinstance(self._session, OAuth2Session):
-            return f"Bearer {self._session.token['access_token']}"
-
+        elif isinstance(self._client, OAuth2Client):
+            return f"Bearer {self._client.token['access_token']}"
         return ""
-
-    def _add_adapter_to_session(self, connection_config: ConnectionConfig) -> None:
-        adapter = HTTPAdapter(
-            pool_connections=connection_config.session_pool_connections,
-            pool_maxsize=connection_config.session_pool_maxsize,
-        )
-        self._session.mount("http://", adapter)
-        self._session.mount("https://", adapter)
 
     def _create_background_token_refresh(self, _auth: Optional[_Auth] = None) -> None:
         """Create a background thread that periodically refreshes access and refresh tokens.
@@ -388,11 +249,11 @@ class Connection:
         While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
         X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
         expire. Therefore, refresh manually shortly before expiration time is up."""
-        assert isinstance(self._session, OAuth2Session)
-        if "refresh_token" not in self._session.token and _auth is None:
+        assert isinstance(self._client, OAuth2Client)
+        if "refresh_token" not in self._client.token and _auth is None:
             return
 
-        expires_in: int = self._session.token.get(
+        expires_in: int = self._client.token.get(
             "expires_in", 60
         )  # use 1minute as token lifetime if not supplied
         self._shutdown_background_event = Event()
@@ -405,19 +266,20 @@ class Connection:
             ):
                 # use refresh token when available
                 try:
-                    if "refresh_token" in cast(OAuth2Session, self._session).token:
-                        assert isinstance(self._session, OAuth2Session)
-                        self._session.token = self._session.refresh_token(
-                            self._session.metadata["token_endpoint"]
+                    if "refresh_token" in cast(OAuth2Client, self._client).token:
+                        assert isinstance(self._client, OAuth2Client)
+                        self._client.token = self._client.refresh_token(
+                            self._client.metadata["token_endpoint"]
                         )
-                        refresh_time = self._session.token.get("expires_in") - 30
+                        refresh_time = self._client.token.get("expires_in") - 30
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
                         assert _auth is not None
-                        new_session = _auth.get_auth_session()
-                        self._session.token = new_session.fetch_token()  # type: ignore
-                except (RequestsHTTPError, ReadTimeout) as exc:
+                        assert isinstance(self._client, OAuth2Client)
+                        new_session = _auth.get_sync_auth_client()
+                        self._client.token = new_session.fetch_token()
+                except (HTTPError, ReadTimeout) as exc:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
                     _Warnings.token_refresh_failed(exc)
@@ -432,6 +294,22 @@ class Connection:
         )
         demon.start()
 
+    def open_async(self) -> None:
+        # Careful, this method is not async but it must be called from an async context where
+        # there is a running event loop since grpc.aio.Channel makes a call to cygrpc.get_working_loop()
+        if self._aclient is None:
+            self._aclient = self.__make_async_client()
+        if self._grpc_stub_async is None:
+            grpc_channel_async = self._connection_params._grpc_channel(async_channel=True)
+            assert grpc_channel_async is not None
+            self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(grpc_channel_async)
+
+    async def aclose(self) -> None:
+        if self._aclient is not None:
+            await self._aclient.aclose()
+            self._aclient = None
+            self._grpc_stub_async = None
+
     def close(self) -> None:
         """Shutdown connection class gracefully."""
         # in case an exception happens before definition of these members
@@ -441,7 +319,7 @@ class Connection:
         ):
             self._shutdown_background_event.set()
         if hasattr(self, "_session"):
-            self._session.close()
+            self._client.close()
 
     def _get_request_header(self) -> dict:
         """
@@ -454,12 +332,16 @@ class Connection:
         """
         return self._headers
 
+    def _get_additional_headers(self) -> Dict[str, str]:
+        """Returns the additional headers."""
+        return self.__additional_headers
+
     def delete(
         self,
         path: str,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
-    ) -> requests.Response:
+    ) -> Response:
         """
         Make a DELETE request to the Weaviate server instance.
 
@@ -475,33 +357,36 @@ class Connection:
 
         Returns
         -------
-        requests.Response
+        httpx.Response
             The response, if request was successful.
 
         Raises
         ------
-        requests.ConnectionError
+        httpx.ConnectionError
             If the DELETE request could not be made.
         """
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
-        return self._session.delete(
+        # Must build manually because httpx is opinionated about sending JSON in DELETE requests
+        # From httpx docs:
+        # Note that the data, files, json and content parameters are not available on this function, as DELETE requests should not include a request body.
+        request = self._client.build_request(
+            "DELETE",
             url=request_url,
             json=weaviate_object,
-            headers=self._get_request_header(),
-            timeout=self._timeout_config,
-            proxies=self._proxies,
             params=params,
         )
+        res = self._client.send(request)
+        return cast(Response, res)
 
     def patch(
         self,
         path: str,
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
-    ) -> requests.Response:
+    ) -> Response:
         """
         Make a PATCH request to the Weaviate server instance.
 
@@ -516,33 +401,31 @@ class Connection:
             Additional request parameters, by default None
         Returns
         -------
-        requests.Response
+        httpx.Response
             The response, if request was successful.
 
         Raises
         ------
-        requests.ConnectionError
+        httpx.ConnectionError
             If the PATCH request could not be made.
         """
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
-        return self._session.patch(
+        res = self._client.patch(
             url=request_url,
             json=weaviate_object,
-            headers=self._get_request_header(),
-            timeout=self._timeout_config,
-            proxies=self._proxies,
             params=params,
         )
+        return cast(Response, res)
 
     def post(
         self,
         path: str,
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
-    ) -> requests.Response:
+    ) -> Response:
         """
         Make a POST request to the Weaviate server instance.
 
@@ -559,24 +442,64 @@ class Connection:
 
         Returns
         -------
-        requests.Response
+        httpx.Response
             The response, if request was successful.
 
         Raises
         ------
-        requests.ConnectionError
+        httpx.ConnectionError
             If the POST request could not be made.
         """
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
-        return self._session.post(
+        res = self._client.post(
             url=request_url,
             json=weaviate_object,
-            headers=self._get_request_header(),
-            timeout=self._timeout_config,
-            proxies=self._proxies,
+            params=params,
+        )
+        return cast(Response, res)
+
+    async def apost(
+        self,
+        path: str,
+        weaviate_object: JSONPayload,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Response:
+        """
+        Make a async POST request to the Weaviate server instance.
+
+        Parameters
+        ----------
+        path : str
+            Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
+            e.g. '/meta' or '/objects', without version.
+        weaviate_object : dict
+            Object is used as payload for POST request.
+        params : dict, optional
+            Additional request parameters, by default None
+        external_url: Is an external (non-weaviate) url called
+
+        Returns
+        -------
+        httpx.Response
+            The response, if request was successful.
+
+        Raises
+        ------
+        httpx.ConnectionError
+            If the POST request could not be made.
+        """
+        assert self._aclient is not None
+
+        if self.embedded_db is not None:
+            self.embedded_db.ensure_running()
+        request_url = self.url + self._api_version_path + path
+
+        return await self._aclient.post(
+            url=request_url,
+            json=weaviate_object,
             params=params,
         )
 
@@ -585,7 +508,7 @@ class Connection:
         path: str,
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
-    ) -> requests.Response:
+    ) -> Response:
         """
         Make a PUT request to the Weaviate server instance.
 
@@ -600,30 +523,28 @@ class Connection:
             Additional request parameters, by default None
         Returns
         -------
-        requests.Response
+        httpx.Response
             The response, if request was successful.
 
         Raises
         ------
-        requests.ConnectionError
+        httpx.ConnectionError
             If the PUT request could not be made.
         """
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
-        return self._session.put(
+        res = self._client.put(
             url=request_url,
             json=weaviate_object,
-            headers=self._get_request_header(),
-            timeout=self._timeout_config,
-            proxies=self._proxies,
             params=params,
         )
+        return cast(Response, res)
 
     def get(
         self, path: str, params: Optional[Dict[str, Any]] = None, external_url: bool = False
-    ) -> requests.Response:
+    ) -> Response:
         """Make a GET request.
 
         Parameters
@@ -637,12 +558,12 @@ class Connection:
 
         Returns
         -------
-        requests.Response
+        httpx.Response
             The response if request was successful.
 
         Raises
         ------
-        requests.ConnectionError
+        httpx.ConnectionError
             If the GET request could not be made.
         """
         if self.embedded_db is not None:
@@ -655,19 +576,17 @@ class Connection:
         else:
             request_url = self.url + self._api_version_path + path
 
-        return self._session.get(
+        res = self._client.get(
             url=request_url,
-            headers=self._get_request_header(),
-            timeout=self._timeout_config,
             params=params,
-            proxies=self._proxies,
         )
+        return cast(Response, res)
 
     def head(
         self,
         path: str,
         params: Optional[Dict[str, Any]] = None,
-    ) -> requests.Response:
+    ) -> Response:
         """
         Make a HEAD request to the server.
 
@@ -681,59 +600,61 @@ class Connection:
 
         Returns
         -------
-        requests.Response
+        httpx.Response
             The response to the request.
 
         Raises
         ------
-        requests.ConnectionError
+        httpx.ConnectionError
             If the HEAD request could not be made.
         """
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         request_url = self.url + self._api_version_path + path
 
-        return self._session.head(
+        res = self._client.head(
             url=request_url,
-            headers=self._get_request_header(),
-            timeout=self._timeout_config,
-            proxies=self._proxies,
             params=params,
         )
-
-    @property
-    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:
-        """
-        Getter/setter for `timeout_config`.
-
-        Parameters
-        ----------
-        timeout_config : tuple(float, float), optional
-            For Setter only: Set the timeout configuration for all requests to the Weaviate server.
-            It can be a float or, a tuple of two floats:
-                    (connect timeout, read timeout).
-            If only one float is passed then both connect and read timeout will be set to
-            that value.
-
-        Returns
-        -------
-        Tuple[float, float]
-            For Getter only: Requests Timeout configuration.
-        """
-
-        return self._timeout_config
-
-    @timeout_config.setter
-    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN) -> None:
-        """
-        Setter for `timeout_config`. (docstring should be only in the Getter)
-        """
-
-        self._timeout_config = timeout_config
+        return cast(Response, res)
 
     @property
     def proxies(self) -> dict:
         return self._proxies
+
+    def wait_for_weaviate(self, startup_period: int) -> None:
+        """
+        Waits until weaviate is ready or the timelimit given in 'startup_period' has passed.
+
+        Parameters
+        ----------
+        startup_period : int
+            Describes how long the client will wait for weaviate to start in seconds.
+
+        Raises
+        ------
+        WeaviateStartUpError
+            If weaviate takes longer than the timelimit to respond.
+        """
+
+        ready_url = self.url + self._api_version_path + "/.well-known/ready"
+        with Client(headers=self._get_request_header()) as client:
+            for _i in range(startup_period):
+                try:
+                    res: Response = client.get(ready_url)
+                    res.raise_for_status()
+                    return
+                except (ConnectError, HTTPError):
+                    time.sleep(1)
+
+            try:
+                res = client.get(ready_url)
+                res.raise_for_status()
+                return
+            except (ConnectError, HTTPError) as error:
+                raise WeaviateStartUpError(
+                    f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
+                ) from error
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
@@ -745,6 +666,13 @@ class Connection:
         Version of the weaviate instance.
         """
         return self._server_version
+
+    @property
+    def grpc_available(self) -> bool:
+        return self._grpc_available
+
+    def get_proxies(self) -> dict:
+        return self._proxies
 
     @property
     def additional_headers(self) -> Dict[str, str]:
@@ -760,7 +688,7 @@ class Connection:
         return res
 
 
-class GRPCConnection(HttpxConnection):
+class ConnectionV4(_Connection):
     def __init__(
         self,
         connection_params: ConnectionParams,
@@ -787,9 +715,10 @@ class GRPCConnection(HttpxConnection):
         super().connect(skip_init_checks)
         # create GRPC channel. If Weaviate does not support GRPC then error now.
         if self._connection_params._has_grpc:
-            grpc_channel = self._connection_params._grpc_channel()
+            grpc_channel = self._connection_params._grpc_channel(async_channel=False)
             assert grpc_channel is not None
             self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
+
             self._grpc_available = True
             if not skip_init_checks:
                 try:
@@ -815,6 +744,14 @@ class GRPCConnection(HttpxConnection):
             )
         return self._grpc_stub
 
+    @property
+    def agrpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
+        if not self._grpc_available:
+            raise WeaviateGrpcUnavailable(
+                "Did you forget to call client.connect() before using the client?"
+            )
+        return self._grpc_stub_async
+
 
 def _get_epoch_time() -> int:
     """
@@ -828,58 +765,3 @@ def _get_epoch_time() -> int:
 
     dts = datetime.datetime.utcnow()
     return round(time.mktime(dts.timetuple()) + dts.microsecond / 1e6)
-
-
-def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
-    """
-    Get proxies as dict, compatible with 'requests' library.
-    NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'
-    is ignored.
-
-    Parameters
-    ----------
-    proxies : dict, str or None
-        The proxies to use for requests. If it is a dict it should follow 'requests' library
-        format (https://docs.python-requests.org/en/stable/user/advanced/#proxies). If it is
-        a URL (str), a dict will be constructed with both 'http' and 'https' pointing to that
-        URL. If None, no proxies will be used.
-    trust_env : bool
-        If True, the proxies will be read from ENV VARs (case insensitive):
-            HTTP_PROXY/HTTPS_PROXY.
-        NOTE: It is ignored if 'proxies' is NOT None.
-
-    Returns
-    -------
-    dict
-        A dictionary with proxies, either set from 'proxies' or read from ENV VARs.
-    """
-
-    if proxies is not None:
-        if isinstance(proxies, str):
-            return {
-                "http": proxies,
-                "https": proxies,
-            }
-        if isinstance(proxies, dict):
-            return proxies
-        raise TypeError(
-            "If 'proxies' is not None, it must be of type dict or str. "
-            f"Given type: {type(proxies)}."
-        )
-
-    if not trust_env:
-        return {}
-
-    http_proxy = (os.environ.get("HTTP_PROXY"), os.environ.get("http_proxy"))
-    https_proxy = (os.environ.get("HTTPS_PROXY"), os.environ.get("https_proxy"))
-
-    if not any(http_proxy + https_proxy):
-        return {}
-
-    proxies = {}
-    if any(http_proxy):
-        proxies["http"] = http_proxy[0] if http_proxy[0] else http_proxy[1]
-    if any(https_proxy):
-        proxies["https"] = https_proxy[0] if https_proxy[0] else https_proxy[1]
-
-    return proxies

@@ -4,7 +4,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.validator import _raise_invalid_input
-from weaviate.connect import HttpxConnection as Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import UnexpectedStatusCodeException
 
 
@@ -16,7 +16,7 @@ class _Tenants:
     the `collection.tenants` class attribute.
     """
 
-    def __init__(self, connection: Connection, name: str) -> None:
+    def __init__(self, connection: ConnectionV4, name: str) -> None:
         self.__connection = connection
         self.__name = name
 

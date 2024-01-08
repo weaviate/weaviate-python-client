@@ -49,7 +49,7 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
         ----------
         message: str
             An error message specific to the context, in which the error occurred.
-        response: requests.Response
+        response: Union[Response, httpx._models.Response]
             The request response of which the status code was unexpected.
         """
         self._status_code: int = response.status_code

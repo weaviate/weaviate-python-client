@@ -1,8 +1,7 @@
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.connect import HttpxConnection as Connection
 from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import (
     _CollectionConfig,
@@ -14,15 +13,13 @@ from weaviate.collections.classes.config_methods import (
     _collection_configs_simple_from_json,
 )
 from weaviate.collections.cluster import _Cluster
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
-if TYPE_CHECKING:
-    from weaviate.collections.batch.executor import BatchExecutor
-
 
 class _CollectionBase:
-    def __init__(self, connection: Connection, name: str) -> None:
+    def __init__(self, connection: ConnectionV4, name: str) -> None:
         self._connection = connection
         self.name = _capitalize_first_letter(name)
         self.__cluster = _Cluster(connection)
@@ -50,8 +47,7 @@ class _CollectionBase:
 
 
 class _CollectionsBase:
-    def __init__(self, connection: Connection, batch_executor: "BatchExecutor"):
-        self._batch_executor = batch_executor
+    def __init__(self, connection: ConnectionV4):
         self._connection = connection
 
     def _create(

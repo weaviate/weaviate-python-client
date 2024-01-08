@@ -1,8 +1,10 @@
 from typing import Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase
-from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.collections.batch.batch_wrapper import _BatchWrapper
+from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.types import UUID
 
 
@@ -60,8 +62,7 @@ class _BatchClient(_BatchBase):
         to_object_collection: Optional[str] = None,
         tenant: Optional[str] = None,
     ) -> None:
-        """
-        Add one reference to this batch.
+        """Add one reference to this batch.
 
         Arguments:
             `from_object_uuid`
@@ -91,3 +92,47 @@ class _BatchClient(_BatchBase):
             to_object_collection=to_object_collection,
             tenant=tenant,
         )
+
+
+class _BatchClientWrapper(_BatchWrapper):
+    def __enter__(self) -> _BatchClient:
+        self._open_async_connection()
+
+        self._current_batch = _BatchClient(
+            connection=self._connection,
+            consistency_level=self._consistency_level,
+            results=self._batch_data,
+            fixed_batch_size=self._batch_size,
+            fixed_concurrent_requests=self._concurrent_requests,
+        )
+        return self._current_batch
+
+    def configure(self, consistency_level: Optional[ConsistencyLevel] = None) -> None:
+        """Configure dynamic batching.
+
+        Arguments:
+            `consistency_level`
+                The consistency level to be used to send batches. If not provided, the default value is `None`.
+        """
+        self._consistency_level = consistency_level
+
+    def configure_fixed_size(
+        self,
+        batch_size: int = 100,
+        concurrent_requests: int = 2,
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ) -> None:
+        """Configure fixed size batches. Note that the default is dynamic batching.
+
+        Arguments:
+            `batch_size`
+                The number of objects/references to be sent in one batch. If not provided, the default value is 100.
+            `consistency_level`
+                The consistency level to be used to send the batch. If not provided, the default value is `None`.
+            `concurrent_requests`
+                The number of concurrent requests when sending batches. This controls the number of concurrent requests
+                made to Weaviate and not the speed of batch creation within Python.
+        """
+        self._batch_size = batch_size
+        self._consistency_level = consistency_level
+        self._concurrent_requests = concurrent_requests

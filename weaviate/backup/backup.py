@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.connect import Connection, HttpxConnection
+from weaviate.connect import Connection, ConnectionV4
 from weaviate.exceptions import (
     BackupFailedException,
     EmptyResponseException,
@@ -52,7 +52,7 @@ class _BackupReturn(_BackupStatusReturn):
 class _Backup:
     """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
 
-    def __init__(self, connection: HttpxConnection):
+    def __init__(self, connection: Union[Connection, ConnectionV4]):
         self._connection = connection
 
     def create(

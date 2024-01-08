@@ -31,7 +31,7 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
-from weaviate.connect import HttpxConnection as Connection
+from weaviate.connect import ConnectionV4
 from weaviate.collections.filters import _FilterToREST
 from weaviate.exceptions import WeaviateInvalidInputException, WeaviateQueryException
 from weaviate.gql.aggregate import AggregateBuilder
@@ -67,7 +67,7 @@ def validate(fn: Callable[P, T]) -> Callable[P, T]:
 class _Aggregate:
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
@@ -78,7 +78,7 @@ class _Aggregate:
         self._consistency_level = consistency_level
 
     def _query(self) -> AggregateBuilder:
-        return AggregateBuilder(self.__name, self.__connection)  # type: ignore # problem will go away once aggregate implemented with gRPC
+        return AggregateBuilder(self.__name, self.__connection)
 
     def _to_aggregate_result(
         self, response: dict, metrics: Optional[List[_Metrics]]
