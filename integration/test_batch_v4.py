@@ -89,6 +89,32 @@ def client_factory(
         client_fixture.collections.delete(name_fixture)
 
 
+def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    with client.batch as batch:
+        batch.add_object(collection=name, properties={})
+    with client.batch as batch:
+        batch.add_object(collection=name, properties={})
+    with client.batch as batch:
+        batch.add_object(collection=name, properties={})
+    objs = client.collections.get(name).query.fetch_objects().objects
+    assert len(objs) == 3
+
+
+def test_flushing(client_factory: ClientFactory) -> None:
+    """Test that batch is working normally after flushing."""
+    client, name = client_factory()
+    with client.batch as batch:
+        batch.add_object(collection=name, properties={})
+        batch.flush()
+        objs = client.collections.get(name).query.fetch_objects().objects
+        assert len(objs) == 1
+        batch.add_object(collection=name, properties={})
+        batch.add_object(collection=name, properties={})
+    objs = client.collections.get(name).query.fetch_objects().objects
+    assert len(objs) == 3
+
+
 @pytest.mark.parametrize(
     "vector",
     [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],
@@ -102,8 +128,6 @@ def test_add_object(
     client, name = client_factory()
     with client.batch as batch:
         batch.add_object(collection=name, properties={}, uuid=uid, vector=vector)
-        assert batch.num_objects() == 1
-        assert batch.num_references() == 0
     objs = client.collections.get(name).query.fetch_objects().objects
     assert len(objs) == 1
 
@@ -125,15 +149,11 @@ def test_add_reference(
             collection=name,
             uuid=from_object_uuid,
         )
-        assert batch.num_objects() == 1
-        assert batch.num_references() == 0
         batch.add_object(
             properties={},
             collection=name,
             uuid=to_object_uuid,
         )
-        assert batch.num_objects() == 2
-        assert batch.num_references() == 0
         batch.add_reference(
             from_object_uuid=from_object_uuid,
             from_object_collection=name,
@@ -141,8 +161,6 @@ def test_add_reference(
             to_object_uuid=to_object_uuid,
             to_object_collection=name if to_object_collection else None,
         )
-        assert batch.num_objects() == 2
-        assert batch.num_references() == 1
     objs = (
         client.collections.get(name)
         .query.fetch_objects(return_references=FromReference(link_on="test"))
@@ -160,12 +178,8 @@ def test_add_data_object_and_get_class_shards_readiness(
 ) -> None:
     client, name = client_factory()
 
-    """Test the `add_data_object` method"""
-    client.batch.add_object(
-        properties={},
-        collection="Test",
-    )
-    client.batch.create_objects()
+    with client.batch as batch:
+        batch.add_object(properties={}, collection=request.node.name)
     statuses = client.batch._get_shards_readiness(Shard(collection=name))
     assert len(statuses) == 1
     assert statuses[0]
@@ -177,12 +191,8 @@ def test_add_data_object_with_tenant_and_get_class_shards_readiness(
     """Test the `add_data_object` method"""
     client, name = client_factory(multi_tenant=True)
     client.collections.get(name).tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
-    client.batch.add_object(
-        properties={},
-        collection=name,
-        tenant="tenant1",
-    )
-    client.batch.create_objects()
+    with client.batch as batch:
+        batch.add_object(properties={}, collection=name, tenant="tenant1")
     statuses = client.batch._get_shards_readiness(Shard(collection=name, tenant="tenant1"))
     assert len(statuses) == 1
     assert statuses[0]
@@ -261,7 +271,6 @@ def test_add_ten_thousand_data_objects(client_factory: ClientFactory, request: S
     client, name = client_factory()
 
     nr_objects = 10000
-    client.batch.configure(num_workers=4)
     with client.batch as batch:
         for i in range(nr_objects):
             batch.add_object(
@@ -291,13 +300,10 @@ def make_refs(uuids: List[UUID], name: str) -> List[dict]:
     return refs
 
 
-def test_add_one_hundred_objects_and_references_between_all(
-    client_factory: ClientFactory,
-) -> None:
+def test_add_one_hundred_objects_and_references_between_all(client_factory: ClientFactory) -> None:
     """Test adding one hundred objects and references between all of them"""
     client, name = client_factory()
     nr_objects = 100
-    client.batch.configure(num_workers=4)
     uuids: List[UUID] = []
     with client.batch as batch:
         for i in range(nr_objects):
@@ -319,38 +325,34 @@ def test_add_one_hundred_objects_and_references_between_all(
     client.collections.delete(name)
 
 
+@pytest.mark.skip("disable retrying")
 def test_add_bad_prop(client_factory: ClientFactory, request: SubRequest) -> None:
     """Test adding a data object with a bad property"""
     client, name = client_factory()
 
-    with warnings.catch_warnings():
-        # Tests that no warning is emitted when the batch is not configured to retry failed objects
-        client.batch.configure(retry_failed_objects=True)
-        with client.batch as batch:
-            batch.add_object(
-                collection=name,
-                properties={"bad": "test"},
-            )
-        assert len(client.batch.failed_objects()) == 1
-
-    with pytest.warns(UserWarning):
-        # Tests that a warning is emitted when the batch is configured to retry failed objects
-        client.batch.configure(retry_failed_objects=True)
-        with client.batch as batch:
-            batch.add_object(
-                collection=name,
-                properties={"bad": "test"},
-            )
-        assert len(client.batch.failed_objects()) == 1
+    # with warnings.catch_warnings():
+    #     # Tests that no warning is emitted when the batch is not configured to retry failed objects
+    #     client.batch.configure(retry_failed_objects=True)
+    #     with client.batch as batch:
+    #         batch.add_object(collection=name, properties={"bad": "test"})
+    #     assert len(client.batch.failed_objects()) == 1
+    #
+    # with pytest.warns(UserWarning):
+    #     # Tests that a warning is emitted when the batch is configured to retry failed objects
+    #     client.batch.configure(retry_failed_objects=True)
+    #     with client.batch as batch:
+    #         batch.add_object(collection=name, properties={"bad": "test"})
+    #     assert len(client.batch.failed_objects()) == 1
 
 
-def test_add_bad_ref(client_factory: ClientFactory, request: SubRequest) -> None:
+@pytest.mark.skip("disable retrying")
+def test_add_bad_ref(client_factory: ClientFactory) -> None:
     """Test adding a reference with a bad property name"""
     client, name = client_factory()
 
     with warnings.catch_warnings():
         # Tests that no warning is emitted when the batch is not configured to retry failed references
-        client.batch.configure(retry_failed_references=True)
+        # client.batch.configure(retry_failed_references=True)
         with client.batch as batch:
             batch.add_reference(
                 from_object_uuid=uuid.uuid4(),
@@ -360,43 +362,19 @@ def test_add_bad_ref(client_factory: ClientFactory, request: SubRequest) -> None
                 to_object_collection=name,
             )
         assert len(client.batch.failed_references()) == 1
-
-    with pytest.warns(UserWarning):
-        # Tests that a warning is emitted when the batch is configured to retry failed references
-        client.batch.configure(retry_failed_references=True)
-        with client.batch as batch:
-            batch.add_reference(
-                from_object_uuid=uuid.uuid4(),
-                from_object_collection=name,
-                from_property_name="bad",
-                to_object_uuid=uuid.uuid4(),
-                to_object_collection=name,
-            )
-        assert len(client.batch.failed_references()) == 1
-
-
-def test_manual_batching(client_factory: ClientFactory, request: SubRequest) -> None:
-    client, name = client_factory()
-    client.batch.configure(dynamic=False, batch_size=None)
-    uuids: List[UUID] = []
-    for _ in range(10):
-        uuid_ = client.batch.add_object(
-            collection=name,
-            properties={"name": "test"},
-        )
-        uuids.append(uuid_)
-        if client.batch.num_objects() == 5:
-            ret_1 = client.batch.create_objects()
-            assert ret_1.has_errors is False
-
-    for ref in make_refs(uuids, name):
-        client.batch.add_reference(**ref)
-        if client.batch.num_references() == 5:
-            ret_2 = client.batch.create_references()
-            assert ret_2.has_errors is False
-
-    objs = client.collections.get(name).query.fetch_objects().objects
-    assert len(objs) == 10
+    #
+    # with pytest.warns(UserWarning):
+    #     # Tests that a warning is emitted when the batch is configured to retry failed references
+    #     client.batch.configure(retry_failed_references=True)
+    #     with client.batch as batch:
+    #         batch.add_reference(
+    #             from_object_uuid=uuid.uuid4(),
+    #             from_object_collection=name,
+    #             from_property_name="bad",
+    #             to_object_uuid=uuid.uuid4(),
+    #             to_object_collection=name,
+    #         )
+    #     assert len(client.batch.failed_references()) == 1
 
 
 def test_add_1000_objects_with_async_indexing_and_wait(

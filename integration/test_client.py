@@ -228,6 +228,7 @@ def test_collection_name_capitalization(
 
 
 def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    client.collections.delete(request.node.name)
     collection = client.collections.create(name=request.node.name)
 
     nodes = client.cluster.nodes(collection.name, output="verbose")
