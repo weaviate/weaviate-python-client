@@ -1,14 +1,20 @@
-"""Connection class definition."""
+"""
+Connection class definition.
+"""
 from __future__ import annotations
 
+import datetime
+import os
+import socket
 import time
 from threading import Thread, Event
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, Optional, Tuple, Union, cast
+from urllib.parse import urlparse
 
 import requests
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 from requests.adapters import HTTPAdapter
-from requests.exceptions import ReadTimeout
+from requests.exceptions import ConnectionError as RequestsConnectionError, ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
 
@@ -16,31 +22,37 @@ from weaviate import __version__ as client_version
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
 from weaviate.config import ConnectionConfig
 from weaviate.connect.authentication import _Auth
-from weaviate.connect.base import (
-    ConnectionParams,
-    JSONPayload,
-    TIMEOUT_TYPE_RETURN,
-    PYPI_TIMEOUT,
-    _get_proxies,
-)
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
     WeaviateStartUpError,
 )
+from weaviate.types import NUMBER
 from weaviate.util import (
+    _check_positive_num,
     is_weaviate_domain,
     is_weaviate_too_old,
     is_weaviate_client_too_old,
     PYPI_PACKAGE_URL,
     _decode_json_response_dict,
-    _ServerVersion,
 )
 from weaviate.warnings import _Warnings
 
-from weaviate.proto.v1 import weaviate_pb2_grpc
 
+try:
+    import grpc  # type: ignore
+    from weaviate.proto.v1 import weaviate_pb2_grpc
+
+    has_grpc = True
+
+except ImportError:
+    has_grpc = False
+
+
+JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
+TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
+PYPI_TIMEOUT = 0.1
 
 
 class Connection:
@@ -50,14 +62,16 @@ class Connection:
 
     def __init__(
         self,
-        connection_params: ConnectionParams,
+        url: str,
         auth_client_secret: Optional[AuthCredentials],
         timeout_config: TIMEOUT_TYPE_RETURN,
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
+        startup_period: Optional[int],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedDB] = None,
+        grcp_port: Optional[int] = None,
     ):
         """
         Initialize a Connection class instance.
@@ -87,6 +101,9 @@ class Connection:
         additional_headers : Dict[str, Any] or None
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
+        startup_period : int or None
+            How long the client will wait for weaviate to start before raising a RequestsConnectionError.
+            If None the client will not wait at all.
 
         Raises
         ------
@@ -96,17 +113,29 @@ class Connection:
         """
 
         self._api_version_path = "/v1"
-        self.url = connection_params._http_url  # e.g. http://localhost:80
+        self.url = url  # e.g. http://localhost:80
         self.timeout_config: TIMEOUT_TYPE_RETURN = timeout_config
         self.embedded_db = embedded_db
-        self._auth_client_secret = auth_client_secret
-        self._connection_params = connection_params
-        self._connection_config = connection_config
-        self._weaviate_version: _ServerVersion
 
-        self._grpc_available: bool = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
-        self.__additional_headers: Dict[str, str] = {}
+
+        # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
+        if has_grpc and grcp_port is not None:
+            parsed_url = urlparse(self.url)
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.settimeout(1.0)  # we're only pinging the port, 1s is plenty
+                s.connect((parsed_url.hostname, grcp_port))
+                s.shutdown(2)
+                s.close()
+                channel = grpc.insecure_channel(f"{parsed_url.hostname}:{grcp_port}")
+                self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(channel)
+            except (
+                ConnectionRefusedError,
+                TimeoutError,
+                socket.timeout,
+            ):  # self._grpc_stub stays None
+                s.close()
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -114,7 +143,6 @@ class Connection:
                 raise TypeError(
                     f"'additional_headers' must be of type dict or None. Given type: {type(additional_headers)}."
                 )
-            self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
 
@@ -133,33 +161,27 @@ class Connection:
         self._session: Session
         self._shutdown_background_event: Optional[Event] = None
 
-    def connect(self, skip_init_checks: bool) -> None:
-        self._create_sessions(self._auth_client_secret)
-        self._add_adapter_to_session(self._connection_config)
+        if startup_period is not None:
+            _check_positive_num(startup_period, "startup_period", int, include_zero=False)
+            self.wait_for_weaviate(startup_period)
 
-        if not skip_init_checks:
-            # first connection attempt
-            try:
-                self._server_version = self.get_meta()["version"]
-            except requests.exceptions.ConnectionError as e:
-                raise WeaviateStartUpError(f"Could not connect to Weaviate:{e.strerror}.") from e
+        self._create_sessions(auth_client_secret)
+        self._add_adapter_to_session(connection_config)
 
-            if self._server_version < "1.14":
-                _Warnings.weaviate_server_older_than_1_14(self._server_version)
-            if is_weaviate_too_old(self._server_version):
-                _Warnings.weaviate_too_old_vs_latest(self._server_version)
+        self._server_version = self.get_meta()["version"]
+        if self._server_version < "1.14":
+            _Warnings.weaviate_server_older_than_1_14(self._server_version)
+        if is_weaviate_too_old(self._server_version):
+            _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
-            try:
-                pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
-                pkg_info = pkg_info.get("info", {})
-                latest_version = pkg_info.get("version", "unknown version")
-                if is_weaviate_client_too_old(client_version, latest_version):
-                    _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-            except requests.exceptions.RequestException:
-                pass  # ignore any errors related to requests, it is a best-effort warning
-        else:
-            self._server_version = ""
-        self._weaviate_version = _ServerVersion.from_string(self._server_version)
+        try:
+            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+            pkg_info = pkg_info.get("info", {})
+            latest_version = pkg_info.get("version", "unknown version")
+            if is_weaviate_client_too_old(client_version, latest_version):
+                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
+        except requests.exceptions.RequestException:
+            pass  # ignore any errors related to requests, it is a best-effort warning
 
     def _create_sessions(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a async httpx session and a sync request session.
@@ -601,6 +623,37 @@ class Connection:
     def proxies(self) -> dict:
         return self._proxies
 
+    def wait_for_weaviate(self, startup_period: int) -> None:
+        """
+        Waits until weaviate is ready or the timelimit given in 'startup_period' has passed.
+
+        Parameters
+        ----------
+        startup_period : int
+            Describes how long the client will wait for weaviate to start in seconds.
+
+        Raises
+        ------
+        WeaviateStartUpError
+            If weaviate takes longer than the timelimit to respond.
+        """
+
+        ready_url = self.url + self._api_version_path + "/.well-known/ready"
+        for _i in range(startup_period):
+            try:
+                requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
+                return
+            except (RequestsHTTPError, RequestsConnectionError):
+                time.sleep(1)
+
+        try:
+            requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
+            return
+        except (RequestsHTTPError, RequestsConnectionError) as error:
+            raise WeaviateStartUpError(
+                f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
+            ) from error
+
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
         return self._grpc_stub
@@ -612,10 +665,6 @@ class Connection:
         """
         return self._server_version
 
-    @property
-    def additional_headers(self) -> Dict[str, str]:
-        return self.__additional_headers
-
     def get_meta(self) -> Dict[str, str]:
         """
         Returns the meta endpoint.
@@ -624,3 +673,72 @@ class Connection:
         res = _decode_json_response_dict(response, "Meta endpoint")
         assert res is not None
         return res
+
+
+def _get_epoch_time() -> int:
+    """
+    Get the current epoch time as an integer.
+
+    Returns
+    -------
+    int
+        Current epoch time.
+    """
+
+    dts = datetime.datetime.utcnow()
+    return round(time.mktime(dts.timetuple()) + dts.microsecond / 1e6)
+
+
+def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
+    """
+    Get proxies as dict, compatible with 'requests' library.
+    NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'
+    is ignored.
+
+    Parameters
+    ----------
+    proxies : dict, str or None
+        The proxies to use for requests. If it is a dict it should follow 'requests' library
+        format (https://docs.python-requests.org/en/stable/user/advanced/#proxies). If it is
+        a URL (str), a dict will be constructed with both 'http' and 'https' pointing to that
+        URL. If None, no proxies will be used.
+    trust_env : bool
+        If True, the proxies will be read from ENV VARs (case insensitive):
+            HTTP_PROXY/HTTPS_PROXY.
+        NOTE: It is ignored if 'proxies' is NOT None.
+
+    Returns
+    -------
+    dict
+        A dictionary with proxies, either set from 'proxies' or read from ENV VARs.
+    """
+
+    if proxies is not None:
+        if isinstance(proxies, str):
+            return {
+                "http": proxies,
+                "https": proxies,
+            }
+        if isinstance(proxies, dict):
+            return proxies
+        raise TypeError(
+            "If 'proxies' is not None, it must be of type dict or str. "
+            f"Given type: {type(proxies)}."
+        )
+
+    if not trust_env:
+        return {}
+
+    http_proxy = (os.environ.get("HTTP_PROXY"), os.environ.get("http_proxy"))
+    https_proxy = (os.environ.get("HTTPS_PROXY"), os.environ.get("https_proxy"))
+
+    if not any(http_proxy + https_proxy):
+        return {}
+
+    proxies = {}
+    if any(http_proxy):
+        proxies["http"] = http_proxy[0] if http_proxy[0] else http_proxy[1]
+    if any(https_proxy):
+        proxies["https"] = https_proxy[0] if https_proxy[0] else https_proxy[1]
+
+    return proxies

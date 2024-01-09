@@ -7,7 +7,6 @@ from httpx import ConnectError as HTTPXConnectError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.backup.backup import _Backup
-from weaviate.warnings import _Warnings
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 from .auth import AuthCredentials
 from .backup import Backup
@@ -408,20 +407,17 @@ class Client(_ClientBase):
             url, config.grpc_port_experimental, embedded_options
         )
 
-        if startup_period is not None:
-            _Warnings.startup_period_deprecated()
-
         self._connection = Connection(
-            connection_params=connection_params,
+            url=connection_params._http_url,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
             trust_env=trust_env,
             additional_headers=additional_headers,
+            startup_period=startup_period,
             embedded_db=embedded_db,
             connection_config=config.connection_config,
         )
-        self._connection.connect(False)
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
         self.contextionary = Contextionary(self._connection)
