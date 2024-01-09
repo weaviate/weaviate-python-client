@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import time
 
+from copy import copy
 from threading import Thread, Event
 from typing import Any, Dict, Optional, Tuple, Union, cast
 
@@ -336,6 +337,19 @@ class _Connection(_ConnectionBase):
         """Returns the additional headers."""
         return self.__additional_headers
 
+    def __get_headers_for_async(self) -> Dict[str, str]:
+        if "authorization" in self._headers:
+            return self._headers
+
+        auth_token = self.get_current_bearer_token()
+        if auth_token == "":
+            return self._headers
+
+        # bearer token can change over time (OIDC) so we need to get the current one for each request
+        copied_headers = copy(self._headers)
+        copied_headers.update({"authorization": self.get_current_bearer_token()})
+        return copied_headers
+
     def delete(
         self,
         path: str,
@@ -458,6 +472,7 @@ class _Connection(_ConnectionBase):
             url=request_url,
             json=weaviate_object,
             params=params,
+            headers=self.__get_headers_for_async(),
         )
         return cast(Response, res)
 
