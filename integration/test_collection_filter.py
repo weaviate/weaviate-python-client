@@ -18,6 +18,7 @@ from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import (
     _FilterCreationTime,
     _FilterUpdateTime,
+    _FilterValue2,
     Filter,
     _Filters,
     _FilterValue,
@@ -25,7 +26,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
-from weaviate.util import parse_version_string
+from weaviate.util import _ServerVersion, parse_version_string
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -42,6 +43,9 @@ UUID3 = uuid.uuid4()
         (Filter(path="name").equal("Banana"), [0]),
         (Filter(path="name").not_equal("Banana"), [1, 2]),
         (Filter(path="name").like("*nana"), [0]),
+        (Filter.by_property("name").equal("Banana"), [0]),
+        (Filter.by_property("name").not_equal("Banana"), [1, 2]),
+        (Filter.by_property("name").like("*nana"), [0]),
     ],
 )
 def test_filters_text(
@@ -397,12 +401,18 @@ def test_filters_contains(
         (Filter(path=["ref", "target", "int"]).greater_than(3), [1]),
         (Filter(path=["ref", "target", "text"], length=True).less_than(6), [0]),
         (Filter(path=["ref", "target", "_id"]).equal(UUID2), [1]),
+        (Filter.link_on("ref").by_property("int").greater_than(3), [1]),
+        (Filter.link_on("ref").by_property("text", length=True).less_than(6), [0]),
+        (Filter.link_on("ref").by_id().equal(UUID2), [1]),
+        (
+            Filter.link_on("ref2").link_on("ref").by_property("text", length=True).less_than(6),
+            [2],
+        ),  # second obj links to first one
     ],
 )
 def test_ref_filters(
-    collection_factory: CollectionFactory, weaviate_filter: _FilterValue, results: List[int]
+    collection_factory: CollectionFactory, weaviate_filter: _Filters, results: List[int]
 ) -> None:
-    assert isinstance(weaviate_filter.path, list)
     to_collection = collection_factory(
         name="Target",
         vectorizer_config=Configure.Vectorizer.none(),
@@ -412,14 +422,24 @@ def test_ref_filters(
         ],
         inverted_index_config=Configure.inverted_index(index_property_length=True),
     )
-    weaviate_filter.path[1] = to_collection.name
+    if isinstance(weaviate_filter, _FilterValue):
+        assert isinstance(weaviate_filter.path, list)
 
-    if (
-        parse_version_string(to_collection._connection._server_version)
-        < parse_version_string("1.23")
-        and "_id" in weaviate_filter.path
+        # enable filters with direct path
+        if len(weaviate_filter.path) > 1:
+            weaviate_filter.path[1] = to_collection.name
+
+        if (
+            to_collection._connection._weaviate_version < _ServerVersion(1, 23, patch=0)
+            and "_id" in weaviate_filter.path
+        ):
+            pytest.skip("filter by id is not supported in this version")
+
+    # patch=3 in reality, but to be able to test this
+    if to_collection._connection._weaviate_version < _ServerVersion(1, 23, patch=2) and isinstance(
+        weaviate_filter, _FilterValue2
     ):
-        pytest.skip("filter by id is not supported in this version")
+        pytest.skip("new filters are not supported in this version")
 
     uuids_to = [
         to_collection.data.insert(properties={"int": 0, "text": "first"}, uuid=UUID1),
@@ -432,6 +452,9 @@ def test_ref_filters(
         references=[ReferenceProperty(name="ref", target_collection=to_collection.name)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
+    from_collection.config.add_reference(
+        ReferenceProperty(name="ref2", target_collection=from_collection.name)
+    )
 
     uuids_from = [
         from_collection.data.insert(
@@ -441,6 +464,16 @@ def test_ref_filters(
             properties={"name": "second"}, references={"ref": Reference.to(uuids_to[1])}
         ),
     ]
+    uuids_from.extend(
+        [
+            from_collection.data.insert(
+                properties={"name": "third"}, references={"ref2": Reference.to(uuids_from[0])}
+            ),
+            from_collection.data.insert(
+                properties={"name": "fourth"}, references={"ref2": Reference.to(uuids_from[1])}
+            ),
+        ]
+    )
 
     objects = from_collection.query.fetch_objects(filters=weaviate_filter).objects
     assert len(objects) == len(results)

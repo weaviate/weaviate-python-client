@@ -3,6 +3,8 @@ import uuid as uuid_lib
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
+
+from pydantic import Field
 from weaviate.collections.classes.types import GeoCoordinate
 
 
@@ -106,7 +108,7 @@ class _FilterValue(_WeaviateInput, _Filters):
     operator: _Operator
 
 
-class Filter:
+class _FilterOld:
     """Define a filter based on a property to be used when querying and deleting from a collection.
 
     Use the `__init__` method to define the path to the property to be filtered on and then
@@ -513,3 +515,208 @@ class FilterMetadata:
     ById = _FilterId
     ByCreationTime = _FilterCreationTime
     ByUpdateTime = _FilterUpdateTime
+
+
+class _SingleTargetRef(_WeaviateInput):
+    link_on: str
+    target: Optional["_FilterTargets"] = Field(exclude=True, default=None)
+
+
+class _MultiTargetRef(_WeaviateInput):
+    target_collection: str
+    link_on: str
+    target: Optional["_FilterTargets"] = Field(exclude=True, default=None)
+
+
+_TargetRefs = Union[_SingleTargetRef, _MultiTargetRef]
+_FilterTargets = Union[_SingleTargetRef, _MultiTargetRef, str]
+
+
+class _FilterValue2(_WeaviateInput, _Filters):
+    value: FilterValues
+    operator: _Operator
+    target: _FilterTargets
+
+
+class _FilterBase:
+    _target: Optional[_TargetRefs] = None
+    _property: str
+
+    def _target_path(self) -> _FilterTargets:
+        if self._target is None:
+            return self._property
+
+        # get last element in chain
+        target = self._target
+        while target.target is not None:
+            assert isinstance(target.target, _MultiTargetRef) or isinstance(
+                target.target, _SingleTargetRef
+            )
+            target = target.target
+
+        target.target = self._property
+        return self._target
+
+
+class _FilterByProperty(_FilterBase):
+    def __init__(self, prop: str, length: bool, target: Optional[_TargetRefs] = None) -> None:
+        self._target = target
+        if length:
+            prop = "len(" + prop + ")"
+
+        self._property = prop
+
+    def is_none(self, val: bool) -> _FilterValue2:
+        """Filter on whether the property is `None`."""
+        return _FilterValue2(
+            target=self._target_path(),
+            value=val,
+            operator=_Operator.IS_NULL,
+        )
+
+    def contains_any(self, val: FilterValuesList) -> _FilterValue2:
+        """Filter on whether the property contains any of the given values."""
+        return _FilterValue2(
+            target=self._target_path(),
+            value=val,
+            operator=_Operator.CONTAINS_ANY,
+        )
+
+    def contains_all(self, val: FilterValuesList) -> _FilterValue2:
+        """Filter on whether the property contains all of the given values."""
+        return _FilterValue2(
+            target=self._target_path(),
+            value=val,
+            operator=_Operator.CONTAINS_ALL,
+        )
+
+    def equal(self, val: FilterValues) -> _FilterValue2:
+        """Filter on whether the property is equal to the given value."""
+        return _FilterValue2(target=self._target_path(), value=val, operator=_Operator.EQUAL)
+
+    def not_equal(self, val: FilterValues) -> _FilterValue2:
+        """Filter on whether the property is not equal to the given value."""
+        return _FilterValue2(target=self._target_path(), value=val, operator=_Operator.NOT_EQUAL)
+
+    def less_than(self, val: FilterValues) -> _FilterValue2:
+        """Filter on whether the property is less than the given value."""
+        return _FilterValue2(target=self._target_path(), value=val, operator=_Operator.LESS_THAN)
+
+    def less_or_equal(self, val: FilterValues) -> _FilterValue2:
+        """Filter on whether the property is less than or equal to the given value."""
+        return _FilterValue2(
+            target=self._target_path(),
+            value=val,
+            operator=_Operator.LESS_THAN_EQUAL,
+        )
+
+    def greater_than(self, val: FilterValues) -> _FilterValue2:
+        """Filter on whether the property is greater than the given value."""
+        return _FilterValue2(
+            target=self._target_path(),
+            value=val,
+            operator=_Operator.GREATER_THAN,
+        )
+
+    def greater_or_equal(self, val: FilterValues) -> _FilterValue2:
+        """Filter on whether the property is greater than or equal to the given value."""
+        return _FilterValue2(
+            target=self._target_path(),
+            value=val,
+            operator=_Operator.GREATER_THAN_EQUAL,
+        )
+
+    def like(self, val: str) -> _FilterValue2:
+        """Filter on whether the property is like the given value.
+
+        This filter can make use of `*` and `?` as wildcards. See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-partial-matches-text) for more details.
+        """
+        return _FilterValue2(target=self._target_path(), value=val, operator=_Operator.LIKE)
+
+    def within_geo_range(self, coordinate: GeoCoordinate, distance: float) -> _FilterValue2:
+        """Filter on whether the property is within a given range of a geo-coordinate.
+
+        See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-geolocation) for more details.
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=_GeoCoordinateFilter(
+                latitude=coordinate.latitude, longitude=coordinate.longitude, distance=distance
+            ),
+            operator=_Operator.WITHIN_GEO_RANGE,
+        )
+
+
+class _FilterById(_FilterBase):
+    def __init__(self, target: Optional[_TargetRefs] = None) -> None:
+        self._target = target
+        self._property = "_id"
+
+    def contains_any(self, uuids: List[UUID]) -> _FilterValue2:
+        """Filter for objects that has one of the given ID."""
+        return _FilterValue2(
+            target=self._target_path(),
+            value=[get_valid_uuid(val) for val in uuids],
+            operator=_Operator.CONTAINS_ANY,
+        )
+
+    def equal(self, uuid: UUID) -> _FilterValue2:
+        """Filter for object that has the given ID."""
+        return _FilterValue2(
+            target=self._target_path(),
+            value=get_valid_uuid(uuid),
+            operator=_Operator.EQUAL,
+        )
+
+    def not_equal(self, uuid: UUID) -> _FilterValue2:
+        """Filter our object that has the given ID."""
+        return _FilterValue2(
+            target=self._target_path(),
+            value=get_valid_uuid(uuid),
+            operator=_Operator.NOT_EQUAL,
+        )
+
+
+class _FilterWithInit:
+    def __init__(self, target: _TargetRefs) -> None:
+        self.__target = target
+        self.__last_target = self.__target  # use this to append to the end of the chain
+
+    def link_on(self, link_on: str) -> "_FilterWithInit":
+        self.__last_target.target = _SingleTargetRef(link_on=link_on)
+        self.__last_target = self.__last_target.target
+        return self
+
+    def link_on_multi(self, reference: str, target_collection: str) -> "_FilterWithInit":
+        self.__last_target.target = _MultiTargetRef(
+            link_on=reference, target_collection=target_collection
+        )
+        self.__last_target = self.__last_target.target
+
+        return self
+
+    def by_id(self) -> _FilterById:
+        return _FilterById(self.__target)
+
+    def by_property(self, prop: str, length: bool = False) -> _FilterByProperty:
+        return _FilterByProperty(prop=prop, length=length, target=self.__target)
+
+
+class Filter(_FilterOld):
+    @staticmethod
+    def link_on(reference: str) -> _FilterWithInit:
+        return _FilterWithInit(_SingleTargetRef(link_on=reference))
+
+    @staticmethod
+    def link_on_multi(reference: str, target_collection: str) -> _FilterWithInit:
+        return _FilterWithInit(
+            _MultiTargetRef(link_on=reference, target_collection=target_collection)
+        )
+
+    @staticmethod
+    def by_id() -> _FilterById:
+        return _FilterById(None)
+
+    @staticmethod
+    def by_property(prop: str, length: bool = False) -> _FilterByProperty:
+        return _FilterByProperty(prop=prop, length=length, target=None)

@@ -190,6 +190,7 @@ class Filters(_message.Message):
         "value_boolean_array",
         "value_number_array",
         "value_geo",
+        "target",
     ]
 
     class Operator(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -234,6 +235,7 @@ class Filters(_message.Message):
     VALUE_BOOLEAN_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_NUMBER_ARRAY_FIELD_NUMBER: _ClassVar[int]
     VALUE_GEO_FIELD_NUMBER: _ClassVar[int]
+    TARGET_FIELD_NUMBER: _ClassVar[int]
     operator: Filters.Operator
     on: _containers.RepeatedScalarFieldContainer[str]
     filters: _containers.RepeatedCompositeFieldContainer[Filters]
@@ -246,6 +248,7 @@ class Filters(_message.Message):
     value_boolean_array: BooleanArray
     value_number_array: NumberArray
     value_geo: GeoCoordinatesFilter
+    target: FilterTarget
     def __init__(
         self,
         operator: _Optional[_Union[Filters.Operator, str]] = ...,
@@ -260,6 +263,47 @@ class Filters(_message.Message):
         value_boolean_array: _Optional[_Union[BooleanArray, _Mapping]] = ...,
         value_number_array: _Optional[_Union[NumberArray, _Mapping]] = ...,
         value_geo: _Optional[_Union[GeoCoordinatesFilter, _Mapping]] = ...,
+        target: _Optional[_Union[FilterTarget, _Mapping]] = ...,
+    ) -> None: ...
+
+class FilterReferenceSingleTarget(_message.Message):
+    __slots__ = ["on", "target"]
+    ON_FIELD_NUMBER: _ClassVar[int]
+    TARGET_FIELD_NUMBER: _ClassVar[int]
+    on: str
+    target: FilterTarget
+    def __init__(
+        self, on: _Optional[str] = ..., target: _Optional[_Union[FilterTarget, _Mapping]] = ...
+    ) -> None: ...
+
+class FilterReferenceMultiTarget(_message.Message):
+    __slots__ = ["on", "target", "string_target_collection"]
+    ON_FIELD_NUMBER: _ClassVar[int]
+    TARGET_FIELD_NUMBER: _ClassVar[int]
+    STRING_TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    on: str
+    target: FilterTarget
+    string_target_collection: str
+    def __init__(
+        self,
+        on: _Optional[str] = ...,
+        target: _Optional[_Union[FilterTarget, _Mapping]] = ...,
+        string_target_collection: _Optional[str] = ...,
+    ) -> None: ...
+
+class FilterTarget(_message.Message):
+    __slots__ = ["property", "single_target", "multi_target"]
+    PROPERTY_FIELD_NUMBER: _ClassVar[int]
+    SINGLE_TARGET_FIELD_NUMBER: _ClassVar[int]
+    MULTI_TARGET_FIELD_NUMBER: _ClassVar[int]
+    property: str
+    single_target: FilterReferenceSingleTarget
+    multi_target: FilterReferenceMultiTarget
+    def __init__(
+        self,
+        property: _Optional[str] = ...,
+        single_target: _Optional[_Union[FilterReferenceSingleTarget, _Mapping]] = ...,
+        multi_target: _Optional[_Union[FilterReferenceMultiTarget, _Mapping]] = ...,
     ) -> None: ...
 
 class GeoCoordinatesFilter(_message.Message):
