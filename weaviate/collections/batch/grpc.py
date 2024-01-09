@@ -13,8 +13,8 @@ from weaviate.collections.classes.batch import (
     BatchObjectReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
 from weaviate.collections.classes.internal import _Reference
-from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
@@ -332,6 +332,8 @@ class _BatchGRPC(_BaseGRPC):
                 )
             elif isinstance(val, GeoCoordinate):
                 non_ref_properties.update({key: val._to_dict()})
+            elif isinstance(val, PhoneNumber):
+                non_ref_properties.update({key: val._to_dict()})
             else:
                 non_ref_properties.update({key: _serialize_primitive(val)})
 
@@ -371,4 +373,5 @@ def _serialize_primitive(value: Any) -> Any:
         return _datetime_to_string(value)
     if isinstance(value, list):
         return [_serialize_primitive(val) for val in value]
+
     return value
