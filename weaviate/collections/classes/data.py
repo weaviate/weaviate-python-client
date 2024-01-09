@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import Any, Generic, List, Optional
-from typing_extensions import TypeVar
-from weaviate.collections.classes.internal import _Reference
-from weaviate.types import UUID
+from typing import Any, Generic, List, Optional, Union
+from typing_extensions import TypeVar, TypeAlias
+from weaviate.types import BEACON, UUID
+
+import uuid as uuid_package
 
 
 @dataclass
@@ -38,18 +39,36 @@ class DataObject(Generic[P, R]):
 
 
 @dataclass
-class DataReference:
-    """This class represents a reference between objects within a collection to be used when batching."""
-
+class _DataReference:
     from_property: str
     from_uuid: UUID
-    to_uuid: UUID
+    to_uuid: Union[UUID, List[UUID]]
+
+    def _to_uuids(self) -> List[UUID]:
+        if isinstance(self.to_uuid, uuid_package.UUID) or isinstance(self.to_uuid, str):
+            return [self.to_uuid]
+        else:
+            return self.to_uuid
 
 
 @dataclass
-class DataReferenceOneToMany:
+class DataReferenceMulti(_DataReference):
     """This class represents a reference between objects within a collection to be used when batching."""
 
-    from_property: str
-    from_uuid: UUID
-    to: _Reference
+    target_collection: str
+
+    def _to_beacons(self) -> List[str]:
+        return [f"{BEACON}{self.target_collection}/{uuid}" for uuid in self._to_uuids()]
+
+
+@dataclass
+class DataReference(_DataReference):
+    """This class represents a reference between objects within a collection to be used when batching."""
+
+    MultiTarget = DataReferenceMulti
+
+    def _to_beacons(self) -> List[str]:
+        return [f"{BEACON}{uuid}" for uuid in self._to_uuids()]
+
+
+DataReferences: TypeAlias = Union[DataReference, DataReferenceMulti]
