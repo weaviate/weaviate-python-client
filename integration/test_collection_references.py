@@ -559,6 +559,7 @@ def test_warning_refs_as_props(collection_factory: CollectionFactory, request: S
                 ReferenceProperty(name="ref", target_collection=_sanitize_collection_name(request.node.name)),  # type: ignore
             ],
         )
+    print(recwarn[0].message, recwarn[1].message)
     assert len(recwarn) == 1
     w = recwarn.pop()
     assert str(w.message).startswith("Dep007")
