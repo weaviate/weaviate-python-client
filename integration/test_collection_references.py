@@ -14,7 +14,7 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
     ReferencePropertyMultiTarget,
 )
-from weaviate.collections.classes.data import DataObject, DataReference, DataReferenceOneToMany
+from weaviate.collections.classes.data import DataObject, DataReference
 from weaviate.collections.classes.grpc import (
     FromReference,
     FromReferenceMultiTarget,
@@ -378,13 +378,15 @@ def test_references_batch(collection_factory: CollectionFactory) -> None:
     ref_collection = collection_factory(
         name="To",
         vectorizer_config=Configure.Vectorizer.none(),
-        properties=[Property(name="num", data_type=DataType.INT)],
+        properties=[Property(name="number", data_type=DataType.INT)],
     )
     num_objects = 10
 
-    uuids_to = ref_collection.data.insert_many(
-        [DataObject(properties={"num": i}) for i in range(num_objects)]
-    ).uuids.values()
+    uuids_to = list(
+        ref_collection.data.insert_many(
+            [DataObject(properties={"number": i}) for i in range(num_objects)]
+        ).uuids.values()
+    )
     collection = collection_factory(
         name="From",
         properties=[
@@ -393,43 +395,127 @@ def test_references_batch(collection_factory: CollectionFactory) -> None:
         references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    uuids_from = collection.data.insert_many(
-        [DataObject(properties={"num": i}) for i in range(num_objects)]
-    ).uuids.values()
+    uuids_from = list(
+        collection.data.insert_many(
+            [DataObject(properties={"num": i}) for i in range(num_objects)]
+        ).uuids.values()
+    )
+
+    # use both ways of adding batch-references in two calls to preserve order:
+    # - single points to an object with the same value as property
+    # - multi always points to the first 3 objects
+    batch_return = collection.data.reference_add_many(
+        [
+            DataReference(
+                from_property="ref",
+                from_uuid=uuids_from[i],
+                to_uuid=uuids_to[i],
+            )
+            for i in range(num_objects)
+        ]
+    )
+    assert batch_return.has_errors is False
 
     batch_return = collection.data.reference_add_many(
         [
-            *[
-                DataReferenceOneToMany(
-                    from_property="ref",
-                    from_uuid=list(uuids_from)[i],
-                    to=Reference.to(list(uuids_to)[i]),
-                )
-                for i in range(num_objects)
-            ],
-            *[
-                DataReference(
-                    from_property="ref",
-                    from_uuid=list(uuids_from)[i],
-                    to_uuid=list(uuids_to)[i],
-                )
-                for i in range(num_objects)
-            ],
+            DataReference(
+                from_property="ref",
+                from_uuid=uuids_from[i],
+                to_uuid=[uuids_to[j] for j in range(3)],
+            )
+            for i in range(num_objects)
         ]
     )
-
     assert batch_return.has_errors is False
 
     objects = collection.query.fetch_objects(
-        return_properties=[
-            "num",
-        ],
-        return_references=[
-            FromReference(link_on="ref"),
-        ],
+        return_properties=["num"],
+        return_references=[FromReference(link_on="ref")],
     ).objects
 
     for obj in objects:
+        assert obj.properties["num"] == obj.references["ref"].objects[0].properties["number"]
+        assert obj.references["ref"].objects[0].uuid in uuids_to
+        assert len(obj.references["ref"].objects) == 4
+        refs = [obj.references["ref"].objects[j + 1].properties["number"] for j in range(3)]
+        refs.sort()
+        assert [0, 1, 2] == refs
+
+
+def test_batch_reference_multi_taret(collection_factory: CollectionFactory) -> None:
+    to_collection = collection_factory(
+        name="To",
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[Property(name="number", data_type=DataType.INT)],
+    )
+    from_collection = collection_factory(
+        name="From",
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[Property(name="num", data_type=DataType.INT)],
+    )
+    from_collection.config.add_reference(
+        ReferencePropertyMultiTarget(
+            name="ref", target_collections=[to_collection.name, from_collection.name]
+        )
+    )
+
+    num_objects = 5
+
+    uuids_to = list(
+        to_collection.data.insert_many(
+            [DataObject(properties={"number": i}) for i in range(num_objects)]
+        ).uuids.values()
+    )
+    uuids_from = list(
+        from_collection.data.insert_many(
+            [DataObject(properties={"num": i}) for i in range(num_objects)]
+        ).uuids.values()
+    )
+
+    # add to to_collection
+    batch_return = from_collection.data.reference_add_many(
+        [
+            DataReference.MultiTarget(
+                from_property="ref",
+                from_uuid=uuids_from[i],
+                to_uuid=uuids_to[i],
+                target_collection=to_collection.name,
+            )
+            for i in range(num_objects)
+        ]
+    )
+    assert batch_return.has_errors is False
+
+    # add to from_collection
+    batch_return = from_collection.data.reference_add_many(
+        [
+            DataReference.MultiTarget(
+                from_property="ref",
+                from_uuid=uuids_from[i],
+                to_uuid=uuids_from[i],
+                target_collection=from_collection.name,
+            )
+            for i in range(num_objects)
+        ]
+    )
+    assert batch_return.has_errors is False
+
+    objects_with_to_ref = from_collection.query.fetch_objects(
+        return_properties=["num"],
+        return_references=[
+            FromReferenceMultiTarget(link_on="ref", target_collection=to_collection.name)
+        ],
+    ).objects
+    for obj in objects_with_to_ref:
+        assert obj.properties["num"] == obj.references["ref"].objects[0].properties["number"]
+
+    objects_with_from_ref = from_collection.query.fetch_objects(
+        return_properties=["num"],
+        return_references=[
+            FromReferenceMultiTarget(link_on="ref", target_collection=from_collection.name)
+        ],
+    ).objects
+    for obj in objects_with_from_ref:
         assert obj.properties["num"] == obj.references["ref"].objects[0].properties["num"]
 
 
