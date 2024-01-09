@@ -4,9 +4,7 @@ import uuid as uuid_package
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Type, Union, get_origin
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-from pydantic_core.core_schema import FieldValidationInfo
-from pydantic_extra_types import phone_numbers
+from pydantic import BaseModel, ConfigDict, Field
 
 from weaviate.exceptions import InvalidDataModelException
 
@@ -27,10 +25,6 @@ class GeoCoordinate(_WeaviateInput):
 
 class _PhoneNumberBase(_WeaviateInput):
     number: str
-
-    @field_validator("number")
-    def _validate_number(cls, v: str, info: FieldValidationInfo) -> str:
-        return phone_numbers.PhoneNumber._validate(v, info)
 
 
 class PhoneNumber(_PhoneNumberBase):

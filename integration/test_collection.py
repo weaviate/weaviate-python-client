@@ -1647,14 +1647,16 @@ def test_return_phone_number_property(collection_factory: CollectionFactory) -> 
         1, 23, 2
     ):  # TODO: change to 1.23.3 when it is released
         pytest.skip("Phone number properties are only supported on Weaviate >= 1.23.3")
-    uuid = collection.data.insert(
-        {"phone": PhoneNumber(default_country="GB", number="02070354848")}
-    )
+    uuid = collection.data.insert({"phone": PhoneNumber(number="+441612345000")})
     collection.data.insert_many(
-        [{"phone": PhoneNumber(default_country="GB", number="02070354848")}]
+        [{"phone": PhoneNumber(default_country="GB", number="01612345000")}]
     )
     obj = collection.query.fetch_object_by_id(uuid, return_properties=["phone"])
     objs = collection.query.fetch_objects(return_properties=["phone"]).objects
     assert len(objs) == 2
-    assert obj.properties["phone"].number == "02070354848"
-    assert objs[0].properties["phone"].number == "02070354848"
+    assert obj.properties["phone"].number == "+441612345000"
+    assert obj.properties["phone"].valid
+    assert obj.properties["phone"].international_formatted == "+44 161 234 5000"
+    assert objs[1].properties["phone"].number == "01612345000"
+    assert objs[1].properties["phone"].valid
+    assert objs[1].properties["phone"].international_formatted == "+44 161 234 5000"
