@@ -4,7 +4,9 @@ import uuid as uuid_package
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Type, Union, get_origin
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic_core.core_schema import FieldValidationInfo
+from pydantic_extra_types import phone_numbers
 
 from weaviate.exceptions import InvalidDataModelException
 
@@ -16,8 +18,8 @@ class _WeaviateInput(BaseModel):
 class GeoCoordinate(_WeaviateInput):
     """Input for the geo-coordinate datatype."""
 
-    latitude: float
-    longitude: float
+    latitude: float = Field(default=..., le=90, ge=-90)
+    longitude: float = Field(default=..., le=180, ge=-180)
 
     def _to_dict(self) -> Dict[str, float]:
         return self.model_dump(exclude_none=True)
@@ -25,6 +27,10 @@ class GeoCoordinate(_WeaviateInput):
 
 class _PhoneNumberBase(_WeaviateInput):
     number: str
+
+    @field_validator("number")
+    def _validate_number(cls, v: str, info: FieldValidationInfo) -> str:
+        return phone_numbers.PhoneNumber._validate(v, info)
 
 
 class PhoneNumber(_PhoneNumberBase):
@@ -34,10 +40,10 @@ class PhoneNumber(_PhoneNumberBase):
     This is used to figure out the correct countryCode and international format if only a national number (e.g. 0123 4567) is provided.
     """
 
-    default_country: Optional["ISOCountryCode"] = Field(default=None)
+    default_country: Optional[str] = Field(default=None)
 
-    def _to_dict(self) -> Dict[str, str]:
-        out = {"input": self.number}
+    def _to_dict(self) -> Mapping[str, str]:
+        out: Dict[str, str] = {"input": self.number}
         if self.default_country is not None:
             out["defaultCountry"] = self.default_country
         return out
