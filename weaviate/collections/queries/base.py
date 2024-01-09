@@ -312,6 +312,7 @@ class _BaseQuery(Generic[Properties, References]):
         options: _QueryOptions,
     ) -> _Object[Any, Any]:
         return _Object(
+            collection=props.target_collection,
             properties=(
                 self.__parse_nonref_properties_result(props.non_ref_props)
                 if self._is_weaviate_version_123
@@ -340,6 +341,7 @@ class _BaseQuery(Generic[Properties, References]):
         options: _QueryOptions,
     ) -> _GenerativeObject[Any, Any]:
         return _GenerativeObject(
+            collection=props.target_collection,
             properties=(
                 self.__parse_nonref_properties_result(props.non_ref_props)
                 if self._is_weaviate_version_123
@@ -404,6 +406,7 @@ class _BaseQuery(Generic[Properties, References]):
         options: _QueryOptions,
     ) -> _GroupedObject[Any, Any]:
         return _GroupedObject(
+            collection=props.target_collection,
             properties=(
                 self.__parse_nonref_properties_result(props.non_ref_props)
                 if self._is_weaviate_version_123
@@ -518,6 +521,7 @@ class _BaseQuery(Generic[Properties, References]):
         }
         objects_group_by: List[_GroupByObject] = [
             _GroupByObject(
+                collection=obj.collection,
                 properties=obj.properties,
                 references=obj.references,
                 metadata=obj.metadata,
@@ -554,6 +558,7 @@ class _BaseQuery(Generic[Properties, References]):
         }
         objects_group_by: List[_GroupByObject] = [
             _GroupByObject(
+                collection=obj.collection,
                 properties=obj.properties,
                 references=obj.references,
                 metadata=obj.metadata,
