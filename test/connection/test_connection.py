@@ -2,10 +2,8 @@ import unittest
 from unittest.mock import patch
 
 from test.util import check_error_message
-from weaviate.connect.v3 import (
-    Connection,
-    _get_proxies,
-)
+from weaviate.connect.base import _get_proxies
+from weaviate.connect.v3 import Connection
 from weaviate.util import _get_valid_timeout_config
 
 
@@ -44,7 +42,7 @@ class TestConnection(unittest.TestCase):
         """
 
         import datetime
-        from weaviate.connect.v3 import _get_epoch_time
+        from weaviate.connect.base import _get_epoch_time
 
         zero_epoch = datetime.datetime.fromtimestamp(0)
         mock_datetime.datetime.utcnow.return_value = zero_epoch
