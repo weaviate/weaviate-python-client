@@ -550,20 +550,17 @@ def test_references_batch_with_errors(collection_factory: CollectionFactory) -> 
 #     assert objects[0].references["ref"].objects[0].metadata.last_update_time_unix is not None
 
 
-def test_warning_refs_as_props(
-    collection_factory: CollectionFactory, request: SubRequest, recwarn: pytest.WarningsRecorder
-) -> None:
-    collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            ReferenceProperty(name="ref", target_collection=_sanitize_collection_name(request.node.name)),  # type: ignore
-        ],
-    )
-
+def test_warning_refs_as_props(collection_factory: CollectionFactory, request: SubRequest) -> None:
+    with pytest.warns(DeprecationWarning) as recwarn:
+        collection_factory(
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=[
+                Property(name="Name", data_type=DataType.TEXT),
+                ReferenceProperty(name="ref", target_collection=_sanitize_collection_name(request.node.name)),  # type: ignore
+            ],
+        )
     assert len(recwarn) == 1
     w = recwarn.pop()
-    assert issubclass(w.category, DeprecationWarning)
     assert str(w.message).startswith("Dep007")
 
 
