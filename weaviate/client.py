@@ -3,6 +3,7 @@ Client class definition.
 """
 from typing import Optional, Tuple, Union, Dict, Any
 
+from httpx import ConnectError as HTTPXConnectError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.backup.backup import _Backup
@@ -196,6 +197,8 @@ class WeaviateClient(_ClientBase):
             A `Contextionary` object instance connected to the same Weaviate instance as the Client.
     """
 
+    _connection: ConnectionV4
+
     def __init__(
         self,
         connection_params: Optional[ConnectionParams] = None,
@@ -292,8 +295,8 @@ class WeaviateClient(_ClientBase):
 
         try:
             response = self._connection.post(path="/graphql", weaviate_object=json_query)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Query not executed.") from conn_err
+        except HTTPXConnectError as conn_err:
+            raise HTTPXConnectError("Query not executed.") from conn_err
 
         res = _decode_json_response_dict(response, "GQL query")
         assert res is not None
