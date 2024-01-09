@@ -171,7 +171,6 @@ class Connection:
         ValueError
             If no authentication credentials provided but the Weaviate server has OpenID configured.
         """
-        print("IN _create_sessions, printing auth_client_secret:", auth_client_secret)
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._session = requests.Session()
