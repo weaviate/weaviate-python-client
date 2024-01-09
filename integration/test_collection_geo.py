@@ -65,10 +65,10 @@ def test_geo_props_filter(collection_factory: CollectionFactory) -> None:
         pytest.skip("not implemented in this version")
 
     uuid1 = collection.data.insert({"geo": GeoCoordinate(latitude=1.0, longitude=2.0)})
-    collection.data.insert({"geo": GeoCoordinate(latitude=1000.0, longitude=2.0)})
+    collection.data.insert({"geo": GeoCoordinate(latitude=89.0, longitude=179.0)})
     objs = collection.query.fetch_objects(
         filters=Filter("geo").within_geo_range(
-            GeoCoordinate(latitude=1.0, longitude=2.01), distance=5000.0
+            GeoCoordinate(latitude=1.0, longitude=2.01), distance=2000.0
         ),
         return_properties=["geo"],
     )

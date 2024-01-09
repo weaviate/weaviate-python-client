@@ -39,6 +39,7 @@ class Value(_message.Message):
         "int_value",
         "geo_value",
         "blob_value",
+        "phone_value",
     ]
     NUMBER_VALUE_FIELD_NUMBER: _ClassVar[int]
     STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -50,6 +51,7 @@ class Value(_message.Message):
     INT_VALUE_FIELD_NUMBER: _ClassVar[int]
     GEO_VALUE_FIELD_NUMBER: _ClassVar[int]
     BLOB_VALUE_FIELD_NUMBER: _ClassVar[int]
+    PHONE_VALUE_FIELD_NUMBER: _ClassVar[int]
     number_value: float
     string_value: str
     bool_value: bool
@@ -60,6 +62,7 @@ class Value(_message.Message):
     int_value: int
     geo_value: GeoCoordinate
     blob_value: str
+    phone_value: PhoneNumber
     def __init__(
         self,
         number_value: _Optional[float] = ...,
@@ -72,6 +75,7 @@ class Value(_message.Message):
         int_value: _Optional[int] = ...,
         geo_value: _Optional[_Union[GeoCoordinate, _Mapping]] = ...,
         blob_value: _Optional[str] = ...,
+        phone_value: _Optional[_Union[PhoneNumber, _Mapping]] = ...,
     ) -> None: ...
 
 class ListValue(_message.Message):
@@ -88,4 +92,39 @@ class GeoCoordinate(_message.Message):
     latitude: float
     def __init__(
         self, longitude: _Optional[float] = ..., latitude: _Optional[float] = ...
+    ) -> None: ...
+
+class PhoneNumber(_message.Message):
+    __slots__ = [
+        "country_code",
+        "default_country",
+        "input",
+        "international_formatted",
+        "national",
+        "national_formatted",
+        "valid",
+    ]
+    COUNTRY_CODE_FIELD_NUMBER: _ClassVar[int]
+    DEFAULT_COUNTRY_FIELD_NUMBER: _ClassVar[int]
+    INPUT_FIELD_NUMBER: _ClassVar[int]
+    INTERNATIONAL_FORMATTED_FIELD_NUMBER: _ClassVar[int]
+    NATIONAL_FIELD_NUMBER: _ClassVar[int]
+    NATIONAL_FORMATTED_FIELD_NUMBER: _ClassVar[int]
+    VALID_FIELD_NUMBER: _ClassVar[int]
+    country_code: int
+    default_country: str
+    input: str
+    international_formatted: str
+    national: int
+    national_formatted: str
+    valid: bool
+    def __init__(
+        self,
+        country_code: _Optional[int] = ...,
+        default_country: _Optional[str] = ...,
+        input: _Optional[str] = ...,
+        international_formatted: _Optional[str] = ...,
+        national: _Optional[int] = ...,
+        national_formatted: _Optional[str] = ...,
+        valid: bool = ...,
     ) -> None: ...
