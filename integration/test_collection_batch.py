@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Generator, Optional, Sequence, Union, Any, Protocol
 
 import pytest
-from _pytest.fixtures import SubRequest
 
 from integration.conftest import CollectionFactory
 from weaviate import Collection
@@ -87,9 +86,7 @@ def batch_collection(
 )
 @pytest.mark.parametrize("uuid", [None, UUID1, str(UUID2), UUID3.hex])
 def test_add_object(
-    batch_collection: BatchCollection,
-    uuid: Optional[UUID],
-    vector: Optional[Sequence],
+    batch_collection: BatchCollection, uuid: Optional[UUID], vector: Optional[Sequence]
 ) -> None:
     collection = batch_collection()
 
@@ -98,10 +95,8 @@ def test_add_object(
             uuid=uuid,
             vector=vector,
         )
-        assert batch.num_objects() == 1
-        assert batch.num_references() == 0
-    assert len(batch.failed_objects()) == 0
-    assert len(batch.failed_references()) == 0
+    assert len(collection.batch.failed_objects()) == 0
+    assert len(collection.batch.failed_references()) == 0
     objs = collection.query.fetch_objects().objects
     assert len(objs) == 1
 
@@ -110,7 +105,6 @@ def test_add_object(
 @pytest.mark.parametrize("to_uuid", [UUID4.hex, UUID5, str(UUID6)])
 def test_add_reference(
     batch_collection: BatchCollection,
-    request: SubRequest,
     from_uuid: UUID,
     to_uuid: UUID,
 ) -> None:
@@ -119,16 +113,10 @@ def test_add_reference(
 
     with collection.batch as batch:
         batch.add_object(uuid=from_uuid)
-        assert batch.num_objects() == 1
-        assert batch.num_references() == 0
         batch.add_object(uuid=to_uuid)
-        assert batch.num_objects() == 2
-        assert batch.num_references() == 0
         batch.add_reference(from_uuid=from_uuid, from_property="test", to=Reference.to(to_uuid))
-        assert batch.num_objects() == 2
-        assert batch.num_references() == 1
-    assert len(batch.failed_objects()) == 0
-    assert len(batch.failed_references()) == 0
+    assert len(collection.batch.failed_objects()) == 0
+    assert len(collection.batch.failed_references()) == 0
     objs = collection.query.fetch_objects().objects
     obj = collection.query.fetch_object_by_id(
         from_uuid, return_references=FromReference(link_on="test")
@@ -146,8 +134,8 @@ def test_add_object_batch_with_tenant(batch_collection: BatchCollection) -> None
             batch.add_object(
                 properties={"name": "tenant" + str(i % 5)},
             )
-    assert len(batch.failed_objects()) == 0
-    assert len(batch.failed_references()) == 0
+    assert len(mt_collection.batch.failed_objects()) == 0
+    assert len(mt_collection.batch.failed_references()) == 0
     objs = mt_collection.with_tenant("tenant1").query.fetch_objects().objects
     assert len(objs) == 1
     for obj in objs:
@@ -181,8 +169,8 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
             to=Reference.to_multi_target(obj_uuid1, target_collection=mt_collection.name),
         )
         # target collection required when inserting references into multi-tenancy collections
-    assert len(batch.failed_objects()) == 0
-    assert len(batch.failed_references()) == 0
+    assert len(mt_collection.batch.failed_objects()) == 0
+    assert len(mt_collection.batch.failed_references()) == 0
     ret_obj = mt_collection.with_tenant("tenant1").query.fetch_object_by_id(
         obj_uuid0, return_references=FromReference(link_on="test")
     )
