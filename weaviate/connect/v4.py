@@ -301,14 +301,17 @@ class _Connection(_ConnectionBase):
         if self._aclient is None:
             self._aclient = self.__make_async_client()
         if self._grpc_stub_async is None:
-            grpc_channel_async = self._connection_params._grpc_channel(async_channel=True)
-            assert grpc_channel_async is not None
-            self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(grpc_channel_async)
+            self._grpc_channel_async = self._connection_params._grpc_channel(async_channel=True)
+            assert self._grpc_channel_async is not None
+            self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel_async)
 
     async def aclose(self) -> None:
         if self._aclient is not None:
             await self._aclient.aclose()
             self._aclient = None
+        if self._grpc_stub_async is not None:
+            assert self._grpc_channel_async is not None
+            await self._grpc_channel_async.close()
             self._grpc_stub_async = None
 
     def close(self) -> None:
@@ -319,7 +322,7 @@ class _Connection(_ConnectionBase):
             and self._shutdown_background_event is not None
         ):
             self._shutdown_background_event.set()
-        if hasattr(self, "_session"):
+        if hasattr(self, "_client"):
             self._client.close()
 
     def _get_request_header(self) -> dict:
