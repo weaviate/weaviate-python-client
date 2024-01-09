@@ -141,8 +141,8 @@ class _ClientBase:
 
     @staticmethod
     def _parse_url_and_embedded_db(
-        url: Optional[str], grpc_port: Optional[int], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
+        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[str, Optional[EmbeddedDB]]:
         if embedded_options is None and url is None:
             raise TypeError("Either url or embedded options must be present.")
         elif embedded_options is not None and url is not None:
@@ -153,16 +153,11 @@ class _ClientBase:
         if embedded_options is not None:
             embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
-            return (
-                ConnectionParams.from_url(
-                    f"http://localhost:{embedded_options.port}", embedded_options.grpc_port
-                ),
-                embedded_db,
-            )
+            return f"http://localhost:{embedded_db.options.port}", embedded_db
 
         if not isinstance(url, str):
             raise TypeError(f"URL is expected to be string but is {type(url)}")
-        return ConnectionParams.from_url(url, grpc_port), None
+        return url.strip("/"), None
 
     def close(self) -> None:
         """In order to clean up any resources used by the client, call this method when you are done with the client.
@@ -403,12 +398,10 @@ class Client(_ClientBase):
                 If arguments are of a wrong data type.
         """
         config = Config() if additional_config is None else additional_config
-        connection_params, embedded_db = self._parse_url_and_embedded_db(
-            url, config.grpc_port_experimental, embedded_options
-        )
+        url, embedded_db = self._parse_url_and_embedded_db(url, embedded_options)
 
         self._connection = Connection(
-            url=connection_params._http_url,
+            url=url,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
@@ -416,6 +409,7 @@ class Client(_ClientBase):
             additional_headers=additional_headers,
             startup_period=startup_period,
             embedded_db=embedded_db,
+            grcp_port=config.grpc_port_experimental,
             connection_config=config.connection_config,
         )
         self.classification = Classification(self._connection)

@@ -5,13 +5,13 @@ from unittest.mock import patch, Mock
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message
-from weaviate import Client, ConnectionConfig, ConnectionParams, ProtocolParams
+from weaviate import Client, ConnectionConfig
 from weaviate.embedded import EmbeddedOptions, EmbeddedDB
 from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 @patch("weaviate.client.Connection", Mock)
-class TestClient(unittest.TestCase):
+class TestWeaviateClient(unittest.TestCase):
     @patch("weaviate.client.Client.get_meta", return_value={"version": "1.13.2"})
     def test___init__(self, mock_get_meta_method):
         """
@@ -25,11 +25,7 @@ class TestClient(unittest.TestCase):
         check_error_message(self, error, type_error_message)
         with self.assertRaises(TypeError) as error:
             Client(42)
-        check_error_message(
-            self,
-            error,
-            "URL is expected to be string but is " + str(int),
-        )
+        check_error_message(self, error, "URL is expected to be string but is " + str(int))
 
         # test valid calls
         with patch(
@@ -37,25 +33,22 @@ class TestClient(unittest.TestCase):
             Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             Client(
-                url="http://localhost:8080",
+                url="some_URL",
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 additional_headers=None,
+                startup_period=None,
             )
             mock_obj.assert_called_with(
-                connection_params=ConnectionParams(
-                    http=ProtocolParams(
-                        host="localhost",
-                        port=8080,
-                        secure=False,
-                    )
-                ),
+                url="some_URL",
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies=None,
                 trust_env=False,
                 additional_headers=None,
+                startup_period=None,
                 embedded_db=None,
+                grcp_port=None,
                 connection_config=ConnectionConfig(),
             )
 
@@ -64,25 +57,22 @@ class TestClient(unittest.TestCase):
             Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             Client(
-                url="http://localhost:8080",
+                url="some_URL",
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 additional_headers={"Test": True},
+                startup_period=None,
             )
             mock_obj.assert_called_with(
-                connection_params=ConnectionParams(
-                    http=ProtocolParams(
-                        host="localhost",
-                        port=8080,
-                        secure=False,
-                    )
-                ),
+                url="some_URL",
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies=None,
                 trust_env=False,
                 additional_headers={"Test": True},
+                startup_period=None,
                 embedded_db=None,
+                grcp_port=None,
                 connection_config=ConnectionConfig(),
             )
 
@@ -91,24 +81,18 @@ class TestClient(unittest.TestCase):
             Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             Client(
-                url="http://localhost:8080",
-                auth_client_secret=None,
-                timeout_config=(5, 20),
+                "some_URL/", auth_client_secret=None, timeout_config=(5, 20), startup_period=None
             )
             mock_obj.assert_called_with(
-                connection_params=ConnectionParams(
-                    http=ProtocolParams(
-                        host="localhost",
-                        port=8080,
-                        secure=False,
-                    )
-                ),
+                url="some_URL",
                 auth_client_secret=None,
                 timeout_config=(5, 20),
                 proxies=None,
                 trust_env=False,
                 additional_headers=None,
+                startup_period=None,
                 embedded_db=None,
+                grcp_port=None,
                 connection_config=ConnectionConfig(),
             )
 
@@ -117,27 +101,24 @@ class TestClient(unittest.TestCase):
             Mock(side_effect=lambda **kwargs: Mock(timeout_config=kwargs["timeout_config"])),
         ) as mock_obj:
             Client(
-                url="http://localhost:8080",
+                url="some_URL",
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies={"http": "test"},
                 trust_env=True,
                 additional_headers=None,
+                startup_period=None,
             )
             mock_obj.assert_called_with(
-                connection_params=ConnectionParams(
-                    http=ProtocolParams(
-                        host="localhost",
-                        port=8080,
-                        secure=False,
-                    )
-                ),
+                url="some_URL",
                 auth_client_secret=None,
                 timeout_config=(1, 2),
                 proxies={"http": "test"},
                 trust_env=True,
                 additional_headers=None,
+                startup_period=None,
                 embedded_db=None,
+                grcp_port=None,
                 connection_config=ConnectionConfig(),
             )
 
@@ -149,10 +130,7 @@ class TestClient(unittest.TestCase):
                 with patch("weaviate.embedded.EmbeddedDB.start") as mocked_start:
                     Client(embedded_options=EmbeddedOptions())
                     args, kwargs = mock_obj.call_args_list[0]
-                    self.assertEqual(
-                        kwargs["connection_params"],
-                        ConnectionParams.from_url("http://localhost:8079", 50060),
-                    )
+                    self.assertEqual(kwargs["url"], "http://localhost:8079")
                     self.assertTrue(isinstance(kwargs["embedded_db"], EmbeddedDB))
                     self.assertTrue(kwargs["embedded_db"] is not None)
                     self.assertEqual(kwargs["embedded_db"].options.port, 8079)
@@ -163,9 +141,8 @@ class TestClient(unittest.TestCase):
         """
         Test the `is_ready` method.
         """
-        client = Client(
-            url="http://localhost:8080",
-        )
+
+        client = Client("http://localhost:8080")
         # Request to weaviate returns 200
         connection_mock = mock_connection_func("get")
         client._connection = connection_mock
@@ -189,6 +166,7 @@ class TestClient(unittest.TestCase):
         """
         Test the `is_live` method.
         """
+
         client = Client("http://localhost:8080")
         # Request to weaviate returns 200
         connection_mock = mock_connection_func("get")
@@ -232,9 +210,8 @@ class TestClient(unittest.TestCase):
         """
         Test the `get_open_id_configuration` method.
         """
-        client = Client(
-            url="http://localhost:8080",
-        )
+
+        client = Client("http://localhost:8080")
         # Request to weaviate returns 200
         connection_mock = mock_connection_func("get", return_json={"status": "OK!"})
         client._connection = connection_mock
@@ -261,9 +238,8 @@ class TestClient(unittest.TestCase):
         """
         Test the `set_timeout_config` method.
         """
-        client = Client(
-            url="http://some_url.com:80", auth_client_secret=None, timeout_config=(1, 2)
-        )
+
+        client = Client("http://some_url.com", auth_client_secret=None, timeout_config=(1, 2))
         self.assertEqual(client.timeout_config, (1, 2))
         client.timeout_config = (4, 20)  # ;)
         self.assertEqual(client.timeout_config, (4, 20))
