@@ -265,9 +265,6 @@ class Connection(_ConnectionBase):
     def get_proxies(self) -> dict:
         return self._proxies
 
-    def get_additional_headers(self) -> Dict[str, str]:
-        return self.__additional_headers
-
     def _add_adapter_to_session(self, connection_config: ConnectionConfig) -> None:
         adapter = HTTPAdapter(
             pool_connections=connection_config.session_pool_connections,

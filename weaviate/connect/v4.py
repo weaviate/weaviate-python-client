@@ -336,10 +336,6 @@ class _Connection(_ConnectionBase):
         """
         return self._headers
 
-    def get_additional_headers(self) -> Dict[str, str]:
-        """Returns the additional headers."""
-        return self.__additional_headers
-
     def __get_headers_for_async(self) -> Dict[str, str]:
         if "authorization" in self._headers:
             return self._headers

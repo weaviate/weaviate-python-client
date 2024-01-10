@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Literal, Optional, Tuple, Union, cast, overload
+from typing import Literal, Optional, Tuple, Union, cast, overload
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -164,10 +164,6 @@ class ConnectionParams(BaseModel):
 class _ConnectionBase(ABC):
     @abstractmethod
     def get_current_bearer_token(self) -> str:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_additional_headers(self) -> Dict[str, str]:
         raise NotImplementedError
 
     @abstractmethod
