@@ -49,13 +49,18 @@ UUID3 = uuid.uuid4()
 )
 def test_filters_text(
     collection_factory: CollectionFactory,
-    weaviate_filter: _FilterValue,
+    weaviate_filter: _Filters,
     results: List[int],
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
+
+    if isinstance(
+        weaviate_filter, _FilterValue2
+    ) and collection._connection._weaviate_version < _ServerVersion(1, 23, patch=2):
+        pytest.skip("new filters are not supported in this version")
 
     uuids = [
         collection.data.insert({"name": "Banana"}),
