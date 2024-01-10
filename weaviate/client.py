@@ -163,7 +163,12 @@ class _ClientBase:
         """In order to clean up any resources used by the client, call this method when you are done with the client.
 
         If you do not do this, memory leaks may occur due to stale connections."""
-        self._connection.close()
+        if hasattr(self, "_connection"):
+            self._connection.close()
+
+    def __del__(self) -> None:
+        # in case an exception happens before definition of the client
+        self.close()
 
 
 class WeaviateClient(_ClientBase):
