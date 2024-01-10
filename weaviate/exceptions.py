@@ -1,6 +1,7 @@
 """
 Weaviate Exceptions.
 """
+from json.decoder import JSONDecodeError
 from typing import Union
 import httpx
 import requests
@@ -57,7 +58,7 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
 
         try:
             body = response.json()
-        except (requests.exceptions.JSONDecodeError, httpx.DecodingError):
+        except (requests.exceptions.JSONDecodeError, httpx.DecodingError, JSONDecodeError):
             body = None
 
         msg = (
@@ -226,4 +227,12 @@ class WeaviateInsertManyAllFailedError(WeaviateBaseError):
 
     def __init__(self, message: str = "") -> None:
         msg = f"""Every object failed during insertion. {message}"""
+        super().__init__(msg)
+
+
+class WeaviateClosedClientError(WeaviateBaseError):
+    """Is raised when a client is closed and a method is called on it."""
+
+    def __init__(self) -> None:
+        msg = "The `WeaviateClient` has been closed. Run `client.connect()` to reconnect!"
         super().__init__(msg)
