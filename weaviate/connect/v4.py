@@ -471,7 +471,6 @@ class _Connection(_ConnectionBase):
             url=request_url,
             json=weaviate_object,
             params=params,
-            headers=self.__get_headers_for_async(),
         )
         return cast(Response, res)
 
@@ -515,6 +514,7 @@ class _Connection(_ConnectionBase):
             url=request_url,
             json=weaviate_object,
             params=params,
+            headers=self.__get_headers_for_async(),
         )
 
     def put(
