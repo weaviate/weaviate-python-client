@@ -1,7 +1,7 @@
 import datetime
 import struct
-import uuid as uuid_package
 import time
+import uuid as uuid_package
 from typing import Any, Dict, List, Optional, Union, cast
 
 import grpc  # type: ignore
@@ -13,7 +13,7 @@ from weaviate.collections.classes.batch import (
     BatchObjectReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.types import GeoCoordinate
+from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
 from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import Connection
@@ -22,8 +22,8 @@ from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
 )
-from weaviate.util import _datetime_to_string, get_vector
 from weaviate.proto.v1 import batch_pb2, base_pb2
+from weaviate.util import _datetime_to_string, get_vector
 
 
 class _BatchGRPC(_BaseGRPC):
@@ -118,6 +118,100 @@ class _BatchGRPC(_BaseGRPC):
             assert self._connection.grpc_stub is not None
             res: batch_pb2.BatchObjectsReply
             res, _ = self._connection.grpc_stub.BatchObjects.with_call(
+                batch_pb2.BatchObjectsRequest(
+                    objects=batch,
+                    consistency_level=self._consistency_level,
+                ),
+                metadata=metadata,
+            )
+
+            objects: Dict[int, str] = {}
+            for result in res.errors:
+                objects[result.index] = result.error
+            return objects
+        except grpc.RpcError as e:
+            raise WeaviateQueryException(e.details())
+
+    async def objects_async(self, objects: List[_BatchObject]) -> BatchObjectReturn:
+        """Insert multiple objects into Weaviate through the gRPC API.
+
+        Parameters:
+            `objects`
+                A list of `WeaviateObject` containing the data of the objects to be inserted. The class name must be
+                provided for each object, and the UUID is optional. If no UUID is provided, one will be generated for each object.
+                The UUIDs of the inserted objects will be returned in the `uuids` attribute of the returned `_BatchReturn` object.
+                The UUIDs of the objects that failed to be inserted will be returned in the `errors` attribute of the returned `_BatchReturn` object.
+            `tenant`
+                The tenant to be used for this batch operation
+        """
+
+        def pack_vector(vector: Any) -> bytes:
+            vector_list = get_vector(vector)
+            return struct.pack("{}f".format(len(vector_list)), *vector_list)
+
+        weaviate_objs: List[batch_pb2.BatchObject] = [
+            batch_pb2.BatchObject(
+                collection=obj.collection,
+                vector=get_vector(obj.vector)
+                if obj.vector is not None and not self._is_weaviate_version_123
+                else None,
+                vector_bytes=pack_vector(obj.vector)
+                if obj.vector is not None and self._is_weaviate_version_123
+                else None,
+                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                properties=self.__translate_properties_from_python_to_grpc(
+                    {**obj.properties, **(obj.references if obj.references is not None else {})},
+                    False,
+                )
+                if obj.properties is not None
+                else None,
+                tenant=obj.tenant,
+            )
+            for obj in objects
+        ]
+
+        start = time.time()
+        errors = await self.__send_batch_async(weaviate_objs)
+        elapsed_time = time.time() - start
+
+        if len(errors) == len(weaviate_objs):
+            # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: Pylance
+            raise WeaviateInsertManyAllFailedError(
+                "Here is the set of all errors: {}".format(
+                    "\n".join(err for err in set(errors.values()))
+                )
+            )
+
+        all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
+            List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
+        )
+        return_success: Dict[int, uuid_package.UUID] = {}
+        return_errors: Dict[int, ErrorObject] = {}
+
+        for idx, obj in enumerate(weaviate_objs):
+            if idx in errors:
+                error = ErrorObject(errors[idx], objects[idx], original_uuid=objects[idx].uuid)
+                return_errors[idx] = error
+                all_responses[idx] = error
+            else:
+                success = uuid_package.UUID(obj.uuid)
+                return_success[idx] = success
+                all_responses[idx] = success
+
+        return BatchObjectReturn(
+            uuids=return_success,
+            errors=return_errors,
+            has_errors=len(errors) > 0,
+            all_responses=all_responses,
+            elapsed_seconds=elapsed_time,
+        )
+
+    async def __send_batch_async(self, batch: List[batch_pb2.BatchObject]) -> Dict[int, str]:
+        metadata = self._get_metadata()
+        try:
+            assert self._connection.grpc_stub_async is not None
+            res: batch_pb2.BatchObjectsReply
+            res = await self._connection.grpc_stub_async.BatchObjects(
                 batch_pb2.BatchObjectsRequest(
                     objects=batch,
                     consistency_level=self._consistency_level,
@@ -238,6 +332,8 @@ class _BatchGRPC(_BaseGRPC):
                 )
             elif isinstance(val, GeoCoordinate):
                 non_ref_properties.update({key: val._to_dict()})
+            elif isinstance(val, PhoneNumber):
+                non_ref_properties.update({key: val._to_dict()})
             else:
                 non_ref_properties.update({key: _serialize_primitive(val)})
 
@@ -277,4 +373,5 @@ def _serialize_primitive(value: Any) -> Any:
         return _datetime_to_string(value)
     if isinstance(value, list):
         return [_serialize_primitive(val) for val in value]
+
     return value

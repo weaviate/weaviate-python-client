@@ -4,7 +4,7 @@ import uuid as uuid_package
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Type, Union, get_origin
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from weaviate.exceptions import InvalidDataModelException
 
@@ -16,11 +16,45 @@ class _WeaviateInput(BaseModel):
 class GeoCoordinate(_WeaviateInput):
     """Input for the geo-coordinate datatype."""
 
-    latitude: float
-    longitude: float
+    latitude: float = Field(default=..., le=90, ge=-90)
+    longitude: float = Field(default=..., le=180, ge=-180)
 
     def _to_dict(self) -> Dict[str, float]:
-        return {"latitude": self.latitude, "longitude": self.longitude}
+        return self.model_dump(exclude_none=True)
+
+
+class _PhoneNumberBase(_WeaviateInput):
+    number: str
+
+
+class PhoneNumber(_PhoneNumberBase):
+    """Input for the phone number datatype.
+
+    `default_country` should correspond to the ISO 3166-1 alpha-2 country code.
+    This is used to figure out the correct countryCode and international format if only a national number (e.g. 0123 4567) is provided.
+    """
+
+    default_country: Optional[str] = Field(default=None)
+
+    def _to_dict(self) -> Mapping[str, str]:
+        out: Dict[str, str] = {"input": self.number}
+        if self.default_country is not None:
+            out["defaultCountry"] = self.default_country
+        return out
+
+
+class _PhoneNumber(_PhoneNumberBase):
+    """Output for the phone number datatype."""
+
+    country_code: int
+    default_country: str
+    international_formatted: str
+    national: int
+    national_formatted: str
+    valid: bool
+
+
+PhoneNumberType: TypeAlias = _PhoneNumber
 
 
 WeaviateField: TypeAlias = Union[
@@ -32,6 +66,7 @@ WeaviateField: TypeAlias = Union[
     datetime.datetime,  # date
     uuid_package.UUID,  # uuid
     GeoCoordinate,  # geoCoordinates
+    Union[PhoneNumber, PhoneNumberType],  # phoneNumber
     Mapping[str, "WeaviateField"],  # object
     List[str],  # text[]
     List[bool],  # boolean[]

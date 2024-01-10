@@ -5,7 +5,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
-from integration.conftest import OpenAICollection
+from integration.conftest import CollectionFactory, OpenAICollection
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -245,7 +245,6 @@ def test_near_object_generate_with_everything(
         grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
         grouped_properties=["text"],
     )
-    print(res)
     assert res.generated == "apples cats"
     assert res.objects[0].generated == "No"
     assert res.objects[1].generated == "Yes"
@@ -478,29 +477,22 @@ def test_openai_batch_upload(openai_collection: OpenAICollection, request: SubRe
     assert len(objects[0].vector) > 0
 
 
-def test_queries_with_rerank_and_generative(openai_collection: OpenAICollection) -> None:
+def test_queries_with_rerank_and_generative(collection_factory: CollectionFactory) -> None:
     api_key = os.environ.get("OPENAI_APIKEY")
     if api_key is None:
         pytest.skip("No OpenAI API key found.")
 
-    # Make specific client so that we can hard code the correct server version and avoid the BC reranking checks
-    client = weaviate.WeaviateClient(
-        connection_params=weaviate.ConnectionParams.from_url(
-            "http://localhost:8086", grpc_port=50057
-        ),
-        additional_headers={"X-OpenAI-Api-Key": api_key},
-    )
-    if client._connection._weaviate_version < _ServerVersion(1, 23, 1):
-        pytest.skip("Generative reranking requires Weaviate 1.23.1 or higher")
-
-    client.collections.delete("Test_test_queries_with_rerank_and_generative")
-    collection = client.collections.create(
+    collection = collection_factory(
         name="Test_test_queries_with_rerank_and_generative",
         generative_config=Configure.Generative.openai(),
         reranker_config=Configure.Reranker.transformers(),
         vectorizer_config=Configure.Vectorizer.text2vec_openai(),
         properties=[Property(name="text", data_type=DataType.TEXT)],
+        ports=(8079, 50050),
+        headers={"X-OpenAI-Api-Key": api_key},
     )
+    if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
+        pytest.skip("Generative reranking requires Weaviate 1.23.1 or higher")
 
     insert = collection.data.insert_many(
         [{"text": "This is a test"}, {"text": "This is another test"}]
@@ -548,7 +540,7 @@ def test_queries_with_rerank_and_generative(openai_collection: OpenAICollection)
         assert [obj for obj in objects if "another" in obj.properties["text"]][  # type: ignore
             0
         ].metadata.rerank_score > [
-            obj for obj in objects if "another" not in obj.properties["text"]  # type: ignore
+            obj for obj in objects if "another" not in obj.properties["text"]
         ][
             0
         ].metadata.rerank_score

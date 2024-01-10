@@ -1,8 +1,6 @@
 import datetime
 import uuid as uuid_package
-from collections import deque
 from typing import (
-    Deque,
     Dict,
     Any,
     Optional,
@@ -25,7 +23,7 @@ from weaviate.collections.classes.batch import (
     _BatchDeleteResult,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.data import DataObject, DataReference, DataReferenceOneToMany
+from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.internal import (
     Object,
     _metadata_from_dict,
@@ -38,6 +36,7 @@ from weaviate.collections.classes.orm import (
 )
 from weaviate.collections.classes.types import (
     GeoCoordinate,
+    PhoneNumber,
     Properties,
     TProperties,
     _check_properties_generic,
@@ -181,28 +180,16 @@ class _Data:
             if response.status_code != 200:
                 raise UnexpectedStatusCodeException("Add property reference to object", response)
 
-    def _reference_add_many(
-        self, refs: List[Union[DataReference, DataReferenceOneToMany]]
-    ) -> BatchReferenceReturn:
-        batch: Deque[_BatchReference] = deque()
-        for ref in refs:
-            if isinstance(ref, DataReference):
-                batch.appendleft(
-                    _BatchReference(
-                        from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
-                        to=f"{BEACON}{self.name}/{ref.to_uuid}",
-                        tenant=self._tenant,
-                    )
-                )
-            else:
-                for uuid_ in ref.to.uuids_str:
-                    batch.appendleft(
-                        _BatchReference(
-                            from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
-                            to=f"{BEACON}{uuid_}",
-                            tenant=self._tenant,
-                        )
-                    )
+    def _reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
+        batch = [
+            _BatchReference(
+                from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
+                to=beacon,
+                tenant=self._tenant,
+            )
+            for ref in refs
+            for beacon in ref._to_beacons()
+        ]
         return self._batch_rest.references(list(batch))
 
     def _reference_delete(
@@ -270,6 +257,8 @@ class _Data:
         if isinstance(value, list):
             return [self.__serialize_primitive(val) for val in value]
         if isinstance(value, GeoCoordinate):
+            return value._to_dict()
+        if isinstance(value, PhoneNumber):
             return value._to_dict()
         return value
 
@@ -478,9 +467,7 @@ class _DataCollection(Generic[Properties], _Data):
             ref=to,
         )
 
-    def reference_add_many(
-        self, refs: List[Union[DataReference, DataReferenceOneToMany]]
-    ) -> BatchReferenceReturn:
+    def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
         """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
 
         Arguments:
@@ -563,6 +550,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         uuid, vector, metadata = _metadata_from_dict(obj)
         model_object = Object[Model, dict](
+            collection=self.name,
             properties=self.__model.model_validate(
                 {
                     **obj["properties"],
@@ -641,7 +629,5 @@ class _DataCollectionModel(Generic[Model], _Data):
     def reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_add_many(
-        self, refs: List[Union[DataReference, DataReferenceOneToMany]]
-    ) -> BatchReferenceReturn:
+    def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
         return self._reference_add_many(refs)

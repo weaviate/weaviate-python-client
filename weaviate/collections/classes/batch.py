@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from weaviate.collections.classes.internal import WeaviateReferences
 from weaviate.collections.classes.types import WeaviateField
-from weaviate.util import _capitalize_first_letter, get_valid_uuid, get_vector
 from weaviate.types import BEACON, UUID
+from weaviate.util import _capitalize_first_letter, get_valid_uuid, get_vector
 
 
 @dataclass
@@ -216,7 +216,8 @@ class BatchReferenceReturn:
 class BatchResult:
     """This class contains the results of a batch operation.
 
-    Since the individual objects and references within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
+    Since the individual objects and references within the batch can error for differing reasons, the data is split up
+    within this class for ease use when performing error checking, handling, and data revalidation.
 
     Attributes:
         `objs`
@@ -225,12 +226,14 @@ class BatchResult:
             The results of the batch reference operation.
     """
 
-    objs: BatchObjectReturn
-    refs: BatchReferenceReturn
-
     def __init__(self) -> None:
-        self.objs = BatchObjectReturn([], 0.0, {}, {})
-        self.refs = BatchReferenceReturn(0.0, {})
+        self.objs: BatchObjectReturn = BatchObjectReturn([], 0.0, {}, {})
+        self.refs: BatchReferenceReturn = BatchReferenceReturn(0.0, {})
+
+    def __add__(self, other: "BatchResult") -> "BatchResult":
+        self.objs += other.objs
+        self.refs += other.refs
+        return self
 
 
 @dataclass

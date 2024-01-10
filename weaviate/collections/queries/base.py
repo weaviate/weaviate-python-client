@@ -48,6 +48,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import (
     GeoCoordinate,
+    _PhoneNumber,
     Properties,
     TProperties,
 )
@@ -191,6 +192,16 @@ class _BaseQuery(Generic[Properties, References]):
             )
         if value.HasField("blob_value"):
             return value.blob_value
+        if value.HasField("phone_value"):
+            return _PhoneNumber(
+                country_code=value.phone_value.country_code,
+                default_country=value.phone_value.default_country,
+                international_formatted=value.phone_value.international_formatted,
+                national=value.phone_value.national,
+                national_formatted=value.phone_value.national_formatted,
+                number=value.phone_value.input,
+                valid=value.phone_value.valid,
+            )
         return value
 
     def __parse_nonref_properties_result(
@@ -303,6 +314,7 @@ class _BaseQuery(Generic[Properties, References]):
         options: _QueryOptions,
     ) -> Object[Any, Any]:
         return Object(
+            collection=props.target_collection,
             properties=(
                 self.__parse_nonref_properties_result(props.non_ref_props)
                 if self._is_weaviate_version_123
@@ -331,6 +343,7 @@ class _BaseQuery(Generic[Properties, References]):
         options: _QueryOptions,
     ) -> GenerativeObject[Any, Any]:
         return GenerativeObject(
+            collection=props.target_collection,
             properties=(
                 self.__parse_nonref_properties_result(props.non_ref_props)
                 if self._is_weaviate_version_123
@@ -395,6 +408,7 @@ class _BaseQuery(Generic[Properties, References]):
         options: _QueryOptions,
     ) -> GroupedObject[Any, Any]:
         return GroupedObject(
+            collection=props.target_collection,
             properties=(
                 self.__parse_nonref_properties_result(props.non_ref_props)
                 if self._is_weaviate_version_123
@@ -502,6 +516,7 @@ class _BaseQuery(Generic[Properties, References]):
         }
         objects_group_by: List[GroupByObject] = [
             GroupByObject(
+                collection=obj.collection,
                 properties=obj.properties,
                 references=obj.references,
                 metadata=obj.metadata,
@@ -538,6 +553,7 @@ class _BaseQuery(Generic[Properties, References]):
         }
         objects_group_by: List[GroupByObject] = [
             GroupByObject(
+                collection=obj.collection,
                 properties=obj.properties,
                 references=obj.references,
                 metadata=obj.metadata,

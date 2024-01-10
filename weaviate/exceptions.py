@@ -1,7 +1,9 @@
 """
 Weaviate Exceptions.
 """
+from typing import Union
 
+import httpx
 from requests import Response, exceptions
 
 ERROR_CODE_EXPLANATION = {
@@ -35,7 +37,7 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
     not handled in the client implementation and suggests an error.
     """
 
-    def __init__(self, message: str, response: Response):
+    def __init__(self, message: str, response: Union[Response, httpx._models.Response]):
         """
         Is raised in case the status code returned from Weaviate is
         not handled in the client implementation and suggests an error.
@@ -48,7 +50,7 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
         ----------
         message: str
             An error message specific to the context, in which the error occurred.
-        response: requests.Response
+        response: Union[Response, httpx._models.Response]
             The request response of which the status code was unexpected.
         """
         self._status_code: int = response.status_code

@@ -111,6 +111,7 @@ class _Object(Generic[P, R, M]):
     properties: P
     references: R
     vector: Optional[List[float]]
+    collection: str
 
 
 @dataclass

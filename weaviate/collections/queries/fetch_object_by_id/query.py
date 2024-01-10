@@ -119,6 +119,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                         is_consistent=obj.metadata.is_consistent,
                     ),
                     references=obj.references,
+                    collection=obj.collection,
                 ),
             )
         else:
@@ -251,6 +252,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                 is_consistent=None,
             ),
             references=refs,
+            collection=collection,
         )
 
 
