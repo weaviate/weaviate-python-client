@@ -237,7 +237,9 @@ class BatchResult:
 
 
 @dataclass
-class _BatchDeleteResult:
+class BatchDeleteReturn:
+    """This class contains the results of a batch `delete_many` operation."""
+
     failed: int
     matches: int
     objects: Optional[List[Dict[str, Any]]]

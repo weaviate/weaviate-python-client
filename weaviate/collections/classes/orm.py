@@ -22,7 +22,7 @@ from pydantic_core import PydanticUndefined
 
 from weaviate.collections.classes.config import (
     _CollectionConfigCreateBase,
-    PropertyConfig,
+    _PropertyConfig,
     Property,
     ReferenceProperty,
     ReferencePropertyMultiTarget,
@@ -78,7 +78,7 @@ class BaseProperty(BaseModel):
             if (
                 field.metadata is None
                 or len(field.metadata) == 0
-                or isinstance(field.metadata[0], PropertyConfig)
+                or isinstance(field.metadata[0], _PropertyConfig)
             )
             and name not in BaseProperty.model_fields
         }
@@ -129,7 +129,7 @@ class BaseProperty(BaseModel):
             metadata_list = model.model_fields[name].metadata
             if metadata_list is not None and len(metadata_list) > 0:
                 metadata = metadata_list[0]
-                if isinstance(metadata, PropertyConfig):
+                if isinstance(metadata, _PropertyConfig):
                     prop.update(metadata._to_dict())
 
             properties.append(prop)
@@ -165,7 +165,7 @@ class BaseProperty(BaseModel):
             metadata_list = model.model_fields[name].metadata
             if metadata_list is not None and len(metadata_list) > 0:
                 metadata = metadata_list[0]
-                if isinstance(metadata, PropertyConfig):
+                if isinstance(metadata, _PropertyConfig):
                     prop.update(metadata._to_dict())
 
             properties.append(Property(name=name, data_type=DataType(data_type[0]), **prop))

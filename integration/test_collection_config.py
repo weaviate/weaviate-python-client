@@ -20,7 +20,7 @@ from weaviate.collections.classes.config import (
     PQEncoderDistribution,
     StopwordsPreset,
     VectorDistance,
-    _VectorIndexType,
+    VectorIndexType,
     Vectorizer,
     GenerativeSearches,
     Reranker,
@@ -155,7 +155,7 @@ def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
-    assert config.vector_index_type == _VectorIndexType.HNSW
+    assert config.vector_index_type == VectorIndexType.HNSW
 
 
 def test_bm25_config(collection_factory: CollectionFactory) -> None:
@@ -208,7 +208,7 @@ def test_collection_config_defaults(collection_factory: CollectionFactory) -> No
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
 
-    assert config.vector_index_type == _VectorIndexType.HNSW
+    assert config.vector_index_type == VectorIndexType.HNSW
 
 
 def test_collection_config_full(collection_factory: CollectionFactory) -> None:
@@ -335,7 +335,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 100000
 
-    assert config.vector_index_type == _VectorIndexType.HNSW
+    assert config.vector_index_type == VectorIndexType.HNSW
 
 
 def test_collection_config_update(collection_factory: CollectionFactory) -> None:
@@ -408,7 +408,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
-    assert config.vector_index_type == _VectorIndexType.HNSW
+    assert config.vector_index_type == VectorIndexType.HNSW
 
     collection.config.update(
         vector_index_config=Reconfigure.VectorIndex.hnsw(
@@ -440,7 +440,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
-    assert config.vector_index_type == _VectorIndexType.HNSW
+    assert config.vector_index_type == VectorIndexType.HNSW
 
 
 def test_update_flat(collection_factory: CollectionFactory) -> None:
@@ -456,7 +456,7 @@ def test_update_flat(collection_factory: CollectionFactory) -> None:
     )
 
     config = collection.config.get()
-    assert config.vector_index_type == _VectorIndexType.FLAT
+    assert config.vector_index_type == VectorIndexType.FLAT
     assert config.vector_index_config.vector_cache_max_objects == 5
     assert isinstance(config.vector_index_config.quantizer, _BQConfig)
     assert config.vector_index_config.quantizer.rescore_limit == 10
@@ -468,7 +468,7 @@ def test_update_flat(collection_factory: CollectionFactory) -> None:
         ),
     )
     config = collection.config.get()
-    assert config.vector_index_type == _VectorIndexType.FLAT
+    assert config.vector_index_type == VectorIndexType.FLAT
     assert config.vector_index_config.vector_cache_max_objects == 10
     assert isinstance(config.vector_index_config.quantizer, _BQConfig)
     assert config.vector_index_config.quantizer.rescore_limit == 20
@@ -562,7 +562,7 @@ def test_config_vector_index_flat_and_quantizer_bq(collection_factory: Collectio
     )
 
     conf = collection.config.get()
-    assert conf.vector_index_type == _VectorIndexType.FLAT
+    assert conf.vector_index_type == VectorIndexType.FLAT
     assert conf.vector_index_config.vector_cache_max_objects == 234
     assert isinstance(conf.vector_index_config.quantizer, _BQConfig)
     assert conf.vector_index_config.quantizer.rescore_limit == 456
@@ -578,7 +578,7 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
     )
 
     conf = collection.config.get()
-    assert conf.vector_index_type == _VectorIndexType.HNSW
+    assert conf.vector_index_type == VectorIndexType.HNSW
     assert conf.vector_index_config.vector_cache_max_objects == 234
     assert isinstance(conf.vector_index_config, _VectorIndexConfigHNSW)
     assert conf.vector_index_config.ef_construction == 789

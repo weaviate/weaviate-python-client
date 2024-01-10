@@ -20,7 +20,7 @@ from weaviate.collections.classes.batch import (
     BatchObjectReturn,
     _BatchReference,
     BatchReferenceReturn,
-    _BatchDeleteResult,
+    BatchDeleteReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
@@ -115,7 +115,7 @@ class _Data:
 
     def delete_many(
         self, where: _Filters, verbose: bool = False, dry_run: bool = False
-    ) -> _BatchDeleteResult:
+    ) -> BatchDeleteReturn:
         """Delete multiple objects from the collection based on a filter.
 
         Arguments:
