@@ -550,6 +550,7 @@ class _DataCollectionModel(Generic[Model], _Data):
 
         uuid, vector, metadata = _metadata_from_dict(obj)
         model_object = _Object[Model, dict](
+            collection=self.name,
             properties=self.__model.model_validate(
                 {
                     **obj["properties"],
