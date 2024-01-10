@@ -5,12 +5,13 @@ import time
 
 from copy import copy
 from threading import Thread, Event
-from typing import Any, Dict, Optional, Tuple, Union, cast
+from typing import Any, Dict, Literal, Optional, Tuple, Union, cast, overload
 
 from grpc import _channel  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
 from httpx import (
     AsyncClient,
+    AsyncHTTPTransport,
     Client,
     ConnectError,
     HTTPError,
@@ -21,6 +22,7 @@ from httpx import (
     RequestError,
     Response,
     Timeout,
+    HTTPTransport,
     get,
 )
 from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client  # type: ignore
@@ -91,6 +93,7 @@ class _Connection(_ConnectionBase):
         self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
+        self.__trust_env = trust_env
         self._weaviate_version: _ServerVersion
 
         self._headers = {"content-type": "application/json"}
@@ -140,15 +143,52 @@ class _Connection(_ConnectionBase):
         else:
             self._weaviate_version = _ServerVersion.from_string("")
 
+    @overload
+    def __make_mounts(self, type_: Literal["sync"]) -> Dict[str, HTTPTransport]:
+        ...
+
+    @overload
+    def __make_mounts(self, type_: Literal["async"]) -> Dict[str, AsyncHTTPTransport]:
+        ...
+
+    def __make_mounts(
+        self, type_: Literal["sync", "async"]
+    ) -> Union[Dict[str, HTTPTransport], Dict[str, AsyncHTTPTransport]]:
+        if type_ == "async":
+            atransport = AsyncHTTPTransport(
+                limits=Limits(
+                    max_connections=self.__connection_config.session_pool_maxsize,
+                    max_keepalive_connections=self.__connection_config.session_pool_connections,
+                ),
+                retries=self.__connection_config.session_pool_max_retries,
+                trust_env=self.__trust_env,
+            )
+            return {
+                "http://": atransport,
+                "https://": atransport,
+            }
+        elif type_ == "sync":
+            transport = HTTPTransport(
+                limits=Limits(
+                    max_connections=self.__connection_config.session_pool_maxsize,
+                    max_keepalive_connections=self.__connection_config.session_pool_connections,
+                ),
+                retries=self.__connection_config.session_pool_max_retries,
+                trust_env=self.__trust_env,
+            )
+            return {
+                "http://": transport,
+                "https://": transport,
+            }
+        else:
+            raise ValueError(f"Unknown type {type_}")
+
     def __make_sync_client(self) -> Client:
         return Client(
             headers=self._get_request_header(),
             timeout=Timeout(None, connect=self.timeout_config[0], read=self.timeout_config[1]),
             proxies=self._proxies,
-            limits=Limits(
-                max_connections=self.__connection_config.session_pool_maxsize,
-                max_keepalive_connections=self.__connection_config.session_pool_connections,
-            ),
+            mounts=self.__make_mounts("sync"),
         )
 
     def __make_async_client(self) -> AsyncClient:
@@ -156,10 +196,7 @@ class _Connection(_ConnectionBase):
             headers=self._get_request_header(),
             timeout=Timeout(None, connect=self.timeout_config[0], read=self.timeout_config[1]),
             proxies=self._proxies,
-            limits=Limits(
-                max_connections=self.__connection_config.session_pool_maxsize,
-                max_keepalive_connections=self.__connection_config.session_pool_connections,
-            ),
+            mounts=self.__make_mounts("async"),
         )
 
     def __make_clients(self) -> None:
