@@ -93,6 +93,7 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
     uuid_A2 = A.data.insert(properties={"Name": "A2"})
 
     a_objs = A.query.bm25(query="A1", return_properties="name").objects
+    assert a_objs[0].collection == A.name
     assert a_objs[0].properties["name"] == "A1"
 
     B = collection_factory(
@@ -113,8 +114,10 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
             return_properties=["name"],
         ),
     ).objects
+    assert b_objs[0].references["a"].objects[0].collection == A.name
     assert b_objs[0].references["a"].objects[0].properties["name"] == "A1"
     assert b_objs[0].references["a"].objects[0].uuid == uuid_A1
+    assert b_objs[0].references["a"].objects[1].collection == A.name
     assert b_objs[0].references["a"].objects[1].properties["name"] == "A2"
     assert b_objs[0].references["a"].objects[1].uuid == uuid_A2
 
@@ -141,12 +144,16 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
             ),
         ),
     ).objects
+    assert c_objs[0].collection == C.name
     assert c_objs[0].properties["name"] == "find me"
+    assert c_objs[0].references["b"].objects[0].collection == B.name
     assert c_objs[0].references["b"].objects[0].properties["name"] == "B"
     assert c_objs[0].references["b"].objects[0].metadata.last_update_time is not None
+    assert c_objs[0].references["b"].objects[0].references["a"].objects[0].collection == A.name
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[0].properties["name"] == "A1"
     )
+    assert c_objs[0].references["b"].objects[0].references["a"].objects[1].collection == A.name
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[1].properties["name"] == "A2"
     )
@@ -208,9 +215,13 @@ def test_mono_references_grpc_typed_dicts(
     )
 
     b_objs = B.query.bm25(query="B", return_references=BRefs).objects
+    assert b_objs[0].collection == B.name
+    assert b_objs[0].properties["name"] == "B"
+    assert b_objs[0].references["a"].objects[0].collection == A.name
     assert b_objs[0].references["a"].objects[0].properties["name"] == "A1"
     assert b_objs[0].references["a"].objects[0].uuid == uuid_A1
     assert b_objs[0].references["a"].objects[0].references is None
+    assert b_objs[0].references["a"].objects[1].collection == A.name
     assert b_objs[0].references["a"].objects[1].properties["name"] == "A2"
     assert b_objs[0].references["a"].objects[1].uuid == uuid_A2
     assert b_objs[0].references["a"].objects[1].references is None
@@ -268,6 +279,7 @@ def test_mono_references_grpc_typed_dicts(
             )
             .objects
         )
+    assert c_objs[0].collection == C.name
     assert (
         c_objs[0].properties["name"] == "find me"
     )  # happy path (in type and in return_properties)
@@ -276,9 +288,11 @@ def test_mono_references_grpc_typed_dicts(
     assert (
         c_objs[0].properties.get("not_specified") is None
     )  # type is str but instance is None (in type but not in return_properties)
+    assert c_objs[0].references["b"].objects[0].collection == B.name
     assert c_objs[0].references["b"].objects[0].properties["name"] == "B"
     assert c_objs[0].references["b"].objects[0].uuid == uuid_B
     assert c_objs[0].references["b"].objects[0].vector is not None
+    assert c_objs[0].references["b"].objects[0].references["a"].objects[0].collection == A.name
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[0].properties["name"] == "A1"
     )
@@ -287,6 +301,7 @@ def test_mono_references_grpc_typed_dicts(
         c_objs[0].references["b"].objects[0].references["a"].objects[0].metadata.creation_time
         is not None
     )
+    assert c_objs[0].references["b"].objects[0].references["a"].objects[1].collection == A.name
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[1].properties["name"] == "A2"
     )
@@ -351,8 +366,10 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
             return_metadata=MetadataQuery(last_update_time=True),
         ),
     ).objects
+    assert objects[0].collection == C.name
     assert objects[0].properties["name"] == "first"
     assert len(objects[0].references["ref"].objects) == 1
+    assert objects[0].references["ref"].objects[0].collection == A.name
     assert objects[0].references["ref"].objects[0].properties["name"] == "A"
     assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
 
@@ -368,8 +385,10 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
             return_metadata=MetadataQuery(last_update_time=True),
         ),
     ).objects
+    assert objects[0].collection == C.name
     assert objects[0].properties["name"] == "second"
     assert len(objects[0].references["ref"].objects) == 1
+    assert objects[0].references["ref"].objects[0].collection == B.name
     assert objects[0].references["ref"].objects[0].properties["name"] == "B"
     assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
 
@@ -681,6 +700,7 @@ def test_object_without_references(collection_factory: CollectionFactory) -> Non
         ],
     )
     assert "ref_full" in obj1.references and "ref_partial" not in obj1.references
+    assert obj1.collection == source.name
 
     obj2 = source.query.fetch_object_by_id(
         uuid_from1,
@@ -690,3 +710,4 @@ def test_object_without_references(collection_factory: CollectionFactory) -> Non
         ],
     )
     assert "ref_full" in obj2.references and "ref_partial" in obj2.references
+    assert obj2.collection == source.name
