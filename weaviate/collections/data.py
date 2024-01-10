@@ -14,6 +14,7 @@ from typing import (
 )
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
+from weaviate.collections.batch.grpc_delete import _BatchDeleteGRPC
 
 from weaviate.collections.classes.batch import (
     _BatchObject,
@@ -42,7 +43,7 @@ from weaviate.collections.classes.types import (
     _check_properties_generic,
 )
 from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
+from weaviate.collections.batch.grpc_objects import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import Connection
@@ -71,6 +72,7 @@ class _Data:
         self._consistency_level = consistency_level
         self._tenant = tenant
         self._batch_grpc = _BatchGRPC(connection, consistency_level)
+        self._batch_delete_grpc = _BatchDeleteGRPC(connection, consistency_level)
         self._batch_rest = _BatchREST(connection, consistency_level)
 
     def _insert(self, weaviate_obj: Dict[str, Any], clean_props: bool) -> uuid_package.UUID:
@@ -134,7 +136,12 @@ class _Data:
         """
         if not isinstance(where, _Filters):
             return _raise_invalid_input("where", where, _Filters)
-        return self._batch_rest.delete(self.name, where, verbose, dry_run, self._tenant)
+        if self._connection._weaviate_version.is_at_least(1, 23, patch=2):
+            return self._batch_delete_grpc.batch_delete(
+                self.name, where, verbose, dry_run, self._tenant
+            )
+        else:
+            return self._batch_rest.delete(self.name, where, verbose, dry_run, self._tenant)
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"

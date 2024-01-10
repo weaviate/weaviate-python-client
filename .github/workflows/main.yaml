@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview-add-reference-filter-detection-09ff79f
+  NEW_WEAVIATE_VERSION: preview-add-reference-filter-detection-3fb7f50
 
 jobs:
   lint-and-format:

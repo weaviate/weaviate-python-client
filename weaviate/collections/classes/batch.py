@@ -237,8 +237,15 @@ class BatchResult:
 
 
 @dataclass
+class _BatchDeleteObjects:
+    uuid: uuid_package.UUID
+    successful: bool
+    error: Optional[str] = None
+
+
+@dataclass
 class _BatchDeleteResult:
     failed: int
     matches: int
-    objects: Optional[List[Dict[str, Any]]]
+    objects: Optional[List[_BatchDeleteObjects]]
     successful: int

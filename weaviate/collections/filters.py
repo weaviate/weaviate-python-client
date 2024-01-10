@@ -15,7 +15,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.util import _ServerVersion, _datetime_to_string
 from weaviate.types import TIME
-from weaviate.proto.v1 import search_get_pb2
+from weaviate.proto.v1 import base_pb2
 
 
 class _FilterToGRPC:
@@ -26,27 +26,29 @@ class _FilterToGRPC:
 
     @overload
     @staticmethod
-    def convert(weav_filter: _Filters, weaviate_version: _ServerVersion) -> search_get_pb2.Filters:
+    def convert(weav_filter: _Filters, weaviate_version: _ServerVersion) -> base_pb2.Filters:
         ...
 
     @staticmethod
     def convert(
         weav_filter: Optional[_Filters], weaviate_version: _ServerVersion
-    ) -> Optional[search_get_pb2.Filters]:
+    ) -> Optional[base_pb2.Filters]:
         if weav_filter is None:
             return None
         if isinstance(weav_filter, _FilterValue):
             return _FilterToGRPC.__value_filter_old(weav_filter)
         elif isinstance(weav_filter, _FilterValue2):
-            if weaviate_version < _ServerVersion(major=1, minor=23, patch=0):
-                raise ValueError("Cannot use a reference filter on weaviate < 1.23.2.")
+            if weaviate_version.is_lower_than(
+                major=1, minor=23, patch=2
+            ):  # increase after next weaviate release
+                raise ValueError("Cannot use a reference filter on weaviate < 1.23.3.")
             return _FilterToGRPC.__value_filter(weav_filter)
         else:
             return _FilterToGRPC.__and_or_filter(weav_filter, weaviate_version)
 
     @staticmethod
-    def __value_filter_old(weav_filter: _FilterValue) -> search_get_pb2.Filters:
-        return search_get_pb2.Filters(
+    def __value_filter_old(weav_filter: _FilterValue) -> base_pb2.Filters:
+        return base_pb2.Filters(
             operator=weav_filter.operator._to_grpc(),
             value_text=_FilterToGRPC.__filter_to_text(weav_filter.value),
             value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
@@ -61,8 +63,8 @@ class _FilterToGRPC:
         )
 
     @staticmethod
-    def __value_filter(weav_filter: _FilterValue2) -> search_get_pb2.Filters:
-        return search_get_pb2.Filters(
+    def __value_filter(weav_filter: _FilterValue2) -> base_pb2.Filters:
+        return base_pb2.Filters(
             operator=weav_filter.operator._to_grpc(),
             value_text=_FilterToGRPC.__filter_to_text(weav_filter.value),
             value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
@@ -77,13 +79,13 @@ class _FilterToGRPC:
         )
 
     @staticmethod
-    def __to_target(target: _FilterTargets) -> search_get_pb2.FilterTarget:
+    def __to_target(target: _FilterTargets) -> base_pb2.FilterTarget:
         if isinstance(target, str):
-            return search_get_pb2.FilterTarget(property=target)
+            return base_pb2.FilterTarget(property=target)
         elif isinstance(target, _SingleTargetRef):
             assert target.target is not None
-            return search_get_pb2.FilterTarget(
-                single_target=search_get_pb2.FilterReferenceSingleTarget(
+            return base_pb2.FilterTarget(
+                single_target=base_pb2.FilterReferenceSingleTarget(
                     on=target.link_on, target=_FilterToGRPC.__to_target(target.target)
                 )
             )
@@ -91,18 +93,18 @@ class _FilterToGRPC:
             assert isinstance(target, _MultiTargetRef)
             assert target.target is not None
 
-            return search_get_pb2.FilterTarget(
-                multi_target=search_get_pb2.FilterReferenceMultiTarget(
+            return base_pb2.FilterTarget(
+                multi_target=base_pb2.FilterReferenceMultiTarget(
                     on=target.link_on, target=_FilterToGRPC.__to_target(target.target)
                 )
             )
 
     @staticmethod
-    def __filter_to_geo(value: FilterValues) -> Optional[search_get_pb2.GeoCoordinatesFilter]:
+    def __filter_to_geo(value: FilterValues) -> Optional[base_pb2.GeoCoordinatesFilter]:
         if not (isinstance(value, _GeoCoordinateFilter)):
             return None
 
-        return search_get_pb2.GeoCoordinatesFilter(
+        return base_pb2.GeoCoordinatesFilter(
             latitude=value.latitude, longitude=value.longitude, distance=value.distance
         )
 
@@ -122,7 +124,7 @@ class _FilterToGRPC:
         return _datetime_to_string(value)
 
     @staticmethod
-    def __filter_to_text_list(value: FilterValues) -> Optional[search_get_pb2.TextArray]:
+    def __filter_to_text_list(value: FilterValues) -> Optional[base_pb2.TextArray]:
         if not isinstance(value, list) or not (
             isinstance(value[0], TIME)
             or isinstance(value[0], str)
@@ -138,35 +140,35 @@ class _FilterToGRPC:
             dates = cast(List[TIME], value)
             value_list = [_datetime_to_string(date) for date in dates]
 
-        return search_get_pb2.TextArray(values=cast(List[str], value_list))
+        return base_pb2.TextArray(values=cast(List[str], value_list))
 
     @staticmethod
-    def __filter_to_bool_list(value: FilterValues) -> Optional[search_get_pb2.BooleanArray]:
+    def __filter_to_bool_list(value: FilterValues) -> Optional[base_pb2.BooleanArray]:
         if not isinstance(value, list) or not isinstance(value[0], bool):
             return None
 
-        return search_get_pb2.BooleanArray(values=cast(List[bool], value))
+        return base_pb2.BooleanArray(values=cast(List[bool], value))
 
     @staticmethod
-    def __filter_to_float_list(value: FilterValues) -> Optional[search_get_pb2.NumberArray]:
+    def __filter_to_float_list(value: FilterValues) -> Optional[base_pb2.NumberArray]:
         if not isinstance(value, list) or not isinstance(value[0], float):
             return None
 
-        return search_get_pb2.NumberArray(values=cast(List[float], value))
+        return base_pb2.NumberArray(values=cast(List[float], value))
 
     @staticmethod
-    def __filter_to_int_list(value: FilterValues) -> Optional[search_get_pb2.IntArray]:
+    def __filter_to_int_list(value: FilterValues) -> Optional[base_pb2.IntArray]:
         if not isinstance(value, list) or not isinstance(value[0], int):
             return None
 
-        return search_get_pb2.IntArray(values=cast(List[int], value))
+        return base_pb2.IntArray(values=cast(List[int], value))
 
     @staticmethod
     def __and_or_filter(
         weav_filter: _Filters, weaviate_version: _ServerVersion
-    ) -> Optional[search_get_pb2.Filters]:
+    ) -> Optional[base_pb2.Filters]:
         assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
-        return search_get_pb2.Filters(
+        return base_pb2.Filters(
             operator=weav_filter.operator._to_grpc(),
             filters=[
                 filter_
@@ -192,28 +194,17 @@ class _FilterToREST:
         if weav_filter is None:
             return None
         if isinstance(weav_filter, _FilterValue):
-            return _FilterToREST.__value_filter(weav_filter)
+            return _FilterToREST.__value_filter_old(weav_filter)
         else:
             return _FilterToREST.__and_or_filter(weav_filter)
 
     @staticmethod
-    def __value_filter(weav_filter: _FilterValue) -> Dict[str, Any]:
+    def __value_filter_old(weav_filter: _FilterValue) -> Dict[str, Any]:
         return {
             "operator": weav_filter.operator.value,
-            "path": _FilterToREST.__to_path(weav_filter),
+            "path": weav_filter.path if isinstance(weav_filter.path, list) else [weav_filter.path],
             **_FilterToREST.__parse_filter(weav_filter.value),
         }
-
-    @staticmethod
-    def __to_path(weav_filter: _FilterValue) -> List[str]:
-        if len(weav_filter.path) > 0:
-            return weav_filter.path
-        elif isinstance(weav_filter.target, str):
-            return [weav_filter.target]
-        else:
-            assert isinstance(weav_filter.target, FilterReferences)
-            raise ValueError("Cannot use a reference filter on weaviate < 1.23.2.")
-            return [weav_filter.target._link_on]
 
     @staticmethod
     def __parse_filter(value: FilterValues) -> Dict[str, Any]:
