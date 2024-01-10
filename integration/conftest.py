@@ -93,10 +93,12 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         )
         return collection
 
-    yield _factory
-    if client_fixture is not None and name_fixture is not None:
-        client_fixture.collections.delete(name_fixture)
-        client_fixture.close()
+    try:
+        yield _factory
+    finally:
+        if client_fixture is not None and name_fixture is not None:
+            client_fixture.collections.delete(name_fixture)
+            client_fixture.close()
 
 
 class OpenAICollection(Protocol):
@@ -156,21 +158,31 @@ class CollectionFactoryGet(Protocol):
 
 @pytest.fixture
 def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
+    client_fixture: Optional[weaviate.WeaviateClient] = None
+    name_fixture: Optional[str] = None
+
     def _factory(
         name: str,
         data_model_props: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
     ) -> Collection[Any, Any]:
+        nonlocal client_fixture, name_fixture
+        name_fixture = _sanitize_collection_name(name)
         client_fixture = weaviate.connect_to_local()
 
         collection: Collection[Any, Any] = client_fixture.collections.get(
-            name=_sanitize_collection_name(name),
+            name=name_fixture,
             data_model_properties=data_model_props,
             data_model_references=data_model_refs,
         )
         return collection
 
-    yield _factory
+    try:
+        yield _factory
+    finally:
+        if client_fixture is not None and name_fixture is not None:
+            client_fixture.collections.delete(name_fixture)
+            client_fixture.close()
 
 
 def _sanitize_collection_name(name: str) -> str:

@@ -166,10 +166,6 @@ class _ClientBase:
         if hasattr(self, "_connection"):
             self._connection.close()
 
-    def __del__(self) -> None:
-        # in case an exception happens before definition of the client
-        self.close()
-
 
 class WeaviateClient(_ClientBase):
     """
@@ -455,3 +451,7 @@ class Client(_ClientBase):
         """
 
         self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
+
+    def __del__(self) -> None:
+        # in case an exception happens before definition of the client
+        self.close()
