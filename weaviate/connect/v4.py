@@ -49,7 +49,6 @@ from weaviate.exceptions import (
 )
 from weaviate.util import (
     is_weaviate_domain,
-    is_weaviate_too_old,
     is_weaviate_client_too_old,
     PYPI_PACKAGE_URL,
     _decode_json_response_dict,
@@ -121,14 +120,14 @@ class _Connection(_ConnectionBase):
         if not skip_init_checks:
             # first connection attempt
             try:
-                self._server_version = self.get_meta()["version"]
+                self._weaviate_version = _ServerVersion.from_string(self.get_meta()["version"])
             except (ConnectError, ReadError, RemoteProtocolError) as e:
                 raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
-            if self._server_version < "1.14":
-                _Warnings.weaviate_server_older_than_1_14(self._server_version)
-            if is_weaviate_too_old(self._server_version):
-                _Warnings.weaviate_too_old_vs_latest(self._server_version)
+            if not self._weaviate_version.is_at_least(1, 14, 0):
+                _Warnings.weaviate_server_older_than_1_14(str(self._weaviate_version))
+            if not self._weaviate_version.is_at_least(1, 16, 0):
+                _Warnings.weaviate_too_old_vs_latest(str(self._weaviate_version))
 
             try:
                 pkg_info = get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
@@ -139,8 +138,7 @@ class _Connection(_ConnectionBase):
             except RequestError:
                 pass  # ignore any errors related to requests, it is a best-effort warning
         else:
-            self._server_version = ""
-        self._weaviate_version = _ServerVersion.from_string(self._server_version)
+            self._weaviate_version = _ServerVersion.from_string("")
 
     def __make_sync_client(self) -> Client:
         return Client(
@@ -679,7 +677,7 @@ class _Connection(_ConnectionBase):
         """
         Version of the weaviate instance.
         """
-        return self._server_version
+        return str(self._weaviate_version)
 
     @property
     def grpc_available(self) -> bool:

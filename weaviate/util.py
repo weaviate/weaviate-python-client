@@ -747,6 +747,9 @@ class _ServerVersion:
     def __repr__(self) -> str:
         return f"{self.major}.{self.minor}.{self.patch}"
 
+    def __str__(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
     def is_at_least(self, major: int, minor: int, patch: int) -> bool:
         return self >= _ServerVersion(major, minor, patch)
 
