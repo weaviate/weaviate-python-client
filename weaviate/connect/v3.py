@@ -3,8 +3,6 @@ Connection class definition.
 """
 from __future__ import annotations
 
-import datetime
-import os
 import socket
 import time
 from threading import Thread, Event
@@ -38,6 +36,7 @@ from weaviate.util import (
 )
 from weaviate.warnings import _Warnings
 
+from .base import _ConnectionBase, _get_proxies
 
 try:
     import grpc  # type: ignore
@@ -55,7 +54,7 @@ TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 PYPI_TIMEOUT = 0.1
 
 
-class Connection:
+class Connection(_ConnectionBase):
     """
     Connection class used to communicate to a weaviate instance.
     """
@@ -143,6 +142,7 @@ class Connection:
                 raise TypeError(
                     f"'additional_headers' must be of type dict or None. Given type: {type(additional_headers)}."
                 )
+            self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
 
@@ -261,6 +261,12 @@ class Connection:
             return f"Bearer {self._session.token['access_token']}"
 
         return ""
+
+    def get_proxies(self) -> dict:
+        return self._proxies
+
+    def get_additional_headers(self) -> Dict[str, str]:
+        return self.__additional_headers
 
     def _add_adapter_to_session(self, connection_config: ConnectionConfig) -> None:
         adapter = HTTPAdapter(
@@ -673,72 +679,3 @@ class Connection:
         res = _decode_json_response_dict(response, "Meta endpoint")
         assert res is not None
         return res
-
-
-def _get_epoch_time() -> int:
-    """
-    Get the current epoch time as an integer.
-
-    Returns
-    -------
-    int
-        Current epoch time.
-    """
-
-    dts = datetime.datetime.utcnow()
-    return round(time.mktime(dts.timetuple()) + dts.microsecond / 1e6)
-
-
-def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
-    """
-    Get proxies as dict, compatible with 'requests' library.
-    NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'
-    is ignored.
-
-    Parameters
-    ----------
-    proxies : dict, str or None
-        The proxies to use for requests. If it is a dict it should follow 'requests' library
-        format (https://docs.python-requests.org/en/stable/user/advanced/#proxies). If it is
-        a URL (str), a dict will be constructed with both 'http' and 'https' pointing to that
-        URL. If None, no proxies will be used.
-    trust_env : bool
-        If True, the proxies will be read from ENV VARs (case insensitive):
-            HTTP_PROXY/HTTPS_PROXY.
-        NOTE: It is ignored if 'proxies' is NOT None.
-
-    Returns
-    -------
-    dict
-        A dictionary with proxies, either set from 'proxies' or read from ENV VARs.
-    """
-
-    if proxies is not None:
-        if isinstance(proxies, str):
-            return {
-                "http": proxies,
-                "https": proxies,
-            }
-        if isinstance(proxies, dict):
-            return proxies
-        raise TypeError(
-            "If 'proxies' is not None, it must be of type dict or str. "
-            f"Given type: {type(proxies)}."
-        )
-
-    if not trust_env:
-        return {}
-
-    http_proxy = (os.environ.get("HTTP_PROXY"), os.environ.get("http_proxy"))
-    https_proxy = (os.environ.get("HTTPS_PROXY"), os.environ.get("https_proxy"))
-
-    if not any(http_proxy + https_proxy):
-        return {}
-
-    proxies = {}
-    if any(http_proxy):
-        proxies["http"] = http_proxy[0] if http_proxy[0] else http_proxy[1]
-    if any(https_proxy):
-        proxies["https"] = https_proxy[0] if https_proxy[0] else https_proxy[1]
-
-    return proxies

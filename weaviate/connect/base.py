@@ -167,7 +167,7 @@ class _ConnectionBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _get_additional_headers(self) -> Dict[str, str]:
+    def get_additional_headers(self) -> Dict[str, str]:
         raise NotImplementedError
 
     @abstractmethod

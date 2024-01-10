@@ -32,7 +32,7 @@ from weaviate.auth import (
     AuthClientCredentials,
 )
 from weaviate.config import ConnectionConfig
-from weaviate.connect.auth import _Auth
+from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
     _ConnectionBase,
     ConnectionParams,
@@ -204,7 +204,7 @@ class _Connection(_ConnectionBase):
 
             if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
                 _auth = _Auth(resp, auth_client_secret, self)
-                self._client = _auth.get_sync_auth_client()
+                self._client = _auth.get_auth_session()
 
                 if isinstance(auth_client_secret, AuthClientCredentials):
                     # credentials should only be saved for client credentials, otherwise use refresh token
@@ -278,7 +278,7 @@ class _Connection(_ConnectionBase):
                         # saved credentials
                         assert _auth is not None
                         assert isinstance(self._client, OAuth2Client)
-                        new_session = _auth.get_sync_auth_client()
+                        new_session = _auth.get_auth_session()
                         self._client.token = new_session.fetch_token()
                 except (HTTPError, ReadTimeout) as exc:
                     # retry again after one second, might be an unstable connection
@@ -336,7 +336,7 @@ class _Connection(_ConnectionBase):
         """
         return self._headers
 
-    def _get_additional_headers(self) -> Dict[str, str]:
+    def get_additional_headers(self) -> Dict[str, str]:
         """Returns the additional headers."""
         return self.__additional_headers
 
