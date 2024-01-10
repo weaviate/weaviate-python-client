@@ -12,7 +12,7 @@ from requests import ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
 
 from weaviate.cluster import Cluster
-from weaviate.collections.batch.grpc_objects import _BatchGRPC
+from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchRESTAsync
 from weaviate.collections.classes.batch import (
     BatchObject,

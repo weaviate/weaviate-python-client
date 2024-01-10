@@ -14,7 +14,7 @@ from typing import (
 )
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
-from weaviate.collections.batch.grpc_delete import _BatchDeleteGRPC
+from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 
 from weaviate.collections.classes.batch import (
     _BatchObject,
@@ -43,7 +43,7 @@ from weaviate.collections.classes.types import (
     _check_properties_generic,
 )
 from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.batch.grpc_objects import _BatchGRPC, _validate_props
+from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import Connection
