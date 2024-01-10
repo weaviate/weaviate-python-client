@@ -13,7 +13,6 @@ def test_manual_batching_warning_object(recwarn, weaviate_mock):
     client.batch.add_data_object({}, "ExistingClass")
     client.batch.create_objects()
 
-    print(recwarn)
     assert len(recwarn) == 1
     w = recwarn.pop()
     assert issubclass(w.category, DeprecationWarning)

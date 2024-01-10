@@ -16,11 +16,9 @@ def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer, version: str, war
     client.query.get("Class", ["Property"]).with_generate(single_prompt="something")
 
     if warning:
-        print("IN test_warning_old_weaviate IF WARNING", [w.message for w in recwarn])
         assert len(recwarn) == 1
         w = recwarn.pop()
         assert issubclass(w.category, DeprecationWarning)
         assert str(w.message).startswith("Dep003")
     else:
-        print("IN test_warning_old_weaviate ELSE", [w.message for w in recwarn])
         assert len(recwarn) == 0
