@@ -14,7 +14,7 @@ from weaviate.collections.classes.config_methods import (
 )
 from weaviate.collections.cluster import _Cluster
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
 
@@ -34,9 +34,9 @@ class _CollectionBase:
         Raises
             `requests.ConnectionError`
                 If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If weaviate reports a none OK status.
-            `weaviate.EmptyResponseException`
+            `weaviate.EmptyResponseError`
                 If the response is empty.
         """
         return [
@@ -59,7 +59,7 @@ class _CollectionsBase:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Class may not have been created properly.") from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Create class", response)
+            raise UnexpectedStatusCodeError("Create class", response)
 
         collection_name = response.json()["class"]
         assert isinstance(collection_name, str)
@@ -76,7 +76,7 @@ class _CollectionsBase:
             return True
         elif response.status_code == 404:
             return False
-        raise UnexpectedStatusCodeException("collection exists", response)
+        raise UnexpectedStatusCodeError("collection exists", response)
 
     def _export(self, name: str) -> _CollectionConfig:
         path = f"/schema/{name}"
@@ -97,7 +97,7 @@ class _CollectionsBase:
         if response.status_code == 200:
             return
 
-        UnexpectedStatusCodeException("Delete collection", response)
+        UnexpectedStatusCodeError("Delete collection", response)
 
     def _get_all(self) -> Dict[str, _CollectionConfig]:
         try:

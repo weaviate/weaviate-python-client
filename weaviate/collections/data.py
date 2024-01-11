@@ -51,8 +51,8 @@ from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
-    UnexpectedStatusCodeException,
-    ObjectAlreadyExistsException,
+    UnexpectedStatusCodeError,
+    ObjectAlreadyExistsError,
     WeaviateInvalidInputException,
 )
 from weaviate.util import (
@@ -95,10 +95,10 @@ class _Data:
             response_json = _decode_json_response_dict(response, "insert object")
             assert response_json is not None
             if "already exists" in response_json["error"][0]["message"]:
-                raise ObjectAlreadyExistsException(weaviate_obj["id"])
+                raise ObjectAlreadyExistsError(weaviate_obj["id"])
         except KeyError:
             pass
-        raise UnexpectedStatusCodeException("Creating object", response)
+        raise UnexpectedStatusCodeError("Creating object", response)
 
     def delete_by_id(self, uuid: UUID) -> bool:
         """Delete an object from the collection based on its UUID.
@@ -117,7 +117,7 @@ class _Data:
             return True  # Successfully deleted
         elif response.status_code == 404:
             return False  # did not exist
-        raise UnexpectedStatusCodeException("Delete object", response)
+        raise UnexpectedStatusCodeError("Delete object", response)
 
     @overload
     def delete_many(
@@ -153,7 +153,7 @@ class _Data:
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`:
+            `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(where, _Filters):
@@ -181,7 +181,7 @@ class _Data:
             raise RequestsConnectionError("Object was not replaced.") from conn_err
         if response.status_code == 200:
             return
-        raise UnexpectedStatusCodeException("Replacing object", response)
+        raise UnexpectedStatusCodeError("Replacing object", response)
 
     def _update(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"
@@ -195,7 +195,7 @@ class _Data:
             raise RequestsConnectionError("Object was not updated.") from conn_err
         if response.status_code == 204 or response.status_code == 200:
             return
-        raise UnexpectedStatusCodeException("Update object", response)
+        raise UnexpectedStatusCodeError("Update object", response)
 
     def _reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
@@ -211,7 +211,7 @@ class _Data:
             except RequestsConnectionError as conn_err:
                 raise RequestsConnectionError("Reference was not added.") from conn_err
             if response.status_code != 200:
-                raise UnexpectedStatusCodeException("Add property reference to object", response)
+                raise UnexpectedStatusCodeError("Add property reference to object", response)
 
     def _reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
         batch = [
@@ -241,7 +241,7 @@ class _Data:
             except RequestsConnectionError as conn_err:
                 raise RequestsConnectionError("Reference was not added.") from conn_err
             if response.status_code != 204:
-                raise UnexpectedStatusCodeException("Add property reference to object", response)
+                raise UnexpectedStatusCodeError("Add property reference to object", response)
 
     def _reference_replace(
         self, from_uuid: UUID, from_property: str, ref: WeaviateReference
@@ -258,7 +258,7 @@ class _Data:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Reference was not added.") from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Add property reference to object", response)
+            raise UnexpectedStatusCodeError("Add property reference to object", response)
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
         if self._tenant is not None:
@@ -364,8 +364,8 @@ class _DataCollection(Generic[Properties], _Data):
                         If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
-                If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateGRPCBatchError`:
+                If any unexpected error occurs during the batch operation.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
             `weaviate.exceptions.WeaviateInsertManyAllFailedError`:
@@ -418,7 +418,7 @@ class _DataCollection(Generic[Properties], _Data):
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`:
+            `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
@@ -489,7 +489,7 @@ class _DataCollection(Generic[Properties], _Data):
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`:
+            `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(to, _Reference):
@@ -514,7 +514,7 @@ class _DataCollection(Generic[Properties], _Data):
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException
+            `weaviate.UnexpectedStatusCodeError
                 If Weaviate reports a non-OK status.
         """
         return self._reference_add_many(refs)

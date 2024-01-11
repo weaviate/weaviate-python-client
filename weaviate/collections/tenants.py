@@ -5,7 +5,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 
 
 class _Tenants:
@@ -32,9 +32,9 @@ class _Tenants:
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
-            `weaviate.WeaviateInvalidInputException`
+            `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of `wvc.Tenant` objects.
         """
         if not isinstance(tenants, list) or not all(
@@ -52,9 +52,7 @@ class _Tenants:
                 f"Collection tenants may not have been added properly for {self.__name}"
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException(
-                f"Add collection tenants for {self.__name}", response
-            )
+            raise UnexpectedStatusCodeError(f"Add collection tenants for {self.__name}", response)
 
     def remove(self, tenants: List[str]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
@@ -68,9 +66,9 @@ class _Tenants:
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
-            `weaviate.WeaviateInvalidInputException`
+            `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of strings.
         """
         if not isinstance(tenants, list) or not all(isinstance(tenant, str) for tenant in tenants):
@@ -84,7 +82,7 @@ class _Tenants:
                 f"Collection tenants may not have been deleted for {self.__name}"
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException(
+            raise UnexpectedStatusCodeError(
                 f"Delete collection tenants for {self.__name}", response
             )
 
@@ -96,7 +94,7 @@ class _Tenants:
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
         path = "/schema/" + self.__name + "/tenants"
@@ -107,9 +105,7 @@ class _Tenants:
                 f"Could not get collection tenants for {self.__name}"
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException(
-                f"Get collection tenants for {self.__name}", response
-            )
+            raise UnexpectedStatusCodeError(f"Get collection tenants for {self.__name}", response)
 
         tenant_resp: List[Dict[str, Any]] = response.json()
         return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
@@ -126,9 +122,9 @@ class _Tenants:
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
-            `weaviate.WeaviateInvalidInputException`
+            `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of `wvc.Tenant` objects.
         """
         if not isinstance(tenants, list) or not all(
@@ -146,6 +142,6 @@ class _Tenants:
                 f"Collection tenants may not have been updated properly for {self.__name}"
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException(
+            raise UnexpectedStatusCodeError(
                 f"Update collection tenants for {self.__name}", response
             )

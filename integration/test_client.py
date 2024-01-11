@@ -7,6 +7,7 @@ from weaviate import WeaviateStartUpError
 import weaviate
 from weaviate import Collection
 from weaviate.collections.classes.config import Configure, _CollectionConfig
+from weaviate.exceptions import WeaviateClosedClientError
 
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
 WCS_URL = f"https://{WCS_HOST}"
@@ -20,23 +21,27 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
         connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
         skip_init_checks=False,
     )
-    yield client
+    client.connect()
+    try:
+        yield client
+    finally:
+        client.close()
 
 
 def test_fail_to_connect_to_inactive_grpc_port() -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateGrpcUnavailable):
+    with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailableError):
         weaviate.WeaviateClient(
             connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 12345),
             skip_init_checks=False,
-        )
+        ).connect()
 
 
 def test_fail_to_connect_to_unspecified_grpc_port() -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateGrpcUnavailable):
+    with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailableError):
         weaviate.WeaviateClient(
             connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080"),
             skip_init_checks=False,
-        )
+        ).connect()
 
 
 def test_fail_to_connect_with_bad_wcs_url() -> None:
@@ -44,7 +49,7 @@ def test_fail_to_connect_with_bad_wcs_url() -> None:
         weaviate.connect_to_wcs(
             WCS_URL + "bad",
             auth_credentials=WCS_CREDS,
-        )
+        ).connect()
 
 
 @pytest.mark.parametrize(
@@ -111,7 +116,7 @@ def test_fail_to_connect_with_bad_custom_wcs_setup_rest(bad_config: dict) -> Non
     ],
 )
 def test_fail_to_connect_with_bad_custom_wcs_setup_grpc(bad_config: dict) -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateGrpcUnavailable):
+    with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailableError):
         weaviate.connect_to_custom(**bad_config, auth_credentials=WCS_CREDS)
 
 
@@ -235,3 +240,31 @@ def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) ->
     assert len(nodes) == 1
     assert len(nodes[0].shards) == 1
     assert nodes[0].shards[0].collection == collection.name
+
+
+def test_client_connect_and_close() -> None:
+    client = weaviate.WeaviateClient(
+        connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
+        skip_init_checks=False,
+    )
+    client.connect()
+    assert client.is_connected()
+    client.get_meta()
+
+    client.close()
+    assert not client.is_connected()
+    with pytest.raises(WeaviateClosedClientError):
+        client.get_meta()
+
+
+def test_client_as_context_manager() -> None:
+    with weaviate.WeaviateClient(
+        connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
+        skip_init_checks=False,
+    ) as client:
+        assert client.is_connected()
+        client.get_meta()
+
+    assert not client.is_connected()
+    with pytest.raises(WeaviateClosedClientError):
+        client.get_meta()

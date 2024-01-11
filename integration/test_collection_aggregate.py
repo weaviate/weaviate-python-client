@@ -13,7 +13,7 @@ from weaviate.collections.classes.aggregate import (
     Metrics,
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
-from weaviate.exceptions import WeaviateInvalidInputException, WeaviateQueryException
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateGQLQueryError
 from weaviate.util import file_encoder_b64
 
 
@@ -44,7 +44,7 @@ def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
 
 def test_wrong_aggregation(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
-    with pytest.raises(WeaviateQueryException) as e:
+    with pytest.raises(WeaviateGQLQueryError) as e:
         collection.aggregate.over_all(total_count=False)
     assert (
         e.value.message
@@ -110,7 +110,7 @@ def test_near_object_missing_param(collection_factory: CollectionFactory) -> Non
     text_2 = "nothing like the other one at all, not even a little bit"
     uuid = collection.data.insert({"text": text_1})
     collection.data.insert({"text": text_2})
-    with pytest.raises(WeaviateInvalidInputException) as e:
+    with pytest.raises(WeaviateInvalidInputError) as e:
         collection.aggregate.near_object(
             uuid,
             return_metrics=[
@@ -184,7 +184,7 @@ def test_near_vector_missing_param(collection_factory: CollectionFactory) -> Non
     uuid_ = collection.data.insert({"text": "some text"})
     obj = collection.query.fetch_object_by_id(uuid_, include_vector=True)
     assert obj.vector is not None
-    with pytest.raises(WeaviateInvalidInputException) as e:
+    with pytest.raises(WeaviateInvalidInputError) as e:
         collection.aggregate.near_vector(
             obj.vector,
             return_metrics=[
@@ -255,7 +255,7 @@ def test_near_text_missing_param(collection_factory: CollectionFactory) -> None:
     )
     text_1 = "some text"
     collection.data.insert({"text": text_1})
-    with pytest.raises(WeaviateInvalidInputException) as e:
+    with pytest.raises(WeaviateInvalidInputError) as e:
         collection.aggregate.near_text(
             text_1,
             return_metrics=[
@@ -301,7 +301,7 @@ def test_near_image_missing_param(collection_factory: CollectionFactory) -> None
     )
     img_path = pathlib.Path("integration/weaviate-logo.png")
     collection.data.insert({"image": file_encoder_b64(img_path), "rating": 9})
-    with pytest.raises(WeaviateInvalidInputException) as e:
+    with pytest.raises(WeaviateInvalidInputError) as e:
         collection.aggregate.near_image(
             img_path,
             return_metrics=[

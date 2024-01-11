@@ -82,7 +82,7 @@ class _Collections(_CollectionsBase):
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
             `pydantic.ValidationError`
                 If the configuration object is invalid.
@@ -157,7 +157,7 @@ class _Collections(_CollectionsBase):
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(name, str) and (
@@ -180,7 +180,7 @@ class _Collections(_CollectionsBase):
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
         for name in self.list_all().keys():
@@ -199,7 +199,7 @@ class _Collections(_CollectionsBase):
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(name, str):
@@ -219,7 +219,7 @@ class _Collections(_CollectionsBase):
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
         return self._export(_capitalize_first_letter(name))
@@ -248,7 +248,7 @@ class _Collections(_CollectionsBase):
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(simple, bool):
@@ -270,7 +270,7 @@ class _Collections(_CollectionsBase):
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
         name = super()._create(config)
@@ -286,7 +286,7 @@ class _Collections(_CollectionsBase):
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
         return self.create_from_dict(config._to_dict())

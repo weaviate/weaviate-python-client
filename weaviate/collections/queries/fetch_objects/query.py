@@ -65,7 +65,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
             A `_QueryReturn` object that includes the searched objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
         """
         res = self._query().get(
