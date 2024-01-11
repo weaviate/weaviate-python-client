@@ -89,7 +89,7 @@ class _Backup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             One of the arguments have a wrong type.
@@ -214,7 +214,7 @@ class _Backup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
         (
@@ -357,7 +357,7 @@ class Backup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             One of the arguments have a wrong type.
@@ -492,7 +492,7 @@ class Backup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

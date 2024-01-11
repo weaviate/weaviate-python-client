@@ -56,7 +56,7 @@ class Property:
             If weaviate reports a none OK status.
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.SchemaValidationExceptions
+        weaviate.SchemaValidationException
             If the 'schema_property' is not valid.
         """
 
