@@ -1,9 +1,9 @@
 from typing import List, Literal, Optional, Union, overload
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
+from httpx import ConnectError
 
 from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     EmptyResponse,
 )
@@ -11,7 +11,7 @@ from ..util import _capitalize_first_letter, _decode_json_response_dict
 
 
 class _Cluster:
-    def __init__(self, connection: Connection):
+    def __init__(self, connection: ConnectionV4):
         self._connection = connection
 
     @overload
@@ -74,10 +74,8 @@ class _Cluster:
 
         try:
             response = self._connection.get(path=path)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Get nodes status failed due to connection error"
-            ) from conn_err
+        except ConnectError as conn_err:
+            raise ConnectError("Get nodes status failed due to connection error") from conn_err
 
         response_typed = _decode_json_response_dict(response, "Nodes status")
         assert response_typed is not None

@@ -1,14 +1,14 @@
 from typing import Optional, Tuple, List
 
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.proto.v1 import base_pb2
 
 
 class _BaseGRPC:
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         is_weaviate_version_123: bool,
     ):

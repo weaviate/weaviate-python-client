@@ -16,7 +16,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
 from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateGRPCBatchError,
     WeaviateInsertInvalidPropertyError,
@@ -33,7 +33,7 @@ class _BatchGRPC(_BaseGRPC):
     and abstractions so as not to couple to strongly to either use-case.
     """
 
-    def __init__(self, connection: Connection, consistency_level: Optional[ConsistencyLevel]):
+    def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
         is_weaviate_version_123 = connection._weaviate_version.is_at_least(1, 23, 0)
 
         super().__init__(connection, consistency_level, is_weaviate_version_123)
@@ -209,9 +209,9 @@ class _BatchGRPC(_BaseGRPC):
     async def __send_batch_async(self, batch: List[batch_pb2.BatchObject]) -> Dict[int, str]:
         metadata = self._get_metadata()
         try:
-            assert self._connection.grpc_stub_async is not None
+            assert self._connection.agrpc_stub is not None
             res: batch_pb2.BatchObjectsReply
-            res = await self._connection.grpc_stub_async.BatchObjects(
+            res = await self._connection.agrpc_stub.BatchObjects(
                 batch_pb2.BatchObjectsRequest(
                     objects=batch,
                     consistency_level=self._consistency_level,
