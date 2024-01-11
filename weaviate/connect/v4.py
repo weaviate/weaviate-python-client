@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import time
 
 from copy import copy
@@ -185,7 +184,7 @@ class _Connection(_ConnectionBase):
 
     def __make_sync_client(self) -> Client:
         return Client(
-            headers=self._get_request_header(),
+            headers=self._headers,
             timeout=Timeout(None, connect=self.timeout_config[0], read=self.timeout_config[1]),
             proxies=self._proxies,
             mounts=self.__make_mounts("sync"),
@@ -193,7 +192,7 @@ class _Connection(_ConnectionBase):
 
     def __make_async_client(self) -> AsyncClient:
         return AsyncClient(
-            headers=self._get_request_header(),
+            headers=self._headers,
             timeout=Timeout(None, connect=self.timeout_config[0], read=self.timeout_config[1]),
             proxies=self._proxies,
             mounts=self.__make_mounts("async"),
@@ -359,17 +358,6 @@ class _Connection(_ConnectionBase):
             self._shutdown_background_event.set()
         if hasattr(self, "_client"):
             self._client.close()
-
-    def _get_request_header(self) -> dict:
-        """
-        Returns the correct headers for a request.
-
-        Returns
-        -------
-        dict
-            Request header as a dict.
-        """
-        return self._headers
 
     def __get_headers_for_async(self) -> Dict[str, str]:
         if "authorization" in self._headers:
@@ -687,7 +675,7 @@ class _Connection(_ConnectionBase):
         """
 
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
-        with Client(headers=self._get_request_header()) as client:
+        with Client(headers=self._headers) as client:
             for _i in range(startup_period):
                 try:
                     res: Response = client.get(ready_url)
@@ -800,17 +788,3 @@ class ConnectionV4(_Connection):
                 "Did you forget to call client.connect() before using the client?"
             )
         return self._grpc_stub_async
-
-
-def _get_epoch_time() -> int:
-    """
-    Get the current epoch time as an integer.
-
-    Returns
-    -------
-    int
-        Current epoch time.
-    """
-
-    dts = datetime.datetime.utcnow()
-    return round(time.mktime(dts.timetuple()) + dts.microsecond / 1e6)

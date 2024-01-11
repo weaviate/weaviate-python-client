@@ -205,7 +205,7 @@ class Connection(_ConnectionBase):
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         response = requests.get(
             oidc_url,
-            headers=self._get_request_header(),
+            headers=self._headers,
             timeout=self._timeout_config,
             proxies=self._proxies,
         )
@@ -334,17 +334,6 @@ class Connection(_ConnectionBase):
         if hasattr(self, "_session"):
             self._session.close()
 
-    def _get_request_header(self) -> dict:
-        """
-        Returns the correct headers for a request.
-
-        Returns
-        -------
-        dict
-            Request header as a dict.
-        """
-        return self._headers
-
     def delete(
         self,
         path: str,
@@ -381,7 +370,7 @@ class Connection(_ConnectionBase):
         return self._session.delete(
             url=request_url,
             json=weaviate_object,
-            headers=self._get_request_header(),
+            headers=self._headers,
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
@@ -422,7 +411,7 @@ class Connection(_ConnectionBase):
         return self._session.patch(
             url=request_url,
             json=weaviate_object,
-            headers=self._get_request_header(),
+            headers=self._headers,
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
@@ -465,7 +454,7 @@ class Connection(_ConnectionBase):
         return self._session.post(
             url=request_url,
             json=weaviate_object,
-            headers=self._get_request_header(),
+            headers=self._headers,
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
@@ -506,7 +495,7 @@ class Connection(_ConnectionBase):
         return self._session.put(
             url=request_url,
             json=weaviate_object,
-            headers=self._get_request_header(),
+            headers=self._headers,
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
@@ -548,7 +537,7 @@ class Connection(_ConnectionBase):
 
         return self._session.get(
             url=request_url,
-            headers=self._get_request_header(),
+            headers=self._headers,
             timeout=self._timeout_config,
             params=params,
             proxies=self._proxies,
@@ -586,7 +575,7 @@ class Connection(_ConnectionBase):
 
         return self._session.head(
             url=request_url,
-            headers=self._get_request_header(),
+            headers=self._headers,
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
@@ -644,13 +633,13 @@ class Connection(_ConnectionBase):
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
         for _i in range(startup_period):
             try:
-                requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
+                requests.get(ready_url, headers=self._headers).raise_for_status()
                 return
             except (RequestsHTTPError, RequestsConnectionError):
                 time.sleep(1)
 
         try:
-            requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
+            requests.get(ready_url, headers=self._headers).raise_for_status()
             return
         except (RequestsHTTPError, RequestsConnectionError) as error:
             raise WeaviateStartUpError(
