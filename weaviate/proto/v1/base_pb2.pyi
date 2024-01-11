@@ -260,18 +260,18 @@ class FilterReferenceSingleTarget(_message.Message):
     ) -> None: ...
 
 class FilterReferenceMultiTarget(_message.Message):
-    __slots__ = ["on", "target", "string_target_collection"]
+    __slots__ = ["on", "target", "target_collection"]
     ON_FIELD_NUMBER: _ClassVar[int]
     TARGET_FIELD_NUMBER: _ClassVar[int]
-    STRING_TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
     on: str
     target: FilterTarget
-    string_target_collection: str
+    target_collection: str
     def __init__(
         self,
         on: _Optional[str] = ...,
         target: _Optional[_Union[FilterTarget, _Mapping]] = ...,
-        string_target_collection: _Optional[str] = ...,
+        target_collection: _Optional[str] = ...,
     ) -> None: ...
 
 class FilterTarget(_message.Message):

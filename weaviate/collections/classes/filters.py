@@ -102,7 +102,7 @@ FilterValues = Union[
 ]
 
 
-class _FilterValue(_WeaviateInput, _Filters):
+class _FilterValue(_Filters, _WeaviateInput):
     path: Union[str, List[str]]
     value: FilterValues
     operator: _Operator
@@ -532,7 +532,7 @@ _TargetRefs = Union[_SingleTargetRef, _MultiTargetRef]
 _FilterTargets = Union[_SingleTargetRef, _MultiTargetRef, str]
 
 
-class _FilterValue2(_WeaviateInput, _Filters):
+class _FilterValue2(_Filters, _WeaviateInput):
     value: FilterValues
     operator: _Operator
     target: _FilterTargets
@@ -647,6 +647,123 @@ class _FilterByProperty(_FilterBase):
         )
 
 
+class _FilterByTime(_FilterBase):
+    def contains_any(self, dates: List[datetime]) -> _FilterValue2:
+        """Filter for objects with the given time.
+
+        Arguments:
+            `dates`
+                List of dates to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=dates,
+            operator=_Operator.CONTAINS_ANY,
+        )
+
+    def equal(self, date: datetime) -> _FilterValue2:
+        """Filter on whether the creation time is equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=date,
+            operator=_Operator.EQUAL,
+        )
+
+    def not_equal(self, date: datetime) -> _FilterValue2:
+        """Filter on whether the creation time is not equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=date,
+            operator=_Operator.NOT_EQUAL,
+        )
+
+    def less_than(self, date: datetime) -> _FilterValue2:
+        """Filter on whether the creation time is less than the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=date,
+            operator=_Operator.LESS_THAN,
+        )
+
+    def less_or_equal(self, date: datetime) -> _FilterValue2:
+        """Filter on whether the creation time is less than or equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=date,
+            operator=_Operator.LESS_THAN_EQUAL,
+        )
+
+    def greater_than(self, date: datetime) -> _FilterValue2:
+        """Filter on whether the creation time is greater than the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=date,
+            operator=_Operator.GREATER_THAN,
+        )
+
+    def greater_or_equal(self, date: datetime) -> _FilterValue2:
+        """Filter on whether the creation time is greater than or equal to the given time.
+
+        Arguments:
+            `date`
+                date to filter on.
+            `on_reference_path`
+                If the filter is on a cross-ref property, the path to the property to be filtered on, example: on_reference_path=["ref_property", "target_collection"].
+        """
+        return _FilterValue2(
+            target=self._target_path(), value=date, operator=_Operator.GREATER_THAN_EQUAL
+        )
+
+
+class _FilterByUpdateTime(_FilterByTime):
+    def __init__(self, target: Optional[_TargetRefs] = None) -> None:
+        self._target = target
+        self._property = "_lastUpdateTimeUnix"
+
+
+class _FilterByCreationTime(_FilterByTime):
+    def __init__(self, target: Optional[_TargetRefs] = None) -> None:
+        self._target = target
+        self._property = "_creationTimeUnix"
+
+
 class _FilterById(_FilterBase):
     def __init__(self, target: Optional[_TargetRefs] = None) -> None:
         self._target = target
@@ -701,6 +818,14 @@ class _FilterWithInit:
         """Define a filter based on the uuid to be used when querying and deleting from a collection."""
         return _FilterById(self.__target)
 
+    def by_creation_time(self) -> _FilterByCreationTime:
+        """Define a filter based on the creation time to be used when querying and deleting from a collection."""
+        return _FilterByCreationTime(self.__target)
+
+    def by_update_time(self) -> _FilterByUpdateTime:
+        """Define a filter based on the update time to be used when querying and deleting from a collection."""
+        return _FilterByUpdateTime(self.__target)
+
     def by_property(self, prop: str, length: bool = False) -> _FilterByProperty:
         """Define a filter based on a property to be used when querying and deleting from a collection."""
         return _FilterByProperty(prop=prop, length=length, target=self.__target)
@@ -725,6 +850,16 @@ class Filter(_FilterOld):
     def by_id() -> _FilterById:
         """Define a filter based on the uuid to be used when querying and deleting from a collection."""
         return _FilterById(None)
+
+    @staticmethod
+    def by_creation_time() -> _FilterByCreationTime:
+        """Define a filter based on the creation time to be used when querying and deleting from a collection."""
+        return _FilterByCreationTime(target=None)
+
+    @staticmethod
+    def by_update_time() -> _FilterByUpdateTime:
+        """Define a filter based on the update time to be used when querying and deleting from a collection."""
+        return _FilterByUpdateTime(target=None)
 
     @staticmethod
     def by_property(prop: str, length: bool = False) -> _FilterByProperty:

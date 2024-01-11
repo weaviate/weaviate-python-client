@@ -95,7 +95,9 @@ class _FilterToGRPC:
 
             return base_pb2.FilterTarget(
                 multi_target=base_pb2.FilterReferenceMultiTarget(
-                    on=target.link_on, target=_FilterToGRPC.__to_target(target.target)
+                    on=target.link_on,
+                    target=_FilterToGRPC.__to_target(target.target),
+                    target_collection=target.target_collection,
                 )
             )
 

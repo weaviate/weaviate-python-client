@@ -3,6 +3,7 @@ import uuid as uuid_package
 from typing import (
     Dict,
     Any,
+    Literal,
     Optional,
     List,
     Tuple,
@@ -11,12 +12,14 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 
 from weaviate.collections.classes.batch import (
+    _BatchDeleteResultNoObjects,
     _BatchObject,
     BatchObjectReturn,
     _BatchReference,
@@ -115,9 +118,27 @@ class _Data:
             return False  # did not exist
         raise UnexpectedStatusCodeException("Delete object", response)
 
+    @overload
     def delete_many(
-        self, where: _Filters, verbose: bool = False, dry_run: bool = False
+        self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
+    ) -> _BatchDeleteResultNoObjects:
+        ...
+
+    @overload
+    def delete_many(
+        self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
     ) -> _BatchDeleteResult:
+        ...
+
+    @overload
+    def delete_many(
+        self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
+    ) -> Union[_BatchDeleteResult, _BatchDeleteResultNoObjects]:
+        ...
+
+    def delete_many(
+        self, where: _Filters, verbose: bool = False, *, dry_run: bool = False
+    ) -> Union[_BatchDeleteResult, _BatchDeleteResultNoObjects]:
         """Delete multiple objects from the collection based on a filter.
 
         Arguments:

@@ -1,8 +1,9 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.batch import (
+    _BatchDeleteResultNoObjects,
     ErrorReference,
     _BatchDeleteResult,
     _BatchReference,
@@ -25,7 +26,7 @@ class _BatchREST:
 
     def delete(
         self, collection: str, where: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
-    ) -> _BatchDeleteResult:
+    ) -> Union[_BatchDeleteResult, _BatchDeleteResultNoObjects]:
         payload: Dict[str, Any] = {
             "match": {
                 "class": collection,
@@ -53,12 +54,19 @@ class _BatchREST:
             raise RequestsConnectionError("Batch delete was not successful.") from conn_err
         res = _decode_json_response_dict(response, "Delete in batch")
         assert res is not None
-        return _BatchDeleteResult(
-            failed=res["results"]["failed"],
-            matches=res["results"]["matches"],
-            objects=res["results"]["objects"],
-            successful=res["results"]["successful"],
-        )
+        if verbose:
+            return _BatchDeleteResult(
+                failed=res["results"]["failed"],
+                matches=res["results"]["matches"],
+                objects=res["results"]["objects"],
+                successful=res["results"]["successful"],
+            )
+        else:
+            return _BatchDeleteResultNoObjects(
+                failed=res["results"]["failed"],
+                matches=res["results"]["matches"],
+                successful=res["results"]["successful"],
+            )
 
     def references(self, references: List[_BatchReference]) -> BatchReferenceReturn:
         params: Dict[str, str] = {}

@@ -1,6 +1,6 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Sequence, Union, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -247,5 +247,13 @@ class _BatchDeleteObjects:
 class _BatchDeleteResult:
     failed: int
     matches: int
-    objects: Optional[List[_BatchDeleteObjects]]
+    objects: List[_BatchDeleteObjects]
     successful: int
+
+
+@dataclass
+class _BatchDeleteResultNoObjects:
+    failed: int
+    matches: int
+    successful: int
+    objects: Literal[None] = None

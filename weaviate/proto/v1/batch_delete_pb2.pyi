@@ -47,17 +47,17 @@ class BatchDeleteReply(_message.Message):
     failed: int
     matches: int
     successful: int
-    objects: _containers.RepeatedCompositeFieldContainer[Object]
+    objects: _containers.RepeatedCompositeFieldContainer[BatchDeleteObject]
     def __init__(
         self,
         took: _Optional[float] = ...,
         failed: _Optional[int] = ...,
         matches: _Optional[int] = ...,
         successful: _Optional[int] = ...,
-        objects: _Optional[_Iterable[_Union[Object, _Mapping]]] = ...,
+        objects: _Optional[_Iterable[_Union[BatchDeleteObject, _Mapping]]] = ...,
     ) -> None: ...
 
-class Object(_message.Message):
+class BatchDeleteObject(_message.Message):
     __slots__ = ["uuid", "successful", "error"]
     UUID_FIELD_NUMBER: _ClassVar[int]
     SUCCESSFUL_FIELD_NUMBER: _ClassVar[int]

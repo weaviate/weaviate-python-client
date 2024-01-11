@@ -10,6 +10,7 @@ from weaviate.collections.classes.config import (
     Property,
     DataType,
     ReferenceProperty,
+    ReferencePropertyMultiTarget,
     Tokenization,
 )
 from weaviate.collections.classes.data import DataObject
@@ -19,6 +20,8 @@ from weaviate.collections.classes.filters import (
     FilterMetadata,
 )
 from weaviate.collections.classes.internal import Reference
+from weaviate.collections.classes.tenants import Tenant
+from weaviate.exceptions import WeaviateQueryException
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -33,13 +36,15 @@ UUID3 = uuid.uuid4()
 def test_verbosity(collection_factory: CollectionFactory, verbose: bool) -> None:
     collection = collection_factory(vectorizer_config=Configure.Vectorizer.none())
 
-    if not collection._connection._weaviate_version.is_at_least(1, minor=23, patch=2):
+    if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
         pytest.skip("This test requires weaviate 1.23.3 or higher")
 
     uuid1 = collection.data.insert(properties={})
     uuid2 = collection.data.insert(properties={})
 
-    ret = collection.data.delete_many(where=Filter.by_id().equal(uuid1), verbose=verbose)
+    ret = collection.data.delete_many(
+        where=Filter.by_id().equal(uuid1), verbose=verbose, dry_run=False
+    )
 
     assert ret.failed == 0
     assert ret.matches == 1
@@ -56,6 +61,30 @@ def test_verbosity(collection_factory: CollectionFactory, verbose: bool) -> None
 
     assert len(collection) == 1
     assert collection.query.fetch_object_by_id(uuid=uuid2) is not None
+
+
+def test_batch_delete_with_tenant(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
+
+    uuid1 = collection.with_tenant("tenant1").data.insert(properties={})
+    uuid2 = collection.with_tenant("tenant2").data.insert(properties={})
+
+    with pytest.raises(WeaviateQueryException):
+        collection.data.delete_many(where=Filter.by_id().contains_any([uuid1, uuid2]))
+
+    ret = collection.with_tenant("tenant1").data.delete_many(
+        where=Filter.by_id().contains_any([uuid1, uuid2])
+    )
+    assert ret.failed == 0
+    assert ret.matches == 1
+    assert ret.successful == 1
+
+    assert len(collection.with_tenant("tenant1")) == 0
+    assert len(collection.with_tenant("tenant2")) == 1
 
 
 @pytest.mark.parametrize("dry_run", [True, False])
@@ -84,7 +113,8 @@ def test_dry_run(collection_factory: CollectionFactory, dry_run: bool) -> None:
     assert collection.query.fetch_object_by_id(uuid=uuid2) is not None
 
 
-def test_delete_by_time_metadata(collection_factory: CollectionFactory) -> None:
+@pytest.mark.parametrize("new_filter", [True, False])
+def test_delete_by_time_metadata(collection_factory: CollectionFactory, new_filter: bool) -> None:
     collection = collection_factory(
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
         vectorizer_config=Configure.Vectorizer.none(),
@@ -95,9 +125,17 @@ def test_delete_by_time_metadata(collection_factory: CollectionFactory) -> None:
 
     obj1 = collection.query.fetch_object_by_id(uuid=uuid1)
 
-    collection.data.delete_many(
-        where=FilterMetadata.ByCreationTime.less_or_equal(obj1.metadata.creation_time)
-    )
+    if not new_filter:
+        collection.data.delete_many(
+            where=FilterMetadata.ByCreationTime.less_or_equal(obj1.metadata.creation_time)
+        )
+    else:
+        if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
+            pytest.skip("This test requires weaviate 1.23.3 or higher")
+
+        collection.data.delete_many(
+            where=Filter.by_creation_time().less_or_equal(obj1.metadata.creation_time)
+        )
 
     assert len(collection) == 1
     assert collection.query.fetch_object_by_id(uuid=uuid2) is not None
@@ -519,6 +557,8 @@ def test_delete_many_simple(
 
 def test_batch_delete_with_refs(collection_factory: CollectionFactory) -> None:
     to = collection_factory(name="To")
+    if to._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
+        pytest.skip("This test requires weaviate 1.23.3 or higher")
 
     uuid_to1 = to.data.insert(properties={})
     uuid_to2 = to.data.insert(properties={})
@@ -526,11 +566,87 @@ def test_batch_delete_with_refs(collection_factory: CollectionFactory) -> None:
     source = collection_factory(
         name="source", references=[ReferenceProperty(name="ref", target_collection=to.name)]
     )
-    source.config.add_reference(ReferenceProperty(name="ref_self", target_collection=source.name))
+    source.config.add_reference(
+        ReferencePropertyMultiTarget(name="ref_self", target_collections=[source.name, to.name])
+    )
 
     uuid_source1 = source.data.insert(properties={})
     uuid_source2 = source.data.insert(properties={})
     source.data.reference_add(uuid_source1, from_property="ref", to=Reference.to(uuid_to1))
     source.data.reference_add(uuid_source2, "ref", to=Reference.to(uuid_to2))
-    source.data.reference_add(uuid_source1, from_property="ref_self", to=Reference.to(uuid_source2))
-    source.data.reference_add(uuid_source2, "ref_self", to=Reference.to(uuid_source1))
+    source.data.reference_add(
+        uuid_source1,
+        from_property="ref_self",
+        to=Reference.to_multi_target(uuid_source2, target_collection=source.name),
+    )
+    source.data.reference_add(
+        uuid_source2,
+        "ref_self",
+        to=Reference.to_multi_target(uuid_source1, target_collection=source.name),
+    )
+
+    ret = source.data.delete_many(
+        where=Filter.link_on_multi("ref_self", target_collection=source.name)
+        .link_on("ref")
+        .by_id()
+        .equal(uuid_to1),
+        verbose=True,
+    )
+    assert ret.objects[0].uuid == uuid_source2
+
+
+@pytest.mark.parametrize("update_or_creation", [True, False])
+def test_delete_by_time_metadata_with_ref(
+    collection_factory: CollectionFactory, update_or_creation: bool
+) -> None:
+    to = collection_factory(
+        name="To", inverted_index_config=Configure.inverted_index(index_timestamps=True)
+    )
+    if to._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
+        pytest.skip("This test requires weaviate 1.23.3 or higher")
+
+    uuid_to1 = to.data.insert(properties={})
+    uuid_to2 = to.data.insert(properties={})
+
+    source = collection_factory(
+        name="source", references=[ReferenceProperty(name="ref", target_collection=to.name)]
+    )
+    source.config.add_reference(
+        ReferencePropertyMultiTarget(name="ref_self", target_collections=[source.name, to.name])
+    )
+
+    uuid_source1 = source.data.insert(properties={})
+    uuid_source2 = source.data.insert(properties={})
+    source.data.reference_add(uuid_source1, from_property="ref", to=Reference.to(uuid_to1))
+    source.data.reference_add(uuid_source2, "ref", to=Reference.to(uuid_to2))
+    source.data.reference_add(
+        uuid_source1,
+        from_property="ref_self",
+        to=Reference.to_multi_target(uuid_source2, target_collection=source.name),
+    )
+    source.data.reference_add(
+        uuid_source2,
+        "ref_self",
+        to=Reference.to_multi_target(uuid_source1, target_collection=source.name),
+    )
+
+    obj1 = to.query.fetch_object_by_id(uuid=uuid_to1)
+
+    if update_or_creation:
+        source.data.delete_many(
+            where=Filter.link_on_multi("ref_self", target_collection=source.name)
+            .link_on("ref")
+            .by_creation_time()
+            .less_or_equal(obj1.metadata.creation_time)
+        )
+    else:
+        source.data.delete_many(
+            where=Filter.link_on_multi("ref_self", target_collection=source.name)
+            .link_on(link_on="ref")
+            .by_update_time()
+            .less_or_equal(obj1.metadata.creation_time)
+        )
+
+    assert len(source) == 1
+    assert source.query.fetch_object_by_id(uuid=uuid_source1) is not None
+    assert source.query.fetch_object_by_id(uuid=uuid_source2) is None

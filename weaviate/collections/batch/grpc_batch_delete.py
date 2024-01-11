@@ -1,9 +1,13 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import grpc  # type: ignore
 
 
-from weaviate.collections.classes.batch import _BatchDeleteObjects, _BatchDeleteResult
+from weaviate.collections.classes.batch import (
+    _BatchDeleteObjects,
+    _BatchDeleteResult,
+    _BatchDeleteResultNoObjects,
+)
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
@@ -26,7 +30,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
 
     def batch_delete(
         self, name: str, filters: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
-    ) -> _BatchDeleteResult:
+    ) -> Union[_BatchDeleteResult, _BatchDeleteResultNoObjects]:
         metadata = self._get_metadata()
         try:
             assert self._connection.grpc_stub is not None
@@ -44,7 +48,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
             )
 
             if verbose:
-                objects: Optional[List[_BatchDeleteObjects]] = [
+                objects: List[_BatchDeleteObjects] = [
                     _BatchDeleteObjects(
                         uuid=_WeaviateUUIDInt(int.from_bytes(obj.uuid, byteorder="big")),
                         successful=obj.successful,
@@ -52,12 +56,16 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     )
                     for obj in res.objects
                 ]
+                return _BatchDeleteResult(
+                    failed=res.failed,
+                    successful=res.successful,
+                    matches=res.matches,
+                    objects=objects,
+                )
             else:
-                objects = None
-
-            return _BatchDeleteResult(
-                failed=res.failed, successful=res.successful, matches=res.matches, objects=objects
-            )
+                return _BatchDeleteResultNoObjects(
+                    failed=res.failed, successful=res.successful, matches=res.matches
+                )
 
         except grpc.RpcError as e:
             raise WeaviateQueryException(e.details())
