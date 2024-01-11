@@ -708,3 +708,48 @@ def test_object_without_references(collection_factory: CollectionFactory) -> Non
     )
     assert "ref_full" in obj2.references and "ref_partial" in obj2.references
     assert obj2.collection == source.name
+
+
+def test_ref_case_sensitivity(collection_factory: CollectionFactory) -> None:
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
+
+    source = collection_factory(
+        name="From",
+        references=[
+            ReferenceProperty(name="ref", target_collection=to.name),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    # added as upper-case UUID
+    uuid_upper_str = "4E5CD755-4F43-44C5-B23C-0C7D6F6C21E6"
+    to.data.insert(uuid=uuid_upper_str, properties={})
+
+    # adding a ref as lower-case UUID should work
+    from1 = source.data.insert(
+        properties={}, references={"ref": Reference.to(uuids=uuid_upper_str.lower())}
+    )
+
+    # try to add as upper-case UUID via different methods
+    from2 = source.data.insert(
+        properties={}, references={"ref": Reference.to(uuids=uuid_upper_str)}
+    )
+    from3 = source.data.insert(properties={})
+    source.data.reference_add(
+        from_uuid=from3, from_property="ref", to=Reference.to(uuids=uuid_upper_str)
+    )
+
+    from4 = source.data.insert(properties={})
+    source.data.reference_add_many(
+        [DataReference(from_uuid=from4, from_property="ref", to_uuid=uuid_upper_str)]
+    )
+
+    from5 = source.data.insert_many(
+        [DataObject(properties={}, references={"ref": Reference.to(uuids=uuid_upper_str)})]
+    ).uuids[0]
+
+    for uid in [from1, from2, from3, from4, from5]:
+        obj = source.query.fetch_object_by_id(
+            uid, return_references=[QueryReference(link_on="ref")]
+        )
+        assert "ref" in obj.references
