@@ -4,7 +4,7 @@ import pytest
 from pytest_httpserver import HTTPServer, HeaderValueMatcher
 from werkzeug.wrappers import Response
 
-from weaviate.connect.connection import ConnectionParams, ProtocolParams
+from weaviate.connect.base import ConnectionParams, ProtocolParams
 
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536

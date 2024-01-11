@@ -3,13 +3,13 @@ from weaviate.backup.backup import (
     _BackupStatusReturn,
     BackupStorage,
 )
-from weaviate.connect.connection import Connection
+from weaviate.connect import ConnectionV4
 
 
 class _CollectionBackup:
     """Backup functionatility for this collection."""
 
-    def __init__(self, connection: Connection, name: str):
+    def __init__(self, connection: ConnectionV4, name: str):
         self._connection = connection
         self._name = name
         self._backup = _Backup(connection)

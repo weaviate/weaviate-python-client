@@ -2,9 +2,9 @@
 GraphQL `Aggregate` command.
 """
 import json
-from typing import List, Optional
+from typing import List, Optional, Union
 
-from weaviate.connect import Connection
+from weaviate.connect import Connection, ConnectionV4
 from weaviate.util import (
     _capitalize_first_letter,
     file_encoder_b64,
@@ -31,7 +31,7 @@ class AggregateBuilder(GraphQL):
     AggregateBuilder class used to aggregate Weaviate objects.
     """
 
-    def __init__(self, class_name: str, connection: Connection):
+    def __init__(self, class_name: str, connection: Union[Connection, ConnectionV4]):
         """
         Initialize a AggregateBuilder class instance.
 

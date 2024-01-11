@@ -17,7 +17,7 @@ from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
 
 if TYPE_CHECKING:
-    from .connection import Connection
+    from .base import _ConnectionBase
 
 AUTH_DEFAULT_TIMEOUT = 5
 OIDC_CONFIG = Dict[str, Union[str, List[str]]]
@@ -28,10 +28,10 @@ class _Auth:
         self,
         oidc_config: OIDC_CONFIG,
         credentials: AuthCredentials,
-        connection: Connection,
+        connection: _ConnectionBase,
     ) -> None:
         self._credentials: AuthCredentials = credentials
-        self._connection: Connection = connection
+        self._connection = connection
         config_url = oidc_config["href"]
         client_id = oidc_config["clientId"]
         assert isinstance(config_url, str) and isinstance(client_id, str)
@@ -65,7 +65,9 @@ class _Auth:
                 )
 
     def _get_token_endpoint(self) -> str:
-        response_auth = requests.get(self._open_id_config_url, proxies=self._connection.proxies)
+        response_auth = requests.get(
+            self._open_id_config_url, proxies=self._connection.get_proxies()
+        )
         response_auth_json = _decode_json_response_dict(response_auth, "Get token endpoint")
         assert response_auth_json is not None
         token_endpoint = response_auth_json["token_endpoint"]

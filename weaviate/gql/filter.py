@@ -11,7 +11,7 @@ from typing import Any, Tuple, Union
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.connect import Connection
+from weaviate.connect import Connection, ConnectionV4
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
 from weaviate.util import get_vector, _sanitize_str, _decode_json_response_dict
 
@@ -75,7 +75,7 @@ class GraphQL(ABC):
     A base abstract class for GraphQL commands, such as Get, Aggregate.
     """
 
-    def __init__(self, connection: Connection):
+    def __init__(self, connection: Union[Connection, ConnectionV4]):
         """
         Initialize a GraphQL abstract class instance.
 

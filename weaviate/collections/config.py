@@ -24,7 +24,7 @@ from weaviate.collections.classes.config_methods import (
 from weaviate.collections.classes.orm import Model
 from weaviate.collections.classes.types import SHARD_TYPES
 from weaviate.collections.validator import _raise_invalid_input
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
@@ -34,7 +34,7 @@ from weaviate.util import _decode_json_response_dict, _decode_json_response_list
 
 
 class _ConfigBase:
-    def __init__(self, connection: Connection, name: str, tenant: Optional[str]) -> None:
+    def __init__(self, connection: ConnectionV4, name: str, tenant: Optional[str]) -> None:
         self.__connection = connection
         self._name = name
         self.__tenant = tenant

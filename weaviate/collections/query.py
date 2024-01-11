@@ -85,7 +85,7 @@ class _GroupByCollection(
 # class _GrpcCollectionModel(Generic[Model], _BaseQuery[Any]):
 #     def __init__(
 #         self,
-#         connection: Connection,
+#         connection: ConnectionV4,
 #         name: str,
 #         model: Type[Model],
 #         tenant: Optional[str] = None,

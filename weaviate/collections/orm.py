@@ -16,7 +16,7 @@ from weaviate.collections.data import _DataCollectionModel
 
 # from weaviate.collections.query import _GrpcCollectionModel
 from weaviate.collections.tenants import _Tenants
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter
 from weaviate.types import PYTHON_TYPE_TO_DATATYPE
@@ -25,7 +25,7 @@ from weaviate.types import PYTHON_TYPE_TO_DATATYPE
 class _CollectionObjectModel(_CollectionBase, Generic[Model]):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         name: str,
         model: Type[Model],
         config: _ConfigCollectionModel,

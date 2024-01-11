@@ -45,7 +45,7 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.validator import _raise_invalid_input
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     UnexpectedStatusCodeException,
     ObjectAlreadyExistsException,
@@ -61,7 +61,7 @@ from weaviate.types import BEACON, UUID
 class _Data:
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
@@ -231,7 +231,7 @@ class _Data:
         if self._tenant is not None:
             params["tenant"] = self._tenant
         if self._consistency_level is not None:
-            params["consistency_level"] = self._consistency_level
+            params["consistency_level"] = self._consistency_level.value
         return params
 
     def __apply_context_to_params_and_object(
@@ -240,7 +240,7 @@ class _Data:
         if self._tenant is not None:
             obj["tenant"] = self._tenant
         if self._consistency_level is not None:
-            params["consistency_level"] = self._consistency_level
+            params["consistency_level"] = self._consistency_level.value
         return params, obj
 
     def _serialize_props(self, props: Properties) -> Dict[str, Any]:
@@ -266,7 +266,7 @@ class _Data:
 class _DataCollection(Generic[Properties], _Data):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
@@ -520,7 +520,7 @@ class _DataCollection(Generic[Properties], _Data):
 class _DataCollectionModel(Generic[Model], _Data):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         name: str,
         model: Type[Model],
         consistency_level: Optional[ConsistencyLevel],
