@@ -159,13 +159,6 @@ class _ClientBase:
             raise TypeError(f"URL is expected to be string but is {type(url)}")
         return url.strip("/"), None
 
-    def close(self) -> None:
-        """In order to clean up any resources used by the client, call this method when you are done with the client.
-
-        If you do not do this, memory leaks may occur due to stale connections."""
-        if hasattr(self, "_connection"):
-            self._connection.close()
-
 
 class WeaviateClient(_ClientBase):
     """
@@ -188,8 +181,6 @@ class WeaviateClient(_ClientBase):
             A `Cluster` object instance connected to the same Weaviate instance as the Client.
         `collections`
             A `_Collections` object instance connected to the same Weaviate instance as the Client.
-        `contextionary`
-            A `Contextionary` object instance connected to the same Weaviate instance as the Client.
     """
 
     _connection: ConnectionV4
@@ -234,6 +225,8 @@ class WeaviateClient(_ClientBase):
             connection_params, embedded_options
         )
         config = additional_config or AdditionalConfig()
+        self.__skip_init_checks = skip_init_checks
+        self.__connected = False
 
         self._connection = ConnectionV4(
             connection_params=connection_params,
@@ -245,7 +238,6 @@ class WeaviateClient(_ClientBase):
             proxies=config.proxies,
             trust_env=config.trust_env,
         )
-        self._connection.connect(skip_init_checks)
 
         self.batch = _BatchClientWrapper(self._connection, consistency_level=None)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
@@ -258,6 +250,48 @@ class WeaviateClient(_ClientBase):
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
+
+    def __enter__(self) -> "WeaviateClient":
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        self.close()
+
+    def close(self) -> None:
+        """In order to clean up any resources used by the client, call this method when you are done with it.
+
+        If you do not do this, memory leaks may occur due to stale connections."""
+        self._connection.close()
+        self.__connected = False
+
+    def connect(self) -> None:
+        """Connect to the Weaviate instance performing all the necessary checks.
+
+        If you have specified `skip_init_checks` in the constructor then this method will not perform any runtime checks
+        to ensure that Weaviate is running and ready to accept requests. This is useful for air-gapped environments and high-performance setups.
+
+        This method is idempotent and will only perform the checks once. Any subsequent calls do nothing while `client.is_connected() == True`.
+
+        Raises:
+            `requests.ConnectionError`
+                If the network connection to weaviate fails.
+            `weaviate.UnexpectedStatusCodeException`
+                If weaviate reports a none OK status.
+        """
+        if self.__connected:
+            return
+        self._connection.connect(self.__skip_init_checks)
+        self.__connected = True
+
+    def is_connected(self) -> bool:
+        """Check if the client is connected to Weaviate.
+
+        Returns:
+            `bool`
+                `True` if the client is connected to Weaviate with an open connection pool, `False` otherwise.
+        """
+        return self.__connected
 
     def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
         """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
@@ -454,4 +488,5 @@ class Client(_ClientBase):
 
     def __del__(self) -> None:
         # in case an exception happens before definition of the client
-        self.close()
+        if hasattr(self, "_connection"):
+            self._connection.close()

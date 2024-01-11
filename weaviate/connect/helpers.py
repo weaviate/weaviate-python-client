@@ -19,6 +19,10 @@ def connect_to_wcs(
     """
     Connect to your own Weaviate Cloud Service (WCS) instance.
 
+    This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
+    you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
+    in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
+
     Arguments:
         `cluster_url`
             The WCS cluster URL or hostname to connect to. Usually in the form rAnD0mD1g1t5.something.weaviate.cloud
@@ -35,12 +39,32 @@ def connect_to_wcs(
     Returns
         `weaviate.WeaviateClient`
             The client connected to the cluster with the required parameters set appropriately.
+
+    Examples:
+        >>> import weaviate
+        >>> client = weaviate.connect_to_wcs(
+        ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
+        ...     auth_credentials=weaviate.AuthApiKey("my-api-key"),
+        ... )
+        >>> client.is_ready()
+        True
+        >>> client.close() # Close the connection when you are done with it.
+        ################## With Context Manager #############################
+        >>> import weaviate
+        >>> with weaviate.connect_to_wcs(
+        ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
+        ...     auth_credentials=weaviate.AuthApiKey("my-api-key"),
+        ... ) as client:
+        ...     client.is_ready()
+        True
+        >>> # The connection is automatically closed when the context is exited.
     """
     if cluster_url.startswith("http"):
         # Handle the common case of copy/pasting a URL instead of the hostname.
         cluster_url = urlparse(cluster_url).netloc
     grpc_host = f"grpc-{cluster_url}"
-    return WeaviateClient(
+
+    client = WeaviateClient(
         connection_params=ConnectionParams(
             http=ProtocolParams(host=cluster_url, port=443, secure=True),
             grpc=ProtocolParams(host=grpc_host, port=443, secure=True),
@@ -50,6 +74,8 @@ def connect_to_wcs(
         additional_config=AdditionalConfig(timeout=timeout),
         skip_init_checks=skip_init_checks,
     )
+    client.connect()
+    return client
 
 
 def connect_to_local(
@@ -61,6 +87,10 @@ def connect_to_local(
 ) -> WeaviateClient:
     """
     Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
+
+    This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
+    you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
+    in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
 
     Arguments:
         `schema`
@@ -80,8 +110,29 @@ def connect_to_local(
     Returns
         `weaviate.WeaviateClient`
             The client connected to the local instance with default parameters set as:
+
+    Examples:
+        >>> import weaviate
+        >>> client = weaviate.connect_to_local(
+        ...     host="localhost",
+        ...     port=8080,
+        ...     grpc_port=50051,
+        ... )
+        >>> client.is_ready()
+        True
+        >>> client.close() # Close the connection when you are done with it.
+        ################## With Context Manager #############################
+        >>> import weaviate
+        >>> with weaviate.connect_to_local(
+        ...     host="localhost",
+        ...     port=8080,
+        ...     grpc_port=50051,
+        ... ) as client:
+        ...     client.is_ready()
+        True
+        >>> # The connection is automatically closed when the context is exited.
     """
-    return WeaviateClient(
+    client = WeaviateClient(
         connection_params=ConnectionParams(
             http=ProtocolParams(host=host, port=port, secure=False),
             grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
@@ -89,6 +140,8 @@ def connect_to_local(
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
     )
+    client.connect()
+    return client
 
 
 def connect_to_embedded(
@@ -100,6 +153,10 @@ def connect_to_embedded(
 ) -> WeaviateClient:
     """
     Connect to an embedded Weaviate instance.
+
+    This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
+    you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
+    in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
 
     Arguments:
         `port`
@@ -115,8 +172,27 @@ def connect_to_embedded(
     Returns
         `weaviate.WeaviateClient`
             The client connected to the embedded instance with the required parameters set appropriately.
+
+    Examples:
+        >>> import weaviate
+        >>> client = weaviate.connect_to_embedded(
+        ...     port=8080,
+        ...     grpc_port=50051,
+        ... )
+        >>> client.is_ready()
+        True
+        >>> client.close() # Close the connection when you are done with it.
+        ################## With Context Manager #############################
+        >>> import weaviate
+        >>> with weaviate.connect_to_embedded(
+        ...     port=8080,
+        ...     grpc_port=50051,
+        ... ) as client:
+        ...     client.is_ready()
+        True
+        >>> # The connection is automatically closed when the context is exited.
     """
-    return WeaviateClient(
+    client = WeaviateClient(
         embedded_options=EmbeddedOptions(
             port=port,
             grpc_port=grpc_port,
@@ -125,6 +201,8 @@ def connect_to_embedded(
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
     )
+    client.connect()
+    return client
 
 
 def connect_to_custom(
@@ -142,6 +220,10 @@ def connect_to_custom(
     Connect to a Weaviate instance with custom connection parameters.
 
     If this is not sufficient for your customisation needs then instantiate a `weaviate.WeaviateClient` directly.
+
+    This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
+    you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
+    in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
 
     Arguments:
         `http_host`
@@ -168,8 +250,35 @@ def connect_to_custom(
     Returns
         `weaviate.WeaviateClient`
             The client connected to the instance with the required parameters set appropriately.
+
+    Examples:
+        >>> import weaviate
+        >>> client = weaviate.connect_to_custom(
+        ...     http_host="localhost",
+        ...     http_port=8080,
+        ...     http_secure=False,
+        ...     grpc_host="localhost",
+        ...     grpc_port=50051,
+        ...     grpc_secure=False,
+        ... )
+        >>> client.is_ready()
+        True
+        >>> client.close() # Close the connection when you are done with it.
+        ################## With Context Manager #############################
+        >>> import weaviate
+        >>> with weaviate.connect_to_custom(
+        ...     http_host="localhost",
+        ...     http_port=8080,
+        ...     http_secure=False,
+        ...     grpc_host="localhost",
+        ...     grpc_port=50051,
+        ...     grpc_secure=False,
+        ... ) as client:
+        ...     client.is_ready()
+        True
+        >>> # The connection is automatically closed when the context is exited.
     """
-    return WeaviateClient(
+    client = WeaviateClient(
         ConnectionParams.from_params(
             http_host=http_host,
             http_port=http_port,
@@ -182,3 +291,5 @@ def connect_to_custom(
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
     )
+    client.connect()
+    return client
