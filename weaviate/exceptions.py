@@ -243,6 +243,15 @@ class WeaviateGRPCQueryError(WeaviateQueryError):
         self.message = message
 
 
+class WeaviateGRPCBatchError(WeaviateQueryError):
+    """Is raised if a gRPC batch query to Weaviate fails in any way."""
+
+    def __init__(self, message: str):
+        msg = f"""GRPC batch: {message}."""
+        super().__init__(msg)
+        self.message = message
+
+
 class WeaviateAddInvalidPropertyError(WeaviateBaseError):
     """Is raised when adding an invalid new property."""
 

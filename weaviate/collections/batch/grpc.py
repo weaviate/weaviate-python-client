@@ -18,7 +18,7 @@ from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import Connection
 from weaviate.exceptions import (
-    WeaviateGRPCQueryError,
+    WeaviateGRPCBatchError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailed,
 )
@@ -130,7 +130,7 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except grpc.RpcError as e:
-            raise WeaviateGRPCQueryError(e.details())
+            raise WeaviateGRPCBatchError(e.details())
 
     async def objects_async(self, objects: List[_BatchObject]) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
@@ -224,7 +224,7 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except grpc.RpcError as e:
-            raise WeaviateGRPCQueryError(e.details())
+            raise WeaviateGRPCBatchError(e.details())
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], clean_props: bool

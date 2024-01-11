@@ -331,8 +331,8 @@ class _DataCollection(Generic[Properties], _Data):
                         If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
-                If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateGRPCBatchError`:
+                If any unexpected error occurs during the batch operation.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
             `weaviate.exceptions.WeaviateInsertManyAllFailed`:
