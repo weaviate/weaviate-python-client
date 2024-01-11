@@ -10,7 +10,7 @@ from requests.exceptions import HTTPError as RequestsHTTPError
 
 import weaviate
 from weaviate import (
-    AuthenticationFailed,
+    AuthenticationFailedException,
     AuthClientCredentials,
     AuthClientPassword,
     AuthBearerToken,
@@ -52,7 +52,7 @@ def test_no_auth_provided():
     """Test exception when trying to access a weaviate that requires authentication."""
     url = f"http://localhost:{AZURE_PORT}"
     assert is_auth_enabled(url)
-    with pytest.raises(AuthenticationFailed):
+    with pytest.raises(AuthenticationFailedException):
         weaviate.Client(url)
 
 

@@ -12,10 +12,10 @@ __all__ = [
     "AuthBearerToken",
     "AuthApiKey",
     "BackupStorage",
-    "UnexpectedStatusCodeError",
-    "ObjectAlreadyExists",
-    "AuthenticationFailed",
-    "SchemaValidationError",
+    "UnexpectedStatusCodeException",
+    "ObjectAlreadyExistsException",
+    "AuthenticationFailedException",
+    "SchemaValidationException",
     "WeaviateStartUpError",
     "ConsistencyLevel",
     "WeaviateErrorRetryConf",
@@ -60,10 +60,10 @@ from .connect.helpers import (
 )
 from .embedded import EmbeddedOptions
 from .exceptions import (
-    UnexpectedStatusCodeError,
-    ObjectAlreadyExists,
-    AuthenticationFailed,
-    SchemaValidationError,
+    UnexpectedStatusCodeException,
+    ObjectAlreadyExistsException,
+    AuthenticationFailedException,
+    SchemaValidationException,
     WeaviateStartUpError,
 )
 from .config import AdditionalConfig, Config, ConnectionConfig

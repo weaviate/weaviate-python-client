@@ -104,7 +104,7 @@ class TestText2VecContextionary(unittest.TestCase):
         requests_error_message = "text2vec-contextionary vector was not retrieved."
         unexpected_exception_error_message = "text2vec-contextionary vector"
 
-        ## test UnexpectedStatusCodeError
+        ## test UnexpectedStatusCodeException
         contextionary = Contextionary(mock_connection_func("get", status_code=404))
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             contextionary.get_concept_vector("Palantir")
