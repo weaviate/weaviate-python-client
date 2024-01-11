@@ -753,3 +753,19 @@ def test_ref_case_sensitivity(collection_factory: CollectionFactory) -> None:
             uid, return_references=[QueryReference(link_on="ref")]
         )
         assert "ref" in obj.references
+
+
+def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
+    source = collection_factory(
+        name="From",
+        references=[
+            ReferenceProperty(name="ref", target_collection=to.name),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    uuid_source = source.data.insert(properties={})
+    obj = source.query.fetch_object_by_id(
+        uuid_source, return_references=[QueryReference(link_on="ref")]
+    )
+    assert obj.references == {}

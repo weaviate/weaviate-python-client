@@ -213,10 +213,12 @@ class _BaseQuery(Generic[Properties, References]):
         }
 
     def __parse_ref_properties_result(
-        self, properties: RepeatedCompositeFieldContainer[search_get_pb2.RefPropertiesResult]
+        self,
+        properties: RepeatedCompositeFieldContainer[search_get_pb2.RefPropertiesResult],
+        is_present: bool,
     ) -> Optional[dict]:
         if len(properties) == 0:
-            return None
+            return {} if is_present else None
         return {
             ref_prop.prop_name: _CrossReference._from(
                 [
@@ -325,7 +327,7 @@ class _BaseQuery(Generic[Properties, References]):
             if options.include_metadata
             else _MetadataReturn(),
             references=(
-                self.__parse_ref_properties_result(props.ref_props)
+                self.__parse_ref_properties_result(props.ref_props, props.ref_props_present)
                 if self._is_weaviate_version_123
                 else self.__parse_ref_properties_result_122(props)
             )
@@ -354,7 +356,7 @@ class _BaseQuery(Generic[Properties, References]):
             if options.include_metadata
             else _MetadataReturn(),
             references=(
-                self.__parse_ref_properties_result(props.ref_props)
+                self.__parse_ref_properties_result(props.ref_props, props.ref_props_present)
                 if self._is_weaviate_version_123
                 else self.__parse_ref_properties_result_122(props)
             )
@@ -419,7 +421,7 @@ class _BaseQuery(Generic[Properties, References]):
             if options.include_metadata
             else _GroupByMetadataReturn(),
             references=(
-                self.__parse_ref_properties_result(props.ref_props)
+                self.__parse_ref_properties_result(props.ref_props, props.ref_props_present)
                 if self._is_weaviate_version_123
                 else self.__parse_ref_properties_result_122(props)
             )
