@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview-fix-uuid-casing-for-references-added-with-object-single-refs-and-bat-3e69acc
+  NEW_WEAVIATE_VERSION: preview-allow-discerning-between-nil-and-in-ref-props-ab9ec28
 
 jobs:
   lint-and-format:
