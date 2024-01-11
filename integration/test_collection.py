@@ -957,7 +957,7 @@ def test_add_reference(collection_factory: CollectionFactory) -> None:
         uuid2, return_properties=["name"], return_references=FromReference(link_on="self")
     )
     assert "name" in obj1.properties
-    assert obj1.references is None
+    assert obj1.references == {}
     assert "name" in obj2.properties
     assert "self" in obj2.references
 
