@@ -5,7 +5,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.classification.classification import Classification, ConfigBuilder
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 class TestClassification(unittest.TestCase):
@@ -42,7 +42,7 @@ class TestClassification(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
 
         mock_conn = mock_connection_func("get", status_code=404)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             Classification(mock_conn).get("d087b7c6-a115-5c89-8cb2-f25bdeb9bf92")
         check_startswith_error_message(self, error, unexpected_error_message)
 
@@ -456,7 +456,7 @@ class TestConfigBuilder(unittest.TestCase):
 
         mock_conn = mock_connection_func("post", status_code=200)
         config = ConfigBuilder(mock_conn, None).with_class_name("Test!")
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             config._start()
         check_startswith_error_message(self, error, unexpected_error_message)
         mock_conn.post.assert_called_with(

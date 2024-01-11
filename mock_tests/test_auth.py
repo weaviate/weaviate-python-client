@@ -7,7 +7,7 @@ from werkzeug import Request, Response
 
 import weaviate
 from mock_tests.conftest import MOCK_SERVER_URL, CLIENT_ID
-from weaviate.exceptions import MissingScope
+from weaviate.exceptions import MissingScopeException
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 CLIENT_SECRET = "SomeSecret.DontTell"
@@ -159,7 +159,7 @@ def test_auth_header_with_catchall_proxy(weaviate_mock, recwarn):
 
 
 def test_missing_scope(weaviate_auth_mock):
-    with pytest.raises(MissingScope):
+    with pytest.raises(MissingScopeException):
         weaviate.Client(
             MOCK_SERVER_URL,
             auth_client_secret=weaviate.AuthClientCredentials(

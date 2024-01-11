@@ -7,8 +7,8 @@ from test.util import mock_connection_func, check_error_message, check_startswit
 from weaviate.data import DataObject
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.exceptions import (
-    UnexpectedStatusCodeError,
-    ObjectAlreadyExists,
+    UnexpectedStatusCodeException,
+    ObjectAlreadyExistsException,
 )
 
 
@@ -67,7 +67,7 @@ class TestDataObject(unittest.TestCase):
         reset()
         mock_obj = mock_connection_func("post", status_code=204, return_json={})
         data_object = DataObject(mock_obj)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
         check_startswith_error_message(self, error, "Creating object")
         mock_get_dict_from_object.assert_called()
@@ -79,7 +79,7 @@ class TestDataObject(unittest.TestCase):
             "post", status_code=204, return_json={"error": [{"message": "already exists"}]}
         )
         data_object = DataObject(mock_obj)
-        with self.assertRaises(ObjectAlreadyExists) as error:
+        with self.assertRaises(ObjectAlreadyExistsException) as error:
             data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
         check_error_message(self, error, "None")
         mock_get_dict_from_object.assert_called()
@@ -89,7 +89,7 @@ class TestDataObject(unittest.TestCase):
         reset()
         mock_obj = mock_connection_func("post", status_code=204, return_json={})
         data_object = DataObject(mock_obj)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.create({"name": "Alan Greenspan"}, "CoolestPersonEver")
         check_startswith_error_message(self, error, "Creating object")
         mock_get_dict_from_object.assert_called()
@@ -208,7 +208,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_dict_from_object.assert_called()
         mock_get_vector.assert_not_called()
 
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             mock_obj = mock_connection_func("patch", status_code=200, return_json={})
             data_object = DataObject(mock_obj)
             data_object.update(
@@ -317,7 +317,7 @@ class TestDataObject(unittest.TestCase):
 
         mock_obj = mock_connection_func("put", status_code=204, return_json={})
         data_object = DataObject(mock_obj)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.replace(
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",
@@ -425,7 +425,7 @@ class TestDataObject(unittest.TestCase):
 
         connection_mock = mock_connection_func("delete", status_code=405)
         data_object = DataObject(connection_mock)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.delete("b36268d4-a6b5-5274-985f-45f13ce0c642")
         check_startswith_error_message(self, error, unexpected_error_message)
 
@@ -559,7 +559,7 @@ class TestDataObject(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
 
         data_object = DataObject(mock_connection_func("get", status_code=405))
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.get()
         check_startswith_error_message(self, error, unexpected_error_message)
 
@@ -604,7 +604,7 @@ class TestDataObject(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
 
         data_object = DataObject(mock_connection_func("head", status_code=200))
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.exists(uuid="1d420c9c98cb11ec9db61e008a366d49")
         check_startswith_error_message(self, error, unexpected_error_message)
 
@@ -671,7 +671,7 @@ class TestDataObject(unittest.TestCase):
         mock_get_vector.assert_not_called()
 
         data_object = DataObject(mock_connection_func("post", status_code=204, return_json={}))
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             data_object.validate(
                 {"name": "Alan Greenspan"},
                 "CoolestPersonEver",

@@ -6,7 +6,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.data.references import Reference
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 
 class TestReference(unittest.TestCase):
@@ -58,7 +58,7 @@ class TestReference(unittest.TestCase):
 
         mock_obj = mock_connection_func("delete", status_code=200)
         reference = Reference(mock_obj)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             reference.delete(self.uuid_1, "myProperty", self.uuid_2)
         check_startswith_error_message(self, error, unexpected_error_msg)
 
@@ -148,7 +148,7 @@ class TestReference(unittest.TestCase):
 
         mock_obj = mock_connection_func("post", status_code=204)
         reference = Reference(mock_obj)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             reference.add(self.uuid_1, "myProperty", self.uuid_2)
         check_startswith_error_message(self, error, unexpected_error_msg)
 
@@ -263,7 +263,7 @@ class TestReference(unittest.TestCase):
 
         mock_obj = mock_connection_func("put", status_code=204)
         reference = Reference(mock_obj)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             reference.update(self.uuid_1, "myProperty", self.uuid_2)
         check_startswith_error_message(self, error, unexpected_error_msg)
 

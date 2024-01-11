@@ -6,7 +6,7 @@ from unittest.mock import patch, Mock
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.schema import Schema
 from weaviate.util import _capitalize_first_letter
 
@@ -200,7 +200,7 @@ class TestSchema(unittest.TestCase):
         }
         mock_conn = mock_connection_func("put", status_code=404)
         schema = Schema(mock_conn)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema.update_config("Test", {"vectorIndexConfig": {"test3": True}})
         check_startswith_error_message(self, error, unexpected_error_msg)
         mock_conn.put.assert_called_with(
@@ -255,7 +255,7 @@ class TestSchema(unittest.TestCase):
 
         mock_conn = mock_connection_func("get", status_code=404)
         schema = Schema(mock_conn)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema.get()
         check_startswith_error_message(self, error, unexpected_error_msg)
 
@@ -345,7 +345,7 @@ class TestSchema(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
 
         schema = Schema(mock_connection_func("delete", status_code=404))
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema.delete_class("uuid")
         check_startswith_error_message(self, error, "Delete class from schema")
 
@@ -479,7 +479,7 @@ class TestSchema(unittest.TestCase):
 
         mock_rest = mock_connection_func("post", status_code=404)
         schema = Schema(mock_rest)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema._create_complex_properties_from_class(properties)
         check_startswith_error_message(self, error, "Add properties to classes")
 
@@ -564,7 +564,7 @@ class TestSchema(unittest.TestCase):
 
         mock_rest = mock_connection_func("post", status_code=404)
         schema = Schema(mock_rest)
-        with self.assertRaises(UnexpectedStatusCodeError) as error:
+        with self.assertRaises(UnexpectedStatusCodeException) as error:
             schema._create_class_with_primitives(test_class)
         check_startswith_error_message(self, error, "Create class")
 

@@ -16,7 +16,7 @@ from weaviate import (
     AuthBearerToken,
 )
 from weaviate.auth import AuthApiKey
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeException
 
 ANON_PORT = 8080
 AZURE_PORT = 8081
@@ -267,6 +267,6 @@ def test_api_key_wrong_key():
     url = f"http://localhost:{WCS_PORT}"
     assert is_auth_enabled(url)
 
-    with pytest.raises(UnexpectedStatusCodeError) as e:
+    with pytest.raises(UnexpectedStatusCodeException) as e:
         weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="wrong_key"))
         assert e.value.status_code == 401

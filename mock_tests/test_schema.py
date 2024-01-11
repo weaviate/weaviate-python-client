@@ -23,7 +23,7 @@ def test_schema_timeout_error(weaviate_mock):
 
 
 def test_schema_unknown_status_code(weaviate_mock):
-    """Tests that expected UnexpectedStatusCodeError exception is raised."""
+    """Tests that expected UnexpectedStatusCodeException exception is raised."""
 
     def handler(request: Request):
         return Response(status=403)
@@ -31,7 +31,7 @@ def test_schema_unknown_status_code(weaviate_mock):
     weaviate_mock.expect_request("/v1/schema/Test").respond_with_handler(handler)
     client = weaviate.Client(MOCK_SERVER_URL)
 
-    with pytest.raises(weaviate.UnexpectedStatusCodeError):
+    with pytest.raises(weaviate.UnexpectedStatusCodeException):
         client.schema.exists("Test")
 
 
