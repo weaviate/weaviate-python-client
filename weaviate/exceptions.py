@@ -99,22 +99,22 @@ class ResponseCannotBeDecodedError(WeaviateBaseError):
 ResponseCannotBeDecodedException = ResponseCannotBeDecodedError
 
 
-class ObjectAlreadyExists(WeaviateBaseError):
+class ObjectAlreadyExistsError(WeaviateBaseError):
     """
     Object Already Exists Exception.
     """
 
 
-ObjectAlreadyExistsException = ObjectAlreadyExists
+ObjectAlreadyExistsException = ObjectAlreadyExistsError
 
 
-class AuthenticationFailed(WeaviateBaseError):
+class AuthenticationFailedError(WeaviateBaseError):
     """
     Authentication Failed Exception.
     """
 
 
-AuthenticationFailedException = AuthenticationFailed
+AuthenticationFailedException = AuthenticationFailedError
 
 
 class SchemaValidationError(WeaviateBaseError):
@@ -126,29 +126,29 @@ class SchemaValidationError(WeaviateBaseError):
 SchemaValidationException = SchemaValidationError
 
 
-class BackupFailed(WeaviateBaseError):
+class BackupFailedError(WeaviateBaseError):
     """
     Backup Failed Exception.
     """
 
 
-BackupFailedException = BackupFailed
+BackupFailedException = BackupFailedError
 
 
-class EmptyResponse(WeaviateBaseError):
+class EmptyResponseError(WeaviateBaseError):
     """
     Occurs when an HTTP request unexpectedly returns an empty response
     """
 
 
-EmptyResponseException = EmptyResponse
+EmptyResponseException = EmptyResponseError
 
 
-class MissingScope(WeaviateBaseError):
+class MissingScopeError(WeaviateBaseError):
     """Scope was not provided with client credential flow."""
 
 
-MissingScopeException = MissingScope
+MissingScopeException = MissingScopeError
 
 
 class AdditionalPropertiesError(WeaviateBaseError):
@@ -183,7 +183,7 @@ class WeaviateStartUpError(WeaviateBaseError):
     """Is raised if weaviate is not availabe on the given url+port."""
 
 
-class WeaviateEmbeddedInvalidVersion(WeaviateBaseError):
+class WeaviateEmbeddedInvalidVersionError(WeaviateBaseError):
     """Invalid version provided to Weaviate embedded."""
 
     def __init__(self, url: str):
@@ -197,7 +197,7 @@ class WeaviateEmbeddedInvalidVersion(WeaviateBaseError):
         super().__init__(msg)
 
 
-WeaviateEmbeddedInvalidVersionException = WeaviateEmbeddedInvalidVersion
+WeaviateEmbeddedInvalidVersionException = WeaviateEmbeddedInvalidVersionError
 
 
 class WeaviateInvalidInputError(WeaviateBaseError):
@@ -278,7 +278,7 @@ class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateGRPCUnavailable(WeaviateBaseError):
+class WeaviateGRPCUnavailableError(WeaviateBaseError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
     def __init__(self, message: str = "") -> None:
@@ -286,15 +286,12 @@ class WeaviateGRPCUnavailable(WeaviateBaseError):
         super().__init__(msg)
 
 
-WeaviateGrpcUnavailable = WeaviateGRPCUnavailable
+WeaviateGrpcUnavailable = WeaviateGRPCUnavailableError
 
 
-class WeaviateInsertManyAllFailed(WeaviateBaseError):
+class WeaviateInsertManyAllFailedError(WeaviateBaseError):
     """Is raised when all objects fail to be inserted."""
 
     def __init__(self, message: str = "") -> None:
         msg = f"""Every object failed during insertion. {message}"""
         super().__init__(msg)
-
-
-WeaviateInsertManyAllFailedError = WeaviateInsertManyAllFailed

@@ -71,7 +71,7 @@ class EmbeddedDB:
             if not self.options.version.endswith(".tar.gz") and not self.options.version.endswith(
                 ".zip"
             ):
-                raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
+                raise exceptions.WeaviateEmbeddedInvalidVersionError(self.options.version)
 
             # for GitHub urls we can parse the version from the url
             if self.options.version.startswith(GITHUB_RELEASE_DOWNLOAD_URL):
@@ -92,7 +92,7 @@ class EmbeddedDB:
             assert latest is not None
             self._set_download_url_from_version_tag(latest["tag_name"])
         else:
-            raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
+            raise exceptions.WeaviateEmbeddedInvalidVersionError(self.options.version)
 
     def _set_download_url_from_version_tag(self, version: str) -> None:
         if platform.system() == "Darwin":

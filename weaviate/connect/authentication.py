@@ -12,7 +12,7 @@ from weaviate.auth import (
     AuthBearerToken,
     AuthClientCredentials,
 )
-from weaviate.exceptions import MissingScope, AuthenticationFailed
+from weaviate.exceptions import MissingScopeError, AuthenticationFailedError
 from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
 
@@ -49,7 +49,7 @@ class _Auth:
     def _validate(self, oidc_config: OIDC_CONFIG) -> None:
         if isinstance(self._credentials, AuthClientPassword):
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):
-                raise AuthenticationFailed(
+                raise AuthenticationFailedError(
                     """Microsoft/azure does not recommend to authenticate using username and password and this method is
                     not supported by the python client."""
                 )
@@ -59,7 +59,7 @@ class _Auth:
                 "grant_types_supported" in oidc_config
                 and "password" not in oidc_config["grant_types_supported"]
             ):
-                raise AuthenticationFailed(
+                raise AuthenticationFailedError(
                     """The grant_types supported by the third-party authentication service are insufficient. Please add
                     the 'password' grant type."""
                 )
@@ -129,7 +129,7 @@ class _Auth:
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):
                 scope = [self._client_id + "/.default"]
             else:
-                raise MissingScope
+                raise MissingScopeError
 
         session = OAuth2Session(
             client_id=self._client_id,

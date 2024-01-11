@@ -27,7 +27,7 @@ from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
-    ObjectAlreadyExists,
+    ObjectAlreadyExistsError,
     WeaviateAddInvalidPropertyError,
 )
 from weaviate.util import _decode_json_response_dict, _decode_json_response_list
@@ -236,7 +236,7 @@ class _ConfigCollection(_ConfigBase):
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
-            `weaviate.ObjectAlreadyExists`:
+            `weaviate.ObjectAlreadyExistsError`:
                 If the property already exists in the collection.
         """
         if not isinstance(prop, Property):
@@ -246,7 +246,7 @@ class _ConfigCollection(_ConfigBase):
                 Property,
             )
         if self._get_property_by_name(prop.name) is not None:
-            raise ObjectAlreadyExists(
+            raise ObjectAlreadyExistsError(
                 f"Property with name '{prop.name}' already exists in collection '{self._name}'."
             )
         self._add_property(prop)
@@ -262,7 +262,7 @@ class _ConfigCollection(_ConfigBase):
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
-            `weaviate.ObjectAlreadyExists`:
+            `weaviate.ObjectAlreadyExistsError`:
                 If the reference already exists in the collection.
         """
         if not isinstance(ref, ReferenceProperty) and not isinstance(
@@ -274,7 +274,7 @@ class _ConfigCollection(_ConfigBase):
                 Union[ReferenceProperty, ReferencePropertyMultiTarget],
             )
         if self._get_property_by_name(ref.name) is not None:
-            raise ObjectAlreadyExists(
+            raise ObjectAlreadyExistsError(
                 f"Reference with name '{ref.name}' already exists in collection '{self._name}'."
             )
         self._add_property(ref)

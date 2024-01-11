@@ -48,7 +48,7 @@ from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
-    ObjectAlreadyExists,
+    ObjectAlreadyExistsError,
 )
 from weaviate.util import (
     _datetime_to_string,
@@ -89,7 +89,7 @@ class _Data:
             response_json = _decode_json_response_dict(response, "insert object")
             assert response_json is not None
             if "already exists" in response_json["error"][0]["message"]:
-                raise ObjectAlreadyExists(weaviate_obj["id"])
+                raise ObjectAlreadyExistsError(weaviate_obj["id"])
         except KeyError:
             pass
         raise UnexpectedStatusCodeError("Creating object", response)
@@ -335,7 +335,7 @@ class _DataCollection(Generic[Properties], _Data):
                 If any unexpected error occurs during the batch operation.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
-            `weaviate.exceptions.WeaviateInsertManyAllFailed`:
+            `weaviate.exceptions.WeaviateInsertManyAllFailedError`:
                 If every object in the batch fails to be inserted. The exception message contains details about the failure.
         """
         return self._batch_grpc.objects(

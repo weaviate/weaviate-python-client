@@ -20,7 +20,7 @@ from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateGRPCBatchError,
     WeaviateInsertInvalidPropertyError,
-    WeaviateInsertManyAllFailed,
+    WeaviateInsertManyAllFailedError,
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.util import _datetime_to_string, get_vector
@@ -82,7 +82,7 @@ class _BatchGRPC(_BaseGRPC):
 
         if len(errors) == len(weaviate_objs):
             # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: Pylance
-            raise WeaviateInsertManyAllFailed(
+            raise WeaviateInsertManyAllFailedError(
                 "Here is the set of all errors: {}".format(
                     "\n".join(err for err in set(errors.values()))
                 )
@@ -176,7 +176,7 @@ class _BatchGRPC(_BaseGRPC):
 
         if len(errors) == len(weaviate_objs):
             # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: Pylance
-            raise WeaviateInsertManyAllFailed(
+            raise WeaviateInsertManyAllFailedError(
                 "Here is the set of all errors: {}".format(
                     "\n".join(err for err in set(errors.values()))
                 )

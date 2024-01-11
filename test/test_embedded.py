@@ -16,7 +16,7 @@ from werkzeug import Request, Response
 import weaviate
 from weaviate import embedded, EmbeddedOptions
 from weaviate.embedded import EmbeddedDB
-from weaviate.exceptions import WeaviateEmbeddedInvalidVersion, WeaviateStartUpError
+from weaviate.exceptions import WeaviateEmbeddedInvalidVersionError, WeaviateStartUpError
 
 if platform != "linux" and platform != "darwin":
     pytest.skip("Currently only supported on linux", allow_module_level=True)
@@ -266,7 +266,7 @@ def test_latest(tmp_path_factory: pytest.TempPathFactory):
     ],
 )
 def test_invalid_version(tmp_path_factory: pytest.TempPathFactory, version):
-    with pytest.raises(WeaviateEmbeddedInvalidVersion):
+    with pytest.raises(WeaviateEmbeddedInvalidVersionError):
         weaviate.Client(
             embedded_options=EmbeddedOptions(
                 persistence_data_path=tmp_path_factory.mktemp("data"),

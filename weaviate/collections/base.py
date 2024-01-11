@@ -36,7 +36,7 @@ class _CollectionBase:
                 If the network connection to weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If weaviate reports a none OK status.
-            `weaviate.EmptyResponse`
+            `weaviate.EmptyResponseError`
                 If the response is empty.
         """
         return [

@@ -38,7 +38,7 @@ from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
     WeaviateGRPCQueryError,
     WeaviateInsertInvalidPropertyError,
-    WeaviateInsertManyAllFailed,
+    WeaviateInsertManyAllFailedError,
 )
 from weaviate.types import UUID
 
@@ -214,7 +214,7 @@ def test_insert_many_all_error(
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(True),
     )
-    with pytest.raises(WeaviateInsertManyAllFailed) as e:
+    with pytest.raises(WeaviateInsertManyAllFailedError) as e:
         collection.data.insert_many([{"name": "steve"}, {"name": "bob"}, {"name": "joe"}])
     assert (
         e.value.message
