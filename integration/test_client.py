@@ -24,7 +24,7 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
 
 
 def test_fail_to_connect_to_inactive_grpc_port() -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateGrpcUnavailable):
+    with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailable):
         weaviate.WeaviateClient(
             connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 12345),
             skip_init_checks=False,
@@ -32,7 +32,7 @@ def test_fail_to_connect_to_inactive_grpc_port() -> None:
 
 
 def test_fail_to_connect_to_unspecified_grpc_port() -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateGrpcUnavailable):
+    with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailable):
         weaviate.WeaviateClient(
             connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080"),
             skip_init_checks=False,
@@ -111,7 +111,7 @@ def test_fail_to_connect_with_bad_custom_wcs_setup_rest(bad_config: dict) -> Non
     ],
 )
 def test_fail_to_connect_with_bad_custom_wcs_setup_grpc(bad_config: dict) -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateGrpcUnavailable):
+    with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailable):
         weaviate.connect_to_custom(**bad_config, auth_credentials=WCS_CREDS)
 
 

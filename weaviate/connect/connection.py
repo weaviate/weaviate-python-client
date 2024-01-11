@@ -29,7 +29,7 @@ from weaviate.connect.authentication import _Auth
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailed,
-    WeaviateGrpcUnavailable,
+    WeaviateGRPCUnavailable,
     WeaviateStartUpError,
 )
 from weaviate.proto.v1 import weaviate_pb2_grpc
@@ -867,18 +867,18 @@ class GRPCConnection(Connection):
                         response_deserializer=health_pb2.HealthCheckResponse.FromString,
                     )(health_pb2.HealthCheckRequest(), timeout=1)
                     if res.status != health_pb2.HealthCheckResponse.SERVING:
-                        raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}")
+                        raise WeaviateGRPCUnavailable(f"Weaviate v{self.server_version}")
                 except _channel._InactiveRpcError as e:
-                    raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}") from e
+                    raise WeaviateGRPCUnavailable(f"Weaviate v{self.server_version}") from e
         else:
-            raise WeaviateGrpcUnavailable(
+            raise WeaviateGRPCUnavailable(
                 "You must provide the gRPC port in `connection_params` to use gRPC."
             )
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
         if not self._grpc_available:
-            raise WeaviateGrpcUnavailable(
+            raise WeaviateGRPCUnavailable(
                 "Did you forget to call client.connect() before using the client?"
             )
         return self._grpc_stub

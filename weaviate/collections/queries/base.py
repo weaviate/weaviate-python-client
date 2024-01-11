@@ -55,7 +55,7 @@ from weaviate.connect import Connection
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
 )
-from weaviate.exceptions import WeaviateGrpcUnavailable, WeaviateGRPCQueryError
+from weaviate.exceptions import WeaviateGRPCUnavailable, WeaviateGRPCQueryError
 from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
 from weaviate.types import UUID
 from weaviate.util import (
@@ -91,7 +91,7 @@ class _BaseQuery(Generic[Properties, References]):
 
     def _query(self) -> _QueryGRPC:
         if not self.__connection._grpc_available:
-            raise WeaviateGrpcUnavailable()
+            raise WeaviateGRPCUnavailable()
         return _QueryGRPC(
             self.__connection,
             self._name,
