@@ -232,7 +232,7 @@ class _NearTextGroupBy(Generic[Properties, References], _BaseQuery[Properties, R
             A `_GroupByReturn` object that includes the searched objects grouped by the specified property.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
         res = self._query().near_text(

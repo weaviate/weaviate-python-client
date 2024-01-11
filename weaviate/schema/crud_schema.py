@@ -8,7 +8,7 @@ from typing import Any, Union, Optional, List, Dict, cast
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.schema.properties import Property
 from weaviate.util import (
     _get_dict_from_object,
@@ -190,9 +190,9 @@ class Schema:
             If 'schema' can not be converted into a Weaviate schema.
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
-        weaviate.SchemaValidationException
+        weaviate.SchemaValidationError
             If the 'schema' could not be validated against the standard format.
         """
 
@@ -242,9 +242,9 @@ class Schema:
             If 'schema_class' can not be converted into a Weaviate schema.
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
-        weaviate.SchemaValidationException
+        weaviate.SchemaValidationError
             If the 'schema_class' could not be validated against the standard format.
         """
 
@@ -271,7 +271,7 @@ class Schema:
             If 'class_name' argument not of type str.
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
 
@@ -284,7 +284,7 @@ class Schema:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Deletion of class.") from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Delete class from schema", response)
+            raise UnexpectedStatusCodeError("Delete class from schema", response)
 
     def delete_all(self) -> None:
         """
@@ -342,7 +342,7 @@ class Schema:
         elif response.status_code == 404:
             return False
 
-        raise UnexpectedStatusCodeException("Check if class exists", response)
+        raise UnexpectedStatusCodeError("Check if class exists", response)
 
     def contains(self, schema: Optional[Union[dict, str]] = None) -> bool:
         """
@@ -447,7 +447,7 @@ class Schema:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
 
@@ -463,7 +463,7 @@ class Schema:
                 "Class schema configuration could not be updated."
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Update class schema configuration", response)
+            raise UnexpectedStatusCodeError("Update class schema configuration", response)
 
     def get(self, class_name: Optional[str] = None) -> dict:
         """
@@ -552,7 +552,7 @@ class Schema:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
 
@@ -599,7 +599,7 @@ class Schema:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
 
@@ -670,7 +670,7 @@ class Schema:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
 
@@ -733,7 +733,7 @@ class Schema:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
 
@@ -762,7 +762,7 @@ class Schema:
                     "Property may not have been created properly."
                 ) from conn_err
             if response.status_code != 200:
-                raise UnexpectedStatusCodeException("Add properties to classes", response)
+                raise UnexpectedStatusCodeError("Add properties to classes", response)
 
     def _create_complex_properties_from_classes(self, schema_classes_list: list) -> None:
         """
@@ -790,7 +790,7 @@ class Schema:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
 
@@ -813,7 +813,7 @@ class Schema:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Class may not have been created properly.") from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Create class", response)
+            raise UnexpectedStatusCodeError("Create class", response)
 
     def _create_classes_with_primitives(self, schema_classes_list: list) -> None:
         """
@@ -852,7 +852,7 @@ class Schema:
             If 'tenants' has not the correct type.
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
 
@@ -866,7 +866,7 @@ class Schema:
                 "Classes tenants may not have been added properly."
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Add classes tenants", response)
+            raise UnexpectedStatusCodeError("Add classes tenants", response)
 
     def remove_class_tenants(self, class_name: str, tenants: List[str]) -> None:
         """
@@ -889,7 +889,7 @@ class Schema:
             If 'tenants' has not the correct type.
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
         path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
@@ -900,7 +900,7 @@ class Schema:
                 "Classes tenants may not have been deleted."
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Delete classes tenants", response)
+            raise UnexpectedStatusCodeError("Delete classes tenants", response)
 
     def get_class_tenants(self, class_name: str) -> List[Tenant]:
         """Get class's tenants in Weaviate.
@@ -918,7 +918,7 @@ class Schema:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
         path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
@@ -972,7 +972,7 @@ class Schema:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a non-OK status.
         """
         path = f"/schema/{_capitalize_first_letter(class_name)}/tenants"
@@ -982,7 +982,7 @@ class Schema:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Could not update class tenants.") from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Update classes tenants", response)
+            raise UnexpectedStatusCodeError("Update classes tenants", response)
 
 
 def _property_is_primitive(data_type_list: list) -> bool:

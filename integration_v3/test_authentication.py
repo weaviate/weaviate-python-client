@@ -10,13 +10,13 @@ from requests.exceptions import HTTPError as RequestsHTTPError
 
 import weaviate
 from weaviate import (
-    AuthenticationFailedException,
+    AuthenticationFailed,
     AuthClientCredentials,
     AuthClientPassword,
     AuthBearerToken,
 )
 from weaviate.auth import AuthApiKey
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 
 ANON_PORT = 8080
 AZURE_PORT = 8081
@@ -52,7 +52,7 @@ def test_no_auth_provided():
     """Test exception when trying to access a weaviate that requires authentication."""
     url = f"http://localhost:{AZURE_PORT}"
     assert is_auth_enabled(url)
-    with pytest.raises(AuthenticationFailedException):
+    with pytest.raises(AuthenticationFailed):
         weaviate.Client(url)
 
 
@@ -267,6 +267,6 @@ def test_api_key_wrong_key():
     url = f"http://localhost:{WCS_PORT}"
     assert is_auth_enabled(url)
 
-    with pytest.raises(UnexpectedStatusCodeException) as e:
+    with pytest.raises(UnexpectedStatusCodeError) as e:
         weaviate.Client(url, auth_client_secret=AuthApiKey(api_key="wrong_key"))
         assert e.value.status_code == 401

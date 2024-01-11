@@ -4,7 +4,7 @@ Contextionary class definition.
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.util import _decode_json_response_dict
 
 
@@ -57,7 +57,7 @@ class Contextionary:
             If 'weight' is outside the interval [0.0; 1.0].
         requests.ConnectionError
             If text2vec-contextionary could not be extended.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If the network connection to weaviate fails.
         """
 
@@ -85,7 +85,7 @@ class Contextionary:
         if response.status_code == 200:
             # Successfully extended
             return
-        raise UnexpectedStatusCodeException("Extend text2vec-contextionary", response)
+        raise UnexpectedStatusCodeError("Extend text2vec-contextionary", response)
 
     def get_concept_vector(self, concept: str) -> dict:
         """
@@ -140,7 +140,7 @@ class Contextionary:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
 

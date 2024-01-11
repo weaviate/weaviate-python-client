@@ -5,8 +5,8 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.cluster.cluster import Cluster
 from weaviate.exceptions import (
-    UnexpectedStatusCodeException,
-    EmptyResponseException,
+    UnexpectedStatusCodeError,
+    EmptyResponse,
 )
 
 
@@ -20,12 +20,12 @@ class TestCluster(unittest.TestCase):
 
         # expected failure
         mock_conn = mock_connection_func("get", status_code=500)
-        with self.assertRaises(UnexpectedStatusCodeException) as error:
+        with self.assertRaises(UnexpectedStatusCodeError) as error:
             Cluster(mock_conn).get_nodes_status()
         check_startswith_error_message(self, error, unexpected_err_msg)
 
         mock_conn = mock_connection_func("get", status_code=200, return_json={"nodes": []})
-        with self.assertRaises(EmptyResponseException) as error:
+        with self.assertRaises(EmptyResponse) as error:
             Cluster(mock_conn).get_nodes_status()
         check_error_message(self, error, empty_response_err_msg)
 

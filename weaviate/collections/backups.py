@@ -36,7 +36,7 @@ class _CollectionBackup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         TypeError
             One of the arguments have a wrong type.
@@ -68,7 +68,7 @@ class _CollectionBackup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
         restore = self._backup.restore(backup_id, backend, [self._name], None, wait_for_completion)

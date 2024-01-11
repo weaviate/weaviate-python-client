@@ -7,7 +7,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from test.util import mock_connection_func, check_error_message
 from weaviate import Client, ConnectionConfig, ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions, EmbeddedDB
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 
 
 @patch("weaviate.client.Connection", Mock)
@@ -219,7 +219,7 @@ class TestClient(unittest.TestCase):
         # # Request to weaviate returns 404
         # connection_mock = mock_connection_func('get', status_code=404)
         # client._connection = connection_mock
-        # with self.assertRaises(UnexpectedStatusCodeException) as error:
+        # with self.assertRaises(UnexpectedStatusCodeError) as error:
         #     client.get_meta()
         # error_message = "Meta endpoint! Unexpected status code: 404, with response body: None"
         # check_error_message(self, error, error_message)
@@ -250,7 +250,7 @@ class TestClient(unittest.TestCase):
         # Request to weaviate returns 204
         connection_mock = mock_connection_func("get", status_code=204)
         client._connection = connection_mock
-        with self.assertRaises(UnexpectedStatusCodeException) as error:
+        with self.assertRaises(UnexpectedStatusCodeError) as error:
             client.get_open_id_configuration()
         error_message = "Meta endpoint! Unexpected status code: 204, with response body: None."
         check_error_message(self, error, error_message)

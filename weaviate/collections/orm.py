@@ -17,7 +17,7 @@ from weaviate.collections.data import _DataCollectionModel
 # from weaviate.collections.query import _GrpcCollectionModel
 from weaviate.collections.tenants import _Tenants
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.util import _capitalize_first_letter
 from weaviate.types import PYTHON_TYPE_TO_DATATYPE
 
@@ -91,7 +91,7 @@ class _CollectionModel(_CollectionsBase):
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Schema could not be retrieved.") from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Get schema", response)
+            raise UnexpectedStatusCodeError("Get schema", response)
 
         response_json = response.json()
         fields: Dict[str, Any] = {

@@ -15,23 +15,24 @@ ERROR_CODE_EXPLANATION = {
 class WeaviateBaseError(Exception):
     """
     Weaviate base exception that all Weaviate exceptions should inherit from.
+
     This error can be used to catch any Weaviate exceptions.
     """
 
     def __init__(self, message: str = ""):
         """
         Weaviate base exception initializer.
-        Parameters
-        ----------
-        message: str, optional
-            An error message specific to the context in which the error occurred.
+
+        Arguments:
+            `message`:
+                An error message specific to the context in which the error occurred.
         """
 
         self.message = message
         super().__init__(message)
 
 
-class UnexpectedStatusCodeException(WeaviateBaseError):
+class UnexpectedStatusCodeError(WeaviateBaseError):
     """
     Is raised in case the status code returned from Weaviate is
     not handled in the client implementation and suggests an error.
@@ -46,12 +47,11 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
         - status_code
         - json
 
-        Parameters
-        ----------
-        message: str
-            An error message specific to the context, in which the error occurred.
-        response: Union[Response, httpx._models.Response]
-            The request response of which the status code was unexpected.
+        Arguments:
+            `message`:
+                An error message specific to the context, in which the error occurred.
+            `response`:
+                The request response of which the status code was unexpected.
         """
         self._status_code: int = response.status_code
         # Set error message
@@ -75,16 +75,18 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
         return self._status_code
 
 
-class ResponseCannotBeDecodedException(WeaviateBaseError):
+UnexpectedStatusCodeException = UnexpectedStatusCodeError
+
+
+class ResponseCannotBeDecodedError(WeaviateBaseError):
     def __init__(self, location: str, response: Response):
         """Raised when a weaviate response cannot be decoded to json
 
-        Parameters
-        ----------
-        location: str
-            From which code path the exception was raised.
-        response: requests.Response
-            The request response of which the status code was unexpected.
+        Arguments:
+            `location`:
+                From which code path the exception was raised.
+            `response`:
+                The request response of which the status code was unexpected.
         """
         msg = f"Cannot decode response from weaviate {response} with content {response.text} for request from {location}"
         super().__init__(msg)
@@ -95,41 +97,62 @@ class ResponseCannotBeDecodedException(WeaviateBaseError):
         return self._status_code
 
 
-class ObjectAlreadyExistsException(WeaviateBaseError):
+ResponseCannotBeDecodedException = ResponseCannotBeDecodedError
+
+
+class ObjectAlreadyExists(WeaviateBaseError):
     """
     Object Already Exists Exception.
     """
 
 
-class AuthenticationFailedException(WeaviateBaseError):
+ObjectAlreadyExistsException = ObjectAlreadyExists
+
+
+class AuthenticationFailed(WeaviateBaseError):
     """
     Authentication Failed Exception.
     """
 
 
-class SchemaValidationException(WeaviateBaseError):
+AuthenticationFailedException = AuthenticationFailed
+
+
+class SchemaValidationError(WeaviateBaseError):
     """
     Schema Validation Exception.
     """
 
 
-class BackupFailedException(WeaviateBaseError):
+SchemaValidationException = SchemaValidationError
+
+
+class BackupFailed(WeaviateBaseError):
     """
     Backup Failed Exception.
     """
 
 
-class EmptyResponseException(WeaviateBaseError):
+BackupFailedException = BackupFailed
+
+
+class EmptyResponse(WeaviateBaseError):
     """
     Occurs when an HTTP request unexpectedly returns an empty response
     """
 
 
-class MissingScopeException(WeaviateBaseError):
+EmptyResponseException = EmptyResponse
+
+
+class MissingScope(WeaviateBaseError):
     """Scope was not provided with client credential flow."""
 
 
-class AdditionalPropertiesException(WeaviateBaseError):
+MissingScopeException = MissingScope
+
+
+class AdditionalPropertiesError(WeaviateBaseError):
     """Additional properties were provided multiple times."""
 
     def __init__(self, additional_dict: str, additional_dataclass: str):
@@ -143,12 +166,18 @@ class AdditionalPropertiesException(WeaviateBaseError):
         super().__init__(msg)
 
 
-class InvalidDataModelException(WeaviateBaseError):
+AdditionalPropertiesException = AdditionalPropertiesError
+
+
+class InvalidDataModelError(WeaviateBaseError):
     """Is raised when the user provides a generic that is not supported"""
 
     def __init__(self, type_: str) -> None:
         msg = f"""{type_} can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"""
         super().__init__(msg)
+
+
+InvalidDataModelException = InvalidDataModelError
 
 
 class WeaviateStartUpError(WeaviateBaseError):
@@ -169,7 +198,10 @@ class WeaviateEmbeddedInvalidVersion(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateInvalidInputException(WeaviateBaseError):
+WeaviateEmbeddedInvalidVersionException = WeaviateEmbeddedInvalidVersion
+
+
+class WeaviateInvalidInputError(WeaviateBaseError):
     """Is raised if the input to a function is invalid."""
 
     def __init__(self, message: str):
@@ -178,11 +210,35 @@ class WeaviateInvalidInputException(WeaviateBaseError):
         self.message = message
 
 
-class WeaviateQueryException(WeaviateBaseError):
+WeaviateInvalidInputException = WeaviateInvalidInputError
+
+
+class WeaviateQueryError(WeaviateBaseError):
     """Is raised if a query (either gRPC or GraphQL) to Weaviate fails in any way."""
 
     def __init__(self, message: str):
         msg = f"""Query call failed with message {message}."""
+        super().__init__(msg)
+        self.message = message
+
+
+WeaviateQueryException = WeaviateQueryError
+
+
+class WeaviateGQLQueryError(WeaviateQueryError):
+    """Is raised if a GraphQL query to Weaviate fails in any way."""
+
+    def __init__(self, message: str):
+        msg = f"""GQL: {message}."""
+        super().__init__(msg)
+        self.message = message
+
+
+class WeaviateGRPCQueryError(WeaviateQueryError):
+    """Is raised if a gRPC query to Weaviate fails in any way."""
+
+    def __init__(self, message: str):
+        msg = f"""GRPC: {message}."""
         super().__init__(msg)
         self.message = message
 
@@ -214,7 +270,7 @@ class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateGrpcUnavailable(WeaviateBaseError):
+class WeaviateGRPCUnavailable(WeaviateBaseError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
     def __init__(self, message: str = "") -> None:
@@ -222,9 +278,15 @@ class WeaviateGrpcUnavailable(WeaviateBaseError):
         super().__init__(msg)
 
 
-class WeaviateInsertManyAllFailedError(WeaviateBaseError):
+WeaviateGrpcUnavailable = WeaviateGRPCUnavailable
+
+
+class WeaviateInsertManyAllFailed(WeaviateBaseError):
     """Is raised when all objects fail to be inserted."""
 
     def __init__(self, message: str = "") -> None:
         msg = f"""Every object failed during insertion. {message}"""
         super().__init__(msg)
+
+
+WeaviateInsertManyAllFailedError = WeaviateInsertManyAllFailed

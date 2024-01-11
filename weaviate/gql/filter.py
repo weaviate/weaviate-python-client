@@ -112,7 +112,7 @@ class GraphQL(ABC):
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
         query = self.build()

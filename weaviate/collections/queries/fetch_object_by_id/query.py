@@ -62,7 +62,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
             - If `return_references` is not provided then no references are provided.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.

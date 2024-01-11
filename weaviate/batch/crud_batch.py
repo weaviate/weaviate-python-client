@@ -41,7 +41,7 @@ from ..error_msgs import (
     BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W,
     BATCH_EXECUTOR_SHUTDOWN_W,
 )
-from ..exceptions import UnexpectedStatusCodeException
+from ..exceptions import UnexpectedStatusCodeError
 from ..util import (
     _capitalize_first_letter,
     check_batch_result,
@@ -679,7 +679,7 @@ class Batch:
             If the request time-outed.
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
         params: Dict[str, str] = {}
@@ -750,7 +750,7 @@ class Batch:
             raise ReadTimeout(message) from None
         if response.status_code == 200:
             return response
-        raise UnexpectedStatusCodeException(f"Create {data_type} in batch", response)
+        raise UnexpectedStatusCodeError(f"Create {data_type} in batch", response)
 
     def _run_callback(self, response: BatchResponse) -> None:
         if self._callback is None:
@@ -947,7 +947,7 @@ class Batch:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
 
@@ -1044,7 +1044,7 @@ class Batch:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
 

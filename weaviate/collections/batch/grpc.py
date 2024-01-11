@@ -18,9 +18,9 @@ from weaviate.collections.classes.internal import _Reference
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import Connection
 from weaviate.exceptions import (
-    WeaviateQueryException,
+    WeaviateGRPCQueryError,
     WeaviateInsertInvalidPropertyError,
-    WeaviateInsertManyAllFailedError,
+    WeaviateInsertManyAllFailed,
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.util import _datetime_to_string, get_vector
@@ -82,7 +82,7 @@ class _BatchGRPC(_BaseGRPC):
 
         if len(errors) == len(weaviate_objs):
             # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: Pylance
-            raise WeaviateInsertManyAllFailedError(
+            raise WeaviateInsertManyAllFailed(
                 "Here is the set of all errors: {}".format(
                     "\n".join(err for err in set(errors.values()))
                 )
@@ -130,7 +130,7 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except grpc.RpcError as e:
-            raise WeaviateQueryException(e.details())
+            raise WeaviateGRPCQueryError(e.details())
 
     async def objects_async(self, objects: List[_BatchObject]) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
@@ -176,7 +176,7 @@ class _BatchGRPC(_BaseGRPC):
 
         if len(errors) == len(weaviate_objs):
             # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: Pylance
-            raise WeaviateInsertManyAllFailedError(
+            raise WeaviateInsertManyAllFailed(
                 "Here is the set of all errors: {}".format(
                     "\n".join(err for err in set(errors.values()))
                 )
@@ -224,7 +224,7 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except grpc.RpcError as e:
-            raise WeaviateQueryException(e.details())
+            raise WeaviateGRPCQueryError(e.details())
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], clean_props: bool

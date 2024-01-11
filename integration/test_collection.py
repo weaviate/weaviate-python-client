@@ -36,9 +36,9 @@ from weaviate.collections.classes.internal import _CrossReference, Reference, _O
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
-    WeaviateQueryException,
+    WeaviateGRPCQueryError,
     WeaviateInsertInvalidPropertyError,
-    WeaviateInsertManyAllFailedError,
+    WeaviateInsertManyAllFailed,
 )
 from weaviate.types import UUID
 from weaviate.util import parse_version_string, _ServerVersion
@@ -215,7 +215,7 @@ def test_insert_many_all_error(
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(True),
     )
-    with pytest.raises(WeaviateInsertManyAllFailedError) as e:
+    with pytest.raises(WeaviateInsertManyAllFailed) as e:
         collection.data.insert_many([{"name": "steve"}, {"name": "bob"}, {"name": "joe"}])
     assert (
         e.value.message
@@ -1427,7 +1427,7 @@ def test_return_properties_with_query_specific_typed_dict(
         assert len(objects) == 1
         assert objects[0].properties == data
     elif which_case == 3:
-        with pytest.raises(WeaviateQueryException):
+        with pytest.raises(WeaviateGRPCQueryError):
             collection.query.fetch_objects(return_properties=DataModel3).objects
     elif which_case == 4:
         objects = collection.query.fetch_objects(return_properties=DataModel4).objects

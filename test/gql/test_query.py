@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.gql.query import Query
 
 
@@ -61,6 +61,6 @@ class TestQuery(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
 
         query = Query(mock_connection_func("post", status_code=404))
-        with self.assertRaises(UnexpectedStatusCodeException) as error:
+        with self.assertRaises(UnexpectedStatusCodeError) as error:
             query.raw("TestQuery")
         check_startswith_error_message(self, error, query_error_message)

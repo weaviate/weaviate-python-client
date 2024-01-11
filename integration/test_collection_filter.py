@@ -146,7 +146,7 @@ def test_filter_with_wrong_types(
         uuids = [uuids[result] for result in results]
         assert all(obj.uuid in uuids for obj in objects)
     else:
-        with pytest.raises(weaviate.exceptions.WeaviateQueryException):
+        with pytest.raises(weaviate.exceptions.WeaviateGRPCQueryError):
             collection.query.fetch_objects(filters=weaviate_filter).objects
 
 

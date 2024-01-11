@@ -28,7 +28,7 @@ from weaviate.config import ConnectionConfig
 from weaviate.connect.authentication import _Auth
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
-    AuthenticationFailedException,
+    AuthenticationFailed,
     WeaviateGrpcUnavailable,
     WeaviateStartUpError,
 )
@@ -377,7 +377,7 @@ class Connection:
                         password = YOUR_WCS_PW,
                       ))
                     """
-                raise AuthenticationFailedException(msg)
+                raise AuthenticationFailed(msg)
         elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
             self._session = requests.Session()

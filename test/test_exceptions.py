@@ -4,24 +4,24 @@ from unittest.mock import Mock
 from requests import exceptions
 
 from weaviate.exceptions import (
-    UnexpectedStatusCodeException,
-    ObjectAlreadyExistsException,
-    AuthenticationFailedException,
-    SchemaValidationException,
+    UnexpectedStatusCodeError,
+    ObjectAlreadyExists,
+    AuthenticationFailed,
+    SchemaValidationError,
 )
 
 
 class TestExceptions(unittest.TestCase):
     def test_unexpected_status_code(self):
         """
-        Test the `UnexpectedStatusCodeException` exception.
+        Test the `UnexpectedStatusCodeError` exception.
         """
 
         # with .json() exception raised
         response = Mock()
         response.json = Mock(side_effect=exceptions.JSONDecodeError("test", "", 0))
         response.status_code = 1234
-        exception = UnexpectedStatusCodeException(message="Test message", response=response)
+        exception = UnexpectedStatusCodeError(message="Test message", response=response)
         self.assertEqual(
             str(exception), "Test message! Unexpected status code: 1234, with response body: None."
         )
@@ -32,7 +32,7 @@ class TestExceptions(unittest.TestCase):
         response.json = Mock()
         response.json.return_value = {"test": "OK!"}
         response.status_code = 4321
-        exception = UnexpectedStatusCodeException(message="Second test message", response=response)
+        exception = UnexpectedStatusCodeError(message="Second test message", response=response)
         self.assertEqual(
             str(exception),
             "Second test message! Unexpected status code: 4321, with response body: {'test': 'OK!'}.",
@@ -41,24 +41,24 @@ class TestExceptions(unittest.TestCase):
 
     def test_object_already_exists(self):
         """
-        Test the `ObjectAlreadyExistsException` exception.
+        Test the `ObjectAlreadyExists` exception.
         """
 
-        exception = ObjectAlreadyExistsException("Test")
+        exception = ObjectAlreadyExists("Test")
         self.assertEqual(str(exception), "Test")
 
     def test_authentication_failed(self):
         """
-        Test the `AuthenticationFailedException` exception.
+        Test the `AuthenticationFailed` exception.
         """
 
-        exception = AuthenticationFailedException("Test")
+        exception = AuthenticationFailed("Test")
         self.assertEqual(str(exception), "Test")
 
     def test_schema_validation(self):
         """
-        Test the `SchemaValidationException` exception.
+        Test the `SchemaValidationError` exception.
         """
 
-        exception = SchemaValidationException("Test")
+        exception = SchemaValidationError("Test")
         self.assertEqual(str(exception), "Test")

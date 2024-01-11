@@ -5,7 +5,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message, check_startswith_error_message
 from weaviate.exceptions import (
-    UnexpectedStatusCodeException,
+    UnexpectedStatusCodeError,
 )
 from weaviate.schema.properties import Property
 
@@ -32,7 +32,7 @@ class TestCRUDProperty(unittest.TestCase):
         check_error_message(self, error, requests_error_message)
 
         prop = Property(mock_connection_func("post", status_code=404))
-        with self.assertRaises(UnexpectedStatusCodeException) as error:
+        with self.assertRaises(UnexpectedStatusCodeError) as error:
             prop.create("Class", {"name": "test", "dataType": ["test_type"]})
         check_startswith_error_message(self, error, "Add property to class")
 

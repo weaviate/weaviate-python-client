@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from weaviate import util
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
-from weaviate.exceptions import AdditionalPropertiesException
+from weaviate.exceptions import AdditionalPropertiesError
 from weaviate.gql.filter import (
     Where,
     NearText,
@@ -1459,15 +1459,13 @@ class GetBuilder(GraphQL):
         """
         if isinstance(properties, AdditionalProperties):
             if len(self._additional) > 1 or len(self._additional["__one_level"]) > 0:
-                raise AdditionalPropertiesException(
+                raise AdditionalPropertiesError(
                     str(self._additional), str(self._additional_dataclass)
                 )
             self._additional_dataclass = properties
             return self
         elif self._additional_dataclass is not None:
-            raise AdditionalPropertiesException(
-                str(self._additional), str(self._additional_dataclass)
-            )
+            raise AdditionalPropertiesError(str(self._additional), str(self._additional_dataclass))
 
         if isinstance(properties, str):
             self._additional["__one_level"].add(properties)
@@ -1806,7 +1804,7 @@ class GetBuilder(GraphQL):
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
         grpc_enabled = (  # only implemented for some scenarios

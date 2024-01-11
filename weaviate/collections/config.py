@@ -26,8 +26,8 @@ from weaviate.collections.classes.types import SHARD_TYPES
 from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import Connection
 from weaviate.exceptions import (
-    UnexpectedStatusCodeException,
-    ObjectAlreadyExistsException,
+    UnexpectedStatusCodeError,
+    ObjectAlreadyExists,
     WeaviateAddInvalidPropertyError,
 )
 from weaviate.util import _decode_json_response_dict, _decode_json_response_list
@@ -47,7 +47,7 @@ class _ConfigBase:
                 "Collection configuration could not be retrieved."
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Get collection configuration", response)
+            raise UnexpectedStatusCodeError("Get collection configuration", response)
         return cast(Dict[str, Any], response.json())
 
     @overload
@@ -67,7 +67,7 @@ class _ConfigBase:
         Raises:
             `requests.ConnectionError`
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(simple, bool):
@@ -99,7 +99,7 @@ class _ConfigBase:
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`:
+            `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
 
         NOTE:
@@ -122,7 +122,7 @@ class _ConfigBase:
                 "Collection configuration could not be updated."
             ) from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Update collection configuration", response)
+            raise UnexpectedStatusCodeError("Update collection configuration", response)
 
     def _add_property(self, additional_property: PropertyType) -> None:
         path = f"/schema/{self._name}/properties"
@@ -132,7 +132,7 @@ class _ConfigBase:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Property was not created properly.") from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Add property to collection", response)
+            raise UnexpectedStatusCodeError("Add property to collection", response)
 
     def _get_property_by_name(self, property_name: str) -> Optional[_Property]:
         for prop in self.get().properties:
@@ -154,7 +154,7 @@ class _ConfigBase:
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`:
+            `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
         try:
@@ -192,7 +192,7 @@ class _ConfigBase:
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`:
+            `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
         if shard_names is None:
@@ -234,9 +234,9 @@ class _ConfigCollection(_ConfigBase):
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`:
+            `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
-            `weaviate.ObjectAlreadyExistsException`:
+            `weaviate.ObjectAlreadyExists`:
                 If the property already exists in the collection.
         """
         if not isinstance(prop, Property):
@@ -246,7 +246,7 @@ class _ConfigCollection(_ConfigBase):
                 Property,
             )
         if self._get_property_by_name(prop.name) is not None:
-            raise ObjectAlreadyExistsException(
+            raise ObjectAlreadyExists(
                 f"Property with name '{prop.name}' already exists in collection '{self._name}'."
             )
         self._add_property(prop)
@@ -260,9 +260,9 @@ class _ConfigCollection(_ConfigBase):
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`:
+            `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
-            `weaviate.ObjectAlreadyExistsException`:
+            `weaviate.ObjectAlreadyExists`:
                 If the reference already exists in the collection.
         """
         if not isinstance(ref, ReferenceProperty) and not isinstance(
@@ -274,7 +274,7 @@ class _ConfigCollection(_ConfigBase):
                 Union[ReferenceProperty, ReferencePropertyMultiTarget],
             )
         if self._get_property_by_name(ref.name) is not None:
-            raise ObjectAlreadyExistsException(
+            raise ObjectAlreadyExists(
                 f"Reference with name '{ref.name}' already exists in collection '{self._name}'."
             )
         self._add_property(ref)

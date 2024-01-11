@@ -10,8 +10,8 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import (
-    BackupFailedException,
-    EmptyResponseException,
+    BackupFailed,
+    EmptyResponse,
 )
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
@@ -89,7 +89,7 @@ class _Backup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         TypeError
             One of the arguments have a wrong type.
@@ -137,7 +137,7 @@ class _Backup:
                 if status.status == _BackupStatus.SUCCESS:
                     break
                 if status.status == _BackupStatus.FAILED:
-                    raise BackupFailedException(f"Backup failed: {create_status}")
+                    raise BackupFailed(f"Backup failed: {create_status}")
                 sleep(1)
         return _BackupReturn(**create_status)
 
@@ -175,7 +175,7 @@ class _Backup:
 
         typed_response = _decode_json_response_dict(response, "Backup status check")
         if typed_response is None:
-            raise EmptyResponseException()
+            raise EmptyResponse()
         return _BackupStatusReturn(**typed_response)
 
     def restore(
@@ -214,7 +214,7 @@ class _Backup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
         (
@@ -258,7 +258,7 @@ class _Backup:
                 if status.status == _BackupStatus.SUCCESS:
                     break
                 if status.status == _BackupStatus.FAILED:
-                    raise BackupFailedException(f"Backup restore failed: {restore_status}")
+                    raise BackupFailed(f"Backup restore failed: {restore_status}")
                 sleep(1)
         return _BackupReturn(**restore_status)
 
@@ -296,7 +296,7 @@ class _Backup:
 
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
-            raise EmptyResponseException()
+            raise EmptyResponse()
         return _BackupStatusReturn(**typed_response)
 
 
@@ -357,7 +357,7 @@ class Backup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         TypeError
             One of the arguments have a wrong type.
@@ -408,7 +408,7 @@ class Backup:
                 if status["status"] == "SUCCESS":
                     break
                 if status["status"] == "FAILED":
-                    raise BackupFailedException(f"Backup failed: {create_status}")
+                    raise BackupFailed(f"Backup failed: {create_status}")
                 sleep(1)
         return create_status
 
@@ -450,7 +450,7 @@ class Backup:
 
         typed_response = _decode_json_response_dict(response, "Backup status check")
         if typed_response is None:
-            raise EmptyResponseException()
+            raise EmptyResponse()
         return typed_response
 
     def restore(
@@ -492,7 +492,7 @@ class Backup:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
 
@@ -537,7 +537,7 @@ class Backup:
                 if status["status"] == "SUCCESS":
                     break
                 if status["status"] == "FAILED":
-                    raise BackupFailedException(f"Backup restore failed: {restore_status}")
+                    raise BackupFailed(f"Backup restore failed: {restore_status}")
                 sleep(1)
         return restore_status
 
@@ -578,7 +578,7 @@ class Backup:
 
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
-            raise EmptyResponseException()
+            raise EmptyResponse()
         return typed_response
 
 

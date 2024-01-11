@@ -155,7 +155,7 @@ class Query:
             If 'gql_query' is not of type str.
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
 

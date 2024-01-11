@@ -262,7 +262,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                 The references to return with each object.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
         return cast(

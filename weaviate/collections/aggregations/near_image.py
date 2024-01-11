@@ -90,7 +90,7 @@ class _NearImage(_Aggregate):
             Depending on the presence of the `group_by` argument, either a `_AggregateReturn` object or a `_AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If an error occurs while performing the query against Weaviate.
         """
         return_metrics = (
@@ -159,7 +159,7 @@ class _NearImageGroupBy(_Aggregate):
             A list of `_AggregateGroup` objects that includes the aggregation objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If an error occurs while performing the query against Weaviate.
         """
         return_metrics = (

@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock
 import pytest
 
 from test.util import check_error_message
-from weaviate import SchemaValidationException
+from weaviate import SchemaValidationError
 from weaviate.util import (
     generate_uuid5,
     image_decoder_b64,
@@ -417,7 +417,7 @@ class TestUtil(unittest.TestCase):
 
         invalid_sub_schema_msg = "The sub schema class/es MUST have a 'class' keyword each!"
 
-        with self.assertRaises(SchemaValidationException) as error:
+        with self.assertRaises(SchemaValidationError) as error:
             _is_sub_schema({}, schema_set)
         check_error_message(self, error, invalid_sub_schema_msg)
 

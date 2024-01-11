@@ -4,7 +4,7 @@ Property class definition.
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.util import _get_dict_from_object, _capitalize_first_letter
 
 
@@ -52,11 +52,11 @@ class Property:
         ------
         TypeError
             If 'schema_class_name' is of wrong type.
-        weaviate.exceptions.UnexpectedStatusCodeException
+        weaviate.exceptions.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.SchemaValidationException
+        weaviate.SchemaValidationError
             If the 'schema_property' is not valid.
         """
 
@@ -73,4 +73,4 @@ class Property:
         except RequestsConnectionError as conn_err:
             raise RequestsConnectionError("Property was created properly.") from conn_err
         if response.status_code != 200:
-            raise UnexpectedStatusCodeException("Add property to class", response)
+            raise UnexpectedStatusCodeError("Add property to class", response)

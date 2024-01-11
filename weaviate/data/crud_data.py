@@ -12,8 +12,8 @@ from weaviate.data.references import Reference
 from weaviate.data.replication import ConsistencyLevel
 from weaviate.error_msgs import DATA_DEPRECATION_NEW_V14_CLS_NS_W, DATA_DEPRECATION_OLD_V14_CLS_NS_W
 from weaviate.exceptions import (
-    ObjectAlreadyExistsException,
-    UnexpectedStatusCodeException,
+    ObjectAlreadyExists,
+    UnexpectedStatusCodeError,
 )
 from weaviate.util import (
     _get_dict_from_object,
@@ -112,9 +112,9 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        weaviate.ObjectAlreadyExistsException
+        weaviate.ObjectAlreadyExists
             If an object with the given uuid already exists within Weaviate.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If creating the object in Weaviate failed for a different reason,
             more information is given in the exception.
         requests.ConnectionError
@@ -155,8 +155,8 @@ class DataObject:
         except KeyError:
             pass
         if object_does_already_exist:
-            raise ObjectAlreadyExistsException(str(uuid))
-        raise UnexpectedStatusCodeException("Creating object", response)
+            raise ObjectAlreadyExists(str(uuid))
+        raise UnexpectedStatusCodeError("Creating object", response)
 
     def update(
         self,
@@ -242,7 +242,7 @@ class DataObject:
             If argument contains an invalid value.
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a none successful status.
         """
         params = {}
@@ -263,7 +263,7 @@ class DataObject:
         if response.status_code == 204:
             # Successful merge
             return
-        raise UnexpectedStatusCodeException("Update of the object not successful", response)
+        raise UnexpectedStatusCodeError("Update of the object not successful", response)
 
     def replace(
         self,
@@ -345,7 +345,7 @@ class DataObject:
             If argument contains an invalid value.
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a none OK status.
         """
         params = {}
@@ -361,7 +361,7 @@ class DataObject:
         if response.status_code == 200:
             # Successful update
             return
-        raise UnexpectedStatusCodeException("Replace object", response)
+        raise UnexpectedStatusCodeError("Replace object", response)
 
     def _create_object_for_update(
         self,
@@ -458,7 +458,7 @@ class DataObject:
             If argument contains an invalid value.
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a none OK status.
         """
 
@@ -547,7 +547,7 @@ class DataObject:
             If argument contains an invalid value.
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a none OK status.
         """
         is_server_version_14 = self._connection.server_version >= "1.14"
@@ -650,7 +650,7 @@ class DataObject:
             return cast(Dict[str, Any], response.json())
         if response.status_code == 404:
             return None
-        raise UnexpectedStatusCodeException("Get object/s", response)
+        raise UnexpectedStatusCodeError("Get object/s", response)
 
     def delete(
         self,
@@ -708,7 +708,7 @@ class DataObject:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
@@ -756,7 +756,7 @@ class DataObject:
         if response.status_code == 204:
             # Successfully deleted
             return
-        raise UnexpectedStatusCodeException("Delete object", response)
+        raise UnexpectedStatusCodeError("Delete object", response)
 
     def exists(
         self,
@@ -809,7 +809,7 @@ class DataObject:
         ------
         requests.ConnectionError
             If the network connection to Weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If Weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
@@ -857,7 +857,7 @@ class DataObject:
             return True
         if response.status_code == 404:
             return False
-        raise UnexpectedStatusCodeException("Object exists", response)
+        raise UnexpectedStatusCodeError("Object exists", response)
 
     def validate(
         self,
@@ -924,7 +924,7 @@ class DataObject:
             If argument is of wrong type.
         ValueError
             If argument contains an invalid value.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If validating the object against Weaviate failed with a different reason.
         requests.ConnectionError
             If the network connection to Weaviate fails.
@@ -962,7 +962,7 @@ class DataObject:
             result["valid"] = False
             result["error"] = response.json()["error"]
             return result
-        raise UnexpectedStatusCodeException("Validate object", response)
+        raise UnexpectedStatusCodeError("Validate object", response)
 
 
 def _get_params(additional_properties: Optional[List[str]], with_vector: bool) -> dict:

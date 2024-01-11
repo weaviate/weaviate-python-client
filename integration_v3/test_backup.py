@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 import pytest
 
 import weaviate
-from weaviate.exceptions import UnexpectedStatusCodeException, BackupFailedException
+from weaviate.exceptions import UnexpectedStatusCodeError, BackupFailed
 
 BACKUP_FILESYSTEM_PATH = "/tmp/backups"  # must be the same location as in the docker-compose file
 BACKEND = "filesystem"
@@ -246,7 +246,7 @@ def test_fail_on_non_existing_class(client: weaviate.Client) -> None:
     backup_id = _create_backup_id()
     class_name = "NonExistingClass"
     for func in [client.backup.create, client.backup.restore]:
-        with pytest.raises(UnexpectedStatusCodeException) as excinfo:
+        with pytest.raises(UnexpectedStatusCodeError) as excinfo:
             func(backup_id=backup_id, backend=BACKEND, include_classes=class_name)
             assert class_name in str(excinfo.value)
             assert "422" in str(excinfo.value)
@@ -262,7 +262,7 @@ def test_fail_restoring_backup_for_existing_class(client: weaviate.Client):
     _check_response(resp, backup_id, ["SUCCESS"], class_name)
 
     # fail restore
-    with pytest.raises(BackupFailedException) as excinfo:
+    with pytest.raises(BackupFailed) as excinfo:
         client.backup.restore(
             backup_id=backup_id,
             include_classes=class_name,
@@ -283,7 +283,7 @@ def test_fail_creating_existing_backup(client: weaviate.Client):
     _check_response(resp, backup_id, ["SUCCESS"], class_name)
 
     # fail create
-    with pytest.raises(UnexpectedStatusCodeException) as excinfo:
+    with pytest.raises(UnexpectedStatusCodeError) as excinfo:
         client.backup.create(
             backup_id=backup_id,
             include_classes=class_name,
@@ -297,7 +297,7 @@ def test_fail_creating_existing_backup(client: weaviate.Client):
 def test_fail_restoring_non_existing_backup(client: weaviate.Client):
     """fail restoring non-existing backup"""
     backup_id = _create_backup_id()
-    with pytest.raises(UnexpectedStatusCodeException) as excinfo:
+    with pytest.raises(UnexpectedStatusCodeError) as excinfo:
         client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
         assert backup_id in str(excinfo.value)
         assert "404" in str(excinfo.value)
@@ -307,7 +307,7 @@ def test_fail_checking_status_for_non_existing_restore(client: weaviate.Client):
     """Fail checking restore status for non-existing restore."""
     backup_id = _create_backup_id()
     for func in [client.backup.get_restore_status, client.backup.get_create_status]:
-        with pytest.raises(UnexpectedStatusCodeException) as excinfo:
+        with pytest.raises(UnexpectedStatusCodeError) as excinfo:
             func(
                 backup_id=backup_id,
                 backend=BACKEND,

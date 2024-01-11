@@ -72,7 +72,7 @@ class _NearObjectQuery(Generic[Properties, References], _BaseQuery[Properties, R
             A `_QueryReturn` object that includes the searched objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
         res = self._query().near_object(
