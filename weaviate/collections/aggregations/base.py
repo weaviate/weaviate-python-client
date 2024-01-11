@@ -33,7 +33,7 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
 from weaviate.connect import ConnectionV4
 from weaviate.collections.filters import _FilterToREST
-from weaviate.exceptions import WeaviateInvalidInputException, WeaviateQueryException
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateGQLQueryError
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.util import file_encoder_b64
 from weaviate.types import UUID
@@ -211,10 +211,10 @@ class _Aggregate:
         res = query.do()
         if (errs := res.get("errors")) is not None:
             if "Unexpected empty IN" in errs[0]["message"]:
-                raise WeaviateQueryException(
+                raise WeaviateGQLQueryError(
                     "The query that you sent had no body so GraphQL was unable to parse it. You must provide at least one option to the aggregation method in order to build a valid query."
                 )
-            raise WeaviateQueryException(
+            raise WeaviateGQLQueryError(
                 f"Error in GraphQL response: {json.dumps(errs, indent=2)}, for the following query: {query.build()}"
             )
         return res
@@ -228,7 +228,7 @@ class _Aggregate:
         object_limit: Optional[int],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
-            raise WeaviateInvalidInputException(
+            raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
         payload: dict = {}
@@ -251,7 +251,7 @@ class _Aggregate:
         object_limit: Optional[int],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
-            raise WeaviateInvalidInputException(
+            raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
         payload: dict = {}
@@ -276,7 +276,7 @@ class _Aggregate:
         object_limit: Optional[int],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
-            raise WeaviateInvalidInputException(
+            raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
         payload: dict = {}
@@ -303,7 +303,7 @@ class _Aggregate:
         object_limit: Optional[int],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
-            raise WeaviateInvalidInputException(
+            raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
         payload: dict = {}

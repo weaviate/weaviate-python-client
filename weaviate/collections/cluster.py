@@ -5,7 +5,7 @@ from httpx import ConnectError
 from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
-    EmptyResponseException,
+    EmptyResponseError,
 )
 from ..util import _capitalize_first_letter, _decode_json_response_dict
 
@@ -61,9 +61,9 @@ class _Cluster:
         Raises:
             `requests.ConnectionError`
                 If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If weaviate reports a none OK status.
-            `weaviate.EmptyResponseException`
+            `weaviate.EmptyResponseError`
                 If the response is empty.
         """
         path = "/nodes"
@@ -82,7 +82,7 @@ class _Cluster:
 
         nodes = response_typed.get("nodes")
         if nodes is None or nodes == []:
-            raise EmptyResponseException("Nodes status response returned empty")
+            raise EmptyResponseError("Nodes status response returned empty")
 
         return (
             _ConvertFromREST.nodes_verbose(nodes)

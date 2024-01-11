@@ -53,9 +53,9 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
-    WeaviateGrpcUnavailable,
-    WeaviateQueryException,
-    UnexpectedStatusCodeException,
+    UnexpectedStatusCodeError,
+    WeaviateGRPCUnavailableError,
+    WeaviateGRPCQueryError,
 )
 from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
 from weaviate.types import UUID
@@ -92,7 +92,7 @@ class _BaseQuery(Generic[Properties, References]):
 
     def _query(self) -> _QueryGRPC:
         if not self.__connection._grpc_available:
-            raise WeaviateGrpcUnavailable()
+            raise WeaviateGRPCUnavailableError()
         return _QueryGRPC(
             self.__connection,
             self._name,
@@ -143,7 +143,7 @@ class _BaseQuery(Generic[Properties, References]):
             return _WeaviateUUIDInt(int.from_bytes(add_props.id_as_bytes, byteorder="big"))
 
         if len(add_props.id) == 0:
-            raise WeaviateQueryException("The query returned an object with an empty ID string")
+            raise WeaviateGRPCQueryError("The query returned an object with an empty ID string")
         return uuid_lib.UUID(add_props.id)
 
     def __extract_vector_for_object(
@@ -705,7 +705,7 @@ class _BaseQuery(Generic[Properties, References]):
             return response_json
         if response.status_code == 404:
             return None
-        raise UnexpectedStatusCodeException("Get object/s", response)
+        raise UnexpectedStatusCodeError("Get object/s", response)
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
         if self.__tenant is not None:

@@ -83,7 +83,7 @@ class _NearVideoGenerate(Generic[Properties, References], _BaseQuery[Properties,
             A `_GenerativeNearMediaReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
         res = self._query().near_video(

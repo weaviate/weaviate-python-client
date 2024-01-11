@@ -26,7 +26,7 @@ from .connect.base import (
 from .contextionary import Contextionary
 from .data import DataObject
 from .embedded import EmbeddedDB, EmbeddedOptions
-from .exceptions import UnexpectedStatusCodeException
+from .exceptions import UnexpectedStatusCodeError
 from .gql import Query
 from .schema import Schema
 from .types import NUMBER
@@ -80,7 +80,7 @@ class _ClientBase:
                 The `dict` describing the weaviate configuration.
 
         Raises:
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a none OK status.
         """
 
@@ -95,7 +95,7 @@ class _ClientBase:
                 The configuration or `None` if not configured.
 
         Raises
-            `weaviate.UnexpectedStatusCodeException`
+            `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a none OK status.
         """
 
@@ -104,7 +104,7 @@ class _ClientBase:
             return _type_request_response(response.json())
         if response.status_code == 404:
             return None
-        raise UnexpectedStatusCodeException("Meta endpoint", response)
+        raise UnexpectedStatusCodeError("Meta endpoint", response)
 
     @staticmethod
     def _parse_connection_params_and_embedded_db(
@@ -279,7 +279,7 @@ class WeaviateClient(_ClientBase):
             If 'gql_query' is not of type str.
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
+        weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
         """
 

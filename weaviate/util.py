@@ -18,9 +18,9 @@ import validators  # type: ignore
 from requests.exceptions import JSONDecodeError
 
 from weaviate.exceptions import (
-    SchemaValidationException,
-    UnexpectedStatusCodeException,
-    ResponseCannotBeDecodedException,
+    SchemaValidationError,
+    UnexpectedStatusCodeError,
+    ResponseCannotBeDecodedError,
 )
 from weaviate.warnings import _Warnings
 from weaviate.types import NUMBER, UUIDS, TIME
@@ -511,7 +511,7 @@ def _compare_class_sets(sub_set: list, set_: list) -> bool:
         found = False
         for set_class in set_:
             if "class" not in sub_set_class:
-                raise SchemaValidationException(
+                raise SchemaValidationError(
                     "The sub schema class/es MUST have a 'class' keyword each!"
                 )
             if _capitalize_first_letter(sub_set_class["class"]) == _capitalize_first_letter(
@@ -903,9 +903,9 @@ def _decode_json_response_dict(
             json_response = cast(Dict[str, Any], response.json())
             return json_response
         except JSONDecodeError:
-            raise ResponseCannotBeDecodedException(location, response)
+            raise ResponseCannotBeDecodedError(location, response)
 
-    raise UnexpectedStatusCodeException(location, response)
+    raise UnexpectedStatusCodeError(location, response)
 
 
 def _decode_json_response_list(
@@ -919,8 +919,8 @@ def _decode_json_response_list(
             json_response = response.json()
             return cast(list, json_response)
         except JSONDecodeError:
-            raise ResponseCannotBeDecodedException(location, response)
-    raise UnexpectedStatusCodeException(location, response)
+            raise ResponseCannotBeDecodedError(location, response)
+    raise UnexpectedStatusCodeError(location, response)
 
 
 def _datetime_to_string(value: TIME) -> str:

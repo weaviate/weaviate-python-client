@@ -80,7 +80,7 @@ class _NearAudioQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             If `group_by` is provided then a `_GroupByReturn` object is returned, otherwise a `_QueryReturn` object is returned.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
         res = self._query().near_audio(

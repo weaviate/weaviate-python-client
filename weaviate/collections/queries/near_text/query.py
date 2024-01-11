@@ -81,7 +81,7 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
             A `_QueryReturn` object that includes the searched objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
         res = self._query().near_text(

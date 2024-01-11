@@ -76,7 +76,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
             A `_GenerativeNearMediaReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryException`:
+            `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
         """
         res = self._query().bm25(

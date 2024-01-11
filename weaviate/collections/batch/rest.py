@@ -12,7 +12,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToREST
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import UnexpectedStatusCodeException
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.util import _decode_json_response_dict
 
 
@@ -90,7 +90,7 @@ class _BatchREST:
                 errors=errors,
                 has_errors=len(errors) > 0,
             )
-        raise UnexpectedStatusCodeException("Send ref batch", response)
+        raise UnexpectedStatusCodeError("Send ref batch", response)
 
 
 class _BatchRESTAsync:
@@ -130,4 +130,4 @@ class _BatchRESTAsync:
                 errors=errors,
                 has_errors=len(errors) > 0,
             )
-        raise UnexpectedStatusCodeException("Send ref batch", response)
+        raise UnexpectedStatusCodeError("Send ref batch", response)
