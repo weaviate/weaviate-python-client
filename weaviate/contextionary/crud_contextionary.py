@@ -57,7 +57,7 @@ class Contextionary:
             If 'weight' is outside the interval [0.0; 1.0].
         requests.ConnectionError
             If text2vec-contextionary could not be extended.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             If the network connection to weaviate fails.
         """
 
@@ -140,7 +140,7 @@ class Contextionary:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         """
 

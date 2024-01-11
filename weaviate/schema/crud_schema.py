@@ -192,7 +192,7 @@ class Schema:
             If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
             If Weaviate reports a non-OK status.
-        weaviate.SchemaValidationError
+        weaviate.SchemaValidationExceptions
             If the 'schema' could not be validated against the standard format.
         """
 
@@ -244,7 +244,7 @@ class Schema:
             If the network connection to Weaviate fails.
         weaviate.UnexpectedStatusCodeException
             If Weaviate reports a non-OK status.
-        weaviate.SchemaValidationError
+        weaviate.SchemaValidationExceptions
             If the 'schema_class' could not be validated against the standard format.
         """
 
