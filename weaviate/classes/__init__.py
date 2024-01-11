@@ -60,7 +60,6 @@ __all__ = [
     "ReferenceAnnotation",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",
-    "Shard",
     "StopwordsPreset",
     "Tenant",
     "Tokenization",
