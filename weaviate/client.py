@@ -238,7 +238,6 @@ class WeaviateClient(_ClientBase):
             proxies=config.proxies,
             trust_env=config.trust_env,
         )
-        # self._connection.connect(self.__skip_init_checks)
 
         self.batch = _BatchClientWrapper(self._connection, consistency_level=None)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
