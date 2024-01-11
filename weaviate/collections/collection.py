@@ -25,7 +25,7 @@ from weaviate.collections.iterator import _ObjectIterator
 from weaviate.collections.query import _GenerateCollection, _GroupByCollection, _QueryCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.collections.validator import _raise_invalid_input
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 
 
 class Collection(_CollectionBase, Generic[Properties, References]):
@@ -58,7 +58,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
 
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         name: str,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,

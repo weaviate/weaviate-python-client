@@ -25,7 +25,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
-from weaviate.util import _ServerVersion, parse_version_string
+from weaviate.util import _ServerVersion
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -100,7 +100,7 @@ def test_array_types(
         ],
     )
 
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
         pytest.skip("Fixes for this are not implemented in this version")
 
     uuids = [
@@ -138,7 +138,7 @@ def test_filter_with_wrong_types(
             Property(name="float", data_type=DataType.NUMBER),
         ],
     )
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
         pytest.skip("Fixes for this are not implemented in this version")
 
     uuids = [
@@ -319,10 +319,7 @@ def test_filters_contains(
             Property(name="uuid", data_type=DataType.UUID),
         ],
     )
-    if (
-        parse_version_string(collection._connection._server_version) < parse_version_string("1.23")
-        and skip
-    ):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0) and skip:
         pytest.skip("not supported in this version")
 
     uuids = [
@@ -573,7 +570,7 @@ def test_filter_id(collection_factory: CollectionFactory, weav_filter: _FilterVa
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
         pytest.skip("filter by id is not supported in this version")
 
     collection.data.insert_many(
@@ -598,7 +595,7 @@ def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, pat
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
         pytest.skip("filter by id is not supported in this version")
 
     obj1_uuid = collection.data.insert(properties={"name": "first"})
@@ -632,7 +629,7 @@ def test_filter_timestamp_class(
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
         pytest.skip("filter by id is not supported in this version")
 
     obj1_uuid = collection.data.insert(properties={"name": "first"})
@@ -688,7 +685,7 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
         pytest.skip("filter by id is not supported in this version")
 
     obj1_uuid = collection.data.insert(properties={"name": "first"})

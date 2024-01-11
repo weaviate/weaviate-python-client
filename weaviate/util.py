@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
 
 import requests
+import httpx
 import uuid as uuid_lib
 import validators  # type: ignore
 from requests.exceptions import JSONDecodeError
@@ -746,6 +747,9 @@ class _ServerVersion:
     def __repr__(self) -> str:
         return f"{self.major}.{self.minor}.{self.patch}"
 
+    def __str__(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
     def is_at_least(self, major: int, minor: int, patch: int) -> bool:
         return self >= _ServerVersion(major, minor, patch)
 
@@ -892,7 +896,7 @@ def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
 
 
 def _decode_json_response_dict(
-    response: requests.Response, location: str
+    response: Union[httpx.Response, requests.Response], location: str
 ) -> Optional[Dict[str, Any]]:
     if response is None:
         return None
@@ -908,7 +912,7 @@ def _decode_json_response_dict(
 
 
 def _decode_json_response_list(
-    response: requests.Response, location: str
+    response: Union[httpx.Response, requests.Response], location: str
 ) -> Optional[List[Dict[str, Any]]]:
     if response is None:
         return None

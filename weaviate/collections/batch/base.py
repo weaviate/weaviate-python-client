@@ -29,7 +29,7 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import WeaviateReferences
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateBatchValidationError
 from weaviate.types import UUID
 from weaviate.warnings import _Warnings
@@ -139,7 +139,7 @@ class _BatchDataWrapper:
 class _BatchBase:
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
         fixed_batch_size: Optional[int] = None,  # dynamic by default

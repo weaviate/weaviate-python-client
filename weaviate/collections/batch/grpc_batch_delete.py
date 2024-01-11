@@ -13,7 +13,7 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.collections.queries.base import _WeaviateUUIDInt
-from weaviate.connect.connection import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateQueryException
 from weaviate.proto.v1 import batch_delete_pb2
 
@@ -25,7 +25,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
     and abstractions so as not to couple to strongly to either use-case.
     """
 
-    def __init__(self, connection: Connection, consistency_level: Optional[ConsistencyLevel]):
+    def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
         super().__init__(connection, consistency_level, False)
 
     def batch_delete(

@@ -8,13 +8,13 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collections.batch.base import _BatchBase, _BatchDataWrapper
 from weaviate.collections.classes.batch import BatchResult, ErrorObject, ErrorReference, Shard
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 
 
 class _BatchWrapper:
     def __init__(
-        self, connection: Connection, consistency_level: Optional[ConsistencyLevel] = None
+        self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel] = None
     ):
         self._connection = connection
         self._consistency_level = consistency_level

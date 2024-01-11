@@ -37,7 +37,7 @@ from weaviate.collections.filters import _FilterToGRPC
 
 from weaviate.collections.grpc.shared import _BaseGRPC
 
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateQueryException
 from weaviate.types import UUID
 from weaviate.warnings import _Warnings
@@ -74,7 +74,7 @@ A = TypeVar("A")
 class _QueryGRPC(_BaseGRPC):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         name: str,
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],

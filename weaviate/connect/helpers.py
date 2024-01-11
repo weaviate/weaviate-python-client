@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateClient
 from weaviate.config import AdditionalConfig
-from weaviate.connect.connection import ConnectionParams, ProtocolParams
+from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions
 
 

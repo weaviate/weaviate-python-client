@@ -5,14 +5,14 @@ from weaviate.collections.batch.batch_wrapper import _BatchWrapper
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import WeaviateReferences, WeaviateReference
 from weaviate.collections.classes.types import Properties
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.types import UUID
 
 
 class _BatchCollection(Generic[Properties], _BatchBase):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
         fixed_batch_size: Optional[int],
@@ -95,7 +95,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
 class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         name: str,
         tenant: Optional[str] = None,

@@ -2,10 +2,8 @@ import unittest
 from unittest.mock import patch
 
 from test.util import check_error_message
-from weaviate.connect.connection import (
-    Connection,
-    _get_proxies,
-)
+from weaviate.connect.base import _get_proxies
+from weaviate.connect.v3 import Connection
 from weaviate.util import _get_valid_timeout_config
 
 
@@ -37,14 +35,14 @@ class TestConnection(unittest.TestCase):
         if headers != "skip":
             self.assertEqual(connection._headers, headers)
 
-    @patch("weaviate.connect.connection.datetime")
+    @patch("weaviate.connect.base.datetime")
     def test_get_epoch_time(self, mock_datetime):
         """
         Test the `get_epoch_time` function.
         """
 
         import datetime
-        from weaviate.connect.connection import _get_epoch_time
+        from weaviate.connect.base import _get_epoch_time
 
         zero_epoch = datetime.datetime.fromtimestamp(0)
         mock_datetime.datetime.utcnow.return_value = zero_epoch
@@ -58,7 +56,7 @@ class TestConnection(unittest.TestCase):
         mock_datetime.datetime.utcnow.return_value = epoch
         self.assertEqual(_get_epoch_time(), 110)
 
-    @patch("weaviate.connect.connection.os")
+    @patch("weaviate.connect.base.os")
     def test_get_proxies(self, os_mock):
         """
         Test the `_get_proxies` function.

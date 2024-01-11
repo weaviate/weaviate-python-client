@@ -12,14 +12,14 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToREST
-from weaviate.connect import Connection
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _decode_json_response_dict
 
 
 class _BatchREST:
     def __init__(
-        self, connection: Connection, consistency_level: Optional[ConsistencyLevel]
+        self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]
     ) -> None:
         self.__connection = connection
         self.__consistency_level = consistency_level
@@ -103,7 +103,7 @@ class _BatchREST:
 
 class _BatchRESTAsync:
     def __init__(
-        self, connection: Connection, consistency_level: Optional[ConsistencyLevel]
+        self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]
     ) -> None:
         self.__consistency_level = consistency_level
         self.__connection = connection
@@ -120,7 +120,7 @@ class _BatchRESTAsync:
             for ref in references
         ]
 
-        response = await self.__connection.post_async(
+        response = await self.__connection.apost(
             path="/batch/references", weaviate_object=refs, params=params
         )
         if response.status_code == 200:

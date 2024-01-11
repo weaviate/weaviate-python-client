@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview-add-reference-filter-detection-3fb7f50
+  NEW_WEAVIATE_VERSION: preview--grpc-add-structured-references-for-filters-grpc-batch-delete-endpoint-50c16f9
 
 jobs:
   lint-and-format:
