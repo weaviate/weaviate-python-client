@@ -21,7 +21,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.internal import Reference
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.exceptions import WeaviateQueryException
+from weaviate.exceptions import WeaviateInvalidInputException, WeaviateQueryException
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -72,6 +72,11 @@ def test_batch_delete_with_tenant(collection_factory: CollectionFactory) -> None
 
     uuid1 = collection.with_tenant("tenant1").data.insert(properties={})
     uuid2 = collection.with_tenant("tenant2").data.insert(properties={})
+
+    if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
+        with pytest.raises(WeaviateInvalidInputException):
+            collection.data.delete_many(where=Filter.by_id().contains_any([uuid1, uuid2]))
+        return
 
     with pytest.raises(WeaviateQueryException):
         collection.data.delete_many(where=Filter.by_id().contains_any([uuid1, uuid2]))
