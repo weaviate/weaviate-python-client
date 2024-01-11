@@ -400,26 +400,6 @@ class _Connection(_ConnectionBase):
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> Response:
-        """
-        Make a DELETE request to the Weaviate server instance.
-
-        Arguments:
-            `path`:
-                Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
-                e.g. '/meta' or '/objects', without version.
-            `weaviate_object`:
-                Object is used as payload for DELETE request. By default None.
-            `params`:
-                Additional request parameters, by default None
-
-        Returns:
-            `httpx.Response`
-                The response, if request was successful.
-
-        Raises:
-            `httpx.ConnectionError`
-                If the DELETE request could not be made.
-        """
         return self.__send(
             "DELETE",
             url=self.url + self._api_version_path + path,
@@ -433,26 +413,6 @@ class _Connection(_ConnectionBase):
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
     ) -> Response:
-        """
-        Make a PATCH request to the Weaviate server instance.
-
-        Arguments:
-            `path`:
-                Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
-                e.g. '/meta' or '/objects', without version.
-            `weaviate_object`:
-                Object is used as payload for PATCH request.
-            `params`:
-                Additional request parameters, by default None
-
-        Returns:
-            `httpx.Response`
-                The response, if request was successful.
-
-        Raises:
-            `httpx.ConnectionError`
-                If the PATCH request could not be made.
-        """
         return self.__send(
             "PATCH",
             url=self.url + self._api_version_path + path,
@@ -466,28 +426,6 @@ class _Connection(_ConnectionBase):
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
     ) -> Response:
-        """
-        Make a POST request to the Weaviate server instance.
-
-        Arguments:
-            `path`:
-                Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
-                e.g. '/meta' or '/objects', without version.
-            `weaviate_object`:
-                Object is used as payload for POST request.
-            `params`:
-                Additional request parameters, by default None
-            `external_url`:
-                Is an external (non-weaviate) url called
-
-        Returns:
-            `httpx.Response`
-                The response, if request was successful.
-
-        Raises:
-            `httpx.ConnectionError`
-                If the POST request could not be made.
-        """
         return self.__send(
             "POST",
             url=self.url + self._api_version_path + path,
@@ -501,28 +439,6 @@ class _Connection(_ConnectionBase):
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
     ) -> Response:
-        """
-        Make a async POST request to the Weaviate server instance.
-
-        Arguments:
-            `path`:
-                Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
-                e.g. '/meta' or '/objects', without version.
-            `weaviate_object`:
-                Object is used as payload for POST request.
-            `params`:
-                Additional request parameters, by default None
-            `external_url`:
-                Is an external (non-weaviate) url called
-
-        Returns:
-            `httpx.Response`
-                The response, if request was successful.
-
-        Raises:
-            `httpx.ConnectionError`
-                If the POST request could not be made.
-        """
         assert self._aclient is not None
 
         if self.embedded_db is not None:
@@ -542,26 +458,6 @@ class _Connection(_ConnectionBase):
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
     ) -> Response:
-        """
-        Make a PUT request to the Weaviate server instance.
-
-        Arguments:
-            `path`:
-                Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
-                e.g. '/meta' or '/objects', without version.
-            `weaviate_object`:
-                Object is used as payload for PUT request.
-            `params`:
-                Additional request parameters, by default None
-
-        Returns:
-            `httpx.Response`
-                The response, if request was successful.
-
-        Raises:
-            `httpx.ConnectionError`
-                If the PUT request could not be made.
-        """
         return self.__send(
             "PUT",
             url=self.url + self._api_version_path + path,
@@ -572,25 +468,6 @@ class _Connection(_ConnectionBase):
     def get(
         self, path: str, params: Optional[Dict[str, Any]] = None, external_url: bool = False
     ) -> Response:
-        """Make a GET request.
-
-        Arguments:
-            `path`
-                Sub-path to the Weaviate resources. Must be a valid Weaviate sub-path.
-                e.g. '/meta' or '/objects', without version.
-            `params`
-                Additional request parameters, by default None
-            `external_url`
-                Is an external (non-weaviate) url called
-
-        Returns:
-            `httpx.Response`
-                The response if request was successful.
-
-        Raises:
-            `httpx.ConnectionError`
-                If the GET request could not be made.
-        """
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         if params is None:
@@ -612,24 +489,6 @@ class _Connection(_ConnectionBase):
         path: str,
         params: Optional[Dict[str, Any]] = None,
     ) -> Response:
-        """
-        Make a HEAD request to the server.
-
-        Arguments:
-            `path`
-                Sub-path to the resources. Must be a valid sub-path.
-                e.g. '/meta' or '/objects', without version.
-            `params`
-                Additional request parameters, by default None
-
-        Returns:
-            `httpx.Response`
-                The response to the request.
-
-        Raises:
-            `httpx.ConnectError`
-                If the HEAD request could not be made.
-        """
         return self.__send(
             "HEAD",
             url=self.url + self._api_version_path + path,
@@ -641,20 +500,6 @@ class _Connection(_ConnectionBase):
         return self._proxies
 
     def wait_for_weaviate(self, startup_period: int) -> None:
-        """
-        Waits until weaviate is ready or the timelimit given in 'startup_period' has passed.
-
-        Parameters
-        ----------
-        startup_period : int
-            Describes how long the client will wait for weaviate to start in seconds.
-
-        Raises
-        ------
-        WeaviateStartUpError
-            If weaviate takes longer than the timelimit to respond.
-        """
-
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
         with Client(headers=self._headers) as client:
             for _i in range(startup_period):
