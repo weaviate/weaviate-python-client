@@ -10,8 +10,8 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
 from weaviate.exceptions import (
-    BackupFailed,
-    EmptyResponse,
+    BackupFailedException,
+    EmptyResponseException,
 )
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
@@ -137,7 +137,7 @@ class _Backup:
                 if status.status == _BackupStatus.SUCCESS:
                     break
                 if status.status == _BackupStatus.FAILED:
-                    raise BackupFailed(f"Backup failed: {create_status}")
+                    raise BackupFailedException(f"Backup failed: {create_status}")
                 sleep(1)
         return _BackupReturn(**create_status)
 
@@ -175,7 +175,7 @@ class _Backup:
 
         typed_response = _decode_json_response_dict(response, "Backup status check")
         if typed_response is None:
-            raise EmptyResponse()
+            raise EmptyResponseException()
         return _BackupStatusReturn(**typed_response)
 
     def restore(
@@ -258,7 +258,7 @@ class _Backup:
                 if status.status == _BackupStatus.SUCCESS:
                     break
                 if status.status == _BackupStatus.FAILED:
-                    raise BackupFailed(f"Backup restore failed: {restore_status}")
+                    raise BackupFailedException(f"Backup restore failed: {restore_status}")
                 sleep(1)
         return _BackupReturn(**restore_status)
 
@@ -296,7 +296,7 @@ class _Backup:
 
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
-            raise EmptyResponse()
+            raise EmptyResponseException()
         return _BackupStatusReturn(**typed_response)
 
 
@@ -408,7 +408,7 @@ class Backup:
                 if status["status"] == "SUCCESS":
                     break
                 if status["status"] == "FAILED":
-                    raise BackupFailed(f"Backup failed: {create_status}")
+                    raise BackupFailedException(f"Backup failed: {create_status}")
                 sleep(1)
         return create_status
 
@@ -450,7 +450,7 @@ class Backup:
 
         typed_response = _decode_json_response_dict(response, "Backup status check")
         if typed_response is None:
-            raise EmptyResponse()
+            raise EmptyResponseException()
         return typed_response
 
     def restore(
@@ -537,7 +537,7 @@ class Backup:
                 if status["status"] == "SUCCESS":
                     break
                 if status["status"] == "FAILED":
-                    raise BackupFailed(f"Backup restore failed: {restore_status}")
+                    raise BackupFailedException(f"Backup restore failed: {restore_status}")
                 sleep(1)
         return restore_status
 
@@ -578,7 +578,7 @@ class Backup:
 
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
-            raise EmptyResponse()
+            raise EmptyResponseException()
         return typed_response
 
 

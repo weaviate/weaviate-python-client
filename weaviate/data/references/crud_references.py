@@ -13,7 +13,7 @@ from weaviate.error_msgs import (
     REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W,
     REF_DEPRECATION_OLD_V14_TO_CLS_NS_W,
 )
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import (
     get_valid_uuid,
     _capitalize_first_letter,
@@ -150,7 +150,7 @@ class Reference:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If parameter has the wrong type.
@@ -224,7 +224,7 @@ class Reference:
             raise RequestsConnectionError("Reference was not deleted.") from conn_err
         if response.status_code == 204:
             return
-        raise UnexpectedStatusCodeError("Delete property reference to object", response)
+        raise UnexpectedStatusCodeException("Delete property reference to object", response)
 
     def update(
         self,
@@ -350,7 +350,7 @@ class Reference:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If the parameters are of the wrong type.
@@ -454,7 +454,7 @@ class Reference:
             raise RequestsConnectionError("Reference was not updated.") from conn_err
         if response.status_code == 200:
             return
-        raise UnexpectedStatusCodeError("Update property reference to object", response)
+        raise UnexpectedStatusCodeException("Update property reference to object", response)
 
     def add(
         self,
@@ -554,7 +554,7 @@ class Reference:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             If weaviate reports a none OK status.
         TypeError
             If the parameters are of the wrong type.
@@ -632,7 +632,7 @@ class Reference:
             raise RequestsConnectionError("Reference was not added.") from conn_err
         if response.status_code == 200:
             return
-        raise UnexpectedStatusCodeError("Add property reference to object", response)
+        raise UnexpectedStatusCodeException("Add property reference to object", response)
 
 
 def _get_beacon(to_uuid: str, class_name: Optional[str] = None) -> dict:

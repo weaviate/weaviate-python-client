@@ -4,7 +4,7 @@ Contextionary class definition.
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _decode_json_response_dict
 
 
@@ -85,7 +85,7 @@ class Contextionary:
         if response.status_code == 200:
             # Successfully extended
             return
-        raise UnexpectedStatusCodeError("Extend text2vec-contextionary", response)
+        raise UnexpectedStatusCodeException("Extend text2vec-contextionary", response)
 
     def get_concept_vector(self, concept: str) -> dict:
         """

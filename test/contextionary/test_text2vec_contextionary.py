@@ -50,7 +50,7 @@ class TestText2VecContextionary(unittest.TestCase):
             contextionary.extend(**some_concept, weight=-1.0)
         check_error_message(self, error, weight_value_error_message)
 
-        ## test UnexpectedStatusCodeError
+        ## test UnexpectedStatusCodeException
         contextionary = Contextionary(mock_connection_func("post", status_code=404))
         with self.assertRaises(UnexpectedStatusCodeException) as error:
             contextionary.extend(**some_concept)

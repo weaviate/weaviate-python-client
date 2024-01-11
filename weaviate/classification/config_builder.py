@@ -7,7 +7,7 @@ from typing import Dict, Any, cast, TYPE_CHECKING
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeException
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
 if TYPE_CHECKING:
@@ -264,7 +264,7 @@ class ConfigBuilder:
         ------
         requests.ConnectionError
             If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
+        weaviate.UnexpectedStatusCodeException
             Unexpected error.
         """
 
@@ -276,7 +276,7 @@ class ConfigBuilder:
             res = _decode_json_response_dict(response, "Start classification")
             assert res is not None
             return res
-        raise UnexpectedStatusCodeError("Start classification", response)
+        raise UnexpectedStatusCodeException("Start classification", response)
 
     def do(self) -> dict:
         """
