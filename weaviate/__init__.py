@@ -48,7 +48,7 @@ except PackageNotFoundError:
 from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
 from .client import Client, WeaviateClient
 from .collections.collection import Collection
-from .connect.connection import ConnectionParams, ProtocolParams
+from .connect.base import ConnectionParams, ProtocolParams
 from .batch.crud_batch import WeaviateErrorRetryConf, Shard
 from .data.replication import ConsistencyLevel
 from .schema.crud_schema import Tenant, TenantActivityStatus

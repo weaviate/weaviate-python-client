@@ -3,10 +3,10 @@ Client class definition.
 """
 from typing import Optional, Tuple, Union, Dict, Any
 
+from httpx import ConnectError as HTTPXConnectError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.backup.backup import _Backup
-from weaviate.warnings import _Warnings
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 from .auth import AuthCredentials
 from .backup import Backup
@@ -17,10 +17,9 @@ from .collections import _Collections
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster
 from .config import AdditionalConfig, Config
-from .connect.connection import (
-    Connection,
+from .connect import Connection, ConnectionV4
+from .connect.base import (
     ConnectionParams,
-    GRPCConnection,
     ProtocolParams,
     TIMEOUT_TYPE_RETURN,
 )
@@ -37,7 +36,7 @@ TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
 class _ClientBase:
-    _connection: Connection
+    _connection: Union[Connection, ConnectionV4]
 
     def is_ready(self) -> bool:
         """
@@ -142,8 +141,8 @@ class _ClientBase:
 
     @staticmethod
     def _parse_url_and_embedded_db(
-        url: Optional[str], grpc_port: Optional[int], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
+        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[str, Optional[EmbeddedDB]]:
         if embedded_options is None and url is None:
             raise TypeError("Either url or embedded options must be present.")
         elif embedded_options is not None and url is not None:
@@ -154,19 +153,16 @@ class _ClientBase:
         if embedded_options is not None:
             embedded_db = EmbeddedDB(options=embedded_options)
             embedded_db.start()
-            return (
-                ConnectionParams.from_url(
-                    f"http://localhost:{embedded_options.port}", embedded_options.grpc_port
-                ),
-                embedded_db,
-            )
+            return f"http://localhost:{embedded_db.options.port}", embedded_db
 
         if not isinstance(url, str):
             raise TypeError(f"URL is expected to be string but is {type(url)}")
-        return ConnectionParams.from_url(url, grpc_port), None
+        return url.strip("/"), None
 
-    def __del__(self) -> None:
-        # in case an exception happens before definition of these members
+    def close(self) -> None:
+        """In order to clean up any resources used by the client, call this method when you are done with the client.
+
+        If you do not do this, memory leaks may occur due to stale connections."""
         if hasattr(self, "_connection"):
             self._connection.close()
 
@@ -195,6 +191,8 @@ class WeaviateClient(_ClientBase):
         `contextionary`
             A `Contextionary` object instance connected to the same Weaviate instance as the Client.
     """
+
+    _connection: ConnectionV4
 
     def __init__(
         self,
@@ -237,7 +235,7 @@ class WeaviateClient(_ClientBase):
         )
         config = additional_config or AdditionalConfig()
 
-        self._connection = GRPCConnection(
+        self._connection = ConnectionV4(
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(config.timeout),
@@ -292,8 +290,8 @@ class WeaviateClient(_ClientBase):
 
         try:
             response = self._connection.post(path="/graphql", weaviate_object=json_query)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Query not executed.") from conn_err
+        except HTTPXConnectError as conn_err:
+            raise HTTPXConnectError("Query not executed.") from conn_err
 
         res = _decode_json_response_dict(response, "GQL query")
         assert res is not None
@@ -401,24 +399,20 @@ class Client(_ClientBase):
                 If arguments are of a wrong data type.
         """
         config = Config() if additional_config is None else additional_config
-        connection_params, embedded_db = self._parse_url_and_embedded_db(
-            url, config.grpc_port_experimental, embedded_options
-        )
-
-        if startup_period is not None:
-            _Warnings.startup_period_deprecated()
+        url, embedded_db = self._parse_url_and_embedded_db(url, embedded_options)
 
         self._connection = Connection(
-            connection_params=connection_params,
+            url=url,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(timeout_config),
             proxies=proxies,
             trust_env=trust_env,
             additional_headers=additional_headers,
+            startup_period=startup_period,
             embedded_db=embedded_db,
+            grcp_port=config.grpc_port_experimental,
             connection_config=config.connection_config,
         )
-        self._connection.connect(False)
         self.classification = Classification(self._connection)
         self.schema = Schema(self._connection)
         self.contextionary = Contextionary(self._connection)
@@ -457,3 +451,7 @@ class Client(_ClientBase):
         """
 
         self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
+
+    def __del__(self) -> None:
+        # in case an exception happens before definition of the client
+        self.close()

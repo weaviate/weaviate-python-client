@@ -4,7 +4,6 @@ from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.types import GeoCoordinate
-from weaviate.util import parse_version_string
 
 
 def test_creating_geo_props(collection_factory: CollectionFactory) -> None:
@@ -12,7 +11,7 @@ def test_creating_geo_props(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
         pytest.skip("not implemented in this version")
 
     obj_uuid = collection.data.insert({"geo": GeoCoordinate(latitude=1.0, longitude=1.0)})
@@ -47,7 +46,7 @@ def test_geo_props_query(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
         pytest.skip("not implemented in this version")
 
     collection.data.insert({"geo": GeoCoordinate(latitude=1.0, longitude=2.0)})
@@ -61,7 +60,7 @@ def test_geo_props_filter(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="geo", data_type=DataType.GEO_COORDINATES)],
     )
-    if parse_version_string(collection._connection._server_version) < parse_version_string("1.23"):
+    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
         pytest.skip("not implemented in this version")
 
     uuid1 = collection.data.insert({"geo": GeoCoordinate(latitude=1.0, longitude=2.0)})

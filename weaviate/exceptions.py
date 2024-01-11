@@ -2,9 +2,8 @@
 Weaviate Exceptions.
 """
 from typing import Union
-
 import httpx
-from requests import Response, exceptions
+import requests
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
@@ -37,7 +36,7 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
     not handled in the client implementation and suggests an error.
     """
 
-    def __init__(self, message: str, response: Union[Response, httpx._models.Response]):
+    def __init__(self, message: str, response: Union[httpx.Response, requests.Response]):
         """
         Is raised in case the status code returned from Weaviate is
         not handled in the client implementation and suggests an error.
@@ -58,7 +57,7 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
 
         try:
             body = response.json()
-        except exceptions.JSONDecodeError:
+        except (requests.exceptions.JSONDecodeError, httpx.DecodingError):
             body = None
 
         msg = (
@@ -76,7 +75,7 @@ class UnexpectedStatusCodeException(WeaviateBaseError):
 
 
 class ResponseCannotBeDecodedException(WeaviateBaseError):
-    def __init__(self, location: str, response: Response):
+    def __init__(self, location: str, response: Union[httpx.Response, requests.Response]):
         """Raised when a weaviate response cannot be decoded to json
 
         Parameters

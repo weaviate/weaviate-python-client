@@ -3,6 +3,7 @@ Module communication to a Weaviate instance. Used to connect to
 Weaviate and run REST requests.
 """
 
-__all__ = ["Connection"]
+from .v3 import Connection
+from .v4 import ConnectionV4
 
-from .connection import Connection
+__all__ = ["Connection", "ConnectionV4"]
