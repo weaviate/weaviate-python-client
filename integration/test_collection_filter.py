@@ -21,7 +21,6 @@ from weaviate.collections.classes.filters import (
     Filter,
     _Filters,
     _FilterValue,
-    FilterMetadata,
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
@@ -39,9 +38,6 @@ UUID3 = uuid.uuid4()
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="name").equal("Banana"), [0]),
-        (Filter(path="name").not_equal("Banana"), [1, 2]),
-        (Filter(path="name").like("*nana"), [0]),
         (Filter.by_property("name").equal("Banana"), [0]),
         (Filter.by_property("name").not_equal("Banana"), [1, 2]),
         (Filter.by_property("name").like("*nana"), [0]),
@@ -78,12 +74,12 @@ def test_filters_text(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="texts").like("*nana"), [1]),
-        (Filter(path="texts").equal("banana"), [1]),
-        (Filter(path="ints").equal(3), [1]),
-        (Filter(path="ints").greater_or_equal(3), [1, 2]),
-        (Filter(path="floats").equal(3), [1]),
-        (Filter(path="floats").less_or_equal(3), [0, 1]),
+        (Filter.by_property("texts").like("*nana"), [1]),
+        (Filter.by_property("texts").equal("banana"), [1]),
+        (Filter.by_property("ints").equal(3), [1]),
+        (Filter.by_property("ints").greater_or_equal(3), [1, 2]),
+        (Filter.by_property("floats").equal(3), [1]),
+        (Filter.by_property("floats").less_or_equal(3), [0, 1]),
     ],
 )
 def test_array_types(
@@ -119,11 +115,11 @@ def test_array_types(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="int").equal(1), [0]),
-        (Filter(path="int").equal(val=1.0), [0]),
-        (Filter(path="int").equal(val=1.2), None),
-        (Filter(path="float").equal(val=1), [0]),
-        (Filter(path="float").equal(val=1.0), [0]),
+        (Filter.by_property("int").equal(1), [0]),
+        (Filter.by_property("int").equal(val=1.0), [0]),
+        (Filter.by_property("int").equal(val=1.2), None),
+        (Filter.by_property("float").equal(val=1), [0]),
+        (Filter.by_property("float").equal(val=1.0), [0]),
     ],
 )
 def test_filter_with_wrong_types(
@@ -161,19 +157,24 @@ def test_filter_with_wrong_types(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="num").greater_than(1) & Filter(path="num").less_than(3), [1]),
+        (Filter.by_property("num").greater_than(1) & Filter.by_property("num").less_than(3), [1]),
         (
-            (Filter(path="num").less_or_equal(1)) | Filter(path="num").greater_or_equal(3),
+            (Filter.by_property("num").less_or_equal(1))
+            | Filter.by_property("num").greater_or_equal(3),
             [0, 2],
         ),
         (
-            Filter(path="num").less_or_equal(1) | Filter(path="num").greater_or_equal(3),
+            Filter.by_property("num").less_or_equal(1)
+            | Filter.by_property("num").greater_or_equal(3),
             [0, 2],
         ),
         (
-            (Filter(path="num").less_or_equal(1) & Filter(path="num").greater_or_equal(1))
-            | Filter(path="num").greater_or_equal(3)
-            | Filter(path="num").is_none(True),
+            (
+                Filter.by_property("num").less_or_equal(1)
+                & Filter.by_property("num").greater_or_equal(1)
+            )
+            | Filter.by_property("num").greater_or_equal(3)
+            | Filter.by_property("num").is_none(True),
             [0, 2, 3],
         ),
     ],
@@ -216,7 +217,7 @@ def test_length_filter(collection_factory: CollectionFactory) -> None:
         collection.data.insert({"field": "four"}),
     ]
     objects = collection.query.fetch_objects(
-        filters=Filter(path="field", length=True).equal(3)
+        filters=Filter.by_property(prop="field", length=True).equal(3)
     ).objects
 
     results = [0, 1]
@@ -228,8 +229,8 @@ def test_length_filter(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="number").is_none(True), [3]),
-        (Filter(path="number").is_none(False), [0, 1, 2]),
+        (Filter.by_property("number").is_none(True), [3]),
+        (Filter.by_property("number").is_none(False), [0, 1, 2]),
     ],
 )
 def test_filters_comparison(
@@ -260,40 +261,40 @@ def test_filters_comparison(
 @pytest.mark.parametrize(
     "weaviate_filter,results,skip",
     [
-        (Filter(path="ints").contains_any([1, 4]), [0, 3], False),
-        (Filter(path="ints").contains_any([1.0, 4]), [0, 3], True),
-        (Filter(path="ints").contains_any([10]), [], False),
-        (Filter(path="int").contains_any([1]), [0, 1], False),
-        (Filter(path="text").contains_any(["test"]), [0, 1], False),
-        (Filter(path="text").contains_any(["real", "deal"]), [1, 2, 3], False),
-        (Filter(path="texts").contains_any(["test"]), [0, 1], False),
-        (Filter(path="texts").contains_any(["real", "deal"]), [1, 2, 3], False),
-        (Filter(path="float").contains_any([2.0]), [], False),
-        (Filter(path="float").contains_any([2]), [], False),
-        (Filter(path="float").contains_any([8]), [3], False),
-        (Filter(path="float").contains_any([8.0]), [3], False),
-        (Filter(path="floats").contains_any([2.0]), [0, 1], False),
-        (Filter(path="floats").contains_any([0.4, 0.7]), [0, 1, 3], False),
-        (Filter(path="floats").contains_any([2]), [0, 1], False),
-        (Filter(path="bools").contains_any([True, False]), [0, 1, 3], False),
-        (Filter(path="bools").contains_any([False]), [0, 1], False),
-        (Filter(path="bool").contains_any([True]), [0, 1, 3], False),
-        (Filter(path="ints").contains_all([1, 4]), [0], False),
-        (Filter(path="text").contains_all(["real", "test"]), [1], False),
-        (Filter(path="texts").contains_all(["real", "test"]), [1], False),
-        (Filter(path="floats").contains_all([0.7, 2]), [1], False),
-        (Filter(path="bools").contains_all([True, False]), [0], False),
-        (Filter(path="bool").contains_all([True, False]), [], False),
-        (Filter(path="bool").contains_all([True]), [0, 1, 3], False),
-        (Filter(path="dates").contains_any([NOW, MUCH_LATER]), [0, 1, 3], False),
-        (Filter(path="dates").contains_any([NOW]), [0, 1], False),
-        (Filter(path="date").equal(NOW), [0], False),
-        (Filter(path="date").greater_than(NOW), [1, 3], False),
-        (Filter(path="uuids").contains_all([UUID2, UUID1]), [0, 3], False),
-        (Filter(path="uuids").contains_any([UUID2, UUID1]), [0, 1, 3], False),
-        (Filter(path="uuid").contains_any([UUID3]), [], False),
-        (Filter(path="uuid").contains_any([UUID1]), [0], False),
-        (Filter(path="_id").contains_any([UUID1, UUID3]), [0, 2], True),
+        (Filter.by_property("ints").contains_any([1, 4]), [0, 3], False),
+        (Filter.by_property("ints").contains_any([1.0, 4]), [0, 3], True),
+        (Filter.by_property("ints").contains_any([10]), [], False),
+        (Filter.by_property("int").contains_any([1]), [0, 1], False),
+        (Filter.by_property("text").contains_any(["test"]), [0, 1], False),
+        (Filter.by_property("text").contains_any(["real", "deal"]), [1, 2, 3], False),
+        (Filter.by_property("texts").contains_any(["test"]), [0, 1], False),
+        (Filter.by_property("texts").contains_any(["real", "deal"]), [1, 2, 3], False),
+        (Filter.by_property("float").contains_any([2.0]), [], False),
+        (Filter.by_property("float").contains_any([2]), [], False),
+        (Filter.by_property("float").contains_any([8]), [3], False),
+        (Filter.by_property("float").contains_any([8.0]), [3], False),
+        (Filter.by_property("floats").contains_any([2.0]), [0, 1], False),
+        (Filter.by_property("floats").contains_any([0.4, 0.7]), [0, 1, 3], False),
+        (Filter.by_property("floats").contains_any([2]), [0, 1], False),
+        (Filter.by_property("bools").contains_any([True, False]), [0, 1, 3], False),
+        (Filter.by_property("bools").contains_any([False]), [0, 1], False),
+        (Filter.by_property("bool").contains_any([True]), [0, 1, 3], False),
+        (Filter.by_property("ints").contains_all([1, 4]), [0], False),
+        (Filter.by_property("text").contains_all(["real", "test"]), [1], False),
+        (Filter.by_property("texts").contains_all(["real", "test"]), [1], False),
+        (Filter.by_property("floats").contains_all([0.7, 2]), [1], False),
+        (Filter.by_property("bools").contains_all([True, False]), [0], False),
+        (Filter.by_property("bool").contains_all([True, False]), [], False),
+        (Filter.by_property("bool").contains_all([True]), [0, 1, 3], False),
+        (Filter.by_property("dates").contains_any([NOW, MUCH_LATER]), [0, 1, 3], False),
+        (Filter.by_property("dates").contains_any([NOW]), [0, 1], False),
+        (Filter.by_property("date").equal(NOW), [0], False),
+        (Filter.by_property("date").greater_than(NOW), [1, 3], False),
+        (Filter.by_property("uuids").contains_all([UUID2, UUID1]), [0, 3], False),
+        (Filter.by_property("uuids").contains_any([UUID2, UUID1]), [0, 1, 3], False),
+        (Filter.by_property("uuid").contains_any([UUID3]), [], False),
+        (Filter.by_property("uuid").contains_any([UUID1]), [0], False),
+        (Filter.by_property("_id").contains_any([UUID1, UUID3]), [0, 2], True),
     ],
 )
 def test_filters_contains(
@@ -399,14 +400,15 @@ def test_filters_contains(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path=["ref", "target", "int"]).greater_than(3), [1]),
-        (Filter(path=["ref", "target", "text"], length=True).less_than(6), [0]),
-        (Filter(path=["ref", "target", "_id"]).equal(UUID2), [1]),
-        (Filter.link_on("ref").by_property("int").greater_than(3), [1]),
-        (Filter.link_on("ref").by_property("text", length=True).less_than(6), [0]),
-        (Filter.link_on("ref").by_id().equal(UUID2), [1]),
+        (Filter.by_ref().link_on("ref").by_property("int").greater_than(3), [1]),
+        (Filter.by_ref().link_on("ref").by_property("text", length=True).less_than(6), [0]),
+        (Filter.by_ref().link_on("ref").by_id().equal(UUID2), [1]),
         (
-            Filter.link_on("ref2").link_on("ref").by_property("text", length=True).less_than(6),
+            Filter.by_ref()
+            .link_on("ref2")
+            .link_on("ref")
+            .by_property("text", length=True)
+            .less_than(6),
             [2],
         ),  # second obj links to first one
     ],
@@ -542,13 +544,19 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
     )
 
     objects = from_collection.query.fetch_objects(
-        filters=Filter(path=["ref", to_collection.name, "int"]).greater_than(3)
+        filters=Filter.by_ref()
+        .link_on_multi("ref", to_collection.name)
+        .by_property("int")
+        .greater_than(3)
     ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "second"
 
     objects = from_collection.query.fetch_objects(
-        filters=Filter(path=["ref", from_collection.name, "name"]).equal("first")
+        filters=Filter.by_ref()
+        .link_on_multi("ref", target_collection=from_collection.name)
+        .by_property("name")
+        .equal("first")
     ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "third"
@@ -557,10 +565,10 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
 @pytest.mark.parametrize(
     "weav_filter",
     [
-        FilterMetadata.ById.equal(UUID1),
-        FilterMetadata.ById.contains_any([UUID1]),
-        FilterMetadata.ById.not_equal(UUID2),
-        Filter(path=["_id"]).equal(UUID1),
+        Filter.by_id().equal(UUID1),
+        Filter.by_id().contains_any([UUID1]),
+        Filter.by_id().not_equal(UUID2),
+        Filter.by_property("_id").equal(UUID1),
     ],
 )
 def test_filter_id(collection_factory: CollectionFactory, weav_filter: _FilterValue) -> None:
@@ -606,7 +614,7 @@ def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, pat
     assert obj2.metadata is not None
     assert obj2.metadata.creation_time is not None
 
-    filters = Filter(path=[path]).less_than(obj2.metadata.creation_time)
+    filters = Filter.by_property(path).less_than(obj2.metadata.creation_time)
     objects = collection.query.fetch_objects(
         filters=filters, return_metadata=MetadataQuery(creation_time=True)
     ).objects
@@ -615,9 +623,7 @@ def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, pat
     assert objects[0].uuid == obj1_uuid
 
 
-@pytest.mark.parametrize(
-    "filter_type", [FilterMetadata.ByCreationTime, FilterMetadata.ByUpdateTime]
-)
+@pytest.mark.parametrize("filter_type", [Filter.by_creation_time(), Filter.by_update_time()])
 def test_filter_timestamp_class(
     collection_factory: CollectionFactory,
     filter_type: Union[_FilterCreationTime, _FilterUpdateTime],
@@ -700,8 +706,8 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
     assert obj1.metadata.last_update_time is not None
     assert obj1.metadata.creation_time < obj1.metadata.last_update_time
 
-    filter_creation = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.creation_time)
-    filter_update = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.last_update_time)
+    filter_creation = Filter.by_update_time().less_than(obj1.metadata.creation_time)
+    filter_update = Filter.by_update_time().less_than(obj1.metadata.last_update_time)
 
     objects_creation = collection.query.fetch_objects(
         filters=filter_creation, return_metadata=MetadataQuery(creation_time=True)

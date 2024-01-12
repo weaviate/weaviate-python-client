@@ -3,6 +3,7 @@ import uuid as uuid_lib
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, TypeAlias, Union
+import deprecated
 
 from pydantic import Field
 from weaviate.collections.classes.types import GeoCoordinate
@@ -120,6 +121,10 @@ class _FilterOld:
     See [the docs](https://weaviate.io/developers/weaviate/search/filters) for more details!
     """
 
+    @deprecated.deprecated(
+        version="4.4b7",
+        reason="Use `Filter.by_property` class instead. Direct intilisation will be removed in the next major release.",
+    )
     def __init__(self, path: Union[str, List[str]], length: bool = False):
         """Initialise the filter.
 
@@ -250,6 +255,10 @@ class _FilterId:
 
 
 class _FilterTime:
+    @deprecated.deprecated(
+        version="4.4b7",
+        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
+    )
     @staticmethod
     def contains_any(dates: List[datetime], on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
@@ -258,6 +267,10 @@ class _FilterTime:
             operator=_Operator.CONTAINS_ANY,
         )
 
+    @deprecated.deprecated(
+        version="4.4b7",
+        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
+    )
     @staticmethod
     def equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
@@ -266,6 +279,10 @@ class _FilterTime:
             operator=_Operator.EQUAL,
         )
 
+    @deprecated.deprecated(
+        version="4.4b7",
+        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
+    )
     @staticmethod
     def not_equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
@@ -274,6 +291,10 @@ class _FilterTime:
             operator=_Operator.NOT_EQUAL,
         )
 
+    @deprecated.deprecated(
+        version="4.4b7",
+        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
+    )
     @staticmethod
     def less_than(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
@@ -282,6 +303,10 @@ class _FilterTime:
             operator=_Operator.LESS_THAN,
         )
 
+    @deprecated.deprecated(
+        version="4.4b7",
+        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
+    )
     @staticmethod
     def less_or_equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
@@ -290,6 +315,10 @@ class _FilterTime:
             operator=_Operator.LESS_THAN_EQUAL,
         )
 
+    @deprecated.deprecated(
+        version="4.4b7",
+        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
+    )
     @staticmethod
     def greater_than(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
@@ -298,6 +327,10 @@ class _FilterTime:
             operator=_Operator.GREATER_THAN,
         )
 
+    @deprecated.deprecated(
+        version="4.4b7",
+        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
+    )
     @staticmethod
     def greater_or_equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
         return _FilterValue(
@@ -831,20 +864,28 @@ class _FilterWithInit:
         return _FilterByProperty(prop=prop, length=length, target=self.__target)
 
 
-class Filter(_FilterOld):
-    """Filter class."""
+class _FilterByRef:
+    def __init__(self) -> None:
+        pass
 
-    @staticmethod
-    def link_on(reference: str) -> _FilterWithInit:
+    def link_on(self, link_on: str) -> _FilterWithInit:
         """Filter on the given reference."""
-        return _FilterWithInit(_SingleTargetRef(link_on=reference))
+        return _FilterWithInit(_SingleTargetRef(link_on=link_on))
 
-    @staticmethod
-    def link_on_multi(reference: str, target_collection: str) -> _FilterWithInit:
+    def link_on_multi(self, reference: str, target_collection: str) -> _FilterWithInit:
         """Filter on the given multi-target reference."""
         return _FilterWithInit(
             _MultiTargetRef(link_on=reference, target_collection=target_collection)
         )
+
+
+class Filter(_FilterOld):
+    """Filter class."""
+
+    @staticmethod
+    def by_ref() -> _FilterByRef:
+        """Define a filter based on a reference to be used when querying and deleting from a collection."""
+        return _FilterByRef()
 
     @staticmethod
     def by_id() -> _FilterById:
