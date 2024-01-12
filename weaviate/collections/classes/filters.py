@@ -2,7 +2,7 @@ import uuid as uuid_lib
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Union
+from typing import List, Optional, TypeAlias, Union
 
 from pydantic import Field
 from weaviate.collections.classes.types import GeoCoordinate
@@ -865,3 +865,10 @@ class Filter(_FilterOld):
     def by_property(prop: str, length: bool = False) -> _FilterByProperty:
         """Define a filter based on a property to be used when querying and deleting from a collection."""
         return _FilterByProperty(prop=prop, length=length, target=None)
+
+
+# type aliases for return classes
+FilterByProperty: TypeAlias = _FilterByProperty
+FilterById: TypeAlias = _FilterById
+FilterByCreationTime: TypeAlias = _FilterByCreationTime
+FilterByUpdateTime: TypeAlias = _FilterByUpdateTime

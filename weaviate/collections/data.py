@@ -19,12 +19,12 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 
 from weaviate.collections.classes.batch import (
-    BatchDeleteReturnNoObjects,
+    DeleteManyReturnNoObjects,
     _BatchObject,
     BatchObjectReturn,
     _BatchReference,
     BatchReferenceReturn,
-    BatchDeleteReturn,
+    DeleteManyReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
@@ -122,24 +122,24 @@ class _Data:
     @overload
     def delete_many(
         self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
-    ) -> BatchDeleteReturnNoObjects:
+    ) -> DeleteManyReturnNoObjects:
         ...
 
     @overload
     def delete_many(
         self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
-    ) -> BatchDeleteReturn:
+    ) -> DeleteManyReturn:
         ...
 
     @overload
     def delete_many(
         self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
-    ) -> Union[BatchDeleteReturn, BatchDeleteReturnNoObjects]:
+    ) -> Union[DeleteManyReturn, DeleteManyReturnNoObjects]:
         ...
 
     def delete_many(
         self, where: _Filters, verbose: bool = False, *, dry_run: bool = False
-    ) -> Union[BatchDeleteReturn, BatchDeleteReturnNoObjects]:
+    ) -> Union[DeleteManyReturn, DeleteManyReturnNoObjects]:
         """Delete multiple objects from the collection based on a filter.
 
         Arguments:

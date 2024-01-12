@@ -4,9 +4,9 @@ import grpc  # type: ignore
 
 
 from weaviate.collections.classes.batch import (
-    BatchDeleteObjects,
-    BatchDeleteReturnNoObjects,
-    BatchDeleteReturn,
+    DeleteManyObjects,
+    DeleteManyReturnNoObjects,
+    DeleteManyReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
@@ -30,7 +30,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
 
     def batch_delete(
         self, name: str, filters: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
-    ) -> Union[BatchDeleteReturn, BatchDeleteReturnNoObjects]:
+    ) -> Union[DeleteManyReturn, DeleteManyReturnNoObjects]:
         metadata = self._get_metadata()
         try:
             assert self._connection.grpc_stub is not None
@@ -48,22 +48,22 @@ class _BatchDeleteGRPC(_BaseGRPC):
             )
 
             if verbose:
-                objects: List[BatchDeleteObjects] = [
-                    BatchDeleteObjects(
+                objects: List[DeleteManyObjects] = [
+                    DeleteManyObjects(
                         uuid=_WeaviateUUIDInt(int.from_bytes(obj.uuid, byteorder="big")),
                         successful=obj.successful,
                         error=obj.error if obj.error != "" else None,
                     )
                     for obj in res.objects
                 ]
-                return BatchDeleteReturn(
+                return DeleteManyReturn(
                     failed=res.failed,
                     successful=res.successful,
                     matches=res.matches,
                     objects=objects,
                 )
             else:
-                return BatchDeleteReturnNoObjects(
+                return DeleteManyReturnNoObjects(
                     failed=res.failed, successful=res.successful, matches=res.matches
                 )
 
