@@ -1,6 +1,6 @@
 """Helper functions for creating a new WeaviateClient in common scenarios."""
 from urllib.parse import urlparse
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateClient
@@ -12,7 +12,7 @@ from weaviate.embedded import EmbeddedOptions
 def connect_to_wcs(
     cluster_url: str,
     auth_credentials: Optional[AuthCredentials],
-    headers: Optional[dict] = None,
+    headers: Optional[Dict[str, str]] = None,
     timeout: Tuple[int, int] = (10, 60),
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
@@ -35,6 +35,8 @@ def connect_to_wcs(
         `timeout`
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
+        `skip_init_checks`
+            Whether to skip the initialisation checks when connecting to Weaviate.
 
     Returns
         `weaviate.WeaviateClient`
@@ -82,8 +84,10 @@ def connect_to_local(
     host: str = "localhost",
     port: int = 8080,
     grpc_port: int = 50051,
-    headers: Optional[dict] = None,
+    headers: Optional[Dict[str, str]] = None,
     timeout: Tuple[int, int] = (10, 60),
+    skip_init_checks: bool = False,
+    auth_credentials: Optional[AuthCredentials] = None,
 ) -> WeaviateClient:
     """
     Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
@@ -106,6 +110,12 @@ def connect_to_local(
         `timeout`
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
+        `skip_init_checks`
+            Whether to skip the initialisation checks when connecting to Weaviate.
+        `auth_credentials`
+            The credentials to use for authentication with your instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
+            a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
+            or a username and password, in which case use `weaviate.AuthClientPassword`.
 
     Returns
         `weaviate.WeaviateClient`
@@ -139,6 +149,8 @@ def connect_to_local(
         ),
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
+        skip_init_checks=skip_init_checks,
+        auth_client_secret=auth_credentials,
     )
     client.connect()
     return client
@@ -147,7 +159,7 @@ def connect_to_local(
 def connect_to_embedded(
     port: int = 8079,
     grpc_port: int = 50051,
-    headers: Optional[dict] = None,
+    headers: Optional[Dict[str, str]] = None,
     timeout: Tuple[int, int] = (10, 60),
     version: str = "1.22.3",
 ) -> WeaviateClient:
@@ -212,9 +224,10 @@ def connect_to_custom(
     grpc_host: str,
     grpc_port: int,
     grpc_secure: bool,
-    headers: Optional[dict] = None,
+    headers: Optional[Dict[str, str]] = None,
     timeout: Tuple[int, int] = (10, 60),
     auth_credentials: Optional[AuthCredentials] = None,
+    skip_init_checks: bool = False,
 ) -> WeaviateClient:
     """
     Connect to a Weaviate instance with custom connection parameters.
@@ -247,6 +260,9 @@ def connect_to_custom(
             The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
             a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
             or a username and password, in which case use `weaviate.AuthClientPassword`.
+        `skip_init_checks`
+            Whether to skip the initialisation checks when connecting to Weaviate.
+
     Returns
         `weaviate.WeaviateClient`
             The client connected to the instance with the required parameters set appropriately.
@@ -290,6 +306,7 @@ def connect_to_custom(
         auth_client_secret=auth_credentials,
         additional_headers=headers,
         additional_config=AdditionalConfig(timeout=timeout),
+        skip_init_checks=skip_init_checks,
     )
     client.connect()
     return client
