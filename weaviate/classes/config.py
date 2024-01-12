@@ -1,5 +1,6 @@
 from weaviate.collections.classes.config import (
     Configure,
+    ConsistencyLevel,
     Reconfigure,
     DataType,
     GenerativeSearches,
@@ -17,6 +18,7 @@ from weaviate.collections.classes.config import (
 
 __all__ = [
     "Configure",
+    "ConsistencyLevel",
     "Reconfigure",
     "DataType",
     "GenerativeSearches",
