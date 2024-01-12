@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview-allow-discerning-between-nil-and-in-ref-props-ab9ec28
+  NEW_WEAVIATE_VERSION: preview-allow-discerning-between-nil-and-in-ref-props-20ad8e5
 
 jobs:
   lint-and-format:

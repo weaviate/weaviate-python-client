@@ -6,7 +6,6 @@ import uuid as uuid_lib
 from typing import Any, Dict, Generic, List, Optional, Type, Union, cast
 
 from google.protobuf import struct_pb2
-from google.protobuf.internal.containers import RepeatedCompositeFieldContainer
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from typing_extensions import is_typeddict
 
@@ -214,11 +213,11 @@ class _BaseQuery(Generic[Properties, References]):
 
     def __parse_ref_properties_result(
         self,
-        properties: RepeatedCompositeFieldContainer[search_get_pb2.RefPropertiesResult],
-        is_present: bool,
+        properties: search_get_pb2.PropertiesResult,
     ) -> Optional[dict]:
-        if len(properties) == 0:
-            return {} if is_present else None
+        if len(properties.ref_props) == 0:
+            return {} if properties.ref_props_requested else None
+
         return {
             ref_prop.prop_name: _CrossReference._from(
                 [
@@ -228,7 +227,7 @@ class _BaseQuery(Generic[Properties, References]):
                     for prop in ref_prop.properties
                 ]
             )
-            for ref_prop in properties
+            for ref_prop in properties.ref_props
         }
 
     def __deserialize_primitive_122(self, value: Any) -> Any:
@@ -327,7 +326,7 @@ class _BaseQuery(Generic[Properties, References]):
             if options.include_metadata
             else _MetadataReturn(),
             references=(
-                self.__parse_ref_properties_result(props.ref_props, props.ref_props_present)
+                self.__parse_ref_properties_result(props)
                 if self._is_weaviate_version_123
                 else self.__parse_ref_properties_result_122(props)
             )
@@ -356,7 +355,7 @@ class _BaseQuery(Generic[Properties, References]):
             if options.include_metadata
             else _MetadataReturn(),
             references=(
-                self.__parse_ref_properties_result(props.ref_props, props.ref_props_present)
+                self.__parse_ref_properties_result(props)
                 if self._is_weaviate_version_123
                 else self.__parse_ref_properties_result_122(props)
             )
@@ -421,7 +420,7 @@ class _BaseQuery(Generic[Properties, References]):
             if options.include_metadata
             else _GroupByMetadataReturn(),
             references=(
-                self.__parse_ref_properties_result(props.ref_props, props.ref_props_present)
+                self.__parse_ref_properties_result(props)
                 if self._is_weaviate_version_123
                 else self.__parse_ref_properties_result_122(props)
             )

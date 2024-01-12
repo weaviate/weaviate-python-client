@@ -957,7 +957,11 @@ def test_add_reference(collection_factory: CollectionFactory) -> None:
         uuid2, return_properties=["name"], return_references=FromReference(link_on="self")
     )
     assert "name" in obj1.properties
-    assert obj1.references == {}
+    assert (
+        obj1.references == {}
+        if collection._connection._weaviate_version.is_at_least(1, 23, 2)
+        else None
+    )  # TODO: change to 1.23.3 when released
     assert "name" in obj2.properties
     assert "self" in obj2.references
 
