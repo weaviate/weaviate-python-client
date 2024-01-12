@@ -2,9 +2,9 @@ import uuid as uuid_lib
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, TypeAlias, Union
+from typing import List, Optional, Union
 import deprecated
-
+from typing_extensions import TypeAlias
 from pydantic import Field
 from weaviate.collections.classes.types import GeoCoordinate
 
