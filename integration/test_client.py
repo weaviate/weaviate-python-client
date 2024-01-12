@@ -1,4 +1,5 @@
 from typing import Generator
+from httpx import ConnectError
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -267,4 +268,32 @@ def test_client_as_context_manager() -> None:
 
     assert not client.is_connected()
     with pytest.raises(WeaviateClosedClientError):
+        client.get_meta()
+
+
+def test_connect_to_wrong_wcs() -> None:
+    client = weaviate.connect_to_wcs(
+        "does-not-exist", auth_credentials=WCS_CREDS, skip_init_checks=True
+    )
+    with pytest.raises(ConnectError):
+        client.get_meta()
+
+
+def test_connect_to_wrong_local() -> None:
+    client = weaviate.connect_to_local("does-not-exist", skip_init_checks=True)
+    with pytest.raises(ConnectError):
+        client.get_meta()
+
+
+def test_connect_to_wrong_custom() -> None:
+    client = weaviate.connect_to_custom(
+        "does-not-exist",
+        http_port=1234,
+        http_secure=False,
+        grpc_host="does-not-exist",
+        grpc_port=2345,
+        grpc_secure=False,
+        skip_init_checks=True,
+    )
+    with pytest.raises(ConnectError):
         client.get_meta()
