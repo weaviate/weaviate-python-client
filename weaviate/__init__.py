@@ -70,7 +70,14 @@ from .config import AdditionalConfig, Config, ConnectionConfig
 from .gql.get import AdditionalProperties, LinkTo
 from .backup.backup import BackupStorage
 
-if not sys.warnoptions:
-    import warnings
+import warnings
 
+if not sys.warnoptions:
     warnings.simplefilter("default")
+warnings.warn(
+    "Most imports from this module will be removed when v4 leaves beta. "
+    "The only imports that will remain are the connect_to_* functions."
+    "All other useful imports can be found in the first-level modules, e.g. weaviate.classes, weaviate.outputs, etc.",
+    DeprecationWarning,
+    stacklevel=2,
+)
