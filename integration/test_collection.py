@@ -14,7 +14,6 @@ from weaviate.collections.classes.config import (
     DataType,
     Property,
     ReferenceProperty,
-    ReferencePropertyMultiTarget,
     Vectorizer,
 )
 from weaviate.collections.classes.data import (
@@ -262,7 +261,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
     )
     collection.config.add_reference(
-        ReferencePropertyMultiTarget(
+        ReferenceProperty.MultiTarget(
             name="ref_many", target_collections=[ref_collection.name, collection.name]
         )
     )
