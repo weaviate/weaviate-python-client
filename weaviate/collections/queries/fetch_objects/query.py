@@ -8,7 +8,7 @@ from weaviate.collections.classes.grpc import (
     Sort,
 )
 from weaviate.collections.classes.internal import (
-    QueryReturn,
+    QueryReturnType,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
@@ -33,7 +33,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
-    ) -> QueryReturn[Properties, References, TProperties, TReferences]:
+    ) -> QueryReturnType[Properties, References, TProperties, TReferences]:
         """Retrieve the objects in this collection without any search.
 
         Arguments:
@@ -62,7 +62,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `_QueryReturn` object that includes the searched objects.
+            A `QueryReturn` object that includes the searched objects.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCQueryError`:

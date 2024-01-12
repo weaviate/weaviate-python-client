@@ -237,22 +237,28 @@ class BatchResult:
 
 
 @dataclass
-class _BatchDeleteObjects:
+class BatchDeleteObjects:
+    """This class contains the objects of a batch `delete_many` operation."""
+
     uuid: uuid_package.UUID
     successful: bool
     error: Optional[str] = None
 
 
 @dataclass
-class _BatchDeleteResult:
+class BatchDeleteReturn:
+    """This class contains the results of a batch `delete_many` operation with verbosity."""
+
     failed: int
     matches: int
-    objects: List[_BatchDeleteObjects]
+    objects: List[BatchDeleteObjects]
     successful: int
 
 
 @dataclass
-class _BatchDeleteResultNoObjects:
+class BatchDeleteReturnNoObjects:
+    """This class contains the results of a batch `delete_many` operation without verbosity."""
+
     failed: int
     matches: int
     successful: int

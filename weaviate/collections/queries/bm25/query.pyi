@@ -5,7 +5,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import Rerank, METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
-    _QueryReturn,
+    QueryReturn,
     References,
     TReferences,
     CrossReferences,
@@ -28,7 +28,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _QueryReturn[Properties, References]: ...
+    ) -> QueryReturn[Properties, References]: ...
     @overload
     def bm25(
         self,
@@ -43,7 +43,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _QueryReturn[Properties, CrossReferences]: ...
+    ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
     def bm25(
         self,
@@ -58,7 +58,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _QueryReturn[Properties, TReferences]: ...
+    ) -> QueryReturn[Properties, TReferences]: ...
     @overload
     def bm25(
         self,
@@ -73,7 +73,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _QueryReturn[TProperties, References]: ...
+    ) -> QueryReturn[TProperties, References]: ...
     @overload
     def bm25(
         self,
@@ -88,7 +88,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _QueryReturn[TProperties, CrossReferences]: ...
+    ) -> QueryReturn[TProperties, CrossReferences]: ...
     @overload
     def bm25(
         self,
@@ -103,4 +103,4 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         *,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _QueryReturn[TProperties, TReferences]: ...
+    ) -> QueryReturn[TProperties, TReferences]: ...

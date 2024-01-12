@@ -51,14 +51,14 @@ class _MetadataResult:
 
 def _metadata_from_dict(
     metadata: Dict[str, Any]
-) -> Tuple[uuid_package.UUID, Optional[List[float]], "_MetadataReturn"]:
+) -> Tuple[uuid_package.UUID, Optional[List[float]], "MetadataReturn"]:
     uuid = uuid_package.UUID(metadata["id"]) if "id" in metadata else None
     if uuid is None:
         raise WeaviateGRPCQueryError("The query returned an object with an empty ID string")
     return (
         uuid,
         metadata.get("vector"),
-        _MetadataReturn(
+        MetadataReturn(
             creation_time=metadata.get("creationTimeUnix"),
             last_update_time=metadata.get("lastUpdateTimeUnix"),
             distance=metadata.get("distance"),
@@ -71,7 +71,7 @@ def _metadata_from_dict(
 
 
 @dataclass
-class _MetadataReturn:
+class MetadataReturn:
     creation_time: Optional[datetime.datetime] = None
     last_update_time: Optional[datetime.datetime] = None
     distance: Optional[float] = None
@@ -97,7 +97,7 @@ class _MetadataReturn:
 
 
 @dataclass
-class _GroupByMetadataReturn:
+class GroupByMetadataReturn:
     distance: Optional[float] = None
 
     def _is_empty(self) -> bool:
@@ -105,7 +105,7 @@ class _GroupByMetadataReturn:
 
 
 @dataclass
-class _InternalObject(Generic[P, R, M]):
+class _Object(Generic[P, R, M]):
     uuid: uuid_package.UUID
     metadata: M
     properties: P
@@ -115,74 +115,74 @@ class _InternalObject(Generic[P, R, M]):
 
 
 @dataclass
-class _Object(Generic[P, R], _InternalObject[P, R, _MetadataReturn]):
+class Object(Generic[P, R], _Object[P, R, MetadataReturn]):
     pass
 
 
 @dataclass
-class _MetadataSingleObjectReturn:
+class MetadataSingleObjectReturn:
     creation_time: datetime.datetime
     last_update_time: datetime.datetime
     is_consistent: Optional[bool]
 
 
 @dataclass
-class _ObjectSingleReturn(Generic[P, R], _InternalObject[P, R, _MetadataSingleObjectReturn]):
+class ObjectSingleReturn(Generic[P, R], _Object[P, R, MetadataSingleObjectReturn]):
     pass
 
 
 @dataclass
-class _GroupByObject(Generic[P, R], _InternalObject[P, R, _GroupByMetadataReturn]):
+class GroupByObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
     belongs_to_group: str
 
 
 @dataclass
-class _GroupedObject(Generic[P, R], _InternalObject[P, R, _GroupByMetadataReturn]):
+class GroupedObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
     pass
 
 
 @dataclass
-class _GenerativeObject(Generic[P, R], _Object[P, R]):
+class GenerativeObject(Generic[P, R], Object[P, R]):
     generated: Optional[str]
 
 
 @dataclass
-class _GenerativeReturn(Generic[P, R]):
-    objects: List[_GenerativeObject[P, R]]
+class GenerativeReturn(Generic[P, R]):
+    objects: List[GenerativeObject[P, R]]
     generated: Optional[str]
 
 
 @dataclass
-class _Group(Generic[P, R]):
+class Group(Generic[P, R]):
     name: str
     min_distance: float
     max_distance: float
     number_of_objects: int
-    objects: List[_GroupedObject[P, R]]
+    objects: List[GroupedObject[P, R]]
     rerank_score: Optional[float]
 
 
 @dataclass
-class _GenerativeGroup(Generic[P, R], _Group[P, R]):
+class GenerativeGroup(Generic[P, R], Group[P, R]):
     generated: Optional[str]
 
 
 @dataclass
-class _GenerativeGroupByReturn(Generic[P, R]):
-    objects: List[_GroupByObject[P, R]]
-    groups: Dict[str, _GenerativeGroup[P, R]]
+class GenerativeGroupByReturn(Generic[P, R]):
+    objects: List[GroupByObject[P, R]]
+    groups: Dict[str, GenerativeGroup[P, R]]
     generated: Optional[str]
 
 
 @dataclass
-class _GroupByReturn(Generic[P, R]):
-    objects: List[_GroupByObject[P, R]]
-    groups: Dict[str, _Group[P, R]]
+class GroupByReturn(Generic[P, R]):
+    objects: List[GroupByObject[P, R]]
+    groups: Dict[str, Group[P, R]]
 
 
 @dataclass
-class _QueryReturn(Generic[P, R]):
-    objects: List[_Object[P, R]]
+class QueryReturn(Generic[P, R]):
+    objects: List[Object[P, R]]
 
 
 _GQLEntryReturnType: TypeAlias = Dict[str, List[Dict[str, Any]]]
@@ -324,18 +324,18 @@ class _Reference:
 class _CrossReference(Generic[Properties, IReferences]):
     def __init__(
         self,
-        objects: Optional[List[_Object[Properties, IReferences]]],
+        objects: Optional[List[Object[Properties, IReferences]]],
     ):
         self.__objects = objects
 
     @classmethod
     def _from(
-        cls, objects: List[_Object[Properties, IReferences]]
+        cls, objects: List[Object[Properties, IReferences]]
     ) -> "_CrossReference[Properties, IReferences]":
         return cls(objects)
 
     @property
-    def objects(self) -> List[_Object[Properties, IReferences]]:
+    def objects(self) -> List[Object[Properties, IReferences]]:
         """Returns the objects of the cross reference."""
         return self.__objects or []
 
@@ -373,7 +373,7 @@ class Reference:
     def to(
         cls,
         uuids: UUIDS,
-    ) -> "_Reference":
+    ) -> "WeaviateReference":
         """Define cross references to other objects by their UUIDs.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
@@ -389,7 +389,7 @@ class Reference:
         cls,
         uuids: UUIDS,
         target_collection: Union[str, _CollectionBase],
-    ) -> "_Reference":
+    ) -> "WeaviateReference":
         """Define cross references to other objects by their UUIDs and the collection in which they are stored.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
@@ -478,7 +478,6 @@ def __create_link_to_from_annotated_reference(
     inner_type_metadata = cast(Tuple[ReferenceAnnotation], getattr(value, "__metadata__", None))
     annotation = inner_type_metadata[0]
     types = _extract_types_from_annotated_reference(value)
-    print(annotation)
     if annotation.target_collection is not None:
         return FromReferenceMultiTarget(
             link_on=link_on,
@@ -594,54 +593,60 @@ class _QueryOptions(Generic[Properties, References, TReferences]):
 
 
 QuerySingleReturn = Union[
-    _ObjectSingleReturn[Properties, References],
-    _ObjectSingleReturn[Properties, CrossReferences],
-    _ObjectSingleReturn[Properties, TReferences],
-    _ObjectSingleReturn[TProperties, References],
-    _ObjectSingleReturn[TProperties, CrossReferences],
-    _ObjectSingleReturn[TProperties, TReferences],
+    ObjectSingleReturn[Properties, References],
+    ObjectSingleReturn[Properties, CrossReferences],
+    ObjectSingleReturn[Properties, TReferences],
+    ObjectSingleReturn[TProperties, References],
+    ObjectSingleReturn[TProperties, CrossReferences],
+    ObjectSingleReturn[TProperties, TReferences],
 ]
 
-_GenerativeNearMediaReturn = Union[_GenerativeReturn[P, R], _GenerativeGroupByReturn[P, R]]
+GenerativeGroupByReturnType = Union[
+    GenerativeGroupByReturn[Properties, References],
+    GenerativeGroupByReturn[TProperties, TReferences],
+    GenerativeGroupByReturn[Properties, CrossReferences],
+    GenerativeGroupByReturn[Properties, TReferences],
+    GenerativeGroupByReturn[TProperties, References],
+    GenerativeGroupByReturn[TProperties, CrossReferences],
+]
+
+GenerativeReturnType = Union[
+    GenerativeReturn[Properties, References],
+    GenerativeReturn[TProperties, TReferences],
+    GenerativeReturn[Properties, CrossReferences],
+    GenerativeReturn[Properties, TReferences],
+    GenerativeReturn[TProperties, References],
+    GenerativeReturn[TProperties, CrossReferences],
+]
 
 # The way in which generic typealiases work requires that all the generic arguments
 # are listed first and in the order of their apperance in the typealias.
 # GenerativeNearMediaReturn[Properties, References, TProperties, TReferences] is the intended use and so
 # these four generics appear first. All others resolve afterwards correctly
-GenerativeNearMediaReturn = Union[
-    _GenerativeNearMediaReturn[Properties, References],
-    _GenerativeNearMediaReturn[TProperties, TReferences],
-    _GenerativeNearMediaReturn[Properties, CrossReferences],
-    _GenerativeNearMediaReturn[Properties, TReferences],
-    _GenerativeNearMediaReturn[TProperties, References],
-    _GenerativeNearMediaReturn[TProperties, CrossReferences],
+GenerativeNearMediaReturnType = Union[
+    GenerativeReturnType[Properties, References, TProperties, TReferences],
+    GenerativeGroupByReturnType[Properties, References, TProperties, TReferences],
 ]
 
-GenerativeReturn = Union[
-    _GenerativeReturn[Properties, References],
-    _GenerativeReturn[TProperties, TReferences],
-    _GenerativeReturn[Properties, CrossReferences],
-    _GenerativeReturn[Properties, TReferences],
-    _GenerativeReturn[TProperties, References],
-    _GenerativeReturn[TProperties, CrossReferences],
+QueryReturnType = Union[
+    QueryReturn[Properties, References],
+    QueryReturn[TProperties, TReferences],
+    QueryReturn[Properties, CrossReferences],
+    QueryReturn[Properties, TReferences],
+    QueryReturn[TProperties, References],
+    QueryReturn[TProperties, CrossReferences],
 ]
 
-_QueryNearMediaReturn = Union[_QueryReturn[P, R], _GroupByReturn[P, R]]
-
-QueryNearMediaReturn = Union[
-    _QueryNearMediaReturn[Properties, References],
-    _QueryNearMediaReturn[TProperties, TReferences],
-    _QueryNearMediaReturn[Properties, CrossReferences],
-    _QueryNearMediaReturn[Properties, TReferences],
-    _QueryNearMediaReturn[TProperties, References],
-    _QueryNearMediaReturn[TProperties, CrossReferences],
+GroupByReturnType = Union[
+    GroupByReturn[Properties, References],
+    GroupByReturn[TProperties, TReferences],
+    GroupByReturn[Properties, CrossReferences],
+    GroupByReturn[Properties, TReferences],
+    GroupByReturn[TProperties, References],
+    GroupByReturn[TProperties, CrossReferences],
 ]
 
-QueryReturn = Union[
-    _QueryReturn[Properties, References],
-    _QueryReturn[TProperties, TReferences],
-    _QueryReturn[Properties, CrossReferences],
-    _QueryReturn[Properties, TReferences],
-    _QueryReturn[TProperties, References],
-    _QueryReturn[TProperties, CrossReferences],
+QueryNearMediaReturnType = Union[
+    QueryReturnType[Properties, References, TProperties, TReferences],
+    GroupByReturnType[Properties, References, TProperties, TReferences],
 ]

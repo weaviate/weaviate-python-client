@@ -18,7 +18,7 @@ import uuid
 import weaviate
 from weaviate.collections.classes.config import (
     Configure,
-    PropertyConfig,
+    _PropertyConfig,
 )
 from weaviate.collections.classes.internal import CrossReference, Reference
 from weaviate.collections.classes.orm import BaseProperty, CollectionModelConfig
@@ -96,7 +96,7 @@ def test_types(client: weaviate.WeaviateClient, member_type, value, optional: bo
 @pytest.mark.parametrize(
     "member_type, annotation ,value,expected",
     [
-        (str, PropertyConfig(index_filterable=False), "value", "text"),
+        (str, _PropertyConfig(index_filterable=False), "value", "text"),
         (UUIDS, CrossReference[Group], [str(REF_TO_UUID)], "Group"),
         (Optional[UUIDS], CrossReference[Group], [str(REF_TO_UUID)], "Group"),
     ],

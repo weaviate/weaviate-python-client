@@ -8,7 +8,7 @@ else:
 
 import pytest as pytest
 
-from weaviate.collections.classes.config import PropertyConfig
+from weaviate.collections.classes.config import _PropertyConfig
 from weaviate.collections.classes.orm import BaseProperty, Reference
 from weaviate.types import UUIDS
 
@@ -43,7 +43,7 @@ def test_types(member_type, expected: str, optional: bool):
 @pytest.mark.parametrize(
     "member_type, annotation ,expected",
     [
-        (str, PropertyConfig(index_filterable=False), "text"),
+        (str, _PropertyConfig(index_filterable=False), "text"),
         (UUIDS, Reference(Group), "Group"),
         (Optional[UUIDS], Reference(Group), "Group"),
     ],

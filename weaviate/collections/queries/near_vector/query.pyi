@@ -5,8 +5,8 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
-    _GroupByReturn,
-    _QueryReturn,
+    GroupByReturn,
+    QueryReturn,
     References,
     CrossReferences,
     TReferences,
@@ -34,7 +34,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _QueryReturn[Properties, References]: ...
+    ) -> QueryReturn[Properties, References]: ...
     @overload
     def near_vector(
         self,
@@ -51,7 +51,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _QueryReturn[Properties, CrossReferences]: ...
+    ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
     def near_vector(
         self,
@@ -68,7 +68,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _QueryReturn[Properties, TReferences]: ...
+    ) -> QueryReturn[Properties, TReferences]: ...
     @overload
     def near_vector(
         self,
@@ -85,7 +85,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _QueryReturn[TProperties, References]: ...
+    ) -> QueryReturn[TProperties, References]: ...
     @overload
     def near_vector(
         self,
@@ -102,7 +102,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _QueryReturn[TProperties, CrossReferences]: ...
+    ) -> QueryReturn[TProperties, CrossReferences]: ...
     @overload
     def near_vector(
         self,
@@ -119,7 +119,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _QueryReturn[TProperties, TReferences]: ...
+    ) -> QueryReturn[TProperties, TReferences]: ...
 
     ### GroupBy ###
 
@@ -139,7 +139,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _GroupByReturn[Properties, References]: ...
+    ) -> GroupByReturn[Properties, References]: ...
     @overload
     def near_vector(
         self,
@@ -156,7 +156,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GroupByReturn[Properties, CrossReferences]: ...
+    ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
     def near_vector(
         self,
@@ -173,7 +173,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _GroupByReturn[Properties, TReferences]: ...
+    ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
     def near_vector(
         self,
@@ -190,7 +190,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _GroupByReturn[TProperties, References]: ...
+    ) -> GroupByReturn[TProperties, References]: ...
     @overload
     def near_vector(
         self,
@@ -207,7 +207,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GroupByReturn[TProperties, CrossReferences]: ...
+    ) -> GroupByReturn[TProperties, CrossReferences]: ...
     @overload
     def near_vector(
         self,
@@ -224,4 +224,4 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _GroupByReturn[TProperties, TReferences]: ...
+    ) -> GroupByReturn[TProperties, TReferences]: ...

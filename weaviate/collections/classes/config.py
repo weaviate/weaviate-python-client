@@ -4,7 +4,6 @@ from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Sequence, Union, cast
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
-from weaviate.collections.classes.types import SHARD_TYPES
 
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -66,7 +65,14 @@ class DataType(str, Enum):
     OBJECT_ARRAY = "object[]"
 
 
-class _VectorIndexType(str, Enum):
+class VectorIndexType(str, Enum):
+    """The available vector index types in Weaviate.
+
+    Attributes:
+        HNSW: Hierarchical Navigable Small World (HNSW) index.
+        FLAT: Flat index.
+    """
+
     HNSW = "hnsw"
     FLAT = "flat"
 
@@ -91,7 +97,7 @@ class Tokenization(str, Enum):
     FIELD = "field"
 
 
-class Vectorizer(str, Enum):
+class Vectorizers(str, Enum):
     """The available vectorization modules in Weaviate.
 
     These modules encode binary data into lists of floats called vectors.
@@ -144,6 +150,9 @@ class Vectorizer(str, Enum):
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
+Vectorizer = Vectorizers  # TODO: deprecate and remove
+
+
 class GenerativeSearches(str, Enum):
     """The available generative search modules in Weaviate.
 
@@ -168,7 +177,7 @@ class GenerativeSearches(str, Enum):
     ANYSCALE = "generative-anyscale"
 
 
-class Reranker(str, Enum):
+class Rerankers(str, Enum):
     """The available reranker modules in Weaviate.
 
     These modules rerank the results of a search query.
@@ -188,7 +197,10 @@ class Reranker(str, Enum):
     TRANSFORMERS = "reranker-transformers"
 
 
-class VectorDistance(str, Enum):
+Reranker = Rerankers  # TODO: deprecate and remove
+
+
+class VectorDistances(str, Enum):
     """Vector similarity distance metric to be used in the `VectorIndexConfig` class.
 
     To ensure optimal search results, we recommend reviewing whether your model provider advises a
@@ -212,6 +224,9 @@ class VectorDistance(str, Enum):
     L2_SQUARED = "l2-squared"
     HAMMING = "hamming"
     MANHATTAN = "manhattan"
+
+
+VectorDistance = VectorDistances  # TODO: deprecate and remove
 
 
 class StopwordsPreset(str, Enum):
@@ -363,13 +378,13 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
-    distance: Optional[VectorDistance]
+    distance: Optional[VectorDistances]
     vectorCacheMaxObjects: Optional[int]
     quantizer: Optional[_QuantizerConfigCreate] = Field(exclude=True)
 
     @staticmethod
     @abstractmethod
-    def vector_index_type() -> _VectorIndexType:
+    def vector_index_type() -> VectorIndexType:
         ...
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -394,14 +409,14 @@ class _VectorIndexHNSWConfigCreate(_VectorIndexConfigCreate):
     skip: Optional[bool]
 
     @staticmethod
-    def vector_index_type() -> _VectorIndexType:
-        return _VectorIndexType.HNSW
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.HNSW
 
 
 class _VectorIndexFlatConfigCreate(_VectorIndexConfigCreate):
     @staticmethod
-    def vector_index_type() -> _VectorIndexType:
-        return _VectorIndexType.FLAT
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.FLAT
 
 
 class _VectorIndexConfigHNSWUpdate(_ConfigUpdateModel):
@@ -570,23 +585,23 @@ class _GenerativeAWSConfig(_GenerativeConfigCreate):
 
 
 class _VectorizerConfigCreate(_ConfigCreateModel):
-    vectorizer: Vectorizer
+    vectorizer: Vectorizers
 
 
 class _RerankerConfigCreate(_ConfigCreateModel):
-    reranker: Reranker
+    reranker: Rerankers
 
 
 RerankerCohereModel = Literal["rerank-english-v2.0", "rerank-multilingual-v2.0"]
 
 
 class _RerankerCohereConfig(_RerankerConfigCreate):
-    reranker: Reranker = Field(default=Reranker.COHERE, frozen=True, exclude=True)
+    reranker: Rerankers = Field(default=Rerankers.COHERE, frozen=True, exclude=True)
     model: Optional[Union[RerankerCohereModel, str]] = Field(default=None)
 
 
 class _RerankerTransformersConfig(_RerankerConfigCreate):
-    reranker: Reranker = Field(default=Reranker.TRANSFORMERS, frozen=True, exclude=True)
+    reranker: Rerankers = Field(default=Rerankers.TRANSFORMERS, frozen=True, exclude=True)
 
 
 CohereModel = Literal[
@@ -817,7 +832,7 @@ class _Generative:
 
 
 class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_OPENAI, frozen=True, exclude=True)
     baseURL: Optional[AnyHttpUrl]
     resourceName: str
     deploymentId: str
@@ -831,21 +846,21 @@ class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(
-        default=Vectorizer.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
+    vectorizer: Vectorizers = Field(
+        default=Vectorizers.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
     )
     vectorizeClassName: bool
 
 
 class _Text2VecAWSConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_AWS, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_AWS, frozen=True, exclude=True)
     model: str
     region: str
     vectorizeClassName: bool
 
 
 class _Text2VecCohereConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_COHERE, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_COHERE, frozen=True, exclude=True)
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncate: Optional[CohereTruncation]
@@ -859,8 +874,8 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(
-        default=Vectorizer.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True
+    vectorizer: Vectorizers = Field(
+        default=Vectorizers.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True
     )
     model: Optional[str]
     passageModel: Optional[str]
@@ -918,7 +933,7 @@ OpenAIType = Literal["text", "code"]
 
 
 class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_OPENAI, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_OPENAI, frozen=True, exclude=True)
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     modelVersion: Optional[str]
@@ -935,7 +950,7 @@ class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecPalmConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_PALM, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True)
     projectId: str
     apiEndpoint: Optional[AnyHttpUrl]
     modelId: Optional[str]
@@ -949,26 +964,26 @@ class _Text2VecPalmConfig(_VectorizerConfigCreate):
 
 
 class _Text2VecTransformersConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(
-        default=Vectorizer.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True
+    vectorizer: Vectorizers = Field(
+        default=Vectorizers.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True
     )
     poolingStrategy: Literal["masked_mean", "cls"]
     vectorizeClassName: bool
 
 
 class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
     vectorizeClassName: bool
 
 
 class _Text2VecJinaConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(default=Vectorizer.TEXT2VEC_JINAAI, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_JINAAI, frozen=True, exclude=True)
     model: Optional[str]
     vectorizeClassName: bool
 
 
 class _Img2VecNeuralConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(default=Vectorizer.IMG2VEC_NEURAL, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.IMG2VEC_NEURAL, frozen=True, exclude=True)
     imageFields: List[str]
 
 
@@ -1001,11 +1016,11 @@ class _Multi2VecBase(_VectorizerConfigCreate):
 
 
 class _Multi2VecClipConfig(_Multi2VecBase):
-    vectorizer: Vectorizer = Field(default=Vectorizer.MULTI2VEC_CLIP, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.MULTI2VEC_CLIP, frozen=True, exclude=True)
 
 
 class _Multi2VecBindConfig(_Multi2VecBase):
-    vectorizer: Vectorizer = Field(default=Vectorizer.MULTI2VEC_BIND, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.MULTI2VEC_BIND, frozen=True, exclude=True)
     audioFields: Optional[List[Multi2VecField]]
     depthFields: Optional[List[Multi2VecField]]
     IMUFields: Optional[List[Multi2VecField]]
@@ -1014,7 +1029,7 @@ class _Multi2VecBindConfig(_Multi2VecBase):
 
 
 class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizer = Field(default=Vectorizer.REF2VEC_CENTROID, frozen=True, exclude=True)
+    vectorizer: Vectorizers = Field(default=Vectorizers.REF2VEC_CENTROID, frozen=True, exclude=True)
     referenceProperties: List[str]
     method: Literal["mean"]
 
@@ -1041,7 +1056,7 @@ class _Reranker:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-transformers)
         for detailed usage.
         """
-        return _RerankerTransformersConfig(reranker=Reranker.TRANSFORMERS)
+        return _RerankerTransformersConfig(reranker=Rerankers.TRANSFORMERS)
 
     @staticmethod
     def cohere(
@@ -1069,7 +1084,7 @@ class _Vectorizer:
     @staticmethod
     def none() -> _VectorizerConfigCreate:
         """Create a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`."""
-        return _VectorizerConfigCreate(vectorizer=Vectorizer.NONE)
+        return _VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
 
     @staticmethod
     def img2vec_neural(
@@ -1514,7 +1529,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
                 self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
             elif isinstance(val, _VectorizerConfigCreate):
                 ret_dict["vectorizer"] = val.vectorizer.value
-                if val.vectorizer != Vectorizer.NONE:
+                if val.vectorizer != Vectorizers.NONE:
                     self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
             elif isinstance(val, _VectorIndexConfigCreate):
                 ret_dict["vectorIndexType"] = val.vector_index_type()
@@ -1523,9 +1538,9 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
                 assert isinstance(val, _ConfigCreateModel)
                 ret_dict[cls_field] = val._to_dict()
         if self.moduleConfig is None:
-            ret_dict["vectorizer"] = Vectorizer.NONE.value
+            ret_dict["vectorizer"] = Vectorizers.NONE.value
         if self.vectorIndexConfig is None:
-            ret_dict["vectorIndexType"] = _VectorIndexType.HNSW
+            ret_dict["vectorIndexType"] = VectorIndexType.HNSW
         return ret_dict
 
     @staticmethod
@@ -1568,6 +1583,9 @@ class _BM25Config(_ConfigBase):
     k1: float
 
 
+BM25Config = _BM25Config
+
+
 @dataclass
 class _StopwordsConfig(_ConfigBase):
     preset: StopwordsPreset
@@ -1575,14 +1593,20 @@ class _StopwordsConfig(_ConfigBase):
     removals: Optional[List[str]]
 
 
+StopwordsConfig = _StopwordsConfig
+
+
 @dataclass
 class _InvertedIndexConfig(_ConfigBase):
-    bm25: _BM25Config
+    bm25: BM25Config
     cleanup_interval_seconds: int
     index_null_state: bool
     index_property_length: bool
     index_timestamps: bool
-    stopwords: _StopwordsConfig
+    stopwords: StopwordsConfig
+
+
+InvertedIndexConfig = _InvertedIndexConfig
 
 
 @dataclass
@@ -1590,10 +1614,16 @@ class _MultiTenancyConfig(_ConfigBase):
     enabled: bool
 
 
+MultiTenancyConfig = _MultiTenancyConfig
+
+
 @dataclass
 class _PropertyVectorizerConfig:
     skip: bool
     vectorize_property_name: bool
+
+
+PropertyVectorizerConfig = _PropertyVectorizerConfig
 
 
 @dataclass
@@ -1603,8 +1633,11 @@ class _NestedProperty:
     index_filterable: bool
     index_searchable: bool
     name: str
-    nested_properties: Optional[List["_NestedProperty"]]
+    nested_properties: Optional[List["NestedProperty"]]
     tokenization: Optional[Tokenization]
+
+
+NestedProperty = _NestedProperty
 
 
 @dataclass
@@ -1614,7 +1647,7 @@ class _PropertyBase(_ConfigBase):
     index_searchable: bool
     name: str
     tokenization: Optional[Tokenization]
-    vectorizer_config: Optional[_PropertyVectorizerConfig]
+    vectorizer_config: Optional[PropertyVectorizerConfig]
     vectorizer: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -1640,12 +1673,15 @@ class _PropertyBase(_ConfigBase):
 @dataclass
 class _Property(_PropertyBase):
     data_type: DataType
-    nested_properties: Optional[List[_NestedProperty]]
+    nested_properties: Optional[List[NestedProperty]]
 
     def _to_dict(self) -> Dict[str, Any]:
         out = super()._to_dict()
         out["dataType"] = [self.data_type.value]
         return out
+
+
+PropertyConfig = _Property
 
 
 @dataclass
@@ -1658,9 +1694,15 @@ class _ReferenceProperty(_PropertyBase):
         return out
 
 
+ReferencePropertyConfig = _ReferenceProperty
+
+
 @dataclass
 class _ReplicationConfig(_ConfigBase):
     factor: int
+
+
+ReplicationConfig = _ReplicationConfig
 
 
 @dataclass
@@ -1675,6 +1717,9 @@ class _ShardingConfig(_ConfigBase):
     function: str
 
 
+ShardingConfig = _ShardingConfig
+
+
 @dataclass
 class _PQEncoderConfig(_ConfigBase):
     type_: PQEncoderType
@@ -1687,13 +1732,19 @@ class _PQEncoderConfig(_ConfigBase):
         return ret_dict
 
 
+PQEncoderConfig = _PQEncoderConfig
+
+
 @dataclass
 class _PQConfig(_ConfigBase):
     bit_compression: bool
     segments: int
     centroids: int
     training_limit: int
-    encoder: _PQEncoderConfig
+    encoder: PQEncoderConfig
+
+
+PQConfig = _PQConfig
 
 
 @dataclass
@@ -1702,10 +1753,13 @@ class _BQConfig(_ConfigBase):
     rescore_limit: int
 
 
+BQConfig = _BQConfig
+
+
 @dataclass
 class _VectorIndexConfigHNSW(_ConfigBase):
     cleanup_interval_seconds: int
-    distance_metric: VectorDistance
+    distance_metric: VectorDistances
     dynamic_ef_min: int
     dynamic_ef_max: int
     dynamic_ef_factor: int
@@ -1713,16 +1767,22 @@ class _VectorIndexConfigHNSW(_ConfigBase):
     ef_construction: int
     flat_search_cutoff: int
     max_connections: int
-    quantizer: Optional[Union[_PQConfig, _BQConfig]]
+    quantizer: Optional[Union[PQConfig, BQConfig]]
     skip: bool
     vector_cache_max_objects: int
 
 
+VectorIndexConfigHNSW = _VectorIndexConfigHNSW
+
+
 @dataclass
 class _VectorIndexConfigFlat(_ConfigBase):
-    distance_metric: VectorDistance
-    quantizer: Optional[Union[_PQConfig, _BQConfig]]
+    distance_metric: VectorDistances
+    quantizer: Optional[Union[PQConfig, BQConfig]]
     vector_cache_max_objects: int
+
+
+VectorIndexConfigFlat = _VectorIndexConfigFlat
 
 
 @dataclass
@@ -1731,34 +1791,43 @@ class _GenerativeConfig(_ConfigBase):
     model: Dict[str, Any]
 
 
+GenerativeConfig = _GenerativeConfig
+
+
 @dataclass
 class _VectorizerConfig(_ConfigBase):
     model: Dict[str, Any]
     vectorize_collection_name: bool
 
 
+VectorizerConfig = _VectorizerConfig
+
+
 @dataclass
 class _RerankerConfig(_ConfigBase):
     model: Dict[str, Any]
-    reranker: Reranker
+    reranker: Rerankers
+
+
+RerankerConfig = _RerankerConfig
 
 
 @dataclass
 class _CollectionConfig(_ConfigBase):
     name: str
     description: Optional[str]
-    generative_config: Optional[_GenerativeConfig]
-    inverted_index_config: _InvertedIndexConfig
-    multi_tenancy_config: _MultiTenancyConfig
-    properties: List[_Property]
-    references: List[_ReferenceProperty]
-    replication_config: _ReplicationConfig
-    reranker_config: Optional[_RerankerConfig]
-    sharding_config: _ShardingConfig
-    vector_index_config: Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat]
-    vector_index_type: _VectorIndexType
-    vectorizer_config: Optional[_VectorizerConfig]
-    vectorizer: Vectorizer
+    generative_config: Optional[GenerativeConfig]
+    inverted_index_config: InvertedIndexConfig
+    multi_tenancy_config: MultiTenancyConfig
+    properties: List[PropertyConfig]
+    references: List[ReferencePropertyConfig]
+    replication_config: ReplicationConfig
+    reranker_config: Optional[RerankerConfig]
+    sharding_config: ShardingConfig
+    vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]
+    vector_index_type: VectorIndexType
+    vectorizer_config: Optional[VectorizerConfig]
+    vectorizer: Vectorizers
 
     def _to_dict(self) -> dict:
         out = super()._to_dict()
@@ -1775,24 +1844,34 @@ class _CollectionConfig(_ConfigBase):
         return out
 
 
+CollectionConfig = _CollectionConfig
+
+
 @dataclass
 class _CollectionConfigSimple(_ConfigBase):
     name: str
     description: Optional[str]
-    generative_config: Optional[_GenerativeConfig]
-    properties: List[_Property]
-    references: List[_ReferenceProperty]
-    reranker_config: Optional[_RerankerConfig]
-    vectorizer_config: Optional[_VectorizerConfig]
-    vectorizer: Vectorizer
+    generative_config: Optional[GenerativeConfig]
+    properties: List[PropertyConfig]
+    references: List[ReferencePropertyConfig]
+    reranker_config: Optional[RerankerConfig]
+    vectorizer_config: Optional[VectorizerConfig]
+    vectorizer: Vectorizers
+
+
+CollectionConfigSimple = _CollectionConfigSimple
+
+ShardTypes = Literal["READONLY", "READY", "INDEXING"]
 
 
 @dataclass
 class _ShardStatus:
     name: str
-    status: SHARD_TYPES
+    status: ShardTypes
     vector_queue_size: int
 
+
+ShardStatus = _ShardStatus
 
 # class PropertyConfig(ConfigCreateModel):
 #     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
@@ -1803,7 +1882,7 @@ class _ShardStatus:
 
 
 @dataclass
-class PropertyConfig:  # noqa
+class _PropertyConfig:  # noqa
     index_filterable: Optional[bool] = None
     index_searchable: Optional[bool] = None
     tokenization: Optional[Tokenization] = None
@@ -1862,10 +1941,10 @@ class Property(_ConfigCreateModel):
             raise ValueError(f"Property name '{v}' is reserved and cannot be used")
         return v
 
-    def _to_dict(self, vectorizer: Optional[Vectorizer] = None) -> Dict[str, Any]:
+    def _to_dict(self, vectorizer: Optional[Vectorizers] = None) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
-        if vectorizer is not None and vectorizer != Vectorizer.NONE:
+        if vectorizer is not None and vectorizer != Vectorizers.NONE:
             ret_dict["moduleConfig"] = {
                 vectorizer.value: {
                     "skip": self.skip_vectorization,
@@ -2043,7 +2122,7 @@ class _VectorIndex:
     @staticmethod
     def hnsw(
         cleanup_interval_seconds: Optional[int] = None,
-        distance_metric: Optional[VectorDistance] = None,
+        distance_metric: Optional[VectorDistances] = None,
         dynamic_ef_factor: Optional[int] = None,
         dynamic_ef_max: Optional[int] = None,
         dynamic_ef_min: Optional[int] = None,
@@ -2079,7 +2158,7 @@ class _VectorIndex:
 
     @staticmethod
     def flat(
-        distance_metric: Optional[VectorDistance] = None,
+        distance_metric: Optional[VectorDistances] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_BQConfigCreate] = None,
     ) -> _VectorIndexFlatConfigCreate:

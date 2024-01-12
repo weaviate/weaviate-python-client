@@ -3,9 +3,9 @@ from typing import Any, Dict, List, Optional, Union
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.batch import (
-    _BatchDeleteResultNoObjects,
+    BatchDeleteReturnNoObjects,
+    BatchDeleteReturn,
     ErrorReference,
-    _BatchDeleteResult,
     _BatchReference,
     BatchReferenceReturn,
 )
@@ -26,7 +26,7 @@ class _BatchREST:
 
     def delete(
         self, collection: str, where: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
-    ) -> Union[_BatchDeleteResult, _BatchDeleteResultNoObjects]:
+    ) -> Union[BatchDeleteReturn, BatchDeleteReturnNoObjects]:
         payload: Dict[str, Any] = {
             "match": {
                 "class": collection,
@@ -55,14 +55,14 @@ class _BatchREST:
         res = _decode_json_response_dict(response, "Delete in batch")
         assert res is not None
         if verbose:
-            return _BatchDeleteResult(
+            return BatchDeleteReturn(
                 failed=res["results"]["failed"],
                 matches=res["results"]["matches"],
                 objects=res["results"]["objects"],
                 successful=res["results"]["successful"],
             )
         else:
-            return _BatchDeleteResultNoObjects(
+            return BatchDeleteReturnNoObjects(
                 failed=res["results"]["failed"],
                 matches=res["results"]["matches"],
                 successful=res["results"]["successful"],

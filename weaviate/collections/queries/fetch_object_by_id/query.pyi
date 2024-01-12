@@ -8,7 +8,7 @@ from typing import (
 
 from weaviate.collections.classes.grpc import PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
-    _ObjectSingleReturn,
+    ObjectSingleReturn,
     References,
     TReferences,
     CrossReferences,
@@ -26,7 +26,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _ObjectSingleReturn[Properties, References]: ...
+    ) -> ObjectSingleReturn[Properties, References]: ...
     @overload
     def fetch_object_by_id(
         self,
@@ -35,7 +35,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _ObjectSingleReturn[Properties, CrossReferences]: ...
+    ) -> ObjectSingleReturn[Properties, CrossReferences]: ...
     @overload
     def fetch_object_by_id(
         self,
@@ -44,7 +44,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _ObjectSingleReturn[Properties, TReferences]: ...
+    ) -> ObjectSingleReturn[Properties, TReferences]: ...
     @overload
     def fetch_object_by_id(
         self,
@@ -53,7 +53,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _ObjectSingleReturn[TProperties, References]: ...
+    ) -> ObjectSingleReturn[TProperties, References]: ...
     @overload
     def fetch_object_by_id(
         self,
@@ -62,7 +62,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _ObjectSingleReturn[TProperties, CrossReferences]: ...
+    ) -> ObjectSingleReturn[TProperties, CrossReferences]: ...
     @overload
     def fetch_object_by_id(
         self,
@@ -71,4 +71,4 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _ObjectSingleReturn[TProperties, TReferences]: ...
+    ) -> ObjectSingleReturn[TProperties, TReferences]: ...

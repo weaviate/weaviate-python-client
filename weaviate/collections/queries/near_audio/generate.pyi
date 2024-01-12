@@ -7,8 +7,8 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
-    _GenerativeReturn,
-    _GenerativeGroupByReturn,
+    GenerativeReturn,
+    GenerativeGroupByReturn,
     References,
     CrossReferences,
     TReferences,
@@ -39,7 +39,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _GenerativeReturn[Properties, References]: ...
+    ) -> GenerativeReturn[Properties, References]: ...
     @overload
     def near_audio(
         self,
@@ -59,7 +59,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GenerativeReturn[Properties, CrossReferences]: ...
+    ) -> GenerativeReturn[Properties, CrossReferences]: ...
     @overload
     def near_audio(
         self,
@@ -79,7 +79,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _GenerativeReturn[Properties, TReferences]: ...
+    ) -> GenerativeReturn[Properties, TReferences]: ...
     @overload
     def near_audio(
         self,
@@ -99,7 +99,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _GenerativeReturn[TProperties, References]: ...
+    ) -> GenerativeReturn[TProperties, References]: ...
     @overload
     def near_audio(
         self,
@@ -119,7 +119,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GenerativeReturn[TProperties, CrossReferences]: ...
+    ) -> GenerativeReturn[TProperties, CrossReferences]: ...
     @overload
     def near_audio(
         self,
@@ -139,7 +139,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _GenerativeReturn[TProperties, TReferences]: ...
+    ) -> GenerativeReturn[TProperties, TReferences]: ...
     ### GroupBy ###
     @overload
     def near_audio(
@@ -160,7 +160,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _GenerativeGroupByReturn[Properties, References]: ...
+    ) -> GenerativeGroupByReturn[Properties, References]: ...
     @overload
     def near_audio(
         self,
@@ -180,7 +180,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GenerativeGroupByReturn[Properties, CrossReferences]: ...
+    ) -> GenerativeGroupByReturn[Properties, CrossReferences]: ...
     @overload
     def near_audio(
         self,
@@ -200,7 +200,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _GenerativeGroupByReturn[Properties, TReferences]: ...
+    ) -> GenerativeGroupByReturn[Properties, TReferences]: ...
     @overload
     def near_audio(
         self,
@@ -220,7 +220,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _GenerativeGroupByReturn[TProperties, References]: ...
+    ) -> GenerativeGroupByReturn[TProperties, References]: ...
     @overload
     def near_audio(
         self,
@@ -240,7 +240,7 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GenerativeGroupByReturn[TProperties, CrossReferences]: ...
+    ) -> GenerativeGroupByReturn[TProperties, CrossReferences]: ...
     @overload
     def near_audio(
         self,
@@ -260,4 +260,4 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _GenerativeGroupByReturn[TProperties, TReferences]: ...
+    ) -> GenerativeGroupByReturn[TProperties, TReferences]: ...

@@ -1,7 +1,7 @@
 import datetime
 import uuid as uuid_package
 
-from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Type, Union, get_origin
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, get_origin
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -83,8 +83,6 @@ WeaviateProperties: TypeAlias = Mapping[str, WeaviateField]
 # current limitation of mypy is that Dict[str, WeaviateField] is not successfully inferred
 # when used in DataObject. It can't understand that DataObject[Dict[str, str], None] is covariant
 # with DataObject[Dict[str, WeaviateField], None]
-
-SHARD_TYPES = Literal["READONLY", "READY", "INDEXING"]
 
 
 Properties = TypeVar("Properties", bound=Mapping[str, Any], default=WeaviateProperties)

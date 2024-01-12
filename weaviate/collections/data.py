@@ -19,17 +19,17 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 
 from weaviate.collections.classes.batch import (
-    _BatchDeleteResultNoObjects,
+    BatchDeleteReturnNoObjects,
     _BatchObject,
     BatchObjectReturn,
     _BatchReference,
     BatchReferenceReturn,
-    _BatchDeleteResult,
+    BatchDeleteReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.internal import (
-    _Object,
+    Object,
     _metadata_from_dict,
     _Reference,
     WeaviateReference,
@@ -122,24 +122,24 @@ class _Data:
     @overload
     def delete_many(
         self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
-    ) -> _BatchDeleteResultNoObjects:
+    ) -> BatchDeleteReturnNoObjects:
         ...
 
     @overload
     def delete_many(
         self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
-    ) -> _BatchDeleteResult:
+    ) -> BatchDeleteReturn:
         ...
 
     @overload
     def delete_many(
         self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
-    ) -> Union[_BatchDeleteResult, _BatchDeleteResultNoObjects]:
+    ) -> Union[BatchDeleteReturn, BatchDeleteReturnNoObjects]:
         ...
 
     def delete_many(
         self, where: _Filters, verbose: bool = False, *, dry_run: bool = False
-    ) -> Union[_BatchDeleteResult, _BatchDeleteResultNoObjects]:
+    ) -> Union[BatchDeleteReturn, BatchDeleteReturnNoObjects]:
         """Delete multiple objects from the collection based on a filter.
 
         Arguments:
@@ -562,7 +562,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         super().__init__(connection, name, consistency_level, tenant)
         self.__model = model
 
-    def _json_to_object(self, obj: Dict[str, Any]) -> _Object[Model, dict]:
+    def _json_to_object(self, obj: Dict[str, Any]) -> Object[Model, dict]:
         for ref in self.__model.get_ref_fields(self.__model):
             if ref not in obj["properties"]:
                 continue
@@ -582,7 +582,7 @@ class _DataCollectionModel(Generic[Model], _Data):
                 obj["properties"][prop] = None
 
         uuid, vector, metadata = _metadata_from_dict(obj)
-        model_object = _Object[Model, dict](
+        model_object = Object[Model, dict](
             collection=self.name,
             properties=self.__model.model_validate(
                 {

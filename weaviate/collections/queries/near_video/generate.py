@@ -8,7 +8,7 @@ from weaviate.collections.classes.filters import (
 from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
     _Generative,
-    GenerativeNearMediaReturn,
+    GenerativeNearMediaReturnType,
     _GroupBy,
     ReturnProperties,
     ReturnReferences,
@@ -42,7 +42,7 @@ class _NearVideoGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> GenerativeNearMediaReturn[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeNearMediaReturnType[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-video object search in this collection using an video-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
