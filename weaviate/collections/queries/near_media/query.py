@@ -5,14 +5,14 @@ from typing import Generic, Optional, Union
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
+from weaviate.collections.classes.grpc import GroupBy, METADATA, NearMediaType, Rerank
 from weaviate.collections.classes.internal import (
     _GroupBy,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
-    QueryNearMediaReturnType,
     References,
+    QueryNearMediaReturnType,
     TReferences,
 )
 from weaviate.collections.classes.types import (
@@ -22,10 +22,11 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.queries.base import _BaseQuery
 
 
-class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def near_video(
+class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
+    def near_media(
         self,
-        near_video: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
@@ -39,16 +40,18 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
-        """Search for objects by video in this collection using an video-capable vectorisation module and vector-based similarity search.
+        """Search for objects by audio in this collection using an audio-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
 
         NOTE:
-            You must have an video-capable vectorisation module installed in order to use this method, e.g. `multi2vec-bind`.
+            You must have a multi-media-capable vectorisation module installed in order to use this method, e.g. `multi2vec-bind`.
 
         Arguments:
-            `near_video`
-                The video file to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
+            `media`
+                The media file to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
+            `media_type`
+                The type of the provided media file, REQUIRED.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
@@ -76,14 +79,16 @@ class _NearVideoQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `QueryReturn` object that includes the searched objects.
+            A `QueryReturn` or `_GroupByReturn` object that includes the searched objects.
+            If `group_by` is provided then a `_GroupByReturn` object is returned, otherwise a `QueryReturn` object is returned.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query().near_video(
-            video=self._parse_media(near_video),
+        res = self._query().near_media(
+            media=self._parse_media(media),
+            type_=media_type.value,
             certainty=certainty,
             distance=distance,
             limit=limit,

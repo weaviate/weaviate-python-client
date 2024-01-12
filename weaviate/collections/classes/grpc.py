@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from typing import ClassVar, List, Literal, Optional, Type, Union
 
 from pydantic import Field
@@ -222,3 +223,14 @@ NestedProperties = Union[List[Union[str, FromNested, QueryNested]], str, FromNes
 
 _PROPERTY = Union[PROPERTY, REFERENCE]
 _PROPERTIES = Union[PROPERTIES, REFERENCES]
+
+
+class NearMediaType(str, Enum):
+    """The different types of media that can be used in a `near_media` query to leverage the `multi2vec-bind` module."""
+
+    AUDIO = "audio"
+    DEPTH = "depth"
+    IMAGE = "image"
+    IMU = "imu"
+    THERMAL = "thermal"
+    VIDEO = "video"
