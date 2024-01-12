@@ -10,7 +10,7 @@ from weaviate.collections.classes.config import (
     PropertyType,
     Property,
     ReferenceProperty,
-    ReferencePropertyMultiTarget,
+    _ReferencePropertyMultiTarget,
     _VectorIndexConfigHNSWUpdate,
     _CollectionConfig,
     _CollectionConfigSimple,
@@ -251,7 +251,7 @@ class _ConfigCollection(_ConfigBase):
             )
         self._add_property(prop)
 
-    def add_reference(self, ref: Union[ReferenceProperty, ReferencePropertyMultiTarget]) -> None:
+    def add_reference(self, ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget]) -> None:
         """Add a reference to the collection in Weaviate.
 
         Arguments:
@@ -266,12 +266,12 @@ class _ConfigCollection(_ConfigBase):
                 If the reference already exists in the collection.
         """
         if not isinstance(ref, ReferenceProperty) and not isinstance(
-            ref, ReferencePropertyMultiTarget
+            ref, _ReferencePropertyMultiTarget
         ):
             _raise_invalid_input(
                 "ref",
                 ref,
-                Union[ReferenceProperty, ReferencePropertyMultiTarget],
+                Union[ReferenceProperty, _ReferencePropertyMultiTarget],
             )
         if self._get_property_by_name(ref.name) is not None:
             raise ObjectAlreadyExistsError(

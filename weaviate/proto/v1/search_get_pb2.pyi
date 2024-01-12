@@ -75,7 +75,7 @@ class SearchRequest(_message.Message):
     autocut: int
     after: str
     sort_by: _containers.RepeatedCompositeFieldContainer[SortBy]
-    filters: Filters
+    filters: _base_pb2.Filters
     hybrid_search: Hybrid
     bm25_search: BM25
     near_vector: NearVector
@@ -100,7 +100,7 @@ class SearchRequest(_message.Message):
         autocut: _Optional[int] = ...,
         after: _Optional[str] = ...,
         sort_by: _Optional[_Iterable[_Union[SortBy, _Mapping]]] = ...,
-        filters: _Optional[_Union[Filters, _Mapping]] = ...,
+        filters: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ...,
         hybrid_search: _Optional[_Union[Hybrid, _Mapping]] = ...,
         bm25_search: _Optional[_Union[BM25, _Mapping]] = ...,
         near_vector: _Optional[_Union[NearVector, _Mapping]] = ...,
@@ -150,131 +150,6 @@ class GenerativeSearch(_message.Message):
         single_response_prompt: _Optional[str] = ...,
         grouped_response_task: _Optional[str] = ...,
         grouped_properties: _Optional[_Iterable[str]] = ...,
-    ) -> None: ...
-
-class TextArray(_message.Message):
-    __slots__ = ["values"]
-    VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, values: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class IntArray(_message.Message):
-    __slots__ = ["values"]
-    VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[int]
-    def __init__(self, values: _Optional[_Iterable[int]] = ...) -> None: ...
-
-class NumberArray(_message.Message):
-    __slots__ = ["values"]
-    VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[float]
-    def __init__(self, values: _Optional[_Iterable[float]] = ...) -> None: ...
-
-class BooleanArray(_message.Message):
-    __slots__ = ["values"]
-    VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[bool]
-    def __init__(self, values: _Optional[_Iterable[bool]] = ...) -> None: ...
-
-class Filters(_message.Message):
-    __slots__ = [
-        "operator",
-        "on",
-        "filters",
-        "value_text",
-        "value_int",
-        "value_boolean",
-        "value_number",
-        "value_text_array",
-        "value_int_array",
-        "value_boolean_array",
-        "value_number_array",
-        "value_geo",
-    ]
-
-    class Operator(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-        __slots__ = []
-        OPERATOR_UNSPECIFIED: _ClassVar[Filters.Operator]
-        OPERATOR_EQUAL: _ClassVar[Filters.Operator]
-        OPERATOR_NOT_EQUAL: _ClassVar[Filters.Operator]
-        OPERATOR_GREATER_THAN: _ClassVar[Filters.Operator]
-        OPERATOR_GREATER_THAN_EQUAL: _ClassVar[Filters.Operator]
-        OPERATOR_LESS_THAN: _ClassVar[Filters.Operator]
-        OPERATOR_LESS_THAN_EQUAL: _ClassVar[Filters.Operator]
-        OPERATOR_AND: _ClassVar[Filters.Operator]
-        OPERATOR_OR: _ClassVar[Filters.Operator]
-        OPERATOR_WITHIN_GEO_RANGE: _ClassVar[Filters.Operator]
-        OPERATOR_LIKE: _ClassVar[Filters.Operator]
-        OPERATOR_IS_NULL: _ClassVar[Filters.Operator]
-        OPERATOR_CONTAINS_ANY: _ClassVar[Filters.Operator]
-        OPERATOR_CONTAINS_ALL: _ClassVar[Filters.Operator]
-    OPERATOR_UNSPECIFIED: Filters.Operator
-    OPERATOR_EQUAL: Filters.Operator
-    OPERATOR_NOT_EQUAL: Filters.Operator
-    OPERATOR_GREATER_THAN: Filters.Operator
-    OPERATOR_GREATER_THAN_EQUAL: Filters.Operator
-    OPERATOR_LESS_THAN: Filters.Operator
-    OPERATOR_LESS_THAN_EQUAL: Filters.Operator
-    OPERATOR_AND: Filters.Operator
-    OPERATOR_OR: Filters.Operator
-    OPERATOR_WITHIN_GEO_RANGE: Filters.Operator
-    OPERATOR_LIKE: Filters.Operator
-    OPERATOR_IS_NULL: Filters.Operator
-    OPERATOR_CONTAINS_ANY: Filters.Operator
-    OPERATOR_CONTAINS_ALL: Filters.Operator
-    OPERATOR_FIELD_NUMBER: _ClassVar[int]
-    ON_FIELD_NUMBER: _ClassVar[int]
-    FILTERS_FIELD_NUMBER: _ClassVar[int]
-    VALUE_TEXT_FIELD_NUMBER: _ClassVar[int]
-    VALUE_INT_FIELD_NUMBER: _ClassVar[int]
-    VALUE_BOOLEAN_FIELD_NUMBER: _ClassVar[int]
-    VALUE_NUMBER_FIELD_NUMBER: _ClassVar[int]
-    VALUE_TEXT_ARRAY_FIELD_NUMBER: _ClassVar[int]
-    VALUE_INT_ARRAY_FIELD_NUMBER: _ClassVar[int]
-    VALUE_BOOLEAN_ARRAY_FIELD_NUMBER: _ClassVar[int]
-    VALUE_NUMBER_ARRAY_FIELD_NUMBER: _ClassVar[int]
-    VALUE_GEO_FIELD_NUMBER: _ClassVar[int]
-    operator: Filters.Operator
-    on: _containers.RepeatedScalarFieldContainer[str]
-    filters: _containers.RepeatedCompositeFieldContainer[Filters]
-    value_text: str
-    value_int: int
-    value_boolean: bool
-    value_number: float
-    value_text_array: TextArray
-    value_int_array: IntArray
-    value_boolean_array: BooleanArray
-    value_number_array: NumberArray
-    value_geo: GeoCoordinatesFilter
-    def __init__(
-        self,
-        operator: _Optional[_Union[Filters.Operator, str]] = ...,
-        on: _Optional[_Iterable[str]] = ...,
-        filters: _Optional[_Iterable[_Union[Filters, _Mapping]]] = ...,
-        value_text: _Optional[str] = ...,
-        value_int: _Optional[int] = ...,
-        value_boolean: bool = ...,
-        value_number: _Optional[float] = ...,
-        value_text_array: _Optional[_Union[TextArray, _Mapping]] = ...,
-        value_int_array: _Optional[_Union[IntArray, _Mapping]] = ...,
-        value_boolean_array: _Optional[_Union[BooleanArray, _Mapping]] = ...,
-        value_number_array: _Optional[_Union[NumberArray, _Mapping]] = ...,
-        value_geo: _Optional[_Union[GeoCoordinatesFilter, _Mapping]] = ...,
-    ) -> None: ...
-
-class GeoCoordinatesFilter(_message.Message):
-    __slots__ = ["latitude", "longitude", "distance"]
-    LATITUDE_FIELD_NUMBER: _ClassVar[int]
-    LONGITUDE_FIELD_NUMBER: _ClassVar[int]
-    DISTANCE_FIELD_NUMBER: _ClassVar[int]
-    latitude: float
-    longitude: float
-    distance: float
-    def __init__(
-        self,
-        latitude: _Optional[float] = ...,
-        longitude: _Optional[float] = ...,
-        distance: _Optional[float] = ...,
     ) -> None: ...
 
 class MetadataRequest(_message.Message):
@@ -726,6 +601,7 @@ class PropertiesResult(_message.Message):
         "object_properties",
         "object_array_properties",
         "non_ref_props",
+        "ref_props_requested",
     ]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPS_FIELD_NUMBER: _ClassVar[int]
@@ -738,6 +614,7 @@ class PropertiesResult(_message.Message):
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     NON_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
+    REF_PROPS_REQUESTED_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _struct_pb2.Struct
     ref_props: _containers.RepeatedCompositeFieldContainer[RefPropertiesResult]
     target_collection: str
@@ -757,6 +634,7 @@ class PropertiesResult(_message.Message):
         _base_pb2.ObjectArrayProperties
     ]
     non_ref_props: _properties_pb2.Properties
+    ref_props_requested: bool
     def __init__(
         self,
         non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
@@ -780,6 +658,7 @@ class PropertiesResult(_message.Message):
             _Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]
         ] = ...,
         non_ref_props: _Optional[_Union[_properties_pb2.Properties, _Mapping]] = ...,
+        ref_props_requested: bool = ...,
     ) -> None: ...
 
 class RefPropertiesResult(_message.Message):

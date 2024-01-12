@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Literal, Optional, Union
+from typing import ClassVar, List, Literal, Optional, Type, Union
 
 from pydantic import Field
 
@@ -166,9 +166,7 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
-class QueryReference(_WeaviateInput):
-    """Define a query-time reference to a single-target property when querying through cross-references."""
-
+class _QueryReference(_WeaviateInput):
     link_on: str
     include_vector: bool = Field(default=False)
     return_metadata: Optional[MetadataQuery] = Field(default=None)
@@ -183,10 +181,15 @@ class QueryReference(_WeaviateInput):
         return _MetadataQuery.from_public(self.return_metadata, self.include_vector)
 
 
-class QueryReferenceMultiTarget(QueryReference):
-    """Define a query-time reference to a multi-target property when querying through cross-references."""
-
+class _QueryReferenceMultiTarget(_QueryReference):
     target_collection: str
+
+
+class QueryReference(_QueryReference):
+    """Define a query-time reference to a single-target property when querying through cross-references."""
+
+    MultiTarget: ClassVar[Type[_QueryReferenceMultiTarget]] = _QueryReferenceMultiTarget
+    """Define a query-time reference to a multi-target property when querying through cross-references."""
 
 
 class QueryNested(_WeaviateInput):
@@ -200,15 +203,15 @@ class QueryNested(_WeaviateInput):
 
 
 # deprecated and should be removed in v4 GA
-FromReference = QueryReference
+FromReference = _QueryReference
 """@deprecated: Use `QueryReference` instead."""
-FromReferenceMultiTarget = QueryReferenceMultiTarget
-"""@deprecated: Use `QueryReferenceMultiTarget` instead."""
+FromReferenceMultiTarget = _QueryReferenceMultiTarget
+"""@deprecated: Use `QueryReference.MultiTarget` instead."""
 FromNested = QueryNested
 """@deprecated: Use `QueryNested` instead."""
 
 REFERENCE = Union[
-    FromReference, FromReferenceMultiTarget, QueryReference, QueryReferenceMultiTarget
+    FromReference, FromReferenceMultiTarget, _QueryReference, _QueryReferenceMultiTarget
 ]
 REFERENCES = Union[List[REFERENCE], REFERENCE]
 

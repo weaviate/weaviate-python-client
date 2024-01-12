@@ -14,8 +14,8 @@ else:
 from weaviate.collections.base import _CollectionBase
 from weaviate.collections.classes.grpc import (
     FromNested,
-    FromReference,
-    FromReferenceMultiTarget,
+    _QueryReference,
+    _QueryReferenceMultiTarget,
     Generate,
     GroupBy,
     MetadataQuery,
@@ -72,6 +72,8 @@ def _metadata_from_dict(
 
 @dataclass
 class MetadataReturn:
+    """Metadata of an object returned by a query."""
+
     creation_time: Optional[datetime.datetime] = None
     last_update_time: Optional[datetime.datetime] = None
     distance: Optional[float] = None
@@ -98,6 +100,8 @@ class MetadataReturn:
 
 @dataclass
 class GroupByMetadataReturn:
+    """Metadata of an object returned by a group by query."""
+
     distance: Optional[float] = None
 
     def _is_empty(self) -> bool:
@@ -116,11 +120,15 @@ class _Object(Generic[P, R, M]):
 
 @dataclass
 class Object(Generic[P, R], _Object[P, R, MetadataReturn]):
+    """A single Weaviate object returned by a query within the `.query` namespace of a collection."""
+
     pass
 
 
 @dataclass
 class MetadataSingleObjectReturn:
+    """Metadata of an object returned by the `fetch_object_by_id` query."""
+
     creation_time: datetime.datetime
     last_update_time: datetime.datetime
     is_consistent: Optional[bool]
@@ -128,32 +136,44 @@ class MetadataSingleObjectReturn:
 
 @dataclass
 class ObjectSingleReturn(Generic[P, R], _Object[P, R, MetadataSingleObjectReturn]):
+    """A single Weaviate object returned by the `fetch_object_by_id` query."""
+
     pass
 
 
 @dataclass
 class GroupByObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
+    """A single Weaviate object returned by a query with the `group_by` argument specified."""
+
     belongs_to_group: str
 
 
 @dataclass
 class GroupedObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
+    """A single Weaviate object returned by a query with the `group_by` argument specified."""
+
     pass
 
 
 @dataclass
 class GenerativeObject(Generic[P, R], Object[P, R]):
+    """A single Weaviate object returned by a query within the `generate` namespace of a collection."""
+
     generated: Optional[str]
 
 
 @dataclass
 class GenerativeReturn(Generic[P, R]):
+    """The return type of a query within the `generate` namespace of a collection."""
+
     objects: List[GenerativeObject[P, R]]
     generated: Optional[str]
 
 
 @dataclass
 class Group(Generic[P, R]):
+    """A group of objects returned in a group by query."""
+
     name: str
     min_distance: float
     max_distance: float
@@ -164,11 +184,15 @@ class Group(Generic[P, R]):
 
 @dataclass
 class GenerativeGroup(Generic[P, R], Group[P, R]):
+    """A group of objects returned in a generative group by query."""
+
     generated: Optional[str]
 
 
 @dataclass
 class GenerativeGroupByReturn(Generic[P, R]):
+    """The return type of a query within the `.generate` namespace of a collection with the `group_by` argument specified."""
+
     objects: List[GroupByObject[P, R]]
     groups: Dict[str, GenerativeGroup[P, R]]
     generated: Optional[str]
@@ -176,12 +200,16 @@ class GenerativeGroupByReturn(Generic[P, R]):
 
 @dataclass
 class GroupByReturn(Generic[P, R]):
+    """The return type of a query within the `.query` namespace of a collection with the `group_by` argument specified."""
+
     objects: List[GroupByObject[P, R]]
     groups: Dict[str, Group[P, R]]
 
 
 @dataclass
 class QueryReturn(Generic[P, R]):
+    """The return type of a query within the `.query` namespace of a collection."""
+
     objects: List[Object[P, R]]
 
 
@@ -469,7 +497,7 @@ def __is_annotated_reference(value: Any) -> bool:
 
 def __create_link_to_from_annotated_reference(
     link_on: str, value: Annotated[CrossReference[Properties, "References"], ReferenceAnnotation]
-) -> Union[FromReference, FromReferenceMultiTarget]:
+) -> Union[_QueryReference, _QueryReferenceMultiTarget]:
     """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
     assert get_origin(value) is Annotated
     args = cast(List[CrossReference[Properties, References]], get_args(value))
@@ -479,7 +507,7 @@ def __create_link_to_from_annotated_reference(
     annotation = inner_type_metadata[0]
     types = _extract_types_from_annotated_reference(value)
     if annotation.target_collection is not None:
-        return FromReferenceMultiTarget(
+        return _QueryReferenceMultiTarget(
             link_on=link_on,
             include_vector=annotation.include_vector,
             return_metadata=annotation.metadata,
@@ -488,7 +516,7 @@ def __create_link_to_from_annotated_reference(
             target_collection=annotation.target_collection,
         )
     else:
-        return FromReference(
+        return _QueryReference(
             link_on=link_on,
             include_vector=annotation.include_vector,
             return_metadata=annotation.metadata,
@@ -504,10 +532,10 @@ def __is_reference(value: Any) -> bool:
 def __create_link_to_from_reference(
     link_on: str,
     value: CrossReference[Properties, "References"],
-) -> FromReference:
+) -> _QueryReference:
     """Create FromReference from CrossReference[Properties]."""
     types = _extract_types_from_annotated_reference(value)
-    return FromReference(
+    return _QueryReference(
         link_on=link_on,
         return_properties=_extract_properties_from_data_model(types[0]),
         return_references=_extract_references_from_data_model(types[1]),
@@ -559,7 +587,9 @@ def _check_references_generic(references: Optional[Type["References"]]) -> None:
 
 
 ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
-ReturnReferences: TypeAlias = Union[Union[FromReference, List[FromReference]], Type[TReferences]]
+ReturnReferences: TypeAlias = Union[
+    Union[_QueryReference, List[_QueryReference]], Type[TReferences]
+]
 
 
 @dataclass
