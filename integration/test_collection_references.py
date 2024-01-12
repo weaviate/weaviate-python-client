@@ -571,7 +571,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
             assert (
                 obj.references == {}
                 if collection._connection._weaviate_version.is_at_least(1, 23, 2)
-                else None
+                else obj.references is None
             )  # TODO: change to 1.23.3 when released
         else:
             assert obj.references is not None
