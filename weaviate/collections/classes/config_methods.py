@@ -16,11 +16,11 @@ from weaviate.collections.classes.config import (
     _ShardingConfig,
     _VectorIndexConfigHNSW,
     StopwordsPreset,
-    VectorDistance,
+    VectorDistances,
     PQEncoderType,
     PQEncoderDistribution,
-    _VectorIndexType,
-    Vectorizer,
+    VectorIndexType,
+    Vectorizers,
     Tokenization,
     _PQEncoderConfig,
     _PropertyVectorizerConfig,
@@ -29,7 +29,7 @@ from weaviate.collections.classes.config import (
     GenerativeSearches,
     DataType,
     _RerankerConfig,
-    Reranker,
+    Rerankers,
     _NestedProperty,
 )
 
@@ -74,7 +74,7 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
     ):
         reranker_config = _RerankerConfig(
             model=schema["moduleConfig"][rerankers[0]],
-            reranker=Reranker(rerankers[0]),
+            reranker=Rerankers(rerankers[0]),
         )
     else:
         reranker_config = None
@@ -87,7 +87,7 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
         reranker_config=reranker_config,
         vectorizer_config=vectorizer_config,
-        vectorizer=Vectorizer(schema["vectorizer"]),
+        vectorizer=Vectorizers(schema["vectorizer"]),
     )
 
 
@@ -127,7 +127,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     ):
         reranker_config = _RerankerConfig(
             model=schema["moduleConfig"][rerankers[0]],
-            reranker=Reranker(rerankers[0]),
+            reranker=Rerankers(rerankers[0]),
         )
     else:
         reranker_config = None
@@ -157,7 +157,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             _VectorIndexConfigHNSW, _VectorIndexConfigFlat
         ] = _VectorIndexConfigHNSW(
             cleanup_interval_seconds=schema["vectorIndexConfig"]["cleanupIntervalSeconds"],
-            distance_metric=VectorDistance(schema["vectorIndexConfig"]["distance"]),
+            distance_metric=VectorDistances(schema["vectorIndexConfig"]["distance"]),
             dynamic_ef_min=schema["vectorIndexConfig"]["dynamicEfMin"],
             dynamic_ef_max=schema["vectorIndexConfig"]["dynamicEfMax"],
             dynamic_ef_factor=schema["vectorIndexConfig"]["dynamicEfFactor"],
@@ -172,7 +172,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     else:
         assert schema["vectorIndexType"] == "flat"
         vector_index_config = _VectorIndexConfigFlat(
-            distance_metric=VectorDistance(schema["vectorIndexConfig"]["distance"]),
+            distance_metric=VectorDistances(schema["vectorIndexConfig"]["distance"]),
             quantizer=quantizer,
             vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
         )
@@ -216,9 +216,9 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             function=schema["shardingConfig"]["function"],
         ),
         vector_index_config=vector_index_config,
-        vector_index_type=_VectorIndexType(schema["vectorIndexType"]),
+        vector_index_type=VectorIndexType(schema["vectorIndexType"]),
         vectorizer_config=vectorizer_config,
-        vectorizer=Vectorizer(schema["vectorizer"]),
+        vectorizer=Vectorizers(schema["vectorizer"]),
     )
 
 

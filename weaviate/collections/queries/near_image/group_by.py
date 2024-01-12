@@ -10,7 +10,7 @@ from weaviate.collections.classes.filters import (
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
     _GroupBy,
-    _GroupByReturn,
+    GroupByReturn,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
@@ -43,7 +43,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _GroupByReturn[Properties, References]:
+    ) -> GroupByReturn[Properties, References]:
         ...
 
     @overload
@@ -63,7 +63,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _GroupByReturn[Properties, CrossReferences]:
+    ) -> GroupByReturn[Properties, CrossReferences]:
         ...
 
     @overload
@@ -83,7 +83,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _GroupByReturn[Properties, TReferences]:
+    ) -> GroupByReturn[Properties, TReferences]:
         ...
 
     @overload
@@ -103,7 +103,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         *,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _GroupByReturn[TProperties, References]:
+    ) -> GroupByReturn[TProperties, References]:
         ...
 
     @overload
@@ -123,7 +123,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _GroupByReturn[TProperties, CrossReferences]:
+    ) -> GroupByReturn[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -143,7 +143,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         *,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _GroupByReturn[TProperties, TReferences]:
+    ) -> GroupByReturn[TProperties, TReferences]:
         ...
 
     @deprecated(
@@ -167,12 +167,12 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> Union[
-        _GroupByReturn[Properties, References],
-        _GroupByReturn[Properties, CrossReferences],
-        _GroupByReturn[Properties, TReferences],
-        _GroupByReturn[TProperties, References],
-        _GroupByReturn[TProperties, CrossReferences],
-        _GroupByReturn[TProperties, TReferences],
+        GroupByReturn[Properties, References],
+        GroupByReturn[Properties, CrossReferences],
+        GroupByReturn[Properties, TReferences],
+        GroupByReturn[TProperties, References],
+        GroupByReturn[TProperties, CrossReferences],
+        GroupByReturn[TProperties, TReferences],
     ]:
         """Group the results of a by-image object search in this collection using an image-capable vectorisation module and vector-based similarity search.
 
@@ -215,7 +215,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `_GroupByReturn` object that includes the searched objects grouped by the specified property.
+            A `GroupByReturn` object that includes the searched objects grouped by the specified property.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCQueryError`:

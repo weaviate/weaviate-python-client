@@ -32,7 +32,7 @@ from weaviate.collections.classes.grpc import (
     PROPERTY,
     REFERENCE,
 )
-from weaviate.collections.classes.internal import _CrossReference, Reference, _Object
+from weaviate.collections.classes.internal import _CrossReference, Reference, Object
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
@@ -1408,11 +1408,11 @@ def test_return_properties_with_query_specific_typed_dict(
         pass
 
     objects: Union[
-        List[_Object[DataModel0, None]],
-        List[_Object[DataModel1, None]],
-        List[_Object[DataModel2, None]],
-        List[_Object[DataModel3, None]],
-        List[_Object[DataModel4, None]],
+        List[Object[DataModel0, None]],
+        List[Object[DataModel1, None]],
+        List[Object[DataModel2, None]],
+        List[Object[DataModel3, None]],
+        List[Object[DataModel4, None]],
     ]
     if which_case == 0:
         objects = collection.query.fetch_objects(return_properties=DataModel0).objects

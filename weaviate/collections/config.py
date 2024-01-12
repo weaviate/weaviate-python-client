@@ -16,13 +16,13 @@ from weaviate.collections.classes.config import (
     _CollectionConfigSimple,
     _Property,
     _ShardStatus,
+    ShardTypes,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.orm import Model
-from weaviate.collections.classes.types import SHARD_TYPES
 from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
@@ -178,11 +178,11 @@ class _ConfigBase:
         self,
         status: Literal["READY", "READONLY"],
         shard_names: Optional[Union[str, List[str]]] = None,
-    ) -> Dict[str, SHARD_TYPES]:
+    ) -> Dict[str, ShardTypes]:
         """Update the status of one or all shards of this collection.
 
         Returns:
-            `Dict[str, SHARD_TYPES]`: All updated shards idexed by their name.
+            `Dict[str, ShardTypes]`: All updated shards idexed by their name.
 
         Parameters
         ----------
@@ -203,7 +203,7 @@ class _ConfigBase:
 
         data = {"status": status}
 
-        to_return: Dict[str, SHARD_TYPES] = {}
+        to_return: Dict[str, ShardTypes] = {}
 
         for _shard_name in shard_names:
             path = f"/schema/{self._name}/shards/{_shard_name}"
