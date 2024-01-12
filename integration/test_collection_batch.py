@@ -12,10 +12,10 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
 )
+from weaviate.collections.classes.grpc import FromReference
 from weaviate.collections.classes.internal import (
     Reference,
     _CrossReference,
-    FromReference,
 )
 from weaviate.collections.classes.tenants import Tenant
 

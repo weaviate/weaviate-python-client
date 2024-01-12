@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Sequence, Union, cast
+from typing import Any, ClassVar, Dict, List, Literal, Optional, Sequence, Type, Union, cast
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -1972,32 +1972,7 @@ class _ReferencePropertyBase(_ConfigCreateModel):
         return v
 
 
-class ReferenceProperty(_ReferencePropertyBase):
-    """This class defines properties that are cross references to a single target collection.
-
-    Use this class when you want to create a cross-reference in the collection's config that is capable
-    of having only cross-references to a single other collection.
-
-    Attributes:
-        `name`
-            The name of the property, REQUIRED.
-        `target_collection`
-            The name of the target collection, REQUIRED.
-        `description`
-            A description of the property.
-    """
-
-    target_collection: str
-    description: Optional[str] = Field(default=None)
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        ret_dict["dataType"] = [_capitalize_first_letter(self.target_collection)]
-        del ret_dict["target_collection"]
-        return ret_dict
-
-
-class ReferencePropertyMultiTarget(_ReferencePropertyBase):
+class _ReferencePropertyMultiTarget(_ReferencePropertyBase):
     """This class defines properties that are cross references to multiple target collections.
 
     Use this class when you want to create a cross-reference in the collection's config that is capable
@@ -2024,7 +1999,38 @@ class ReferencePropertyMultiTarget(_ReferencePropertyBase):
         return ret_dict
 
 
-PropertyType = Union[Property, ReferenceProperty, ReferencePropertyMultiTarget]
+ReferencePropertyMultiTarget = _ReferencePropertyMultiTarget
+"""@deprecated: Use `ReferenceProperty.MultiTarget` instead."""
+
+
+class ReferenceProperty(_ReferencePropertyBase):
+    """This class defines properties that are cross references to a single target collection.
+
+    Use this class when you want to create a cross-reference in the collection's config that is capable
+    of having only cross-references to a single other collection.
+
+    Attributes:
+        `name`
+            The name of the property, REQUIRED.
+        `target_collection`
+            The name of the target collection, REQUIRED.
+        `description`
+            A description of the property.
+    """
+
+    target_collection: str
+    description: Optional[str] = Field(default=None)
+
+    MultiTarget: ClassVar[Type[_ReferencePropertyMultiTarget]] = _ReferencePropertyMultiTarget
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        ret_dict["dataType"] = [_capitalize_first_letter(self.target_collection)]
+        del ret_dict["target_collection"]
+        return ret_dict
+
+
+PropertyType = Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]
 
 
 class _CollectionConfigCreate(_CollectionConfigCreateBase):
