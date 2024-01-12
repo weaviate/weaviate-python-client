@@ -568,7 +568,11 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
         return_properties=["name"], return_references=FromReference(link_on="self")
     ).objects:
         if obj.properties["name"] in ["A", "B"]:
-            assert obj.references is None
+            assert (
+                obj.references == {}
+                if collection._connection._weaviate_version.is_at_least(1, 23, 2)
+                else obj.references is None
+            )  # TODO: change to 1.23.3 when released
         else:
             assert obj.references is not None
 
@@ -753,3 +757,29 @@ def test_ref_case_sensitivity(collection_factory: CollectionFactory) -> None:
             uid, return_references=[QueryReference(link_on="ref")]
         )
         assert "ref" in obj.references
+
+
+def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
+    source = collection_factory(
+        name="From",
+        references=[
+            ReferenceProperty(name="ref", target_collection=to.name),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    if not source._connection._weaviate_version.is_at_least(
+        1, 23, 2
+    ):  # TODO: change this to 1.23.3 when it is released
+        pytest.skip("references return empty object only supported in 1.23.3+")
+    uuid_source = source.data.insert(properties={})
+    obj = source.query.fetch_object_by_id(
+        uuid_source, return_references=[QueryReference(link_on="ref")]
+    )
+    assert (
+        obj.references == {}
+        if source._connection._weaviate_version.is_at_least(
+            1, 23, 2
+        )  # TODO: change to 1.23.3 when released
+        else obj.references is None
+    )

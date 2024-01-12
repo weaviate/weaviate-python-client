@@ -2,6 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
+from weaviate.proto.v1 import batch_delete_pb2 as v1_dot_batch__delete__pb2
 from weaviate.proto.v1 import batch_pb2 as v1_dot_batch__pb2
 from weaviate.proto.v1 import search_get_pb2 as v1_dot_search__get__pb2
 
@@ -25,6 +26,11 @@ class WeaviateStub(object):
             request_serializer=v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
             response_deserializer=v1_dot_batch__pb2.BatchObjectsReply.FromString,
         )
+        self.BatchDelete = channel.unary_unary(
+            "/weaviate.v1.Weaviate/BatchDelete",
+            request_serializer=v1_dot_batch__delete__pb2.BatchDeleteRequest.SerializeToString,
+            response_deserializer=v1_dot_batch__delete__pb2.BatchDeleteReply.FromString,
+        )
 
 
 class WeaviateServicer(object):
@@ -42,6 +48,12 @@ class WeaviateServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def BatchDelete(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
 
 def add_WeaviateServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -54,6 +66,11 @@ def add_WeaviateServicer_to_server(servicer, server):
             servicer.BatchObjects,
             request_deserializer=v1_dot_batch__pb2.BatchObjectsRequest.FromString,
             response_serializer=v1_dot_batch__pb2.BatchObjectsReply.SerializeToString,
+        ),
+        "BatchDelete": grpc.unary_unary_rpc_method_handler(
+            servicer.BatchDelete,
+            request_deserializer=v1_dot_batch__delete__pb2.BatchDeleteRequest.FromString,
+            response_serializer=v1_dot_batch__delete__pb2.BatchDeleteReply.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -114,6 +131,35 @@ class Weaviate(object):
             "/weaviate.v1.Weaviate/BatchObjects",
             v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
             v1_dot_batch__pb2.BatchObjectsReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def BatchDelete(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/weaviate.v1.Weaviate/BatchDelete",
+            v1_dot_batch__delete__pb2.BatchDeleteRequest.SerializeToString,
+            v1_dot_batch__delete__pb2.BatchDeleteReply.FromString,
             options,
             channel_credentials,
             insecure,

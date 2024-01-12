@@ -8,7 +8,7 @@ from weaviate.collections.classes.types import GeoCoordinate
 
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.types import UUID
-from weaviate.proto.v1 import search_get_pb2
+from weaviate.proto.v1 import base_pb2
 from weaviate.util import get_valid_uuid
 
 
@@ -27,33 +27,33 @@ class _Operator(str, Enum):
     AND = "And"
     OR = "Or"
 
-    def _to_grpc(self) -> search_get_pb2.Filters.Operator:
+    def _to_grpc(self) -> base_pb2.Filters.Operator:
         if self == _Operator.EQUAL:
-            return search_get_pb2.Filters.OPERATOR_EQUAL
+            return base_pb2.Filters.OPERATOR_EQUAL
         elif self == _Operator.NOT_EQUAL:
-            return search_get_pb2.Filters.OPERATOR_NOT_EQUAL
+            return base_pb2.Filters.OPERATOR_NOT_EQUAL
         elif self == _Operator.LESS_THAN:
-            return search_get_pb2.Filters.OPERATOR_LESS_THAN
+            return base_pb2.Filters.OPERATOR_LESS_THAN
         elif self == _Operator.LESS_THAN_EQUAL:
-            return search_get_pb2.Filters.OPERATOR_LESS_THAN_EQUAL
+            return base_pb2.Filters.OPERATOR_LESS_THAN_EQUAL
         elif self == _Operator.GREATER_THAN:
-            return search_get_pb2.Filters.OPERATOR_GREATER_THAN
+            return base_pb2.Filters.OPERATOR_GREATER_THAN
         elif self == _Operator.GREATER_THAN_EQUAL:
-            return search_get_pb2.Filters.OPERATOR_GREATER_THAN_EQUAL
+            return base_pb2.Filters.OPERATOR_GREATER_THAN_EQUAL
         elif self == _Operator.LIKE:
-            return search_get_pb2.Filters.OPERATOR_LIKE
+            return base_pb2.Filters.OPERATOR_LIKE
         elif self == _Operator.IS_NULL:
-            return search_get_pb2.Filters.OPERATOR_IS_NULL
+            return base_pb2.Filters.OPERATOR_IS_NULL
         elif self == _Operator.CONTAINS_ANY:
-            return search_get_pb2.Filters.OPERATOR_CONTAINS_ANY
+            return base_pb2.Filters.OPERATOR_CONTAINS_ANY
         elif self == _Operator.CONTAINS_ALL:
-            return search_get_pb2.Filters.OPERATOR_CONTAINS_ALL
+            return base_pb2.Filters.OPERATOR_CONTAINS_ALL
         elif self == _Operator.WITHIN_GEO_RANGE:
-            return search_get_pb2.Filters.OPERATOR_WITHIN_GEO_RANGE
+            return base_pb2.Filters.OPERATOR_WITHIN_GEO_RANGE
         elif self == _Operator.AND:
-            return search_get_pb2.Filters.OPERATOR_AND
+            return base_pb2.Filters.OPERATOR_AND
         elif self == _Operator.OR:
-            return search_get_pb2.Filters.OPERATOR_OR
+            return base_pb2.Filters.OPERATOR_OR
         else:
             raise ValueError(f"Unknown operator {self}")
 
