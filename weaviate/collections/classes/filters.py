@@ -3,7 +3,6 @@ import uuid as uuid_lib
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
-import deprecated
 from typing_extensions import TypeAlias
 from pydantic import Field
 from weaviate.collections.classes.types import GeoCoordinate
@@ -13,6 +12,7 @@ from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.types import UUID
 from weaviate.proto.v1 import base_pb2
 from weaviate.util import get_valid_uuid
+from weaviate.warnings import _Warnings
 
 
 class _Operator(str, Enum):
@@ -121,10 +121,6 @@ class _FilterOld:
     See [the docs](https://weaviate.io/developers/weaviate/search/filters) for more details!
     """
 
-    @deprecated.deprecated(
-        version="4.4b7",
-        reason="Use `Filter.by_property` class instead. Direct intilisation will be removed in the next major release.",
-    )
     def __init__(self, path: Union[str, List[str]], length: bool = False):
         """Initialise the filter.
 
@@ -136,6 +132,7 @@ class _FilterOld:
                 If `True`, the length of the property will be used in the filter. Defaults to `False`.
                     This is only valid for properties of type `string` or `text`. The inverted index must also be configured to index the property length.
         """
+        _Warnings.old_filter_by_property()
         if isinstance(path, str):
             path = [path]
         if length:
@@ -225,6 +222,7 @@ class _FilterId:
         uuids: List[UUID], on_reference_path: Optional[List[str]] = None
     ) -> _FilterValue:
         """Filter for objects that has one of the given ID."""
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=_FilterId._prepare_path(path=on_reference_path),
             value=[get_valid_uuid(val) for val in uuids],
@@ -234,6 +232,7 @@ class _FilterId:
     @staticmethod
     def equal(uuid: UUID, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter for object that has the given ID."""
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=_FilterId._prepare_path(path=on_reference_path),
             value=get_valid_uuid(uuid),
@@ -243,6 +242,7 @@ class _FilterId:
     @staticmethod
     def not_equal(uuid: UUID, on_reference_path: Optional[List[str]] = None) -> _FilterValue:
         """Filter our object that has the given ID."""
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=_FilterId._prepare_path(path=on_reference_path),
             value=get_valid_uuid(uuid),
@@ -255,84 +255,63 @@ class _FilterId:
 
 
 class _FilterTime:
-    @deprecated.deprecated(
-        version="4.4b7",
-        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
-    )
     @staticmethod
     def contains_any(dates: List[datetime], on_reference_path: List[str]) -> _FilterValue:
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=on_reference_path,
             value=dates,
             operator=_Operator.CONTAINS_ANY,
         )
 
-    @deprecated.deprecated(
-        version="4.4b7",
-        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
-    )
     @staticmethod
     def equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=on_reference_path,
             value=date,
             operator=_Operator.EQUAL,
         )
 
-    @deprecated.deprecated(
-        version="4.4b7",
-        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
-    )
     @staticmethod
     def not_equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=on_reference_path,
             value=date,
             operator=_Operator.NOT_EQUAL,
         )
 
-    @deprecated.deprecated(
-        version="4.4b7",
-        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
-    )
     @staticmethod
     def less_than(date: datetime, on_reference_path: List[str]) -> _FilterValue:
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=on_reference_path,
             value=date,
             operator=_Operator.LESS_THAN,
         )
 
-    @deprecated.deprecated(
-        version="4.4b7",
-        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
-    )
     @staticmethod
     def less_or_equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=on_reference_path,
             value=date,
             operator=_Operator.LESS_THAN_EQUAL,
         )
 
-    @deprecated.deprecated(
-        version="4.4b7",
-        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
-    )
     @staticmethod
     def greater_than(date: datetime, on_reference_path: List[str]) -> _FilterValue:
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=on_reference_path,
             value=date,
             operator=_Operator.GREATER_THAN,
         )
 
-    @deprecated.deprecated(
-        version="4.4b7",
-        reason="Use `Filter.by_creation_time()` or `Filter.by_update_time()` instead. This class will be removed in the next major release.",
-    )
     @staticmethod
     def greater_or_equal(date: datetime, on_reference_path: List[str]) -> _FilterValue:
+        _Warnings.old_filter_by_metadata()
         return _FilterValue(
             path=on_reference_path,
             value=date,

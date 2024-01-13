@@ -718,3 +718,19 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
     ).objects
     assert len(objects_update) == 1
     assert objects_update[0].uuid == obj2_uuid
+
+
+def test_warning_old_filter(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    uuids = [
+        collection.data.insert({"name": "Banana"}),
+        collection.data.insert({"name": "Apple"}),
+    ]
+    with pytest.warns(DeprecationWarning):
+        objects = collection.query.fetch_objects(filters=Filter("name").equal("Banana")).objects
+    assert len(objects) == 1
+    assert objects[0].uuid == uuids[0]
