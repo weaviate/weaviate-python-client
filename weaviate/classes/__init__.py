@@ -30,7 +30,6 @@ from .query import (
     Move,
     QueryNested,
     QueryReference,
-    QueryReferenceMultiTarget,
 )
 
 __all__ = [
@@ -55,7 +54,6 @@ __all__ = [
     "Property",
     "QueryNested",
     "QueryReference",
-    "QueryReferenceMultiTarget",
     "Reference",
     "ReferenceAnnotation",
     "ReferenceProperty",

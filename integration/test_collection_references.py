@@ -12,12 +12,9 @@ from weaviate.collections.classes.config import (
     Property,
     DataType,
     ReferenceProperty,
-    ReferencePropertyMultiTarget,
 )
 from weaviate.collections.classes.data import DataObject, DataReference
 from weaviate.collections.classes.grpc import (
-    FromReference,
-    FromReferenceMultiTarget,
     MetadataQuery,
     QueryReference,
 )
@@ -48,7 +45,7 @@ def test_reference_add_delete_replace(collection_factory: CollectionFactory) -> 
     assert (
         len(
             collection.query.fetch_object_by_id(
-                uuid_from1, return_references=FromReference(link_on="ref")
+                uuid_from1, return_references=QueryReference(link_on="ref")
             )
             .references["ref"]
             .objects
@@ -60,7 +57,7 @@ def test_reference_add_delete_replace(collection_factory: CollectionFactory) -> 
         from_uuid=uuid_from2, from_property="ref", to=Reference.to(uuids=uuid_to)
     )
     obj = collection.query.fetch_object_by_id(
-        uuid_from2, return_references=FromReference(link_on="ref")
+        uuid_from2, return_references=QueryReference(link_on="ref")
     )
     assert obj is not None
     assert len(obj.references["ref"].objects) == 2
@@ -72,7 +69,7 @@ def test_reference_add_delete_replace(collection_factory: CollectionFactory) -> 
     assert (
         len(
             collection.query.fetch_object_by_id(
-                uuid_from2, return_references=FromReference(link_on="ref")
+                uuid_from2, return_references=QueryReference(link_on="ref")
             )
             .references["ref"]
             .objects
@@ -109,7 +106,7 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
 
     b_objs = B.query.bm25(
         query="B",
-        return_references=FromReference(
+        return_references=QueryReference(
             link_on="a",
             return_properties=["name"],
         ),
@@ -134,11 +131,11 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
     c_objs = C.query.bm25(
         query="find",
         return_properties="name",
-        return_references=FromReference(
+        return_references=QueryReference(
             link_on="b",
             return_properties="name",
             return_metadata=MetadataQuery(last_update_time=True),
-            return_references=FromReference(
+            return_references=QueryReference(
                 link_on="a",
                 return_properties="name",
             ),
@@ -335,7 +332,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
         name="C",
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         references=[
-            ReferencePropertyMultiTarget(name="ref", target_collections=[A.name, B.name]),
+            ReferenceProperty.MultiTarget(name="ref", target_collections=[A.name, B.name]),
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -359,7 +356,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
     objects = C.query.bm25(
         query="first",
         return_properties="name",
-        return_references=FromReferenceMultiTarget(
+        return_references=QueryReference.MultiTarget(
             link_on="ref",
             target_collection=A.name,
             return_properties=["name"],
@@ -376,7 +373,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
     objects = C.query.bm25(
         query="second",
         return_properties="name",
-        return_references=FromReferenceMultiTarget(
+        return_references=QueryReference.MultiTarget(
             link_on="ref",
             target_collection=B.name,
             return_properties=[
@@ -449,7 +446,7 @@ def test_references_batch(collection_factory: CollectionFactory) -> None:
 
     objects = collection.query.fetch_objects(
         return_properties=["num"],
-        return_references=[FromReference(link_on="ref")],
+        return_references=[QueryReference(link_on="ref")],
     ).objects
 
     for obj in objects:
@@ -473,7 +470,7 @@ def test_batch_reference_multi_taret(collection_factory: CollectionFactory) -> N
         properties=[Property(name="num", data_type=DataType.INT)],
     )
     from_collection.config.add_reference(
-        ReferencePropertyMultiTarget(
+        ReferenceProperty.MultiTarget(
             name="ref", target_collections=[to_collection.name, from_collection.name]
         )
     )
@@ -522,7 +519,7 @@ def test_batch_reference_multi_taret(collection_factory: CollectionFactory) -> N
     objects_with_to_ref = from_collection.query.fetch_objects(
         return_properties=["num"],
         return_references=[
-            FromReferenceMultiTarget(link_on="ref", target_collection=to_collection.name)
+            QueryReference.MultiTarget(link_on="ref", target_collection=to_collection.name)
         ],
     ).objects
     for obj in objects_with_to_ref:
@@ -531,7 +528,7 @@ def test_batch_reference_multi_taret(collection_factory: CollectionFactory) -> N
     objects_with_from_ref = from_collection.query.fetch_objects(
         return_properties=["num"],
         return_references=[
-            FromReferenceMultiTarget(link_on="ref", target_collection=from_collection.name)
+            QueryReference.MultiTarget(link_on="ref", target_collection=from_collection.name)
         ],
     ).objects
     for obj in objects_with_from_ref:
@@ -565,10 +562,14 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
     assert batch_return.has_errors is False
 
     for obj in collection.query.fetch_objects(
-        return_properties=["name"], return_references=FromReference(link_on="self")
+        return_properties=["name"], return_references=QueryReference(link_on="self")
     ).objects:
         if obj.properties["name"] in ["A", "B"]:
-            assert obj.references is None
+            assert (
+                obj.references == {}
+                if collection._connection._weaviate_version.is_at_least(1, 23, 2)
+                else obj.references is None
+            )  # TODO: change to 1.23.3 when released
         else:
             assert obj.references is not None
 
@@ -753,3 +754,29 @@ def test_ref_case_sensitivity(collection_factory: CollectionFactory) -> None:
             uid, return_references=[QueryReference(link_on="ref")]
         )
         assert "ref" in obj.references
+
+
+def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
+    source = collection_factory(
+        name="From",
+        references=[
+            ReferenceProperty(name="ref", target_collection=to.name),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    if not source._connection._weaviate_version.is_at_least(
+        1, 23, 2
+    ):  # TODO: change this to 1.23.3 when it is released
+        pytest.skip("references return empty object only supported in 1.23.3+")
+    uuid_source = source.data.insert(properties={})
+    obj = source.query.fetch_object_by_id(
+        uuid_source, return_references=[QueryReference(link_on="ref")]
+    )
+    assert (
+        obj.references == {}
+        if source._connection._weaviate_version.is_at_least(
+            1, 23, 2
+        )  # TODO: change to 1.23.3 when released
+        else obj.references is None
+    )

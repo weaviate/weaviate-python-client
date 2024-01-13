@@ -119,7 +119,7 @@ class _Connection(_ConnectionBase):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
     def connect(self, skip_init_checks: bool) -> None:
-        self._create_clients(self.__auth)
+        self._create_clients(self.__auth, skip_init_checks)
         if not skip_init_checks:
             # first connection attempt
             try:
@@ -202,7 +202,9 @@ class _Connection(_ConnectionBase):
     def __make_clients(self) -> None:
         self._client = self.__make_sync_client()
 
-    def _create_clients(self, auth_client_secret: Optional[AuthCredentials]) -> None:
+    def _create_clients(
+        self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool
+    ) -> None:
         """Creates sync and async httpx clients.
 
         Either through authlib.oauth2 if authentication is enabled or a normal httpx sync client otherwise.
@@ -218,6 +220,11 @@ class _Connection(_ConnectionBase):
             return
 
         if "authorization" in self._headers and auth_client_secret is None:
+            self.__make_clients()
+            return
+
+        # no need to check OIDC if no auth is provided and users dont want any checks at initialization time
+        if skip_init_checks and auth_client_secret is None:
             self.__make_clients()
             return
 

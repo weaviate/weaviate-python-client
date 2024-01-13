@@ -15,7 +15,8 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
 )
-from weaviate.collections.classes.internal import FromReference, _CrossReference
+from weaviate.collections.classes.grpc import FromReference
+from weaviate.collections.classes.internal import _CrossReference
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID
 

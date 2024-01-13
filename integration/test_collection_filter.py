@@ -11,7 +11,6 @@ from weaviate.collections.classes.config import (
     Property,
     DataType,
     ReferenceProperty,
-    ReferencePropertyMultiTarget,
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import (
@@ -501,7 +500,7 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
         vectorizer_config=Configure.Vectorizer.none(),
     )
     from_collection.config.add_reference(
-        ReferencePropertyMultiTarget(
+        ReferenceProperty.MultiTarget(
             name="ref", target_collections=[to_collection.name, from_collection.name]
         )
     )

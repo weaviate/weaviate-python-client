@@ -14,7 +14,6 @@ from weaviate.collections.classes.config import (
     DataType,
     Property,
     ReferenceProperty,
-    ReferencePropertyMultiTarget,
     Vectorizer,
 )
 from weaviate.collections.classes.data import (
@@ -262,7 +261,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
     )
     collection.config.add_reference(
-        ReferencePropertyMultiTarget(
+        ReferenceProperty.MultiTarget(
             name="ref_many", target_collections=[ref_collection.name, collection.name]
         )
     )
@@ -957,7 +956,13 @@ def test_add_reference(collection_factory: CollectionFactory) -> None:
         uuid2, return_properties=["name"], return_references=FromReference(link_on="self")
     )
     assert "name" in obj1.properties
-    assert obj1.references is None
+    assert (
+        obj1.references == {}
+        if collection._connection._weaviate_version.is_at_least(
+            1, 23, 2
+        )  # TODO: change to 1.23.3 when released
+        else obj1.references is None
+    )
     assert "name" in obj2.properties
     assert "self" in obj2.references
 

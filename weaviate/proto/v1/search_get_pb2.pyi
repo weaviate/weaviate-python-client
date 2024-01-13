@@ -601,6 +601,7 @@ class PropertiesResult(_message.Message):
         "object_properties",
         "object_array_properties",
         "non_ref_props",
+        "ref_props_requested",
     ]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPS_FIELD_NUMBER: _ClassVar[int]
@@ -613,6 +614,7 @@ class PropertiesResult(_message.Message):
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     NON_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
+    REF_PROPS_REQUESTED_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _struct_pb2.Struct
     ref_props: _containers.RepeatedCompositeFieldContainer[RefPropertiesResult]
     target_collection: str
@@ -632,6 +634,7 @@ class PropertiesResult(_message.Message):
         _base_pb2.ObjectArrayProperties
     ]
     non_ref_props: _properties_pb2.Properties
+    ref_props_requested: bool
     def __init__(
         self,
         non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
@@ -655,6 +658,7 @@ class PropertiesResult(_message.Message):
             _Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]
         ] = ...,
         non_ref_props: _Optional[_Union[_properties_pb2.Properties, _Mapping]] = ...,
+        ref_props_requested: bool = ...,
     ) -> None: ...
 
 class RefPropertiesResult(_message.Message):

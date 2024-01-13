@@ -13,7 +13,7 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
-from .collections import _Collections
+from .collections.collections import _Collections
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster
 from .config import AdditionalConfig, Config
