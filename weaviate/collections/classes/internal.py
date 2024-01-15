@@ -1,7 +1,7 @@
 import datetime
 import sys
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Mapping, Optional, Tuple, Type, Union, cast
+from typing import Any, Dict, Generic, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 import uuid as uuid_package
@@ -588,7 +588,7 @@ def _check_references_generic(references: Optional[Type["References"]]) -> None:
 
 ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
 ReturnReferences: TypeAlias = Union[
-    Union[_QueryReference, List[_QueryReference]], Type[TReferences]
+    Union[_QueryReference, Sequence[_QueryReference]], Type[TReferences]
 ]
 
 

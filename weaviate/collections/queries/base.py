@@ -3,6 +3,7 @@ import io
 import pathlib
 import struct
 import uuid as uuid_lib
+from collections.abc import Sequence
 from typing import Any, Dict, Generic, List, Optional, Type, Union, cast
 
 from google.protobuf import struct_pb2
@@ -608,7 +609,7 @@ class _BaseQuery(Generic[Properties, References]):
         return_properties: Optional[ReturnProperties[TProperties]],
     ) -> Optional[PROPERTIES]:
         if (
-            isinstance(return_properties, list)
+            isinstance(return_properties, Sequence)
             or isinstance(return_properties, str)
             or isinstance(return_properties, FromNested)
             or (return_properties is None and self._properties is None)
@@ -622,7 +623,6 @@ class _BaseQuery(Generic[Properties, References]):
                 self._properties
             )  # is sourced from collection-specific generic
         else:
-            print(return_properties)
             assert return_properties is not None
             if not is_typeddict(return_properties):
                 raise TypeError(
@@ -647,7 +647,7 @@ class _BaseQuery(Generic[Properties, References]):
         self, return_references: Optional[ReturnReferences[TReferences]]
     ) -> Optional[REFERENCES]:
         if (
-            isinstance(return_references, list)
+            isinstance(return_references, Sequence)
             or isinstance(return_references, FromReference)
             or (return_references is None and self._references is None)
         ):
