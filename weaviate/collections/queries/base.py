@@ -637,7 +637,7 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> Optional[_MetadataQuery]:
         if return_metadata is None:
             ret_md = None
-        elif isinstance(return_metadata, list):
+        elif isinstance(return_metadata, Sequence):
             ret_md = MetadataQuery(**{str(prop): True for prop in return_metadata})
         else:
             ret_md = return_metadata
