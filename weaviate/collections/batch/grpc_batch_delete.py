@@ -4,8 +4,7 @@ import grpc  # type: ignore
 
 
 from weaviate.collections.classes.batch import (
-    DeleteManyObjects,
-    DeleteManyReturnNoObjects,
+    DeleteManyObject,
     DeleteManyReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
@@ -14,23 +13,19 @@ from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.collections.queries.base import _WeaviateUUIDInt
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateQueryException
+from weaviate.exceptions import WeaviateGRPCDeleteManyError
 from weaviate.proto.v1 import batch_delete_pb2
 
 
 class _BatchDeleteGRPC(_BaseGRPC):
-    """This class is used to insert multiple objects into Weaviate using the gRPC API.
-
-    It is used within the `_Data` and `_Batch` classes hence the necessary generalities
-    and abstractions so as not to couple to strongly to either use-case.
-    """
+    """This class is used to delete multiple objects from Weaviate using the gRPC API."""
 
     def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
         super().__init__(connection, consistency_level, False)
 
     def batch_delete(
         self, name: str, filters: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
-    ) -> Union[DeleteManyReturn, DeleteManyReturnNoObjects]:
+    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
         metadata = self._get_metadata()
         try:
             assert self._connection.grpc_stub is not None
@@ -48,8 +43,8 @@ class _BatchDeleteGRPC(_BaseGRPC):
             )
 
             if verbose:
-                objects: List[DeleteManyObjects] = [
-                    DeleteManyObjects(
+                objects: List[DeleteManyObject] = [
+                    DeleteManyObject(
                         uuid=_WeaviateUUIDInt(int.from_bytes(obj.uuid, byteorder="big")),
                         successful=obj.successful,
                         error=obj.error if obj.error != "" else None,
@@ -63,9 +58,9 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     objects=objects,
                 )
             else:
-                return DeleteManyReturnNoObjects(
-                    failed=res.failed, successful=res.successful, matches=res.matches
+                return DeleteManyReturn(
+                    failed=res.failed, successful=res.successful, matches=res.matches, objects=None
                 )
 
         except grpc.RpcError as e:
-            raise WeaviateQueryException(e.details())
+            raise WeaviateGRPCDeleteManyError(e.details())

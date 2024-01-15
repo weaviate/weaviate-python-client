@@ -3,6 +3,7 @@ from weaviate.collections.classes.filters import (
     FilterByProperty,
     FilterById,
     FilterByUpdateTime,
+    FilterByRef,
 )
 from weaviate.collections.classes.internal import (
     GenerativeNearMediaReturnType,
@@ -26,6 +27,7 @@ __all__ = [
     "FilterByCreationTime",
     "FilterById",
     "FilterByProperty",
+    "FilterByRef",
     "FilterByUpdateTime",
     "GenerativeNearMediaReturnType",
     "GenerativeReturnType",

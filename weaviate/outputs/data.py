@@ -1,14 +1,12 @@
 from weaviate.collections.classes.data import Error, RefError
 from weaviate.collections.classes.batch import (
-    DeleteManyObjects,
-    DeleteManyReturnNoObjects,
+    DeleteManyObject,
     DeleteManyReturn,
 )
 
 
 __all__ = [
-    "DeleteManyObjects",
-    "DeleteManyReturnNoObjects",
+    "DeleteManyObject",
     "DeleteManyReturn",
     "Error",
     "RefError",

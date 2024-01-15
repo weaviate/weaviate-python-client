@@ -3,11 +3,11 @@ from typing import Any, Dict, List, Optional, Union
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.classes.batch import (
-    DeleteManyReturnNoObjects,
     DeleteManyReturn,
     ErrorReference,
     _BatchReference,
     BatchReferenceReturn,
+    DeleteManyObject,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
@@ -26,7 +26,7 @@ class _BatchREST:
 
     def delete(
         self, collection: str, where: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
-    ) -> Union[DeleteManyReturn, DeleteManyReturnNoObjects]:
+    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
         payload: Dict[str, Any] = {
             "match": {
                 "class": collection,
@@ -62,10 +62,11 @@ class _BatchREST:
                 successful=res["results"]["successful"],
             )
         else:
-            return DeleteManyReturnNoObjects(
+            return DeleteManyReturn(
                 failed=res["results"]["failed"],
                 matches=res["results"]["matches"],
                 successful=res["results"]["successful"],
+                objects=None,
             )
 
     def references(self, references: List[_BatchReference]) -> BatchReferenceReturn:

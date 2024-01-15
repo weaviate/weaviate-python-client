@@ -1,6 +1,6 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Sequence, Union, cast
+from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar, Union, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -237,7 +237,7 @@ class BatchResult:
 
 
 @dataclass
-class DeleteManyObjects:
+class DeleteManyObject:
     """This class contains the objects of a `delete_many` operation."""
 
     uuid: uuid_package.UUID
@@ -245,21 +245,15 @@ class DeleteManyObjects:
     error: Optional[str] = None
 
 
-@dataclass
-class DeleteManyReturn:
-    """This class contains the results of a `delete_many` operation with verbosity."""
-
-    failed: int
-    matches: int
-    objects: List[DeleteManyObjects]
-    successful: int
+# generic type for DeleteManyReturn
+T = TypeVar("T")
 
 
 @dataclass
-class DeleteManyReturnNoObjects:
-    """This class contains the results of a `delete_many` operation without verbosity."""
+class DeleteManyReturn(Generic[T]):
+    """This class contains the results of a `delete_many` operation.."""
 
     failed: int
     matches: int
+    objects: T
     successful: int
-    objects: Literal[None] = None
