@@ -16,7 +16,7 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
 )
 from weaviate.collections.classes.grpc import FromReference
-from weaviate.collections.classes.internal import _CrossReference
+from weaviate.collections.classes.internal import _CrossReference, Reference
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID
 
@@ -246,7 +246,9 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory, request: SubRe
                 from_property="test",
                 from_collection=name,
                 from_uuid=obj_uuid0,
-                to=obj_uuid0,
+                to=Reference.to_multi_target(
+                    obj_uuid0, target_collection=name
+                ),  # workaround for autodetection with tenant
                 tenant=tenant,
             )
 
@@ -289,11 +291,10 @@ def make_refs(uuids: List[UUID], name: str) -> List[dict]:
         for to in tos:
             refs.append(
                 {
-                    "from_object_uuid": from_,
-                    "from_object_collection": name,
-                    "from_property_name": "test",
-                    "to_object_uuid": to,
-                    "to_object_collection": name,
+                    "from_uuid": from_,
+                    "from_collection": name,
+                    "from_property": "test",
+                    "to": to,
                 }
             )
     return refs

@@ -6,6 +6,7 @@ from abc import ABC
 from copy import copy
 from dataclasses import dataclass, field
 from typing import Any, Dict, Generic, List, Optional, Sequence, Set, TypeVar, Union
+import uuid as uuid_package
 
 from pydantic import ValidationError
 from requests import ReadTimeout
@@ -425,9 +426,11 @@ class _BatchBase:
         tenant: Optional[str] = None,
     ) -> None:
         if isinstance(to, _Reference):
-            to_strs = to.uuids_str
-        elif isinstance(to, str):
+            to_strs: Union[List[str], List[UUID]] = to.uuids_str
+        elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
             to_strs = [to]
+        else:
+            to_strs = to
 
         for uid in to_strs:
             try:
