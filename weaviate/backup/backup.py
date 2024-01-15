@@ -101,7 +101,6 @@ class Backup:
 
         payload = {
             "id": backup_id,
-            "config": {},
             "include": include_classes,
             "exclude": exclude_classes,
         }
