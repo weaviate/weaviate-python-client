@@ -16,7 +16,7 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
 )
 from weaviate.collections.classes.grpc import FromReference
-from weaviate.collections.classes.internal import _CrossReference
+from weaviate.collections.classes.internal import _CrossReference, _Reference, Reference
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID
 
@@ -156,11 +156,10 @@ def test_add_reference(
             uuid=to_object_uuid,
         )
         batch.add_reference(
-            from_object_uuid=from_object_uuid,
-            from_object_collection=name,
-            from_property_name="test",
-            to_object_uuid=to_object_uuid,
-            to_object_collection=name if to_object_collection else None,
+            from_uuid=from_object_uuid,
+            from_collection=name,
+            from_property="test",
+            to=to_object_uuid,
         )
     objs = (
         client.collections.get(name)
@@ -227,7 +226,65 @@ def test_add_object_batch_with_tenant(client_factory: ClientFactory, request: Su
         assert retObj.properties["name"] == obj[2]
 
 
-def test_add_ref_batch_with_tenant(client_factory: ClientFactory, request: SubRequest) -> None:
+def _from_uuid_to_uuid(uuid: uuid.UUID) -> uuid.UUID:
+    return uuid
+
+
+def _from_uuid_to_str(uuid: uuid.UUID) -> str:
+    return str(uuid)
+
+
+def _from_uuid_to_ref(uuid: uuid.UUID) -> _Reference:
+    return Reference.to(uuid)
+
+
+def _from_uuid_to_uuid_list(uuid: uuid.UUID) -> List[uuid.UUID]:
+    return [uuid]
+
+
+def _from_uuid_to_str_list(uuid: uuid.UUID) -> List[str]:
+    return [str(uuid)]
+
+
+@pytest.mark.parametrize(
+    "to_ref",
+    [
+        _from_uuid_to_uuid,
+        _from_uuid_to_str,
+        _from_uuid_to_ref,
+        _from_uuid_to_uuid_list,
+        _from_uuid_to_str_list,
+    ],
+)
+def test_add_ref_batch(client_factory: ClientFactory, to_ref: Callable) -> None:
+    client, name = client_factory()
+
+    nr_objects = 100
+    objects_class0 = []
+    with client.batch as batch:
+        for _ in range(nr_objects):
+            obj_uuid0 = uuid.uuid4()
+            objects_class0.append(obj_uuid0)
+            batch.add_object(collection=name, uuid=obj_uuid0)
+
+            batch.add_reference(
+                from_property="test",
+                from_collection=name,
+                from_uuid=obj_uuid0,
+                to=to_ref(obj_uuid0),
+            )
+
+    collection = client.collections.get(name)
+    for obj in objects_class0:
+        ret_obj = collection.query.fetch_object_by_id(
+            obj,
+            return_references=FromReference(link_on="test"),
+        )
+        assert ret_obj is not None
+        assert ret_obj.references["test"].objects[0].uuid == obj
+
+
+def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
     client, name = client_factory(multi_tenant=True)
     client.collections.get(name).tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 
@@ -244,11 +301,12 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory, request: SubRe
 
             # add refs between all tenants
             batch.add_reference(
-                from_property_name="test",
-                from_object_collection=name,
-                from_object_uuid=obj_uuid0,
-                to_object_collection=name,
-                to_object_uuid=obj_uuid0,
+                from_property="test",
+                from_collection=name,
+                from_uuid=obj_uuid0,
+                to=Reference.to_multi_target(
+                    obj_uuid0, target_collection=name
+                ),  # workaround for autodetection with tenant
                 tenant=tenant,
             )
 
@@ -291,11 +349,10 @@ def make_refs(uuids: List[UUID], name: str) -> List[dict]:
         for to in tos:
             refs.append(
                 {
-                    "from_object_uuid": from_,
-                    "from_object_collection": name,
-                    "from_property_name": "test",
-                    "to_object_uuid": to,
-                    "to_object_collection": name,
+                    "from_uuid": from_,
+                    "from_collection": name,
+                    "from_property": "test",
+                    "to": to,
                 }
             )
     return refs
@@ -356,11 +413,10 @@ def test_add_bad_ref(client_factory: ClientFactory) -> None:
         # client.batch.configure(retry_failed_references=True)
         with client.batch as batch:
             batch.add_reference(
-                from_object_uuid=uuid.uuid4(),
-                from_object_collection=name,
-                from_property_name="bad",
-                to_object_uuid=uuid.uuid4(),
-                to_object_collection=name,
+                from_uuid=uuid.uuid4(),
+                from_collection=name,
+                from_property="bad",
+                to=uuid.uuid4(),
             )
         assert len(client.batch.failed_references()) == 1
     #

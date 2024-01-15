@@ -1,4 +1,4 @@
-from typing import Generic, Optional, Sequence
+from typing import Generic, List, Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase, _BatchDataWrapper
 from weaviate.collections.batch.batch_wrapper import _BatchWrapper
@@ -65,31 +65,31 @@ class _BatchCollection(Generic[Properties], _BatchBase):
             tenant=self.__tenant,
         )
 
-    def add_reference(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
+    def add_reference(
+        self, from_uuid: UUID, from_property: str, to: Union[WeaviateReference, List[UUID]]
+    ) -> None:
         """Add a reference to this batch.
 
         Arguments:
             `from_uuid`
                 The UUID of the object, as an uuid.UUID object or str, that should reference another object.
-                It can be a Weaviate beacon or Weaviate href.
             `from_property`
                 The name of the property that contains the reference.
             `to`
-                The reference to add, REQUIRED. Use `wvc.Reference.to` to create the correct value.
+                The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
+                For multi-target references use wvc.Reference.to_multi_targer().
 
         Raises:
             `WeaviateBatchValidationError`
                 If the provided options are in the format required by Weaviate.
         """
-        for uuid in to.uuids_str:
-            self._add_reference(
-                from_uuid,
-                self.__name,
-                from_property,
-                uuid,
-                to.target_collection if to.is_multi_target else None,
-                self.__tenant,
-            )
+        self._add_reference(
+            from_uuid,
+            self.__name,
+            from_property,
+            to,
+            self.__tenant,
+        )
 
 
 class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):

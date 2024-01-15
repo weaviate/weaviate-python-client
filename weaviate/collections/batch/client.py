@@ -1,8 +1,9 @@
-from typing import Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase
 from weaviate.collections.batch.batch_wrapper import _BatchWrapper
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.internal import WeaviateReference
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.types import UUID
@@ -55,28 +56,24 @@ class _BatchClient(_BatchBase):
 
     def add_reference(
         self,
-        from_object_uuid: UUID,
-        from_object_collection: str,
-        from_property_name: str,
-        to_object_uuid: UUID,
-        to_object_collection: Optional[str] = None,
+        from_uuid: UUID,
+        from_collection: str,
+        from_property: str,
+        to: Union[WeaviateReference, List[UUID]],
         tenant: Optional[str] = None,
     ) -> None:
         """Add one reference to this batch.
 
         Arguments:
-            `from_object_uuid`
+            `from_uuid`
                 The UUID of the object, as an uuid.UUID object or str, that should reference another object.
-                It can be a Weaviate beacon or Weaviate href.
-            `from_object_collection`
+            `from_collection`
                 The name of the collection that should reference another object.
-            `from_property_name`
+            `from_property`
                 The name of the property that contains the reference.
-            `to_object_uuid`
-                The UUID of the object, as an uuid.UUID object or str, that is actually referenced.
-                It can be a Weaviate beacon or Weaviate href.
-            `to_object_collection`
-                The referenced object collection to which to add the reference (with UUID `to_object_uuid`).
+            `to`
+                The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
+                For multi-target references use wvc.Reference.to_multi_targer().
             `tenant`
                 Name of the tenant.
 
@@ -85,11 +82,10 @@ class _BatchClient(_BatchBase):
                 If the provided options are in the format required by Weaviate.
         """
         super()._add_reference(
-            from_object_uuid=from_object_uuid,
-            from_object_collection=from_object_collection,
-            from_property_name=from_property_name,
-            to_object_uuid=to_object_uuid,
-            to_object_collection=to_object_collection,
+            from_object_uuid=from_uuid,
+            from_object_collection=from_collection,
+            from_property_name=from_property,
+            to=to,
             tenant=tenant,
         )
 

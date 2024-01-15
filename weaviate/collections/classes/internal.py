@@ -27,7 +27,7 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.types import Properties, M, P, R, TProperties, WeaviateProperties
 from weaviate.exceptions import WeaviateGRPCQueryError, InvalidDataModelException
 from weaviate.util import _to_beacons
-from weaviate.types import UUIDS
+from weaviate.types import UUID, UUIDS
 
 from weaviate.proto.v1 import search_get_pb2
 
@@ -401,7 +401,7 @@ class Reference:
     def to(
         cls,
         uuids: UUIDS,
-    ) -> "WeaviateReference":
+    ) -> _Reference:
         """Define cross references to other objects by their UUIDs.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
@@ -417,7 +417,7 @@ class Reference:
         cls,
         uuids: UUIDS,
         target_collection: Union[str, _CollectionBase],
-    ) -> "WeaviateReference":
+    ) -> _Reference:
         """Define cross references to other objects by their UUIDs and the collection in which they are stored.
 
         Can be made to be generic by supplying a type to the `data_model` argument.
@@ -436,7 +436,7 @@ class Reference:
         )
 
 
-WeaviateReference: TypeAlias = _Reference
+WeaviateReference: TypeAlias = Union[_Reference, UUID]
 WeaviateReferences: TypeAlias = Mapping[str, WeaviateReference]
 
 
