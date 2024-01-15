@@ -10,7 +10,7 @@ SCOPES = Union[str, List[str]]
 
 
 @dataclass
-class AuthClientCredentials:
+class ClientCredentials:
     """Authenticate for the Client Credential flow using client secrets.
 
     Acquire the client secret from your identify provider and set the appropriate scope. The client includes hardcoded
@@ -33,7 +33,7 @@ class AuthClientCredentials:
 
 
 @dataclass
-class AuthClientPassword:
+class ClientPassword:
     """Using username and password for authentication with Resource Owner Password flow.
 
     For some providers the scope needs to contain "offline_access" (and "openid" which is automatically added) to return
@@ -58,7 +58,7 @@ class AuthClientPassword:
 
 
 @dataclass
-class AuthBearerToken:
+class BearerToken:
     """Using a preexisting bearer/access token for authentication.
 
     The expiration time of access tokens is given in seconds.
@@ -77,11 +77,20 @@ class AuthBearerToken:
 
 
 @dataclass
-class AuthApiKey:
+class APIKey:
     """Using the given API key to authenticate with weaviate."""
 
     api_key: str
 
 
-OidcAuth = Union[AuthBearerToken, AuthClientPassword, AuthClientCredentials]
-AuthCredentials = Union[OidcAuth, AuthApiKey]
+OidcAuth = Union[BearerToken, ClientPassword, ClientCredentials]
+AuthCredentials = Union[OidcAuth, APIKey]
+
+AuthApiKey = APIKey
+"""@deprecated; use APIKey instead."""
+AuthBearerToken = BearerToken
+"""@deprecated; use BearerToken instead."""
+AuthClientCredentials = ClientCredentials
+"""@deprecated; use ClientCredentials instead."""
+AuthClientPassword = ClientPassword
+"""@deprecated; use ClientPassword instead."""

@@ -1,6 +1,6 @@
 import json
 from dataclasses import asdict
-from typing import Generic, Literal, Optional, Type, Union, cast, overload
+from typing import Generic, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.aggregate import _AggregateCollection, _AggregateGroupByCollection
 from weaviate.collections.backups import _CollectionBackup
@@ -15,7 +15,7 @@ from weaviate.collections.classes.internal import (
     TReferences,
     ReturnProperties,
     ReturnReferences,
-    WeaviateReferences,
+    CrossReferences,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
@@ -181,7 +181,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _ObjectIterator[Properties, WeaviateReferences]:
+    ) -> _ObjectIterator[Properties, CrossReferences]:
         ...
 
     @overload
@@ -214,7 +214,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _ObjectIterator[TProperties, WeaviateReferences]:
+    ) -> _ObjectIterator[TProperties, CrossReferences]:
         ...
 
     @overload
@@ -236,10 +236,10 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> Union[
         _ObjectIterator[Properties, References],
-        _ObjectIterator[Properties, WeaviateReferences],
+        _ObjectIterator[Properties, CrossReferences],
         _ObjectIterator[Properties, TReferences],
         _ObjectIterator[TProperties, References],
-        _ObjectIterator[TProperties, WeaviateReferences],
+        _ObjectIterator[TProperties, CrossReferences],
         _ObjectIterator[TProperties, TReferences],
     ]:
         """Use this method to return an iterator over the objects in the collection.
@@ -249,7 +249,8 @@ class Collection(_CollectionBase, Generic[Properties, References]):
 
         If `return_properties` is not provided, all the properties of each object will be
         requested from Weaviate except for its vector as this is an expensive operation. Specify `include_vector`
-        to request the vector back as well.
+        to request the vector back as well. In addition, if `return_references=None` then none of the references
+        are returned. Use `wvc.QueryReference` to specify which references to return.
 
         Arguments:
             `include_vector`
@@ -265,26 +266,13 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        return cast(
-            Union[
-                _ObjectIterator[Properties, References],
-                _ObjectIterator[Properties, WeaviateReferences],
-                _ObjectIterator[Properties, TReferences],
-                _ObjectIterator[TProperties, References],
-                _ObjectIterator[TProperties, WeaviateReferences],
-                _ObjectIterator[TProperties, TReferences],
-            ],
-            _ObjectIterator(
-                lambda limit, after: self.query.fetch_objects(
-                    limit=limit,
-                    after=after,
-                    include_vector=include_vector,
-                    return_metadata=return_metadata,
-                    return_properties=return_properties,  # type: ignore
-                    return_references=return_references,  # type: ignore
-                ).objects
-            ),
-            # type ignores here are because we don't care about the correct types when using the public
-            # fetch_objects() method as an internal API. The correct types are only for the users of the API
-            # and these are provided by casting and overloading of iterator()
+        return _ObjectIterator(  # type: ignore
+            lambda limit, after: self.query.fetch_objects(
+                limit=limit,
+                after=after,
+                include_vector=include_vector,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                return_references=return_references,
+            ).objects
         )

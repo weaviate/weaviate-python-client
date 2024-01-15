@@ -4,6 +4,7 @@ from typing import (
     Dict,
     List,
     Optional,
+    Sequence,
     Set,
     Tuple,
     TypeVar,
@@ -645,7 +646,7 @@ class _QueryGRPC(_BaseGRPC):
             self._refs = self.__convert_to_set(return_references)
 
     @staticmethod
-    def __convert_to_set(args: Union[A, List[A]]) -> Set[A]:
+    def __convert_to_set(args: Union[A, Sequence[A]]) -> Set[A]:
         if isinstance(args, list):
             return set(args)
         else:

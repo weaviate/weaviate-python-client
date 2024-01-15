@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import ClassVar, List, Literal, Optional, Type, Union
+from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union
 
 from pydantic import Field
 
@@ -121,7 +121,7 @@ class _MetadataQuery:
 
 
 METADATA = Union[
-    List[
+    Sequence[
         Literal[
             "creation_time_unix",
             "last_update_time_unix",
@@ -213,10 +213,10 @@ FromNested = QueryNested
 REFERENCE = Union[
     FromReference, FromReferenceMultiTarget, _QueryReference, _QueryReferenceMultiTarget
 ]
-REFERENCES = Union[List[REFERENCE], REFERENCE]
+REFERENCES = Union[Sequence[REFERENCE], REFERENCE]
 
 PROPERTY = Union[str, FromNested, QueryNested]
-PROPERTIES = Union[List[PROPERTY], PROPERTY]
+PROPERTIES = Union[Sequence[PROPERTY], PROPERTY]
 
 NestedProperties = Union[List[Union[str, FromNested, QueryNested]], str, FromNested, QueryNested]
 

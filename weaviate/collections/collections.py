@@ -232,6 +232,12 @@ class _Collections(_CollectionsBase):
     def list_all(self, simple: Literal[True] = ...) -> Dict[str, _CollectionConfigSimple]:
         ...
 
+    @overload
+    def list_all(
+        self, simple: bool = ...
+    ) -> Union[Dict[str, _CollectionConfig], Dict[str, _CollectionConfigSimple]]:
+        ...
+
     def list_all(
         self, simple: bool = True
     ) -> Union[Dict[str, _CollectionConfig], Dict[str, _CollectionConfigSimple]]:

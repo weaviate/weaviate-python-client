@@ -14,6 +14,9 @@ from weaviate.collections.classes.internal import (
     References,
     TReferences,
     CrossReferences,
+    ReturnProperties,
+    ReturnReferences,
+    QueryReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
@@ -104,3 +107,17 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         return_properties: Type[TProperties],
         return_references: Type[TReferences]
     ) -> QueryReturn[TProperties, TReferences]: ...
+    @overload
+    def fetch_objects(
+        self,
+        *,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Union[Sort, List[Sort]]] = None,
+        include_vector: bool = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+        return_references: Optional[ReturnReferences[TReferences]] = None
+    ) -> QueryReturnType[Properties, References, TProperties, TReferences]: ...
