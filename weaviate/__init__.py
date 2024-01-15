@@ -19,7 +19,19 @@ from .connect.helpers import (
     connect_to_wcs,
 )
 
-from . import backup, batch, classes, cluster, collections, connect, data, gql, outputs, schema
+from . import (
+    auth,
+    backup,
+    batch,
+    classes,
+    cluster,
+    collections,
+    connect,
+    data,
+    gql,
+    outputs,
+    schema,
+)
 
 import warnings
 
@@ -35,6 +47,7 @@ __all__ = [
     "connect_to_embedded",
     "connect_to_local",
     "connect_to_wcs",
+    "auth",
     "backup",
     "batch",
     "classes",

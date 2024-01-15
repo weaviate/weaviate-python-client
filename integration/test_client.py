@@ -12,7 +12,7 @@ from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
 WCS_URL = f"https://{WCS_HOST}"
 WCS_GRPC_HOST = f"grpc-{WCS_HOST}"
-WCS_CREDS = weaviate.AuthApiKey("cy4ua772mBlMdfw3YnclqAWzFhQt0RLIN0sl")
+WCS_CREDS = weaviate.auth.AuthApiKey("cy4ua772mBlMdfw3YnclqAWzFhQt0RLIN0sl")
 
 
 @pytest.fixture(scope="module")

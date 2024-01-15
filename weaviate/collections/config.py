@@ -58,6 +58,10 @@ class _ConfigBase:
     def get(self, simple: Literal[True]) -> _CollectionConfigSimple:
         ...
 
+    @overload
+    def get(self, simple: bool = ...) -> Union[_CollectionConfig, _CollectionConfigSimple]:
+        ...
+
     def get(self, simple: bool = False) -> Union[_CollectionConfig, _CollectionConfigSimple]:
         """Get the configuration for this collection from Weaviate.
 

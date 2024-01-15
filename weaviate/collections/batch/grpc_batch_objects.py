@@ -14,13 +14,14 @@ from weaviate.collections.classes.batch import (
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.classes.internal import _Reference
+from weaviate.collections.classes.internal import _Reference, WeaviateReferences
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateGRPCBatchError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
+    WeaviateInvalidInputError,
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.util import _datetime_to_string, get_vector
@@ -66,7 +67,8 @@ class _BatchGRPC(_BaseGRPC):
                 else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=self.__translate_properties_from_python_to_grpc(
-                    {**obj.properties, **(obj.references if obj.references is not None else {})},
+                    obj.properties,
+                    obj.references if obj.references is not None else {},
                     False,
                 )
                 if obj.properties is not None
@@ -160,7 +162,8 @@ class _BatchGRPC(_BaseGRPC):
                 else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=self.__translate_properties_from_python_to_grpc(
-                    {**obj.properties, **(obj.references if obj.references is not None else {})},
+                    obj.properties,
+                    obj.references if obj.references is not None else {},
                     False,
                 )
                 if obj.properties is not None
@@ -227,9 +230,9 @@ class _BatchGRPC(_BaseGRPC):
             raise WeaviateGRPCBatchError(e.details())
 
     def __translate_properties_from_python_to_grpc(
-        self, data: Dict[str, Any], clean_props: bool
+        self, data: Dict[str, Any], refs: WeaviateReferences, clean_props: bool
     ) -> batch_pb2.BatchObject.Properties:
-        if data is None:
+        if data is None and refs is None:
             return None
 
         _validate_props(data, clean_props)
@@ -243,6 +246,36 @@ class _BatchGRPC(_BaseGRPC):
         float_arrays: List[base_pb2.NumberArrayProperties] = []
         object_properties: List[base_pb2.ObjectProperties] = []
         object_array_properties: List[base_pb2.ObjectArrayProperties] = []
+
+        for key, val in refs.items():
+            if isinstance(val, _Reference):
+                if val.is_multi_target:
+                    multi_target.append(
+                        batch_pb2.BatchObject.MultiTargetRefProps(
+                            uuids=val.uuids_str,
+                            target_collection=val.target_collection,
+                            prop_name=key,
+                        )
+                    )
+                else:
+                    single_target.append(
+                        batch_pb2.BatchObject.SingleTargetRefProps(
+                            uuids=val.uuids_str, prop_name=key
+                        )
+                    )
+            elif isinstance(val, str):
+                single_target.append(
+                    batch_pb2.BatchObject.SingleTargetRefProps(uuids=[val], prop_name=key)
+                )
+            elif isinstance(val, uuid_package.UUID):
+                single_target.append(
+                    batch_pb2.BatchObject.SingleTargetRefProps(
+                        uuids=[str(object=val)], prop_name=key
+                    )
+                )
+            else:
+                raise WeaviateInvalidInputError(f"Invalid reference: {val}")
+
         for key, val in data.items():
             if isinstance(val, _Reference):
                 if val.is_multi_target:
@@ -260,7 +293,7 @@ class _BatchGRPC(_BaseGRPC):
                         )
                     )
             elif isinstance(val, dict):
-                parsed = self.__translate_properties_from_python_to_grpc(val, clean_props)
+                parsed = self.__translate_properties_from_python_to_grpc(val, {}, clean_props)
                 object_properties.append(
                     base_pb2.ObjectProperties(
                         prop_name=key,
@@ -295,7 +328,7 @@ class _BatchGRPC(_BaseGRPC):
                             for v in val
                             if (
                                 parsed := self.__translate_properties_from_python_to_grpc(
-                                    v, clean_props
+                                    v, {}, clean_props
                                 )
                             )
                         ],
