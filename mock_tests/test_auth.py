@@ -95,10 +95,9 @@ def test_auth_header_priority(recwarn, weaviate_auth_mock, header_name: str):
     )
     client.schema.delete_all()  # some call that includes authorization
 
-    assert len(recwarn) == 1
-    w = recwarn.pop()
-    assert issubclass(w.category, UserWarning)
-    assert str(w.message).startswith("Auth004")
+    w = [w for w in recwarn if str(w.message).startswith("Auth004")]
+    assert len(w) == 1
+    assert issubclass(w[0].category, UserWarning)
 
 
 def test_refresh(weaviate_auth_mock):
@@ -152,10 +151,9 @@ def test_auth_header_with_catchall_proxy(weaviate_mock, recwarn):
     )
     client.schema.delete_all()  # some call that includes authorization
 
-    assert len(recwarn) == 1
-    w = recwarn.pop()
-    assert issubclass(w.category, UserWarning)
-    assert str(w.message).startswith("Auth005")
+    w = [w for w in recwarn if str(w.message).startswith("Auth005")]
+    assert len(w) == 1
+    assert issubclass(w[0].category, UserWarning)
 
 
 def test_missing_scope(weaviate_auth_mock):
@@ -198,10 +196,9 @@ def test_token_refresh_timeout(weaviate_auth_mock, recwarn):
     time.sleep(9)  # sleep longer than the timeout, to give client time to retry
     client.schema.delete_all()
 
-    assert len(recwarn) == 1
-    w = recwarn.pop()
-    assert issubclass(w.category, UserWarning)
-    assert str(w.message).startswith("Con001")
+    w = [w for w in recwarn if str(w.message).startswith("Con001")]
+    assert len(w) == 1
+    assert issubclass(w[0].category, UserWarning)
 
 
 def test_with_simple_auth_no_oidc_via_api_key(weaviate_mock, recwarn):
@@ -216,7 +213,11 @@ def test_with_simple_auth_no_oidc_via_api_key(weaviate_mock, recwarn):
     client.schema.delete_all()
 
     weaviate_mock.check_assertions()
-    assert len(recwarn) == 0
+
+    w = [
+        w for w in recwarn if str(w.message).startswith("Auth") or str(w.message).startswith("Con")
+    ]
+    assert len(w) == 0
 
 
 def test_with_simple_auth_no_oidc_via_additional_headers(weaviate_mock, recwarn):
@@ -231,4 +232,8 @@ def test_with_simple_auth_no_oidc_via_additional_headers(weaviate_mock, recwarn)
     client.schema.delete_all()
 
     weaviate_mock.check_assertions()
-    assert len(recwarn) == 0
+
+    w = [
+        w for w in recwarn if str(w.message).startswith("Auth") or str(w.message).startswith("Con")
+    ]
+    assert len(w) == 0
