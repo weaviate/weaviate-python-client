@@ -471,7 +471,9 @@ class _DataCollection(Generic[Properties], _Data):
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def reference_add(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
+    def reference_add(
+        self, from_uuid: UUID, from_property: str, to: Union[UUID, _Reference]
+    ) -> None:
         """Create a reference between an object in this collection and any other object in Weaviate.
 
         Arguments:
@@ -491,7 +493,6 @@ class _DataCollection(Generic[Properties], _Data):
         if (
             not isinstance(to, str)
             and not isinstance(to, uuid_package.UUID)
-            and not isinstance(to, list)
             and not isinstance(to, _Reference)
         ):
             _raise_invalid_input("to", to, Union[UUID, _Reference])
@@ -520,7 +521,9 @@ class _DataCollection(Generic[Properties], _Data):
         """
         return self._reference_add_many(refs)
 
-    def reference_delete(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
+    def reference_delete(
+        self, from_uuid: UUID, from_property: str, to: Union[UUID, _Reference]
+    ) -> None:
         """Delete a reference from an object within the collection.
 
         Arguments:
@@ -534,7 +537,6 @@ class _DataCollection(Generic[Properties], _Data):
         if (
             not isinstance(to, str)
             and not isinstance(to, uuid_package.UUID)
-            and not isinstance(to, list)
             and not isinstance(to, _Reference)
         ):
             _raise_invalid_input("to", to, Union[UUID, _Reference])
@@ -559,7 +561,7 @@ class _DataCollection(Generic[Properties], _Data):
             not isinstance(to, str)
             and not isinstance(to, uuid_package.UUID)
             and not isinstance(to, _Reference)
-            and not isinstance(to, list)
+            and not isinstance(to, Sequence)
         ):
             _raise_invalid_input("to", to, Union[UUID, _Reference])
         self._reference_replace(

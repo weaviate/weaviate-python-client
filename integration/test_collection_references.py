@@ -1,5 +1,5 @@
 import uuid
-from typing import TypedDict
+from typing import TypedDict, Union
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
@@ -23,6 +23,7 @@ from weaviate.collections.classes.internal import (
     Reference,
     ReferenceAnnotation,
     WeaviateReference,
+    _Reference,
 )
 from weaviate.types import UUID
 
@@ -805,10 +806,7 @@ def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
     )
 
 
-@pytest.mark.parametrize("to_uuid", [Reference.to(uuids=TO_UUID), TO_UUID, str(TO_UUID)])
-def test_refs_different_input_insert(
-    collection_factory: CollectionFactory, to_uuid: WeaviateReference
-) -> None:
+def test_refs_different_input_insert(collection_factory: CollectionFactory) -> None:
     to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
     to_uuid = to.data.insert(properties={}, uuid=TO_UUID)
 
@@ -829,7 +827,7 @@ def test_refs_different_input_insert(
 
 @pytest.mark.parametrize("to_uuid", [Reference.to(uuids=TO_UUID), TO_UUID, str(TO_UUID)])
 def test_refs_different_input_insert_many(
-    collection_factory: CollectionFactory, to_uuid: WeaviateReference
+    collection_factory: CollectionFactory, to_uuid: Union[str, _Reference]
 ) -> None:
     to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
     to.data.insert(properties={}, uuid=TO_UUID)
@@ -874,7 +872,7 @@ def test_refs_different_input_insert_many(
 
 @pytest.mark.parametrize("to_uuid", [Reference.to(uuids=TO_UUID), TO_UUID, str(TO_UUID)])
 def test_refs_different_reference_add(
-    collection_factory: CollectionFactory, to_uuid: WeaviateReference
+    collection_factory: CollectionFactory, to_uuid: Union[str, _Reference]
 ) -> None:
     to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
     to.data.insert(properties={}, uuid=TO_UUID)
