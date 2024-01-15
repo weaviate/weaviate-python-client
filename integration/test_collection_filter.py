@@ -16,14 +16,12 @@ from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import (
     _FilterCreationTime,
     _FilterUpdateTime,
-    _FilterValue2,
     Filter,
     _Filters,
     _FilterValue,
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
-from weaviate.util import _ServerVersion
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -52,9 +50,7 @@ def test_filters_text(
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
-    if isinstance(
-        weaviate_filter, _FilterValue2
-    ) and collection._connection._weaviate_version < _ServerVersion(1, 23, patch=2):
+    if collection._connection._weaviate_version.is_lower_than(1, 23, 3):
         pytest.skip("new filters are not supported in this version")
 
     uuids = [
@@ -424,23 +420,9 @@ def test_ref_filters(
         ],
         inverted_index_config=Configure.inverted_index(index_property_length=True),
     )
-    if isinstance(weaviate_filter, _FilterValue):
-        assert isinstance(weaviate_filter.path, list)
-
-        # enable filters with direct path
-        if len(weaviate_filter.path) > 1:
-            weaviate_filter.path[1] = to_collection.name
-
-        if (
-            to_collection._connection._weaviate_version < _ServerVersion(1, 23, patch=0)
-            and "_id" in weaviate_filter.path
-        ):
-            pytest.skip("filter by id is not supported in this version")
 
     # patch=3 in reality, but to be able to test this
-    if to_collection._connection._weaviate_version < _ServerVersion(1, 23, patch=2) and isinstance(
-        weaviate_filter, _FilterValue2
-    ):
+    if to_collection._connection._weaviate_version.is_lower_than(1, 23, 3):
         pytest.skip("new filters are not supported in this version")
 
     uuids_to = [
