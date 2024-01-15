@@ -75,35 +75,35 @@ deprs = [
 ]
 
 map_ = {
-    "Collection": "collections.collection",
+    "Collection": "collections",
     "AuthClientCredentials": "auth",
     "AuthClientPassword": "auth",
     "AuthBearerToken": "auth",
     "AuthApiKey": "auth",
-    "BackupStorage": "backup.backup",
+    "BackupStorage": "backup",
     "UnexpectedStatusCodeException": "exceptions",
     "ObjectAlreadyExistsException": "exceptions",
     "AuthenticationFailedException": "exceptions",
     "SchemaValidationException": "exceptions",
     "WeaviateStartUpError": "exceptions",
-    "ConsistencyLevel": "data.replication",
-    "WeaviateErrorRetryConf": "batch.crud_batch",
+    "ConsistencyLevel": "data",
+    "WeaviateErrorRetryConf": "batch",
     "EmbeddedOptions": "embedded",
     "AdditionalConfig": "config",
     "Config": "config",
     "ConnectionConfig": "config",
-    "ConnectionParams": "connect.base",
-    "ProtocolParams": "connect.base",
-    "AdditionalProperties": "gql.get",
-    "LinkTo": "gql.get",
-    "Shard": "batch.crud_batch",
-    "Tenant": "schema.crud_schema",
-    "TenantActivityStatus": "schema.crud_schema",
+    "ConnectionParams": "connect",
+    "ProtocolParams": "connect",
+    "AdditionalProperties": "gql",
+    "LinkTo": "gql",
+    "Shard": "batch",
+    "Tenant": "schema",
+    "TenantActivityStatus": "schema",
 }
 
 
 def __getattr__(name: str) -> Any:
     if name in deprs:
-        _Warnings.root_module_import(name, map_[name].split(".")[0])
+        _Warnings.root_module_import(name, map_[name])
         return getattr(sys.modules[f"{__name__}.{map_[name]}"], name)
     raise AttributeError(f"module {__name__} has no attribute {name}")
