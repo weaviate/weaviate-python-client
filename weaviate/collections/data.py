@@ -127,7 +127,7 @@ class _Data:
     @overload
     def delete_many(
         self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
-    ) -> DeleteManyReturn:
+    ) -> DeleteManyReturn[List[DeleteManyObject]]:
         ...
 
     @overload

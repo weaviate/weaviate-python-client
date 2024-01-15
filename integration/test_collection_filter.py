@@ -490,7 +490,7 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="int", data_type=DataType.INT)],
     )
-    if not to_collection._connection._weaviate_version.is_at_least(1, 23, patch=2):
+    if not to_collection._connection._weaviate_version.is_at_least(1, 23, patch=3):
         pytest.skip("multi target refs are not supported by this version")
 
     uuid_to = to_collection.data.insert(properties={"int": 0})
