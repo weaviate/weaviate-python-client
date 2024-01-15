@@ -1,10 +1,10 @@
 import datetime
 import uuid as uuid_package
-from typing import Dict, Union, List, Tuple
+from typing import Dict, Union, List, Sequence, Tuple
 
 DATE = datetime.datetime
 UUID = Union[str, uuid_package.UUID]
-UUIDS = Union[List[UUID], UUID]
+UUIDS = Union[Sequence[UUID], UUID]
 NUMBER = Union[int, float]
 GEO_COORDINATES = Tuple[float, float]
 

@@ -59,7 +59,7 @@ from weaviate.util import (
     _decode_json_response_dict,
     get_vector,
 )
-from weaviate.types import BEACON, UUID, UUIDS
+from weaviate.types import BEACON, UUID
 
 
 class _Data:
@@ -220,13 +220,8 @@ class _Data:
         ]
         return self._batch_rest.references(list(batch))
 
-    def _reference_delete(
-        self, from_uuid: UUID, from_property: str, ref: WeaviateReference
-    ) -> None:
+    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
-
-        if isinstance(ref, str) or isinstance(ref, uuid_package.UUID):
-            ref = _Reference(target_collection=None, uuids=ref)
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
         for beacon in ref._to_beacons():
@@ -241,12 +236,8 @@ class _Data:
             if response.status_code != 204:
                 raise UnexpectedStatusCodeError("Add property reference to object", response)
 
-    def _reference_replace(
-        self, from_uuid: UUID, from_property: str, ref: WeaviateReference
-    ) -> None:
+    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
-        if isinstance(ref, str) or isinstance(ref, uuid_package.UUID):
-            ref = _Reference(target_collection=None, uuids=ref)
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
         try:
@@ -500,6 +491,7 @@ class _DataCollection(Generic[Properties], _Data):
         if (
             not isinstance(to, str)
             and not isinstance(to, uuid_package.UUID)
+            and not isinstance(to, list)
             and not isinstance(to, _Reference)
         ):
             _raise_invalid_input("to", to, Union[UUID, _Reference])
@@ -528,9 +520,7 @@ class _DataCollection(Generic[Properties], _Data):
         """
         return self._reference_add_many(refs)
 
-    def reference_delete(
-        self, from_uuid: UUID, from_property: str, to: Union[UUID, WeaviateReference]
-    ) -> None:
+    def reference_delete(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
         """Delete a reference from an object within the collection.
 
         Arguments:
@@ -544,6 +534,7 @@ class _DataCollection(Generic[Properties], _Data):
         if (
             not isinstance(to, str)
             and not isinstance(to, uuid_package.UUID)
+            and not isinstance(to, list)
             and not isinstance(to, _Reference)
         ):
             _raise_invalid_input("to", to, Union[UUID, _Reference])
@@ -553,9 +544,7 @@ class _DataCollection(Generic[Properties], _Data):
             ref=to if isinstance(to, _Reference) else _Reference(target_collection=None, uuids=to),
         )
 
-    def reference_replace(
-        self, from_uuid: UUID, from_property: str, to: Union[WeaviateReference, UUIDS]
-    ) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
         """Replace a reference of an object within the collection.
 
         Arguments:

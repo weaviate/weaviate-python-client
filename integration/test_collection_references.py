@@ -564,7 +564,15 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
             ),
             DataObject(
                 properties={"name": "D"},
-                references={"self": Reference.to(uuids=uuid2)},
+                references={"self": Reference.to(uuids=[uuid1, uuid2])},
+            ),
+            DataObject(
+                properties={"name": "E"},
+                references={"self": uuid1},
+            ),
+            DataObject(
+                properties={"name": "F"},
+                references={"self": [uuid1, uuid2]},
             ),
         ]
     )
@@ -576,11 +584,21 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
         if obj.properties["name"] in ["A", "B"]:
             assert (
                 obj.references == {}
-                if collection._connection._weaviate_version.is_at_least(1, 23, 2)
+                if collection._connection._weaviate_version.is_at_least(1, 23, 3)
                 else obj.references is None
-            )  # TODO: change to 1.23.3 when released
+            )
         else:
             assert obj.references is not None
+            if obj.properties["name"] == "C":
+                assert obj.references["self"].objects[0].uuid == uuid1
+            elif obj.properties["name"] == "D":
+                assert obj.references["self"].objects[0].uuid == uuid1
+                assert obj.references["self"].objects[1].uuid == uuid2
+            elif obj.properties["name"] == "E":
+                assert obj.references["self"].objects[0].uuid == uuid1
+            elif obj.properties["name"] == "F":
+                assert obj.references["self"].objects[0].uuid == uuid1
+                assert obj.references["self"].objects[1].uuid == uuid2
 
 
 def test_references_batch_with_errors(collection_factory: CollectionFactory) -> None:

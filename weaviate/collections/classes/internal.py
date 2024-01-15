@@ -436,7 +436,7 @@ class Reference:
         )
 
 
-WeaviateReference: TypeAlias = Union[_Reference, UUID]
+WeaviateReference: TypeAlias = Union[_Reference, UUID, Sequence[UUID]]
 WeaviateReferences: TypeAlias = Mapping[str, WeaviateReference]
 
 

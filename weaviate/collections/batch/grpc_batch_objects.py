@@ -247,53 +247,53 @@ class _BatchGRPC(_BaseGRPC):
         object_properties: List[base_pb2.ObjectProperties] = []
         object_array_properties: List[base_pb2.ObjectArrayProperties] = []
 
-        for key, val in refs.items():
-            if isinstance(val, _Reference):
-                if val.is_multi_target:
+        for key, ref in refs.items():
+            if isinstance(ref, _Reference):
+                if ref.is_multi_target:
                     multi_target.append(
                         batch_pb2.BatchObject.MultiTargetRefProps(
-                            uuids=val.uuids_str,
-                            target_collection=val.target_collection,
+                            uuids=ref.uuids_str,
+                            target_collection=ref.target_collection,
                             prop_name=key,
                         )
                     )
                 else:
                     single_target.append(
                         batch_pb2.BatchObject.SingleTargetRefProps(
-                            uuids=val.uuids_str, prop_name=key
+                            uuids=ref.uuids_str, prop_name=key
                         )
                     )
-            elif isinstance(val, str):
+            elif isinstance(ref, str) or isinstance(ref, uuid_package.UUID):
                 single_target.append(
-                    batch_pb2.BatchObject.SingleTargetRefProps(uuids=[val], prop_name=key)
+                    batch_pb2.BatchObject.SingleTargetRefProps(uuids=[str(ref)], prop_name=key)
                 )
-            elif isinstance(val, uuid_package.UUID):
+            elif isinstance(ref, list):
                 single_target.append(
                     batch_pb2.BatchObject.SingleTargetRefProps(
-                        uuids=[str(object=val)], prop_name=key
+                        uuids=[str(v) for v in ref], prop_name=key
                     )
                 )
             else:
-                raise WeaviateInvalidInputError(f"Invalid reference: {val}")
+                raise WeaviateInvalidInputError(f"Invalid reference: {ref}")
 
-        for key, val in data.items():
-            if isinstance(val, _Reference):
-                if val.is_multi_target:
+        for key, datum in data.items():
+            if isinstance(datum, _Reference):
+                if datum.is_multi_target:
                     multi_target.append(
                         batch_pb2.BatchObject.MultiTargetRefProps(
-                            uuids=val.uuids_str,
-                            target_collection=val.target_collection,
+                            uuids=datum.uuids_str,
+                            target_collection=datum.target_collection,
                             prop_name=key,
                         )
                     )
                 else:
                     single_target.append(
                         batch_pb2.BatchObject.SingleTargetRefProps(
-                            uuids=val.uuids_str, prop_name=key
+                            uuids=datum.uuids_str, prop_name=key
                         )
                     )
-            elif isinstance(val, dict):
-                parsed = self.__translate_properties_from_python_to_grpc(val, {}, clean_props)
+            elif isinstance(datum, dict):
+                parsed = self.__translate_properties_from_python_to_grpc(datum, {}, clean_props)
                 object_properties.append(
                     base_pb2.ObjectProperties(
                         prop_name=key,
@@ -308,11 +308,11 @@ class _BatchGRPC(_BaseGRPC):
                         ),
                     )
                 )
-            elif isinstance(val, list) and len(val) == 0:
+            elif isinstance(datum, list) and len(datum) == 0:
                 # this is a dirty hack until th GRPC batch backend is fixed
-                text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=val))
-            elif isinstance(val, list) and isinstance(val[0], dict):
-                val = cast(List[Dict[str, Any]], val)
+                text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=datum))
+            elif isinstance(datum, list) and isinstance(datum[0], dict):
+                datum = cast(List[Dict[str, Any]], datum)
                 object_array_properties.append(
                     base_pb2.ObjectArrayProperties(
                         values=[
@@ -325,7 +325,7 @@ class _BatchGRPC(_BaseGRPC):
                                 object_properties=parsed.object_properties,
                                 object_array_properties=parsed.object_array_properties,
                             )
-                            for v in val
+                            for v in datum
                             if (
                                 parsed := self.__translate_properties_from_python_to_grpc(
                                     v, {}, clean_props
@@ -335,26 +335,26 @@ class _BatchGRPC(_BaseGRPC):
                         prop_name=key,
                     )
                 )
-            elif isinstance(val, list) and isinstance(val[0], bool):
-                bool_arrays.append(base_pb2.BooleanArrayProperties(prop_name=key, values=val))
-            elif isinstance(val, list) and isinstance(val[0], str):
-                text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=val))
-            elif isinstance(val, list) and isinstance(val[0], datetime.datetime):
+            elif isinstance(datum, list) and isinstance(datum[0], bool):
+                bool_arrays.append(base_pb2.BooleanArrayProperties(prop_name=key, values=datum))
+            elif isinstance(datum, list) and isinstance(datum[0], str):
+                text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=datum))
+            elif isinstance(datum, list) and isinstance(datum[0], datetime.datetime):
                 text_arrays.append(
                     base_pb2.TextArrayProperties(
-                        prop_name=key, values=[_datetime_to_string(x) for x in val]
+                        prop_name=key, values=[_datetime_to_string(x) for x in datum]
                     )
                 )
-            elif isinstance(val, list) and isinstance(val[0], uuid_package.UUID):
+            elif isinstance(datum, list) and isinstance(datum[0], uuid_package.UUID):
                 text_arrays.append(
-                    base_pb2.TextArrayProperties(prop_name=key, values=[str(x) for x in val])
+                    base_pb2.TextArrayProperties(prop_name=key, values=[str(x) for x in datum])
                 )
-            elif isinstance(val, list) and isinstance(val[0], int):
-                int_arrays.append(base_pb2.IntArrayProperties(prop_name=key, values=val))
-            elif isinstance(val, list) and isinstance(val[0], float):
-                values = val if not self._is_weaviate_version_123 else None
+            elif isinstance(datum, list) and isinstance(datum[0], int):
+                int_arrays.append(base_pb2.IntArrayProperties(prop_name=key, values=datum))
+            elif isinstance(datum, list) and isinstance(datum[0], float):
+                values = datum if not self._is_weaviate_version_123 else None
                 values_bytes = (
-                    struct.pack("{}d".format(len(val)), *val)
+                    struct.pack("{}d".format(len(datum)), *datum)
                     if self._is_weaviate_version_123
                     else None
                 )
@@ -363,12 +363,12 @@ class _BatchGRPC(_BaseGRPC):
                         prop_name=key, values=values, values_bytes=values_bytes
                     )
                 )
-            elif isinstance(val, GeoCoordinate):
-                non_ref_properties.update({key: val._to_dict()})
-            elif isinstance(val, PhoneNumber):
-                non_ref_properties.update({key: val._to_dict()})
+            elif isinstance(datum, GeoCoordinate):
+                non_ref_properties.update({key: datum._to_dict()})
+            elif isinstance(datum, PhoneNumber):
+                non_ref_properties.update({key: datum._to_dict()})
             else:
-                non_ref_properties.update({key: _serialize_primitive(val)})
+                non_ref_properties.update({key: _serialize_primitive(datum)})
 
         return batch_pb2.BatchObject.Properties(
             non_ref_properties=non_ref_properties,

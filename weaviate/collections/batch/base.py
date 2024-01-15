@@ -430,7 +430,7 @@ class _BatchBase:
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
             to_strs = [to]
         else:
-            to_strs = to
+            to_strs = list(to)
 
         for uid in to_strs:
             try:
