@@ -202,7 +202,7 @@ class WeaviateClient(_ClientBase):
         `weaviate.connect_to_local` helper functions instead.
 
         Arguments:
-            - `connection_params`: `weaviate.ConnectionParams` or None, optional
+            - `connection_params`: `weaviate.connect.ConnectionParams` or None, optional
                 - The connection parameters to use for the underlying HTTP requests.
             - `embedded_options`: `weaviate.EmbeddedOptions` or None, optional
                 - The options to use when provisioning an embedded Weaviate instance.

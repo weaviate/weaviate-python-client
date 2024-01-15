@@ -39,7 +39,9 @@ def compare_float_lists(list1: List[float], list2: List[float], decimal_places: 
 @pytest.fixture(scope="module")
 def client() -> weaviate.WeaviateClient:
     client = weaviate.WeaviateClient(
-        connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
         skip_init_checks=True,
     )
     client.collections.delete_all()

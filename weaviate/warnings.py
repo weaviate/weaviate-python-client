@@ -243,3 +243,12 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def root_module_import(name: str, loc: str) -> None:
+        warnings.warn(
+            f"Importing {name} from weaviate is deprecated. "
+            f"Please import it from its specific module: weaviate.{loc}",
+            DeprecationWarning,
+            stacklevel=1,
+        )

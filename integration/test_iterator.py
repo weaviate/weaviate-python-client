@@ -24,7 +24,9 @@ from weaviate.collections.iterator import ITERATOR_CACHE_SIZE
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.WeaviateClient(
-        connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
         skip_init_checks=False,
     )
     client.collections.delete_all()
