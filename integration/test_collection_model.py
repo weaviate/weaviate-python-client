@@ -37,7 +37,7 @@ pytest.skip(allow_module_level=True)
 
 @pytest.fixture(scope="module")
 def client():
-    connection_params = weaviate.ConnectionParams.from_url("http://localhost:8080", 50051)
+    connection_params = weaviate.connect.ConnectionParams.from_url("http://localhost:8080", 50051)
     client = weaviate.WeaviateClient(connection_params)
     client._collection_model.delete(Group)
     collection = client._collection_model.create(

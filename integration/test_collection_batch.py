@@ -5,7 +5,7 @@ from typing import Generator, Optional, Sequence, Union, Any, Protocol
 import pytest
 
 from integration.conftest import CollectionFactory
-from weaviate import Collection
+from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
     Configure,
     DataType,

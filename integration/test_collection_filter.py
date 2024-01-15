@@ -11,7 +11,6 @@ from weaviate.collections.classes.config import (
     Property,
     DataType,
     ReferenceProperty,
-    Tokenization,
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import (
@@ -20,7 +19,6 @@ from weaviate.collections.classes.filters import (
     Filter,
     _Filters,
     _FilterValue,
-    FilterMetadata,
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import Reference
@@ -37,20 +35,23 @@ UUID3 = uuid.uuid4()
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="name").equal("Banana"), [0]),
-        (Filter(path="name").not_equal("Banana"), [1, 2]),
-        (Filter(path="name").like("*nana"), [0]),
+        (Filter.by_property("name").equal("Banana"), [0]),
+        (Filter.by_property("name").not_equal("Banana"), [1, 2]),
+        (Filter.by_property("name").like("*nana"), [0]),
     ],
 )
 def test_filters_text(
     collection_factory: CollectionFactory,
-    weaviate_filter: _FilterValue,
+    weaviate_filter: _Filters,
     results: List[int],
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 23, 3):
+        pytest.skip("new filters are not supported in this version")
 
     uuids = [
         collection.data.insert({"name": "Banana"}),
@@ -68,12 +69,12 @@ def test_filters_text(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="texts").like("*nana"), [1]),
-        (Filter(path="texts").equal("banana"), [1]),
-        (Filter(path="ints").equal(3), [1]),
-        (Filter(path="ints").greater_or_equal(3), [1, 2]),
-        (Filter(path="floats").equal(3), [1]),
-        (Filter(path="floats").less_or_equal(3), [0, 1]),
+        (Filter.by_property("texts").like("*nana"), [1]),
+        (Filter.by_property("texts").equal("banana"), [1]),
+        (Filter.by_property("ints").equal(3), [1]),
+        (Filter.by_property("ints").greater_or_equal(3), [1, 2]),
+        (Filter.by_property("floats").equal(3), [1]),
+        (Filter.by_property("floats").less_or_equal(3), [0, 1]),
     ],
 )
 def test_array_types(
@@ -109,11 +110,11 @@ def test_array_types(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="int").equal(1), [0]),
-        (Filter(path="int").equal(val=1.0), [0]),
-        (Filter(path="int").equal(val=1.2), None),
-        (Filter(path="float").equal(val=1), [0]),
-        (Filter(path="float").equal(val=1.0), [0]),
+        (Filter.by_property("int").equal(1), [0]),
+        (Filter.by_property("int").equal(val=1.0), [0]),
+        (Filter.by_property("int").equal(val=1.2), None),
+        (Filter.by_property("float").equal(val=1), [0]),
+        (Filter.by_property("float").equal(val=1.0), [0]),
     ],
 )
 def test_filter_with_wrong_types(
@@ -151,19 +152,24 @@ def test_filter_with_wrong_types(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="num").greater_than(1) & Filter(path="num").less_than(3), [1]),
+        (Filter.by_property("num").greater_than(1) & Filter.by_property("num").less_than(3), [1]),
         (
-            (Filter(path="num").less_or_equal(1)) | Filter(path="num").greater_or_equal(3),
+            (Filter.by_property("num").less_or_equal(1))
+            | Filter.by_property("num").greater_or_equal(3),
             [0, 2],
         ),
         (
-            Filter(path="num").less_or_equal(1) | Filter(path="num").greater_or_equal(3),
+            Filter.by_property("num").less_or_equal(1)
+            | Filter.by_property("num").greater_or_equal(3),
             [0, 2],
         ),
         (
-            (Filter(path="num").less_or_equal(1) & Filter(path="num").greater_or_equal(1))
-            | Filter(path="num").greater_or_equal(3)
-            | Filter(path="num").is_none(True),
+            (
+                Filter.by_property("num").less_or_equal(1)
+                & Filter.by_property("num").greater_or_equal(1)
+            )
+            | Filter.by_property("num").greater_or_equal(3)
+            | Filter.by_property("num").is_none(True),
             [0, 2, 3],
         ),
     ],
@@ -206,7 +212,7 @@ def test_length_filter(collection_factory: CollectionFactory) -> None:
         collection.data.insert({"field": "four"}),
     ]
     objects = collection.query.fetch_objects(
-        filters=Filter(path="field", length=True).equal(3)
+        filters=Filter.by_property(prop="field", length=True).equal(3)
     ).objects
 
     results = [0, 1]
@@ -218,8 +224,8 @@ def test_length_filter(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path="number").is_none(True), [3]),
-        (Filter(path="number").is_none(False), [0, 1, 2]),
+        (Filter.by_property("number").is_none(True), [3]),
+        (Filter.by_property("number").is_none(False), [0, 1, 2]),
     ],
 )
 def test_filters_comparison(
@@ -250,40 +256,40 @@ def test_filters_comparison(
 @pytest.mark.parametrize(
     "weaviate_filter,results,skip",
     [
-        (Filter(path="ints").contains_any([1, 4]), [0, 3], False),
-        (Filter(path="ints").contains_any([1.0, 4]), [0, 3], True),
-        (Filter(path="ints").contains_any([10]), [], False),
-        (Filter(path="int").contains_any([1]), [0, 1], False),
-        (Filter(path="text").contains_any(["test"]), [0, 1], False),
-        (Filter(path="text").contains_any(["real", "deal"]), [1, 2, 3], False),
-        (Filter(path="texts").contains_any(["test"]), [0, 1], False),
-        (Filter(path="texts").contains_any(["real", "deal"]), [1, 2, 3], False),
-        (Filter(path="float").contains_any([2.0]), [], False),
-        (Filter(path="float").contains_any([2]), [], False),
-        (Filter(path="float").contains_any([8]), [3], False),
-        (Filter(path="float").contains_any([8.0]), [3], False),
-        (Filter(path="floats").contains_any([2.0]), [0, 1], False),
-        (Filter(path="floats").contains_any([0.4, 0.7]), [0, 1, 3], False),
-        (Filter(path="floats").contains_any([2]), [0, 1], False),
-        (Filter(path="bools").contains_any([True, False]), [0, 1, 3], False),
-        (Filter(path="bools").contains_any([False]), [0, 1], False),
-        (Filter(path="bool").contains_any([True]), [0, 1, 3], False),
-        (Filter(path="ints").contains_all([1, 4]), [0], False),
-        (Filter(path="text").contains_all(["real", "test"]), [1], False),
-        (Filter(path="texts").contains_all(["real", "test"]), [1], False),
-        (Filter(path="floats").contains_all([0.7, 2]), [1], False),
-        (Filter(path="bools").contains_all([True, False]), [0], False),
-        (Filter(path="bool").contains_all([True, False]), [], False),
-        (Filter(path="bool").contains_all([True]), [0, 1, 3], False),
-        (Filter(path="dates").contains_any([NOW, MUCH_LATER]), [0, 1, 3], False),
-        (Filter(path="dates").contains_any([NOW]), [0, 1], False),
-        (Filter(path="date").equal(NOW), [0], False),
-        (Filter(path="date").greater_than(NOW), [1, 3], False),
-        (Filter(path="uuids").contains_all([UUID2, UUID1]), [0, 3], False),
-        (Filter(path="uuids").contains_any([UUID2, UUID1]), [0, 1, 3], False),
-        (Filter(path="uuid").contains_any([UUID3]), [], False),
-        (Filter(path="uuid").contains_any([UUID1]), [0], False),
-        (Filter(path="_id").contains_any([UUID1, UUID3]), [0, 2], True),
+        (Filter.by_property("ints").contains_any([1, 4]), [0, 3], False),
+        (Filter.by_property("ints").contains_any([1.0, 4]), [0, 3], True),
+        (Filter.by_property("ints").contains_any([10]), [], False),
+        (Filter.by_property("int").contains_any([1]), [0, 1], False),
+        (Filter.by_property("text").contains_any(["test"]), [0, 1], False),
+        (Filter.by_property("text").contains_any(["real", "deal"]), [1, 2, 3], False),
+        (Filter.by_property("texts").contains_any(["test"]), [0, 1], False),
+        (Filter.by_property("texts").contains_any(["real", "deal"]), [1, 2, 3], False),
+        (Filter.by_property("float").contains_any([2.0]), [], False),
+        (Filter.by_property("float").contains_any([2]), [], False),
+        (Filter.by_property("float").contains_any([8]), [3], False),
+        (Filter.by_property("float").contains_any([8.0]), [3], False),
+        (Filter.by_property("floats").contains_any([2.0]), [0, 1], False),
+        (Filter.by_property("floats").contains_any([0.4, 0.7]), [0, 1, 3], False),
+        (Filter.by_property("floats").contains_any([2]), [0, 1], False),
+        (Filter.by_property("bools").contains_any([True, False]), [0, 1, 3], False),
+        (Filter.by_property("bools").contains_any([False]), [0, 1], False),
+        (Filter.by_property("bool").contains_any([True]), [0, 1, 3], False),
+        (Filter.by_property("ints").contains_all([1, 4]), [0], False),
+        (Filter.by_property("text").contains_all(["real", "test"]), [1], False),
+        (Filter.by_property("texts").contains_all(["real", "test"]), [1], False),
+        (Filter.by_property("floats").contains_all([0.7, 2]), [1], False),
+        (Filter.by_property("bools").contains_all([True, False]), [0], False),
+        (Filter.by_property("bool").contains_all([True, False]), [], False),
+        (Filter.by_property("bool").contains_all([True]), [0, 1, 3], False),
+        (Filter.by_property("dates").contains_any([NOW, MUCH_LATER]), [0, 1, 3], False),
+        (Filter.by_property("dates").contains_any([NOW]), [0, 1], False),
+        (Filter.by_property("date").equal(NOW), [0], False),
+        (Filter.by_property("date").greater_than(NOW), [1, 3], False),
+        (Filter.by_property("uuids").contains_all([UUID2, UUID1]), [0, 3], False),
+        (Filter.by_property("uuids").contains_any([UUID2, UUID1]), [0, 1, 3], False),
+        (Filter.by_property("uuid").contains_any([UUID3]), [], False),
+        (Filter.by_property("uuid").contains_any([UUID1]), [0], False),
+        (Filter.by_property("_id").contains_any([UUID1, UUID3]), [0, 2], True),
     ],
 )
 def test_filters_contains(
@@ -389,15 +395,22 @@ def test_filters_contains(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter(path=["ref", "target", "int"]).greater_than(3), [1]),
-        (Filter(path=["ref", "target", "text"], length=True).less_than(6), [0]),
-        (Filter(path=["ref", "target", "_id"]).equal(UUID2), [1]),
+        (Filter.by_ref().link_on("ref").by_property("int").greater_than(3), [1]),
+        (Filter.by_ref().link_on("ref").by_property("text", length=True).less_than(6), [0]),
+        (Filter.by_ref().link_on("ref").by_id().equal(UUID2), [1]),
+        (
+            Filter.by_ref()
+            .link_on("ref2")
+            .link_on("ref")
+            .by_property("text", length=True)
+            .less_than(6),
+            [2],
+        ),  # second obj links to first one
     ],
 )
 def test_ref_filters(
-    collection_factory: CollectionFactory, weaviate_filter: _FilterValue, results: List[int]
+    collection_factory: CollectionFactory, weaviate_filter: _Filters, results: List[int]
 ) -> None:
-    assert isinstance(weaviate_filter.path, list)
     to_collection = collection_factory(
         name="Target",
         vectorizer_config=Configure.Vectorizer.none(),
@@ -407,13 +420,10 @@ def test_ref_filters(
         ],
         inverted_index_config=Configure.inverted_index(index_property_length=True),
     )
-    weaviate_filter.path[1] = to_collection.name
 
-    if (
-        not to_collection._connection._weaviate_version.is_at_least(1, 23, 0)
-        and "_id" in weaviate_filter.path
-    ):
-        pytest.skip("filter by id is not supported in this version")
+    # patch=3 in reality, but to be able to test this
+    if to_collection._connection._weaviate_version.is_lower_than(1, 23, 3):
+        pytest.skip("new filters are not supported in this version")
 
     uuids_to = [
         to_collection.data.insert(properties={"int": 0, "text": "first"}, uuid=UUID1),
@@ -426,6 +436,9 @@ def test_ref_filters(
         references=[ReferenceProperty(name="ref", target_collection=to_collection.name)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
+    from_collection.config.add_reference(
+        ReferenceProperty(name="ref2", target_collection=from_collection.name)
+    )
 
     uuids_from = [
         from_collection.data.insert(
@@ -435,6 +448,16 @@ def test_ref_filters(
             properties={"name": "second"}, references={"ref": Reference.to(uuids_to[1])}
         ),
     ]
+    uuids_from.extend(
+        [
+            from_collection.data.insert(
+                properties={"name": "third"}, references={"ref2": Reference.to(uuids_from[0])}
+            ),
+            from_collection.data.insert(
+                properties={"name": "fourth"}, references={"ref2": Reference.to(uuids_from[1])}
+            ),
+        ]
+    )
 
     objects = from_collection.query.fetch_objects(filters=weaviate_filter).objects
     assert len(objects) == len(results)
@@ -449,6 +472,9 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="int", data_type=DataType.INT)],
     )
+    if not to_collection._connection._weaviate_version.is_at_least(1, 23, patch=3):
+        pytest.skip("multi target refs are not supported by this version")
+
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
     from_collection = collection_factory(
@@ -502,458 +528,31 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
     )
 
     objects = from_collection.query.fetch_objects(
-        filters=Filter(path=["ref", to_collection.name, "int"]).greater_than(3)
+        filters=Filter.by_ref()
+        .link_on_multi("ref", to_collection.name)
+        .by_property("int")
+        .greater_than(3)
     ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "second"
 
     objects = from_collection.query.fetch_objects(
-        filters=Filter(path=["ref", from_collection.name, "name"]).equal("first")
+        filters=Filter.by_ref()
+        .link_on_multi("ref", target_collection=from_collection.name)
+        .by_property("name")
+        .equal("first")
     ).objects
     assert len(objects) == 1
     assert objects[0].properties["name"] == "third"
 
 
 @pytest.mark.parametrize(
-    "properties,inserts,where,expected_len",
-    [
-        (
-            [
-                Property(name="text", data_type=DataType.TEXT),
-            ],
-            [
-                DataObject(properties={"text": "text"}, uuid=uuid.uuid4()),
-            ],
-            Filter("text").equal("text"),
-            0,
-        ),
-        (
-            [
-                Property(name="text", data_type=DataType.TEXT),
-            ],
-            [
-                DataObject(properties={"text": "there is some text in here"}, uuid=uuid.uuid4()),
-            ],
-            Filter("text").like("text"),
-            0,
-        ),
-        (
-            [
-                Property(name="text", data_type=DataType.TEXT),
-            ],
-            [
-                DataObject(properties={"text": "banana"}, uuid=uuid.uuid4()),
-            ],
-            Filter("text").like("ba*"),
-            0,
-        ),
-        (
-            [
-                Property(name="texts", data_type=DataType.TEXT_ARRAY),
-            ],
-            [
-                DataObject(properties={"texts": ["text1", "text2"]}, uuid=uuid.uuid4()),
-            ],
-            Filter("texts").contains_all(["text1", "text2"]),
-            0,
-        ),
-        (
-            [
-                Property(name="texts", data_type=DataType.TEXT_ARRAY),
-            ],
-            [
-                DataObject(properties={"texts": ["text1"]}, uuid=uuid.uuid4()),
-                DataObject(properties={"texts": ["text2"]}, uuid=uuid.uuid4()),
-            ],
-            Filter("texts").contains_any(["text1"]),
-            1,
-        ),
-        (
-            [Property(name="int", data_type=DataType.INT)],
-            [
-                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
-            ],
-            Filter("int").equal(10),
-            0,
-        ),
-        (
-            [
-                Property(name="int", data_type=DataType.INT),
-            ],
-            [
-                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
-            ],
-            Filter("int").greater_than(5),
-            0,
-        ),
-        (
-            [
-                Property(name="int", data_type=DataType.INT),
-            ],
-            [
-                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
-            ],
-            Filter("int").less_than(15),
-            0,
-        ),
-        (
-            [
-                Property(name="int", data_type=DataType.INT),
-            ],
-            [
-                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
-                DataObject(properties={"int": 15}, uuid=uuid.uuid4()),
-            ],
-            Filter("int").greater_or_equal(10),
-            0,
-        ),
-        (
-            [
-                Property(name="int", data_type=DataType.INT),
-            ],
-            [
-                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
-                DataObject(properties={"int": 5}, uuid=uuid.uuid4()),
-            ],
-            Filter("int").less_or_equal(10),
-            0,
-        ),
-        (
-            [
-                Property(name="ints", data_type=DataType.INT_ARRAY),
-            ],
-            [
-                DataObject(properties={"ints": [1, 2]}, uuid=uuid.uuid4()),
-            ],
-            Filter("ints").contains_all([1, 2]),
-            0,
-        ),
-        (
-            [
-                Property(name="ints", data_type=DataType.INT_ARRAY),
-            ],
-            [
-                DataObject(properties={"ints": [1]}, uuid=uuid.uuid4()),
-                DataObject(properties={"ints": [2]}, uuid=uuid.uuid4()),
-            ],
-            Filter("ints").contains_any([1]),
-            1,
-        ),
-        (
-            [
-                Property(name="float", data_type=DataType.NUMBER),
-            ],
-            [
-                DataObject(properties={"float": 1.0}, uuid=uuid.uuid4()),
-            ],
-            Filter("float").equal(1.0),
-            0,
-        ),
-        (
-            [
-                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
-            ],
-            [
-                DataObject(properties={"floats": [1.0, 2.0]}, uuid=uuid.uuid4()),
-            ],
-            Filter("floats").contains_all([1.0, 2.0]),
-            0,
-        ),
-        (
-            [
-                Property(name="floats", data_type=DataType.NUMBER_ARRAY),
-            ],
-            [
-                DataObject(properties={"floats": [1.0]}, uuid=uuid.uuid4()),
-                DataObject(properties={"floats": [2.0]}, uuid=uuid.uuid4()),
-            ],
-            Filter("floats").contains_any([1.0]),
-            1,
-        ),
-        (
-            [
-                Property(name="float", data_type=DataType.NUMBER),
-            ],
-            [
-                DataObject(properties={"float": 10.0}, uuid=uuid.uuid4()),
-                DataObject(properties={"float": 5.0}, uuid=uuid.uuid4()),
-            ],
-            Filter("float").greater_than(
-                5.0
-            ),  # issue here, doing .greater_than(5) interprets valueInt instead of valueNumber and fails the request
-            1,
-        ),
-        (
-            [
-                Property(name="bool", data_type=DataType.BOOL),
-            ],
-            [
-                DataObject(properties={"bool": True}, uuid=uuid.uuid4()),
-                DataObject(properties={"bool": False}, uuid=uuid.uuid4()),
-            ],
-            Filter("bool").equal(True),
-            1,
-        ),
-        (
-            [
-                Property(name="bools", data_type=DataType.BOOL_ARRAY),
-            ],
-            [
-                DataObject(properties={"bools": [True, False]}, uuid=uuid.uuid4()),
-            ],
-            Filter("bools").contains_all([True, False]),
-            0,
-        ),
-        (
-            [
-                Property(name="bools", data_type=DataType.BOOL_ARRAY),
-            ],
-            [
-                DataObject(properties={"bools": [True]}, uuid=uuid.uuid4()),
-                DataObject(properties={"bools": [False]}, uuid=uuid.uuid4()),
-            ],
-            Filter("bools").contains_any([True]),
-            1,
-        ),
-        (
-            [
-                Property(name="date", data_type=DataType.DATE),
-            ],
-            [
-                DataObject(properties={"date": NOW}, uuid=uuid.uuid4()),
-            ],
-            Filter("date").equal(NOW),
-            0,
-        ),
-        (
-            [
-                Property(name="dates", data_type=DataType.DATE_ARRAY),
-            ],
-            [
-                DataObject(properties={"dates": [NOW, LATER]}, uuid=uuid.uuid4()),
-            ],
-            Filter("dates").contains_all([NOW, LATER]),
-            0,
-        ),
-        (
-            [
-                Property(name="dates", data_type=DataType.DATE_ARRAY),
-            ],
-            [
-                DataObject(properties={"dates": [NOW]}, uuid=uuid.uuid4()),
-                DataObject(properties={"dates": [LATER]}, uuid=uuid.uuid4()),
-            ],
-            Filter("dates").contains_any([NOW]),
-            1,
-        ),
-        (
-            [
-                Property(name="uuid", data_type=DataType.UUID),
-            ],
-            [
-                DataObject(properties={"uuid": UUID1}, uuid=uuid.uuid4()),
-            ],
-            Filter("uuid").equal(UUID1),
-            0,
-        ),
-        (
-            [
-                Property(name="uuids", data_type=DataType.UUID_ARRAY),
-            ],
-            [
-                DataObject(properties={"uuids": [UUID1, UUID2]}, uuid=uuid.uuid4()),
-            ],
-            Filter("uuids").contains_all([UUID1, UUID2]),
-            0,
-        ),
-        (
-            [
-                Property(name="uuids", data_type=DataType.UUID_ARRAY),
-            ],
-            [
-                DataObject(properties={"uuids": [UUID1]}, uuid=uuid.uuid4()),
-                DataObject(properties={"uuids": [UUID2]}, uuid=uuid.uuid4()),
-            ],
-            Filter("uuids").contains_any([UUID1]),
-            1,
-        ),
-        (
-            [
-                Property(name="text", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
-            ],
-            [
-                DataObject(properties={"text": "some name"}, vector=[1, 2, 3]),
-                DataObject(properties={"text": "some other name"}, uuid=uuid.uuid4()),
-            ],
-            Filter("text").equal("some name"),
-            1,
-        ),
-        (
-            [
-                Property(name="text", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
-            ],
-            [
-                DataObject(properties={"text": "some name"}, vector=[1, 2, 3]),
-                DataObject(properties={"text": "some other name"}, uuid=uuid.uuid4()),
-            ],
-            Filter("text").equal("some other name"),
-            1,
-        ),
-        (
-            [
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="int", data_type=DataType.INT),
-            ],
-            [
-                DataObject(properties={"text": "Loads of money", "int": 60}, uuid=uuid.uuid4()),
-                DataObject(properties={"text": "Lots of money", "int": 40}, uuid=uuid.uuid4()),
-            ],
-            Filter("text").equal("money"),
-            0,
-        ),
-        (
-            [
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="int", data_type=DataType.INT),
-            ],
-            [
-                DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
-                DataObject(properties={"text": "I am ageless"}, uuid=uuid.uuid4()),
-            ],
-            Filter("int").is_none(True),
-            1,
-        ),
-        (
-            [
-                Property(name="text", data_type=DataType.TEXT),
-                Property(name="int", data_type=DataType.INT),
-            ],
-            [
-                DataObject(properties={"int": 10}, uuid=UUID1),
-                DataObject(properties={"text": "I am ageless"}, uuid=UUID2),
-            ],
-            FilterMetadata.ById.equal(UUID1),
-            1,
-        ),
-    ],
-)
-def test_delete_many_simple(
-    collection_factory: CollectionFactory,
-    properties: List[Property],
-    inserts: List[DataObject],
-    where: _FilterValue,
-    expected_len: int,
-) -> None:
-    collection = collection_factory(
-        properties=properties,
-        inverted_index_config=Configure.inverted_index(index_null_state=True),
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-    collection.data.insert_many(inserts)
-    assert len(collection.query.fetch_objects().objects) == len(inserts)
-
-    collection.data.delete_many(where=where)
-    objects = collection.query.fetch_objects().objects
-    assert len(objects) == expected_len
-
-
-def test_delete_by_time_metadata(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        inverted_index_config=Configure.inverted_index(index_timestamps=True),
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-
-    uuid1 = collection.data.insert(properties={})
-    uuid2 = collection.data.insert(properties={})
-
-    obj1 = collection.query.fetch_object_by_id(uuid=uuid1)
-
-    collection.data.delete_many(
-        where=FilterMetadata.ByCreationTime.less_or_equal(obj1.metadata.creation_time)
-    )
-
-    assert len(collection) == 1
-    assert collection.query.fetch_object_by_id(uuid=uuid2) is not None
-
-
-def test_delete_many_and(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            Property(name="Age", data_type=DataType.INT),
-        ],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-    collection.data.insert_many(
-        [
-            DataObject(properties={"age": 10, "name": "Timmy"}, uuid=uuid.uuid4()),
-            DataObject(properties={"age": 10, "name": "Tommy"}, uuid=uuid.uuid4()),
-        ]
-    )
-    objects = collection.query.fetch_objects().objects
-    assert len(objects) == 2
-
-    collection.data.delete_many(
-        where=Filter(path="age").equal(10) & Filter(path="name").equal("Timmy")
-    )
-
-    objects = collection.query.fetch_objects().objects
-    assert len(objects) == 1
-    assert objects[0].properties["age"] == 10
-    assert objects[0].properties["name"] == "Tommy"
-
-
-def test_delete_many_or(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            Property(name="Age", data_type=DataType.INT),
-        ],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-    collection.data.insert_many(
-        [
-            DataObject(properties={"age": 10, "name": "Timmy"}, uuid=uuid.uuid4()),
-            DataObject(properties={"age": 20, "name": "Tim"}, uuid=uuid.uuid4()),
-            DataObject(properties={"age": 30, "name": "Timothy"}, uuid=uuid.uuid4()),
-        ]
-    )
-    objects = collection.query.fetch_objects().objects
-    assert len(objects) == 3
-
-    collection.data.delete_many(where=Filter(path="age").equal(10) | Filter(path="age").equal(30))
-    objects = collection.query.fetch_objects().objects
-    assert len(objects) == 1
-    assert objects[0].properties["age"] == 20
-    assert objects[0].properties["name"] == "Tim"
-
-
-def test_delete_many_return(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-        ],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-    collection.data.insert_many(
-        [
-            DataObject(properties={"name": "delet me"}, uuid=uuid.uuid4()),
-        ]
-    )
-    ret = collection.data.delete_many(where=Filter(path="name").equal("delet me"))
-    assert ret.failed == 0
-    assert ret.matches == 1
-    assert ret.objects is None
-    assert ret.successful == 1
-
-
-@pytest.mark.parametrize(
     "weav_filter",
     [
-        FilterMetadata.ById.equal(UUID1),
-        FilterMetadata.ById.contains_any([UUID1]),
-        FilterMetadata.ById.not_equal(UUID2),
-        Filter(path=["_id"]).equal(UUID1),
+        Filter.by_id().equal(UUID1),
+        Filter.by_id().contains_any([UUID1]),
+        Filter.by_id().not_equal(UUID2),
+        Filter.by_property("_id").equal(UUID1),
     ],
 )
 def test_filter_id(collection_factory: CollectionFactory, weav_filter: _FilterValue) -> None:
@@ -999,7 +598,7 @@ def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, pat
     assert obj2.metadata is not None
     assert obj2.metadata.creation_time is not None
 
-    filters = Filter(path=[path]).less_than(obj2.metadata.creation_time)
+    filters = Filter.by_property(path).less_than(obj2.metadata.creation_time)
     objects = collection.query.fetch_objects(
         filters=filters, return_metadata=MetadataQuery(creation_time=True)
     ).objects
@@ -1008,9 +607,7 @@ def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, pat
     assert objects[0].uuid == obj1_uuid
 
 
-@pytest.mark.parametrize(
-    "filter_type", [FilterMetadata.ByCreationTime, FilterMetadata.ByUpdateTime]
-)
+@pytest.mark.parametrize("filter_type", [Filter.by_creation_time(), Filter.by_update_time()])
 def test_filter_timestamp_class(
     collection_factory: CollectionFactory,
     filter_type: Union[_FilterCreationTime, _FilterUpdateTime],
@@ -1093,8 +690,8 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
     assert obj1.metadata.last_update_time is not None
     assert obj1.metadata.creation_time < obj1.metadata.last_update_time
 
-    filter_creation = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.creation_time)
-    filter_update = FilterMetadata.ByUpdateTime.less_than(obj1.metadata.last_update_time)
+    filter_creation = Filter.by_update_time().less_than(obj1.metadata.creation_time)
+    filter_update = Filter.by_update_time().less_than(obj1.metadata.last_update_time)
 
     objects_creation = collection.query.fetch_objects(
         filters=filter_creation, return_metadata=MetadataQuery(creation_time=True)
@@ -1106,3 +703,19 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
     ).objects
     assert len(objects_update) == 1
     assert objects_update[0].uuid == obj2_uuid
+
+
+def test_warning_old_filter(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    uuids = [
+        collection.data.insert({"name": "Banana"}),
+        collection.data.insert({"name": "Apple"}),
+    ]
+    with pytest.warns(DeprecationWarning):
+        objects = collection.query.fetch_objects(filters=Filter("name").equal("Banana")).objects
+    assert len(objects) == 1
+    assert objects[0].uuid == uuids[0]

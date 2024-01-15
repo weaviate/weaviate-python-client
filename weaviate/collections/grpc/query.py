@@ -464,7 +464,9 @@ class _QueryGRPC(_BaseGRPC):
                     if self._hybrid_query is not None
                     else None,
                     tenant=self._tenant,
-                    filters=_FilterToGRPC.convert(self._filters),
+                    filters=_FilterToGRPC.convert(
+                        self._filters, self._connection._weaviate_version
+                    ),
                     near_text=search_get_pb2.NearTextSearch(
                         query=self._near_text,
                         certainty=self._near_certainty,

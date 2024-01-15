@@ -753,6 +753,9 @@ class _ServerVersion:
     def is_at_least(self, major: int, minor: int, patch: int) -> bool:
         return self >= _ServerVersion(major, minor, patch)
 
+    def is_lower_than(self, major: int, minor: int, patch: int) -> bool:
+        return self < _ServerVersion(major, minor, patch)
+
     @classmethod
     def from_string(cls, version: str) -> "_ServerVersion":
         initial = version

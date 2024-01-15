@@ -1,6 +1,6 @@
 import pytest
 
-from weaviate import AuthBearerToken
+from weaviate.auth import AuthBearerToken
 
 
 @pytest.mark.parametrize("expires_in,warning", [(-1, True), (5, False)])

@@ -12,7 +12,7 @@ from typing import (
 )
 
 from weaviate.collections.classes.filters import (
-    FilterMetadata,
+    Filter,
 )
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import (
@@ -73,7 +73,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
             )
             res = self._query().get(
                 limit=1,
-                filters=FilterMetadata.ById.equal(uuid),
+                filters=Filter.by_id().equal(uuid),
                 return_metadata=self._parse_return_metadata(return_metadata, include_vector),
                 return_properties=self._parse_return_properties(return_properties),
                 return_references=self._parse_return_references(return_references),

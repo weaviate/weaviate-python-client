@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from integration.conftest import CollectionFactoryGet
-from weaviate import Collection
+from weaviate.collections import Collection
 from weaviate.collections.data import _Data
 from weaviate.exceptions import InvalidDataModelException
 

@@ -2,11 +2,53 @@
 Weaviate Python Client Library used to interact with a Weaviate instance.
 """
 
+import sys
+from importlib.metadata import version, PackageNotFoundError
+from typing import Any
+
+try:
+    __version__ = version("weaviate-client")
+except PackageNotFoundError:
+    __version__ = "unknown version"
+
+from .client import Client, WeaviateClient
+from .connect.helpers import (
+    connect_to_custom,
+    connect_to_embedded,
+    connect_to_local,
+    connect_to_wcs,
+)
+
+from . import backup, batch, classes, cluster, collections, connect, data, gql, outputs, schema
+
+import warnings
+
+if not sys.warnoptions:
+    warnings.simplefilter("default")
+
+from .warnings import _Warnings
 
 __all__ = [
     "Client",
-    "Collection",
     "WeaviateClient",
+    "connect_to_custom",
+    "connect_to_embedded",
+    "connect_to_local",
+    "connect_to_wcs",
+    "backup",
+    "batch",
+    "classes",
+    "cluster",
+    "collections",
+    "connect",
+    "data",
+    "gql",
+    "outputs",
+    "schema",
+]
+
+deprs = [
+    "Collection",
     "AuthClientCredentials",
     "AuthClientPassword",
     "AuthBearerToken",
@@ -30,54 +72,38 @@ __all__ = [
     "Shard",
     "Tenant",
     "TenantActivityStatus",
-    "connect_to_custom",
-    "connect_to_embedded",
-    "connect_to_local",
-    "connect_to_wcs",
 ]
 
-import sys
+map_ = {
+    "Collection": "collections",
+    "AuthClientCredentials": "auth",
+    "AuthClientPassword": "auth",
+    "AuthBearerToken": "auth",
+    "AuthApiKey": "auth",
+    "BackupStorage": "backup",
+    "UnexpectedStatusCodeException": "exceptions",
+    "ObjectAlreadyExistsException": "exceptions",
+    "AuthenticationFailedException": "exceptions",
+    "SchemaValidationException": "exceptions",
+    "WeaviateStartUpError": "exceptions",
+    "ConsistencyLevel": "data",
+    "WeaviateErrorRetryConf": "batch",
+    "EmbeddedOptions": "embedded",
+    "AdditionalConfig": "config",
+    "Config": "config",
+    "ConnectionConfig": "config",
+    "ConnectionParams": "connect",
+    "ProtocolParams": "connect",
+    "AdditionalProperties": "gql",
+    "LinkTo": "gql",
+    "Shard": "batch",
+    "Tenant": "schema",
+    "TenantActivityStatus": "schema",
+}
 
-from importlib.metadata import version, PackageNotFoundError
 
-try:
-    __version__ = version("weaviate-client")
-except PackageNotFoundError:
-    __version__ = "unknown version"
-
-from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
-from .client import Client, WeaviateClient
-from .collections.collection import Collection
-from .connect.base import ConnectionParams, ProtocolParams
-from .batch.crud_batch import WeaviateErrorRetryConf, Shard
-from .data.replication import ConsistencyLevel
-from .schema.crud_schema import Tenant, TenantActivityStatus
-from .connect.helpers import (
-    connect_to_custom,
-    connect_to_embedded,
-    connect_to_local,
-    connect_to_wcs,
-)
-from .embedded import EmbeddedOptions
-from .exceptions import (
-    UnexpectedStatusCodeException,
-    ObjectAlreadyExistsException,
-    AuthenticationFailedException,
-    SchemaValidationException,
-    WeaviateStartUpError,
-)
-from .config import AdditionalConfig, Config, ConnectionConfig
-from .gql.get import AdditionalProperties, LinkTo
-from .backup.backup import BackupStorage
-
-import warnings
-
-if not sys.warnoptions:
-    warnings.simplefilter("default")
-warnings.warn(
-    "Most imports from this module will be removed when v4 leaves beta. "
-    "The only imports that will remain are the connect_to_* functions."
-    "All other useful imports can be found in the first-level modules, e.g. weaviate.classes, weaviate.outputs, etc.",
-    DeprecationWarning,
-    stacklevel=2,
-)
+def __getattr__(name: str) -> Any:
+    if name in deprs:
+        _Warnings.root_module_import(name, map_[name])
+        return getattr(sys.modules[f"{__name__}.{map_[name]}"], name)
+    raise AttributeError(f"module {__name__} has no attribute {name}")

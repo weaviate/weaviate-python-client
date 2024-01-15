@@ -3,12 +3,11 @@ from httpx import ConnectError
 
 import pytest
 from _pytest.fixtures import SubRequest
-from weaviate import WeaviateStartUpError
 
 import weaviate
-from weaviate import Collection
+from weaviate.collections import Collection
 from weaviate.collections.classes.config import Configure, _CollectionConfig
-from weaviate.exceptions import WeaviateClosedClientError
+from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
 WCS_URL = f"https://{WCS_HOST}"
@@ -19,7 +18,9 @@ WCS_CREDS = weaviate.AuthApiKey("cy4ua772mBlMdfw3YnclqAWzFhQt0RLIN0sl")
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.WeaviateClient(
-        connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
         skip_init_checks=False,
     )
     client.connect()
@@ -32,7 +33,9 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
 def test_fail_to_connect_to_inactive_grpc_port() -> None:
     with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailableError):
         weaviate.WeaviateClient(
-            connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 12345),
+            connection_params=weaviate.connect.ConnectionParams.from_url(
+                "http://localhost:8080", 12345
+            ),
             skip_init_checks=False,
         ).connect()
 
@@ -40,7 +43,7 @@ def test_fail_to_connect_to_inactive_grpc_port() -> None:
 def test_fail_to_connect_to_unspecified_grpc_port() -> None:
     with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailableError):
         weaviate.WeaviateClient(
-            connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080"),
+            connection_params=weaviate.connect.ConnectionParams.from_url("http://localhost:8080"),
             skip_init_checks=False,
         ).connect()
 
@@ -245,7 +248,9 @@ def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) ->
 
 def test_client_connect_and_close() -> None:
     client = weaviate.WeaviateClient(
-        connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
         skip_init_checks=False,
     )
     client.connect()
@@ -260,7 +265,9 @@ def test_client_connect_and_close() -> None:
 
 def test_client_as_context_manager() -> None:
     with weaviate.WeaviateClient(
-        connection_params=weaviate.ConnectionParams.from_url("http://localhost:8080", 50051),
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
         skip_init_checks=False,
     ) as client:
         assert client.is_connected()
