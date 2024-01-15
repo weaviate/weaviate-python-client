@@ -5,7 +5,7 @@ import time
 from abc import ABC
 from copy import copy
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Optional, Sequence, Set, TypeVar
+from typing import Any, Dict, Generic, List, Optional, Sequence, Set, TypeVar, Union
 
 from pydantic import ValidationError
 from requests import ReadTimeout
@@ -27,7 +27,7 @@ from weaviate.collections.classes.batch import (
     Shard,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.internal import WeaviateReferences
+from weaviate.collections.classes.internal import _Reference, WeaviateReference, WeaviateReferences
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateBatchValidationError
@@ -421,22 +421,29 @@ class _BatchBase:
         from_object_uuid: UUID,
         from_object_collection: str,
         from_property_name: str,
-        to_object_uuid: UUID,
-        to_object_collection: Optional[str] = None,
+        to: Union[WeaviateReference, List[UUID]],
         tenant: Optional[str] = None,
     ) -> None:
-        try:
-            batch_reference = BatchReference(
-                from_object_collection=from_object_collection,
-                from_object_uuid=from_object_uuid,
-                from_property_name=from_property_name,
-                to_object_collection=to_object_collection,
-                to_object_uuid=to_object_uuid,
-                tenant=tenant,
-            )
-        except ValidationError as e:
-            raise WeaviateBatchValidationError(repr(e))
-        self.__batch_references.add(batch_reference._to_internal())
+        if isinstance(to, _Reference):
+            to_strs = to.uuids_str
+        elif isinstance(to, str):
+            to_strs = [to]
+
+        for uid in to_strs:
+            try:
+                batch_reference = BatchReference(
+                    from_object_collection=from_object_collection,
+                    from_object_uuid=from_object_uuid,
+                    from_property_name=from_property_name,
+                    to_object_collection=to.target_collection
+                    if isinstance(to, _Reference) and to.is_multi_target
+                    else None,
+                    to_object_uuid=uid,
+                    tenant=tenant,
+                )
+            except ValidationError as e:
+                raise WeaviateBatchValidationError(repr(e))
+            self.__batch_references.add(batch_reference._to_internal())
 
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:

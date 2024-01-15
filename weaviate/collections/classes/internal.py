@@ -27,7 +27,7 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.types import Properties, M, P, R, TProperties, WeaviateProperties
 from weaviate.exceptions import WeaviateGRPCQueryError, InvalidDataModelException
 from weaviate.util import _to_beacons
-from weaviate.types import UUIDS
+from weaviate.types import UUID, UUIDS
 
 from weaviate.proto.v1 import search_get_pb2
 
@@ -436,7 +436,7 @@ class Reference:
         )
 
 
-WeaviateReference: TypeAlias = _Reference
+WeaviateReference: TypeAlias = Union[_Reference, UUID]
 WeaviateReferences: TypeAlias = Mapping[str, WeaviateReference]
 
 

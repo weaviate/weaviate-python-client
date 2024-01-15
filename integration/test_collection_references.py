@@ -729,9 +729,7 @@ def test_ref_case_sensitivity(collection_factory: CollectionFactory) -> None:
     to.data.insert(uuid=uuid_upper_str, properties={})
 
     # adding a ref as lower-case UUID should work
-    from1 = source.data.insert(
-        properties={}, references={"ref": Reference.to(uuids=uuid_upper_str.lower())}
-    )
+    from1 = source.data.insert(properties={}, references={"ref": uuid_upper_str.lower()})
 
     # try to add as upper-case UUID via different methods
     from2 = source.data.insert(
@@ -767,9 +765,7 @@ def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    if not source._connection._weaviate_version.is_at_least(
-        1, 23, 2
-    ):  # TODO: change this to 1.23.3 when it is released
+    if not source._connection._weaviate_version.is_at_least(1, 23, 3):
         pytest.skip("references return empty object only supported in 1.23.3+")
     uuid_source = source.data.insert(properties={})
     obj = source.query.fetch_object_by_id(
@@ -777,8 +773,6 @@ def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
     )
     assert (
         obj.references == {}
-        if source._connection._weaviate_version.is_at_least(
-            1, 23, 2
-        )  # TODO: change to 1.23.3 when released
+        if source._connection._weaviate_version.is_at_least(1, 23, 3)
         else obj.references is None
     )

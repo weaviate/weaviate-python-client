@@ -156,11 +156,10 @@ def test_add_reference(
             uuid=to_object_uuid,
         )
         batch.add_reference(
-            from_object_uuid=from_object_uuid,
-            from_object_collection=name,
-            from_property_name="test",
-            to_object_uuid=to_object_uuid,
-            to_object_collection=name if to_object_collection else None,
+            from_uuid=from_object_uuid,
+            from_collection=name,
+            from_property="test",
+            to=to_object_uuid,
         )
     objs = (
         client.collections.get(name)
@@ -244,11 +243,10 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory, request: SubRe
 
             # add refs between all tenants
             batch.add_reference(
-                from_property_name="test",
-                from_object_collection=name,
-                from_object_uuid=obj_uuid0,
-                to_object_collection=name,
-                to_object_uuid=obj_uuid0,
+                from_property="test",
+                from_collection=name,
+                from_uuid=obj_uuid0,
+                to=obj_uuid0,
                 tenant=tenant,
             )
 
@@ -356,11 +354,10 @@ def test_add_bad_ref(client_factory: ClientFactory) -> None:
         # client.batch.configure(retry_failed_references=True)
         with client.batch as batch:
             batch.add_reference(
-                from_object_uuid=uuid.uuid4(),
-                from_object_collection=name,
-                from_property_name="bad",
-                to_object_uuid=uuid.uuid4(),
-                to_object_collection=name,
+                from_uuid=uuid.uuid4(),
+                from_collection=name,
+                from_property="bad",
+                to=uuid.uuid4(),
             )
         assert len(client.batch.failed_references()) == 1
     #

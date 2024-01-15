@@ -225,6 +225,9 @@ class _Data:
     ) -> None:
         params: Dict[str, str] = {}
 
+        if isinstance(ref, str) or isinstance(ref, uuid_package.UUID):
+            ref = _Reference(target_collection=None, uuids=ref)
+
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
         for beacon in ref._to_beacons():
             try:
@@ -242,6 +245,8 @@ class _Data:
         self, from_uuid: UUID, from_property: str, ref: WeaviateReference
     ) -> None:
         params: Dict[str, str] = {}
+        if isinstance(ref, str) or isinstance(ref, uuid_package.UUID):
+            ref = _Reference(target_collection=None, uuids=ref)
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
         try:
@@ -275,7 +280,12 @@ class _Data:
         return {key: self.__serialize_primitive(val) for key, val in props.items()}
 
     def _serialize_refs(self, refs: WeaviateReferences) -> Dict[str, Any]:
-        return {key: val._to_beacons() for key, val in refs.items()}
+        return {
+            key: val._to_beacons()
+            if isinstance(val, _Reference)
+            else _Reference(target_collection=None, uuids=val)._to_beacons()
+            for key, val in refs.items()
+        }
 
     def __serialize_primitive(self, value: Any) -> Any:
         if isinstance(value, uuid_package.UUID):
@@ -470,9 +480,7 @@ class _DataCollection(Generic[Properties], _Data):
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def reference_add(
-        self, from_uuid: UUID, from_property: str, to: Union[UUID, WeaviateReference]
-    ) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
         """Create a reference between an object in this collection and any other object in Weaviate.
 
         Arguments:
