@@ -170,6 +170,15 @@ class _Warnings:
         )
 
     @staticmethod
+    def root_module_import(name: str, loc: str) -> None:
+        warnings.warn(
+            f"Dep010: Importing {name} from weaviate is deprecated. "
+            f"Please import it from its specific module: weaviate.{loc}",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
@@ -241,14 +250,5 @@ class _Warnings:
             message="""Grpc001: Reranking is not in the gRPC API for this Weaviate version. You must update to the latest Weaviate server version to use this new functionality.
             This query will execute without reranking.""",
             category=UserWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def root_module_import(name: str, loc: str) -> None:
-        warnings.warn(
-            f"Importing {name} from weaviate is deprecated. "
-            f"Please import it from its specific module: weaviate.{loc}",
-            DeprecationWarning,
             stacklevel=1,
         )
