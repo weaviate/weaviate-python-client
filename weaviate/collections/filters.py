@@ -40,7 +40,7 @@ class _FilterToGRPC:
             return _FilterToGRPC.__value_filter_old(weav_filter)
         elif isinstance(weav_filter, _FilterValue2):
             if weaviate_version.is_lower_than(
-                major=1, minor=23, patch=2
+                major=1, minor=23, patch=3
             ):  # increase after next weaviate release
                 return _FilterToGRPC.__value_filter_bc(weav_filter)
             return _FilterToGRPC.__value_filter(weav_filter)
@@ -228,8 +228,32 @@ class _FilterToREST:
             return None
         if isinstance(weav_filter, _FilterValue):
             return _FilterToREST.__value_filter_old(weav_filter)
+        elif isinstance(weav_filter, _FilterValue2):
+            return _FilterToREST.__value_filter(weav_filter)
         else:
             return _FilterToREST.__and_or_filter(weav_filter)
+
+    @staticmethod
+    def __value_filter(weav_filter: _FilterValue2) -> Dict[str, Any]:
+        return {
+            "operator": weav_filter.operator.value,
+            "path": _FilterToREST.__to_path(weav_filter.target),
+            **_FilterToREST.__parse_filter(weav_filter.value),
+        }
+
+    @staticmethod
+    def __to_path(target: _FilterTargets) -> List[str]:
+        if isinstance(target, str):
+            return [target]
+        elif isinstance(target, _SingleTargetRef):
+            raise WeaviateInvalidInputError(
+                "Single target references are not supported in this version of Weaviate. Please update to >=1.23.3."
+            )
+        else:
+            assert isinstance(target, _MultiTargetRef)
+            raise WeaviateInvalidInputError(
+                "Multi target references are not supported in this version of Weaviate. Please update to >=1.23.3."
+            )
 
     @staticmethod
     def __value_filter_old(weav_filter: _FilterValue) -> Dict[str, Any]:

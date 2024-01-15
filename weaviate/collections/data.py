@@ -45,7 +45,7 @@ from weaviate.collections.classes.types import (
     TProperties,
     _check_properties_generic,
 )
-from weaviate.collections.classes.filters import _FilterValue2, _Filters
+from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.validator import _raise_invalid_input
@@ -53,7 +53,6 @@ from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     ObjectAlreadyExistsError,
-    WeaviateInvalidInputException,
 )
 from weaviate.util import (
     _datetime_to_string,
@@ -158,15 +157,11 @@ class _Data:
         """
         if not isinstance(where, _Filters):
             return _raise_invalid_input("where", where, _Filters)
-        if self._connection._weaviate_version.is_at_least(1, 23, patch=2):  # must be .3 in release
+        if self._connection._weaviate_version.is_at_least(1, 23, patch=3):
             return self._batch_delete_grpc.batch_delete(
                 self.name, where, verbose, dry_run, self._tenant
             )
         else:
-            if isinstance(where, _FilterValue2):
-                raise WeaviateInvalidInputException(
-                    "New filter syntax is not supported in this version. Please upgrade to Weaviate 1.23.3 or higher."
-                )
             return self._batch_rest.delete(self.name, where, verbose, dry_run, self._tenant)
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:

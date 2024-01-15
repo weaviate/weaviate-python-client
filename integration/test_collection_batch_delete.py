@@ -20,7 +20,10 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.internal import Reference
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.exceptions import WeaviateInvalidInputException, WeaviateQueryException
+from weaviate.exceptions import (
+    UnexpectedStatusCodeError,
+    WeaviateQueryException,
+)
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -35,7 +38,7 @@ UUID3 = uuid.uuid4()
 def test_verbosity(collection_factory: CollectionFactory, verbose: bool) -> None:
     collection = collection_factory(vectorizer_config=Configure.Vectorizer.none())
 
-    if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
+    if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=3):
         pytest.skip("This test requires weaviate 1.23.3 or higher")
 
     uuid1 = collection.data.insert(properties={})
@@ -72,8 +75,8 @@ def test_batch_delete_with_tenant(collection_factory: CollectionFactory) -> None
     uuid1 = collection.with_tenant("tenant1").data.insert(properties={})
     uuid2 = collection.with_tenant("tenant2").data.insert(properties={})
 
-    if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
-        with pytest.raises(WeaviateInvalidInputException):
+    if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=3):
+        with pytest.raises(UnexpectedStatusCodeError):
             collection.data.delete_many(where=Filter.by_id().contains_any([uuid1, uuid2]))
         return
 
@@ -97,7 +100,7 @@ def test_dry_run(collection_factory: CollectionFactory, dry_run: bool) -> None:
     uuid1 = collection.data.insert(properties={})
     uuid2 = collection.data.insert(properties={})
 
-    if not collection._connection._weaviate_version.is_at_least(1, minor=23, patch=2):
+    if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=3):
         pytest.skip("This test requires weaviate 1.23.3 or higher")
 
     ret = collection.data.delete_many(where=Filter.by_id().equal(uuid1), dry_run=dry_run)
@@ -134,7 +137,7 @@ def test_delete_by_time_metadata(collection_factory: CollectionFactory, new_filt
             where=Filter.by_creation_time().less_or_equal(obj1.metadata.creation_time)
         )
     else:
-        if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
+        if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=3):
             pytest.skip("This test requires weaviate 1.23.3 or higher")
 
         collection.data.delete_many(
@@ -563,7 +566,7 @@ def test_delete_many_simple(
 
 def test_batch_delete_with_refs(collection_factory: CollectionFactory) -> None:
     to = collection_factory(name="To")
-    if to._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
+    if to._connection._weaviate_version.is_lower_than(1, minor=23, patch=3):
         pytest.skip("This test requires weaviate 1.23.3 or higher")
 
     uuid_to1 = to.data.insert(properties={})
@@ -609,7 +612,7 @@ def test_delete_by_time_metadata_with_ref(
     to = collection_factory(
         name="To", inverted_index_config=Configure.inverted_index(index_timestamps=True)
     )
-    if to._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
+    if to._connection._weaviate_version.is_lower_than(1, minor=23, patch=3):
         pytest.skip("This test requires weaviate 1.23.3 or higher")
 
     uuid_to1 = to.data.insert(properties={})
