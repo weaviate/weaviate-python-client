@@ -17,7 +17,6 @@ from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import (
     Filter,
     _FilterValue,
-    FilterMetadata,
 )
 from weaviate.collections.classes.internal import Reference
 from weaviate.collections.classes.tenants import Tenant
@@ -132,7 +131,7 @@ def test_delete_by_time_metadata(collection_factory: CollectionFactory, new_filt
 
     if not new_filter:
         collection.data.delete_many(
-            where=FilterMetadata.ByCreationTime.less_or_equal(obj1.metadata.creation_time)
+            where=Filter.by_creation_time().less_or_equal(obj1.metadata.creation_time)
         )
     else:
         if collection._connection._weaviate_version.is_lower_than(1, minor=23, patch=2):
@@ -164,7 +163,9 @@ def test_delete_many_or(collection_factory: CollectionFactory) -> None:
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 3
 
-    collection.data.delete_many(where=Filter(path="age").equal(10) | Filter(path="age").equal(30))
+    collection.data.delete_many(
+        where=Filter.by_property("age").equal(10) | Filter.by_property("age").equal(30)
+    )
     objects = collection.query.fetch_objects().objects
     assert len(objects) == 1
     assert objects[0].properties["age"] == 20
@@ -183,7 +184,7 @@ def test_delete_many_return(collection_factory: CollectionFactory) -> None:
             DataObject(properties={"name": "delet me"}, uuid=uuid.uuid4()),
         ]
     )
-    ret = collection.data.delete_many(where=Filter(path="name").equal("delet me"))
+    ret = collection.data.delete_many(where=Filter.by_property("name").equal("delet me"))
     assert ret.failed == 0
     assert ret.matches == 1
     assert ret.objects is None
@@ -208,7 +209,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
     assert len(objects) == 2
 
     collection.data.delete_many(
-        where=Filter(path="age").equal(10) & Filter(path="name").equal("Timmy")
+        where=Filter.by_property("age").equal(10) & Filter.by_property("name").equal("Timmy")
     )
 
     objects = collection.query.fetch_objects().objects
@@ -227,7 +228,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"text": "text"}, uuid=uuid.uuid4()),
             ],
-            Filter("text").equal("text"),
+            Filter.by_property("text").equal("text"),
             0,
         ),
         (
@@ -237,7 +238,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"text": "there is some text in here"}, uuid=uuid.uuid4()),
             ],
-            Filter("text").like("text"),
+            Filter.by_property("text").like("text"),
             0,
         ),
         (
@@ -247,7 +248,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"text": "banana"}, uuid=uuid.uuid4()),
             ],
-            Filter("text").like("ba*"),
+            Filter.by_property("text").like("ba*"),
             0,
         ),
         (
@@ -257,7 +258,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"texts": ["text1", "text2"]}, uuid=uuid.uuid4()),
             ],
-            Filter("texts").contains_all(["text1", "text2"]),
+            Filter.by_property("texts").contains_all(["text1", "text2"]),
             0,
         ),
         (
@@ -268,7 +269,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"texts": ["text1"]}, uuid=uuid.uuid4()),
                 DataObject(properties={"texts": ["text2"]}, uuid=uuid.uuid4()),
             ],
-            Filter("texts").contains_any(["text1"]),
+            Filter.by_property("texts").contains_any(["text1"]),
             1,
         ),
         (
@@ -276,7 +277,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
             ],
-            Filter("int").equal(10),
+            Filter.by_property("int").equal(10),
             0,
         ),
         (
@@ -286,7 +287,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
             ],
-            Filter("int").greater_than(5),
+            Filter.by_property("int").greater_than(5),
             0,
         ),
         (
@@ -296,7 +297,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
             ],
-            Filter("int").less_than(15),
+            Filter.by_property("int").less_than(15),
             0,
         ),
         (
@@ -307,7 +308,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
                 DataObject(properties={"int": 15}, uuid=uuid.uuid4()),
             ],
-            Filter("int").greater_or_equal(10),
+            Filter.by_property("int").greater_or_equal(10),
             0,
         ),
         (
@@ -318,7 +319,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
                 DataObject(properties={"int": 5}, uuid=uuid.uuid4()),
             ],
-            Filter("int").less_or_equal(10),
+            Filter.by_property("int").less_or_equal(10),
             0,
         ),
         (
@@ -328,7 +329,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"ints": [1, 2]}, uuid=uuid.uuid4()),
             ],
-            Filter("ints").contains_all([1, 2]),
+            Filter.by_property("ints").contains_all([1, 2]),
             0,
         ),
         (
@@ -339,7 +340,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"ints": [1]}, uuid=uuid.uuid4()),
                 DataObject(properties={"ints": [2]}, uuid=uuid.uuid4()),
             ],
-            Filter("ints").contains_any([1]),
+            Filter.by_property("ints").contains_any([1]),
             1,
         ),
         (
@@ -349,7 +350,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"float": 1.0}, uuid=uuid.uuid4()),
             ],
-            Filter("float").equal(1.0),
+            Filter.by_property("float").equal(1.0),
             0,
         ),
         (
@@ -359,7 +360,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"floats": [1.0, 2.0]}, uuid=uuid.uuid4()),
             ],
-            Filter("floats").contains_all([1.0, 2.0]),
+            Filter.by_property("floats").contains_all([1.0, 2.0]),
             0,
         ),
         (
@@ -370,7 +371,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"floats": [1.0]}, uuid=uuid.uuid4()),
                 DataObject(properties={"floats": [2.0]}, uuid=uuid.uuid4()),
             ],
-            Filter("floats").contains_any([1.0]),
+            Filter.by_property("floats").contains_any([1.0]),
             1,
         ),
         (
@@ -381,7 +382,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"float": 10.0}, uuid=uuid.uuid4()),
                 DataObject(properties={"float": 5.0}, uuid=uuid.uuid4()),
             ],
-            Filter("float").greater_than(
+            Filter.by_property("float").greater_than(
                 5.0
             ),  # issue here, doing .greater_than(5) interprets valueInt instead of valueNumber and fails the request
             1,
@@ -394,7 +395,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"bool": True}, uuid=uuid.uuid4()),
                 DataObject(properties={"bool": False}, uuid=uuid.uuid4()),
             ],
-            Filter("bool").equal(True),
+            Filter.by_property("bool").equal(True),
             1,
         ),
         (
@@ -404,7 +405,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"bools": [True, False]}, uuid=uuid.uuid4()),
             ],
-            Filter("bools").contains_all([True, False]),
+            Filter.by_property("bools").contains_all([True, False]),
             0,
         ),
         (
@@ -415,7 +416,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"bools": [True]}, uuid=uuid.uuid4()),
                 DataObject(properties={"bools": [False]}, uuid=uuid.uuid4()),
             ],
-            Filter("bools").contains_any([True]),
+            Filter.by_property("bools").contains_any([True]),
             1,
         ),
         (
@@ -425,7 +426,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"date": NOW}, uuid=uuid.uuid4()),
             ],
-            Filter("date").equal(NOW),
+            Filter.by_property("date").equal(NOW),
             0,
         ),
         (
@@ -435,7 +436,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"dates": [NOW, LATER]}, uuid=uuid.uuid4()),
             ],
-            Filter("dates").contains_all([NOW, LATER]),
+            Filter.by_property("dates").contains_all([NOW, LATER]),
             0,
         ),
         (
@@ -446,7 +447,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"dates": [NOW]}, uuid=uuid.uuid4()),
                 DataObject(properties={"dates": [LATER]}, uuid=uuid.uuid4()),
             ],
-            Filter("dates").contains_any([NOW]),
+            Filter.by_property("dates").contains_any([NOW]),
             1,
         ),
         (
@@ -456,7 +457,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"uuid": UUID1}, uuid=uuid.uuid4()),
             ],
-            Filter("uuid").equal(UUID1),
+            Filter.by_property("uuid").equal(UUID1),
             0,
         ),
         (
@@ -466,7 +467,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             [
                 DataObject(properties={"uuids": [UUID1, UUID2]}, uuid=uuid.uuid4()),
             ],
-            Filter("uuids").contains_all([UUID1, UUID2]),
+            Filter.by_property("uuids").contains_all([UUID1, UUID2]),
             0,
         ),
         (
@@ -477,7 +478,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"uuids": [UUID1]}, uuid=uuid.uuid4()),
                 DataObject(properties={"uuids": [UUID2]}, uuid=uuid.uuid4()),
             ],
-            Filter("uuids").contains_any([UUID1]),
+            Filter.by_property("uuids").contains_any([UUID1]),
             1,
         ),
         (
@@ -488,7 +489,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"text": "some name"}, vector=[1, 2, 3]),
                 DataObject(properties={"text": "some other name"}, uuid=uuid.uuid4()),
             ],
-            Filter("text").equal("some name"),
+            Filter.by_property("text").equal("some name"),
             1,
         ),
         (
@@ -499,7 +500,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"text": "some name"}, vector=[1, 2, 3]),
                 DataObject(properties={"text": "some other name"}, uuid=uuid.uuid4()),
             ],
-            Filter("text").equal("some other name"),
+            Filter.by_property("text").equal("some other name"),
             1,
         ),
         (
@@ -511,7 +512,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"text": "Loads of money", "int": 60}, uuid=uuid.uuid4()),
                 DataObject(properties={"text": "Lots of money", "int": 40}, uuid=uuid.uuid4()),
             ],
-            Filter("text").equal("money"),
+            Filter.by_property("text").equal("money"),
             0,
         ),
         (
@@ -523,7 +524,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"int": 10}, uuid=uuid.uuid4()),
                 DataObject(properties={"text": "I am ageless"}, uuid=uuid.uuid4()),
             ],
-            Filter("int").is_none(True),
+            Filter.by_property("int").is_none(True),
             1,
         ),
         (
@@ -535,7 +536,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
                 DataObject(properties={"int": 10}, uuid=UUID1),
                 DataObject(properties={"text": "I am ageless"}, uuid=UUID2),
             ],
-            FilterMetadata.ById.equal(UUID1),
+            Filter.by_id().equal(UUID1),
             1,
         ),
     ],
