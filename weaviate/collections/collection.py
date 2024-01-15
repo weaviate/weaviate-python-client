@@ -249,7 +249,8 @@ class Collection(_CollectionBase, Generic[Properties, References]):
 
         If `return_properties` is not provided, all the properties of each object will be
         requested from Weaviate except for its vector as this is an expensive operation. Specify `include_vector`
-        to request the vector back as well.
+        to request the vector back as well. In addition, if `return_references=None` then none of the references
+        are returned. Use `wvc.QueryReference` to specify which references to return.
 
         Arguments:
             `include_vector`
