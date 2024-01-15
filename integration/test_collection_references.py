@@ -24,6 +24,7 @@ from weaviate.collections.classes.internal import (
     ReferenceAnnotation,
     WeaviateReference,
 )
+from weaviate.types import UUID
 
 TO_UUID = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 TO_UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
@@ -871,6 +872,34 @@ def test_refs_different_reference_add(
     from_uuid = source.data.insert(properties={})
 
     source.data.reference_add(from_property="ref", from_uuid=from_uuid, to=to_uuid)
+
+    obj = source.query.fetch_object_by_id(
+        from_uuid, return_references=[QueryReference(link_on="ref")]
+    )
+    assert obj.references["ref"].objects[0].uuid == TO_UUID
+
+
+@pytest.mark.parametrize("to_uuid", [TO_UUID, str(TO_UUID)])
+def test_refs_different_references_add(
+    collection_factory: CollectionFactory, to_uuid: UUID
+) -> None:
+    to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
+    to.data.insert(properties={}, uuid=TO_UUID)
+    to.data.insert(properties={}, uuid=TO_UUID2)
+
+    source = collection_factory(
+        name="From",
+        references=[
+            ReferenceProperty(name="ref", target_collection=to.name),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    from_uuid = source.data.insert(properties={})
+
+    source.data.reference_add_many(
+        [DataReference(from_property="ref", from_uuid=from_uuid, to_uuid=to_uuid)]
+    )
 
     obj = source.query.fetch_object_by_id(
         from_uuid, return_references=[QueryReference(link_on="ref")]
