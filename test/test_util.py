@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock
 import pytest
 
 from test.util import check_error_message
-from weaviate import SchemaValidationException
+from weaviate.exceptions import SchemaValidationException
 from weaviate.util import (
     generate_uuid5,
     image_decoder_b64,

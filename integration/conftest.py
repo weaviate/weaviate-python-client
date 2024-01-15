@@ -5,7 +5,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
-from weaviate import Collection
+from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
     Property,
     _VectorizerConfigCreate,

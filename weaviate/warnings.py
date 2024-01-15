@@ -170,6 +170,15 @@ class _Warnings:
         )
 
     @staticmethod
+    def root_module_import(name: str, loc: str) -> None:
+        warnings.warn(
+            f"Dep010: Importing {name} from weaviate is deprecated. "
+            f"Please import it from its specific module: weaviate.{loc}",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.

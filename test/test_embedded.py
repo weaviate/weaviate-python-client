@@ -14,8 +14,8 @@ from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
 import weaviate
-from weaviate import embedded, EmbeddedOptions
-from weaviate.embedded import EmbeddedDB
+from weaviate import embedded
+from weaviate.embedded import EmbeddedDB, EmbeddedOptions
 from weaviate.exceptions import WeaviateEmbeddedInvalidVersionError, WeaviateStartUpError
 
 if platform != "linux" and platform != "darwin":
