@@ -879,8 +879,8 @@ def test_refs_different_reference_add(
     assert obj.references["ref"].objects[0].uuid == TO_UUID
 
 
-@pytest.mark.parametrize("to_uuid", [TO_UUID, str(TO_UUID)])
-def test_refs_different_references_add(
+@pytest.mark.parametrize("to_uuid", [TO_UUID, str(TO_UUID), [TO_UUID], [str(TO_UUID)]])
+def test_refs_different_reference_add_many(
     collection_factory: CollectionFactory, to_uuid: UUID
 ) -> None:
     to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
