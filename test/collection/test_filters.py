@@ -1,24 +1,37 @@
+import datetime
+import uuid
 import pytest
 
-from dataclasses import dataclass
-
-from pydantic import ValidationError
-
-from weaviate.collections.classes.filters import Filter, _Operator
+from weaviate.collections.classes.filters import Filter, FilterMetadata
 
 
-@dataclass
-class Bad:
-    thing: str
+NOW = datetime.datetime.now()
 
 
-def test_bad_input() -> None:
-    with pytest.raises(ValidationError):
-        Filter("name").equal(val=Bad("thing"))
+def test_old_filters_warning() -> None:
+    # can't parametrize this, because the warning needs to be raised in the test and not in the parametrize
+    with pytest.warns(DeprecationWarning):
+        Filter("name").equal(val="thing")
 
+    with pytest.warns(DeprecationWarning):
+        FilterMetadata.ById.equal(uuid.uuid4())
+    with pytest.warns(DeprecationWarning):
+        FilterMetadata.ById.contains_any([uuid.uuid4()])
+    with pytest.warns(expected_warning=DeprecationWarning):
+        FilterMetadata.ById.not_equal(uuid.uuid4())
 
-def test_good_input() -> None:
-    filter_ = Filter("name").equal(val="thing")
-    assert filter_.operator == _Operator.EQUAL
-    assert filter_.path == ["name"]
-    assert filter_.value == "thing"
+    # creation and update time use the same underlying functions, so only test one
+    with pytest.warns(expected_warning=DeprecationWarning):
+        FilterMetadata.ByCreationTime.not_equal(NOW)
+    with pytest.warns(expected_warning=DeprecationWarning):
+        FilterMetadata.ByCreationTime.equal(NOW)
+    with pytest.warns(expected_warning=DeprecationWarning):
+        FilterMetadata.ByCreationTime.less_or_equal(NOW)
+    with pytest.warns(expected_warning=DeprecationWarning):
+        FilterMetadata.ByCreationTime.less_than(NOW)
+    with pytest.warns(expected_warning=DeprecationWarning):
+        FilterMetadata.ByCreationTime.greater_or_equal(NOW)
+    with pytest.warns(expected_warning=DeprecationWarning):
+        FilterMetadata.ByCreationTime.greater_than(NOW)
+    with pytest.warns(expected_warning=DeprecationWarning):
+        FilterMetadata.ByCreationTime.contains_any([NOW])

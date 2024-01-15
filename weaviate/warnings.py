@@ -154,6 +154,22 @@ class _Warnings:
         )
 
     @staticmethod
+    def old_filter_by_property() -> None:
+        warnings.warn(
+            message="""Dep008: You are directly initiating the Filter() class, please use Filter.by_property("property") instead.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def old_filter_by_metadata() -> None:
+        warnings.warn(
+            message="""Dep009: You are using the FilterMetada() class, please use Filter.by_id(), Filter.by_update_time() or Filter.by_creation_time() instead.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.

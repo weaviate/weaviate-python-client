@@ -1,5 +1,4 @@
 from weaviate.collections.classes.batch import (
-    BatchDeleteReturn,
     BatchObjectReturn,
     BatchReferenceReturn,
     BatchResult,
@@ -8,7 +7,6 @@ from weaviate.collections.classes.batch import (
 )
 
 __all__ = [
-    "BatchDeleteReturn",
     "BatchObjectReturn",
     "BatchReferenceReturn",
     "BatchResult",
