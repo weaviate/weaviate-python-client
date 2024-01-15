@@ -125,6 +125,7 @@ class _BatchGRPC(_BaseGRPC):
                     consistency_level=self._consistency_level,
                 ),
                 metadata=metadata,
+                timeout=self._connection._connect_timeout,
             )
 
             objects: Dict[int, str] = {}
@@ -220,6 +221,7 @@ class _BatchGRPC(_BaseGRPC):
                     consistency_level=self._consistency_level,
                 ),
                 metadata=metadata,
+                timeout=self._connection._connect_timeout,
             )
 
             objects: Dict[int, str] = {}

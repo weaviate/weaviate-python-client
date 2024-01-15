@@ -556,6 +556,7 @@ class _QueryGRPC(_BaseGRPC):
                     else None,
                 ),
                 metadata=metadata,
+                timeout=self._connection._connect_timeout,
             )
 
             return res

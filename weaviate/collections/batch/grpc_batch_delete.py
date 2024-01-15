@@ -40,6 +40,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     filters=_FilterToGRPC.convert(filters, self._connection._weaviate_version),
                 ),
                 metadata=metadata,
+                timeout=self._connection._connect_timeout,
             )
 
             if verbose:

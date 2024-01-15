@@ -561,6 +561,14 @@ class _Connection(_ConnectionBase):
         assert res is not None
         return res
 
+    @property
+    def _connect_timeout(self) -> float:
+        return self.timeout_config[0]
+
+    @property
+    def _read_timeout(self) -> float:
+        return self.timeout_config[1]
+
 
 class ConnectionV4(_Connection):
     def __init__(
@@ -600,7 +608,9 @@ class ConnectionV4(_Connection):
                         "/grpc.health.v1.Health/Check",
                         request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
                         response_deserializer=health_pb2.HealthCheckResponse.FromString,
-                    )(health_pb2.HealthCheckRequest(), timeout=1)
+                    )(
+                        health_pb2.HealthCheckRequest(), timeout=self._connect_timeout
+                    )  # use http connect timeout
                     if res.status != health_pb2.HealthCheckResponse.SERVING:
                         raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}")
                 except _channel._InactiveRpcError as e:
