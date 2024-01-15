@@ -907,7 +907,9 @@ def test_refs_different_references_add(
     assert obj.references["ref"].objects[0].uuid == TO_UUID
 
 
-@pytest.mark.parametrize("to_uuid", [Reference.to(uuids=TO_UUID2), TO_UUID2, str(TO_UUID2)])
+@pytest.mark.parametrize(
+    "to_uuid", [Reference.to(uuids=TO_UUID2), TO_UUID2, str(TO_UUID2), [TO_UUID2], [str(TO_UUID2)]]
+)
 def test_refs_different_reference_replace(
     collection_factory: CollectionFactory, to_uuid: WeaviateReference
 ) -> None:

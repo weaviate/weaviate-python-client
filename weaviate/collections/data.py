@@ -59,7 +59,7 @@ from weaviate.util import (
     _decode_json_response_dict,
     get_vector,
 )
-from weaviate.types import BEACON, UUID
+from weaviate.types import BEACON, UUID, UUIDS
 
 
 class _Data:
@@ -554,7 +554,7 @@ class _DataCollection(Generic[Properties], _Data):
         )
 
     def reference_replace(
-        self, from_uuid: UUID, from_property: str, to: Union[UUID, WeaviateReference]
+        self, from_uuid: UUID, from_property: str, to: Union[WeaviateReference, UUIDS]
     ) -> None:
         """Replace a reference of an object within the collection.
 
@@ -570,6 +570,7 @@ class _DataCollection(Generic[Properties], _Data):
             not isinstance(to, str)
             and not isinstance(to, uuid_package.UUID)
             and not isinstance(to, _Reference)
+            and not isinstance(to, list)
         ):
             _raise_invalid_input("to", to, Union[UUID, _Reference])
         self._reference_replace(
