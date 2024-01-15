@@ -32,7 +32,9 @@ class BackupStorage(str, Enum):
     AZURE = "azure"
 
 
-class _BackupStatus(str, Enum):
+class BackupStatus(str, Enum):
+    """The status of a backup."""
+
     STARTED = "STARTED"
     TRANSFERRING = "TRANSFERRING"
     TRANSFERRED = "TRANSFERRED"
@@ -40,12 +42,16 @@ class _BackupStatus(str, Enum):
     FAILED = "FAILED"
 
 
-class _BackupStatusReturn(BaseModel):
-    status: _BackupStatus
+class BackupStatusReturn(BaseModel):
+    """Return type of the backup status methods."""
+
+    status: BackupStatus
     path: str
 
 
-class _BackupReturn(_BackupStatusReturn):
+class BackupReturn(BackupStatusReturn):
+    """Return type of the backup creation and restore methods."""
+
     collections: List[str] = Field(default_factory=list, alias="classes")
 
 
@@ -62,7 +68,7 @@ class _Backup:
         include_collections: Optional[Union[List[str], str]] = None,
         exclude_collections: Optional[Union[List[str], str]] = None,
         wait_for_completion: bool = False,
-    ) -> _BackupReturn:
+    ) -> BackupReturn:
         """Create a backup of all/per collection Weaviate objects.
 
         Parameters
@@ -134,14 +140,14 @@ class _Backup:
                     backend=backend,
                 )
                 create_status["status"] = status.status
-                if status.status == _BackupStatus.SUCCESS:
+                if status.status == BackupStatus.SUCCESS:
                     break
-                if status.status == _BackupStatus.FAILED:
+                if status.status == BackupStatus.FAILED:
                     raise BackupFailedException(f"Backup failed: {create_status}")
                 sleep(1)
-        return _BackupReturn(**create_status)
+        return BackupReturn(**create_status)
 
-    def get_create_status(self, backup_id: str, backend: BackupStorage) -> _BackupStatusReturn:
+    def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
         """
         Checks if a started backup job has completed.
 
@@ -155,7 +161,7 @@ class _Backup:
 
         Returns
         -------
-         A `__BackupStatusReturn` object that contains the backup creation status response.
+         A `BackupStatusReturn` object that contains the backup creation status response.
         """
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
@@ -176,7 +182,7 @@ class _Backup:
         typed_response = _decode_json_response_dict(response, "Backup status check")
         if typed_response is None:
             raise EmptyResponseException()
-        return _BackupStatusReturn(**typed_response)
+        return BackupStatusReturn(**typed_response)
 
     def restore(
         self,
@@ -185,7 +191,7 @@ class _Backup:
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
-    ) -> _BackupReturn:
+    ) -> BackupReturn:
         """
         Restore a backup of all/per collection Weaviate objects.
 
@@ -208,7 +214,7 @@ class _Backup:
 
         Returns
         -------
-         A `_BackupReturn` object that contains the backup restore response.
+         A `BackupReturn` object that contains the backup restore response.
 
         Raises
         ------
@@ -255,14 +261,14 @@ class _Backup:
                     backend=backend,
                 )
                 restore_status["status"] = status.status
-                if status.status == _BackupStatus.SUCCESS:
+                if status.status == BackupStatus.SUCCESS:
                     break
-                if status.status == _BackupStatus.FAILED:
+                if status.status == BackupStatus.FAILED:
                     raise BackupFailedException(f"Backup restore failed: {restore_status}")
                 sleep(1)
-        return _BackupReturn(**restore_status)
+        return BackupReturn(**restore_status)
 
-    def get_restore_status(self, backup_id: str, backend: BackupStorage) -> _BackupStatusReturn:
+    def get_restore_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
         """
         Checks if a started classification job has completed.
 
@@ -276,7 +282,7 @@ class _Backup:
 
         Returns
         -------
-         A `__BackupStatusReturn` object that contains the backup restore status response.
+         A `BackupStatusReturn` object that contains the backup restore status response.
         """
 
         backup_id, backend = _get_and_validate_get_status(
@@ -297,7 +303,7 @@ class _Backup:
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
             raise EmptyResponseException()
-        return _BackupStatusReturn(**typed_response)
+        return BackupStatusReturn(**typed_response)
 
 
 class Backup:
