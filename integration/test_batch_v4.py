@@ -16,7 +16,7 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
 )
 from weaviate.collections.classes.grpc import FromReference
-from weaviate.collections.classes.internal import _CrossReference, Reference
+from weaviate.collections.classes.internal import _CrossReference, _Reference, Reference
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID
 
@@ -226,7 +226,66 @@ def test_add_object_batch_with_tenant(client_factory: ClientFactory, request: Su
         assert retObj.properties["name"] == obj[2]
 
 
-def test_add_ref_batch_with_tenant(client_factory: ClientFactory, request: SubRequest) -> None:
+def _from_uuid_to_uuid(uuid: uuid.UUID) -> uuid.UUID:
+    return uuid
+
+
+def _from_uuid_to_str(uuid: uuid.UUID) -> str:
+    return str(uuid)
+
+
+def _from_uuid_to_ref(uuid: uuid.UUID) -> _Reference:
+    return Reference.to(uuid)
+
+
+def _from_uuid_to_uuid_list(uuid: uuid.UUID) -> List[uuid.UUID]:
+    return [uuid]
+
+
+def _from_uuid_to_str_list(uuid: uuid.UUID) -> List[str]:
+    return [str(uuid)]
+
+
+@pytest.mark.parametrize(
+    "to_ref",
+    [
+        _from_uuid_to_uuid,
+        _from_uuid_to_str,
+        _from_uuid_to_ref,
+        _from_uuid_to_uuid_list,
+        _from_uuid_to_str_list,
+    ],
+)
+def test_add_ref_batch(client_factory: ClientFactory, to_ref: Callable) -> None:
+    client, name = client_factory()
+
+    nr_objects = 100
+    objects_class0 = []
+    with client.batch as batch:
+        for _ in range(nr_objects):
+            obj_uuid0 = uuid.uuid4()
+            objects_class0.append(obj_uuid0)
+            batch.add_object(collection=name, uuid=obj_uuid0)
+
+            # add refs between all tenants
+            batch.add_reference(
+                from_property="test",
+                from_collection=name,
+                from_uuid=obj_uuid0,
+                to=to_ref(obj_uuid0),
+            )
+
+    collection = client.collections.get(name)
+    for obj in objects_class0:
+        ret_obj = collection.query.fetch_object_by_id(
+            obj,
+            return_references=FromReference(link_on="test"),
+        )
+        assert ret_obj is not None
+        assert ret_obj.references["test"].objects[0].uuid == obj
+
+
+def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
     client, name = client_factory(multi_tenant=True)
     client.collections.get(name).tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 

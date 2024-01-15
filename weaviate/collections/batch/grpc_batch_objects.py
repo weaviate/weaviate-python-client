@@ -328,7 +328,7 @@ class _BatchGRPC(_BaseGRPC):
                             for v in val
                             if (
                                 parsed := self.__translate_properties_from_python_to_grpc(
-                                    v, clean_props
+                                    v, {}, clean_props
                                 )
                             )
                         ],
