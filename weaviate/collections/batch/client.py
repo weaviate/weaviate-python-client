@@ -67,14 +67,13 @@ class _BatchClient(_BatchBase):
         Arguments:
             `from_uuid`
                 The UUID of the object, as an uuid.UUID object or str, that should reference another object.
-                It can be a Weaviate beacon or Weaviate href.
-            `from_object_collection`
+            `from_collection`
                 The name of the collection that should reference another object.
-            `from_property_name`
+            `from_property`
                 The name of the property that contains the reference.
             `to`
-                The UUID of the object, as an uuid.UUID object or str, that is actually referenced.
-                It can be a Weaviate beacon or Weaviate href.
+                The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
+                For multi-target references use wvc.Reference.to_multi_targer().
             `tenant`
                 Name of the tenant.
 

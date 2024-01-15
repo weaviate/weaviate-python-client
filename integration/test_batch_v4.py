@@ -267,7 +267,6 @@ def test_add_ref_batch(client_factory: ClientFactory, to_ref: Callable) -> None:
             objects_class0.append(obj_uuid0)
             batch.add_object(collection=name, uuid=obj_uuid0)
 
-            # add refs between all tenants
             batch.add_reference(
                 from_property="test",
                 from_collection=name,
