@@ -106,59 +106,6 @@ class _ClientBase:
             return None
         raise UnexpectedStatusCodeError("Meta endpoint", response)
 
-    @staticmethod
-    def _parse_connection_params_and_embedded_db(
-        connection_params: Optional[ConnectionParams], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
-        if connection_params is None and embedded_options is None:
-            raise TypeError("Either connection_params or embedded_options must be present.")
-        elif connection_params is not None and embedded_options is not None:
-            raise TypeError(
-                f"connection_params is not expected to be set when using embedded_options but connection_params was {connection_params}"
-            )
-
-        if embedded_options is not None:
-            embedded_db = EmbeddedDB(options=embedded_options)
-            embedded_db.start()
-            return (
-                ConnectionParams(
-                    http=ProtocolParams(
-                        host="localhost", port=embedded_db.options.port, secure=False
-                    ),
-                    grpc=ProtocolParams(
-                        host="localhost", port=embedded_options.grpc_port, secure=False
-                    ),
-                ),
-                embedded_db,
-            )
-
-        if not isinstance(connection_params, ConnectionParams):
-            raise TypeError(
-                f"connection_params is expected to be a ConnectionParams object but is {type(connection_params)}"
-            )
-
-        return connection_params, None
-
-    @staticmethod
-    def _parse_url_and_embedded_db(
-        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[str, Optional[EmbeddedDB]]:
-        if embedded_options is None and url is None:
-            raise TypeError("Either url or embedded options must be present.")
-        elif embedded_options is not None and url is not None:
-            raise TypeError(
-                f"URL is not expected to be set when using embedded_options but URL was {url}"
-            )
-
-        if embedded_options is not None:
-            embedded_db = EmbeddedDB(options=embedded_options)
-            embedded_db.start()
-            return f"http://localhost:{embedded_db.options.port}", embedded_db
-
-        if not isinstance(url, str):
-            raise TypeError(f"URL is expected to be string but is {type(url)}")
-        return url.strip("/"), None
-
 
 class WeaviateClient(_ClientBase):
     """
@@ -221,7 +168,7 @@ class WeaviateClient(_ClientBase):
             - `skip_init_checks`: `bool`, optional
                 - If set to `True` then the client will not perform any checks including ensuring that weaviate has started. This is useful for air-gapped environments and high-performance setups.
         """
-        connection_params, embedded_db = self._parse_connection_params_and_embedded_db(
+        connection_params, embedded_db = self.__parse_connection_params_and_embedded_db(
             connection_params, embedded_options
         )
         config = additional_config or AdditionalConfig()
@@ -251,6 +198,39 @@ class WeaviateClient(_ClientBase):
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
 
+    def __parse_connection_params_and_embedded_db(
+        self,
+        connection_params: Optional[ConnectionParams],
+        embedded_options: Optional[EmbeddedOptions],
+    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
+        if connection_params is None and embedded_options is None:
+            raise TypeError("Either connection_params or embedded_options must be present.")
+        elif connection_params is not None and embedded_options is not None:
+            raise TypeError(
+                f"connection_params is not expected to be set when using embedded_options but connection_params was {connection_params}"
+            )
+
+        if embedded_options is not None:
+            embedded_db = EmbeddedDB(options=embedded_options)
+            return (
+                ConnectionParams(
+                    http=ProtocolParams(
+                        host="localhost", port=embedded_db.options.port, secure=False
+                    ),
+                    grpc=ProtocolParams(
+                        host="localhost", port=embedded_options.grpc_port, secure=False
+                    ),
+                ),
+                embedded_db,
+            )
+
+        if not isinstance(connection_params, ConnectionParams):
+            raise TypeError(
+                f"connection_params is expected to be a ConnectionParams object but is {type(connection_params)}"
+            )
+
+        return connection_params, None
+
     def __enter__(self) -> "WeaviateClient":
         self.connect()
         return self
@@ -261,7 +241,8 @@ class WeaviateClient(_ClientBase):
     def close(self) -> None:
         """In order to clean up any resources used by the client, call this method when you are done with it.
 
-        If you do not do this, memory leaks may occur due to stale connections."""
+        If you do not do this, memory leaks may occur due to stale connections.
+        This method also closes the embedded database if one was started."""
         self._connection.close()
         self.__connected = False
 
@@ -433,7 +414,7 @@ class Client(_ClientBase):
                 If arguments are of a wrong data type.
         """
         config = Config() if additional_config is None else additional_config
-        url, embedded_db = self._parse_url_and_embedded_db(url, embedded_options)
+        url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
 
         self._connection = Connection(
             url=url,
@@ -455,6 +436,25 @@ class Client(_ClientBase):
         self.query = Query(self._connection)
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
+
+    def __parse_url_and_embedded_db(
+        self, url: Optional[str], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[str, Optional[EmbeddedDB]]:
+        if embedded_options is None and url is None:
+            raise TypeError("Either url or embedded options must be present.")
+        elif embedded_options is not None and url is not None:
+            raise TypeError(
+                f"URL is not expected to be set when using embedded_options but URL was {url}"
+            )
+
+        if embedded_options is not None:
+            embedded_db = EmbeddedDB(options=embedded_options)
+            embedded_db.start()
+            return f"http://localhost:{embedded_db.options.port}", embedded_db
+
+        if not isinstance(url, str):
+            raise TypeError(f"URL is expected to be string but is {type(url)}")
+        return url.strip("/"), None
 
     @property
     def timeout_config(self) -> TIMEOUT_TYPE_RETURN:

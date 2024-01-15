@@ -119,6 +119,8 @@ class _Connection(_ConnectionBase):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
     def connect(self, skip_init_checks: bool) -> None:
+        if self.embedded_db is not None:
+            self.embedded_db.start()
         self._create_clients(self.__auth, skip_init_checks)
         if not skip_init_checks:
             # first connection attempt
@@ -366,6 +368,8 @@ class _Connection(_ConnectionBase):
             self._shutdown_background_event.set()
         if hasattr(self, "_client"):
             self._client.close()
+        if self.embedded_db is not None:
+            self.embedded_db.stop()
 
     def __get_headers_for_async(self) -> Dict[str, str]:
         if "authorization" in self._headers:
