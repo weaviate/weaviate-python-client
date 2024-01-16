@@ -38,7 +38,7 @@ New functionality includes:
 Bugfixes include:
 - object.reference is empty instead of None, if an object does not have a reference.
 - Fixes creating backups on weaviate master.
-- Add missing classes to ``wvc`.
+- Add missing classes to ``wvc``.
 
 New client usage:
 - Client as a context manager:
