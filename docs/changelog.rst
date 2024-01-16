@@ -1,6 +1,42 @@
 Changelog
 =========
 
+Version 4.4.b7
+--------------
+
+This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
+
+- For ``client.batch`` the ``add_reference`` method was revised. The ``to_object_collection`` parameter was removed and the other parameters were harmonised with ``collection.batch``. Available parameters are now: ``from_uuid``, ``from_collection``, ``from_property``, ``to`` and ``tenant``.
+- It is not possible to use possible to use ``client.batch`` directly, you need to use a context manager (``with client.batch as batch``)
+- Manual batch mode has been removed.
+- Dynamic batching (for batch_size and number of concurrent requests) is now default. Fixed-size batching can be configured with ``batch.configure_fixed_size(..)``.
+- Filters have been reworked and have a new syntax. You can replace:
+    - ``Filter(path=property)`` with ``Filter.by_property(property)``
+    - ``Filter(path=["ref","target_class", "target_property"])`` with ``Filter.by_ref().link_on("ref").by_property("target_property")``
+    - ``FilterMetadata.ByXX``with ``Filter.by_id/creation_time/update_time()``
+- Importing directly from ``weaviate`` has been deprecated. Use ``import weaviate.classes as wvc`` instead and import from there.
+- Multi-target references functions have been unified
+- Exception names are now compatible with PEP8, old names are still available but deprecated.
+
+New functionality includes:
+- New batching algorithm that supports dynamic scaling of batch-size and number of concurrent requests.
+- New filter syntax that also supports structured filtering on references for normal properties and metadata.
+- All reference functions have unified input formats and now accept ``UUIDs``, ``str`` and ``Reference.to/to_multi_target()``.
+- Returned types are now available in ``weaviate.output``.
+- Add missing classes to ``weaviate.classes``.
+- Add missing parameters to ``connect_to_XXX``, all functions should support skipping of init checks and auth.
+- The client can now be used in a context manager ``with connect_to_XX(..) as client`` and all connections will be closed when exiting the manager.
+- New close function ``client.close()`` that needs to be called when not using a context manager to avoid stale connections and potential memory leaks.
+- Support for ``Phonenumber`` datatype.
+- Referenced objects now contain the name of their collection.
+- Adds ``collection.config.update_shards()``.
+
+
+Bugfixes include:
+- object.reference is empty instead of None, if an object does not have a reference.
+- Fixes creating backups on weaviate master.
+- Add missing classes to ``wvc`.
+
 Version 4.4.b6
 --------------
 
