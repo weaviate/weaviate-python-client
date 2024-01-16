@@ -97,8 +97,37 @@ def test_insert_with_no_generic(collection_factory: CollectionFactory) -> None:
     assert prop == "some name"
 
 
-def test_insert_with_refs(collection_factory: CollectionFactory) -> None:
-    pass
+@pytest.mark.parametrize("to", [UUID3, [UUID3], Reference.to(uuids=UUID3)])
+def test_insert_with_refs(collection_factory: CollectionFactory, to: UUIDS) -> None:
+    ref_collection = collection_factory(
+        name="target", vectorizer_config=Configure.Vectorizer.none()
+    )
+    ref_collection.data.insert(properties={}, uuid=UUID1)
+    ref_collection.data.insert(properties={}, uuid=UUID2)
+    ref_collection.data.insert(properties={}, uuid=UUID3)
+
+    collection = collection_factory(
+        name="source",
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    uuid = collection.data.insert(
+        properties={"name": "some name"},
+        references={
+            "ref": to,
+        },
+    )
+    obj = collection.query.fetch_object_by_id(
+        uuid,
+        return_properties=[
+            "name",
+        ],
+        return_references=[
+            FromReference(link_on="ref"),
+        ],
+    )
+    assert len(obj.references["ref"].objects) == 1
 
 
 def test_delete_by_id(collection_factory: CollectionFactory) -> None:
