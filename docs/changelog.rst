@@ -15,13 +15,17 @@ This beta version has breaking changes, a migration guide is available at https:
     - ``Filter(path=["ref","target_class", "target_property"])`` with ``Filter.by_ref().link_on("ref").by_property("target_property")``
     - ``FilterMetadata.ByXX``with ``Filter.by_id/creation_time/update_time()``
 - Importing directly from ``weaviate`` has been deprecated. Use ``import weaviate.classes as wvc`` instead and import from there.
-- Multi-target references functions have been unified
+- Multi-target references functions have been moved to:
+    - ``ReferenceProperty.MultiTarget``
+    - ``DataReference.MultiTarget``
+    - ``QueryReference.MultiTarget``
 - Exception names are now compatible with PEP8, old names are still available but deprecated.
+- References can now be provided directly as ``UUIDs``, ``str`` and ``Reference.XXX()`` has been deprecated. For multi-target references use ``ReferenceToMulti``.
 
 New functionality includes:
 - New batching algorithm that supports dynamic scaling of batch-size and number of concurrent requests.
 - New filter syntax that also supports structured filtering on references for normal properties and metadata.
-- All reference functions have unified input formats and now accept ``UUIDs``, ``str`` and ``Reference.to/to_multi_target()``.
+- All reference functions have unified input formats and now accept ``UUID``, ``str`` and (where applicable) ``List[str]``, ``List[UUID]``.
 - Returned types are now available in ``weaviate.output``.
 - Add missing classes to ``weaviate.classes``.
 - Add missing parameters to ``connect_to_XXX``, all functions should support skipping of init checks and auth.
