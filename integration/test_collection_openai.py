@@ -13,7 +13,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import GroupBy, Rerank
-from weaviate.exceptions import WeaviateGRPCQueryError
+from weaviate.exceptions import WeaviateQueryError
 from weaviate.util import _ServerVersion
 
 
@@ -439,7 +439,7 @@ def test_openapi_invalid_key(request: SubRequest) -> None:
         generative_config=Configure.Generative.openai(),
     )
     collection.data.insert(properties={"text": "test"})
-    with pytest.raises(WeaviateGRPCQueryError):
+    with pytest.raises(WeaviateQueryError):
         collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 
@@ -455,7 +455,7 @@ def test_openapi_no_module(request: SubRequest) -> None:
         generative_config=Configure.Generative.openai(),
     )
     collection.data.insert(properties={"text": "test"})
-    with pytest.raises(WeaviateGRPCQueryError):
+    with pytest.raises(WeaviateQueryError):
         collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 

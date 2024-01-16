@@ -33,7 +33,7 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
 from weaviate.connect import ConnectionV4
 from weaviate.collections.filters import _FilterToREST
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateGQLQueryError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.util import file_encoder_b64
 from weaviate.types import UUID
@@ -211,11 +211,13 @@ class _Aggregate:
         res = query.do()
         if (errs := res.get("errors")) is not None:
             if "Unexpected empty IN" in errs[0]["message"]:
-                raise WeaviateGQLQueryError(
-                    "The query that you sent had no body so GraphQL was unable to parse it. You must provide at least one option to the aggregation method in order to build a valid query."
+                raise WeaviateQueryError(
+                    "The query that you sent had no body so GraphQL was unable to parse it. You must provide at least one option to the aggregation method in order to build a valid query.",
+                    "GQL Aggregate",
                 )
-            raise WeaviateGQLQueryError(
-                f"Error in GraphQL response: {json.dumps(errs, indent=2)}, for the following query: {query.build()}"
+            raise WeaviateQueryError(
+                f"Error in GraphQL response: {json.dumps(errs, indent=2)}, for the following query: {query.build()}",
+                "GQL Aggregate",
             )
         return res
 
