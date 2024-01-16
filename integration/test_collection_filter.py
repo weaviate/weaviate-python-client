@@ -20,7 +20,7 @@ from weaviate.collections.classes.filters import (
     _Filters,
     _FilterValue,
 )
-from weaviate.collections.classes.grpc import MetadataQuery
+from weaviate.collections.classes.grpc import MetadataQuery, QueryReference
 from weaviate.collections.classes.internal import Reference
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
@@ -719,3 +719,79 @@ def test_warning_old_filter(collection_factory: CollectionFactory) -> None:
         objects = collection.query.fetch_objects(filters=Filter("name").equal("Banana")).objects
     assert len(objects) == 1
     assert objects[0].uuid == uuids[0]
+
+
+def test_ref_count_filter_old(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="ref", target_collection=collection.name)
+    )
+
+    uuid1 = collection.data.insert({})
+    uuid2 = collection.data.insert({})
+
+    uuid3 = collection.data.insert({}, references={"ref": [uuid1, uuid2]})
+
+    objects = collection.query.fetch_objects(
+        filters=Filter(["ref"]).greater_than(0),
+        return_references=QueryReference(link_on="ref"),
+    ).objects
+    assert len(objects) == 1
+    assert objects[0].uuid == uuid3
+
+
+def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="ref", target_collection=collection.name)
+    )
+
+    if not collection._connection._weaviate_version.is_at_least(
+        1, 23, patch=3
+    ):  # todo change to patch=4 when it lands
+        pytest.skip("single target ref counting is not supported by this version")
+
+    uuid1 = collection.data.insert({})
+    uuid2 = collection.data.insert({})
+
+    uuid3 = collection.data.insert({}, references={"ref": [uuid1, uuid2]})
+
+    objects = collection.query.fetch_objects(
+        filters=Filter.by_ref().link_on("ref").by_count().greater_than(0),
+        return_references=QueryReference(link_on="ref"),
+    ).objects
+    assert len(objects) == 1
+    assert objects[0].uuid == uuid3
+
+
+def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="ref", target_collection=collection.name)
+    )
+
+    if not collection._connection._weaviate_version.is_at_least(
+        1, 23, patch=3
+    ):  # todo change to patch=4 when it lands
+        pytest.skip("multi target ref counting is not supported by this version")
+
+    uuid1 = collection.data.insert({})
+    uuid2 = collection.data.insert({})
+
+    uuid3 = collection.data.insert({}, references={"ref": [uuid1, uuid2]})
+
+    objects = collection.query.fetch_objects(
+        filters=Filter.by_ref().link_on_multi("ref", collection.name).by_count().greater_than(0),
+        return_references=QueryReference(link_on="ref"),
+    ).objects
+    assert len(objects) == 1
+    assert objects[0].uuid == uuid3

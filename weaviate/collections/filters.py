@@ -80,11 +80,12 @@ class _FilterToGRPC:
         )
 
     @staticmethod
-    def __to_target(target: _FilterTargets) -> base_pb2.FilterTarget:
+    def __to_target(target: Optional[_FilterTargets]) -> Optional[base_pb2.FilterTarget]:
+        if target is None:
+            return None
         if isinstance(target, str):
             return base_pb2.FilterTarget(property=target)
         elif isinstance(target, _SingleTargetRef):
-            assert target.target is not None
             return base_pb2.FilterTarget(
                 single_target=base_pb2.FilterReferenceSingleTarget(
                     on=target.link_on, target=_FilterToGRPC.__to_target(target.target)
@@ -92,8 +93,6 @@ class _FilterToGRPC:
             )
         else:
             assert isinstance(target, _MultiTargetRef)
-            assert target.target is not None
-
             return base_pb2.FilterTarget(
                 multi_target=base_pb2.FilterReferenceMultiTarget(
                     on=target.link_on,
