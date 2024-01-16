@@ -57,7 +57,7 @@ from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     WeaviateGRPCUnavailableError,
-    WeaviateGRPCQueryError,
+    WeaviateQueryError,
 )
 from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
 from weaviate.types import UUID
@@ -145,7 +145,9 @@ class _BaseQuery(Generic[Properties, References]):
             return _WeaviateUUIDInt(int.from_bytes(add_props.id_as_bytes, byteorder="big"))
 
         if len(add_props.id) == 0:
-            raise WeaviateGRPCQueryError("The query returned an object with an empty ID string")
+            raise WeaviateQueryError(
+                "The query returned an object with an empty ID string", "GRPC search"
+            )
         return uuid_lib.UUID(add_props.id)
 
     def __extract_vector_for_object(
