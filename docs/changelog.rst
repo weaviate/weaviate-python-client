@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 3.26.1
+--------------
+This patch version includes
+
+- Fix backup creation with current weaviate master
+
+
 Version 3.26.0
 --------------
 This minor version includes:
