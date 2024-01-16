@@ -721,28 +721,6 @@ def test_warning_old_filter(collection_factory: CollectionFactory) -> None:
     assert objects[0].uuid == uuids[0]
 
 
-def test_ref_count_filter_old(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-    collection.config.add_reference(
-        ReferenceProperty(name="ref", target_collection=collection.name)
-    )
-
-    uuid1 = collection.data.insert({})
-    uuid2 = collection.data.insert({})
-
-    uuid3 = collection.data.insert({}, references={"ref": [uuid1, uuid2]})
-
-    objects = collection.query.fetch_objects(
-        filters=Filter(["ref"]).greater_than(0),
-        return_references=QueryReference(link_on="ref"),
-    ).objects
-    assert len(objects) == 1
-    assert objects[0].uuid == uuid3
-
-
 def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
