@@ -3,7 +3,7 @@ from typing import Generic, List, Optional, Sequence, Union
 from weaviate.collections.batch.base import _BatchBase, _BatchDataWrapper
 from weaviate.collections.batch.batch_wrapper import _BatchWrapper
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.internal import WeaviateReferences, WeaviateReference
+from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
 from weaviate.connect import ConnectionV4
 from weaviate.types import UUID
@@ -29,7 +29,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
     def add_object(
         self,
         properties: Optional[Properties] = None,
-        references: Optional[WeaviateReferences] = None,
+        references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
     ) -> UUID:
@@ -66,7 +66,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         )
 
     def add_reference(
-        self, from_uuid: UUID, from_property: str, to: Union[WeaviateReference, List[UUID]]
+        self, from_uuid: UUID, from_property: str, to: Union[ReferenceInput, List[UUID]]
     ) -> None:
         """Add a reference to this batch.
 

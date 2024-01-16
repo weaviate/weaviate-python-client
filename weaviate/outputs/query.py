@@ -13,8 +13,8 @@ from weaviate.collections.classes.internal import (
     QueryNearMediaReturnType,
     QueryReturnType,
     QuerySingleReturn,
-    WeaviateReference,
-    WeaviateReferences,
+    ReferenceInput,
+    ReferenceInputs,
 )
 from weaviate.collections.classes.types import (
     GeoCoordinate,
@@ -40,6 +40,6 @@ __all__ = [
     "QuerySingleReturn",
     "WeaviateField",
     "WeaviateProperties",
-    "WeaviateReference",
-    "WeaviateReferences",
+    "ReferenceInput",
+    "ReferenceInputs",
 ]

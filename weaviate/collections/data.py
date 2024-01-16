@@ -32,8 +32,10 @@ from weaviate.collections.classes.internal import (
     Object,
     _metadata_from_dict,
     _Reference,
-    WeaviateReference,
-    WeaviateReferences,
+    ReferenceToMulti,
+    SingleReferenceInput,
+    ReferenceInput,
+    ReferenceInputs,
 )
 from weaviate.collections.classes.orm import (
     Model,
@@ -53,13 +55,14 @@ from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     ObjectAlreadyExistsError,
+    WeaviateInvalidInputError,
 )
 from weaviate.util import (
     _datetime_to_string,
     _decode_json_response_dict,
     get_vector,
 )
-from weaviate.types import BEACON, UUID, UUIDS
+from weaviate.types import BEACON, UUID
 
 
 class _Data:
@@ -196,6 +199,11 @@ class _Data:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
+
+        if ref.is_one_to_many:
+            raise WeaviateInvalidInputError(
+                "reference_add does not support adding multiple objects to a reference at once. Use reference_add_many or reference_replace instead."
+            )
         for beacon in ref._to_beacons():
             try:
                 response = self._connection.post(
@@ -220,15 +228,15 @@ class _Data:
         ]
         return self._batch_rest.references(list(batch))
 
-    def _reference_delete(
-        self, from_uuid: UUID, from_property: str, ref: WeaviateReference
-    ) -> None:
+    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
 
-        if isinstance(ref, str) or isinstance(ref, uuid_package.UUID):
-            ref = _Reference(target_collection=None, uuids=ref)
-
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
+
+        if ref.is_one_to_many:
+            raise WeaviateInvalidInputError(
+                "reference_delete does not support deleting multiple objects from a reference at once. Use reference_replace instead."
+            )
         for beacon in ref._to_beacons():
             try:
                 response = self._connection.delete(
@@ -241,12 +249,8 @@ class _Data:
             if response.status_code != 204:
                 raise UnexpectedStatusCodeError("Add property reference to object", response)
 
-    def _reference_replace(
-        self, from_uuid: UUID, from_property: str, ref: WeaviateReference
-    ) -> None:
+    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
-        if isinstance(ref, str) or isinstance(ref, uuid_package.UUID):
-            ref = _Reference(target_collection=None, uuids=ref)
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
         try:
@@ -279,10 +283,10 @@ class _Data:
     def _serialize_props(self, props: Properties) -> Dict[str, Any]:
         return {key: self.__serialize_primitive(val) for key, val in props.items()}
 
-    def _serialize_refs(self, refs: WeaviateReferences) -> Dict[str, Any]:
+    def _serialize_refs(self, refs: ReferenceInputs) -> Dict[str, Any]:
         return {
             key: val._to_beacons()
-            if isinstance(val, _Reference)
+            if isinstance(val, _Reference) or isinstance(val, ReferenceToMulti)
             else _Reference(target_collection=None, uuids=val)._to_beacons()
             for key, val in refs.items()
         }
@@ -322,7 +326,7 @@ class _DataCollection(Generic[Properties], _Data):
     def insert(
         self,
         properties: Properties,
-        references: Optional[WeaviateReferences] = None,
+        references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[List[float]] = None,
     ) -> uuid_package.UUID:
@@ -358,13 +362,13 @@ class _DataCollection(Generic[Properties], _Data):
 
     def insert_many(
         self,
-        objects: Sequence[Union[Properties, DataObject[Properties, Optional[WeaviateReferences]]]],
+        objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
     ) -> BatchObjectReturn:
         """Insert multiple objects into the collection.
 
         Arguments:
             `objects`
-                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, WeaviateReferences]`
+                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, ReferenceInputs]`
                     If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
                         If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
 
@@ -403,7 +407,7 @@ class _DataCollection(Generic[Properties], _Data):
         self,
         uuid: UUID,
         properties: Properties,
-        references: Optional[WeaviateReferences] = None,
+        references: Optional[ReferenceInputs] = None,
         vector: Optional[List[float]] = None,
     ) -> None:
         """Replace an object in the collection.
@@ -448,7 +452,7 @@ class _DataCollection(Generic[Properties], _Data):
         self,
         uuid: UUID,
         properties: Optional[Properties] = None,
-        references: Optional[WeaviateReferences] = None,
+        references: Optional[ReferenceInputs] = None,
         vector: Optional[List[float]] = None,
     ) -> None:
         """Update an object in the collection.
@@ -480,7 +484,7 @@ class _DataCollection(Generic[Properties], _Data):
 
         self._update(weaviate_obj, uuid=uuid)
 
-    def reference_add(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
+    def reference_add(self, from_uuid: UUID, from_property: str, to: SingleReferenceInput) -> None:
         """Create a reference between an object in this collection and any other object in Weaviate.
 
         Arguments:
@@ -489,7 +493,7 @@ class _DataCollection(Generic[Properties], _Data):
             `from_property`
                 The name of the property in the object in this collection, REQUIRED.
             `to`
-                The reference to add, REQUIRED. Use `Reference.to` to generate the correct type or supply a raw UUID.
+                The reference to add, REQUIRED.
 
         Raises:
             `requests.ConnectionError`:
@@ -500,14 +504,17 @@ class _DataCollection(Generic[Properties], _Data):
         if (
             not isinstance(to, str)
             and not isinstance(to, uuid_package.UUID)
+            and not isinstance(to, ReferenceToMulti)
             and not isinstance(to, _Reference)
         ):
-            _raise_invalid_input("to", to, Union[UUID, _Reference])
-        self._reference_add(
-            from_uuid=from_uuid,
-            from_property=from_property,
-            ref=to if isinstance(to, _Reference) else _Reference(target_collection=None, uuids=to),
-        )
+            _raise_invalid_input("to", to, SingleReferenceInput)
+        if isinstance(to, _Reference):
+            ref = to
+        elif isinstance(to, ReferenceToMulti):
+            ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
+        else:
+            ref = _Reference(target_collection=None, uuids=to)
+        self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
     def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
         """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
@@ -529,7 +536,7 @@ class _DataCollection(Generic[Properties], _Data):
         return self._reference_add_many(refs)
 
     def reference_delete(
-        self, from_uuid: UUID, from_property: str, to: Union[UUID, WeaviateReference]
+        self, from_uuid: UUID, from_property: str, to: SingleReferenceInput
     ) -> None:
         """Delete a reference from an object within the collection.
 
@@ -539,23 +546,24 @@ class _DataCollection(Generic[Properties], _Data):
             `from_property`
                 The name of the property in the object in this collection from which the reference should be deleted, REQUIRED.
             `to`
-                The reference to delete, REQUIRED. Use `Reference.to` to generate the correct type or supply a raw UUID.
+                The reference to delete, REQUIRED.
         """
         if (
             not isinstance(to, str)
             and not isinstance(to, uuid_package.UUID)
+            and not isinstance(to, ReferenceToMulti)
             and not isinstance(to, _Reference)
         ):
-            _raise_invalid_input("to", to, Union[UUID, _Reference])
-        self._reference_delete(
-            from_uuid=from_uuid,
-            from_property=from_property,
-            ref=to if isinstance(to, _Reference) else _Reference(target_collection=None, uuids=to),
-        )
+            _raise_invalid_input("to", to, SingleReferenceInput)
+        if isinstance(to, _Reference):
+            ref = to
+        elif isinstance(to, ReferenceToMulti):
+            ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
+        else:
+            ref = _Reference(target_collection=None, uuids=to)
+        self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(
-        self, from_uuid: UUID, from_property: str, to: Union[WeaviateReference, UUIDS]
-    ) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, to: ReferenceInput) -> None:
         """Replace a reference of an object within the collection.
 
         Arguments:
@@ -564,20 +572,23 @@ class _DataCollection(Generic[Properties], _Data):
             `from_property`
                 The name of the property in the object in this collection from which the reference should be replaced, REQUIRED.
             `to`
-                The reference to replace, REQUIRED. Use `Reference.to` to generate the correct type or supply a raw UUID.
+                The reference to replace, REQUIRED.
         """
         if (
             not isinstance(to, str)
             and not isinstance(to, uuid_package.UUID)
             and not isinstance(to, _Reference)
-            and not isinstance(to, list)
+            and not isinstance(to, Sequence)
+            and not isinstance(to, ReferenceToMulti)
         ):
-            _raise_invalid_input("to", to, Union[UUID, _Reference])
-        self._reference_replace(
-            from_uuid=from_uuid,
-            from_property=from_property,
-            ref=to if isinstance(to, _Reference) else _Reference(target_collection=None, uuids=to),
-        )
+            _raise_invalid_input("to", to, ReferenceInput)
+        if isinstance(to, _Reference):
+            ref = to
+        elif isinstance(to, ReferenceToMulti):
+            ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
+        else:
+            ref = _Reference(target_collection=None, uuids=to)
+        self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
 
 class _DataCollectionModel(Generic[Model], _Data):

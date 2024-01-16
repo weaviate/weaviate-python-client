@@ -39,7 +39,7 @@ from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
 )
-from weaviate.types import UUID
+from weaviate.types import UUID, UUIDS
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
@@ -388,6 +388,46 @@ def test_replace(collection_factory: CollectionFactory) -> None:
     assert collection.query.fetch_object_by_id(uuid).properties["name"] == "other name"
 
 
+@pytest.mark.parametrize("to_uuids", [UUID3, [UUID3]])
+def test_replace_with_refs(collection_factory: CollectionFactory, to_uuids: UUIDS) -> None:
+    ref_collection = collection_factory(
+        name="target", vectorizer_config=Configure.Vectorizer.none()
+    )
+    ref_collection.data.insert(properties={}, uuid=UUID1)
+    ref_collection.data.insert(properties={}, uuid=UUID2)
+    ref_collection.data.insert(properties={}, uuid=UUID3)
+
+    collection = collection_factory(
+        name="source",
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    uuid = collection.data.insert(
+        properties={"name": "some name"},
+        references={
+            "ref": [UUID1, UUID2],
+        },
+    )
+
+    collection.data.replace(
+        properties={"name": "other name"},
+        uuid=uuid,
+        references={"ref": to_uuids},
+    )
+    obj = collection.query.fetch_object_by_id(
+        uuid,
+        return_properties=[
+            "name",
+        ],
+        return_references=[
+            FromReference(link_on="ref"),
+        ],
+    )
+    assert len(obj.references["ref"].objects) == 1
+    assert obj.references["ref"].objects[0].uuid == UUID3
+
+
 def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
@@ -446,6 +486,47 @@ def test_update_with_tenant(collection_factory: CollectionFactory) -> None:
     tenant1.data.update(properties={"name": "other name"}, uuid=uuid)
     assert tenant1.query.fetch_object_by_id(uuid).properties["name"] == "other name"
     assert tenant2.query.fetch_object_by_id(uuid) is None
+
+
+@pytest.mark.parametrize("to_uuids", [UUID3, [UUID3]])
+def test_update_with_refs(collection_factory: CollectionFactory, to_uuids: UUIDS) -> None:
+    ref_collection = collection_factory(
+        name="target", vectorizer_config=Configure.Vectorizer.none()
+    )
+    ref_collection.data.insert(properties={}, uuid=UUID1)
+    ref_collection.data.insert(properties={}, uuid=UUID2)
+    ref_collection.data.insert(properties={}, uuid=UUID3)
+
+    collection = collection_factory(
+        name="source",
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    uuid = collection.data.insert(
+        properties={"name": "some name"},
+        references={
+            "ref": [UUID1, UUID2],
+        },
+    )
+
+    collection.data.update(
+        uuid=uuid,
+        references={
+            "ref": to_uuids,
+        },
+    )
+    obj = collection.query.fetch_object_by_id(
+        uuid,
+        return_properties=[
+            "name",
+        ],
+        return_references=[
+            FromReference(link_on="ref"),
+        ],
+    )
+    assert len(obj.references["ref"].objects) == 3
+    assert obj.references["ref"].objects[2].uuid == UUID3
 
 
 @pytest.mark.parametrize(

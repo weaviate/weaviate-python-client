@@ -28,7 +28,12 @@ from weaviate.collections.classes.batch import (
     Shard,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.internal import _Reference, WeaviateReference, WeaviateReferences
+from weaviate.collections.classes.internal import (
+    _Reference,
+    ReferenceToMulti,
+    ReferenceInput,
+    ReferenceInputs,
+)
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateBatchValidationError
@@ -385,7 +390,7 @@ class _BatchBase:
         self,
         collection: str,
         properties: Optional[WeaviateProperties] = None,
-        references: Optional[WeaviateReferences] = None,
+        references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[Sequence] = None,
         tenant: Optional[str] = None,
@@ -422,15 +427,15 @@ class _BatchBase:
         from_object_uuid: UUID,
         from_object_collection: str,
         from_property_name: str,
-        to: Union[WeaviateReference, List[UUID]],
+        to: ReferenceInput,
         tenant: Optional[str] = None,
     ) -> None:
-        if isinstance(to, _Reference):
+        if isinstance(to, _Reference) or isinstance(to, ReferenceToMulti):
             to_strs: Union[List[str], List[UUID]] = to.uuids_str
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
             to_strs = [to]
         else:
-            to_strs = to
+            to_strs = list(to)
 
         for uid in to_strs:
             try:

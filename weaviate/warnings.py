@@ -179,6 +179,22 @@ class _Warnings:
         )
 
     @staticmethod
+    def old_reference_to() -> None:
+        warnings.warn(
+            message="""Dep011: You are using the old Reference.to() method. Please supply raw UUIDs instead.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def old_reference_to_multi_target() -> None:
+        warnings.warn(
+            message="""Dep012: You are using the old Reference.to_multi_target() method. Please use the ReferenceToMulti class instead.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
