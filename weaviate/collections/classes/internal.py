@@ -436,8 +436,15 @@ class Reference:
         )
 
 
-WeaviateReference: TypeAlias = Union[_Reference, UUID, Sequence[UUID]]
-WeaviateReferences: TypeAlias = Mapping[str, WeaviateReference]
+ReferenceInput: TypeAlias = Union[_Reference, UUID, Sequence[UUID]]
+"""This type alias is used when providing references as inputs within the `.data` namespace of a collection."""
+ReferenceInputs: TypeAlias = Mapping[str, ReferenceInput]
+"""This type alias is used when providing references as inputs within the `.data` namespace of a collection."""
+
+WeaviateReference = ReferenceInput
+"""@deprecated: Use `ReferenceInput` instead."""
+WeaviateReferences = ReferenceInputs
+"""@deprecated: Use `ReferenceInputs` instead."""
 
 
 @dataclass

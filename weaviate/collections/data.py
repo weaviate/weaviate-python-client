@@ -32,8 +32,8 @@ from weaviate.collections.classes.internal import (
     Object,
     _metadata_from_dict,
     _Reference,
-    WeaviateReference,
-    WeaviateReferences,
+    ReferenceInput,
+    ReferenceInputs,
 )
 from weaviate.collections.classes.orm import (
     Model,
@@ -270,7 +270,7 @@ class _Data:
     def _serialize_props(self, props: Properties) -> Dict[str, Any]:
         return {key: self.__serialize_primitive(val) for key, val in props.items()}
 
-    def _serialize_refs(self, refs: WeaviateReferences) -> Dict[str, Any]:
+    def _serialize_refs(self, refs: ReferenceInputs) -> Dict[str, Any]:
         return {
             key: val._to_beacons()
             if isinstance(val, _Reference)
@@ -313,7 +313,7 @@ class _DataCollection(Generic[Properties], _Data):
     def insert(
         self,
         properties: Properties,
-        references: Optional[WeaviateReferences] = None,
+        references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[List[float]] = None,
     ) -> uuid_package.UUID:
@@ -349,13 +349,13 @@ class _DataCollection(Generic[Properties], _Data):
 
     def insert_many(
         self,
-        objects: Sequence[Union[Properties, DataObject[Properties, Optional[WeaviateReferences]]]],
+        objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
     ) -> BatchObjectReturn:
         """Insert multiple objects into the collection.
 
         Arguments:
             `objects`
-                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, WeaviateReferences]`
+                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, ReferenceInputs]`
                     If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
                         If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
 
@@ -394,7 +394,7 @@ class _DataCollection(Generic[Properties], _Data):
         self,
         uuid: UUID,
         properties: Properties,
-        references: Optional[WeaviateReferences] = None,
+        references: Optional[ReferenceInputs] = None,
         vector: Optional[List[float]] = None,
     ) -> None:
         """Replace an object in the collection.
@@ -439,7 +439,7 @@ class _DataCollection(Generic[Properties], _Data):
         self,
         uuid: UUID,
         properties: Optional[Properties] = None,
-        references: Optional[WeaviateReferences] = None,
+        references: Optional[ReferenceInputs] = None,
         vector: Optional[List[float]] = None,
     ) -> None:
         """Update an object in the collection.
@@ -546,7 +546,7 @@ class _DataCollection(Generic[Properties], _Data):
             ref=to if isinstance(to, _Reference) else _Reference(target_collection=None, uuids=to),
         )
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, to: WeaviateReference) -> None:
+    def reference_replace(self, from_uuid: UUID, from_property: str, to: ReferenceInput) -> None:
         """Replace a reference of an object within the collection.
 
         Arguments:

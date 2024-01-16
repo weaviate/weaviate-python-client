@@ -14,7 +14,7 @@ from weaviate.collections.classes.batch import (
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.classes.internal import _Reference, WeaviateReferences
+from weaviate.collections.classes.internal import _Reference, ReferenceInputs
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
@@ -230,7 +230,7 @@ class _BatchGRPC(_BaseGRPC):
             raise WeaviateGRPCBatchError(e.details())
 
     def __translate_properties_from_python_to_grpc(
-        self, data: Dict[str, Any], refs: WeaviateReferences, clean_props: bool
+        self, data: Dict[str, Any], refs: ReferenceInputs, clean_props: bool
     ) -> batch_pb2.BatchObject.Properties:
         if data is None and refs is None:
             return None
