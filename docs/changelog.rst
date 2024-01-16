@@ -7,7 +7,7 @@ Version 4.4.b7
 This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
 
 - For ``client.batch`` the ``add_reference`` method was revised. The ``to_object_collection`` parameter was removed and the other parameters were harmonised with ``collection.batch``. Available parameters are now: ``from_uuid``, ``from_collection``, ``from_property``, ``to`` and ``tenant``.
-- It is not possible to use possible to use ``client.batch`` directly, you need to use a context manager (``with client.batch as batch``)
+- It is no longer possible to use ``client.batch`` directly, you must use it as a context manager (``with client.batch as batch``)
 - Manual batch mode has been removed.
 - Dynamic batching (for batch_size and number of concurrent requests) is now default. Fixed-size batching can be configured with ``batch.configure_fixed_size(..)``.
 - Filters have been reworked and have a new syntax. You can replace:
@@ -31,11 +31,23 @@ New functionality includes:
 - Referenced objects now contain the name of their collection.
 - Adds ``collection.config.update_shards()``.
 
-
 Bugfixes include:
 - object.reference is empty instead of None, if an object does not have a reference.
 - Fixes creating backups on weaviate master.
 - Add missing classes to ``wvc`.
+
+New client usage:
+- Client as a context manager:
+    .. code-block:: python
+        with weaviate.connect_to_local() as client:
+            # Your code
+- Client without a context manager:
+    .. code-block:: python
+        try:
+            client = weaviate.connect_to_local()
+            # Your code
+        finally:
+            client.close()
 
 Version 4.4.b6
 --------------
