@@ -115,7 +115,6 @@ class _Backup:
 
         payload = {
             "id": backup_id,
-            "config": {},
             "include": include_collections,
             "exclude": exclude_collections,
         }
@@ -237,7 +236,6 @@ class _Backup:
         )
 
         payload = {
-            "config": {},
             "include": include_collections,
             "exclude": exclude_collections,
         }
@@ -386,7 +384,6 @@ class Backup:
 
         payload = {
             "id": backup_id,
-            "config": {},
             "include": include_classes,
             "exclude": exclude_classes,
         }
