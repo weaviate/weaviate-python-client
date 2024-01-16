@@ -1,7 +1,19 @@
 import datetime
 import sys
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 import uuid as uuid_package
@@ -24,10 +36,19 @@ from weaviate.collections.classes.grpc import (
     REFERENCES,
     Rerank,
 )
-from weaviate.collections.classes.types import Properties, M, P, R, TProperties, WeaviateProperties
-from weaviate.exceptions import WeaviateGRPCQueryError, InvalidDataModelException
+from weaviate.collections.classes.types import (
+    Properties,
+    M,
+    P,
+    R,
+    TProperties,
+    WeaviateProperties,
+    _WeaviateInput,
+)
+from weaviate.exceptions import WeaviateQueryError, InvalidDataModelException
 from weaviate.util import _to_beacons
 from weaviate.types import UUID, UUIDS
+from weaviate.warnings import _Warnings
 
 from weaviate.proto.v1 import search_get_pb2
 
@@ -54,7 +75,9 @@ def _metadata_from_dict(
 ) -> Tuple[uuid_package.UUID, Optional[List[float]], "MetadataReturn"]:
     uuid = uuid_package.UUID(metadata["id"]) if "id" in metadata else None
     if uuid is None:
-        raise WeaviateGRPCQueryError("The query returned an object with an empty ID string")
+        raise WeaviateQueryError(
+            "The query returned an object with an empty ID string", "GRPC search"
+        )
     return (
         uuid,
         metadata.get("vector"),
@@ -319,9 +342,9 @@ class _Reference:
     def __init__(
         self,
         target_collection: Optional[str],
-        uuids: Optional[UUIDS],
+        uuids: UUIDS,
     ):
-        """You should not initialise this class directly. Use the `.to()` or `.to_multi_target()` class methods instead."""
+        """You should not initialise this class directly. Use the `.to_multi()` class methods instead."""
         self.__target_collection = target_collection if target_collection else ""
         self.__uuids = uuids
 
@@ -336,6 +359,11 @@ class _Reference:
         return self.__target_collection != ""
 
     @property
+    def is_one_to_many(self) -> bool:
+        """Returns True if the reference is to a one-to-many references, i.e. points to more than one object."""
+        return self.__uuids is not None and isinstance(self.__uuids, list) and len(self.__uuids) > 1
+
+    @property
     def uuids_str(self) -> List[str]:
         """Returns the UUIDs as strings."""
         if isinstance(self.__uuids, list):
@@ -347,6 +375,24 @@ class _Reference:
     def target_collection(self) -> str:
         """Returns the target collection name."""
         return self.__target_collection
+
+
+class ReferenceToMulti(_WeaviateInput):
+    """Use this class when you want to insert a multi-target reference property."""
+
+    target_collection: str
+    uuids: UUIDS
+
+    def _to_beacons(self) -> List[Dict[str, str]]:
+        return _to_beacons(self.uuids, self.target_collection)
+
+    @property
+    def uuids_str(self) -> List[str]:
+        """Returns the UUIDs as strings."""
+        if isinstance(self.uuids, list):
+            return [str(uid) for uid in self.uuids]
+        else:
+            return [str(self.uuids)]
 
 
 class _CrossReference(Generic[Properties, IReferences]):
@@ -373,7 +419,7 @@ CrossReference: TypeAlias = _CrossReference[Properties, IReferences]
 
 If you want to define a reference property when creating your collection, use `ReferenceProperty` or `ReferencePropertyMultiTarget` instead.
 
-If you want to create a reference when inserting an object, use `Reference.to()` or `Reference.to_multi_target()` instead.
+If you want to create a reference when inserting an object, supply the UUIDs directly or use `Reference.to_multi()` instead.
 
 Example:
     >>> import typing
@@ -402,14 +448,21 @@ class Reference:
         cls,
         uuids: UUIDS,
     ) -> _Reference:
-        """Define cross references to other objects by their UUIDs.
+        """@deprecated: Supply the UUIDS directly instead.
 
-        Can be made to be generic by supplying a type to the `data_model` argument.
+        ```python
+        >>> ...
+        >>> references = {"ref": [uuid1, uuid2]}
+        >>> ...
+        ```
+
+        Define cross references to other objects by their UUIDs.
 
         Arguments:
             `uuids`
-                List of UUIDs of the objects to which the reference should point.
-        """
+                A UUID or list of UUIDs of the objects to which the reference should point.
+        """  # noqa: D401
+        _Warnings.old_reference_to()
         return _Reference(None, uuids)
 
     @classmethod
@@ -418,16 +471,17 @@ class Reference:
         uuids: UUIDS,
         target_collection: Union[str, _CollectionBase],
     ) -> _Reference:
-        """Define cross references to other objects by their UUIDs and the collection in which they are stored.
+        """@deprecated: Use `Reference.to_multi` instead.
 
-        Can be made to be generic by supplying a type to the `data_model` argument.
+        Define cross references to other objects by their UUIDs and the collection in which they are stored.
 
         Arguments:
             `uuids`
-                List of UUIDs of the objects to which the reference should point.
+                A UUID or list of UUIDs of the objects to which the reference should point.
             `target_collection`
                 The collection in which the objects are stored. Can be either the name of the collection or the collection object itself.
-        """
+        """  # noqa: D401
+        _Warnings.old_reference_to_multi_target()
         return _Reference(
             target_collection.name
             if isinstance(target_collection, _CollectionBase)
@@ -436,8 +490,21 @@ class Reference:
         )
 
 
-WeaviateReference: TypeAlias = Union[_Reference, UUID]
-WeaviateReferences: TypeAlias = Mapping[str, WeaviateReference]
+SingleReferenceInput = Union[
+    UUID, ReferenceToMulti, _Reference
+]  # TODO: remove _Reference when Reference.to is removed
+
+ReferenceInput: TypeAlias = Union[
+    UUID, Sequence[UUID], ReferenceToMulti, _Reference
+]  # TODO: remove _Reference when Reference.to is removed
+"""This type alias is used when providing references as inputs within the `.data` namespace of a collection."""
+ReferenceInputs: TypeAlias = Mapping[str, ReferenceInput]
+"""This type alias is used when providing references as inputs within the `.data` namespace of a collection."""
+
+WeaviateReference = Union[UUIDS, _Reference]
+"""@deprecated: Use `ReferenceInput` instead."""
+WeaviateReferences = Mapping[str, WeaviateReference]
+"""@deprecated: Use `ReferenceInputs` instead."""
 
 
 @dataclass

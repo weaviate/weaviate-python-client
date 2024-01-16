@@ -245,6 +245,7 @@ class EmbeddedDB:
                     f"""Tried to stop embedded weaviate process {self.process.pid}. Process was not found. So not doing
                     anything"""
                 )
+            self.process = None
 
     def ensure_running(self) -> None:
         if not self.is_listening():

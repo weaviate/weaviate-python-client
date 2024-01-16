@@ -309,3 +309,23 @@ def test_embedded_with_grpc_port_default(tmp_path_factory: pytest.TempPathFactor
     sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
 
     assert sock.connect_ex(("127.0.0.1", 50060)) == 0  # running
+
+
+def test_embedded_stop(tmp_path_factory: pytest.TempPathFactory):
+    client = weaviate.Client(
+        embedded_options=EmbeddedOptions(
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
+            version="latest",
+            port=30668,
+            grpc_port=50061,
+        ),
+    )
+
+    assert client.is_ready()
+
+    assert client._connection.embedded_db.process is not None
+    client._connection.embedded_db.stop()
+    assert client._connection.embedded_db.process is None
+    client._connection.embedded_db.stop()
+    assert client._connection.embedded_db.process is None

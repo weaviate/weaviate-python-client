@@ -40,7 +40,7 @@ from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateGRPCQueryError
+from weaviate.exceptions import WeaviateQueryError
 from weaviate.types import UUID
 from weaviate.warnings import _Warnings
 
@@ -519,7 +519,7 @@ class _QueryGRPC(_BaseGRPC):
             return res
 
         except grpc.RpcError as e:
-            raise WeaviateGRPCQueryError(e.details())
+            raise WeaviateQueryError(e.details(), "GRPC search")
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:
         return search_get_pb2.MetadataRequest(

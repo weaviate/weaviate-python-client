@@ -13,7 +13,7 @@ from weaviate.collections.classes.aggregate import (
     Metrics,
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateGQLQueryError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.util import file_encoder_b64
 
 
@@ -44,7 +44,7 @@ def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
 
 def test_wrong_aggregation(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
-    with pytest.raises(WeaviateGQLQueryError) as e:
+    with pytest.raises(WeaviateQueryError) as e:
         collection.aggregate.over_all(total_count=False)
     assert (
         e.value.message

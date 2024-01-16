@@ -216,8 +216,8 @@ WeaviateInvalidInputException = WeaviateInvalidInputError
 class WeaviateQueryError(WeaviateBaseError):
     """Is raised if a query (either gRPC or GraphQL) to Weaviate fails in any way."""
 
-    def __init__(self, message: str):
-        msg = f"""Query call failed with message {message}."""
+    def __init__(self, message: str, protocol_type: str):
+        msg = f"""Query call with protocol {protocol_type} failed with message {message}."""
         super().__init__(msg)
         self.message = message
 
@@ -225,39 +225,19 @@ class WeaviateQueryError(WeaviateBaseError):
 WeaviateQueryException = WeaviateQueryError
 
 
-class WeaviateGQLQueryError(WeaviateQueryError):
-    """Is raised if a GraphQL query to Weaviate fails in any way."""
-
-    def __init__(self, message: str):
-        msg = f"""GQL: {message}."""
-        super().__init__(msg)
-        self.message = message
-
-
-class WeaviateGRPCQueryError(WeaviateQueryError):
-    """Is raised if a gRPC query to Weaviate fails in any way."""
-
-    def __init__(self, message: str):
-        msg = f"""GRPC: {message}."""
-        super().__init__(msg)
-        self.message = message
-
-
-class WeaviateGRPCBatchError(WeaviateQueryError):
+class WeaviateBatchError(WeaviateQueryError):
     """Is raised if a gRPC batch query to Weaviate fails in any way."""
 
     def __init__(self, message: str):
-        msg = f"""GRPC batch: {message}."""
-        super().__init__(msg)
+        super().__init__(message, "GRPC batch")
         self.message = message
 
 
-class WeaviateGRPCDeleteManyError(WeaviateQueryError):
+class WeaviateDeleteManyError(WeaviateQueryError):
     """Is raised if a gRPC delete many request to Weaviate fails in any way."""
 
     def __init__(self, message: str):
-        msg = f"""GRPC batch: {message}."""
-        super().__init__(msg)
+        super().__init__(message, "GRPC delete")
         self.message = message
 
 

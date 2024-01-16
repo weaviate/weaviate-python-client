@@ -13,7 +13,7 @@ from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.collections.queries.base import _WeaviateUUIDInt
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateGRPCDeleteManyError
+from weaviate.exceptions import WeaviateDeleteManyError
 from weaviate.proto.v1 import batch_delete_pb2
 
 
@@ -63,4 +63,4 @@ class _BatchDeleteGRPC(_BaseGRPC):
                 )
 
         except grpc.RpcError as e:
-            raise WeaviateGRPCDeleteManyError(e.details())
+            raise WeaviateDeleteManyError(e.details())
