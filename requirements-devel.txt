@@ -14,7 +14,7 @@ wheel
 setuptools_scm
 Sphinx>=7.0.0
 sphinx-rtd-theme==2.0.0
-sphinx-pydantic==0.1.1
+autodoc_pydantic==2.0.1
 
 grpcio-tools
 
