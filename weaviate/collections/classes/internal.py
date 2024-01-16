@@ -45,7 +45,7 @@ from weaviate.collections.classes.types import (
     WeaviateProperties,
     _WeaviateInput,
 )
-from weaviate.exceptions import WeaviateGRPCQueryError, InvalidDataModelException
+from weaviate.exceptions import WeaviateQueryError, InvalidDataModelException
 from weaviate.util import _to_beacons
 from weaviate.types import UUID, UUIDS
 from weaviate.warnings import _Warnings
@@ -75,7 +75,9 @@ def _metadata_from_dict(
 ) -> Tuple[uuid_package.UUID, Optional[List[float]], "MetadataReturn"]:
     uuid = uuid_package.UUID(metadata["id"]) if "id" in metadata else None
     if uuid is None:
-        raise WeaviateGRPCQueryError("The query returned an object with an empty ID string")
+        raise WeaviateQueryError(
+            "The query returned an object with an empty ID string", "GRPC search"
+        )
     return (
         uuid,
         metadata.get("vector"),

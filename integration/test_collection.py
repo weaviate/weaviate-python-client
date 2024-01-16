@@ -35,7 +35,7 @@ from weaviate.collections.classes.internal import _CrossReference, Reference, Ob
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
-    WeaviateGRPCQueryError,
+    WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
 )
@@ -1546,7 +1546,7 @@ def test_return_properties_with_query_specific_typed_dict(
         assert len(objects) == 1
         assert objects[0].properties == data
     elif which_case == 3:
-        with pytest.raises(WeaviateGRPCQueryError):
+        with pytest.raises(WeaviateQueryError):
             collection.query.fetch_objects(return_properties=DataModel3).objects
     elif which_case == 4:
         objects = collection.query.fetch_objects(return_properties=DataModel4).objects

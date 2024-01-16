@@ -5,7 +5,7 @@ from typing import Generator
 import pytest
 
 import weaviate
-from weaviate.backup.backup import _BackupStatus
+from weaviate.backup.backup import BackupStatus
 from weaviate import BackupStorage
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
 from weaviate.exceptions import UnexpectedStatusCodeException, BackupFailedException
@@ -112,7 +112,7 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     # create backup
     classes = ["Article", "Paragraph"]
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
-    assert resp.status == _BackupStatus.SUCCESS
+    assert resp.status == BackupStatus.SUCCESS
     assert sorted(resp.collections) == sorted(classes)
 
     assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
@@ -120,7 +120,7 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
 
     # check create status
     create_status = client.backup.get_create_status(backup_id, BACKEND)
-    assert create_status.status == _BackupStatus.SUCCESS
+    assert create_status.status == BackupStatus.SUCCESS
 
     # remove existing class
     client.collections.delete("Article")
@@ -128,7 +128,7 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
 
     # restore backup
     restore = client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
-    assert restore.status == _BackupStatus.SUCCESS
+    assert restore.status == BackupStatus.SUCCESS
     assert sorted(restore.collections) == sorted(classes)
 
     # # check data exists again
@@ -137,7 +137,7 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
 
     # check restore status
     restore_status = client.backup.get_restore_status(backup_id, BACKEND)
-    assert restore_status.status == _BackupStatus.SUCCESS
+    assert restore_status.status == BackupStatus.SUCCESS
 
 
 def test_create_and_restore_backup_without_waiting(client: weaviate.WeaviateClient) -> None:
@@ -147,19 +147,19 @@ def test_create_and_restore_backup_without_waiting(client: weaviate.WeaviateClie
     include = ["Article"]
 
     resp = client.backup.create(backup_id=backup_id, include_collections=include, backend=BACKEND)
-    assert resp.status == _BackupStatus.STARTED
+    assert resp.status == BackupStatus.STARTED
     assert sorted(resp.collections) == sorted(include)
 
     # wait until created
     while True:
         create_status = client.backup.get_create_status(backup_id, BACKEND)
         assert create_status.status in [
-            _BackupStatus.SUCCESS,
-            _BackupStatus.TRANSFERRED,
-            _BackupStatus.TRANSFERRING,
-            _BackupStatus.STARTED,
+            BackupStatus.SUCCESS,
+            BackupStatus.TRANSFERRED,
+            BackupStatus.TRANSFERRING,
+            BackupStatus.STARTED,
         ]
-        if create_status.status == _BackupStatus.SUCCESS:
+        if create_status.status == BackupStatus.SUCCESS:
             break
         time.sleep(0.1)
 
@@ -173,19 +173,19 @@ def test_create_and_restore_backup_without_waiting(client: weaviate.WeaviateClie
         include_collections=include,
         backend=BACKEND,
     )
-    assert restore.status == _BackupStatus.STARTED
+    assert restore.status == BackupStatus.STARTED
     assert sorted(restore.collections) == sorted(include)
 
     # wait until restored
     while True:
         restore_status = client.backup.get_restore_status(backup_id, BACKEND)
         assert restore_status.status in [
-            _BackupStatus.SUCCESS,
-            _BackupStatus.TRANSFERRED,
-            _BackupStatus.TRANSFERRING,
-            _BackupStatus.STARTED,
+            BackupStatus.SUCCESS,
+            BackupStatus.TRANSFERRED,
+            BackupStatus.TRANSFERRING,
+            BackupStatus.STARTED,
         ]
-        if restore_status.status == _BackupStatus.SUCCESS:
+        if restore_status.status == BackupStatus.SUCCESS:
             break
         time.sleep(0.1)
 
@@ -205,10 +205,10 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
     create = client.backup.create(
         backup_id=backup_id, include_collections=include, backend=BACKEND, wait_for_completion=True
     )
-    assert create.status == _BackupStatus.SUCCESS
+    assert create.status == BackupStatus.SUCCESS
 
     status_create = client.backup.get_create_status(backup_id, BACKEND)
-    assert status_create.status == _BackupStatus.SUCCESS
+    assert status_create.status == BackupStatus.SUCCESS
 
     # check data still exists and then remove existing class
     assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
@@ -218,14 +218,14 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
     restore = client.backup.restore(
         backup_id=backup_id, include_collections=include, backend=BACKEND, wait_for_completion=True
     )
-    assert restore.status == _BackupStatus.SUCCESS
+    assert restore.status == BackupStatus.SUCCESS
 
     # check data exists again
     assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
 
     # check restore status
     restore_status = client.backup.get_restore_status(backup_id, BACKEND)
-    assert restore_status.status == _BackupStatus.SUCCESS
+    assert restore_status.status == BackupStatus.SUCCESS
 
 
 def test_fail_on_non_existing_class(client: weaviate.WeaviateClient) -> None:
@@ -249,7 +249,7 @@ def test_fail_restoring_backup_for_existing_class(client: weaviate.WeaviateClien
         backend=BACKEND,
         wait_for_completion=True,
     )
-    assert create.status == _BackupStatus.SUCCESS
+    assert create.status == BackupStatus.SUCCESS
 
     # fail restore
     with pytest.raises(BackupFailedException) as excinfo:
@@ -273,7 +273,7 @@ def test_fail_creating_existing_backup(client: weaviate.WeaviateClient) -> None:
         backend=BACKEND,
         wait_for_completion=True,
     )
-    assert create.status == _BackupStatus.SUCCESS
+    assert create.status == BackupStatus.SUCCESS
 
     # fail create
     with pytest.raises(UnexpectedStatusCodeException) as excinfo:
@@ -338,24 +338,24 @@ def test_backup_and_restore_with_collection(client: weaviate.WeaviateClient) -> 
 
     # create backup
     create = article.backup.create(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
-    assert create.status == _BackupStatus.SUCCESS
+    assert create.status == BackupStatus.SUCCESS
 
     assert len(article) == len(ARTICLES_IDS)
 
     # check create status
     create_status = article.backup.get_create_status(backup_id, BACKEND)
-    assert create_status.status == _BackupStatus.SUCCESS
+    assert create_status.status == BackupStatus.SUCCESS
 
     # remove existing class
     client.collections.delete("Article")
 
     # restore backup
     restore = article.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
-    assert restore.status == _BackupStatus.SUCCESS
+    assert restore.status == BackupStatus.SUCCESS
 
     # # check data exists again
     assert len(article) == len(ARTICLES_IDS)
 
     # check restore status
     restore_status = article.backup.get_restore_status(backup_id, BACKEND)
-    assert restore_status.status == _BackupStatus.SUCCESS
+    assert restore_status.status == BackupStatus.SUCCESS
