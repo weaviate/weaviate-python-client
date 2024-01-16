@@ -21,36 +21,102 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.internal import (
     CrossReference,
     Reference,
+    ReferenceToMulti,
     ReferenceAnnotation,
     ReferenceInput,
+    SingleReferenceInput,
     _Reference,
 )
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import UUID
 
 TO_UUID = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 TO_UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
 
 
-def test_reference_add_delete_replace(collection_factory: CollectionFactory) -> None:
+@pytest.mark.parametrize("add", [Reference.to(TO_UUID), TO_UUID, str(TO_UUID)])
+@pytest.mark.parametrize("delete", [Reference.to(TO_UUID), TO_UUID, str(TO_UUID)])
+@pytest.mark.parametrize("replace", [Reference.to([]), []])
+def test_reference_add_delete_replace(
+    collection_factory: CollectionFactory,
+    add: SingleReferenceInput,
+    delete: SingleReferenceInput,
+    replace: ReferenceInput,
+) -> None:
     ref_collection = collection_factory(
         name="Target", vectorizer_config=Configure.Vectorizer.none()
     )
-    uuid_to = ref_collection.data.insert(properties={})
+    ref_collection.data.insert(properties={}, uuid=TO_UUID)
     collection = collection_factory(
-        references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
+        references=[
+            ReferenceProperty.MultiTarget(name="ref", target_collections=[ref_collection.name])
+        ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
     uuid_from1 = collection.data.insert({}, uuid=uuid.uuid4())
-    uuid_from2 = collection.data.insert(
-        {}, references={"ref": Reference.to(uuids=uuid_to)}, uuid=uuid.uuid4()
+    uuid_from2 = collection.data.insert({}, references={"ref": TO_UUID}, uuid=uuid.uuid4())
+    collection.data.reference_add(from_uuid=uuid_from1, from_property="ref", to=add)
+
+    collection.data.reference_delete(from_uuid=uuid_from1, from_property="ref", to=delete)
+    assert (
+        len(
+            collection.query.fetch_object_by_id(
+                uuid_from1, return_references=QueryReference(link_on="ref")
+            )
+            .references["ref"]
+            .objects
+        )
+        == 0
     )
+
+    collection.data.reference_add(from_uuid=uuid_from2, from_property="ref", to=add)
+    obj = collection.query.fetch_object_by_id(
+        uuid_from2, return_references=QueryReference(link_on="ref")
+    )
+    assert obj is not None
+    assert len(obj.references["ref"].objects) == 2
+    assert TO_UUID in [x.uuid for x in obj.references["ref"].objects]
+
+    collection.data.reference_replace(from_uuid=uuid_from2, from_property="ref", to=replace)
+    assert (
+        len(
+            collection.query.fetch_object_by_id(
+                uuid_from2, return_references=QueryReference(link_on="ref")
+            )
+            .references["ref"]
+            .objects
+        )
+        == 0
+    )
+
+
+def test_reference_add_delete_replace_multi_target(
+    collection_factory: CollectionFactory,
+) -> None:
+    ref_collection = collection_factory(
+        name="Target", vectorizer_config=Configure.Vectorizer.none()
+    )
+    ref_collection.data.insert(properties={}, uuid=TO_UUID)
+    collection = collection_factory(
+        references=[
+            ReferenceProperty.MultiTarget(name="ref", target_collections=[ref_collection.name])
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    uuid_from1 = collection.data.insert({}, uuid=uuid.uuid4())
+    uuid_from2 = collection.data.insert({}, references={"ref": TO_UUID}, uuid=uuid.uuid4())
     collection.data.reference_add(
-        from_uuid=uuid_from1, from_property="ref", to=Reference.to(uuids=uuid_to)
+        from_uuid=uuid_from1,
+        from_property="ref",
+        to=ReferenceToMulti(target_collection=ref_collection.name, uuids=TO_UUID),
     )
 
     collection.data.reference_delete(
-        from_uuid=uuid_from1, from_property="ref", to=Reference.to(uuids=uuid_to)
+        from_uuid=uuid_from1,
+        from_property="ref",
+        to=ReferenceToMulti(target_collection=ref_collection.name, uuids=TO_UUID),
     )
     assert (
         len(
@@ -64,17 +130,21 @@ def test_reference_add_delete_replace(collection_factory: CollectionFactory) -> 
     )
 
     collection.data.reference_add(
-        from_uuid=uuid_from2, from_property="ref", to=Reference.to(uuids=uuid_to)
+        from_uuid=uuid_from2,
+        from_property="ref",
+        to=ReferenceToMulti(target_collection=ref_collection.name, uuids=TO_UUID),
     )
     obj = collection.query.fetch_object_by_id(
         uuid_from2, return_references=QueryReference(link_on="ref")
     )
     assert obj is not None
     assert len(obj.references["ref"].objects) == 2
-    assert uuid_to in [x.uuid for x in obj.references["ref"].objects]
+    assert TO_UUID in [x.uuid for x in obj.references["ref"].objects]
 
     collection.data.reference_replace(
-        from_uuid=uuid_from2, from_property="ref", to=Reference.to(uuids=[])
+        from_uuid=uuid_from2,
+        from_property="ref",
+        to=ReferenceToMulti(target_collection=ref_collection.name, uuids=[]),
     )
     assert (
         len(
@@ -86,6 +156,54 @@ def test_reference_add_delete_replace(collection_factory: CollectionFactory) -> 
         )
         == 0
     )
+
+
+@pytest.mark.parametrize(
+    "to",
+    [
+        Reference.to([TO_UUID, TO_UUID]),
+        [TO_UUID, TO_UUID],
+        ReferenceToMulti(target_collection="Target", uuids=[TO_UUID, TO_UUID]),
+    ],
+)
+def test_reference_add_multiple_uuids_error(
+    collection_factory: CollectionFactory, to: SingleReferenceInput
+) -> None:
+    ref_collection = collection_factory(
+        name="Target", vectorizer_config=Configure.Vectorizer.none()
+    )
+    ref_collection.data.insert(properties={}, uuid=TO_UUID)
+    collection = collection_factory(
+        references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    uuid_from1 = collection.data.insert({}, uuid=uuid.uuid4())
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.data.reference_add(from_uuid=uuid_from1, from_property="ref", to=to)
+
+
+@pytest.mark.parametrize(
+    "to",
+    [
+        Reference.to([TO_UUID, TO_UUID]),
+        [TO_UUID, TO_UUID],
+        ReferenceToMulti(target_collection="Target", uuids=[TO_UUID, TO_UUID]),
+    ],
+)
+def test_reference_delete_multiple_uuids_error(
+    collection_factory: CollectionFactory, to: SingleReferenceInput
+) -> None:
+    ref_collection = collection_factory(
+        name="Target", vectorizer_config=Configure.Vectorizer.none()
+    )
+    ref_collection.data.insert(properties={}, uuid=TO_UUID)
+    collection = collection_factory(
+        references=[ReferenceProperty(name="ref", target_collection=ref_collection.name)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    uuid_from1 = collection.data.insert({}, uuid=uuid.uuid4())
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.data.reference_delete(from_uuid=uuid_from1, from_property="ref", to=to)
 
 
 def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
@@ -351,7 +469,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
             "Name": "first",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_A, target_collection=A.name),
+            "ref": ReferenceToMulti(uuids=uuid_A, target_collection=A.name),
         },
     )
     C.data.insert(
@@ -359,7 +477,7 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
             "Name": "second",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_B, target_collection=B.name),
+            "ref": ReferenceToMulti(uuids=uuid_B, target_collection=B.name),
         },
     )
 
@@ -862,9 +980,7 @@ def test_refs_different_input_insert_many(
         [
             DataObject(
                 properties={},
-                references={
-                    "multi": Reference.to_multi_target(uuids=TO_UUID, target_collection=to.name)
-                },
+                references={"multi": ReferenceToMulti(uuids=TO_UUID, target_collection=to.name)},
             )
         ]
     )

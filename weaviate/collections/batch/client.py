@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase
 from weaviate.collections.batch.batch_wrapper import _BatchWrapper
@@ -59,7 +59,7 @@ class _BatchClient(_BatchBase):
         from_uuid: UUID,
         from_collection: str,
         from_property: str,
-        to: Union[ReferenceInput, List[UUID]],
+        to: ReferenceInput,
         tenant: Optional[str] = None,
     ) -> None:
         """Add one reference to this batch.

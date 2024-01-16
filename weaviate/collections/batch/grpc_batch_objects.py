@@ -14,7 +14,7 @@ from weaviate.collections.classes.batch import (
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.classes.internal import _Reference, ReferenceInputs
+from weaviate.collections.classes.internal import _Reference, ReferenceToMulti, ReferenceInputs
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
@@ -263,6 +263,12 @@ class _BatchGRPC(_BaseGRPC):
                             uuids=ref.uuids_str, prop_name=key
                         )
                     )
+            elif isinstance(ref, ReferenceToMulti):
+                multi_target.append(
+                    batch_pb2.BatchObject.MultiTargetRefProps(
+                        uuids=ref.uuids_str, target_collection=ref.target_collection, prop_name=key
+                    )
+                )
             elif isinstance(ref, str) or isinstance(ref, uuid_package.UUID):
                 single_target.append(
                     batch_pb2.BatchObject.SingleTargetRefProps(uuids=[str(ref)], prop_name=key)
