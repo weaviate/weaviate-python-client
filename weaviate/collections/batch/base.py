@@ -148,6 +148,7 @@ class _BatchBase:
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
+        event_loop: asyncio.AbstractEventLoop,
         fixed_batch_size: Optional[int] = None,  # dynamic by default
         fixed_concurrent_requests: Optional[int] = None,  # dynamic by default
         objects_: Optional[ObjectsBatchRequest] = None,
@@ -185,30 +186,13 @@ class _BatchBase:
         self.__last_scale_up: float = 0
         self.__max_observed_rate: int = 0
 
-        self.__loop = asyncio.get_event_loop()
+        self.__loop = event_loop
 
         self.__start_bg_thread()
 
     def __start_bg_thread(self) -> None:
         """Create a background process that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
-
-        def start_event_loop_thread() -> None:
-            while (
-                self.__shut_background_thread_down is not None
-                and not self.__shut_background_thread_down.is_set()
-            ):
-                if self.__loop.is_running():
-                    continue
-                else:
-                    self.__loop.run_forever()
-
-        event_loop = threading.Thread(
-            target=start_event_loop_thread,
-            daemon=True,
-            name="eventLoop",
-        )
-        event_loop.start()
 
         def periodic_check() -> None:
             while (
@@ -296,6 +280,8 @@ class _BatchBase:
                     self.__active_requests_lock.acquire()
                     self.__active_requests += 1
                     self.__active_requests_lock.release()
+
+                    # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                     asyncio.run_coroutine_threadsafe(
                         self.__send_batch_async(
                             self.__batch_objects.pop_items(self.__recommended_num_objects),
@@ -383,8 +369,6 @@ class _BatchBase:
 
         # we are done, shut bg threads down and end the event loop
         self.__shut_background_thread_down.set()
-        asyncio.run(self.__connection.aclose())
-        self.__loop.stop()
 
     def _add_object(
         self,
