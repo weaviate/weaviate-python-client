@@ -25,3 +25,5 @@ scratch/
 int-test.sh
 unit-test.sh
 static-test.sh
+
+integration/sphere.100k.jsonl

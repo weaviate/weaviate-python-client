@@ -34,6 +34,8 @@ class _BatchGRPC(_BaseGRPC):
     and abstractions so as not to couple to strongly to either use-case.
     """
 
+    __compression = grpc.Compression.Gzip
+
     def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
         is_weaviate_version_123 = connection._weaviate_version.is_at_least(1, 23, 0)
 
@@ -125,6 +127,7 @@ class _BatchGRPC(_BaseGRPC):
                     consistency_level=self._consistency_level,
                 ),
                 metadata=metadata,
+                # compression=self.__compression,
             )
 
             objects: Dict[int, str] = {}
@@ -220,6 +223,7 @@ class _BatchGRPC(_BaseGRPC):
                     consistency_level=self._consistency_level,
                 ),
                 metadata=metadata,
+                compression=self.__compression,
             )
 
             objects: Dict[int, str] = {}
