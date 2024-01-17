@@ -185,6 +185,26 @@ class _BatchBase:
         self.__last_scale_up: float = 0
         self.__max_observed_rate: int = 0
 
+        try:
+            self.__loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self.__loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.__loop)
+        self.__shut_background_thread_down = threading.Event()
+
+        event_loop = threading.Thread(
+            target=self.__start_event_loop_thread,
+            daemon=True,
+            args=(self.__loop,),
+            name="eventLoop",
+        )
+        event_loop.start()
+        while not self.__loop.is_running():
+            time.sleep(0.01)
+
+        future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), self.__loop)
+        future.result()  # Wait for self._connection.aopen() to finish
+
         self.__start_bg_thread()
 
     def __start_event_loop_thread(self, loop: asyncio.AbstractEventLoop) -> None:
@@ -199,29 +219,8 @@ class _BatchBase:
 
     def __start_bg_thread(self) -> None:
         """Create a background process that periodically checks how congested the batch queue is."""
-        self.__shut_background_thread_down = threading.Event()
 
         def periodic_check() -> None:
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            event_loop = threading.Thread(
-                target=self.__start_event_loop_thread,
-                daemon=True,
-                args=(loop,),
-                name="eventLoop",
-            )
-            event_loop.start()
-
-            while not loop.is_running():
-                time.sleep(0.01)
-
-            future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
-            future.result()  # Wait for self._connection.aopen() to finish
-
             while (
                 self.__shut_background_thread_down is not None
                 and not self.__shut_background_thread_down.is_set()
@@ -301,28 +300,7 @@ class _BatchBase:
                         _Warnings.batch_refresh_failed(repr(e))
                         refresh_time = 10
 
-                if self.__active_requests < self.__concurrent_requests and (
-                    len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
-                ):
-                    self.__active_requests_lock.acquire()
-                    self.__active_requests += 1
-                    self.__active_requests_lock.release()
-
-                    # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
-                    asyncio.run_coroutine_threadsafe(
-                        self.__send_batch_async(
-                            self.__batch_objects.pop_items(self.__recommended_num_objects),
-                            self.__batch_references.pop_items(self.__recommended_num_refs),
-                        ),
-                        loop,
-                    )
-
                 time.sleep(refresh_time)
-
-            # thread is done
-            future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
-            future.result()  # Wait for self._connection.aclose() to finish
-            loop.stop()
 
         demon = threading.Thread(
             target=periodic_check,
@@ -330,6 +308,23 @@ class _BatchBase:
             name="BgBatchScheduler",
         )
         demon.start()
+
+    def __start_batch(self) -> None:
+        if self.__active_requests < self.__concurrent_requests and (
+            len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
+        ):
+            self.__active_requests_lock.acquire()
+            self.__active_requests += 1
+            self.__active_requests_lock.release()
+
+            # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
+            asyncio.run_coroutine_threadsafe(
+                self.__send_batch_async(
+                    self.__batch_objects.pop_items(self.__recommended_num_objects),
+                    self.__batch_references.pop_items(self.__recommended_num_refs),
+                ),
+                self.__loop,
+            )
 
     async def __send_batch_async(
         self, objs: List[_BatchObject], refs: List[_BatchReference]
@@ -401,6 +396,9 @@ class _BatchBase:
 
         # we are done, shut bg threads down and end the event loop
         self.__shut_background_thread_down.set()
+        future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), self.__loop)
+        future.result()  # Wait for self._connection.aclose() to finish
+        self.__loop.stop()
 
     def _add_object(
         self,
@@ -434,6 +432,8 @@ class _BatchBase:
             or len(self.__batch_objects) >= self.__recommended_num_objects * 10
         ):
             time.sleep(1)
+
+        self.__start_batch()
 
         assert batch_object.uuid is not None
         return batch_object.uuid
@@ -472,3 +472,5 @@ class _BatchBase:
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
             time.sleep(1)  # block if weaviate is overloaded, also do not send any refs
+
+        self.__start_batch()
