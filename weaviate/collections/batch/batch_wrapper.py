@@ -19,25 +19,30 @@ class _BatchWrapper:
         self._connection = connection
         self._consistency_level = consistency_level
         self._current_batch: Optional[_BatchBase] = None
+        self._current_loop: Optional[asyncio.AbstractEventLoop] = None
         # config options
         self._batch_size: Optional[int] = None
         self._concurrent_requests: int = 2
 
         self._batch_data = _BatchDataWrapper()
 
-    def _open_async_connection(self) -> None:
+    def _open_async_connection(self) -> asyncio.AbstractEventLoop:
         try:
-            self.__loop = asyncio.get_running_loop()
+            self._current_loop = asyncio.get_running_loop()
         except RuntimeError:
-            self.__loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.__loop)
+            self._current_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._current_loop)
 
         self._connection.open_async()
+        return self._current_loop
 
     # enter is in inherited classes
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        assert self._current_batch is not None
+        assert self._current_batch is not None and self._current_loop is not None
         self._current_batch._shutdown()
+        asyncio.run(self._connection.aclose())
+        self._current_loop.stop()
+        self._current_loop = None
         self._current_batch = None
 
     def wait_for_vector_indexing(

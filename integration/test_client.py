@@ -164,6 +164,8 @@ def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequ
 def test_delete_multiple(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     name1 = request.node.name
     name2 = request.node.name + "2"
+    client.collections.delete([name1, name2])
+
     client.collections.create(
         name=name1,
         vectorizer_config=Configure.Vectorizer.none(),

@@ -148,6 +148,7 @@ class _BatchBase:
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
+        event_loop: asyncio.AbstractEventLoop,
         fixed_batch_size: Optional[int] = None,  # dynamic by default
         fixed_concurrent_requests: Optional[int] = None,  # dynamic by default
         objects_: Optional[ObjectsBatchRequest] = None,
@@ -185,7 +186,7 @@ class _BatchBase:
         self.__last_scale_up: float = 0
         self.__max_observed_rate: int = 0
 
-        self.__loop = asyncio.get_event_loop()
+        self.__loop = event_loop
 
         self.__start_bg_thread()
 
@@ -383,8 +384,6 @@ class _BatchBase:
 
         # we are done, shut bg threads down and end the event loop
         self.__shut_background_thread_down.set()
-        asyncio.run(self.__connection.aclose())
-        self.__loop.stop()
 
     def _add_object(
         self,

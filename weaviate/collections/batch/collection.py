@@ -1,3 +1,4 @@
+import asyncio
 from typing import Generic, List, Optional, Sequence, Union
 
 from weaviate.collections.batch.base import _BatchBase, _BatchDataWrapper
@@ -15,13 +16,19 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
+        event_loop: asyncio.AbstractEventLoop,
         fixed_batch_size: Optional[int],
         fixed_concurrent_requests: Optional[int],
         name: str,
         tenant: Optional[str] = None,
     ) -> None:
         super().__init__(
-            connection, consistency_level, results, fixed_batch_size, fixed_concurrent_requests
+            connection=connection,
+            consistency_level=consistency_level,
+            results=results,
+            event_loop=event_loop,
+            fixed_batch_size=fixed_batch_size,
+            fixed_concurrent_requests=fixed_concurrent_requests,
         )
         self.__name = name
         self.__tenant = tenant
@@ -105,7 +112,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__tenant = tenant
 
     def __enter__(self) -> _BatchCollection[Properties]:
-        self._open_async_connection()
+        loop = self._open_async_connection()
 
         self._current_batch = _BatchCollection[Properties](
             connection=self._connection,
@@ -115,6 +122,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
             fixed_concurrent_requests=self._concurrent_requests,
             name=self.__name,
             tenant=self.__tenant,
+            event_loop=loop,
         )
         return self._current_batch
 
