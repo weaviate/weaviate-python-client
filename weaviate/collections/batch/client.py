@@ -92,7 +92,7 @@ class _BatchClient(_BatchBase):
 
 class _BatchClientWrapper(_BatchWrapper):
     def __enter__(self) -> _BatchClient:
-        loop = self._open_async_connection()
+        loop = self._start_event_loop()
 
         self._current_batch = _BatchClient(
             connection=self._connection,

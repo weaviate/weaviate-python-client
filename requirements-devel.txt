@@ -6,6 +6,7 @@ grpcio>=1.57.0,<2.0.0
 grpcio-tools>=1.57.0,<2.0.0
 grpcio-health-checking>=1.57.0,<2.0.0
 grpclib==0.4.7
+nest_asyncio>=1.5.9,<2.0.0
 pydantic>=2.5.0,<3.0.0
 deprecated>=1.2.14,<2.0.0
 

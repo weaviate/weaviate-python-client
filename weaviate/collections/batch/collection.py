@@ -112,7 +112,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__tenant = tenant
 
     def __enter__(self) -> _BatchCollection[Properties]:
-        loop = self._open_async_connection()
+        loop = self._start_event_loop()
 
         self._current_batch = _BatchCollection[Properties](
             connection=self._connection,
