@@ -94,7 +94,7 @@ class _Connection(_ConnectionBase):
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
-        self._weaviate_version: _ServerVersion
+        self._weaviate_version = _ServerVersion.from_string("")
         self.__connected = False
 
         self._headers = {"content-type": "application/json"}
@@ -123,6 +123,7 @@ class _Connection(_ConnectionBase):
         if self.embedded_db is not None:
             self.embedded_db.start()
         self._create_clients(self.__auth, skip_init_checks)
+        self.__connected = True
         if not skip_init_checks:
             # first connection attempt
             try:
@@ -143,9 +144,6 @@ class _Connection(_ConnectionBase):
                     _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
             except RequestError:
                 pass  # ignore any errors related to requests, it is a best-effort warning
-        else:
-            self._weaviate_version = _ServerVersion.from_string("")
-        self.__connected = True
 
     def is_connected(self) -> bool:
         return self.__connected
@@ -375,6 +373,7 @@ class _Connection(_ConnectionBase):
             self._client.close()
         if self.embedded_db is not None:
             self.embedded_db.stop()
+        self.__connected = False
 
     def __get_headers_for_async(self) -> Dict[str, str]:
         if "authorization" in self._headers:
