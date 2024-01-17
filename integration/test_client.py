@@ -148,6 +148,8 @@ def test_connect_to_wcs() -> None:
 
 def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     name = request.node.name
+    client.collections.delete(name)
+
     col = client.collections.create(name=name)
     assert client.collections.exists(name)
     assert isinstance(col, Collection)
@@ -200,6 +202,8 @@ def test_create_raw_get_and_delete(client: weaviate.WeaviateClient, request: Sub
 def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     name1 = request.node.name
     name2 = request.node.name + "2"
+    client.collections.delete([name1, name2])
+
     col = client.collections.create(
         name=name1,
         vectorizer_config=Configure.Vectorizer.none(),
@@ -225,6 +229,8 @@ def test_collection_name_capitalization(
 ) -> None:
     name_small = "collectionCapitalizationTest"
     name_big = "CollectionCapitalizationTest"
+    client.collections.delete(name_small)
+
     collection = client.collections.create(
         name=name_small,
         vectorizer_config=Configure.Vectorizer.none(),
