@@ -148,7 +148,6 @@ class _BatchBase:
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
-        event_loop: asyncio.AbstractEventLoop,
         fixed_batch_size: Optional[int] = None,  # dynamic by default
         fixed_concurrent_requests: Optional[int] = None,  # dynamic by default
         objects_: Optional[ObjectsBatchRequest] = None,
@@ -186,15 +185,43 @@ class _BatchBase:
         self.__last_scale_up: float = 0
         self.__max_observed_rate: int = 0
 
-        self.__loop = event_loop
-
         self.__start_bg_thread()
+
+    def __start_event_loop_thread(self, loop: asyncio.AbstractEventLoop) -> None:
+        while (
+            self.__shut_background_thread_down is not None
+            and not self.__shut_background_thread_down.is_set()
+        ):
+            if loop.is_running():
+                continue
+            else:
+                loop.run_forever()
 
     def __start_bg_thread(self) -> None:
         """Create a background process that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
 
         def periodic_check() -> None:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            event_loop = threading.Thread(
+                target=self.__start_event_loop_thread,
+                daemon=True,
+                args=(loop,),
+                name="eventLoop",
+            )
+            event_loop.start()
+
+            while not loop.is_running():
+                time.sleep(0.01)
+
+            future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
+            future.result()  # Wait for self._connection.aopen() to finish
+
             while (
                 self.__shut_background_thread_down is not None
                 and not self.__shut_background_thread_down.is_set()
@@ -287,10 +314,15 @@ class _BatchBase:
                             self.__batch_objects.pop_items(self.__recommended_num_objects),
                             self.__batch_references.pop_items(self.__recommended_num_refs),
                         ),
-                        self.__loop,
+                        loop,
                     )
 
                 time.sleep(refresh_time)
+
+            # thread is done
+            future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
+            future.result()  # Wait for self._connection.aclose() to finish
+            loop.stop()
 
         demon = threading.Thread(
             target=periodic_check,
