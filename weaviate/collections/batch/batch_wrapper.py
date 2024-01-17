@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import time
 from copy import copy
 from typing import List, Optional, Any, cast
@@ -25,6 +26,17 @@ class _BatchWrapper:
         self._concurrent_requests: int = 2
 
         self._batch_data = _BatchDataWrapper()
+        self.__shut_background_thread_down: Optional[threading.Event] = None
+
+    def __start_event_loop_thread(self, loop: asyncio.AbstractEventLoop) -> None:
+        while (
+            self.__shut_background_thread_down is not None
+            and not self.__shut_background_thread_down.is_set()
+        ):
+            if loop.is_running():
+                continue
+            else:
+                loop.run_forever()
 
     def _open_async_connection(self) -> asyncio.AbstractEventLoop:
         try:
@@ -33,14 +45,35 @@ class _BatchWrapper:
             self._current_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self._current_loop)
 
-        self._connection.open_async()
+        self.__shut_background_thread_down = threading.Event()
+        event_loop = threading.Thread(
+            target=self.__start_event_loop_thread,
+            daemon=True,
+            args=(self._current_loop,),
+            name="eventLoop",
+        )
+        event_loop.start()
+
+        while not self._current_loop.is_running():
+            time.sleep(0.01)
+
+        future = asyncio.run_coroutine_threadsafe(self._connection.aopen(), self._current_loop)
+        future.result()  # Wait for self._connection.aopen() to finish
+
         return self._current_loop
 
     # enter is in inherited classes
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        assert self._current_batch is not None and self._current_loop is not None
+        assert (
+            self._current_batch is not None
+            and self._current_loop is not None
+            and self.__shut_background_thread_down is not None
+        )
         self._current_batch._shutdown()
-        asyncio.run(self._connection.aclose())
+        future = asyncio.run_coroutine_threadsafe(self._connection.aclose(), self._current_loop)
+        future.result()  # Wait for self._connection.aclose() to finish
+
+        self.__shut_background_thread_down.set()
         self._current_loop.stop()
         self._current_loop = None
         self._current_batch = None

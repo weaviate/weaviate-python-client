@@ -339,9 +339,7 @@ class _Connection(_ConnectionBase):
         )
         demon.start()
 
-    def open_async(self) -> None:
-        # Careful, this method is not async but it must be called from an async context where
-        # there is a running event loop since grpc.aio.Channel makes a call to cygrpc.get_working_loop()
+    async def aopen(self) -> None:
         if self._aclient is None:
             self._aclient = self.__make_async_client()
         if self._grpc_stub_async is None:

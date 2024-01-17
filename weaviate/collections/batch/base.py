@@ -194,23 +194,6 @@ class _BatchBase:
         """Create a background process that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
 
-        def start_event_loop_thread() -> None:
-            while (
-                self.__shut_background_thread_down is not None
-                and not self.__shut_background_thread_down.is_set()
-            ):
-                if self.__loop.is_running():
-                    continue
-                else:
-                    self.__loop.run_forever()
-
-        event_loop = threading.Thread(
-            target=start_event_loop_thread,
-            daemon=True,
-            name="eventLoop",
-        )
-        event_loop.start()
-
         def periodic_check() -> None:
             while (
                 self.__shut_background_thread_down is not None
@@ -297,6 +280,8 @@ class _BatchBase:
                     self.__active_requests_lock.acquire()
                     self.__active_requests += 1
                     self.__active_requests_lock.release()
+
+                    # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                     asyncio.run_coroutine_threadsafe(
                         self.__send_batch_async(
                             self.__batch_objects.pop_items(self.__recommended_num_objects),
