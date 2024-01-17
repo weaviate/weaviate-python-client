@@ -45,7 +45,7 @@ from weaviate.connect.base import (
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedException,
-    WeaviateGrpcUnavailable,
+    WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
     WeaviateClosedClientError,
 )
@@ -94,7 +94,8 @@ class _Connection(_ConnectionBase):
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
-        self._weaviate_version: _ServerVersion
+        self._weaviate_version = _ServerVersion.from_string("")
+        self.__connected = False
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -122,6 +123,7 @@ class _Connection(_ConnectionBase):
         if self.embedded_db is not None:
             self.embedded_db.start()
         self._create_clients(self.__auth, skip_init_checks)
+        self.__connected = True
         if not skip_init_checks:
             # first connection attempt
             try:
@@ -142,8 +144,9 @@ class _Connection(_ConnectionBase):
                     _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
             except RequestError:
                 pass  # ignore any errors related to requests, it is a best-effort warning
-        else:
-            self._weaviate_version = _ServerVersion.from_string("")
+
+    def is_connected(self) -> bool:
+        return self.__connected
 
     @overload
     def __make_mounts(self, type_: Literal["sync"]) -> Dict[str, HTTPTransport]:
@@ -368,6 +371,7 @@ class _Connection(_ConnectionBase):
             self._client.close()
         if self.embedded_db is not None:
             self.embedded_db.stop()
+        self.__connected = False
 
     def __get_headers_for_async(self) -> Dict[str, str]:
         if "authorization" in self._headers:
@@ -389,6 +393,8 @@ class _Connection(_ConnectionBase):
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> Response:
+        if not self.is_connected():
+            raise WeaviateClosedClientError()
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         try:
@@ -448,6 +454,8 @@ class _Connection(_ConnectionBase):
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
     ) -> Response:
+        if not self.is_connected():
+            raise WeaviateClosedClientError()
         assert self._aclient is not None
 
         if self.embedded_db is not None:
@@ -600,18 +608,18 @@ class ConnectionV4(_Connection):
                         response_deserializer=health_pb2.HealthCheckResponse.FromString,
                     )(health_pb2.HealthCheckRequest(), timeout=1)
                     if res.status != health_pb2.HealthCheckResponse.SERVING:
-                        raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}")
+                        raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}")
                 except _channel._InactiveRpcError as e:
-                    raise WeaviateGrpcUnavailable(f"Weaviate v{self.server_version}") from e
+                    raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}") from e
         else:
-            raise WeaviateGrpcUnavailable(
+            raise WeaviateGRPCUnavailableError(
                 "You must provide the gRPC port in `connection_params` to use gRPC."
             )
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
         if not self._grpc_available:
-            raise WeaviateGrpcUnavailable(
+            raise WeaviateGRPCUnavailableError(
                 "Did you forget to call client.connect() before using the client?"
             )
         return self._grpc_stub
@@ -619,7 +627,7 @@ class ConnectionV4(_Connection):
     @property
     def agrpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
         if not self._grpc_available:
-            raise WeaviateGrpcUnavailable(
+            raise WeaviateGRPCUnavailableError(
                 "Did you forget to call client.connect() before using the client?"
             )
         return self._grpc_stub_async

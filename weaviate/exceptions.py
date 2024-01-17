@@ -291,5 +291,5 @@ class WeaviateClosedClientError(WeaviateBaseError):
     """Is raised when a client is closed and a method is called on it."""
 
     def __init__(self) -> None:
-        msg = "The `WeaviateClient` has been closed. Run `client.connect()` to reconnect!"
+        msg = "The `WeaviateClient` is closed. Run `client.connect()` to (re)connect!"
         super().__init__(msg)
