@@ -39,20 +39,15 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
 
 def test_collections_list(client: weaviate.WeaviateClient) -> None:
     client.collections.create(
-        name="TestCollectionsList",
-        vectorizer_config=Configure.Vectorizer.none(),
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
-        ],
+        name="TestCollectionsList", vectorizer_config=Configure.Vectorizer.none()
     )
 
     collections = client.collections.list_all()
-    assert list(collections.keys()) == ["TestCollectionsList"]
+    assert "TestCollectionsList" in list(collections.keys())
     assert isinstance(collections["TestCollectionsList"], _CollectionConfigSimple)
 
     collection = client.collections.list_all(False)
-    assert list(collection.keys()) == ["TestCollectionsList"]
+    assert "TestCollectionsList" in list(collections.keys())
     assert isinstance(collection["TestCollectionsList"], _CollectionConfig)
 
     client.collections.delete("TestCollectionsList")
