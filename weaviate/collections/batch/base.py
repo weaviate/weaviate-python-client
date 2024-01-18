@@ -211,9 +211,6 @@ class _BatchBase:
         while not loop.is_running():
             time.sleep(0.01)
 
-        future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
-        future.result()  # Wait for self._connection.aopen() to finish
-
         return loop
 
     def _shutdown(self) -> None:
@@ -229,6 +226,9 @@ class _BatchBase:
 
         def periodic_check() -> None:
             loop = self.__start_new_event_loop()
+
+            future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
+            future.result()  # Wait for self._connection.aopen() to finish
 
             while (
                 self.__shut_background_thread_down is not None
