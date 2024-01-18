@@ -124,13 +124,14 @@ class _Connection(_ConnectionBase):
             self.embedded_db.start()
         self._create_clients(self.__auth, skip_init_checks)
         self.__connected = True
-        if not skip_init_checks:
-            # first connection attempt
-            try:
-                self._weaviate_version = _ServerVersion.from_string(self.get_meta()["version"])
-            except (ConnectError, ReadError, RemoteProtocolError) as e:
-                raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
+        # temporary need this to get the version of weaviate for version checks
+        try:
+            self._weaviate_version = _ServerVersion.from_string(self.get_meta()["version"])
+        except (ConnectError, ReadError, RemoteProtocolError) as e:
+            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
+
+        if not skip_init_checks:
             if not self._weaviate_version.is_at_least(1, 14, 0):
                 _Warnings.weaviate_server_older_than_1_14(str(self._weaviate_version))
             if not self._weaviate_version.is_at_least(1, 16, 0):
