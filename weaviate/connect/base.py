@@ -9,7 +9,6 @@ import grpc  # type: ignore
 from grpc import Channel, ssl_channel_credentials
 from grpc.aio import Channel as AsyncChannel  # type: ignore
 
-# from grpclib.client import Channel as AsyncChannel
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.types import NUMBER
