@@ -17,6 +17,7 @@ This beta version has breaking changes, a migration guide is available at https:
 Bugfixes include:
 - Error message when creating the client directly without calling ``connect_to_XXX``.
 - Fix deadlock in new batching algorithm.
+- Fix ``skip_init_checks=True`` resulting in compatibility with weavaite 1.22 only.
 
 Version 4.4.b7
 --------------
