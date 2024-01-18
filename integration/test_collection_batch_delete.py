@@ -595,9 +595,8 @@ def test_batch_delete_with_refs(collection_factory: CollectionFactory) -> None:
     )
 
     ret = source.data.delete_many(
-        where=Filter.by_ref()
-        .link_on_multi("ref_self", target_collection=source.name)
-        .link_on("ref")
+        where=Filter.by_ref_multi_target("ref_self", target_collection=source.name)
+        .by_ref("ref")
         .by_id()
         .equal(uuid_to1),
         verbose=True,
@@ -644,17 +643,15 @@ def test_delete_by_time_metadata_with_ref(
 
     if update_or_creation:
         source.data.delete_many(
-            where=Filter.by_ref()
-            .link_on_multi("ref_self", target_collection=source.name)
-            .link_on("ref")
+            where=Filter.by_ref_multi_target("ref_self", target_collection=source.name)
+            .by_ref("ref")
             .by_creation_time()
             .less_or_equal(obj1.metadata.creation_time)
         )
     else:
         source.data.delete_many(
-            where=Filter.by_ref()
-            .link_on_multi("ref_self", target_collection=source.name)
-            .link_on(link_on="ref")
+            where=Filter.by_ref_multi_target("ref_self", target_collection=source.name)
+            .by_ref(link_on="ref")
             .by_update_time()
             .less_or_equal(obj1.metadata.creation_time)
         )
