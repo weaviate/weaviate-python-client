@@ -136,7 +136,6 @@ class ConnectionParams(BaseModel):
                 host=self.grpc.host,
                 port=self.grpc.port,
                 ssl=self.grpc.secure,
-                # config=GRPC_OPTIONS,
             )
         else:
             if self.grpc.secure:
