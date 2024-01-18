@@ -92,15 +92,12 @@ class _BatchClient(_BatchBase):
 
 class _BatchClientWrapper(_BatchWrapper):
     def __enter__(self) -> _BatchClient:
-        loop = self._open_async_connection()
-
         self._current_batch = _BatchClient(
             connection=self._connection,
             consistency_level=self._consistency_level,
             results=self._batch_data,
             fixed_batch_size=self._batch_size,
             fixed_concurrent_requests=self._concurrent_requests,
-            event_loop=loop,
         )
         return self._current_batch
 

@@ -130,12 +130,13 @@ def test_add_object_batch_with_tenant(batch_collection: BatchCollection) -> None
 
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
     for i in range(5):
-        with mt_collection.with_tenant("tenant" + str(i % 5)).batch as batch:
+        col = mt_collection.with_tenant("tenant" + str(i % 5))
+        with col.batch as batch:
             batch.add_object(
                 properties={"name": "tenant" + str(i % 5)},
             )
-    assert len(mt_collection.batch.failed_objects()) == 0
-    assert len(mt_collection.batch.failed_references()) == 0
+        assert len(col.batch.failed_objects()) == 0
+        assert len(col.batch.failed_references()) == 0
     objs = mt_collection.with_tenant("tenant1").query.fetch_objects().objects
     assert len(objs) == 1
     for obj in objs:
