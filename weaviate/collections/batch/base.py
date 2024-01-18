@@ -185,11 +185,10 @@ class _BatchBase:
         self.__last_scale_up: float = 0
         self.__max_observed_rate: int = 0
 
-        self.__start_bg_thread()
+        self.__bg_thread = self.__start_bg_thread()
 
     def __run_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
-        loop.set_debug(True)  # in case of errors, shows async errors in the thread to users
-        asyncio.set_event_loop(loop)
+        loop.set_debug(True)  # in case of errors, shows async errors in the terminal to users
         try:
             loop.run_forever()
         finally:
@@ -219,14 +218,15 @@ class _BatchBase:
 
         # we are done, shut bg threads down and end the event loop
         self.__shut_background_thread_down.set()
+        while self.__bg_thread.is_alive():
+            time.sleep(0.01)
 
-    def __start_bg_thread(self) -> None:
+    def __start_bg_thread(self) -> threading.Thread:
         """Create a background thread that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
 
         def periodic_check() -> None:
             loop = self.__start_new_event_loop()
-
             future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
             future.result()  # Wait for self._connection.aopen() to finish
 
@@ -337,6 +337,7 @@ class _BatchBase:
             name="BgBatchScheduler",
         )
         demon.start()
+        return demon
 
     async def __send_batch_async(
         self, objs: List[_BatchObject], refs: List[_BatchReference]
