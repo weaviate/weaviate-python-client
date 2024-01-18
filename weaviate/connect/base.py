@@ -134,34 +134,21 @@ class ConnectionParams(BaseModel):
             return None
 
         if async_channel:
-            # return AsyncChannel(
-            #     host=self.grpc.host,
-            #     port=self.grpc.port,
-            #     ssl=self.grpc.secure,
-            # )
-            if self.grpc.secure:
-                return grpc.aio.secure_channel(
-                    target=self._grpc_target,
-                    credentials=ssl_channel_credentials(),
-                    options=GRPC_OPTIONS,
-                )
-            else:
-                return grpc.aio.insecure_channel(
-                    target=self._grpc_target,
-                    options=GRPC_OPTIONS,
-                )
+            import_path = grpc.aio
         else:
-            if self.grpc.secure:
-                return grpc.secure_channel(
-                    target=self._grpc_target,
-                    credentials=ssl_channel_credentials(),
-                    options=GRPC_OPTIONS,
-                )
-            else:
-                return grpc.insecure_channel(
-                    target=self._grpc_target,
-                    options=GRPC_OPTIONS,
-                )
+            import_path = grpc
+
+        if self.grpc.secure:
+            return import_path.secure_channel(
+                target=self._grpc_target,
+                credentials=ssl_channel_credentials(),
+                options=GRPC_OPTIONS,
+            )
+        else:
+            return import_path.insecure_channel(
+                target=self._grpc_target,
+                options=GRPC_OPTIONS,
+            )
 
     @property
     def _http_scheme(self) -> str:
