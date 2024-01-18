@@ -1,5 +1,3 @@
-import asyncio
-import threading
 import time
 from copy import copy
 from typing import List, Optional, Any, cast
@@ -20,53 +18,16 @@ class _BatchWrapper:
         self._connection = connection
         self._consistency_level = consistency_level
         self._current_batch: Optional[_BatchBase] = None
-        self._current_loop: Optional[asyncio.AbstractEventLoop] = None
         # config options
         self._batch_size: Optional[int] = None
         self._concurrent_requests: int = 2
 
         self._batch_data = _BatchDataWrapper()
 
-    def __start_event_loop_thread(self, loop: asyncio.AbstractEventLoop) -> None:
-        loop.set_debug(True)  # in case of errors, shows async errors in the thread to users
-        asyncio.set_event_loop(loop)
-        try:
-            loop.run_forever()
-        finally:
-            # This is entered when loop.stop is scheduled from the main thread
-            loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.close()
-
-    def _start_event_loop(self) -> asyncio.AbstractEventLoop:
-        self._current_loop = asyncio.new_event_loop()
-
-        event_loop = threading.Thread(
-            target=self.__start_event_loop_thread,
-            daemon=True,
-            args=(self._current_loop,),
-            name="eventLoop",
-        )
-        event_loop.start()
-
-        while not self._current_loop.is_running():
-            time.sleep(0.01)
-
-        future = asyncio.run_coroutine_threadsafe(self._connection.aopen(), self._current_loop)
-        future.result()  # Wait for self._connection.aopen() to finish
-
-        return self._current_loop
-
     # enter is in inherited classes
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        assert self._current_batch is not None and self._current_loop is not None
+        assert self._current_batch is not None
         self._current_batch._shutdown()
-        future = asyncio.run_coroutine_threadsafe(self._connection.aclose(), self._current_loop)
-        future.result()  # Wait for self._connection.aclose() to finish
-
-        self._current_loop.call_soon_threadsafe(
-            self._current_loop.stop
-        )  # Stop the event loop in the background thread
-        self._current_loop = None
         self._current_batch = None
 
     def wait_for_vector_indexing(
