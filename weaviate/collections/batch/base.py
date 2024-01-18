@@ -185,7 +185,6 @@ class _BatchBase:
         self.__last_scale_up: float = 0
         self.__max_observed_rate: int = 0
 
-        self.__loop: Optional[asyncio.AbstractEventLoop] = self.__start_new_event_loop()
         self.__start_bg_thread()
 
     def __run_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
@@ -199,23 +198,23 @@ class _BatchBase:
             loop.close()
 
     def __start_new_event_loop(self) -> asyncio.AbstractEventLoop:
-        self.__loop = asyncio.new_event_loop()
+        loop = asyncio.new_event_loop()
 
         event_loop = threading.Thread(
             target=self.__run_event_loop,
             daemon=True,
-            args=(self.__loop,),
+            args=(loop,),
             name="eventLoop",
         )
         event_loop.start()
 
-        while not self.__loop.is_running():
+        while not loop.is_running():
             time.sleep(0.01)
 
-        future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), self.__loop)
+        future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
         future.result()  # Wait for self._connection.aopen() to finish
 
-        return self.__loop
+        return loop
 
     def _shutdown(self) -> None:
         """Shutdown the current batch and wait for all requests to be finished."""
@@ -224,19 +223,13 @@ class _BatchBase:
         # we are done, shut bg threads down and end the event loop
         self.__shut_background_thread_down.set()
 
-        assert self.__loop is not None
-        future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), self.__loop)
-        future.result()  # Wait for self._connection.aclose() to finish
-
-        self.__loop.call_soon_threadsafe(
-            self.__loop.stop
-        )  # Stop the event loop in the background thread
-
     def __start_bg_thread(self) -> None:
         """Create a background thread that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
 
         def periodic_check() -> None:
+            loop = self.__start_new_event_loop()
+
             while (
                 self.__shut_background_thread_down is not None
                 and not self.__shut_background_thread_down.is_set()
@@ -323,17 +316,20 @@ class _BatchBase:
                     self.__active_requests += 1
                     self.__active_requests_lock.release()
 
-                    assert self.__loop is not None
                     # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                     asyncio.run_coroutine_threadsafe(
                         self.__send_batch_async(
                             self.__batch_objects.pop_items(self.__recommended_num_objects),
                             self.__batch_references.pop_items(self.__recommended_num_refs),
                         ),
-                        self.__loop,
+                        loop,
                     )
 
                 time.sleep(refresh_time)
+
+            future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
+            future.result()  # Wait for self._connection.aclose() to finish
+            loop.call_soon_threadsafe(loop.stop)
 
         demon = threading.Thread(
             target=periodic_check,
