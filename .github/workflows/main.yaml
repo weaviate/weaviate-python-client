@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: 1.23.3
+  NEW_WEAVIATE_VERSION: preview--grpc-batch-empty-list-type-5e5af8e
 
 jobs:
   lint-and-format:

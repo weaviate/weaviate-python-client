@@ -79,6 +79,7 @@ class ObjectPropertiesValue(_message.Message):
         "boolean_array_properties",
         "object_properties",
         "object_array_properties",
+        "empty_list_props",
     ]
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     NUMBER_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -87,6 +88,7 @@ class ObjectPropertiesValue(_message.Message):
     BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    EMPTY_LIST_PROPS_FIELD_NUMBER: _ClassVar[int]
     non_ref_properties: _struct_pb2.Struct
     number_array_properties: _containers.RepeatedCompositeFieldContainer[NumberArrayProperties]
     int_array_properties: _containers.RepeatedCompositeFieldContainer[IntArrayProperties]
@@ -94,6 +96,7 @@ class ObjectPropertiesValue(_message.Message):
     boolean_array_properties: _containers.RepeatedCompositeFieldContainer[BooleanArrayProperties]
     object_properties: _containers.RepeatedCompositeFieldContainer[ObjectProperties]
     object_array_properties: _containers.RepeatedCompositeFieldContainer[ObjectArrayProperties]
+    empty_list_props: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
@@ -109,6 +112,7 @@ class ObjectPropertiesValue(_message.Message):
         object_array_properties: _Optional[
             _Iterable[_Union[ObjectArrayProperties, _Mapping]]
         ] = ...,
+        empty_list_props: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class ObjectArrayProperties(_message.Message):
