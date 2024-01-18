@@ -7,7 +7,9 @@ from urllib.parse import urlparse
 
 import grpc  # type: ignore
 from grpc import Channel, ssl_channel_credentials
-from grpclib.client import Channel as AsyncChannel
+from grpc.aio import Channel as AsyncChannel  # type: ignore
+
+# from grpclib.client import Channel as AsyncChannel
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.types import NUMBER
@@ -132,11 +134,22 @@ class ConnectionParams(BaseModel):
             return None
 
         if async_channel:
-            return AsyncChannel(
-                host=self.grpc.host,
-                port=self.grpc.port,
-                ssl=self.grpc.secure,
-            )
+            # return AsyncChannel(
+            #     host=self.grpc.host,
+            #     port=self.grpc.port,
+            #     ssl=self.grpc.secure,
+            # )
+            if self.grpc.secure:
+                return grpc.aio.secure_channel(
+                    target=self._grpc_target,
+                    credentials=ssl_channel_credentials(),
+                    options=GRPC_OPTIONS,
+                )
+            else:
+                return grpc.aio.insecure_channel(
+                    target=self._grpc_target,
+                    options=GRPC_OPTIONS,
+                )
         else:
             if self.grpc.secure:
                 return grpc.secure_channel(

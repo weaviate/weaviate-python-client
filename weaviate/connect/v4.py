@@ -58,7 +58,7 @@ from weaviate.util import (
 )
 from weaviate.warnings import _Warnings
 
-from weaviate.proto.v1 import weaviate_pb2_grpc, weaviate_grpc
+from weaviate.proto.v1 import weaviate_pb2_grpc
 
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
@@ -90,7 +90,7 @@ class _Connection(_ConnectionBase):
         self._connection_params = connection_params
         self._grpc_available = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
-        self._grpc_stub_async: Optional[weaviate_grpc.WeaviateStub] = None
+        self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
@@ -348,7 +348,7 @@ class _Connection(_ConnectionBase):
         if self._grpc_stub_async is None:
             self._grpc_channel_async = self._connection_params._grpc_channel(async_channel=True)
             assert self._grpc_channel_async is not None
-            self._grpc_stub_async = weaviate_grpc.WeaviateStub(self._grpc_channel_async)
+            self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel_async)
 
     async def aclose(self) -> None:
         if self._aclient is not None:
@@ -356,7 +356,7 @@ class _Connection(_ConnectionBase):
             self._aclient = None
         if self._grpc_stub_async is not None:
             assert self._grpc_channel_async is not None
-            self._grpc_channel_async.close()
+            await self._grpc_channel_async.close()
             self._grpc_stub_async = None
 
     def close(self) -> None:
@@ -625,7 +625,7 @@ class ConnectionV4(_Connection):
         return self._grpc_stub
 
     @property
-    def agrpc_stub(self) -> Optional[weaviate_grpc.WeaviateStub]:
+    def agrpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
         if not self._grpc_available:
             raise WeaviateGRPCUnavailableError(
                 "Did you forget to call client.connect() before using the client?"
