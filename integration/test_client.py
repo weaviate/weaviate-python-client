@@ -6,7 +6,7 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 from weaviate.collections import Collection
-from weaviate.collections.classes.config import Configure, _CollectionConfig
+from weaviate.collections.classes.config import Configure, _CollectionConfig, DataType, Property
 from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
@@ -328,3 +328,21 @@ def test_grpc_call_without_connect() -> None:
     )
     with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailableError):
         client.collections.get("does-not-exist").query.fetch_objects()
+
+
+def test_client_with_skip_init_check(request: SubRequest) -> None:
+    client = weaviate.connect_to_local(skip_init_checks=True)
+    client.collections.delete(request.node.name)
+    col = client.collections.create(
+        name=request.node.name,
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+
+    col.data.insert(properties={"name": "Name"})
+
+    obj = col.query.fetch_objects().objects[0]
+    assert obj.properties["name"] == "Name"
