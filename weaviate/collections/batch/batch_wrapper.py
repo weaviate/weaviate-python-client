@@ -65,7 +65,7 @@ class _BatchWrapper:
 
         self._current_loop.call_soon_threadsafe(
             self._current_loop.stop
-        )  # stop the event loop triggering pulldown
+        )  # Stop the event loop in the background thread
         self._current_loop = None
         self._current_batch = None
 
