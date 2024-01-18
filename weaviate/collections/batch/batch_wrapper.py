@@ -4,7 +4,6 @@ import time
 from copy import copy
 from typing import List, Optional, Any, cast
 
-import nest_asyncio  # type: ignore
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.batch.base import _BatchBase, _BatchDataWrapper
@@ -30,15 +29,16 @@ class _BatchWrapper:
 
     def __start_event_loop_thread(self, loop: asyncio.AbstractEventLoop) -> None:
         loop.set_debug(True)  # in case of errors, shows async errors in the thread to users
-        loop.run_forever()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_forever()
+        finally:
+            # This is entered when loop.stop is scheduled from the main thread
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.close()
 
     def _start_event_loop(self) -> asyncio.AbstractEventLoop:
-        try:
-            self._current_loop = asyncio.get_running_loop()
-            nest_asyncio.apply(self._current_loop)
-        except RuntimeError:
-            self._current_loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self._current_loop)
+        self._current_loop = asyncio.new_event_loop()
 
         event_loop = threading.Thread(
             target=self.__start_event_loop_thread,
@@ -51,7 +51,8 @@ class _BatchWrapper:
         while not self._current_loop.is_running():
             time.sleep(0.01)
 
-        asyncio.run_coroutine_threadsafe(self._connection.aopen(), self._current_loop)
+        future = asyncio.run_coroutine_threadsafe(self._connection.aopen(), self._current_loop)
+        future.result()  # Wait for self._connection.aopen() to finish
 
         return self._current_loop
 
@@ -62,7 +63,9 @@ class _BatchWrapper:
         future = asyncio.run_coroutine_threadsafe(self._connection.aclose(), self._current_loop)
         future.result()  # Wait for self._connection.aclose() to finish
 
-        self._current_loop.call_soon_threadsafe(self._current_loop.stop)
+        self._current_loop.call_soon_threadsafe(
+            self._current_loop.stop
+        )  # stop the event loop triggering pulldown
         self._current_loop = None
         self._current_batch = None
 
