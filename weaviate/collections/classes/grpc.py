@@ -226,7 +226,10 @@ _PROPERTIES = Union[PROPERTIES, REFERENCES]
 
 
 class NearMediaType(str, Enum):
-    """The different types of media that can be used in a `near_media` query to leverage the `multi2vec-bind` module."""
+    """The different types of media that can be used in a `near_media` query to leverage the `multi2vec-*` modules.
+
+    All are available when using `multi2vec-bind` but only `IMAGE` is available when using `multi2vec-clip`.
+    """
 
     AUDIO = "audio"
     DEPTH = "depth"
