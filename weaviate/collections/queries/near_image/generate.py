@@ -86,8 +86,9 @@ class _NearImageGenerate(Generic[Properties, References], _BaseQuery[Properties,
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query().near_image(
-            image=self._parse_media(near_image),
+        res = self._query().near_media(
+            media=self._parse_media(near_image),
+            type_="image",
             certainty=certainty,
             distance=distance,
             filters=filters,

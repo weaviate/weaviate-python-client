@@ -3,6 +3,7 @@ import struct
 from typing import (
     Dict,
     List,
+    Literal,
     Optional,
     Sequence,
     Set,
@@ -120,9 +121,12 @@ class _QueryGRPC(_BaseGRPC):
         self._near_certainty: Optional[float] = None
         self._near_distance: Optional[float] = None
 
-        self._near_image: Optional[str] = None
-        self._near_video: Optional[str] = None
         self._near_audio: Optional[str] = None
+        self._near_depth: Optional[str] = None
+        self._near_image: Optional[str] = None
+        self._near_imu: Optional[str] = None
+        self._near_thermal: Optional[str] = None
+        self._near_video: Optional[str] = None
 
         self._generative: Optional[_Generative] = None
         self._rerank: Optional[Rerank] = None
@@ -334,9 +338,10 @@ class _QueryGRPC(_BaseGRPC):
 
         return self.__call()
 
-    def near_image(
+    def near_media(
         self,
-        image: str,
+        media: str,
+        type_: Literal["audio", "depth", "image", "imu", "thermal", "video"],
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -349,69 +354,22 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
-        self._near_image = image
-        self._near_certainty = certainty
-        self._near_distance = distance
-        self._limit = limit
-        self._autocut = autocut
-        self._filters = filters
-        self._group_by = group_by
-        self._generative = generative
-        self._rerank = rerank
-
-        self._metadata = return_metadata
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
-
-        return self.__call()
-
-    def near_video(
-        self,
-        video: str,
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        limit: Optional[int] = None,
-        autocut: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[_GroupBy] = None,
-        generative: Optional[_Generative] = None,
-        rerank: Optional[Rerank] = None,
-        return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-        return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
-        self._near_video = video
-        self._near_certainty = certainty
-        self._near_distance = distance
-        self._limit = limit
-        self._autocut = autocut
-        self._filters = filters
-        self._group_by = group_by
-        self._generative = generative
-        self._rerank = rerank
-
-        self._metadata = return_metadata
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
-
-        return self.__call()
-
-    def near_audio(
-        self,
-        audio: str,
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
-        limit: Optional[int] = None,
-        autocut: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[_GroupBy] = None,
-        generative: Optional[_Generative] = None,
-        rerank: Optional[Rerank] = None,
-        return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-        return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
-        self._near_audio = audio
+        if type_ == "audio":
+            self._near_audio = media
+        elif type_ == "depth":
+            self._near_depth = media
+        elif type_ == "image":
+            self._near_image = media
+        elif type_ == "imu":
+            self._near_imu = media
+        elif type_ == "thermal":
+            self._near_thermal = media
+        elif type_ == "video":
+            self._near_video = media
+        else:
+            raise ValueError(
+                f"type_ must be one of ['audio', 'depth', 'image', 'imu', 'thermal', 'video'], but got {type_}"
+            )
         self._near_certainty = certainty
         self._near_distance = distance
         self._limit = limit
@@ -510,6 +468,34 @@ class _QueryGRPC(_BaseGRPC):
                     filters=_FilterToGRPC.convert(
                         self._filters, self._connection._weaviate_version
                     ),
+                    near_audio=search_get_pb2.NearAudioSearch(
+                        audio=self._near_audio,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_audio is not None
+                    else None,
+                    near_depth=search_get_pb2.NearDepthSearch(
+                        depth=self._near_depth,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_depth is not None
+                    else None,
+                    near_image=search_get_pb2.NearImageSearch(
+                        image=self._near_image,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_image is not None
+                    else None,
+                    near_imu=search_get_pb2.NearIMUSearch(
+                        imu=self._near_imu,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_imu is not None
+                    else None,
                     near_text=search_get_pb2.NearTextSearch(
                         query=self._near_text,
                         certainty=self._near_certainty,
@@ -519,12 +505,12 @@ class _QueryGRPC(_BaseGRPC):
                     )
                     if self._near_text is not None
                     else None,
-                    near_image=search_get_pb2.NearImageSearch(
-                        image=self._near_image,
+                    near_thermal=search_get_pb2.NearThermalSearch(
+                        thermal=self._near_thermal,
                         distance=self._near_distance,
                         certainty=self._near_certainty,
                     )
-                    if self._near_image is not None
+                    if self._near_thermal is not None
                     else None,
                     near_video=search_get_pb2.NearVideoSearch(
                         video=self._near_video,
@@ -532,13 +518,6 @@ class _QueryGRPC(_BaseGRPC):
                         certainty=self._near_certainty,
                     )
                     if self._near_video is not None
-                    else None,
-                    near_audio=search_get_pb2.NearAudioSearch(
-                        audio=self._near_audio,
-                        distance=self._near_distance,
-                        certainty=self._near_certainty,
-                    )
-                    if self._near_audio is not None
                     else None,
                     consistency_level=self._consistency_level,
                     sort_by=[

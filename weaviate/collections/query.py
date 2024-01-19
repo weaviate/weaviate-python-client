@@ -7,15 +7,14 @@ from weaviate.collections.queries.bm25 import _BM25Generate, _BM25Query
 from weaviate.collections.queries.fetch_object_by_id import _FetchObjectByIDQuery
 from weaviate.collections.queries.fetch_objects import _FetchObjectsGenerate, _FetchObjectsQuery
 from weaviate.collections.queries.hybrid import _HybridGenerate, _HybridQuery
-from weaviate.collections.queries.near_audio import (
-    _NearAudioGenerate,
-    _NearAudioGroupBy,
-    _NearAudioQuery,
-)
 from weaviate.collections.queries.near_image import (
     _NearImageGenerate,
     _NearImageGroupBy,
     _NearImageQuery,
+)
+from weaviate.collections.queries.near_media import (
+    _NearMediaGenerate,
+    _NearMediaQuery,
 )
 from weaviate.collections.queries.near_object import (
     _NearObjectGenerate,
@@ -32,11 +31,6 @@ from weaviate.collections.queries.near_vector import (
     _NearVectorGroupBy,
     _NearVectorQuery,
 )
-from weaviate.collections.queries.near_video import (
-    _NearVideoGenerate,
-    _NearVideoGroupBy,
-    _NearVideoQuery,
-)
 
 
 class _QueryCollection(
@@ -45,12 +39,11 @@ class _QueryCollection(
     _FetchObjectByIDQuery[TProperties, References],
     _FetchObjectsQuery[TProperties, References],
     _HybridQuery[TProperties, References],
-    _NearAudioQuery[TProperties, References],
     _NearImageQuery[TProperties, References],
+    _NearMediaQuery[TProperties, References],
     _NearObjectQuery[TProperties, References],
     _NearTextQuery[TProperties, References],
     _NearVectorQuery[TProperties, References],
-    _NearVideoQuery[TProperties, References],
 ):
     pass
 
@@ -60,24 +53,21 @@ class _GenerateCollection(
     _BM25Generate[TProperties, References],
     _FetchObjectsGenerate[TProperties, References],
     _HybridGenerate[TProperties, References],
-    _NearAudioGenerate[TProperties, References],
     _NearImageGenerate[TProperties, References],
+    _NearMediaGenerate[TProperties, References],
     _NearObjectGenerate[TProperties, References],
     _NearTextGenerate[TProperties, References],
     _NearVectorGenerate[TProperties, References],
-    _NearVideoGenerate[TProperties, References],
 ):
     pass
 
 
 class _GroupByCollection(
     Generic[TProperties, References],
-    _NearAudioGroupBy[TProperties, References],
     _NearImageGroupBy[TProperties, References],
     _NearObjectGroupBy[TProperties, References],
     _NearTextGroupBy[TProperties, References],
     _NearVectorGroupBy[TProperties, References],
-    _NearVideoGroupBy[TProperties, References],
 ):
     pass
 

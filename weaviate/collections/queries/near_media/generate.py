@@ -1,18 +1,19 @@
 from io import BufferedReader
 from pathlib import Path
-from typing import Generic, Optional, Union
+from typing import Generic, List, Optional, Union
 
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import GroupBy, METADATA, Rerank
+from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank, NearMediaType
 from weaviate.collections.classes.internal import (
+    _Generative,
     _GroupBy,
+    GenerativeNearMediaReturnType,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
     References,
-    QueryNearMediaReturnType,
     TReferences,
 )
 from weaviate.collections.classes.types import (
@@ -22,11 +23,15 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.queries.base import _BaseQuery
 
 
-class _NearAudioQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def near_audio(
+class _NearMediaGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -38,17 +43,19 @@ class _NearAudioQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
-        """Search for objects by audio in this collection using an audio-capable vectorisation module and vector-based similarity search.
+    ) -> GenerativeNearMediaReturnType[Properties, References, TProperties, TReferences]:
+        """Perform retrieval-augmented generation (RaG) on the results of a by-audio object search in this collection using an audio-capable vectorisation module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
 
         NOTE:
-            You must have an audio-capable vectorisation module installed in order to use this method, e.g. `multi2vec-bind`.
+            You must have a multi-media-capable vectorisation module installed in order to use this method, e.g. `multi2vec-bind`.
 
         Arguments:
-            `near_audio`
-                The audio file to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
+            `near_media`
+                The media file to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
+            `media_type`
+                The type of the provided media file, REQUIRED.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
@@ -76,27 +83,32 @@ class _NearAudioQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `QueryReturn` or `_GroupByReturn` object that includes the searched objects.
-            If `group_by` is provided then a `_GroupByReturn` object is returned, otherwise a `QueryReturn` object is returned.
+            A `_GenerativeNearMediaReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query().near_audio(
-            audio=self._parse_media(near_audio),
+        res = self._query().near_media(
+            media=self._parse_media(media),
+            type_=media_type.value,
             certainty=certainty,
             distance=distance,
-            limit=limit,
-            autocut=auto_limit,
             filters=filters,
             group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
+            generative=_Generative(
+                single=single_prompt,
+                grouped=grouped_task,
+                grouped_properties=grouped_properties,
+            ),
+            limit=limit,
+            autocut=auto_limit,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
         )
-        return self._result_to_query_or_groupby_return(
+        return self._result_to_generative_return(
             res,
             _QueryOptions.from_input(
                 return_metadata,
@@ -105,6 +117,7 @@ class _NearAudioQuery(Generic[Properties, References], _BaseQuery[Properties, Re
                 self._references,
                 return_references,
                 rerank,
+                group_by,
             ),
             return_properties,
             return_references,

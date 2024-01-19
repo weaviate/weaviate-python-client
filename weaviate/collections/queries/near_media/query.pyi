@@ -1,14 +1,21 @@
 from io import BufferedReader
 from pathlib import Path
-from typing import Generic, List, Literal, Optional, Type, Union, overload
+from typing import Generic, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
+from weaviate.collections.classes.grpc import (
+    GroupBy,
+    METADATA,
+    PROPERTIES,
+    REFERENCES,
+    NearMediaType,
+    Rerank,
+)
 from weaviate.collections.classes.internal import (
-    GenerativeReturn,
-    GenerativeGroupByReturn,
+    GroupByReturn,
+    QueryReturn,
     References,
     CrossReferences,
     TReferences,
@@ -19,15 +26,13 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.collections.queries.base import _BaseQuery
 
-class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
+class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -39,15 +44,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> GenerativeReturn[Properties, References]: ...
+    ) -> QueryReturn[Properties, References]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -59,15 +62,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> GenerativeReturn[Properties, CrossReferences]: ...
+    ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -79,15 +80,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> GenerativeReturn[Properties, TReferences]: ...
+    ) -> QueryReturn[Properties, TReferences]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -99,15 +98,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> GenerativeReturn[TProperties, References]: ...
+    ) -> QueryReturn[TProperties, References]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -119,15 +116,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> GenerativeReturn[TProperties, CrossReferences]: ...
+    ) -> QueryReturn[TProperties, CrossReferences]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -139,16 +134,16 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> GenerativeReturn[TProperties, TReferences]: ...
+    ) -> QueryReturn[TProperties, TReferences]: ...
+
     ### GroupBy ###
+
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -160,15 +155,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> GenerativeGroupByReturn[Properties, References]: ...
+    ) -> GroupByReturn[Properties, References]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -180,15 +173,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> GenerativeGroupByReturn[Properties, CrossReferences]: ...
+    ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -200,15 +191,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> GenerativeGroupByReturn[Properties, TReferences]: ...
+    ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -220,15 +209,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> GenerativeGroupByReturn[TProperties, References]: ...
+    ) -> GroupByReturn[TProperties, References]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -240,15 +227,13 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> GenerativeGroupByReturn[TProperties, CrossReferences]: ...
+    ) -> GroupByReturn[TProperties, CrossReferences]: ...
     @overload
-    def near_audio(
+    def near_media(
         self,
-        near_audio: Union[str, Path, BufferedReader],
+        media: Union[str, Path, BufferedReader],
+        media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         limit: Optional[int] = None,
@@ -260,4 +245,4 @@ class _NearAudioGenerate(Generic[Properties, References], _BaseQuery[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> GenerativeGroupByReturn[TProperties, TReferences]: ...
+    ) -> GroupByReturn[TProperties, TReferences]: ...
