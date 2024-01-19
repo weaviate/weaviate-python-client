@@ -542,10 +542,9 @@ class _MultiTargetRef(_WeaviateInput):
 
 class _CountRef(_WeaviateInput):
     link_on: str
-    target: Optional["_FilterTargets"] = Field(exclude=True, default=None)
 
 
-_TargetRefs = Union[_SingleTargetRef, _MultiTargetRef, _CountRef]
+_TargetRefs = Union[_SingleTargetRef, _MultiTargetRef]
 _FilterTargets = Union[_SingleTargetRef, _MultiTargetRef, _CountRef, str]
 
 
@@ -557,20 +556,17 @@ class _FilterValue2(_Filters, _WeaviateInput):
 
 class _FilterBase:
     _target: Optional[_TargetRefs] = None
-    _property: Optional[str]
+    _property: Union[str, _CountRef]
 
     def _target_path(self) -> _FilterTargets:
         if self._target is None:
-            assert self._property is not None
             return self._property
 
         # get last element in chain
         target = self._target
         while target.target is not None:
-            assert (
-                isinstance(target.target, _MultiTargetRef)
-                or isinstance(target.target, _SingleTargetRef)
-                or isinstance(target.target, _CountRef)
+            assert isinstance(target.target, _MultiTargetRef) or isinstance(
+                target.target, _SingleTargetRef
             )
             target = target.target
 
@@ -815,9 +811,9 @@ class _FilterById(_FilterBase):
 
 
 class _FilterByCount(_FilterBase):
-    def __init__(self, target: Optional[_TargetRefs] = None) -> None:
+    def __init__(self, link_on: str, target: Optional[_TargetRefs] = None) -> None:
         self._target = target
-        self._property = None
+        self._property = _CountRef(link_on=link_on)
 
     def equal(self, count: int) -> _FilterValue2:
         """Filter on whether the number of references is equal to the given integer.
@@ -934,7 +930,7 @@ class _FilterByRef:
 
     def by_count(self) -> _FilterByCount:
         """Define a filter based on the number of references to be used when querying and deleting from a collection."""
-        return _FilterByCount(target=_CountRef(link_on=self.__target.link_on))
+        return _FilterByCount(link_on=self.__target.link_on)
 
 
 class Filter(_FilterOld):
