@@ -92,8 +92,6 @@ class _BatchClient(_BatchBase):
 
 class _BatchClientWrapper(_BatchWrapper):
     def __enter__(self) -> _BatchClient:
-        self._open_async_connection()
-
         self._current_batch = _BatchClient(
             connection=self._connection,
             consistency_level=self._consistency_level,

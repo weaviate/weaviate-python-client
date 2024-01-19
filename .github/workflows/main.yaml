@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: preview-map-correct-dtype-when-filtering-references-by-count-9d4ae8e
+  NEW_WEAVIATE_VERSION: 1.23.3-1d9faf5
 
 jobs:
   lint-and-format:

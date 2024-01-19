@@ -580,6 +580,24 @@ def test_search_hybrid(collection_factory: CollectionFactory, fusion_type: Hybri
     assert len(objs) == 2
 
 
+@pytest.mark.skip(reason="currently bugged in weaviate")
+def test_search_hybrid_only_vector(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    uuid_ = collection.data.insert({"Name": "some name"}, uuid=uuid.uuid4())
+    vec = collection.query.fetch_object_by_id(uuid_, include_vector=True).vector
+    assert vec is not None
+
+    collection.data.insert({"Name": "other word"}, uuid=uuid.uuid4())
+
+    objs = collection.query.hybrid(alpha=1, query="", vector=vec).objects
+    assert len(objs) == 2
+
+
 @pytest.mark.parametrize("limit", [1, 5])
 def test_search_limit(collection_factory: CollectionFactory, limit: int) -> None:
     collection = collection_factory(

@@ -21,7 +21,11 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         tenant: Optional[str] = None,
     ) -> None:
         super().__init__(
-            connection, consistency_level, results, fixed_batch_size, fixed_concurrent_requests
+            connection=connection,
+            consistency_level=consistency_level,
+            results=results,
+            fixed_batch_size=fixed_batch_size,
+            fixed_concurrent_requests=fixed_concurrent_requests,
         )
         self.__name = name
         self.__tenant = tenant
@@ -105,8 +109,6 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__tenant = tenant
 
     def __enter__(self) -> _BatchCollection[Properties]:
-        self._open_async_connection()
-
         self._current_batch = _BatchCollection[Properties](
             connection=self._connection,
             consistency_level=self._consistency_level,

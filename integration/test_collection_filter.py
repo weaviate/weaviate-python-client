@@ -395,15 +395,11 @@ def test_filters_contains(
 @pytest.mark.parametrize(
     "weaviate_filter,results",
     [
-        (Filter.by_ref().link_on("ref").by_property("int").greater_than(3), [1]),
-        (Filter.by_ref().link_on("ref").by_property("text", length=True).less_than(6), [0]),
-        (Filter.by_ref().link_on("ref").by_id().equal(UUID2), [1]),
+        (Filter.by_ref("ref").by_property("int").greater_than(3), [1]),
+        (Filter.by_ref("ref").by_property("text", length=True).less_than(6), [0]),
+        (Filter.by_ref("ref").by_id().equal(UUID2), [1]),
         (
-            Filter.by_ref()
-            .link_on("ref2")
-            .link_on("ref")
-            .by_property("text", length=True)
-            .less_than(6),
+            Filter.by_ref("ref2").by_ref("ref").by_property("text", length=True).less_than(6),
             [2],
         ),  # second obj links to first one
     ],
@@ -528,8 +524,7 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
     )
 
     objects = from_collection.query.fetch_objects(
-        filters=Filter.by_ref()
-        .link_on_multi("ref", to_collection.name)
+        filters=Filter.by_ref_multi_target("ref", to_collection.name)
         .by_property("int")
         .greater_than(3)
     ).objects
@@ -537,8 +532,7 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
     assert objects[0].properties["name"] == "second"
 
     objects = from_collection.query.fetch_objects(
-        filters=Filter.by_ref()
-        .link_on_multi("ref", target_collection=from_collection.name)
+        filters=Filter.by_ref_multi_target("ref", target_collection=from_collection.name)
         .by_property("name")
         .equal("first")
     ).objects
@@ -741,7 +735,7 @@ def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
     uuid3 = collection.data.insert({}, references={"ref": [uuid1, uuid2]})
 
     objects = collection.query.fetch_objects(
-        filters=Filter.by_ref().link_on("ref").by_count().greater_than(0),
+        filters=Filter.by_ref("ref").by_count().greater_than(0),
         return_references=QueryReference(link_on="ref"),
     ).objects
     assert len(objects) == 1
@@ -768,7 +762,7 @@ def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) ->
     uuid3 = collection.data.insert({}, references={"ref": [uuid1, uuid2]})
 
     objects = collection.query.fetch_objects(
-        filters=Filter.by_ref().link_on_multi("ref", collection.name).by_count().greater_than(0),
+        filters=Filter.by_ref_multi_target("ref", collection.name).by_count().greater_than(0),
         return_references=QueryReference(link_on="ref"),
     ).objects
     assert len(objects) == 1

@@ -888,18 +888,18 @@ class _FilterByCount(_FilterBase):
         )
 
 
-class _FilterWithInit:
+class _FilterByRef:
     def __init__(self, target: _TargetRefs) -> None:
         self.__target = target
         self.__last_target = self.__target  # use this to append to the end of the chain
 
-    def link_on(self, link_on: str) -> "_FilterWithInit":
+    def by_ref(self, link_on: str) -> "_FilterByRef":
         """Filter on the given reference."""
         self.__last_target.target = _SingleTargetRef(link_on=link_on)
         self.__last_target = self.__last_target.target
         return self
 
-    def link_on_multi(self, reference: str, target_collection: str) -> "_FilterWithInit":
+    def by_ref_multi_target(self, reference: str, target_collection: str) -> "_FilterByRef":
         """Filter on the given multi-target reference."""
         self.__last_target.target = _MultiTargetRef(
             link_on=reference, target_collection=target_collection
@@ -929,28 +929,18 @@ class _FilterWithInit:
         return _FilterByCount(target=self.__target)
 
 
-class _FilterByRef:
-    def __init__(self) -> None:
-        pass
-
-    def link_on(self, link_on: str) -> _FilterWithInit:
-        """Filter on the given reference."""
-        return _FilterWithInit(_SingleTargetRef(link_on=link_on))
-
-    def link_on_multi(self, reference: str, target_collection: str) -> _FilterWithInit:
-        """Filter on the given multi-target reference."""
-        return _FilterWithInit(
-            _MultiTargetRef(link_on=reference, target_collection=target_collection)
-        )
-
-
 class Filter(_FilterOld):
     """Filter class."""
 
     @staticmethod
-    def by_ref() -> _FilterByRef:
+    def by_ref(link_on: str) -> _FilterByRef:
         """Define a filter based on a reference to be used when querying and deleting from a collection."""
-        return _FilterByRef()
+        return _FilterByRef(_SingleTargetRef(link_on=link_on))
+
+    @staticmethod
+    def by_ref_multi_target(link_on: str, target_collection: str) -> _FilterByRef:
+        """Define a filter based on a reference to be used when querying and deleting from a collection."""
+        return _FilterByRef(_MultiTargetRef(link_on=link_on, target_collection=target_collection))
 
     @staticmethod
     def by_id() -> _FilterById:

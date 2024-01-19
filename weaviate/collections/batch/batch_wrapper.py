@@ -1,4 +1,3 @@
-import asyncio
 import time
 from copy import copy
 from typing import List, Optional, Any, cast
@@ -24,15 +23,6 @@ class _BatchWrapper:
         self._concurrent_requests: int = 2
 
         self._batch_data = _BatchDataWrapper()
-
-    def _open_async_connection(self) -> None:
-        try:
-            self.__loop = asyncio.get_running_loop()
-        except RuntimeError:
-            self.__loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.__loop)
-
-        self._connection.open_async()
 
     # enter is in inherited classes
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
