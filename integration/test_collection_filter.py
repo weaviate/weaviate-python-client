@@ -716,10 +716,7 @@ def test_warning_old_filter(collection_factory: CollectionFactory) -> None:
 
 
 def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
+    collection = collection_factory()
     collection.config.add_reference(
         ReferenceProperty(name="ref", target_collection=collection.name)
     )
@@ -743,10 +740,7 @@ def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
 
 
 def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
+    collection = collection_factory()
     collection.config.add_reference(
         ReferenceProperty.MultiTarget(name="ref", target_collections=[collection.name])
     )
@@ -770,14 +764,9 @@ def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) ->
 
 
 def test_nested_ref_count_filter(collection_factory: CollectionFactory) -> None:
-    one = collection_factory(
-        properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
+    one = collection_factory()
     two = collection_factory(
-        properties=[Property(name="name", data_type=DataType.TEXT)],
-        references=[ReferenceProperty(name="ref2", target_collection=one.name)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        references=[ReferenceProperty(name="ref2", target_collection=one.name)]
     )
     one.config.add_reference(ReferenceProperty(name="ref1", target_collection=one.name))
 
