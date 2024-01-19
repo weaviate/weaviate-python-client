@@ -1,0 +1,20 @@
+{
+  "include": [
+    "weaviate"
+  ],
+
+  "exclude": [
+    "**integration**","**/tests","weaviate/proto/**",
+  ],
+
+  "stubPath": ".",
+
+  "reportUnusedVariable": true,
+  "reportMissingTypeStubs": false,
+  "reportGeneralTypeIssues": false,
+  "reportInvalidTypeVarUse": false,
+  "reportOptionalMemberAccess": false,
+  "reportPropertyTypeMismatch": false,
+  "reportMissingModuleSource": false,
+  "reportMissingImports": false
+}
