@@ -468,6 +468,34 @@ class _QueryGRPC(_BaseGRPC):
                     filters=_FilterToGRPC.convert(
                         self._filters, self._connection._weaviate_version
                     ),
+                    near_audio=search_get_pb2.NearAudioSearch(
+                        audio=self._near_audio,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_audio is not None
+                    else None,
+                    near_depth=search_get_pb2.NearDepthSearch(
+                        depth=self._near_depth,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_depth is not None
+                    else None,
+                    near_image=search_get_pb2.NearImageSearch(
+                        image=self._near_image,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_image is not None
+                    else None,
+                    near_imu=search_get_pb2.NearIMUSearch(
+                        imu=self._near_imu,
+                        distance=self._near_distance,
+                        certainty=self._near_certainty,
+                    )
+                    if self._near_imu is not None
+                    else None,
                     near_text=search_get_pb2.NearTextSearch(
                         query=self._near_text,
                         certainty=self._near_certainty,
@@ -477,12 +505,12 @@ class _QueryGRPC(_BaseGRPC):
                     )
                     if self._near_text is not None
                     else None,
-                    near_image=search_get_pb2.NearImageSearch(
-                        image=self._near_image,
+                    near_thermal=search_get_pb2.NearThermalSearch(
+                        thermal=self._near_thermal,
                         distance=self._near_distance,
                         certainty=self._near_certainty,
                     )
-                    if self._near_image is not None
+                    if self._near_thermal is not None
                     else None,
                     near_video=search_get_pb2.NearVideoSearch(
                         video=self._near_video,
@@ -490,13 +518,6 @@ class _QueryGRPC(_BaseGRPC):
                         certainty=self._near_certainty,
                     )
                     if self._near_video is not None
-                    else None,
-                    near_audio=search_get_pb2.NearAudioSearch(
-                        audio=self._near_audio,
-                        distance=self._near_distance,
-                        certainty=self._near_certainty,
-                    )
-                    if self._near_audio is not None
                     else None,
                     consistency_level=self._consistency_level,
                     sort_by=[
