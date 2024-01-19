@@ -295,7 +295,7 @@ class Connection(_ConnectionBase):
                         self._session.token = self._session.refresh_token(
                             self._session.metadata["token_endpoint"]
                         )
-                        refresh_time = self._session.token.get("expires_in") - 30
+                        refresh_time = int(self._session.token.get("expires_in")) - 30
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
