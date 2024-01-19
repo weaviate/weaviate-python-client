@@ -246,6 +246,7 @@ class _BatchGRPC(_BaseGRPC):
         float_arrays: List[base_pb2.NumberArrayProperties] = []
         object_properties: List[base_pb2.ObjectProperties] = []
         object_array_properties: List[base_pb2.ObjectArrayProperties] = []
+        empty_lists: List[str] = []
 
         for key, ref in refs.items():
             if isinstance(ref, _Reference):
@@ -311,12 +312,15 @@ class _BatchGRPC(_BaseGRPC):
                             boolean_array_properties=parsed.boolean_array_properties,
                             object_properties=parsed.object_properties,
                             object_array_properties=parsed.object_array_properties,
+                            empty_list_props=parsed.empty_list_props,
                         ),
                     )
                 )
             elif isinstance(entry, list) and len(entry) == 0:
-                # this is a dirty hack until th GRPC batch backend is fixed
-                text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=entry))
+                if self._connection._weaviate_version.is_at_least(1, 23, 4):
+                    empty_lists.append(key)
+                else:
+                    text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=[]))
             elif isinstance(entry, list) and isinstance(entry[0], dict):
                 entry = cast(List[Dict[str, Any]], entry)
                 object_array_properties.append(
@@ -330,6 +334,7 @@ class _BatchGRPC(_BaseGRPC):
                                 boolean_array_properties=parsed.boolean_array_properties,
                                 object_properties=parsed.object_properties,
                                 object_array_properties=parsed.object_array_properties,
+                                empty_list_props=parsed.empty_list_props,
                             )
                             for v in entry
                             if (
@@ -386,6 +391,7 @@ class _BatchGRPC(_BaseGRPC):
             boolean_array_properties=bool_arrays,
             object_properties=object_properties,
             object_array_properties=object_array_properties,
+            empty_list_props=empty_lists,
         )
 
 
