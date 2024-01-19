@@ -38,14 +38,8 @@ from weaviate.warnings import _Warnings
 
 from .base import _ConnectionBase, _get_proxies
 
-try:
-    import grpc  # type: ignore
-    from weaviate.proto.v1 import weaviate_pb2_grpc
-
-    has_grpc = True
-
-except ImportError:
-    has_grpc = False
+import grpc  # type: ignore
+from weaviate.proto.v1 import weaviate_pb2_grpc
 
 
 JSONPayload = Union[dict, list]
@@ -119,7 +113,7 @@ class Connection(_ConnectionBase):
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
-        if has_grpc and grcp_port is not None:
+        if grcp_port is not None:
             parsed_url = urlparse(self.url)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
