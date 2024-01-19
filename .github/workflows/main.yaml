@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.6
-  NEW_WEAVIATE_VERSION: 1.23.3-1d9faf5
+  NEW_WEAVIATE_VERSION: preview-replace-implicit-nil-behaviour-with-explicit-grpc-message-a710c97
 
 jobs:
   lint-and-format:
