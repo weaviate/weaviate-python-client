@@ -811,8 +811,7 @@ class _FilterById(_FilterBase):
 
 
 class _FilterByCount(_FilterBase):
-    def __init__(self, link_on: str, target: Optional[_TargetRefs] = None) -> None:
-        self._target = target
+    def __init__(self, link_on: str) -> None:
         self._property = _CountRef(link_on=link_on)
 
     def equal(self, count: int) -> _FilterValue2:
@@ -874,6 +873,7 @@ class _FilterByCount(_FilterBase):
             `count`
                 count to filter on.
         """
+        print(self._target_path())
         return _FilterValue2(
             target=self._target_path(),
             value=count,
