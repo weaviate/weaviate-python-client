@@ -748,7 +748,7 @@ def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) ->
         vectorizer_config=Configure.Vectorizer.none(),
     )
     collection.config.add_reference(
-        ReferenceProperty(name="ref", target_collection=collection.name)
+        ReferenceProperty.MultiTarget(name="ref", target_collections=[collection.name])
     )
 
     if not collection._connection._weaviate_version.is_at_least(
