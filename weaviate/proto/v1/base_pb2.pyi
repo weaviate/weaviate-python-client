@@ -278,19 +278,28 @@ class FilterReferenceMultiTarget(_message.Message):
         target_collection: _Optional[str] = ...,
     ) -> None: ...
 
+class FilterReferenceCount(_message.Message):
+    __slots__ = ["on"]
+    ON_FIELD_NUMBER: _ClassVar[int]
+    on: str
+    def __init__(self, on: _Optional[str] = ...) -> None: ...
+
 class FilterTarget(_message.Message):
-    __slots__ = ["property", "single_target", "multi_target"]
+    __slots__ = ["property", "single_target", "multi_target", "count"]
     PROPERTY_FIELD_NUMBER: _ClassVar[int]
     SINGLE_TARGET_FIELD_NUMBER: _ClassVar[int]
     MULTI_TARGET_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
     property: str
     single_target: FilterReferenceSingleTarget
     multi_target: FilterReferenceMultiTarget
+    count: FilterReferenceCount
     def __init__(
         self,
         property: _Optional[str] = ...,
         single_target: _Optional[_Union[FilterReferenceSingleTarget, _Mapping]] = ...,
         multi_target: _Optional[_Union[FilterReferenceMultiTarget, _Mapping]] = ...,
+        count: _Optional[_Union[FilterReferenceCount, _Mapping]] = ...,
     ) -> None: ...
 
 class GeoCoordinatesFilter(_message.Message):

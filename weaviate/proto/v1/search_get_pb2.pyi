@@ -37,6 +37,9 @@ class SearchRequest(_message.Message):
         "near_image",
         "near_audio",
         "near_video",
+        "near_depth",
+        "near_thermal",
+        "near_imu",
         "generative",
         "rerank",
         "uses_123_api",
@@ -61,6 +64,9 @@ class SearchRequest(_message.Message):
     NEAR_IMAGE_FIELD_NUMBER: _ClassVar[int]
     NEAR_AUDIO_FIELD_NUMBER: _ClassVar[int]
     NEAR_VIDEO_FIELD_NUMBER: _ClassVar[int]
+    NEAR_DEPTH_FIELD_NUMBER: _ClassVar[int]
+    NEAR_THERMAL_FIELD_NUMBER: _ClassVar[int]
+    NEAR_IMU_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     RERANK_FIELD_NUMBER: _ClassVar[int]
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
@@ -84,6 +90,9 @@ class SearchRequest(_message.Message):
     near_image: NearImageSearch
     near_audio: NearAudioSearch
     near_video: NearVideoSearch
+    near_depth: NearDepthSearch
+    near_thermal: NearThermalSearch
+    near_imu: NearIMUSearch
     generative: GenerativeSearch
     rerank: Rerank
     uses_123_api: bool
@@ -109,6 +118,9 @@ class SearchRequest(_message.Message):
         near_image: _Optional[_Union[NearImageSearch, _Mapping]] = ...,
         near_audio: _Optional[_Union[NearAudioSearch, _Mapping]] = ...,
         near_video: _Optional[_Union[NearVideoSearch, _Mapping]] = ...,
+        near_depth: _Optional[_Union[NearDepthSearch, _Mapping]] = ...,
+        near_thermal: _Optional[_Union[NearThermalSearch, _Mapping]] = ...,
+        near_imu: _Optional[_Union[NearIMUSearch, _Mapping]] = ...,
         generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
         rerank: _Optional[_Union[Rerank, _Mapping]] = ...,
         uses_123_api: bool = ...,
@@ -343,6 +355,51 @@ class NearVideoSearch(_message.Message):
     def __init__(
         self,
         video: _Optional[str] = ...,
+        certainty: _Optional[float] = ...,
+        distance: _Optional[float] = ...,
+    ) -> None: ...
+
+class NearDepthSearch(_message.Message):
+    __slots__ = ["depth", "certainty", "distance"]
+    DEPTH_FIELD_NUMBER: _ClassVar[int]
+    CERTAINTY_FIELD_NUMBER: _ClassVar[int]
+    DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    depth: str
+    certainty: float
+    distance: float
+    def __init__(
+        self,
+        depth: _Optional[str] = ...,
+        certainty: _Optional[float] = ...,
+        distance: _Optional[float] = ...,
+    ) -> None: ...
+
+class NearThermalSearch(_message.Message):
+    __slots__ = ["thermal", "certainty", "distance"]
+    THERMAL_FIELD_NUMBER: _ClassVar[int]
+    CERTAINTY_FIELD_NUMBER: _ClassVar[int]
+    DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    thermal: str
+    certainty: float
+    distance: float
+    def __init__(
+        self,
+        thermal: _Optional[str] = ...,
+        certainty: _Optional[float] = ...,
+        distance: _Optional[float] = ...,
+    ) -> None: ...
+
+class NearIMUSearch(_message.Message):
+    __slots__ = ["imu", "certainty", "distance"]
+    IMU_FIELD_NUMBER: _ClassVar[int]
+    CERTAINTY_FIELD_NUMBER: _ClassVar[int]
+    DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    imu: str
+    certainty: float
+    distance: float
+    def __init__(
+        self,
+        imu: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
     ) -> None: ...

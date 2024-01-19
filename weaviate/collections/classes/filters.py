@@ -540,8 +540,13 @@ class _MultiTargetRef(_WeaviateInput):
     target: Optional["_FilterTargets"] = Field(exclude=True, default=None)
 
 
-_TargetRefs = Union[_SingleTargetRef, _MultiTargetRef]
-_FilterTargets = Union[_SingleTargetRef, _MultiTargetRef, str, None]
+class _CountRef(_WeaviateInput):
+    link_on: str
+    target: Optional["_FilterTargets"] = Field(exclude=True, default=None)
+
+
+_TargetRefs = Union[_SingleTargetRef, _MultiTargetRef, _CountRef]
+_FilterTargets = Union[_SingleTargetRef, _MultiTargetRef, _CountRef, str]
 
 
 class _FilterValue2(_Filters, _WeaviateInput):
@@ -556,13 +561,16 @@ class _FilterBase:
 
     def _target_path(self) -> _FilterTargets:
         if self._target is None:
+            assert self._property is not None
             return self._property
 
         # get last element in chain
         target = self._target
         while target.target is not None:
-            assert isinstance(target.target, _MultiTargetRef) or isinstance(
-                target.target, _SingleTargetRef
+            assert (
+                isinstance(target.target, _MultiTargetRef)
+                or isinstance(target.target, _SingleTargetRef)
+                or isinstance(target.target, _CountRef)
             )
             target = target.target
 
@@ -926,7 +934,7 @@ class _FilterByRef:
 
     def by_count(self) -> _FilterByCount:
         """Define a filter based on the number of references to be used when querying and deleting from a collection."""
-        return _FilterByCount(target=self.__target)
+        return _FilterByCount(target=_CountRef(link_on=self.__target.link_on))
 
 
 class Filter(_FilterOld):
