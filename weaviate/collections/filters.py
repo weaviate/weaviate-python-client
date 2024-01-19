@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Literal, Optional, cast, overload
 
 from weaviate.collections.classes.filters import (
     _FilterValue2,
+    _CountRef,
     _MultiTargetRef,
     _SingleTargetRef,
     _Filters,
@@ -83,6 +84,8 @@ class _FilterToGRPC:
     def __to_target(target: _FilterTargets) -> base_pb2.FilterTarget:
         if isinstance(target, str):
             return base_pb2.FilterTarget(property=target)
+        elif isinstance(target, _CountRef):
+            return base_pb2.FilterTarget(count=base_pb2.FilterReferenceCount(on=target.link_on))
         elif isinstance(target, _SingleTargetRef):
             assert target.target is not None
             return base_pb2.FilterTarget(
@@ -93,7 +96,6 @@ class _FilterToGRPC:
         else:
             assert isinstance(target, _MultiTargetRef)
             assert target.target is not None
-
             return base_pb2.FilterTarget(
                 multi_target=base_pb2.FilterReferenceMultiTarget(
                     on=target.link_on,

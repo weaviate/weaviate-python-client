@@ -540,8 +540,12 @@ class _MultiTargetRef(_WeaviateInput):
     target: Optional["_FilterTargets"] = Field(exclude=True, default=None)
 
 
+class _CountRef(_WeaviateInput):
+    link_on: str
+
+
 _TargetRefs = Union[_SingleTargetRef, _MultiTargetRef]
-_FilterTargets = Union[_SingleTargetRef, _MultiTargetRef, str]
+_FilterTargets = Union[_SingleTargetRef, _MultiTargetRef, _CountRef, str]
 
 
 class _FilterValue2(_Filters, _WeaviateInput):
@@ -552,7 +556,7 @@ class _FilterValue2(_Filters, _WeaviateInput):
 
 class _FilterBase:
     _target: Optional[_TargetRefs] = None
-    _property: str
+    _property: Union[str, _CountRef]
 
     def _target_path(self) -> _FilterTargets:
         if self._target is None:
@@ -806,6 +810,88 @@ class _FilterById(_FilterBase):
         )
 
 
+class _FilterByCount(_FilterBase):
+    def __init__(self, link_on: str) -> None:
+        self._property = _CountRef(link_on=link_on)
+
+    def equal(self, count: int) -> _FilterValue2:
+        """Filter on whether the number of references is equal to the given integer.
+
+        Arguments:
+            `count`
+                count to filter on.
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=count,
+            operator=_Operator.EQUAL,
+        )
+
+    def not_equal(self, count: int) -> _FilterValue2:
+        """Filter on whether the number of references is equal to the given integer.
+
+        Arguments:
+            `count`
+                count to filter on.
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=count,
+            operator=_Operator.NOT_EQUAL,
+        )
+
+    def less_than(self, count: int) -> _FilterValue2:
+        """Filter on whether the number of references is equal to the given integer.
+
+        Arguments:
+            `count`
+                count to filter on.
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=count,
+            operator=_Operator.LESS_THAN,
+        )
+
+    def less_or_equal(self, count: int) -> _FilterValue2:
+        """Filter on whether the number of references is equal to the given integer.
+
+        Arguments:
+            `count`
+                count to filter on.
+        """
+        return _FilterValue2(
+            target=self._target_path(),
+            value=count,
+            operator=_Operator.LESS_THAN_EQUAL,
+        )
+
+    def greater_than(self, count: int) -> _FilterValue2:
+        """Filter on whether the number of references is equal to the given integer.
+
+        Arguments:
+            `count`
+                count to filter on.
+        """
+        print(self._target_path())
+        return _FilterValue2(
+            target=self._target_path(),
+            value=count,
+            operator=_Operator.GREATER_THAN,
+        )
+
+    def greater_or_equal(self, count: int) -> _FilterValue2:
+        """Filter on whether the number of references is equal to the given integer.
+
+        Arguments:
+            `count`
+                count to filter on.
+        """
+        return _FilterValue2(
+            target=self._target_path(), value=count, operator=_Operator.GREATER_THAN_EQUAL
+        )
+
+
 class _FilterByRef:
     def __init__(self, target: _TargetRefs) -> None:
         self.__target = target
@@ -841,6 +927,10 @@ class _FilterByRef:
     def by_property(self, prop: str, length: bool = False) -> _FilterByProperty:
         """Define a filter based on a property to be used when querying and deleting from a collection."""
         return _FilterByProperty(prop=prop, length=length, target=self.__target)
+
+    def by_count(self) -> _FilterByCount:
+        """Define a filter based on the number of references to be used when querying and deleting from a collection."""
+        return _FilterByCount(link_on=self.__target.link_on)
 
 
 class Filter(_FilterOld):
