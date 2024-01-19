@@ -1651,8 +1651,9 @@ class _PropertyBase(_ConfigBase):
     vectorizer: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
+        module_config: Dict[str, Any] = {}
         if self.vectorizer is not None:
-            module_config: Dict[str, Any] = {self.vectorizer: {}}
+            module_config[self.vectorizer] = {}
         if self.vectorizer_config is not None:
             assert self.vectorizer is not None
             module_config[self.vectorizer] = {
@@ -1660,14 +1661,18 @@ class _PropertyBase(_ConfigBase):
                 "vectorizePropertyName": self.vectorizer_config.vectorize_property_name,
             }
 
-        return {
+        ret_dict: Dict[str, Any] = {
             "description": self.description,
             "indexFilterable": self.index_filterable,
             "indexVector": self.index_searchable,
-            "moduleConfig": module_config,
             "name": self.name,
             "tokenizer": self.tokenization.value if self.tokenization else None,
         }
+
+        if len(module_config) > 0:
+            ret_dict["moduleConfig"] = module_config
+
+        return ret_dict
 
 
 @dataclass
