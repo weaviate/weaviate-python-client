@@ -173,7 +173,6 @@ class WeaviateClient(_ClientBase):
         )
         config = additional_config or AdditionalConfig()
         self.__skip_init_checks = skip_init_checks
-        self.__connected = False
 
         self._connection = ConnectionV4(
             connection_params=connection_params,
@@ -244,7 +243,6 @@ class WeaviateClient(_ClientBase):
         If you do not do this, memory leaks may occur due to stale connections.
         This method also closes the embedded database if one was started."""
         self._connection.close()
-        self.__connected = False
 
     def connect(self) -> None:
         """Connect to the Weaviate instance performing all the necessary checks.
@@ -260,10 +258,9 @@ class WeaviateClient(_ClientBase):
             `weaviate.UnexpectedStatusCodeException`
                 If weaviate reports a none OK status.
         """
-        if self.__connected:
+        if self._connection.is_connected():
             return
         self._connection.connect(self.__skip_init_checks)
-        self.__connected = True
 
     def is_connected(self) -> bool:
         """Check if the client is connected to Weaviate.
@@ -272,7 +269,7 @@ class WeaviateClient(_ClientBase):
             `bool`
                 `True` if the client is connected to Weaviate with an open connection pool, `False` otherwise.
         """
-        return self.__connected
+        return self._connection.is_connected()
 
     def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
         """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.

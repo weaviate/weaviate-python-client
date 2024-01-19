@@ -1,6 +1,24 @@
 Changelog
 =========
 
+Version 4.4.b8
+--------------
+
+This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
+
+- Filters have been reworked and have a new syntax.
+    - Coming from <=4.4.b6 you can replace:
+        - ``Filter(path=property)`` with ``Filter.by_property(property)``
+        - ``Filter(path=["ref","target_class", "target_property"])`` with ``Filter.by_ref("ref").by_property("target_property")``
+        - ``FilterMetadata.ByXX``with ``Filter.by_id/creation_time/update_time()``
+    - Coming from =4.4b7 you can replace:
+        -  ``Filter.by_ref().link_on("ref").by_property("target_property")`` with ``Filter.by_ref("ref").by_property("target_property")``
+
+Bugfixes include:
+- Error message when creating the client directly without calling ``connect_to_XXX``.
+- Fix deadlock in new batching algorithm.
+- Fix ``skip_init_checks=True`` resulting in compatibility with weavaite 1.22 only.
+
 Version 4.4.b7
 --------------
 

@@ -39,6 +39,7 @@ class BatchObject(_message.Message):
             "boolean_array_properties",
             "object_properties",
             "object_array_properties",
+            "empty_list_props",
         ]
         NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         SINGLE_TARGET_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
@@ -49,6 +50,7 @@ class BatchObject(_message.Message):
         BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+        EMPTY_LIST_PROPS_FIELD_NUMBER: _ClassVar[int]
         non_ref_properties: _struct_pb2.Struct
         single_target_ref_props: _containers.RepeatedCompositeFieldContainer[
             BatchObject.SingleTargetRefProps
@@ -72,6 +74,7 @@ class BatchObject(_message.Message):
         object_array_properties: _containers.RepeatedCompositeFieldContainer[
             _base_pb2.ObjectArrayProperties
         ]
+        empty_list_props: _containers.RepeatedScalarFieldContainer[str]
         def __init__(
             self,
             non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
@@ -99,6 +102,7 @@ class BatchObject(_message.Message):
             object_array_properties: _Optional[
                 _Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]
             ] = ...,
+            empty_list_props: _Optional[_Iterable[str]] = ...,
         ) -> None: ...
 
     class SingleTargetRefProps(_message.Message):

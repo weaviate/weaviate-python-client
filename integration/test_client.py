@@ -1,12 +1,11 @@
 from typing import Generator
-from httpx import ConnectError
 
 import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
 from weaviate.collections import Collection
-from weaviate.collections.classes.config import Configure, _CollectionConfig
+from weaviate.collections.classes.config import Configure, _CollectionConfig, DataType, Property
 from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
@@ -148,6 +147,8 @@ def test_connect_to_wcs() -> None:
 
 def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     name = request.node.name
+    client.collections.delete(name)
+
     col = client.collections.create(name=name)
     assert client.collections.exists(name)
     assert isinstance(col, Collection)
@@ -162,6 +163,8 @@ def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequ
 def test_delete_multiple(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     name1 = request.node.name
     name2 = request.node.name + "2"
+    client.collections.delete([name1, name2])
+
     client.collections.create(
         name=name1,
         vectorizer_config=Configure.Vectorizer.none(),
@@ -200,6 +203,8 @@ def test_create_raw_get_and_delete(client: weaviate.WeaviateClient, request: Sub
 def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     name1 = request.node.name
     name2 = request.node.name + "2"
+    client.collections.delete([name1, name2])
+
     col = client.collections.create(
         name=name1,
         vectorizer_config=Configure.Vectorizer.none(),
@@ -225,6 +230,8 @@ def test_collection_name_capitalization(
 ) -> None:
     name_small = "collectionCapitalizationTest"
     name_big = "CollectionCapitalizationTest"
+    client.collections.delete(name_small)
+
     collection = client.collections.create(
         name=name_small,
         vectorizer_config=Configure.Vectorizer.none(),
@@ -279,28 +286,57 @@ def test_client_as_context_manager() -> None:
 
 
 def test_connect_to_wrong_wcs() -> None:
-    client = weaviate.connect_to_wcs(
-        "does-not-exist", auth_credentials=WCS_CREDS, skip_init_checks=True
-    )
-    with pytest.raises(ConnectError):
-        client.get_meta()
+    with pytest.raises(WeaviateStartUpError):
+        weaviate.connect_to_wcs("does-not-exist", auth_credentials=WCS_CREDS, skip_init_checks=True)
 
 
 def test_connect_to_wrong_local() -> None:
-    client = weaviate.connect_to_local("does-not-exist", skip_init_checks=True)
-    with pytest.raises(ConnectError):
-        client.get_meta()
+    with pytest.raises(expected_exception=WeaviateStartUpError):
+        weaviate.connect_to_local("does-not-exist", skip_init_checks=True)
 
 
 def test_connect_to_wrong_custom() -> None:
-    client = weaviate.connect_to_custom(
-        "does-not-exist",
-        http_port=1234,
-        http_secure=False,
-        grpc_host="does-not-exist",
-        grpc_port=2345,
-        grpc_secure=False,
-        skip_init_checks=True,
+    with pytest.raises(expected_exception=WeaviateStartUpError):
+        weaviate.connect_to_custom(
+            "does-not-exist",
+            http_port=1234,
+            http_secure=False,
+            grpc_host="does-not-exist",
+            grpc_port=2345,
+            grpc_secure=False,
+            skip_init_checks=True,
+        )
+
+
+def test_rest_call_without_connect() -> None:
+    client = weaviate.WeaviateClient(
+        weaviate.connect.ConnectionParams.from_url("http://localhost:8080", 50051)
     )
-    with pytest.raises(ConnectError):
+    with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
         client.get_meta()
+
+
+def test_grpc_call_without_connect() -> None:
+    client = weaviate.WeaviateClient(
+        weaviate.connect.ConnectionParams.from_url("http://localhost:8080", 50051)
+    )
+    with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailableError):
+        client.collections.get("does-not-exist").query.fetch_objects()
+
+
+def test_client_with_skip_init_check(request: SubRequest) -> None:
+    client = weaviate.connect_to_local(skip_init_checks=True)
+    client.collections.delete(request.node.name)
+    col = client.collections.create(
+        name=request.node.name,
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+
+    col.data.insert(properties={"name": "Name"})
+
+    obj = col.query.fetch_objects().objects[0]
+    assert obj.properties["name"] == "Name"
