@@ -4,7 +4,7 @@ GraphQL `Get` command.
 from dataclasses import dataclass, Field, fields
 from enum import Enum
 from json import dumps
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 from weaviate import util
 from weaviate.connect import Connection
@@ -103,14 +103,14 @@ class GroupBy:
 class LinkTo:
     link_on: str
     linked_class: str
-    properties: List[Union[str, "LinkTo"]]
+    properties: Sequence[Union[str, "LinkTo"]]
 
     def __str__(self) -> str:
         props = " ".join(str(x) for x in self.properties)
         return self.link_on + "{... on " + self.linked_class + "{" + props + "}}"
 
 
-PROPERTIES = Union[List[Union[str, LinkTo]], str]
+PROPERTIES = Union[Sequence[Union[str, LinkTo]], str]
 
 
 @dataclass
@@ -178,7 +178,7 @@ class GetBuilder(GraphQL):
                 "properties must be of type str, " f"list of str or None but was {type(properties)}"
             )
 
-        self._properties: List[Union[str, LinkTo]] = []
+        self._properties: Sequence[Union[str, LinkTo]] = []
         for prop in properties:
             if not isinstance(prop, str) and not isinstance(prop, LinkTo):
                 raise TypeError("All the `properties` must be of type `str` or Reference!")
@@ -1952,7 +1952,7 @@ class GetBuilder(GraphQL):
         return result
 
     def _convert_references_to_grpc(
-        self, properties: List[Union[LinkTo, str]]
+        self, properties: Sequence[Union[LinkTo, str]]
     ) -> "search_get_pb2.PropertiesRequest":
         return search_get_pb2.PropertiesRequest(
             non_ref_properties=[prop for prop in properties if isinstance(prop, str)],
