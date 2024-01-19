@@ -1,5 +1,5 @@
 from weaviate.collections.classes.aggregate import Metrics
-from weaviate.collections.classes.tenants import Tenant
+from .tenants import Tenant
 
 from .config import (
     Configure,
@@ -31,6 +31,9 @@ from .query import (
     QueryNested,
     QueryReference,
 )
+
+# make sure to import all classes that should be available in the weaviate module
+from . import batch, config, data, generics, init, query, tenants  # noqa: F401
 
 __all__ = [
     "Configure",

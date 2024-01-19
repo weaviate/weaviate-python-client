@@ -1,6 +1,6 @@
 """Helper functions for creating a new WeaviateClient in common scenarios."""
 from urllib.parse import urlparse
-from typing import Optional, Tuple, Dict
+from typing import Optional, Dict
 
 from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateClient
@@ -13,7 +13,7 @@ def connect_to_wcs(
     cluster_url: str,
     auth_credentials: Optional[AuthCredentials],
     headers: Optional[Dict[str, str]] = None,
-    timeout: Tuple[int, int] = (10, 60),
+    additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
     """
@@ -32,9 +32,8 @@ def connect_to_wcs(
             or a username and password, in which case use `weaviate.AuthClientPassword`.
         `headers`
             Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorisation.
-        `timeout`
-            The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
-            represents the connect timeout and the second integer represents the read timeout.
+        `additional_config`
+            This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         `skip_init_checks`
             Whether to skip the initialisation checks when connecting to Weaviate.
 
@@ -73,7 +72,7 @@ def connect_to_wcs(
         ),
         auth_client_secret=auth_credentials,
         additional_headers=headers,
-        additional_config=AdditionalConfig(timeout=timeout),
+        additional_config=additional_config,
         skip_init_checks=skip_init_checks,
     )
     client.connect()
@@ -85,7 +84,7 @@ def connect_to_local(
     port: int = 8080,
     grpc_port: int = 50051,
     headers: Optional[Dict[str, str]] = None,
-    timeout: Tuple[int, int] = (10, 60),
+    additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
     auth_credentials: Optional[AuthCredentials] = None,
 ) -> WeaviateClient:
@@ -148,7 +147,7 @@ def connect_to_local(
             grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
         ),
         additional_headers=headers,
-        additional_config=AdditionalConfig(timeout=timeout),
+        additional_config=additional_config,
         skip_init_checks=skip_init_checks,
         auth_client_secret=auth_credentials,
     )
@@ -158,9 +157,9 @@ def connect_to_local(
 
 def connect_to_embedded(
     port: int = 8079,
-    grpc_port: int = 50051,
+    grpc_port: int = 50050,
     headers: Optional[Dict[str, str]] = None,
-    timeout: Tuple[int, int] = (10, 60),
+    additional_config: Optional[AdditionalConfig] = None,
     version: str = "1.22.3",
 ) -> WeaviateClient:
     """
@@ -177,9 +176,8 @@ def connect_to_embedded(
             The port to use for the underlying gRPC API.
         `headers`
             Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
-        `timeout`
-            The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
-            represents the connect timeout and the second integer represents the read timeout.
+        `additional_config`
+            This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
 
     Returns
         `weaviate.WeaviateClient`
@@ -211,7 +209,7 @@ def connect_to_embedded(
             version=version,
         ),
         additional_headers=headers,
-        additional_config=AdditionalConfig(timeout=timeout),
+        additional_config=additional_config,
     )
     client.connect()
     return client
@@ -225,7 +223,7 @@ def connect_to_custom(
     grpc_port: int,
     grpc_secure: bool,
     headers: Optional[Dict[str, str]] = None,
-    timeout: Tuple[int, int] = (10, 60),
+    additional_config: Optional[AdditionalConfig] = None,
     auth_credentials: Optional[AuthCredentials] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
@@ -305,7 +303,7 @@ def connect_to_custom(
         ),
         auth_client_secret=auth_credentials,
         additional_headers=headers,
-        additional_config=AdditionalConfig(timeout=timeout),
+        additional_config=additional_config,
         skip_init_checks=skip_init_checks,
     )
     client.connect()

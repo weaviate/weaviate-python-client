@@ -7,11 +7,12 @@ import weaviate
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import Configure, _CollectionConfig, DataType, Property
 from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
+import weaviate.classes as wvc
 
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
 WCS_URL = f"https://{WCS_HOST}"
 WCS_GRPC_HOST = f"grpc-{WCS_HOST}"
-WCS_CREDS = weaviate.auth.AuthApiKey("cy4ua772mBlMdfw3YnclqAWzFhQt0RLIN0sl")
+WCS_CREDS = wvc.init.Auth.api_key("cy4ua772mBlMdfw3YnclqAWzFhQt0RLIN0sl")
 
 
 @pytest.fixture(scope="module")
@@ -340,3 +341,26 @@ def test_client_with_skip_init_check(request: SubRequest) -> None:
 
     obj = col.query.fetch_objects().objects[0]
     assert obj.properties["name"] == "Name"
+
+
+def test_client_with_extra_options() -> None:
+    additional_config = wvc.init.AdditionalConfig(timeout=(1, 2), trust_env=True)
+
+    for client in [
+        weaviate.connect_to_wcs(
+            cluster_url=WCS_URL, auth_credentials=WCS_CREDS, additional_config=additional_config
+        ),
+        weaviate.connect_to_local(additional_config=additional_config),
+        weaviate.connect_to_custom(
+            http_secure=True,
+            http_host=WCS_HOST,
+            http_port=443,
+            grpc_secure=True,
+            grpc_host=WCS_GRPC_HOST,
+            grpc_port=443,
+            auth_credentials=WCS_CREDS,
+            additional_config=additional_config,
+        ),
+        weaviate.connect_to_embedded(additional_config=additional_config),
+    ]:
+        assert client._connection.timeout_config == (1, 2)
