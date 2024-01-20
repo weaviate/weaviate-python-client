@@ -886,7 +886,7 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
     useCache: Optional[bool]
     vectorizeClassName: bool
 
-    def validate_mutually_exclusive_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_mutually_exclusive_fields(self, values: Dict[str, Any]) -> Dict[str, Any]:
         if "passageModel" in values and "queryModel" not in values:
             raise ValueError("Must specify query_model when specifying passage_model")
         if "queryModel" in values and "passageModel" not in values:
