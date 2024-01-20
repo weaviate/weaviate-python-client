@@ -121,10 +121,10 @@ ClientPassword = _ClientPassword
 """@deprecated; use wvc.Auth.client_password() instead."""
 
 AuthApiKey = _APIKey
-"""@deprecated; use APIKey instead."""
+"""@deprecated; use wvc.Auth.api_key() instead."""
 AuthBearerToken = _BearerToken
-"""@deprecated; use BearerToken instead."""
+"""@deprecated; use wvc.Auth.api_key() instead."""
 AuthClientCredentials = _ClientCredentials
-"""@deprecated; use ClientCredentials instead."""
+"""@deprecated; use wvc.Auth.api_key() instead."""
 AuthClientPassword = _ClientPassword
-"""@deprecated; use ClientPassword instead."""
+"""@deprecated; use wvc.Auth.api_key() instead."""
