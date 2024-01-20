@@ -1,6 +1,6 @@
 {
   "include": [
-    "weaviate"
+    "weaviate", "integration"
   ],
 
   "exclude": [
