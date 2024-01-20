@@ -12,8 +12,8 @@
   "reportUnusedVariable": true,
   "reportMissingTypeStubs": false,
   "reportGeneralTypeIssues": false,
-  "reportInvalidTypeVarUse": false,
-  "reportOptionalMemberAccess": false,
+  "reportInvalidTypeVarUse": true,
+  "reportOptionalMemberAccess": true,
   "reportPropertyTypeMismatch": false,
   "reportMissingModuleSource": false,
   "reportMissingImports": false
