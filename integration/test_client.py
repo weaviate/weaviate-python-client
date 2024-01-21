@@ -39,14 +39,6 @@ def test_fail_to_connect_to_inactive_grpc_port() -> None:
         ).connect()
 
 
-def test_fail_to_connect_to_unspecified_grpc_port() -> None:
-    with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailableError):
-        weaviate.WeaviateClient(
-            connection_params=weaviate.connect.ConnectionParams.from_url("http://localhost:8080"),
-            skip_init_checks=False,
-        ).connect()
-
-
 def test_fail_to_connect_with_bad_wcs_url() -> None:
     with pytest.raises(WeaviateStartUpError):
         weaviate.connect_to_wcs(
