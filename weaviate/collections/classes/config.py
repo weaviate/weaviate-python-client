@@ -1,7 +1,19 @@
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
 from enum import Enum
-from typing import Any, ClassVar, Dict, List, Literal, Optional, Sequence, Type, Union, cast
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -2037,6 +2049,8 @@ class ReferenceProperty(_ReferencePropertyBase):
 
 PropertyType = Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]
 
+T = TypeVar("T", bound="_CollectionConfigCreate")
+
 
 class _CollectionConfigCreate(_CollectionConfigCreateBase):
     name: str
@@ -2044,7 +2058,7 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
     references: Optional[List[_ReferencePropertyBase]] = Field(default=None)
 
     @model_validator(mode="after")
-    def model_validator_return_none(self) -> "_CollectionConfigCreate":
+    def model_validator_return_none(self: T) -> T:
         if self.properties is not None and any(
             isinstance(p, _ReferencePropertyBase) for p in self.properties
         ):

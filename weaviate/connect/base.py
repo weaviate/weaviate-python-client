@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Literal, Tuple, Union, cast, overload
+from typing import Literal, Tuple, TypeVar, Union, cast, overload
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -40,6 +40,9 @@ class ProtocolParams(BaseModel):
         if v < 0 or v > 65535:
             raise ValueError("port must be between 0 and 65535")
         return v
+
+
+T = TypeVar("T", bound="ConnectionParams")
 
 
 class ConnectionParams(BaseModel):
@@ -93,7 +96,7 @@ class ConnectionParams(BaseModel):
         )
 
     @model_validator(mode="after")
-    def _check_port_collision(self) -> "ConnectionParams":
+    def _check_port_collision(self: T) -> T:
         if self.http.host == self.grpc.host and self.http.port == self.grpc.port:
             raise ValueError("http.port and grpc.port must be different if using the same host")
         return self
