@@ -34,10 +34,10 @@ from . import (
     schema,
 )
 
-import warnings
-
 if not sys.warnoptions:
-    warnings.simplefilter("default")
+    from warnings import simplefilter
+
+    simplefilter("default")
 
 from .warnings import _Warnings
 
