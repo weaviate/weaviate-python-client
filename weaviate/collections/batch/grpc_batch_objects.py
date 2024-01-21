@@ -232,9 +232,6 @@ class _BatchGRPC(_BaseGRPC):
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], refs: ReferenceInputs, clean_props: bool
     ) -> batch_pb2.BatchObject.Properties:
-        if data is None and refs is None:
-            return None
-
         _validate_props(data, clean_props)
 
         multi_target: List[batch_pb2.BatchObject.MultiTargetRefProps] = []
