@@ -640,7 +640,7 @@ References = TypeVar("References", bound=Optional[Mapping[str, Any]], default=No
 """`References` is used wherever a single generic type is needed for references"""
 
 # I wish we could have bound=Mapping[str, CrossReference["P", "R"]] here, but you can't have generic bounds, so Any must suffice
-TReferences = TypeVar("TReferences", bound=Mapping[str, Any])
+TReferences = TypeVar("TReferences", bound=Optional[Mapping[str, Any]], default=None)
 """`TReferences` is used alongside `References` wherever there are two generic types needed"""
 
 
