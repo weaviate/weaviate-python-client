@@ -159,7 +159,7 @@ class _Data:
                 If Weaviate reports a non-OK status.
         """
         if not isinstance(where, _Filters):
-            return _raise_invalid_input("where", where, _Filters)
+            _raise_invalid_input("where", where, _Filters)
         if self._connection._weaviate_version.is_at_least(1, 23, patch=3):
             return self._batch_delete_grpc.batch_delete(
                 self.name, where, verbose, dry_run, self._tenant
