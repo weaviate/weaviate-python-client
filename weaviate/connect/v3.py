@@ -215,7 +215,12 @@ class Connection(_ConnectionBase):
                 return
 
             if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
-                _auth = _Auth(resp, auth_client_secret, self)
+                _auth = _Auth(
+                    session_type=OAuth2Session,
+                    oidc_config=resp,
+                    credentials=auth_client_secret,
+                    connection=self,
+                )
                 self._session = _auth.get_auth_session()
 
                 if isinstance(auth_client_secret, AuthClientCredentials):
