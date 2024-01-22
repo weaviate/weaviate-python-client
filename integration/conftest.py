@@ -58,7 +58,6 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
     def cleanup_collection(client: Optional[weaviate.WeaviateClient], name: str) -> None:
         if client is not None:
             client.collections.delete(name)
-            client.close()
 
     def cleanup_client(client: Optional[weaviate.WeaviateClient]) -> None:
         if client is not None:
