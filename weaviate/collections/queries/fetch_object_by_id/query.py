@@ -6,7 +6,6 @@ from typing import (
     Generic,
     List,
     Optional,
-    Union,
     TypedDict,
     cast,
 )
@@ -26,7 +25,6 @@ from weaviate.collections.classes.internal import (
     TReferences,
     WeaviateProperties,
     FromNested,
-    CrossReferences,
     _CrossReference,
 )
 from weaviate.collections.classes.types import Properties, TProperties
@@ -43,7 +41,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Optional[QuerySingleReturn]:
+    ) -> Optional[QuerySingleReturn[Properties, References, TProperties, TReferences]]:
         """Retrieve an object from the server by its UUID.
 
         Arguments:
@@ -100,15 +98,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
             assert obj.metadata.last_update_time is not None
 
             return cast(
-                Union[
-                    None,
-                    ObjectSingleReturn[Properties, References],
-                    ObjectSingleReturn[Properties, CrossReferences],
-                    ObjectSingleReturn[Properties, TReferences],
-                    ObjectSingleReturn[TProperties, References],
-                    ObjectSingleReturn[TProperties, CrossReferences],
-                    ObjectSingleReturn[TProperties, TReferences],
-                ],
+                QuerySingleReturn[Properties, References, TProperties, TReferences],
                 ObjectSingleReturn(
                     uuid=obj.uuid,
                     vector=obj.vector,
@@ -124,15 +114,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
             )
         else:
             return cast(  # pyright: ignore
-                Union[
-                    None,
-                    ObjectSingleReturn[Properties, References],
-                    ObjectSingleReturn[Properties, CrossReferences],
-                    ObjectSingleReturn[Properties, TReferences],
-                    ObjectSingleReturn[TProperties, References],
-                    ObjectSingleReturn[TProperties, CrossReferences],
-                    ObjectSingleReturn[TProperties, TReferences],
-                ],
+                QuerySingleReturn[Properties, References, TProperties, TReferences],
                 self._get_with_rest(
                     self._name, uuid, include_vector, return_properties, return_references
                 ),
