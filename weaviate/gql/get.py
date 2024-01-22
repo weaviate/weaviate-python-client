@@ -1896,7 +1896,7 @@ class GetBuilder(GraphQL):
                 }
 
             except grpc.RpcError as e:
-                results = {"errors": [e.details()]}
+                results = {"errors": [e.details()]}  # pyright: ignore
             return results
         else:
             return super().do()
