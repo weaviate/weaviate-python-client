@@ -60,6 +60,10 @@ from weaviate.warnings import _Warnings
 
 from weaviate.proto.v1 import weaviate_pb2_grpc
 
+from grpc import Channel
+from grpc.aio import Channel as AsyncChannel  # type: ignore
+
+
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 
@@ -91,6 +95,8 @@ class _Connection(_ConnectionBase):
         self._grpc_available = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+        self._grpc_channel: Optional[Channel] = None
+        self._grpc_channel_async: Optional[AsyncChannel] = None
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
@@ -368,8 +374,11 @@ class _Connection(_ConnectionBase):
             and self._shutdown_background_event is not None
         ):
             self._shutdown_background_event.set()
+
         if hasattr(self, "_client"):
             self._client.close()
+        if self._grpc_channel is not None:
+            self._grpc_channel.close()
         if self.embedded_db is not None:
             self.embedded_db.stop()
         self.__connected = False
@@ -596,14 +605,14 @@ class ConnectionV4(_Connection):
         super().connect(skip_init_checks)
         # create GRPC channel. If Weaviate does not support GRPC then error now.
         if self._connection_params._has_grpc:
-            grpc_channel = self._connection_params._grpc_channel(async_channel=False)
-            assert grpc_channel is not None
-            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(grpc_channel)
+            self._grpc_channel = self._connection_params._grpc_channel(async_channel=False)
+            assert self._grpc_channel is not None
+            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
 
             self._grpc_available = True
             if not skip_init_checks:
                 try:
-                    res: health_pb2.HealthCheckResponse = grpc_channel.unary_unary(
+                    res: health_pb2.HealthCheckResponse = self._grpc_channel.unary_unary(
                         "/grpc.health.v1.Health/Check",
                         request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
                         response_deserializer=health_pb2.HealthCheckResponse.FromString,
