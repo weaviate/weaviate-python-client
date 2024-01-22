@@ -1,6 +1,7 @@
 import datetime
 import io
 import pathlib
+import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Union
 
@@ -1645,6 +1646,11 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
         (Sort.by_property("name", "desc"), [2, 1, 0]),
         ([Sort.by_property("age", "desc"), Sort.by_property("name", "asc")], [1, 2, 0]),
         (Sort.by_id("asc"), [0, 1, 2]),
+        (Sort.by_id("desc"), [2, 1, 0]),
+        (Sort.by_creation_time("asc"), [0, 1, 2]),
+        (Sort.by_creation_time("desc"), [2, 1, 0]),
+        (Sort.by_update_time("asc"), [0, 1, 2]),
+        (Sort.by_update_time("desc"), [2, 1, 0]),
     ],
 )
 def test_sort(
@@ -1659,11 +1665,14 @@ def test_sort(
             Property(name="name", data_type=DataType.TEXT),
         ],
     )
-    uuids_from = [
-        collection.data.insert(properties={"name": "A", "age": 20}),
-        collection.data.insert(properties={"name": "B", "age": 22}),
-        collection.data.insert(properties={"name": "C", "age": 22}),
-    ]
+
+    uuid1 = collection.data.insert(properties={"name": "A", "age": 20}, uuid=str(UUID1)[:-1] + "1")
+    time.sleep(1)
+    uuid2 = collection.data.insert(properties={"name": "B", "age": 22}, uuid=str(UUID1)[:-1] + "2")
+    time.sleep(1)
+    uuid3 = collection.data.insert(properties={"name": "C", "age": 22}, uuid=str(UUID1)[:-1] + "3")
+
+    uuids_from = [uuid1, uuid2, uuid3]
 
     objects = collection.query.fetch_objects(sort=sort).objects
     assert len(objects) == len(expected)
