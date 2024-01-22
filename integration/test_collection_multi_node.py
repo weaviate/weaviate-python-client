@@ -24,7 +24,8 @@ def test_consistency_on_multinode(
         ],
         replication_config=Configure.replication(factor=2),
         ports=(8087, 50058),
-    ).with_consistency_level(level)
+        consistency_level=level,
+    )
 
     collection.data.insert({"name": "first"})
     ret = collection.data.insert_many(
