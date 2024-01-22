@@ -51,7 +51,7 @@ except ImportError:
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
-PYPI_TIMEOUT = 0.1
+INIT_CHECK_TIMEOUT = 0.1
 
 
 class Connection(_ConnectionBase):
@@ -175,7 +175,7 @@ class Connection(_ConnectionBase):
             _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
         try:
-            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=INIT_CHECK_TIMEOUT).json()
             pkg_info = pkg_info.get("info", {})
             latest_version = pkg_info.get("version", "unknown version")
             if is_weaviate_client_too_old(client_version, latest_version):
@@ -633,13 +633,17 @@ class Connection(_ConnectionBase):
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
         for _i in range(startup_period):
             try:
-                requests.get(ready_url, headers=self._headers).raise_for_status()
+                requests.get(
+                    ready_url, headers=self._headers, timeout=INIT_CHECK_TIMEOUT
+                ).raise_for_status()
                 return
             except (RequestsHTTPError, RequestsConnectionError):
                 time.sleep(1)
 
         try:
-            requests.get(ready_url, headers=self._headers).raise_for_status()
+            requests.get(
+                ready_url, headers=self._headers, timeout=INIT_CHECK_TIMEOUT
+            ).raise_for_status()
             return
         except (RequestsHTTPError, RequestsConnectionError) as error:
             raise WeaviateStartUpError(
