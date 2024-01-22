@@ -1,4 +1,5 @@
 from weaviate.collections.classes.filters import Filter, FilterMetadata
+from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.grpc import (
     HybridFusion,
     FromNested,
@@ -24,6 +25,7 @@ __all__ = [
     "GroupBy",
     "HybridFusion",
     "MetadataQuery",
+    "Metrics",
     "Move",
     "NearMediaType",
     "QueryNested",
