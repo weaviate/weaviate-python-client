@@ -56,7 +56,7 @@ def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer, version: str, war
 
 def test_wait_for_weaviate(httpserver: HTTPServer):
     def handler(request: Request):
-        time.sleep(1)
+        time.sleep(0.01)
         return Response(json.dumps({}))
 
     def handler_meta(request: Request):
