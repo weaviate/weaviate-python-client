@@ -21,7 +21,7 @@ from weaviate.collections.classes.filters import (
     _FilterValue,
 )
 from weaviate.collections.classes.grpc import MetadataQuery, QueryReference
-from weaviate.collections.classes.internal import Reference
+from weaviate.collections.classes.internal import ReferenceToMulti
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -437,20 +437,16 @@ def test_ref_filters(
     )
 
     uuids_from = [
-        from_collection.data.insert(
-            properties={"name": "first"}, references={"ref": Reference.to(uuids_to[0])}
-        ),
-        from_collection.data.insert(
-            properties={"name": "second"}, references={"ref": Reference.to(uuids_to[1])}
-        ),
+        from_collection.data.insert(properties={"name": "first"}, references={"ref": uuids_to[0]}),
+        from_collection.data.insert(properties={"name": "second"}, references={"ref": uuids_to[1]}),
     ]
     uuids_from.extend(
         [
             from_collection.data.insert(
-                properties={"name": "third"}, references={"ref2": Reference.to(uuids_from[0])}
+                properties={"name": "third"}, references={"ref2": uuids_from[0]}
             ),
             from_collection.data.insert(
-                properties={"name": "fourth"}, references={"ref2": Reference.to(uuids_from[1])}
+                properties={"name": "fourth"}, references={"ref2": uuids_from[1]}
             ),
         ]
     )
@@ -491,7 +487,7 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
             "name": "first",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_to, target_collection=to_collection.name),
+            "ref": ReferenceToMulti(uuids=uuid_to, target_collection=to_collection.name),
         },
     )
     uuid_from_to_target2 = from_collection.data.insert(
@@ -499,7 +495,7 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
             "name": "second",
         },
         references={
-            "ref": Reference.to_multi_target(uuids=uuid_to2, target_collection=to_collection.name),
+            "ref": ReferenceToMulti(uuids=uuid_to2, target_collection=to_collection.name),
         },
     )
     from_collection.data.insert(
@@ -507,7 +503,7 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
             "name": "third",
         },
         references={
-            "ref": Reference.to_multi_target(
+            "ref": ReferenceToMulti(
                 uuids=uuid_from_to_target1, target_collection=from_collection.name
             ),
         },
@@ -517,7 +513,7 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
             "name": "fourth",
         },
         references={
-            "ref": Reference.to_multi_target(
+            "ref": ReferenceToMulti(
                 uuids=uuid_from_to_target2, target_collection=from_collection.name
             ),
         },
