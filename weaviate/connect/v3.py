@@ -295,7 +295,9 @@ class Connection(_ConnectionBase):
                         self._session.token = self._session.refresh_token(
                             self._session.metadata["token_endpoint"]
                         )
-                        refresh_time = int(self._session.token.get("expires_in")) - 30
+                        refresh_time = (
+                            int(self._session.token.get("expires_in")) - 30  # pyright: ignore
+                        )
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
@@ -576,7 +578,7 @@ class Connection(_ConnectionBase):
         )
 
     @property
-    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:
+    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:  # pyright: ignore
         """
         Getter/setter for `timeout_config`.
 
@@ -598,7 +600,7 @@ class Connection(_ConnectionBase):
         return self._timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN) -> None:
+    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN) -> None:  # pyright: ignore
         """
         Setter for `timeout_config`. (docstring should be only in the Getter)
         """

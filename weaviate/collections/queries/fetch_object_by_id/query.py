@@ -14,7 +14,7 @@ from typing import (
 from weaviate.collections.classes.filters import (
     Filter,
 )
-from weaviate.collections.classes.grpc import MetadataQuery
+from weaviate.collections.classes.grpc import MetadataQuery, QueryNested
 from weaviate.collections.classes.internal import (
     ObjectSingleReturn,
     MetadataSingleObjectReturn,
@@ -123,7 +123,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                 ),
             )
         else:
-            return cast(
+            return cast(  # pyright: ignore
                 Union[
                     None,
                     ObjectSingleReturn[Properties, References],
@@ -176,7 +176,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                 return {key: parse_value(val) for key, val in value.items()}
             return value
 
-        def resolve_nested(obj: Any, prop: FromNested) -> dict:
+        def resolve_nested(obj: Any, prop: QueryNested) -> dict:
             assert isinstance(obj, dict)
             nested_props = (
                 prop.properties if isinstance(prop.properties, list) else [prop.properties]
@@ -190,7 +190,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                     else:
                         nested[nested_prop.name] = resolve_nested(val, nested_prop)
                 else:
-                    nested[nested_prop] = parse_value(obj[nested_prop])
+                    nested[nested_prop] = parse_value(obj[nested_prop])  # pyright: ignore
             return nested
 
         if ret_props is not None:
@@ -198,14 +198,14 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                 if isinstance(prop, FromNested):
                     props[prop.name] = resolve_nested(obj_rest["properties"][prop.name], prop)
                 else:
-                    props[prop] = parse_value(obj_rest["properties"][prop])
+                    props[prop] = parse_value(obj_rest["properties"][prop])  # pyright: ignore
         else:
             for key, value in obj_rest["properties"].items():
                 if (
                     isinstance(value, list)
                     and len(value) > 0
-                    and isinstance(value[0], dict)
-                    and "beacon" in value[0]
+                    and isinstance(value[0], dict)  # pyright: ignore
+                    and "beacon" in value[0]  # pyright: ignore
                 ):
                     continue
                 else:
@@ -218,22 +218,23 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         refs: Optional[dict] = None
         if ret_refs is not None:
             refs = {
-                ret_ref.link_on: _CrossReference._from(
+                ret_ref.link_on: _CrossReference._from(  # pyright: ignore
                     [
                         self._get_with_rest(
                             rest_ref["beacon"].split("/")[-2],
                             uuid_lib.UUID(rest_ref["beacon"].split("/")[-1]),
-                            ret_ref.include_vector,
-                            ret_ref.return_properties,
-                            ret_ref.return_references,
+                            ret_ref.include_vector,  # pyright: ignore
+                            ret_ref.return_properties,  # pyright: ignore
+                            ret_ref.return_references,  # pyright: ignore
                         )  # type: ignore
                         for rest_ref in cast(
-                            List[_RestReference], obj_rest["properties"][ret_ref.link_on]
+                            List[_RestReference],
+                            obj_rest["properties"][ret_ref.link_on],  # pyright: ignore
                         )
                     ]
                 )
                 for ret_ref in ret_refs
-                if obj_rest["properties"].get(ret_ref.link_on) is not None
+                if obj_rest["properties"].get(ret_ref.link_on) is not None  # pyright: ignore
             }
             if all(ref is None for ref in refs.values()):
                 refs = None
