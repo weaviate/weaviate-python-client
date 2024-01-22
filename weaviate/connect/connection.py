@@ -52,7 +52,7 @@ except ImportError:
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
-INIT_CHECK_TIMEOUT = 0.1
+INIT_CHECK_TIMEOUT = 0.5
 
 
 class Connection:
