@@ -129,7 +129,7 @@ class ReferenceBatchRequest(BatchRequest):
     Caution this request will miss some validations to be faster.
     """
 
-    def add(
+    def add(  # pyright: ignore reportIncompatibleMethodOverride
         self,
         from_object_class_name: str,
         from_object_uuid: UUID,
@@ -213,7 +213,7 @@ class ReferenceBatchRequest(BatchRequest):
 
         return self._items
 
-    def add_failed_objects_from_response(
+    def add_failed_objects_from_response(  # pyright: ignore reportIncompatibleMethodOverride
         self,
         response: BatchResponse,
         errors_to_exclude: Optional[List[str]],
@@ -235,7 +235,7 @@ class ObjectsBatchRequest(BatchRequest):
     Caution this batch will not be validated through weaviate.
     """
 
-    def add(
+    def add(  # pyright: ignore reportIncompatibleMethodOverride
         self,
         data_object: dict,
         class_name: str,
@@ -313,7 +313,7 @@ class ObjectsBatchRequest(BatchRequest):
 
         return {"fields": ["ALL"], "objects": self._items}
 
-    def add_failed_objects_from_response(
+    def add_failed_objects_from_response(  # pyright: ignore reportIncompatibleMethodOverride
         self,
         response: BatchResponse,
         errors_to_exclude: Optional[List[str]],

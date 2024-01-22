@@ -38,14 +38,8 @@ from weaviate.warnings import _Warnings
 
 from .base import _ConnectionBase, _get_proxies
 
-try:
-    import grpc  # type: ignore
-    from weaviate.proto.v1 import weaviate_pb2_grpc
-
-    has_grpc = True
-
-except ImportError:
-    has_grpc = False
+import grpc  # type: ignore
+from weaviate.proto.v1 import weaviate_pb2_grpc
 
 
 JSONPayload = Union[dict, list]
@@ -119,7 +113,7 @@ class Connection(_ConnectionBase):
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
-        if has_grpc and grcp_port is not None:
+        if grcp_port is not None:
             parsed_url = urlparse(self.url)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
@@ -221,7 +215,12 @@ class Connection(_ConnectionBase):
                 return
 
             if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
-                _auth = _Auth(resp, auth_client_secret, self)
+                _auth = _Auth(
+                    session_type=OAuth2Session,
+                    oidc_config=resp,
+                    credentials=auth_client_secret,
+                    connection=self,
+                )
                 self._session = _auth.get_auth_session()
 
                 if isinstance(auth_client_secret, AuthClientCredentials):
@@ -301,7 +300,9 @@ class Connection(_ConnectionBase):
                         self._session.token = self._session.refresh_token(
                             self._session.metadata["token_endpoint"]
                         )
-                        refresh_time = self._session.token.get("expires_in") - 30
+                        refresh_time = (
+                            int(self._session.token.get("expires_in")) - 30  # pyright: ignore
+                        )
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
@@ -582,7 +583,7 @@ class Connection(_ConnectionBase):
         )
 
     @property
-    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:
+    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:  # pyright: ignore
         """
         Getter/setter for `timeout_config`.
 
@@ -604,7 +605,7 @@ class Connection(_ConnectionBase):
         return self._timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN) -> None:
+    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN) -> None:  # pyright: ignore
         """
         Setter for `timeout_config`. (docstring should be only in the Getter)
         """

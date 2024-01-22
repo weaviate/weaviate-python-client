@@ -1,6 +1,6 @@
 import datetime
 import time
-from typing import Generator
+from typing import Generator, List, Union
 
 import pytest
 
@@ -140,15 +140,17 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-def test_create_and_restore_backup_without_waiting(client: weaviate.WeaviateClient) -> None:
+@pytest.mark.parametrize("include", [["Article"], "Article"])
+def test_create_and_restore_backup_without_waiting(
+    client: weaviate.WeaviateClient, include: Union[str, List[str]]
+) -> None:
     """Create and restore backup without waiting."""
     backup_id = _create_backup_id()
-
-    include = ["Article"]
+    include_as_list = sorted(include) if isinstance(include, list) else [include]
 
     resp = client.backup.create(backup_id=backup_id, include_collections=include, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED
-    assert sorted(resp.collections) == sorted(include)
+    assert sorted(resp.collections) == include_as_list
 
     # wait until created
     while True:
@@ -174,7 +176,7 @@ def test_create_and_restore_backup_without_waiting(client: weaviate.WeaviateClie
         backend=BACKEND,
     )
     assert restore.status == BackupStatus.STARTED
-    assert sorted(restore.collections) == sorted(include)
+    assert sorted(restore.collections) == include_as_list
 
     # wait until restored
     while True:

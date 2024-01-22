@@ -640,7 +640,7 @@ References = TypeVar("References", bound=Optional[Mapping[str, Any]], default=No
 """`References` is used wherever a single generic type is needed for references"""
 
 # I wish we could have bound=Mapping[str, CrossReference["P", "R"]] here, but you can't have generic bounds, so Any must suffice
-TReferences = TypeVar("TReferences", bound=Mapping[str, Any])
+TReferences = TypeVar("TReferences", bound=Optional[Mapping[str, Any]], default=None)
 """`TReferences` is used alongside `References` wherever there are two generic types needed"""
 
 
@@ -660,7 +660,7 @@ ReturnReferences: TypeAlias = Union[
 
 
 @dataclass
-class _QueryOptions(Generic[Properties, References, TReferences]):
+class _QueryOptions:
     include_metadata: bool
     include_properties: bool
     include_references: bool
@@ -671,10 +671,10 @@ class _QueryOptions(Generic[Properties, References, TReferences]):
     def from_input(
         cls,
         return_metadata: Optional[METADATA],
-        return_properties: Optional[ReturnProperties[Properties]],
+        return_properties: Optional[ReturnProperties[Any]],
         include_vector: bool,
-        collection_references: Optional[Type[References]],
-        query_references: Optional[ReturnReferences[TReferences]],
+        collection_references: Optional[Type[Any]],
+        query_references: Optional[ReturnReferences[Any]],
         rerank: Optional[Rerank] = None,
         group_by: Optional[GroupBy] = None,
     ) -> "_QueryOptions":
@@ -691,11 +691,11 @@ class _QueryOptions(Generic[Properties, References, TReferences]):
 
 QuerySingleReturn = Union[
     ObjectSingleReturn[Properties, References],
+    ObjectSingleReturn[TProperties, TReferences],
     ObjectSingleReturn[Properties, CrossReferences],
     ObjectSingleReturn[Properties, TReferences],
     ObjectSingleReturn[TProperties, References],
     ObjectSingleReturn[TProperties, CrossReferences],
-    ObjectSingleReturn[TProperties, TReferences],
 ]
 
 GenerativeGroupByReturnType = Union[

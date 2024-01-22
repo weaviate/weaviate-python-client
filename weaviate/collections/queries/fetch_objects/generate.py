@@ -93,7 +93,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
                 grouped_properties=grouped_properties,
             ),
         )
-        return self._result_to_generative_return(
+        return self._result_to_generative_query_return(
             res,
             _QueryOptions.from_input(
                 return_metadata,
