@@ -27,6 +27,7 @@ from weaviate.collections.classes.grpc import (
     MetadataQuery,
     Move,
     Sort,
+    _Sort,
     PROPERTIES,
     PROPERTY,
     REFERENCE,
@@ -1648,7 +1649,7 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
 )
 def test_sort(
     collection_factory: CollectionFactory,
-    sort: Union[Sort, List[Sort]],
+    sort: Union[_Sort, List[_Sort]],
     expected: List[int],
 ) -> None:
     collection = collection_factory(
