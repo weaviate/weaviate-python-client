@@ -1,7 +1,5 @@
 from typing import Generic, List, Literal, Optional, Type, Union, overload
 
-from deprecated import deprecated
-
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -21,6 +19,7 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.warnings import _Warnings
 
 
 class _NearVectorGroupBy(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -144,10 +143,6 @@ class _NearVectorGroupBy(Generic[Properties, References], _BaseQuery[Properties,
     ) -> GroupByReturn[TProperties, TReferences]:
         ...
 
-    @deprecated(
-        version="4.4b6",
-        reason="Use `query.near_vector` with the `group_by` argument instead. The `query_group_by` namespace will be removed in GA.",
-    )
     def near_vector(
         self,
         near_vector: List[float],
@@ -216,6 +211,7 @@ class _NearVectorGroupBy(Generic[Properties, References], _BaseQuery[Properties,
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
+        _Warnings.old_query_group_by_namespace("query.near_vector", "query_group_by")
         res = self._query().near_vector(
             near_vector=near_vector,
             certainty=certainty,

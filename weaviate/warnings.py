@@ -195,6 +195,14 @@ class _Warnings:
         )
 
     @staticmethod
+    def old_query_group_by_namespace(new_method: str, old_namespace: str) -> None:
+        warnings.warn(
+            message=f"""Dep013: Use {new_method} with the `group_by` argument instead. The {old_namespace} namespace will be removed in the final release.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
