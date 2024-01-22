@@ -1640,9 +1640,10 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize(
     "sort,expected",
     [
-        (Sort(prop="name", ascending=True), [0, 1, 2]),
-        (Sort(prop="name", ascending=False), [2, 1, 0]),
-        ([Sort(prop="age", ascending=False), Sort(prop="name", ascending=True)], [1, 2, 0]),
+        (Sort.by_property("name", "asc"), [0, 1, 2]),
+        (Sort.by_property("name", "desc"), [2, 1, 0]),
+        ([Sort.by_property("age", "desc"), Sort.by_property("name", "asc")], [1, 2, 0]),
+        (Sort.by_id("asc"), [0, 1, 2]),
     ],
 )
 def test_sort(
