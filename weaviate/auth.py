@@ -10,7 +10,7 @@ SCOPES = Union[str, List[str]]
 
 
 @dataclass
-class ClientCredentials:
+class _ClientCredentials:
     """Authenticate for the Client Credential flow using client secrets.
 
     Acquire the client secret from your identify provider and set the appropriate scope. The client includes hardcoded
@@ -33,7 +33,7 @@ class ClientCredentials:
 
 
 @dataclass
-class ClientPassword:
+class _ClientPassword:
     """Using username and password for authentication with Resource Owner Password flow.
 
     For some providers the scope needs to contain "offline_access" (and "openid" which is automatically added) to return
@@ -58,7 +58,7 @@ class ClientPassword:
 
 
 @dataclass
-class BearerToken:
+class _BearerToken:
     """Using a preexisting bearer/access token for authentication.
 
     The expiration time of access tokens is given in seconds.
@@ -77,20 +77,54 @@ class BearerToken:
 
 
 @dataclass
-class APIKey:
+class _APIKey:
     """Using the given API key to authenticate with weaviate."""
 
     api_key: str
 
 
-OidcAuth = Union[BearerToken, ClientPassword, ClientCredentials]
-AuthCredentials = Union[OidcAuth, APIKey]
+class Auth:
+    @staticmethod
+    def api_key(api_key: str) -> _APIKey:
+        return _APIKey(api_key)
 
-AuthApiKey = APIKey
-"""@deprecated; use APIKey instead."""
-AuthBearerToken = BearerToken
-"""@deprecated; use BearerToken instead."""
-AuthClientCredentials = ClientCredentials
-"""@deprecated; use ClientCredentials instead."""
-AuthClientPassword = ClientPassword
-"""@deprecated; use ClientPassword instead."""
+    @staticmethod
+    def client_credentials(
+        client_secret: str, scope: Optional[SCOPES] = None
+    ) -> _ClientCredentials:
+        return _ClientCredentials(client_secret, scope)
+
+    @staticmethod
+    def client_password(
+        username: str, password: str, scope: Optional[SCOPES] = None
+    ) -> _ClientPassword:
+        return _ClientPassword(username=username, password=password, scope=scope)
+
+    @staticmethod
+    def bearer_token(
+        bearer_token: str, expires_in: int = 60, refresh_token: Optional[str] = None
+    ) -> _BearerToken:
+        return _BearerToken(bearer_token)
+
+
+OidcAuth = Union[_BearerToken, _ClientPassword, _ClientCredentials]
+AuthCredentials = Union[OidcAuth, _APIKey]
+
+
+APIKey = _APIKey
+"""@deprecated; use wvc.Auth.api_key() instead."""
+BearerToken = _BearerToken
+"""@deprecated; use wvc.Auth.bearer_token() instead."""
+ClientCredentials = _ClientCredentials
+"""@deprecated; use wvc.Auth.client_credentials() instead."""
+ClientPassword = _ClientPassword
+"""@deprecated; use wvc.Auth.client_password() instead."""
+
+AuthApiKey = _APIKey
+"""@deprecated; use wvc.Auth.api_key() instead."""
+AuthBearerToken = _BearerToken
+"""@deprecated; use wvc.Auth.api_key() instead."""
+AuthClientCredentials = _ClientCredentials
+"""@deprecated; use wvc.Auth.api_key() instead."""
+AuthClientPassword = _ClientPassword
+"""@deprecated; use wvc.Auth.api_key() instead."""

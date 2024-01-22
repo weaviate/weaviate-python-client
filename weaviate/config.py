@@ -25,6 +25,7 @@ class ConnectionConfig:
             )
 
 
+# used in v3 only
 @dataclass
 class Config:
     grpc_port_experimental: Optional[int] = None
