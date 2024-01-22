@@ -645,7 +645,7 @@ class Connection:
                     ready_url, headers=self._get_request_header(), timeout=INIT_CHECK_TIMEOUT
                 ).raise_for_status()
                 return
-            except (RequestsHTTPError, RequestsConnectionError):
+            except (RequestsHTTPError, RequestsConnectionError, ReadTimeout):
                 time.sleep(1)
 
         try:
@@ -653,7 +653,7 @@ class Connection:
                 ready_url, headers=self._get_request_header(), timeout=INIT_CHECK_TIMEOUT
             ).raise_for_status()
             return
-        except (RequestsHTTPError, RequestsConnectionError) as error:
+        except (RequestsHTTPError, RequestsConnectionError, ReadTimeout) as error:
             raise WeaviateStartUpError(
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
