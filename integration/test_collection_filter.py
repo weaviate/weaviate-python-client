@@ -732,7 +732,7 @@ def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
     uuid3 = collection.data.insert({}, references={"ref": [uuid1, uuid2]})
 
     objects = collection.query.fetch_objects(
-        filters=Filter.by_ref("ref").by_count().greater_than(0),
+        filters=Filter.by_ref_count("ref").greater_than(0),
         return_references=QueryReference(link_on="ref"),
     ).objects
     assert len(objects) == 1
@@ -756,7 +756,7 @@ def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) ->
     uuid3 = collection.data.insert({}, references={"ref": [uuid1, uuid2]})
 
     objects = collection.query.fetch_objects(
-        filters=Filter.by_ref_multi_target("ref", collection.name).by_count().greater_than(0),
+        filters=Filter.by_ref_count("ref").greater_than(0),
         return_references=QueryReference(link_on="ref"),
     ).objects
     assert len(objects) == 1
@@ -777,26 +777,14 @@ def test_nested_ref_count_filter(collection_factory: CollectionFactory) -> None:
 
     uuid11 = one.data.insert({})
     uuid12 = one.data.insert({}, references={"ref1": uuid11})
+    uuid13 = one.data.insert({}, references={"ref1": [uuid11, uuid12]})
     two.data.insert({})
-    uuid22 = two.data.insert({}, references={"ref2": uuid12})
-
-    objects = one.query.fetch_objects(
-        filters=Filter.by_ref("ref1").by_count().greater_than(0),
-        return_references=QueryReference(link_on="ref1"),
-    ).objects
-    assert len(objects) == 1
-    assert objects[0].uuid == uuid12
+    uuid21 = two.data.insert({}, references={"ref2": uuid12})
+    two.data.insert({}, references={"ref2": uuid13})
 
     objects = two.query.fetch_objects(
-        filters=Filter.by_ref("ref2").by_count().greater_than(0),
+        filters=Filter.by_ref("ref2").by_ref_count("ref1").equal(1),
         return_references=QueryReference(link_on="ref2"),
     ).objects
     assert len(objects) == 1
-    assert objects[0].uuid == uuid22
-
-    objects = two.query.fetch_objects(
-        filters=Filter.by_ref("ref2").by_ref("ref1").by_count().greater_than(0),
-        return_references=QueryReference(link_on="ref2"),
-    ).objects
-    assert len(objects) == 1
-    assert objects[0].uuid == uuid22
+    assert objects[0].uuid == uuid21
