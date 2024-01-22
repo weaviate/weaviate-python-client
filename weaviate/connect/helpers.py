@@ -96,8 +96,6 @@ def connect_to_local(
     in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
 
     Arguments:
-        `schema`
-            The schema to use for the underlying REST & GraphQL API calls.
         `host`
             The host to use for the underlying REST & GraphQL API calls.
         `port`
@@ -178,6 +176,8 @@ def connect_to_embedded(
             Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
         `additional_config`
             This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
+        `version`
+            Weaviate version to be used for the embedded instance.
 
     Returns
         `weaviate.WeaviateClient`
