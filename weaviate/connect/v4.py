@@ -320,7 +320,9 @@ class _Connection(_ConnectionBase):
                         self._client.token = self._client.refresh_token(
                             self._client.metadata["token_endpoint"]
                         )
-                        refresh_time = int(self._client.token.get("expires_in")) - 30
+                        expires_in = self._client.token.get("expires_in", 60)
+                        assert isinstance(expires_in, int)
+                        refresh_time = expires_in - 30
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
