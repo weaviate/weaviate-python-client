@@ -52,7 +52,7 @@ except ImportError:
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBERS, NUMBERS]
-PYPI_TIMEOUT = 0.1
+INIT_CHECK_TIMEOUT = 0.5
 
 
 class Connection:
@@ -175,7 +175,7 @@ class Connection:
             _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
         try:
-            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=INIT_CHECK_TIMEOUT).json()
             pkg_info = pkg_info.get("info", {})
             latest_version = pkg_info.get("version", "unknown version")
             if is_weaviate_client_too_old(client_version, latest_version):
@@ -641,15 +641,19 @@ class Connection:
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
         for _i in range(startup_period):
             try:
-                requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
+                requests.get(
+                    ready_url, headers=self._get_request_header(), timeout=INIT_CHECK_TIMEOUT
+                ).raise_for_status()
                 return
-            except (RequestsHTTPError, RequestsConnectionError):
+            except (RequestsHTTPError, RequestsConnectionError, ReadTimeout):
                 time.sleep(1)
 
         try:
-            requests.get(ready_url, headers=self._get_request_header()).raise_for_status()
+            requests.get(
+                ready_url, headers=self._get_request_header(), timeout=INIT_CHECK_TIMEOUT
+            ).raise_for_status()
             return
-        except (RequestsHTTPError, RequestsConnectionError) as error:
+        except (RequestsHTTPError, RequestsConnectionError, ReadTimeout) as error:
             raise WeaviateStartUpError(
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
