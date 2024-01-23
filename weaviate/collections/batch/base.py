@@ -456,7 +456,8 @@ class _BatchBase:
                     from_object_uuid=from_object_uuid,
                     from_property_name=from_property_name,
                     to_object_collection=to.target_collection
-                    if isinstance(to, _Reference) and to.is_multi_target
+                    if (isinstance(to, _Reference) and to.is_multi_target)
+                    or isinstance(to, ReferenceToMulti)
                     else None,
                     to_object_uuid=uid,
                     tenant=tenant,

@@ -13,10 +13,7 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
 )
 from weaviate.collections.classes.grpc import FromReference
-from weaviate.collections.classes.internal import (
-    _CrossReference,
-    ReferenceToMulti,
-)
+from weaviate.collections.classes.internal import _CrossReference, ReferenceToMulti
 from weaviate.collections.classes.tenants import Tenant
 
 UUID = Union[str, uuid.UUID]
@@ -148,7 +145,8 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
 
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 
-    with mt_collection.with_tenant("tenant1").batch as batch:
+    batching = mt_collection.with_tenant("tenant1")
+    with batching.batch as batch:
         obj_uuid0 = uuid.uuid4()
         batch.add_object(properties={"name": "one"}, uuid=obj_uuid0)
 
@@ -170,8 +168,8 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
             to=ReferenceToMulti(uuids=obj_uuid1, target_collection=mt_collection.name),
         )
         # target collection required when inserting references into multi-tenancy collections
-    assert len(mt_collection.batch.failed_objects()) == 0
-    assert len(mt_collection.batch.failed_references()) == 0
+    assert len(batching.batch.failed_objects()) == 0
+    assert len(batching.batch.failed_references()) == 0
     ret_obj = mt_collection.with_tenant("tenant1").query.fetch_object_by_id(
         obj_uuid0, return_references=FromReference(link_on="test")
     )
