@@ -175,7 +175,7 @@ class _Warnings:
             f"Dep010: Importing {name} from weaviate is deprecated. "
             f"Please import it from its specific module: weaviate.{loc}",
             DeprecationWarning,
-            stacklevel=3,
+            stacklevel=2,  # don't increase stacklevel, as this otherwise writes the auth-secrets into the log
         )
 
     @staticmethod

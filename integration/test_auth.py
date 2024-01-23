@@ -187,7 +187,7 @@ def test_authentication_with_bearer_token(
     # use token to authenticate
     token = _get_access_token(url, user, pw)
     auth = wvc.init.Auth.bearer_token(
-        bearer_token=token["access_token"],
+        access_token=token["access_token"],
         expires_in=int(token["expires_in"]),
         refresh_token=token["refresh_token"],
     )
@@ -206,7 +206,7 @@ def test_authentication_with_bearer_token_no_refresh() -> None:
     # use token to authenticate
     token = _get_access_token(url, "test@test.de", pw)
     auth = wvc.init.Auth.bearer_token(
-        bearer_token=token["access_token"],
+        access_token=token["access_token"],
         expires_in=int(token["expires_in"]),
     )
     with pytest.warns(UserWarning) as recwarn:

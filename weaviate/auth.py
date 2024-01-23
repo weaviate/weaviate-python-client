@@ -102,9 +102,11 @@ class Auth:
 
     @staticmethod
     def bearer_token(
-        bearer_token: str, expires_in: int = 60, refresh_token: Optional[str] = None
+        access_token: str, expires_in: int = 60, refresh_token: Optional[str] = None
     ) -> _BearerToken:
-        return _BearerToken(bearer_token, expires_in, refresh_token)
+        return _BearerToken(
+            access_token=access_token, expires_in=expires_in, refresh_token=refresh_token
+        )
 
 
 OidcAuth = Union[_BearerToken, _ClientPassword, _ClientCredentials]
