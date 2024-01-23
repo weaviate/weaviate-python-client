@@ -74,7 +74,10 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
         self.__lock.release()
 
     def prepend(self, item: List[TBatchInput]) -> None:
-        """Add items to the front of the BatchRequest."""
+        """Add items to the front of the BatchRequest.
+
+        This is intended to be used when objects should be retries, eg. after a temporary error.
+        """
         self.__lock.acquire()
         self.__items = item + self.__items
         self.__lock.release()
@@ -164,6 +167,11 @@ class _BatchBase:
             self.__recommended_num_objects = self.__batching_mode.batch_size
             self.__concurrent_requests = self.__batching_mode.concurrent_requests
         elif isinstance(self.__batching_mode, _RateLimitedBatching):
+            # Batch with rate limiting should never send more than the given amount of objects per minute.
+            # We could send all objects in a single batch every 60 seconds but that could cause problems with too large requests. Therefore, we
+            # limit the size of a batch to self.__max_batch_size and send multiple batches of equal size and send them in equally space in time.
+            # Example:
+            #  3000 objects, 1000/min -> 3 batches of 1000 objects, send every 20 seconds
             self.__concurrent_requests = (
                 self.__batching_mode.requests_per_minute + self.__max_batch_size
             ) // self.__max_batch_size
@@ -182,13 +190,13 @@ class _BatchBase:
         self.__active_requests_lock = threading.Lock()
 
         # dynamic batching
-        self.__last_scale_up: float = 0
+        self.__time_last_scale_up: float = 0
         self.__max_observed_rate: int = 0
 
         # fixed rate batching
-        self.__last_request: float = 0
+        self.__time_stamp_last_request: float = 0
         # do 62 secs to give us some buffer to the "per-minute" calculation
-        self.__fix_rate_batching_base_time = 60 // self.__concurrent_requests
+        self.__fix_rate_batching_base_time = 62 // self.__concurrent_requests
 
         self.__bg_thread = self.__start_bg_thread()
 
@@ -243,13 +251,13 @@ class _BatchBase:
                     refresh_time: float = 0.1
                 elif isinstance(self.__batching_mode, _RateLimitedBatching):
                     if (
-                        time.time() - self.__last_request
+                        time.time() - self.__time_stamp_last_request
                         < self.__fix_rate_batching_base_time // self.__concurrent_requests
                     ):
                         time.sleep(1)
                         continue
 
-                    self.__last_request = time.time()
+                    self.__time_stamp_last_request = time.time()
                     refresh_time = 0
                 else:
                     assert isinstance(self.__batching_mode, _DynamicBatching)
@@ -318,10 +326,10 @@ class _BatchBase:
 
             if (
                 self.__max_batch_size == self.__recommended_num_objects
-                and time.time() - self.__last_scale_up > 1
+                and time.time() - self.__time_last_scale_up > 1
             ):
                 self.__concurrent_requests += 1
-                self.__last_scale_up = time.time()
+                self.__time_last_scale_up = time.time()
 
         else:
             ratio = batch_length / rate
@@ -414,8 +422,8 @@ class _BatchBase:
                         ],
                         elapsed_seconds=response_obj.elapsed_seconds,
                     )
-                    self.__last_request = time.time() + self.__fix_rate_batching_base_time * (
-                        highest_retry_count + 1
+                    self.__time_stamp_last_request = (
+                        time.time() + self.__fix_rate_batching_base_time * (highest_retry_count + 1)
                     )  # skip a full minute to recover from the rate limit
                     self.__fix_rate_batching_base_time += (
                         1  # increase the base time as the current one is too low
