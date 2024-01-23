@@ -34,7 +34,11 @@ from weaviate.collections.classes.grpc import (
     PROPERTY,
     REFERENCE,
 )
-from weaviate.collections.classes.internal import _CrossReference, Reference, Object
+from weaviate.collections.classes.internal import (
+    _CrossReference,
+    Object,
+    ReferenceToMulti,
+)
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
@@ -277,9 +281,9 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
                     "name": "some name",
                 },
                 references={
-                    "ref_single": Reference.to(uuids=[uuid_to1, uuid_to2]),
-                    "ref_many": Reference.to_multi_target(
-                        uuids=uuid_from, target_collection=collection
+                    "ref_single": [uuid_to1, uuid_to2],
+                    "ref_many": ReferenceToMulti(
+                        uuids=uuid_from, target_collection=collection.name
                     ),
                 },
                 vector=[1, 2, 3],
@@ -289,8 +293,8 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
                     "name": "some other name",
                 },
                 references={
-                    "ref_single": Reference.to(uuids=uuid_to2),
-                    "ref_many": Reference.to_multi_target(
+                    "ref_single": uuid_to2,
+                    "ref_many": ReferenceToMulti(
                         uuids=uuid_to1, target_collection=ref_collection.name
                     ),
                 },
@@ -1050,7 +1054,7 @@ def test_add_reference(collection_factory: CollectionFactory) -> None:
     collection.config.add_reference(
         ReferenceProperty(name="self", target_collection=collection.name)
     )
-    uuid2 = collection.data.insert({"name": "second"}, references={"self": Reference.to(uuid1)})
+    uuid2 = collection.data.insert({"name": "second"}, references={"self": uuid1})
     obj1 = collection.query.fetch_object_by_id(
         uuid1, return_properties=["name"], return_references=FromReference(link_on="self")
     )
@@ -1135,7 +1139,7 @@ def test_return_properties_metadata_references_combos(
         uuid=UUID2,
         properties={"name": "John", "age": 43},
         vector=[1, 2, 3, 4],
-        references={"friend": Reference.to(uuids=UUID1)},
+        references={"friend": UUID1},
     )
 
     objects = collection.query.fetch_objects(
@@ -1708,7 +1712,7 @@ def test_optional_ref_returns(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    collection.data.insert({}, references={"ref": Reference.to(uuid_to1)})
+    collection.data.insert({}, references={"ref": uuid_to1})
 
     objects = collection.query.fetch_objects(
         return_references=[FromReference(link_on="ref")]

@@ -2,8 +2,6 @@ from io import BufferedReader
 from pathlib import Path
 from typing import Generic, Literal, Optional, Type, Union, overload
 
-from deprecated import deprecated
-
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -23,6 +21,7 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.warnings import _Warnings
 
 
 class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -146,10 +145,6 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
     ) -> GroupByReturn[TProperties, TReferences]:
         ...
 
-    @deprecated(
-        version="4.4b6",
-        reason="Use `query.near_vector` with the `group_by` argument instead. The `query_group_by` namespace will be removed in GA.",
-    )
     def near_image(
         self,
         near_image: Union[str, Path, BufferedReader],
@@ -221,6 +216,7 @@ class _NearImageGroupBy(Generic[Properties, References], _BaseQuery[Properties, 
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
+        _Warnings.old_query_group_by_namespace("query.near_image", "query_group_by")
         res = self._query().near_media(
             media=self._parse_media(near_image),
             type_="image",

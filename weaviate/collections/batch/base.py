@@ -131,9 +131,6 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
         # return successful_responses
 
 
-B = TypeVar("B", bound="_BatchBase")
-
-
 @dataclass
 class _BatchDataWrapper:
     results: BatchResult = BatchResult()

@@ -28,15 +28,20 @@ from weaviate.collections.classes.internal import (
     _Reference,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.types import UUID
+from weaviate.types import UUID, UUIDS
 
 TO_UUID = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 TO_UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
 
 
-@pytest.mark.parametrize("add", [Reference.to(TO_UUID), TO_UUID, str(TO_UUID)])
-@pytest.mark.parametrize("delete", [Reference.to(TO_UUID), TO_UUID, str(TO_UUID)])
-@pytest.mark.parametrize("replace", [Reference.to([]), []])
+def reference_to_no_warning(uuids: UUIDS) -> _Reference:
+    with pytest.warns(DeprecationWarning):
+        return Reference.to(uuids)
+
+
+@pytest.mark.parametrize("add", [reference_to_no_warning(TO_UUID), TO_UUID, str(TO_UUID)])
+@pytest.mark.parametrize("delete", [reference_to_no_warning(TO_UUID), TO_UUID, str(TO_UUID)])
+@pytest.mark.parametrize("replace", [reference_to_no_warning([]), []])
 def test_reference_add_delete_replace(
     collection_factory: CollectionFactory,
     add: SingleReferenceInput,
@@ -161,7 +166,7 @@ def test_reference_add_delete_replace_multi_target(
 @pytest.mark.parametrize(
     "to",
     [
-        Reference.to([TO_UUID, TO_UUID]),
+        reference_to_no_warning([TO_UUID, TO_UUID]),
         [TO_UUID, TO_UUID],
         ReferenceToMulti(target_collection="Target", uuids=[TO_UUID, TO_UUID]),
     ],
@@ -185,7 +190,7 @@ def test_reference_add_multiple_uuids_error(
 @pytest.mark.parametrize(
     "to",
     [
-        Reference.to([TO_UUID, TO_UUID]),
+        reference_to_no_warning([TO_UUID, TO_UUID]),
         [TO_UUID, TO_UUID],
         ReferenceToMulti(target_collection="Target", uuids=[TO_UUID, TO_UUID]),
     ],
@@ -229,8 +234,10 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    uuid_B = B.data.insert({"Name": "B"}, references={"a": Reference.to(uuids=uuid_A1)})
-    B.data.reference_add(from_uuid=uuid_B, from_property="a", to=Reference.to(uuids=uuid_A2))
+    uuid_B = B.data.insert({"Name": "B"}, references={"a": reference_to_no_warning(uuids=uuid_A1)})
+    B.data.reference_add(
+        from_uuid=uuid_B, from_property="a", to=reference_to_no_warning(uuids=uuid_A2)
+    )
 
     b_objs = B.query.bm25(
         query="B",
@@ -254,7 +261,7 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    C.data.insert({"Name": "find me"}, references={"b": Reference.to(uuids=uuid_B)})
+    C.data.insert({"Name": "find me"}, references={"b": reference_to_no_warning(uuids=uuid_B)})
 
     c_objs = C.query.bm25(
         query="find",
@@ -332,11 +339,13 @@ def test_mono_references_grpc_typed_dicts(
         ),
     )
     B = collection_factory_get(dummy_b.name, BProps)
-    uuid_B = B.data.insert(properties={"name": "B"}, references={"a": Reference.to(uuids=uuid_A1)})
+    uuid_B = B.data.insert(
+        properties={"name": "B"}, references={"a": reference_to_no_warning(uuids=uuid_A1)}
+    )
     B.data.reference_add(
         from_uuid=uuid_B,
         from_property="a",
-        to=Reference.to(uuids=uuid_A2),
+        to=reference_to_no_warning(uuids=uuid_A2),
     )
 
     b_objs = B.query.bm25(query="B", return_references=BRefs).objects
@@ -365,7 +374,7 @@ def test_mono_references_grpc_typed_dicts(
         ),
     )
     C = collection_factory_get(dummy_c.name, CProps)
-    C.data.insert(properties={"name": "find me"}, references={"b": Reference.to(uuids=uuid_B)})
+    C.data.insert(properties={"name": "find me"}, references={"b": uuid_B})
 
     if level == "col-col":
         c_objs = (
@@ -679,11 +688,11 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
         [
             DataObject(
                 properties={"name": "C"},
-                references={"self": Reference.to(uuids=uuid1)},
+                references={"self": uuid1},
             ),
             DataObject(
                 properties={"name": "D"},
-                references={"self": Reference.to(uuids=[uuid1, uuid2])},
+                references={"self": [uuid1, uuid2]},
             ),
             DataObject(
                 properties={"name": "E"},
@@ -776,7 +785,7 @@ def test_references_batch_with_errors(collection_factory: CollectionFactory) -> 
 #     )
 
 #     client.collections.get(name2).data.insert(
-#         {"Name": "B"}, references={"ref": Reference.to(uuids=uuid_A)}
+#         {"Name": "B"}, references={"ref": reference_to_no_warning(uuids=uuid_A)}
 #     )
 
 #     objects = (
@@ -833,10 +842,10 @@ def test_object_without_references(collection_factory: CollectionFactory) -> Non
     uuid_to = to.data.insert(properties={})
 
     uuid_from1 = source.data.insert(
-        references={"ref_partial": Reference.to(uuid_to), "ref_full": Reference.to(uuid_to)},
+        references={"ref_partial": uuid_to, "ref_full": uuid_to},
         properties={},
     )
-    uuid_from2 = source.data.insert(references={"ref_full": Reference.to(uuid_to)}, properties={})
+    uuid_from2 = source.data.insert(references={"ref_full": uuid_to}, properties={})
 
     obj1 = source.query.fetch_object_by_id(
         uuid_from2,
@@ -878,13 +887,9 @@ def test_ref_case_sensitivity(collection_factory: CollectionFactory) -> None:
     from1 = source.data.insert(properties={}, references={"ref": uuid_upper_str.lower()})
 
     # try to add as upper-case UUID via different methods
-    from2 = source.data.insert(
-        properties={}, references={"ref": Reference.to(uuids=uuid_upper_str)}
-    )
+    from2 = source.data.insert(properties={}, references={"ref": uuid_upper_str})
     from3 = source.data.insert(properties={})
-    source.data.reference_add(
-        from_uuid=from3, from_property="ref", to=Reference.to(uuids=uuid_upper_str)
-    )
+    source.data.reference_add(from_uuid=from3, from_property="ref", to=uuid_upper_str)
 
     from4 = source.data.insert(properties={})
     source.data.reference_add_many(
@@ -892,7 +897,7 @@ def test_ref_case_sensitivity(collection_factory: CollectionFactory) -> None:
     )
 
     from5 = source.data.insert_many(
-        [DataObject(properties={}, references={"ref": Reference.to(uuids=uuid_upper_str)})]
+        [DataObject(properties={}, references={"ref": uuid_upper_str})]
     ).uuids[0]
 
     for uid in [from1, from2, from3, from4, from5]:
@@ -925,7 +930,8 @@ def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
 
 
 @pytest.mark.parametrize(
-    "to_uuid", [Reference.to(uuids=TO_UUID), TO_UUID, str(TO_UUID), [TO_UUID], [str(TO_UUID)]]
+    "to_uuid",
+    [reference_to_no_warning(uuids=TO_UUID), TO_UUID, str(TO_UUID), [TO_UUID], [str(TO_UUID)]],
 )
 def test_refs_different_input_insert(
     collection_factory: CollectionFactory, to_uuid: ReferenceInput
@@ -949,7 +955,8 @@ def test_refs_different_input_insert(
 
 
 @pytest.mark.parametrize(
-    "to_uuid", [Reference.to(uuids=TO_UUID), TO_UUID, str(TO_UUID), [TO_UUID], [str(TO_UUID)]]
+    "to_uuid",
+    [reference_to_no_warning(uuids=TO_UUID), TO_UUID, str(TO_UUID), [TO_UUID], [str(TO_UUID)]],
 )
 def test_refs_different_input_insert_many(
     collection_factory: CollectionFactory, to_uuid: ReferenceInput
@@ -993,7 +1000,7 @@ def test_refs_different_input_insert_many(
     assert obj.references["multi"].objects[0].uuid == TO_UUID
 
 
-@pytest.mark.parametrize("to_uuid", [Reference.to(uuids=TO_UUID), TO_UUID, str(TO_UUID)])
+@pytest.mark.parametrize("to_uuid", [reference_to_no_warning(uuids=TO_UUID), TO_UUID, str(TO_UUID)])
 def test_refs_different_reference_add(
     collection_factory: CollectionFactory, to_uuid: Union[str, _Reference]
 ) -> None:
@@ -1047,7 +1054,8 @@ def test_refs_different_reference_add_many(
 
 
 @pytest.mark.parametrize(
-    "to_uuid", [Reference.to(uuids=TO_UUID2), TO_UUID2, str(TO_UUID2), [TO_UUID2], [str(TO_UUID2)]]
+    "to_uuid",
+    [reference_to_no_warning(uuids=TO_UUID2), TO_UUID2, str(TO_UUID2), [TO_UUID2], [str(TO_UUID2)]],
 )
 def test_refs_different_reference_replace(
     collection_factory: CollectionFactory, to_uuid: ReferenceInput

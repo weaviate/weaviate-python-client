@@ -18,7 +18,7 @@ from weaviate.collections.classes.filters import (
     Filter,
     _FilterValue,
 )
-from weaviate.collections.classes.internal import Reference
+from weaviate.collections.classes.internal import ReferenceToMulti
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
@@ -581,17 +581,17 @@ def test_batch_delete_with_refs(collection_factory: CollectionFactory) -> None:
 
     uuid_source1 = source.data.insert(properties={})
     uuid_source2 = source.data.insert(properties={})
-    source.data.reference_add(uuid_source1, from_property="ref", to=Reference.to(uuid_to1))
-    source.data.reference_add(uuid_source2, "ref", to=Reference.to(uuid_to2))
+    source.data.reference_add(uuid_source1, from_property="ref", to=uuid_to1)
+    source.data.reference_add(uuid_source2, "ref", to=uuid_to2)
     source.data.reference_add(
         uuid_source1,
         from_property="ref_self",
-        to=Reference.to_multi_target(uuid_source2, target_collection=source.name),
+        to=ReferenceToMulti(uuids=uuid_source2, target_collection=source.name),
     )
     source.data.reference_add(
         uuid_source2,
         "ref_self",
-        to=Reference.to_multi_target(uuid_source1, target_collection=source.name),
+        to=ReferenceToMulti(uuids=uuid_source1, target_collection=source.name),
     )
 
     ret = source.data.delete_many(
@@ -626,17 +626,17 @@ def test_delete_by_time_metadata_with_ref(
 
     uuid_source1 = source.data.insert(properties={})
     uuid_source2 = source.data.insert(properties={})
-    source.data.reference_add(uuid_source1, from_property="ref", to=Reference.to(uuid_to1))
-    source.data.reference_add(uuid_source2, "ref", to=Reference.to(uuid_to2))
+    source.data.reference_add(uuid_source1, from_property="ref", to=uuid_to1)
+    source.data.reference_add(uuid_source2, "ref", to=uuid_to2)
     source.data.reference_add(
         uuid_source1,
         from_property="ref_self",
-        to=Reference.to_multi_target(uuid_source2, target_collection=source.name),
+        to=ReferenceToMulti(uuids=uuid_source2, target_collection=source.name),
     )
     source.data.reference_add(
         uuid_source2,
         "ref_self",
-        to=Reference.to_multi_target(uuid_source1, target_collection=source.name),
+        to=ReferenceToMulti(uuids=uuid_source1, target_collection=source.name),
     )
 
     obj1 = to.query.fetch_object_by_id(uuid=uuid_to1)
