@@ -1667,9 +1667,9 @@ def test_sort(
     )
 
     uuid1 = collection.data.insert(properties={"name": "A", "age": 20}, uuid=str(UUID1)[:-1] + "1")
-    time.sleep(1)
+    time.sleep(0.01)
     uuid2 = collection.data.insert(properties={"name": "B", "age": 22}, uuid=str(UUID1)[:-1] + "2")
-    time.sleep(1)
+    time.sleep(0.01)
     uuid3 = collection.data.insert(properties={"name": "C", "age": 22}, uuid=str(UUID1)[:-1] + "3")
 
     uuids_from = [uuid1, uuid2, uuid3]
