@@ -32,6 +32,7 @@ from weaviate.collections.classes.grpc import (
     REFERENCE,
     REFERENCES,
     _Sort,
+    _Sorting,
     Rerank,
 )
 from weaviate.collections.classes.internal import _Generative, _GroupBy
@@ -136,13 +137,31 @@ class _QueryGRPC(_BaseGRPC):
 
         self._filters: Optional[_Filters] = None
 
-    def __parse_sort(self, sort: Optional[Union[_Sort, List[_Sort]]]) -> None:
+    def __parse_sort(
+        self, sort: Optional[Union[_Sort, List[_Sort], _Sorting, List[_Sorting]]]
+    ) -> None:
         if sort is None:
             self._sort = None
         elif isinstance(sort, _Sort):
             self._sort = [sort]
+        elif isinstance(sort, _Sorting):
+            self._sort = sort.sorts
+        elif isinstance(sort, list):
+            sort_ = []
+            for s in sort:
+                if isinstance(s, _Sort):
+                    sort_.append(s)
+                elif isinstance(s, _Sorting):
+                    sort_.extend(s.sorts)
+                else:
+                    raise ValueError(
+                        f"sort must be one of [_Sort, _Sorting, List[_Sort], List[_Sorting]], but got {type(sort)}"
+                    )
+            self._sort = sort_
         else:
-            self._sort = sort
+            raise ValueError(
+                f"sort must be one of [_Sort, _Sorting, List[_Sort], List[_Sorting]], but got {type(sort)}"
+            )
 
     def get(
         self,
@@ -150,7 +169,7 @@ class _QueryGRPC(_BaseGRPC):
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[_Sort, List[_Sort]]] = None,
+        sort: Optional[Union[_Sort, List[_Sort], _Sorting, List[_Sorting]]] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,

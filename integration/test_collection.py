@@ -29,6 +29,7 @@ from weaviate.collections.classes.grpc import (
     Move,
     Sort,
     _Sort,
+    _Sorting,
     PROPERTIES,
     PROPERTY,
     REFERENCE,
@@ -1642,9 +1643,19 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize(
     "sort,expected",
     [
+        (Sort(prop="name", ascending=True), [0, 1, 2]),
+        (Sort(prop="name", ascending=False), [2, 1, 0]),
+        ([Sort(prop="age", ascending=False), Sort(prop="name", ascending=True)], [1, 2, 0]),
+        (Sort(prop="_id", ascending=True), [0, 1, 2]),
+        (Sort(prop="_id", ascending=False), [2, 1, 0]),
+        (Sort(prop="_creationTimeUnix", ascending=True), [0, 1, 2]),
+        (Sort(prop="_creationTimeUnix", ascending=False), [2, 1, 0]),
+        (Sort(prop="_lastUpdateTimeUnix", ascending=True), [0, 1, 2]),
+        (Sort(prop="_lastUpdateTimeUnix", ascending=False), [2, 1, 0]),
         (Sort.by_property("name", "asc"), [0, 1, 2]),
         (Sort.by_property("name", "desc"), [2, 1, 0]),
         ([Sort.by_property("age", "desc"), Sort.by_property("name", "asc")], [1, 2, 0]),
+        (Sort.by_property("age", "desc").by_property("name", "asc"), [1, 2, 0]),
         (Sort.by_id("asc"), [0, 1, 2]),
         (Sort.by_id("desc"), [2, 1, 0]),
         (Sort.by_creation_time("asc"), [0, 1, 2]),
@@ -1655,7 +1666,7 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
 )
 def test_sort(
     collection_factory: CollectionFactory,
-    sort: Union[_Sort, List[_Sort]],
+    sort: Union[_Sort, List[_Sort], _Sorting],
     expected: List[int],
 ) -> None:
     collection = collection_factory(
