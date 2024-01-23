@@ -184,6 +184,10 @@ class _Sorting:
         return self
 
 
+Sorting = _Sorting
+"""The type returned by the `Sort` class to be used when defining programmatic sort chains."""
+
+
 class Sort(_Sort):
     """Define how the query's sort operation should be performed using the available static methods."""
 
@@ -192,22 +196,22 @@ class Sort(_Sort):
         super().__init__(prop=prop, ascending=ascending)
 
     @staticmethod
-    def by_property(prop: str, order: Literal["asc", "desc"] = "asc") -> _Sorting:
+    def by_property(prop: str, order: Literal["asc", "desc"] = "asc") -> Sorting:
         """Sort by an object property in the collection."""
         return _Sorting().by_property(prop=prop, order=order)
 
     @staticmethod
-    def by_id(order: Literal["asc", "desc"] = "asc") -> _Sorting:
+    def by_id(order: Literal["asc", "desc"] = "asc") -> Sorting:
         """Sort by an object's ID in the collection."""
         return _Sorting().by_id(order=order)
 
     @staticmethod
-    def by_creation_time(order: Literal["asc", "desc"] = "asc") -> _Sorting:
+    def by_creation_time(order: Literal["asc", "desc"] = "asc") -> Sorting:
         """Sort by an object's creation time."""
         return _Sorting().by_creation_time(order=order)
 
     @staticmethod
-    def by_update_time(order: Literal["asc", "desc"] = "asc") -> _Sorting:
+    def by_update_time(order: Literal["asc", "desc"] = "asc") -> Sorting:
         """Sort by an object's last update time."""
         return _Sorting().by_update_time(order=order)
 
