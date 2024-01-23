@@ -18,6 +18,7 @@ class _BatchObject:
     properties: Optional[Dict[str, WeaviateField]]
     tenant: Optional[str]
     references: Optional[ReferenceInputs]
+    retry_count: int = 0
 
 
 @dataclass

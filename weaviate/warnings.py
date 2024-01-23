@@ -1,7 +1,7 @@
 import warnings
 from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
-from typing import Literal, Optional
+from typing import Optional
 
 try:
     __version__ = version("weaviate-client")
@@ -268,10 +268,10 @@ class _Warnings:
         )
 
     @staticmethod
-    def batch_create_automatic(type_: Literal["objects", "references"]) -> None:
+    def batch_rate_limit_reached(msg: str, seconds: int) -> None:
         warnings.warn(
-            message=f"""You are tying to manually create {type_} in an automatic batching environment. If you want to do manual batching, you need to use
-            client.batch.configure() to return a new Batch object with `dynamic=False` and `batch_size=None`.""",
+            message=f"""Bat005: Rate limit reached with error {msg}.
+            Sleeping for {seconds} seconds.""",
             category=UserWarning,
             stacklevel=1,
         )
