@@ -12,6 +12,7 @@ except PackageNotFoundError:
     __version__ = "unknown version"
 
 from .client import Client, WeaviateClient
+from .embedded import EmbeddedOptions
 from .connect.helpers import (
     connect_to_custom,
     connect_to_embedded,
