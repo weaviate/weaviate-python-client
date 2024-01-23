@@ -434,9 +434,9 @@ class _QueryGRPC(_BaseGRPC):
             raise TypeError(
                 f"near_text must be of type List[str] or str, but got {type(near_text)}"
             )
-        if move_away is not None and isinstance(move_away, Move):
+        if move_away is not None and not isinstance(move_away, Move):
             raise TypeError(f"move_away must be of type Move, but got {type(move_away)}")
-        if move_to is not None and isinstance(move_to, Move):
+        if move_to is not None and not isinstance(move_to, Move):
             raise TypeError(f"move_to must be of type Move, but got {type(move_to)}")
         if isinstance(near_text, str):
             near_text = [near_text]
