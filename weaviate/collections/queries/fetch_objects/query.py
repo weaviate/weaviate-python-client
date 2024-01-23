@@ -3,10 +3,7 @@ from typing import Generic, List, Optional, Union
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import (
-    METADATA,
-    Sort,
-)
+from weaviate.collections.classes.grpc import METADATA, _Sort, _Sorting
 from weaviate.collections.classes.internal import (
     QueryReturnType,
     ReturnProperties,
@@ -28,7 +25,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[Sort, List[Sort]]] = None,
+        sort: Optional[Union[_Sort, List[_Sort], _Sorting]] = None,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,

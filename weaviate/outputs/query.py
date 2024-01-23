@@ -5,6 +5,7 @@ from weaviate.collections.classes.filters import (
     FilterByUpdateTime,
     FilterByRef,
 )
+from weaviate.collections.classes.grpc import Sorting
 from weaviate.collections.classes.internal import (
     GenerativeNearMediaReturnType,
     GenerativeReturnType,
@@ -38,8 +39,9 @@ __all__ = [
     "QueryNearMediaReturnType",
     "QueryReturnType",
     "QuerySingleReturn",
-    "WeaviateField",
-    "WeaviateProperties",
     "ReferenceInput",
     "ReferenceInputs",
+    "Sorting",
+    "WeaviateField",
+    "WeaviateProperties",
 ]

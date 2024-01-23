@@ -31,7 +31,8 @@ from weaviate.collections.classes.grpc import (
     PROPERTY,
     REFERENCE,
     REFERENCES,
-    Sort,
+    _Sort,
+    _Sorting,
     Rerank,
 )
 from weaviate.collections.classes.internal import _Generative, _GroupBy
@@ -130,17 +131,19 @@ class _QueryGRPC(_BaseGRPC):
 
         self._generative: Optional[_Generative] = None
         self._rerank: Optional[Rerank] = None
-        self._sort: Optional[List[Sort]] = None
+        self._sort: Optional[List[_Sort]] = None
 
         self._group_by: Optional[_GroupBy] = None
 
         self._filters: Optional[_Filters] = None
 
-    def __parse_sort(self, sort: Optional[Union[Sort, List[Sort]]]) -> None:
+    def __parse_sort(self, sort: Optional[Union[_Sort, List[_Sort], _Sorting]]) -> None:
         if sort is None:
             self._sort = None
-        elif isinstance(sort, Sort):
+        elif isinstance(sort, _Sort):
             self._sort = [sort]
+        elif isinstance(sort, _Sorting):
+            self._sort = sort.sorts
         else:
             self._sort = sort
 
@@ -150,7 +153,7 @@ class _QueryGRPC(_BaseGRPC):
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[Sort, List[Sort]]] = None,
+        sort: Optional[Union[_Sort, List[_Sort], _Sorting]] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,

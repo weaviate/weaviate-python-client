@@ -1,6 +1,7 @@
 import datetime
 import io
 import pathlib
+import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Union
 
@@ -27,6 +28,8 @@ from weaviate.collections.classes.grpc import (
     MetadataQuery,
     Move,
     Sort,
+    _Sort,
+    _Sorting,
     PROPERTIES,
     PROPERTY,
     REFERENCE,
@@ -1647,11 +1650,26 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
         (Sort(prop="name", ascending=True), [0, 1, 2]),
         (Sort(prop="name", ascending=False), [2, 1, 0]),
         ([Sort(prop="age", ascending=False), Sort(prop="name", ascending=True)], [1, 2, 0]),
+        (Sort(prop="_id", ascending=True), [0, 1, 2]),
+        (Sort(prop="_id", ascending=False), [2, 1, 0]),
+        (Sort(prop="_creationTimeUnix", ascending=True), [0, 1, 2]),
+        (Sort(prop="_creationTimeUnix", ascending=False), [2, 1, 0]),
+        (Sort(prop="_lastUpdateTimeUnix", ascending=True), [0, 1, 2]),
+        (Sort(prop="_lastUpdateTimeUnix", ascending=False), [2, 1, 0]),
+        (Sort.by_property("name", True), [0, 1, 2]),
+        (Sort.by_property("name", False), [2, 1, 0]),
+        (Sort.by_property("age", False).by_property("name", True), [1, 2, 0]),
+        (Sort.by_id(True), [0, 1, 2]),
+        (Sort.by_id(False), [2, 1, 0]),
+        (Sort.by_creation_time(True), [0, 1, 2]),
+        (Sort.by_creation_time(False), [2, 1, 0]),
+        (Sort.by_update_time(True), [0, 1, 2]),
+        (Sort.by_update_time(False), [2, 1, 0]),
     ],
 )
 def test_sort(
     collection_factory: CollectionFactory,
-    sort: Union[Sort, List[Sort]],
+    sort: Union[_Sort, List[_Sort], _Sorting],
     expected: List[int],
 ) -> None:
     collection = collection_factory(
@@ -1661,11 +1679,14 @@ def test_sort(
             Property(name="name", data_type=DataType.TEXT),
         ],
     )
-    uuids_from = [
-        collection.data.insert(properties={"name": "A", "age": 20}),
-        collection.data.insert(properties={"name": "B", "age": 22}),
-        collection.data.insert(properties={"name": "C", "age": 22}),
-    ]
+
+    uuid1 = collection.data.insert(properties={"name": "A", "age": 20}, uuid=str(UUID1)[:-1] + "1")
+    time.sleep(0.01)
+    uuid2 = collection.data.insert(properties={"name": "B", "age": 22}, uuid=str(UUID1)[:-1] + "2")
+    time.sleep(0.01)
+    uuid3 = collection.data.insert(properties={"name": "C", "age": 22}, uuid=str(UUID1)[:-1] + "3")
+
+    uuids_from = [uuid1, uuid2, uuid3]
 
     objects = collection.query.fetch_objects(sort=sort).objects
     assert len(objects) == len(expected)

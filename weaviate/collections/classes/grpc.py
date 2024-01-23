@@ -7,6 +7,7 @@ from pydantic import Field
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.util import BaseEnum
 from weaviate.types import UUID
+from weaviate.warnings import _Warnings
 
 
 class HybridFusion(str, BaseEnum):
@@ -153,11 +154,66 @@ class GroupBy(_WeaviateInput):
     number_of_groups: int
 
 
-class Sort(_WeaviateInput):
-    """Define how the query's sort operation should be performed."""
-
+class _Sort(_WeaviateInput):
     prop: str
     ascending: bool = Field(default=True)
+
+
+class _Sorting:
+    def __init__(self) -> None:
+        self.sorts: List[_Sort] = []
+
+    def by_property(self, prop: str, ascending: bool = True) -> "_Sorting":
+        """Sort by an object property in the collection."""
+        self.sorts.append(_Sort(prop=prop, ascending=ascending))
+        return self
+
+    def by_id(self, ascending: bool = True) -> "_Sorting":
+        """Sort by an object's ID in the collection."""
+        self.sorts.append(_Sort(prop="_id", ascending=ascending))
+        return self
+
+    def by_creation_time(self, ascending: bool = True) -> "_Sorting":
+        """Sort by an object's creation time."""
+        self.sorts.append(_Sort(prop="_creationTimeUnix", ascending=ascending))
+        return self
+
+    def by_update_time(self, ascending: bool = True) -> "_Sorting":
+        """Sort by an object's last update time."""
+        self.sorts.append(_Sort(prop="_lastUpdateTimeUnix", ascending=ascending))
+        return self
+
+
+Sorting = _Sorting
+"""The type returned by the `Sort` class to be used when defining programmatic sort chains."""
+
+
+class Sort(_Sort):
+    """Define how the query's sort operation should be performed using the available static methods."""
+
+    def __init__(self, prop: str, ascending: bool = True) -> None:
+        _Warnings.sort_init_deprecated()
+        super().__init__(prop=prop, ascending=ascending)
+
+    @staticmethod
+    def by_property(prop: str, ascending: bool = True) -> Sorting:
+        """Sort by an object property in the collection."""
+        return _Sorting().by_property(prop=prop, ascending=ascending)
+
+    @staticmethod
+    def by_id(ascending: bool = True) -> Sorting:
+        """Sort by an object's ID in the collection."""
+        return _Sorting().by_id(ascending=ascending)
+
+    @staticmethod
+    def by_creation_time(ascending: bool = True) -> Sorting:
+        """Sort by an object's creation time."""
+        return _Sorting().by_creation_time(ascending=ascending)
+
+    @staticmethod
+    def by_update_time(ascending: bool = True) -> Sorting:
+        """Sort by an object's last update time."""
+        return _Sorting().by_update_time(ascending=ascending)
 
 
 class Rerank(_WeaviateInput):
