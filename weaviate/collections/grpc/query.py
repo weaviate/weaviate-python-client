@@ -540,7 +540,7 @@ class _QueryGRPC(_BaseGRPC):
             return res
 
         except grpc.RpcError as e:
-            raise WeaviateQueryError(e.details(), "GRPC search")
+            raise WeaviateQueryError(e.details(), "GRPC search")  # pyright: ignore
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:
         return search_get_pb2.MetadataRequest(

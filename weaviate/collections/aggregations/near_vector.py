@@ -1,7 +1,5 @@
 from typing import List, Literal, Optional, Union, overload
 
-from deprecated import deprecated
-
 from weaviate.collections.aggregations.base import _Aggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
@@ -10,6 +8,7 @@ from weaviate.collections.classes.aggregate import (
     _AggregateGroup,
 )
 from weaviate.collections.classes.filters import _Filters
+from weaviate.warnings import _Warnings
 
 
 class _NearVector(_Aggregate):
@@ -110,10 +109,6 @@ class _NearVector(_Aggregate):
 
 
 class _NearVectorGroupBy(_Aggregate):
-    @deprecated(
-        version="4.4b7",
-        reason="Use `aggregate.near_text` with the `group_by` argument instead. The `aggregate_group_by` namespace will be removed in the final release.",
-    )
     def near_vector(
         self,
         near_vector: List[float],
@@ -159,6 +154,7 @@ class _NearVectorGroupBy(_Aggregate):
             `weaviate.exceptions.WeaviateGQLQueryError`:
                 If an error occurs while performing the query against Weaviate.
         """
+        _Warnings.old_query_group_by_namespace("aggregate.near_text", "aggregate_group_by")
         return_metrics = (
             return_metrics
             if (return_metrics is None or isinstance(return_metrics, list))

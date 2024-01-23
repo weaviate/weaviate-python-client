@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Literal, Optional, Tuple, Union, cast, overload
+from typing import Literal, Tuple, TypeVar, Union, cast, overload
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -42,14 +42,15 @@ class ProtocolParams(BaseModel):
         return v
 
 
+T = TypeVar("T", bound="ConnectionParams")
+
+
 class ConnectionParams(BaseModel):
     http: ProtocolParams
-    grpc: Optional[ProtocolParams] = None
+    grpc: ProtocolParams
 
     @classmethod
-    def from_url(
-        cls, url: str, grpc_port: Optional[int] = None, grpc_secure: bool = False
-    ) -> "ConnectionParams":
+    def from_url(cls, url: str, grpc_port: int, grpc_secure: bool = False) -> "ConnectionParams":
         parsed_url = urlparse(url)
         if parsed_url.scheme not in ["http", "https"]:
             raise ValueError(f"Unsupported scheme: {parsed_url.scheme}")
@@ -68,9 +69,7 @@ class ConnectionParams(BaseModel):
                 host=cast(str, parsed_url.hostname),
                 port=grpc_port,
                 secure=grpc_secure or parsed_url.scheme == "https",
-            )
-            if grpc_port is not None
-            else None,
+            ),
         )
 
     @classmethod
@@ -79,9 +78,9 @@ class ConnectionParams(BaseModel):
         http_host: str,
         http_port: int,
         http_secure: bool,
-        grpc_host: Optional[str] = None,
-        grpc_port: Optional[int] = None,
-        grpc_secure: Optional[bool] = None,
+        grpc_host: str,
+        grpc_port: int,
+        grpc_secure: bool,
     ) -> "ConnectionParams":
         return cls(
             http=ProtocolParams(
@@ -93,45 +92,32 @@ class ConnectionParams(BaseModel):
                 host=grpc_host,
                 port=grpc_port,
                 secure=grpc_secure,
-            )
-            if (grpc_host is not None and grpc_port is not None and grpc_secure is not None)
-            else None,
+            ),
         )
 
     @model_validator(mode="after")
-    def _check_port_collision(self) -> "ConnectionParams":
-        if (
-            self.grpc is not None
-            and self.http.host == self.grpc.host
-            and self.http.port == self.grpc.port
-        ):
+    def _check_port_collision(self: T) -> T:
+        if self.http.host == self.grpc.host and self.http.port == self.grpc.port:
             raise ValueError("http.port and grpc.port must be different if using the same host")
         return self
 
     @property
-    def _grpc_address(self) -> Optional[Tuple[str, int]]:
-        if self.grpc is None:
-            return None
+    def _grpc_address(self) -> Tuple[str, int]:
         return (self.grpc.host, self.grpc.port)
 
     @property
-    def _grpc_target(self) -> Optional[str]:
-        if self.grpc is None:
-            return None
+    def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
 
     @overload
-    def _grpc_channel(self, async_channel: Literal[False]) -> Optional[Channel]:
+    def _grpc_channel(self, async_channel: Literal[False]) -> Channel:
         ...
 
     @overload
-    def _grpc_channel(self, async_channel: Literal[True]) -> Optional[AsyncChannel]:
+    def _grpc_channel(self, async_channel: Literal[True]) -> AsyncChannel:
         ...
 
-    def _grpc_channel(self, async_channel: bool) -> Union[Channel, AsyncChannel, None]:
-        if self.grpc is None:
-            return None
-
+    def _grpc_channel(self, async_channel: bool) -> Union[Channel, AsyncChannel]:
         if async_channel:
             import_path = grpc.aio
         else:

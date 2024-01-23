@@ -132,7 +132,7 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except grpc.RpcError as e:
-            raise WeaviateBatchError(e.details())
+            raise WeaviateBatchError(e.details())  # pyright: ignore
 
     async def objects_async(self, objects: List[_BatchObject]) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
@@ -227,14 +227,11 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except grpc.RpcError as e:
-            raise WeaviateBatchError(e.details())
+            raise WeaviateBatchError(e.details())  # pyright: ignore
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], refs: ReferenceInputs, clean_props: bool
     ) -> batch_pb2.BatchObject.Properties:
-        if data is None and refs is None:
-            return None
-
         _validate_props(data, clean_props)
 
         multi_target: List[batch_pb2.BatchObject.MultiTargetRefProps] = []

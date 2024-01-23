@@ -1,7 +1,19 @@
 from abc import abstractmethod
 from dataclasses import dataclass, asdict
 from enum import Enum
-from typing import Any, ClassVar, Dict, List, Literal, Optional, Sequence, Type, Union, cast
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -886,7 +898,7 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
     useCache: Optional[bool]
     vectorizeClassName: bool
 
-    def validate_mutually_exclusive_fields(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_mutually_exclusive_fields(self, values: Dict[str, Any]) -> Dict[str, Any]:
         if "passageModel" in values and "queryModel" not in values:
             raise ValueError("Must specify query_model when specifying passage_model")
         if "queryModel" in values and "passageModel" not in values:
@@ -1651,8 +1663,9 @@ class _PropertyBase(_ConfigBase):
     vectorizer: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
+        module_config: Dict[str, Any] = {}
         if self.vectorizer is not None:
-            module_config: Dict[str, Any] = {self.vectorizer: {}}
+            module_config[self.vectorizer] = {}
         if self.vectorizer_config is not None:
             assert self.vectorizer is not None
             module_config[self.vectorizer] = {
@@ -1660,14 +1673,18 @@ class _PropertyBase(_ConfigBase):
                 "vectorizePropertyName": self.vectorizer_config.vectorize_property_name,
             }
 
-        return {
+        ret_dict: Dict[str, Any] = {
             "description": self.description,
             "indexFilterable": self.index_filterable,
             "indexVector": self.index_searchable,
-            "moduleConfig": module_config,
             "name": self.name,
             "tokenizer": self.tokenization.value if self.tokenization else None,
         }
+
+        if len(module_config) > 0:
+            ret_dict["moduleConfig"] = module_config
+
+        return ret_dict
 
 
 @dataclass
@@ -2032,6 +2049,8 @@ class ReferenceProperty(_ReferencePropertyBase):
 
 PropertyType = Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]
 
+T = TypeVar("T", bound="_CollectionConfigCreate")
+
 
 class _CollectionConfigCreate(_CollectionConfigCreateBase):
     name: str
@@ -2039,7 +2058,7 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
     references: Optional[List[_ReferencePropertyBase]] = Field(default=None)
 
     @model_validator(mode="after")
-    def model_validator_return_none(self) -> "_CollectionConfigCreate":
+    def model_validator_return_none(self: T) -> T:
         if self.properties is not None and any(
             isinstance(p, _ReferencePropertyBase) for p in self.properties
         ):

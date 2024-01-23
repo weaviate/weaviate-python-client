@@ -175,7 +175,7 @@ class _Warnings:
             f"Dep010: Importing {name} from weaviate is deprecated. "
             f"Please import it from its specific module: weaviate.{loc}",
             DeprecationWarning,
-            stacklevel=3,
+            stacklevel=2,  # don't increase stacklevel, as this otherwise writes the auth-secrets into the log
         )
 
     @staticmethod
@@ -190,6 +190,14 @@ class _Warnings:
     def old_reference_to_multi_target() -> None:
         warnings.warn(
             message="""Dep012: You are using the old Reference.to_multi_target() method. Please use the ReferenceToMulti class instead.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def old_query_group_by_namespace(new_method: str, old_namespace: str) -> None:
+        warnings.warn(
+            message=f"""Dep013: Use {new_method} with the `group_by` argument instead. The {old_namespace} namespace will be removed in the final release.""",
             category=DeprecationWarning,
             stacklevel=1,
         )

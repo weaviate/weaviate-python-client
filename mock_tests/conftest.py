@@ -10,8 +10,10 @@ MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536
 CLIENT_ID = "DoesNotMatter"
 MOCK_SERVER_URL = "http://" + MOCK_IP + ":" + str(MOCK_PORT)
+# only http endpoint is tested, grpc port doesnt matter but needs to be supplied
 MOCK_SERVER_CONNECTION_PARAMS = ConnectionParams(
-    http=ProtocolParams(host=MOCK_IP, port=MOCK_PORT, secure=False)
+    http=ProtocolParams(host=MOCK_IP, port=MOCK_PORT, secure=False),
+    grpc=ProtocolParams(host=MOCK_IP, port=MOCK_PORT + 1, secure=False),
 )
 
 # pytest_httpserver 'Authorization' HeaderValueMatcher does not work with Bearer tokens.

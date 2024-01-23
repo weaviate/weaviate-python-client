@@ -267,7 +267,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                 If the request to the Weaviate server fails.
         """
         return _ObjectIterator(  # type: ignore
-            lambda limit, after: self.query.fetch_objects(
+            lambda limit, after: self.query.fetch_objects(  # pyright: ignore # problems with invariance of list
                 limit=limit,
                 after=after,
                 include_vector=include_vector,

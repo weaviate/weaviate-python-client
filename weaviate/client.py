@@ -130,7 +130,7 @@ class WeaviateClient(_ClientBase):
             A `_Collections` object instance connected to the same Weaviate instance as the Client.
     """
 
-    _connection: ConnectionV4
+    _connection: ConnectionV4  # pyright: ignore reportIncompatibleVariableOverride
 
     def __init__(
         self,
@@ -174,7 +174,7 @@ class WeaviateClient(_ClientBase):
         config = additional_config or AdditionalConfig()
         self.__skip_init_checks = skip_init_checks
 
-        self._connection = ConnectionV4(
+        self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=_get_valid_timeout_config(config.timeout),

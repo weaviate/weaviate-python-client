@@ -24,8 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: psf/black@stable
-        with:
-          version: "22.10"
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
@@ -55,6 +53,7 @@ jobs:
       - run: pip install -r requirements-devel.txt
       - name: Run mypy
         run: mypy --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
+      - uses: jakebailey/pyright-action@v2
 
   unit-tests:
     name: Run Unit Tests

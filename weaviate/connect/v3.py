@@ -38,20 +38,14 @@ from weaviate.warnings import _Warnings
 
 from .base import _ConnectionBase, _get_proxies
 
-try:
-    import grpc  # type: ignore
-    from weaviate.proto.v1 import weaviate_pb2_grpc
-
-    has_grpc = True
-
-except ImportError:
-    has_grpc = False
+import grpc  # type: ignore
+from weaviate.proto.v1 import weaviate_pb2_grpc
 
 
 JSONPayload = Union[dict, list]
 Session = Union[requests.sessions.Session, OAuth2Session]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
-PYPI_TIMEOUT = 0.1
+INIT_CHECK_TIMEOUT = 0.5
 
 
 class Connection(_ConnectionBase):
@@ -119,7 +113,7 @@ class Connection(_ConnectionBase):
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
-        if has_grpc and grcp_port is not None:
+        if grcp_port is not None:
             parsed_url = urlparse(self.url)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             try:
@@ -175,7 +169,7 @@ class Connection(_ConnectionBase):
             _Warnings.weaviate_too_old_vs_latest(self._server_version)
 
         try:
-            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=INIT_CHECK_TIMEOUT).json()
             pkg_info = pkg_info.get("info", {})
             latest_version = pkg_info.get("version", "unknown version")
             if is_weaviate_client_too_old(client_version, latest_version):
@@ -221,7 +215,12 @@ class Connection(_ConnectionBase):
                 return
 
             if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
-                _auth = _Auth(resp, auth_client_secret, self)
+                _auth = _Auth(
+                    session_type=OAuth2Session,
+                    oidc_config=resp,
+                    credentials=auth_client_secret,
+                    connection=self,
+                )
                 self._session = _auth.get_auth_session()
 
                 if isinstance(auth_client_secret, AuthClientCredentials):
@@ -301,7 +300,9 @@ class Connection(_ConnectionBase):
                         self._session.token = self._session.refresh_token(
                             self._session.metadata["token_endpoint"]
                         )
-                        refresh_time = self._session.token.get("expires_in") - 30
+                        refresh_time = (
+                            int(self._session.token.get("expires_in")) - 30  # pyright: ignore
+                        )
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
@@ -582,7 +583,7 @@ class Connection(_ConnectionBase):
         )
 
     @property
-    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:
+    def timeout_config(self) -> TIMEOUT_TYPE_RETURN:  # pyright: ignore
         """
         Getter/setter for `timeout_config`.
 
@@ -604,7 +605,7 @@ class Connection(_ConnectionBase):
         return self._timeout_config
 
     @timeout_config.setter
-    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN) -> None:
+    def timeout_config(self, timeout_config: TIMEOUT_TYPE_RETURN) -> None:  # pyright: ignore
         """
         Setter for `timeout_config`. (docstring should be only in the Getter)
         """
@@ -633,15 +634,19 @@ class Connection(_ConnectionBase):
         ready_url = self.url + self._api_version_path + "/.well-known/ready"
         for _i in range(startup_period):
             try:
-                requests.get(ready_url, headers=self._headers).raise_for_status()
+                requests.get(
+                    ready_url, headers=self._headers, timeout=INIT_CHECK_TIMEOUT
+                ).raise_for_status()
                 return
-            except (RequestsHTTPError, RequestsConnectionError):
+            except (RequestsHTTPError, RequestsConnectionError, ReadTimeout):
                 time.sleep(1)
 
         try:
-            requests.get(ready_url, headers=self._headers).raise_for_status()
+            requests.get(
+                ready_url, headers=self._headers, timeout=INIT_CHECK_TIMEOUT
+            ).raise_for_status()
             return
-        except (RequestsHTTPError, RequestsConnectionError) as error:
+        except (RequestsHTTPError, RequestsConnectionError, ReadTimeout) as error:
             raise WeaviateStartUpError(
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error

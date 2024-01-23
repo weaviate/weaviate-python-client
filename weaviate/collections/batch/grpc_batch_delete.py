@@ -63,4 +63,4 @@ class _BatchDeleteGRPC(_BaseGRPC):
                 )
 
         except grpc.RpcError as e:
-            raise WeaviateDeleteManyError(e.details())
+            raise WeaviateDeleteManyError(e.details())  # pyright: ignore

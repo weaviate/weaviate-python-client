@@ -103,8 +103,8 @@ class _Backup:
         (
             backup_id,
             backend,
-            include_classes,
-            exclude_classes,
+            include_collections,
+            exclude_collections,
         ) = _get_and_validate_create_restore_arguments(
             backup_id=backup_id,
             backend=backend,  # can be removed when we remove the old backup class

@@ -37,11 +37,8 @@ from weaviate.util import (
 from weaviate.warnings import _Warnings
 from weaviate.types import UUID
 
-try:
-    from weaviate.proto.v1 import search_get_pb2
-    import grpc  # type: ignore
-except ImportError:
-    pass
+from weaviate.proto.v1 import search_get_pb2
+import grpc  # type: ignore
 
 
 @dataclass
@@ -1899,7 +1896,7 @@ class GetBuilder(GraphQL):
                 }
 
             except grpc.RpcError as e:
-                results = {"errors": [e.details()]}
+                results = {"errors": [e.details()]}  # pyright: ignore
             return results
         else:
             return super().do()

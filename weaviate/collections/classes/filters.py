@@ -811,7 +811,8 @@ class _FilterById(_FilterBase):
 
 
 class _FilterByCount(_FilterBase):
-    def __init__(self, link_on: str) -> None:
+    def __init__(self, link_on: str, target: Optional[_TargetRefs] = None) -> None:
+        self._target = target
         self._property = _CountRef(link_on=link_on)
 
     def equal(self, count: int) -> _FilterValue2:
@@ -873,7 +874,6 @@ class _FilterByCount(_FilterBase):
             `count`
                 count to filter on.
         """
-        print(self._target_path())
         return _FilterValue2(
             target=self._target_path(),
             value=count,
@@ -912,6 +912,10 @@ class _FilterByRef:
 
         return self
 
+    def by_ref_count(self, link_on: str) -> _FilterByCount:
+        """Filter on the given reference."""
+        return _FilterByCount(link_on, self.__last_target)
+
     def by_id(self) -> _FilterById:
         """Define a filter based on the uuid to be used when querying and deleting from a collection."""
         return _FilterById(self.__target)
@@ -928,10 +932,6 @@ class _FilterByRef:
         """Define a filter based on a property to be used when querying and deleting from a collection."""
         return _FilterByProperty(prop=prop, length=length, target=self.__target)
 
-    def by_count(self) -> _FilterByCount:
-        """Define a filter based on the number of references to be used when querying and deleting from a collection."""
-        return _FilterByCount(link_on=self.__target.link_on)
-
 
 class Filter(_FilterOld):
     """Filter class."""
@@ -945,6 +945,11 @@ class Filter(_FilterOld):
     def by_ref_multi_target(link_on: str, target_collection: str) -> _FilterByRef:
         """Define a filter based on a reference to be used when querying and deleting from a collection."""
         return _FilterByRef(_MultiTargetRef(link_on=link_on, target_collection=target_collection))
+
+    @staticmethod
+    def by_ref_count(link_on: str) -> _FilterByCount:
+        """Define a filter based on the number of references to be used when querying and deleting from a collection."""
+        return _FilterByCount(link_on=link_on)
 
     @staticmethod
     def by_id() -> _FilterById:

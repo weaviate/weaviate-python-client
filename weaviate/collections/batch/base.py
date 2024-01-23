@@ -131,9 +131,6 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
         # return successful_responses
 
 
-B = TypeVar("B", bound="_BatchBase")
-
-
 @dataclass
 class _BatchDataWrapper:
     results: BatchResult = BatchResult()
@@ -347,7 +344,6 @@ class _BatchBase:
             try:
                 response_obj = await self.__batch_grpc.objects_async(objects=objs)
             except Exception as e:
-                print(repr(e), objs)
                 errors_obj = {
                     idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
                 }
@@ -372,7 +368,6 @@ class _BatchBase:
                 response_ref = await self.__batch_rest.references(references=refs)
 
             except Exception as e:
-                print(repr(e), refs)
                 errors_ref = {
                     idx: ErrorReference(message=repr(e), reference=ref)
                     for idx, ref in enumerate(refs)
