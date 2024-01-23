@@ -377,7 +377,7 @@ class _Connection(_ConnectionBase):
             self.embedded_db.stop()
         self.__connected = False
 
-    def __get_headers_for_async(self) -> Dict[str, str]:
+    def __get_latest_headers(self) -> Dict[str, str]:
         if "authorization" in self._headers:
             return self._headers
 
@@ -407,7 +407,7 @@ class _Connection(_ConnectionBase):
                 url,
                 json=weaviate_object,
                 params=params,
-                headers=self.__get_headers_for_async(),
+                headers=self.__get_latest_headers(),
             )
             res = self._client.send(req)
             return cast(Response, res)
@@ -471,7 +471,7 @@ class _Connection(_ConnectionBase):
             url=request_url,
             json=weaviate_object,
             params=params,
-            headers=self.__get_headers_for_async(),
+            headers=self.__get_latest_headers(),
         )
 
     def put(
