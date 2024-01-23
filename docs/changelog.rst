@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 3.26.2
+--------------
+This patch version includes
+
+- Adds a timeout to wait_for_weaviate startup check
+
 Version 3.26.1
 --------------
 This patch version includes
