@@ -13,12 +13,11 @@ from typing import (
     Optional,
     Sequence,
     Set,
-    TypeAlias,
     TypeVar,
     Union,
 )
 import uuid as uuid_package
-
+from typing_extensions import TypeAlias
 from pydantic import ValidationError
 from requests import ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
