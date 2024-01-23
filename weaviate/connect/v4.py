@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import time
-
 from copy import copy
 from threading import Thread, Event
 from typing import Any, Dict, Literal, Optional, Tuple, Union, cast, overload
 
+from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client  # type: ignore
 from grpc import _channel  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
 from httpx import (
@@ -24,7 +24,6 @@ from httpx import (
     HTTPTransport,
     get,
 )
-from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client  # type: ignore
 
 from weaviate import __version__ as client_version
 from weaviate.auth import (
@@ -49,6 +48,7 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
     WeaviateClosedClientError,
 )
+from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.util import (
     is_weaviate_domain,
     is_weaviate_client_too_old,
@@ -57,8 +57,6 @@ from weaviate.util import (
     _ServerVersion,
 )
 from weaviate.warnings import _Warnings
-
-from weaviate.proto.v1 import weaviate_pb2_grpc
 
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
@@ -236,9 +234,7 @@ class _Connection(_ConnectionBase):
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         with self.__make_sync_client() as client:
-            response = client.get(
-                oidc_url,
-            )
+            response = client.get(oidc_url)
         if response.status_code == 200:
             # Some setups are behind proxies that return some default page - for example a login - for all requests.
             # If the response is not json, we assume that this is the case and try unauthenticated access. Any auth
@@ -381,7 +377,7 @@ class _Connection(_ConnectionBase):
             self.embedded_db.stop()
         self.__connected = False
 
-    def __get_headers_for_async(self) -> Dict[str, str]:
+    def __get_latest_headers(self) -> Dict[str, str]:
         if "authorization" in self._headers:
             return self._headers
 
@@ -411,6 +407,7 @@ class _Connection(_ConnectionBase):
                 url,
                 json=weaviate_object,
                 params=params,
+                headers=self.__get_latest_headers(),
             )
             res = self._client.send(req)
             return cast(Response, res)
@@ -474,7 +471,7 @@ class _Connection(_ConnectionBase):
             url=request_url,
             json=weaviate_object,
             params=params,
-            headers=self.__get_headers_for_async(),
+            headers=self.__get_latest_headers(),
         )
 
     def put(
