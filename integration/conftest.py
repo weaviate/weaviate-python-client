@@ -1,5 +1,4 @@
 import os
-import weakref
 from typing import Any, Optional, List, Generator, Protocol, Type, Dict, Tuple
 
 import pytest
@@ -19,7 +18,6 @@ from weaviate.collections.classes.config import (
     _MultiTenancyConfigCreate,
     _VectorIndexConfigCreate,
     _RerankerConfigCreate,
-    ConsistencyLevel,
 )
 from weaviate.collections.classes.types import Properties
 
@@ -44,7 +42,6 @@ class CollectionFactory(Protocol):
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerConfigCreate] = None,
-        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -52,17 +49,8 @@ class CollectionFactory(Protocol):
 
 @pytest.fixture
 def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None, None]:
+    name_fixture: Optional[str] = None
     client_fixture: Optional[weaviate.WeaviateClient] = None
-    collections: List[weakref.finalize] = []
-
-    def cleanup_collection(client: Optional[weaviate.WeaviateClient], name: str) -> None:
-        if client is not None:
-            client.collections.delete(name)
-            client.close()
-
-    def cleanup_client(client: Optional[weaviate.WeaviateClient]) -> None:
-        if client is not None:
-            client.close()
 
     def _factory(
         name: str = "",
@@ -80,10 +68,8 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerConfigCreate] = None,
-        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> Collection[Any, Any]:
-        nonlocal client_fixture, collections
-
+        nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(request.node.name) + name
         client_fixture = weaviate.connect_to_local(
             headers=headers, grpc_port=ports[1], port=ports[0]
@@ -105,23 +91,14 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
             vector_index_config=vector_index_config,
             reranker_config=reranker_config,
         )
-        if consistency_level is not None:
-            collection = collection.with_consistency_level(consistency_level)
-
-        # Create a weak reference to the collection with a cleanup callback
-        finalizer = weakref.finalize(collection, cleanup_collection, client_fixture, name_fixture)
-        collections.append(finalizer)
-
         return collection
 
     try:
         yield _factory
-    except Exception as e:
-        raise e
     finally:
-        # Check if all collections have been cleared
-        if all(f() is None for f in collections):
-            cleanup_client(client_fixture)
+        if client_fixture is not None and name_fixture is not None:
+            client_fixture.collections.delete(name_fixture)
+            client_fixture.close()
 
 
 class OpenAICollection(Protocol):
@@ -182,23 +159,14 @@ class CollectionFactoryGet(Protocol):
 @pytest.fixture
 def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
     client_fixture: Optional[weaviate.WeaviateClient] = None
-    collections: List[weakref.finalize] = []
-    names_fixture: List[str] = []
-
-    def cleanup_collection() -> None:
-        pass
-
-    def cleanup_client(client: Optional[weaviate.WeaviateClient], names_fixture: List[str]) -> None:
-        if client is not None:
-            client.collections.delete(names_fixture)
-            client.close()
+    name_fixture: Optional[str] = None
 
     def _factory(
         name: str,
         data_model_props: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
     ) -> Collection[Any, Any]:
-        nonlocal client_fixture
+        nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(name)
         client_fixture = weaviate.connect_to_local()
 
@@ -207,21 +175,14 @@ def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
             data_model_properties=data_model_props,
             data_model_references=data_model_refs,
         )
-
-        names_fixture.append(name_fixture)
-        # Create a weak reference to the collection with a cleanup callback
-        finalizer = weakref.finalize(collection, cleanup_collection)
-        collections.append(finalizer)
-
         return collection
 
     try:
         yield _factory
-    except Exception as e:
-        raise e
     finally:
-        if all(f() is None for f in collections):
-            cleanup_client(client_fixture, names_fixture)
+        if client_fixture is not None and name_fixture is not None:
+            client_fixture.collections.delete(name_fixture)
+            client_fixture.close()
 
 
 def _sanitize_collection_name(name: str) -> str:
