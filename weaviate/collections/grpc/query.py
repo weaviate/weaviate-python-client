@@ -27,6 +27,8 @@ from weaviate.collections.classes.grpc import (
     FromNested,
     _MetadataQuery,
     Move,
+    QueryNested,
+    _QueryReference,
     PROPERTIES,
     PROPERTY,
     REFERENCE,
@@ -144,8 +146,124 @@ class _QueryGRPC(_BaseGRPC):
             self._sort = [sort]
         elif isinstance(sort, _Sorting):
             self._sort = sort.sorts
-        else:
+        elif isinstance(sort, list):
             self._sort = sort
+        else:
+            raise TypeError(
+                f"sort must be of type Sort, Sorting or List[Sort], but got {type(sort)}"
+            )
+
+    def __parse_common(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        metadata: Optional[_MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
+        generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
+        autocut: Optional[int] = None,
+        group_by: Optional[_GroupBy] = None,
+    ) -> None:
+        if limit is not None and not isinstance(limit, int):
+            raise TypeError(f"limit must be of type int, but got {type(limit)}")
+        if offset is not None and not isinstance(offset, int):
+            raise TypeError(f"offset must be of type int, but got {type(offset)}")
+        if after is not None and not isinstance(after, uuid_lib.UUID):
+            raise TypeError(f"after must be of type str or uuid.UUID, but got {type(after)}")
+        if filters is not None and not isinstance(filters, _Filters):
+            raise TypeError(f"filters must be of type Filters, but got {type(filters)}")
+        if metadata is not None and not isinstance(metadata, _MetadataQuery):
+            raise TypeError(f"metadata must be of type MetadataQuery, but got {type(metadata)}")
+        if generative is not None and not isinstance(generative, _Generative):
+            raise TypeError(f"generative must be of type Generative, but got {type(generative)}")
+        if rerank is not None and not isinstance(rerank, Rerank):
+            raise TypeError(f"rerank must be of type Rerank, but got {type(rerank)}")
+        if autocut is not None and not isinstance(autocut, int):
+            raise TypeError(f"autocut must be of type int, but got {type(autocut)}")
+        if group_by is not None and not isinstance(group_by, _GroupBy):
+            raise TypeError(f"group_by must be of type GroupBy, but got {type(group_by)}")
+
+        self._limit = limit
+        self._offset = offset
+        self._after = after
+        self._filters = filters
+        self._metadata = metadata
+        self._generative = generative
+        self._rerank = rerank
+        self._autocut = autocut
+        self._group_by = group_by
+        self.__merge_default_and_return_properties(return_properties)
+        self.__merge_return_references(return_references)
+
+    def __parse_autocut(self, autocut: Optional[int]) -> None:
+        if autocut is not None and not isinstance(autocut, int):
+            raise TypeError(f"autocut must be of type int, but got {type(autocut)}")
+        self._autocut = autocut
+
+    def __parse_hybrid(
+        self,
+        query: str,
+        alpha: Optional[Union[float, int]] = None,
+        vector: Optional[List[float]] = None,
+        properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+    ) -> None:
+        if not isinstance(query, str):
+            raise TypeError(f"query must be of type str, but got {type(query)}")
+        if alpha is not None and not isinstance(alpha, float) and not isinstance(alpha, int):
+            raise TypeError(f"alpha must be of type float or int, but got {type(alpha)}")
+        if vector is not None and not isinstance(vector, list):
+            raise TypeError(f"vector must be of type List[float], but got {type(vector)}")
+        if properties is not None and not isinstance(properties, list):
+            raise TypeError(f"properties must be of type List[str], but got {type(properties)}")
+        if fusion_type is not None and not isinstance(fusion_type, HybridFusion):
+            raise TypeError(
+                f"fusion_type must be of type HybridFusion, but got {type(fusion_type)}"
+            )
+        self._hybrid_query = query
+        self._hybrid_alpha = float(alpha) if alpha is not None else None
+        self._hybrid_vector = vector
+        self._hybrid_properties = properties
+        self._hybrid_fusion_type = (
+            search_get_pb2.Hybrid.FusionType.Value(fusion_type.value)
+            if fusion_type is not None
+            else None
+        )
+
+    def __parse_bm25(
+        self,
+        query: str,
+        properties: Optional[List[str]] = None,
+    ) -> None:
+        if not isinstance(query, str):
+            raise TypeError(f"query must be of type str, but got {type(query)}")
+        if properties is not None and not isinstance(properties, list):
+            raise TypeError(f"properties must be of type List[str], but got {type(properties)}")
+        self._bm25_query = query
+        self._bm25_properties = properties
+
+    def __parse_near_options(
+        self,
+        certainty: Optional[Union[float, int]] = None,
+        distance: Optional[Union[float, int]] = None,
+    ) -> None:
+        if (
+            certainty is not None
+            and not isinstance(certainty, float)
+            and not isinstance(certainty, int)
+        ):
+            raise TypeError(f"certainty must be of type float or int, but got {type(certainty)}")
+        if (
+            distance is not None
+            and not isinstance(distance, float)
+            and not isinstance(distance, int)
+        ):
+            raise TypeError(f"distance must be of type float or int, but got {type(distance)}")
+        self._near_certainty = float(certainty) if certainty is not None else None
+        self._near_distance = float(distance) if distance is not None else None
 
     def get(
         self,
@@ -160,16 +278,18 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
     ) -> search_get_pb2.SearchReply:
-        self._limit = limit
-        self._offset = offset
-        self._after = after
-        self._filters = filters
-        self._metadata = return_metadata
+        self.__parse_common(
+            limit=limit,
+            offset=offset,
+            after=after,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+        )
         self.__parse_sort(sort)
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
-        self._generative = generative
-        self._rerank = rerank
         return self.__call()
 
     def hybrid(
@@ -188,25 +308,17 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
     ) -> search_get_pb2.SearchReply:
-        self._hybrid_query = query
-        self._hybrid_alpha = alpha
-        self._hybrid_vector = vector
-        self._hybrid_properties = properties
-        self._hybrid_fusion_type = (
-            search_get_pb2.Hybrid.FusionType.Value(fusion_type.value)
-            if fusion_type is not None
-            else None
+        self.__parse_hybrid(query, alpha, vector, properties, fusion_type)
+        self.__parse_common(
+            limit=limit,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
         )
-        self._limit = limit
-        self._autocut = autocut
-        self._filters = filters
-        self._metadata = return_metadata
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
-
-        self._generative = generative
-        self._rerank = rerank
-
         return self.__call()
 
     def bm25(
@@ -222,25 +334,24 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
     ) -> search_get_pb2.SearchReply:
-        self._bm25_query = query
-        self._bm25_properties = properties
-        self._limit = limit
-        self._autocut = autocut
-        self._filters = filters
-        self._metadata = return_metadata
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
-
-        self._generative = generative
-        self._rerank = rerank
-
+        self.__parse_bm25(query, properties)
+        self.__parse_common(
+            limit=limit,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+        )
         return self.__call()
 
     def near_vector(
         self,
         near_vector: List[float],
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
+        certainty: Optional[Union[float, int]] = None,
+        distance: Optional[Union[float, int]] = None,
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
@@ -251,26 +362,28 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
+        if not isinstance(near_vector, list):
+            raise TypeError(f"near_vector must be of type List[float], but got {type(near_vector)}")
         self._near_vector_vec = near_vector
-        self._near_certainty = certainty
-        self._near_distance = distance
-        self._limit = limit
-        self._autocut = autocut
-        self._filters = filters
-        self._metadata = return_metadata
-        self._group_by = group_by
-        self._generative = generative
-        self._rerank = rerank
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
-
+        self.__parse_near_options(certainty, distance)
+        self.__parse_common(
+            limit=limit,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            group_by=group_by,
+        )
         return self.__call()
 
     def near_object(
         self,
         near_object: UUID,
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
+        certainty: Optional[Union[float, int]] = None,
+        distance: Optional[Union[float, int]] = None,
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
@@ -281,25 +394,30 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
+        if not isinstance(near_object, str) and not isinstance(near_object, uuid_lib.UUID):
+            raise TypeError(
+                f"near_object must be of type str or uuid.UUID, but got {type(near_object)}"
+            )
         self._near_object_obj = near_object
-        self._near_certainty = certainty
-        self._near_distance = distance
-        self._limit = limit
-        self._autocut = autocut
-        self._filters = filters
-        self._metadata = return_metadata
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
-        self._group_by = group_by
-        self._generative = generative
-        self._rerank = rerank
+        self.__parse_near_options(certainty, distance)
+        self.__parse_common(
+            limit=limit,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            group_by=group_by,
+        )
         return self.__call()
 
     def near_text(
         self,
         near_text: Union[List[str], str],
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
+        certainty: Optional[Union[float, int]] = None,
+        distance: Optional[Union[float, int]] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         limit: Optional[int] = None,
@@ -312,14 +430,29 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
+        if not isinstance(near_text, list) and not isinstance(near_text, str):
+            raise TypeError(
+                f"near_text must be of type List[str] or str, but got {type(near_text)}"
+            )
+        if move_away is not None and isinstance(move_away, Move):
+            raise TypeError(f"move_away must be of type Move, but got {type(move_away)}")
+        if move_to is not None and isinstance(move_to, Move):
+            raise TypeError(f"move_to must be of type Move, but got {type(move_to)}")
         if isinstance(near_text, str):
             near_text = [near_text]
         self._near_text = near_text
-        self._near_certainty = certainty
-        self._near_distance = distance
-        self._limit = limit
-        self._autocut = autocut
-        self._filters = filters
+        self.__parse_near_options(certainty, distance)
+        self.__parse_common(
+            limit=limit,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            group_by=group_by,
+        )
         if move_away is not None:
             self._near_text_move_away = search_get_pb2.NearTextSearch.Move(
                 force=move_away.force,
@@ -330,23 +463,14 @@ class _QueryGRPC(_BaseGRPC):
             self._near_text_move_to = search_get_pb2.NearTextSearch.Move(
                 force=move_to.force, concepts=move_to._concepts_list, uuids=move_to._objects_list
             )
-
-        self._generative = generative
-        self._rerank = rerank
-
-        self._group_by = group_by
-        self._metadata = return_metadata
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
-
         return self.__call()
 
     def near_media(
         self,
         media: str,
         type_: Literal["audio", "depth", "image", "imu", "thermal", "video"],
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
+        certainty: Optional[Union[float, int]] = None,
+        distance: Optional[Union[float, int]] = None,
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
@@ -373,18 +497,18 @@ class _QueryGRPC(_BaseGRPC):
             raise ValueError(
                 f"type_ must be one of ['audio', 'depth', 'image', 'imu', 'thermal', 'video'], but got {type_}"
             )
-        self._near_certainty = certainty
-        self._near_distance = distance
-        self._limit = limit
-        self._autocut = autocut
-        self._filters = filters
-        self._group_by = group_by
-        self._generative = generative
-        self._rerank = rerank
-
-        self._metadata = return_metadata
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
+        self.__parse_near_options(certainty, distance)
+        self.__parse_common(
+            limit=limit,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            group_by=group_by,
+        )
 
         return self.__call()
 
@@ -612,6 +736,22 @@ class _QueryGRPC(_BaseGRPC):
     ) -> None:
         if return_properties is None:
             return
+        if (
+            not isinstance(return_properties, str)
+            and not isinstance(return_properties, Sequence)
+            and not isinstance(return_properties, QueryNested)
+        ):
+            raise TypeError(
+                f"return_properties must be of type str, QueryNested or List[str, QueryNested], but got {type(return_properties)}"
+            )
+        elif isinstance(return_properties, Sequence):
+            if any(
+                not isinstance(prop, str) and not isinstance(prop, QueryNested)
+                for prop in return_properties
+            ):
+                raise TypeError(
+                    f"return_properties must be of type str, QueryNested or List[str, QueryNested], but got {type(return_properties)}"
+                )
         if self._default_props is not None:
             self._default_props = self._default_props.union(
                 self.__convert_to_set(return_properties)
@@ -622,6 +762,17 @@ class _QueryGRPC(_BaseGRPC):
     def __merge_return_references(self, return_references: Optional[REFERENCES]) -> None:
         if return_references is None:
             return None
+        if not isinstance(return_references, _QueryReference) and not isinstance(
+            return_references, Sequence
+        ):
+            raise TypeError(
+                f"return_references must be of type QueryReference, QueryReferenceMultiTarget or List[QueryReference | QueryReferenceMultiTarget], but got {type(return_references)}"
+            )
+        elif isinstance(return_references, Sequence):
+            if any(not isinstance(ref, _QueryReference) for ref in return_references):
+                raise TypeError(
+                    f"return_references must be of type QueryReference, QueryReferenceMultiTarget or List[QueryReference | QueryReferenceMultiTarget], but got {type(return_references)}"
+                )
         if self._refs is not None:
             self._refs = self._refs.union(self.__convert_to_set(return_references))
         else:
