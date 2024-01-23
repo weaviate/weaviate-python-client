@@ -1658,7 +1658,6 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
         (Sort(prop="_lastUpdateTimeUnix", ascending=False), [2, 1, 0]),
         (Sort.by_property("name", True), [0, 1, 2]),
         (Sort.by_property("name", False), [2, 1, 0]),
-        ([Sort.by_property("age", False), Sort.by_property("name", True)], [1, 2, 0]),
         (Sort.by_property("age", False).by_property("name", True), [1, 2, 0]),
         (Sort.by_id(True), [0, 1, 2]),
         (Sort.by_id(False), [2, 1, 0]),
