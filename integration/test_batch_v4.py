@@ -16,7 +16,12 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
 )
 from weaviate.collections.classes.grpc import FromReference
-from weaviate.collections.classes.internal import _CrossReference, _Reference, Reference
+from weaviate.collections.classes.internal import (
+    _CrossReference,
+    _Reference,
+    Reference,
+    ReferenceToMulti,
+)
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID
 
@@ -267,12 +272,21 @@ def test_add_ref_batch(client_factory: ClientFactory, to_ref: Callable) -> None:
             objects_class0.append(obj_uuid0)
             batch.add_object(collection=name, uuid=obj_uuid0)
 
-            batch.add_reference(
-                from_property="test",
-                from_collection=name,
-                from_uuid=obj_uuid0,
-                to=to_ref(obj_uuid0),
-            )
+            if to_ref == _from_uuid_to_ref:
+                with pytest.warns(DeprecationWarning):
+                    batch.add_reference(
+                        from_property="test",
+                        from_collection=name,
+                        from_uuid=obj_uuid0,
+                        to=to_ref(obj_uuid0),
+                    )
+            else:
+                batch.add_reference(
+                    from_property="test",
+                    from_collection=name,
+                    from_uuid=obj_uuid0,
+                    to=to_ref(obj_uuid0),
+                )
 
     collection = client.collections.get(name)
     for obj in objects_class0:
@@ -304,8 +318,8 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
                 from_property="test",
                 from_collection=name,
                 from_uuid=obj_uuid0,
-                to=Reference.to_multi_target(
-                    obj_uuid0, target_collection=name
+                to=ReferenceToMulti(
+                    uuids=obj_uuid0, target_collection=name
                 ),  # workaround for autodetection with tenant
                 tenant=tenant,
             )

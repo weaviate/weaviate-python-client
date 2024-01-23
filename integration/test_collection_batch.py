@@ -14,8 +14,8 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.grpc import FromReference
 from weaviate.collections.classes.internal import (
-    Reference,
     _CrossReference,
+    ReferenceToMulti,
 )
 from weaviate.collections.classes.tenants import Tenant
 
@@ -114,7 +114,7 @@ def test_add_reference(
     with collection.batch as batch:
         batch.add_object(uuid=from_uuid)
         batch.add_object(uuid=to_uuid)
-        batch.add_reference(from_uuid=from_uuid, from_property="test", to=Reference.to(to_uuid))
+        batch.add_reference(from_uuid=from_uuid, from_property="test", to=to_uuid)
     assert len(collection.batch.failed_objects()) == 0
     assert len(collection.batch.failed_references()) == 0
     objs = collection.query.fetch_objects().objects
@@ -162,12 +162,12 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
         batch.add_reference(
             from_property="test",
             from_uuid=obj_uuid1,
-            to=Reference.to_multi_target(obj_uuid0, target_collection=mt_collection.name),
+            to=ReferenceToMulti(uuids=obj_uuid0, target_collection=mt_collection.name),
         )
         batch.add_reference(
             from_property="test",
             from_uuid=obj_uuid0,
-            to=Reference.to_multi_target(obj_uuid1, target_collection=mt_collection.name),
+            to=ReferenceToMulti(uuids=obj_uuid1, target_collection=mt_collection.name),
         )
         # target collection required when inserting references into multi-tenancy collections
     assert len(mt_collection.batch.failed_objects()) == 0
