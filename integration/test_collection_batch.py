@@ -175,3 +175,4 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
     )
     assert ret_obj.properties["name"] == "one"
     assert isinstance(ret_obj.references["test"], _CrossReference)
+    assert ret_obj.references["test"].objects[0].uuid == obj_uuid1
