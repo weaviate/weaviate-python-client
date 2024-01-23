@@ -104,7 +104,7 @@ class Auth:
     def bearer_token(
         bearer_token: str, expires_in: int = 60, refresh_token: Optional[str] = None
     ) -> _BearerToken:
-        return _BearerToken(bearer_token)
+        return _BearerToken(bearer_token, expires_in, refresh_token)
 
 
 OidcAuth = Union[_BearerToken, _ClientPassword, _ClientCredentials]
