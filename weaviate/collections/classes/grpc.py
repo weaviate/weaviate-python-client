@@ -163,24 +163,24 @@ class _Sorting:
     def __init__(self) -> None:
         self.sorts: List[_Sort] = []
 
-    def by_property(self, prop: str, order: Literal["asc", "desc"] = "asc") -> "_Sorting":
+    def by_property(self, prop: str, ascending: bool = True) -> "_Sorting":
         """Sort by an object property in the collection."""
-        self.sorts.append(_Sort(prop=prop, ascending=order == "asc"))
+        self.sorts.append(_Sort(prop=prop, ascending=ascending))
         return self
 
-    def by_id(self, order: Literal["asc", "desc"] = "asc") -> "_Sorting":
+    def by_id(self, ascending: bool = True) -> "_Sorting":
         """Sort by an object's ID in the collection."""
-        self.sorts.append(_Sort(prop="_id", ascending=order == "asc"))
+        self.sorts.append(_Sort(prop="_id", ascending=ascending))
         return self
 
-    def by_creation_time(self, order: Literal["asc", "desc"] = "asc") -> "_Sorting":
+    def by_creation_time(self, ascending: bool = True) -> "_Sorting":
         """Sort by an object's creation time."""
-        self.sorts.append(_Sort(prop="_creationTimeUnix", ascending=order == "asc"))
+        self.sorts.append(_Sort(prop="_creationTimeUnix", ascending=ascending))
         return self
 
-    def by_update_time(self, order: Literal["asc", "desc"] = "asc") -> "_Sorting":
+    def by_update_time(self, ascending: bool = True) -> "_Sorting":
         """Sort by an object's last update time."""
-        self.sorts.append(_Sort(prop="_lastUpdateTimeUnix", ascending=order == "asc"))
+        self.sorts.append(_Sort(prop="_lastUpdateTimeUnix", ascending=ascending))
         return self
 
 
@@ -196,24 +196,24 @@ class Sort(_Sort):
         super().__init__(prop=prop, ascending=ascending)
 
     @staticmethod
-    def by_property(prop: str, order: Literal["asc", "desc"] = "asc") -> Sorting:
+    def by_property(prop: str, ascending: bool = True) -> Sorting:
         """Sort by an object property in the collection."""
-        return _Sorting().by_property(prop=prop, order=order)
+        return _Sorting().by_property(prop=prop, ascending=ascending)
 
     @staticmethod
-    def by_id(order: Literal["asc", "desc"] = "asc") -> Sorting:
+    def by_id(ascending: bool = True) -> Sorting:
         """Sort by an object's ID in the collection."""
-        return _Sorting().by_id(order=order)
+        return _Sorting().by_id(ascending=ascending)
 
     @staticmethod
-    def by_creation_time(order: Literal["asc", "desc"] = "asc") -> Sorting:
+    def by_creation_time(ascending: bool = True) -> Sorting:
         """Sort by an object's creation time."""
-        return _Sorting().by_creation_time(order=order)
+        return _Sorting().by_creation_time(ascending=ascending)
 
     @staticmethod
-    def by_update_time(order: Literal["asc", "desc"] = "asc") -> Sorting:
+    def by_update_time(ascending: bool = True) -> Sorting:
         """Sort by an object's last update time."""
-        return _Sorting().by_update_time(order=order)
+        return _Sorting().by_update_time(ascending=ascending)
 
 
 class Rerank(_WeaviateInput):
