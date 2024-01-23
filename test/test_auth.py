@@ -1,11 +1,12 @@
 import pytest
-
-from weaviate.auth import AuthBearerToken
+import weaviate.classes as wvc
 
 
 @pytest.mark.parametrize("expires_in,warning", [(-1, True), (5, False)])
-def test_bearer_validation(recwarn, expires_in: int, warning: bool):
-    AuthBearerToken(
+def test_bearer_validation(
+    recwarn: pytest.WarningsRecorder, expires_in: int, warning: bool
+) -> None:
+    wvc.init.Auth.bearer_token(
         access_token="Doesn't matter",
         refresh_token="Doesn't matter",
         expires_in=expires_in,
