@@ -6,7 +6,6 @@ grpcio>=1.57.0,<2.0.0
 grpcio-tools>=1.57.0,<2.0.0
 grpcio-health-checking>=1.57.0,<2.0.0
 pydantic>=2.5.0,<3.0.0
-deprecated>=1.2.14,<2.0.0
 
 build
 twine
