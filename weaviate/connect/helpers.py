@@ -171,6 +171,8 @@ def connect_to_embedded(
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
 
+    See [the docs](https://weaviate.io/developers/weaviate/installation/embedded#embedded-options) for more details.
+
     Arguments:
         `hostname`
             The hostname to use for the underlying REST & GraphQL API calls.
@@ -185,9 +187,13 @@ def connect_to_embedded(
         `version`
             Weaviate version to be used for the embedded instance.
         `persistence_data_path`
-            Path to the directory where the embedded instance should store its data. If not provided, a temporary directory will be used.
+            Directory where the files making up the database are stored.
+            When the XDG_DATA_HOME env variable is set, the default value is: `XDG_DATA_HOME/weaviate/`
+            Otherwise it is: `~/.local/share/weaviate`
         `binary_path`
-            Path to the Weaviate binary to be used for the embedded instance. If not provided, the version specified will be downloaded.
+            Directory where to download the binary. If deleted, the client will download the binary again.
+            When the XDG_CACHE_HOME env variable is set, the default value is: `XDG_CACHE_HOME/weaviate-embedded/`
+            Otherwise it is: `~/.cache/weaviate-embedded`
         `environment_variables`
             Additional environment variables to be passed to the embedded instance for configuration.
 
