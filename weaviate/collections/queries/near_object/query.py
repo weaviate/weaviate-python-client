@@ -15,7 +15,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.types import UUID
+from weaviate.types import NUMBER, UUID
 
 
 class _NearObjectQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -23,8 +23,8 @@ class _NearObjectQuery(Generic[Properties, References], _BaseQuery[Properties, R
         self,
         near_object: UUID,
         *,
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,

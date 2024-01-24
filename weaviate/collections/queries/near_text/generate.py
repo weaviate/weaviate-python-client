@@ -21,6 +21,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.types import NUMBER
 
 
 class _NearTextGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -31,8 +32,8 @@ class _NearTextGenerate(Generic[Properties, References], _BaseQuery[Properties, 
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         limit: Optional[int] = None,

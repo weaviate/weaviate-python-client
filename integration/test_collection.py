@@ -1457,7 +1457,7 @@ def test_near_text_limit(collection_factory: CollectionFactory) -> None:
 )
 @pytest.mark.parametrize(
     "distance,certainty",
-    [(None, None), (10, None), (None, 0.1)],
+    [(None, None), (10.0, None), (None, 0.1)],
 )
 def test_near_image(
     collection_factory: CollectionFactory,

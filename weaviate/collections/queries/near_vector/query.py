@@ -18,6 +18,7 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.types import NUMBER
 
 
 class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -25,8 +26,8 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         self,
         near_vector: List[float],
         *,
-        certainty: Optional[float] = None,
-        distance: Optional[float] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
