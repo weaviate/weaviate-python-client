@@ -409,7 +409,7 @@ def test_add_1000_objects_with_async_indexing_and_wait(
                 properties={"name": "text" + str(i)},
                 vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
             )
-    assert len(client.batch.failed_objects()) == 0
+    assert len(client.batch.failed_objects) == 0
     client.batch.wait_for_vector_indexing()
     ret = client.collections.get(name).aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
@@ -439,7 +439,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
     assert shard_status[0]["status"] == "INDEXING"
     assert shard_status[0]["vectorQueueSize"] > 0
 
-    assert len(client.batch.failed_objects()) == 0
+    assert len(client.batch.failed_objects) == 0
 
     ret = client.collections.get(name).aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
@@ -462,7 +462,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
                 vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
                 tenant=tenants[i % len(tenants)].name,
             )
-    assert len(client.batch.failed_objects()) == 0
+    assert len(client.batch.failed_objects) == 0
     client.batch.wait_for_vector_indexing()
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
@@ -491,7 +491,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
                 vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
                 tenant=tenants[0].name if i < 1000 else tenants[1].name,
             )
-    assert len(client.batch.failed_objects()) == 0
+    assert len(client.batch.failed_objects) == 0
     client.batch.wait_for_vector_indexing(shards=[Shard(collection=name, tenant=tenants[0].name)])
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
@@ -521,7 +521,7 @@ def test_error_reset(client_factory: ClientFactory) -> None:
         batch.add_object(properties={"name": 1}, collection=name)
         batch.add_object(properties={"name": "correct"}, collection=name)
 
-    errs = client.batch.failed_objects()
+    errs = client.batch.failed_objects
 
     assert len(errs) == 1
     assert errs[0].object_.properties is not None
@@ -531,7 +531,12 @@ def test_error_reset(client_factory: ClientFactory) -> None:
         batch.add_object(properties={"name": 2}, collection=name)
         batch.add_object(properties={"name": "correct"}, collection=name)
 
-    errs2 = client.batch.failed_objects()
+    errs2 = client.batch.failed_objects
     assert len(errs2) == 1
     assert errs2[0].object_.properties is not None
     assert errs2[0].object_.properties["name"] == 2
+
+    # err still contains original errors
+    assert len(errs) == 1
+    assert errs[0].object_.properties is not None
+    assert errs[0].object_.properties["name"] == 1

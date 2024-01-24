@@ -1,5 +1,4 @@
 import time
-from copy import copy
 from typing import Generic, List, Optional, Any, TypeVar, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -97,41 +96,35 @@ class _BatchWrapper:
             for shard in res
         ]
 
+    @property
     def failed_objects(self) -> List[ErrorObject]:
-        """
-        Get all failed objects from the batch manager.
-
-        Returns a copy so that the results can be used even if a new batch manager is opened.
+        """Get all failed objects from the batch manager.
 
         Returns:
             `List[ErrorObject]`
                 A list of all the failed objects from the batch.
         """
-        return copy(self._batch_data.failed_objects)
+        return self._batch_data.failed_objects
 
+    @property
     def failed_references(self) -> List[ErrorReference]:
-        """
-        Get all failed references from the batch manager.
-
-        Returns a copy so that the results can be used even if a new batch manager is opened.
+        """Get all failed references from the batch manager.
 
         Returns:
             `List[ErrorReference]`
                 A list of all the failed references from the batch.
         """
-        return copy(self._batch_data.failed_references)
+        return self._batch_data.failed_references
 
+    @property
     def results(self) -> BatchResult:
-        """
-        Get the results of the batch operation.
-
-        Returns a copy so that the results can be used even if a new batch manager is opened.
+        """Get the results of the batch operation.
 
         Returns:
             `BatchResult`
                 The results of the batch operation.
         """
-        return copy(self._batch_data.results)
+        return self._batch_data.results
 
 
 T = TypeVar("T", bound=_BatchBase)
@@ -141,7 +134,6 @@ class _ContextManagerWrapper(Generic[T]):
     def __init__(self, current_batch: T):
         self.__current_batch: T = current_batch
 
-    # enter is in inherited classes
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.__current_batch._shutdown()
 
