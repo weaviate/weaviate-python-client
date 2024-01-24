@@ -83,6 +83,7 @@ class _ConfigBase:
 
     def update(
         self,
+        *,
         description: Optional[str] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
