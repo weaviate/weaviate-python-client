@@ -205,7 +205,8 @@ class _FilterOld:
     def within_geo_range(self, coordinate: GeoCoordinate, distance: float) -> _FilterValue:
         """Filter on whether the property is within a given range of a geo-coordinate.
 
-        See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-geolocation) for more details.
+        latitidue and longitude are in degrees and distance is in meters.
+        See [the docs](https://weaviate.io/developers/weaviate/search/filters##by-geo-coordinates) for more details.
         """
         return _FilterValue(
             path=self.__internal_path,
@@ -652,7 +653,7 @@ class _FilterByProperty(_FilterBase):
     def within_geo_range(self, coordinate: GeoCoordinate, distance: float) -> _FilterValue2:
         """Filter on whether the property is within a given range of a geo-coordinate.
 
-        See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-geolocation) for more details.
+        See [the docs](https://weaviate.io/developers/weaviate/search/filters##by-geo-coordinates) for more details.
         """
         return _FilterValue2(
             target=self._target_path(),
