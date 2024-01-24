@@ -1,6 +1,6 @@
 import time
 from copy import copy
-from typing import List, Optional, Any, cast
+from typing import Generic, List, Optional, Any, TypeVar, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -132,3 +132,18 @@ class _BatchWrapper:
                 The results of the batch operation.
         """
         return copy(self._batch_data.results)
+
+
+T = TypeVar("T", bound=_BatchBase)
+
+
+class _ContextManagerWrapper(Generic[T]):
+    def __init__(self, current_batch: T):
+        self.__current_batch: T = current_batch
+
+    # enter is in inherited classes
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self.__current_batch._shutdown()
+
+    def __enter__(self) -> T:
+        return self.__current_batch

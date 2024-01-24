@@ -6,7 +6,11 @@ from weaviate.collections.batch.base import (
     _FixedSizeBatching,
     _RateLimitedBatching,
 )
-from weaviate.collections.batch.batch_wrapper import _BatchWrapper, _BatchMode
+from weaviate.collections.batch.batch_wrapper import (
+    _BatchWrapper,
+    _BatchMode,
+    _ContextManagerWrapper,
+)
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInput
 from weaviate.collections.classes.tenants import Tenant
@@ -108,6 +112,72 @@ class _BatchClientWrapper(_BatchWrapper):
         )
         return self._current_batch
 
+    def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchClient]:
+        return _ContextManagerWrapper(
+            _BatchClient(
+                connection=self._connection,
+                consistency_level=self._consistency_level,
+                results=self._batch_data,
+                batch_mode=self._batch_mode,
+            )
+        )
+
+    def dynamic(
+        self, consistency_level: Optional[ConsistencyLevel] = None
+    ) -> _ContextManagerWrapper[_BatchClient]:
+        """Configure dynamic batching.
+
+        When you exit the context manager, the final batch will be sent automatically.
+
+        Arguments:
+            `consistency_level`
+                The consistency level to be used to send batches. If not provided, the default value is `None`.
+        """
+        self._batch_mode: _BatchMode = _DynamicBatching()
+        self._consistency_level = consistency_level
+        return self.__create_batch_and_reset()
+
+    def fixed_size(
+        self,
+        batch_size: int = 100,
+        concurrent_requests: int = 2,
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ) -> _ContextManagerWrapper[_BatchClient]:
+        """Configure fixed size batches. Note that the default is dynamic batching.
+
+        When you exit the context manager, the final batch will be sent automatically.
+
+        Arguments:
+            `batch_size`
+                The number of objects/references to be sent in one batch. If not provided, the default value is 100.
+            `concurrent_requests`
+                The number of concurrent requests when sending batches. This controls the number of concurrent requests
+                made to Weaviate and not the speed of batch creation within Python.
+            `consistency_level`
+                The consistency level to be used to send batches. If not provided, the default value is `None`.
+
+        """
+        self._batch_mode = _FixedSizeBatching(batch_size, concurrent_requests)
+        self._consistency_level = consistency_level
+        return self.__create_batch_and_reset()
+
+    def rate_limit(
+        self, requests_per_minute: int, consistency_level: Optional[ConsistencyLevel] = None
+    ) -> _ContextManagerWrapper[_BatchClient]:
+        """Configure batches with a rate limited vectorizer.
+
+        When you exit the context manager, the final batch will be sent automatically.
+
+        Arguments:
+            `requests_per_minute`
+                The number of requests that the vectorizer can process per minute.
+            `consistency_level`
+                The consistency level to be used to send batches. If not provided, the default value is `None`.
+        """
+        self._batch_mode = _RateLimitedBatching(requests_per_minute)
+        self._consistency_level = consistency_level
+        return self.__create_batch_and_reset()
+
     def configure(self, consistency_level: Optional[ConsistencyLevel] = None) -> None:
         """Configure dynamic batching.
 
@@ -116,7 +186,7 @@ class _BatchClientWrapper(_BatchWrapper):
                 The consistency level to be used to send batches. If not provided, the default value is `None`.
         """
         self._consistency_level = consistency_level
-        self._batch_mode: _BatchMode = _DynamicBatching()
+        self._batch_mode = _DynamicBatching()
 
     def configure_fixed_size(
         self,
