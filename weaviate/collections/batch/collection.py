@@ -116,6 +116,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__tenant = tenant
 
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+        self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
             _BatchCollection[Properties](
                 connection=self._connection,

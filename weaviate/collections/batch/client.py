@@ -2,6 +2,7 @@ from typing import Optional, Sequence, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
+    _BatchDataWrapper,
     _DynamicBatching,
     _FixedSizeBatching,
     _RateLimitedBatching,
@@ -113,6 +114,7 @@ class _BatchClientWrapper(_BatchWrapper):
         return self._current_batch
 
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchClient]:
+        self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
             _BatchClient(
                 connection=self._connection,

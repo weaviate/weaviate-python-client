@@ -513,3 +513,25 @@ def test_warning_direct_batching(client_factory: ClientFactory) -> None:
             pass
         assert len(record) == 1
         assert "Dep015" in str(record.list[0].message)
+
+
+def test_error_reset(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    with client.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 1}, collection=name)
+        batch.add_object(properties={"name": "correct"}, collection=name)
+
+    errs = client.batch.failed_objects()
+
+    assert len(errs) == 1
+    assert errs[0].object_.properties is not None
+    assert errs[0].object_.properties["name"] == 1
+
+    with client.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 2}, collection=name)
+        batch.add_object(properties={"name": "correct"}, collection=name)
+
+    errs2 = client.batch.failed_objects()
+    assert len(errs2) == 1
+    assert errs2[0].object_.properties is not None
+    assert errs2[0].object_.properties["name"] == 2

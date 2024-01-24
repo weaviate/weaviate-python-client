@@ -180,3 +180,25 @@ def test_warning_direct_batching(batch_collection: BatchCollection) -> None:
             pass
         assert len(record) == 1
         assert "Dep015" in str(record.list[0].message)
+
+
+def test_error_reset(batch_collection: BatchCollection) -> None:
+    col = batch_collection()
+    with col.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 1})
+        batch.add_object(properties={"name": "correct"})
+
+    errs = col.batch.failed_objects()
+
+    assert len(errs) == 1
+    assert errs[0].object_.properties is not None
+    assert errs[0].object_.properties["name"] == 1
+
+    with col.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 2})
+        batch.add_object(properties={"name": "correct"})
+
+    errs2 = col.batch.failed_objects()
+    assert len(errs2) == 1
+    assert errs2[0].object_.properties is not None
+    assert errs2[0].object_.properties["name"] == 2
