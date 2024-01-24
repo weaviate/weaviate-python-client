@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Union
+from typing import Generic, List, Optional
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -18,6 +18,7 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.types import NUMBER
 
 
 class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -25,8 +26,8 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         self,
         near_vector: List[float],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,

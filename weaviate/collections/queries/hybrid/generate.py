@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Union
+from typing import Generic, List, Optional
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -15,6 +15,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.types import NUMBER
 
 
 class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -25,7 +26,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        alpha: Union[float, int] = 0.5,
+        alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,

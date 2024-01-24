@@ -44,7 +44,7 @@ from weaviate.collections.grpc.shared import _BaseGRPC
 
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateQueryError
-from weaviate.types import UUID
+from weaviate.types import NUMBER, UUID
 from weaviate.warnings import _Warnings
 
 from weaviate.proto.v1 import search_get_pb2
@@ -150,7 +150,7 @@ class _QueryGRPC(_BaseGRPC):
             self._sort = sort
         else:
             raise TypeError(
-                f"sort must be of type Sort, Sorting or List[Sort], but got {type(sort)}"
+                f"sort must be of type weaviate.classes.query.Sort, weaviate.classes.query.Sorting or List[weaviate.classes.query.Sort], but got {type(sort)}"
             )
 
     def __parse_common(
@@ -171,20 +171,34 @@ class _QueryGRPC(_BaseGRPC):
             raise TypeError(f"limit must be of type int, but got {type(limit)}")
         if offset is not None and not isinstance(offset, int):
             raise TypeError(f"offset must be of type int, but got {type(offset)}")
-        if after is not None and not isinstance(after, uuid_lib.UUID):
+        if (
+            after is not None
+            and not isinstance(after, uuid_lib.UUID)
+            and not isinstance(after, str)
+        ):
             raise TypeError(f"after must be of type str or uuid.UUID, but got {type(after)}")
         if filters is not None and not isinstance(filters, _Filters):
-            raise TypeError(f"filters must be of type Filters, but got {type(filters)}")
+            raise TypeError(
+                f"filters must be of type weaviate.classes.query.Filters, but got {type(filters)}"
+            )
         if metadata is not None and not isinstance(metadata, _MetadataQuery):
-            raise TypeError(f"metadata must be of type MetadataQuery, but got {type(metadata)}")
+            raise TypeError(
+                f"metadata must be of type weaviate.classes.query.MetadataQuery, but got {type(metadata)}"
+            )
         if generative is not None and not isinstance(generative, _Generative):
-            raise TypeError(f"generative must be of type Generative, but got {type(generative)}")
+            raise TypeError(
+                f"generative must be of type weaviate.classes.query.Generative, but got {type(generative)}"
+            )
         if rerank is not None and not isinstance(rerank, Rerank):
-            raise TypeError(f"rerank must be of type Rerank, but got {type(rerank)}")
+            raise TypeError(
+                f"rerank must be of type weaviate.classes.query.Rerank, but got {type(rerank)}"
+            )
         if autocut is not None and not isinstance(autocut, int):
             raise TypeError(f"autocut must be of type int, but got {type(autocut)}")
         if group_by is not None and not isinstance(group_by, _GroupBy):
-            raise TypeError(f"group_by must be of type GroupBy, but got {type(group_by)}")
+            raise TypeError(
+                f"group_by must be of type weaviate.classes.query.GroupBy, but got {type(group_by)}"
+            )
 
         self._limit = limit
         self._offset = offset
@@ -206,7 +220,7 @@ class _QueryGRPC(_BaseGRPC):
     def __parse_hybrid(
         self,
         query: str,
-        alpha: Optional[Union[float, int]] = None,
+        alpha: Optional[NUMBER] = None,
         vector: Optional[List[float]] = None,
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
@@ -221,7 +235,7 @@ class _QueryGRPC(_BaseGRPC):
             raise TypeError(f"properties must be of type List[str], but got {type(properties)}")
         if fusion_type is not None and not isinstance(fusion_type, HybridFusion):
             raise TypeError(
-                f"fusion_type must be of type HybridFusion, but got {type(fusion_type)}"
+                f"fusion_type must be of type weaviate.classes.query.HybridFusion, but got {type(fusion_type)}."
             )
         self._hybrid_query = query
         self._hybrid_alpha = float(alpha) if alpha is not None else None
@@ -247,8 +261,8 @@ class _QueryGRPC(_BaseGRPC):
 
     def __parse_near_options(
         self,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
     ) -> None:
         if (
             certainty is not None
@@ -350,8 +364,8 @@ class _QueryGRPC(_BaseGRPC):
     def near_vector(
         self,
         near_vector: List[float],
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
@@ -382,8 +396,8 @@ class _QueryGRPC(_BaseGRPC):
     def near_object(
         self,
         near_object: UUID,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
@@ -416,8 +430,8 @@ class _QueryGRPC(_BaseGRPC):
     def near_text(
         self,
         near_text: Union[List[str], str],
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         limit: Optional[int] = None,
@@ -469,8 +483,8 @@ class _QueryGRPC(_BaseGRPC):
         self,
         media: str,
         type_: Literal["audio", "depth", "image", "imu", "thermal", "video"],
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,

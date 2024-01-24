@@ -20,6 +20,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.types import NUMBER
 
 
 class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -27,8 +28,8 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
         self,
         query: Union[List[str], str],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         limit: Optional[int] = None,

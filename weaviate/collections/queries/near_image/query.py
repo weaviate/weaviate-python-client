@@ -20,6 +20,7 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.types import NUMBER
 
 
 class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -27,8 +28,8 @@ class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         self,
         near_image: Union[str, Path, BufferedReader],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
