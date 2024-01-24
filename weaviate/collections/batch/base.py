@@ -186,7 +186,6 @@ class _BatchBase:
         self.__bg_thread_exception: Optional[Exception] = None
 
     def __run_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
-        loop.set_debug(True)  # in case of errors, shows async errors in the terminal to users
         try:
             loop.run_forever()
         finally:
