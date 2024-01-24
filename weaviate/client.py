@@ -271,6 +271,13 @@ class WeaviateClient(_ClientBase):
         """
         return self._connection.is_connected()
 
+    def is_live(self) -> bool:
+        try:
+            self._connection._ping_grpc()
+        except Exception:
+            return False
+        return super().is_live()
+
     def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
         """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
 

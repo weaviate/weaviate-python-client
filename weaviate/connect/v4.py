@@ -602,6 +602,21 @@ class ConnectionV4(_Connection):
             embedded_db,
         )
 
+    def _ping_grpc(self) -> None:
+        if not self.is_connected():
+            raise WeaviateClosedClientError()
+        assert self._grpc_channel is not None
+        try:
+            res: health_pb2.HealthCheckResponse = self._grpc_channel.unary_unary(
+                "/grpc.health.v1.Health/Check",
+                request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
+                response_deserializer=health_pb2.HealthCheckResponse.FromString,
+            )(health_pb2.HealthCheckRequest(), timeout=1)
+            if res.status != health_pb2.HealthCheckResponse.SERVING:
+                raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}")
+        except _channel._InactiveRpcError as e:
+            raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}") from e
+
     def connect(self, skip_init_checks: bool) -> None:
         super().connect(skip_init_checks)
         # create GRPC channel. If Weaviate does not support GRPC then error now.
@@ -609,19 +624,9 @@ class ConnectionV4(_Connection):
             self._grpc_channel = self._connection_params._grpc_channel(async_channel=False)
             assert self._grpc_channel is not None
             self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
-
             self._grpc_available = True
             if not skip_init_checks:
-                try:
-                    res: health_pb2.HealthCheckResponse = self._grpc_channel.unary_unary(
-                        "/grpc.health.v1.Health/Check",
-                        request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
-                        response_deserializer=health_pb2.HealthCheckResponse.FromString,
-                    )(health_pb2.HealthCheckRequest(), timeout=1)
-                    if res.status != health_pb2.HealthCheckResponse.SERVING:
-                        raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}")
-                except _channel._InactiveRpcError as e:
-                    raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}") from e
+                self._ping_grpc()
         else:
             raise WeaviateGRPCUnavailableError(
                 "You must provide the gRPC port in `connection_params` to use gRPC."
