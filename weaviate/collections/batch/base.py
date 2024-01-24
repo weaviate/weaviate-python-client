@@ -183,6 +183,7 @@ class _BatchBase:
         self.__max_observed_rate: int = 0
 
         self.__bg_thread = self.__start_bg_thread()
+        self.__bg_thread_exception: Optional[Exception] = None
 
     def __run_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         loop.set_debug(True)  # in case of errors, shows async errors in the terminal to users
@@ -218,118 +219,122 @@ class _BatchBase:
         while self.__bg_thread.is_alive():
             time.sleep(0.01)
 
+    def __periodic_check(self) -> None:
+        loop = self.__start_new_event_loop()
+        future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
+        future.result()  # Wait for self._connection.aopen() to finish
+
+        while (
+            self.__shut_background_thread_down is not None
+            and not self.__shut_background_thread_down.is_set()
+        ):
+            if not self.__dynamic_batching:
+                refresh_time: float = 0.1
+            else:
+                try:
+                    status = self.__cluster.get_nodes_status()
+                    if (
+                        "batchStats" not in status[0]
+                        or "queueLength" not in status[0]["batchStats"]
+                    ):
+                        # async indexing - just send a lot
+                        self.__dynamic_batching = False
+                        self.__recommended_num_objects = 1000
+                        self.__concurrent_requests = 10
+                        continue
+
+                    rate = status[0]["batchStats"]["ratePerSecond"]
+                    rate_per_worker = rate / self.__concurrent_requests
+
+                    batch_length = status[0]["batchStats"]["queueLength"]
+
+                    if rate > self.__max_observed_rate:
+                        self.__max_observed_rate = rate
+
+                    if batch_length == 0:  # scale up if queue is empty
+                        self.__recommended_num_objects = min(
+                            self.__recommended_num_objects + 50,
+                            self.__max_batch_size,
+                        )
+
+                        if (
+                            self.__max_batch_size == self.__recommended_num_objects
+                            and len(self.__batch_objects) > self.__recommended_num_objects
+                            and time.time() - self.__last_scale_up > 1
+                            and self.__concurrent_requests < 10
+                        ):
+                            self.__concurrent_requests += 1
+                            self.__last_scale_up = time.time()
+                    else:
+                        ratio = batch_length / rate
+                        if (
+                            2.1 > ratio > 1.9
+                        ):  # ideal, send exactly as many objects as weaviate can process
+                            self.__recommended_num_objects = math.floor(rate_per_worker)
+                        elif ratio <= 1.9:  # we can send more
+                            self.__recommended_num_objects = math.floor(
+                                min(
+                                    self.__recommended_num_objects * 1.5,
+                                    rate_per_worker * 2 / ratio,
+                                )
+                            )
+
+                            if self.__max_batch_size == self.__recommended_num_objects:
+                                self.__concurrent_requests += 1
+
+                        elif ratio < 10:  # too high, scale down
+                            self.__recommended_num_objects = math.floor(rate_per_worker * 2 / ratio)
+
+                            if (
+                                self.__recommended_num_objects < 100
+                                and self.__concurrent_requests > 2
+                            ):
+                                self.__concurrent_requests -= 1
+
+                        else:  # way too high, stop sending new batches
+                            self.__recommended_num_objects = 0
+                            self.__concurrent_requests = 2
+
+                    refresh_time = 0.01
+                except (RequestsHTTPError, ReadTimeout):
+                    refresh_time = 0.1
+                except Exception as e:
+                    _Warnings.batch_refresh_failed(repr(e))
+                    refresh_time = 10
+
+            if self.__active_requests < self.__concurrent_requests and (
+                len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
+            ):
+                self.__active_requests_lock.acquire()
+                self.__active_requests += 1
+                self.__active_requests_lock.release()
+                # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
+                asyncio.run_coroutine_threadsafe(
+                    self.__send_batch_async(
+                        self.__batch_objects.pop_items(self.__recommended_num_objects),
+                        self.__batch_references.pop_items(self.__recommended_num_refs),
+                    ),
+                    loop,
+                )
+
+            time.sleep(refresh_time)
+
+        future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
+        future.result()  # Wait for self._connection.aclose() to finish
+        loop.call_soon_threadsafe(loop.stop)
+
     def __start_bg_thread(self) -> threading.Thread:
         """Create a background thread that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
 
-        def periodic_check() -> None:
-            loop = self.__start_new_event_loop()
-            future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
-            future.result()  # Wait for self._connection.aopen() to finish
-
-            while (
-                self.__shut_background_thread_down is not None
-                and not self.__shut_background_thread_down.is_set()
-            ):
-                if not self.__dynamic_batching:
-                    refresh_time: float = 0.1
-                else:
-                    try:
-                        status = self.__cluster.get_nodes_status()
-                        if (
-                            "batchStats" not in status[0]
-                            or "queueLength" not in status[0]["batchStats"]
-                        ):
-                            # async indexing - just send a lot
-                            self.__dynamic_batching = False
-                            self.__recommended_num_objects = 1000
-                            self.__concurrent_requests = 10
-                            continue
-
-                        rate = status[0]["batchStats"]["ratePerSecond"]
-                        rate_per_worker = rate / self.__concurrent_requests
-
-                        batch_length = status[0]["batchStats"]["queueLength"]
-
-                        if rate > self.__max_observed_rate:
-                            self.__max_observed_rate = rate
-
-                        if batch_length == 0:  # scale up if queue is empty
-                            self.__recommended_num_objects = min(
-                                self.__recommended_num_objects + 50,
-                                self.__max_batch_size,
-                            )
-
-                            if (
-                                self.__max_batch_size == self.__recommended_num_objects
-                                and len(self.__batch_objects) > self.__recommended_num_objects
-                                and time.time() - self.__last_scale_up > 1
-                                and self.__concurrent_requests < 10
-                            ):
-                                self.__concurrent_requests += 1
-                                self.__last_scale_up = time.time()
-                        else:
-                            ratio = batch_length / rate
-                            if (
-                                2.1 > ratio > 1.9
-                            ):  # ideal, send exactly as many objects as weaviate can process
-                                self.__recommended_num_objects = math.floor(rate_per_worker)
-                            elif ratio <= 1.9:  # we can send more
-                                self.__recommended_num_objects = math.floor(
-                                    min(
-                                        self.__recommended_num_objects * 1.5,
-                                        rate_per_worker * 2 / ratio,
-                                    )
-                                )
-
-                                if self.__max_batch_size == self.__recommended_num_objects:
-                                    self.__concurrent_requests += 1
-
-                            elif ratio < 10:  # too high, scale down
-                                self.__recommended_num_objects = math.floor(
-                                    rate_per_worker * 2 / ratio
-                                )
-
-                                if (
-                                    self.__recommended_num_objects < 100
-                                    and self.__concurrent_requests > 2
-                                ):
-                                    self.__concurrent_requests -= 1
-
-                            else:  # way too high, stop sending new batches
-                                self.__recommended_num_objects = 0
-                                self.__concurrent_requests = 2
-
-                        refresh_time = 0.01
-                    except (RequestsHTTPError, ReadTimeout):
-                        refresh_time = 0.1
-                    except Exception as e:
-                        _Warnings.batch_refresh_failed(repr(e))
-                        refresh_time = 10
-
-                if self.__active_requests < self.__concurrent_requests and (
-                    len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
-                ):
-                    self.__active_requests_lock.acquire()
-                    self.__active_requests += 1
-                    self.__active_requests_lock.release()
-                    # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
-                    asyncio.run_coroutine_threadsafe(
-                        self.__send_batch_async(
-                            self.__batch_objects.pop_items(self.__recommended_num_objects),
-                            self.__batch_references.pop_items(self.__recommended_num_refs),
-                        ),
-                        loop,
-                    )
-
-                time.sleep(refresh_time)
-
-            future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
-            future.result()  # Wait for self._connection.aclose() to finish
-            loop.call_soon_threadsafe(loop.stop)
+        def periodic_check_wrapper() -> None:
+            try:
+                self.__periodic_check()
+            except Exception as e:
+                self.__bg_thread_exception = e
 
         demon = threading.Thread(
-            target=periodic_check,
+            target=periodic_check_wrapper,
             daemon=True,
             name="BgBatchScheduler",
         )
@@ -407,6 +412,8 @@ class _BatchBase:
         vector: Optional[Sequence] = None,
         tenant: Optional[str] = None,
     ) -> UUID:
+        self.__check_bg_thread_alive()
+
         try:
             batch_object = BatchObject(
                 collection=collection,
@@ -442,6 +449,7 @@ class _BatchBase:
         to: ReferenceInput,
         tenant: Optional[str] = None,
     ) -> None:
+        self.__check_bg_thread_alive()
         if isinstance(to, _Reference) or isinstance(to, ReferenceToMulti):
             to_strs: Union[List[str], List[UUID]] = to.uuids_str
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
@@ -469,3 +477,9 @@ class _BatchBase:
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
             time.sleep(1)  # block if weaviate is overloaded, also do not send any refs
+
+    def __check_bg_thread_alive(self) -> None:
+        if self.__bg_thread.is_alive():
+            return
+
+        raise self.__bg_thread_exception or Exception("Batch thread died unexpectedly")
