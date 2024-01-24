@@ -256,6 +256,7 @@ def test_client_connect_and_close() -> None:
     client.connect()
     assert client.is_connected()
     client.get_meta()
+    assert client.is_live()
 
     client.close()
     assert not client.is_connected()
@@ -272,6 +273,7 @@ def test_client_as_context_manager() -> None:
     ) as client:
         assert client.is_connected()
         client.get_meta()
+        assert client.is_live()
 
     assert not client.is_connected()
     with pytest.raises(WeaviateClosedClientError):
@@ -356,3 +358,52 @@ def test_client_with_extra_options() -> None:
         weaviate.connect_to_embedded(additional_config=additional_config),
     ]:
         assert client._connection.timeout_config == (1, 2)
+
+def test_connect_and_close_to_embedded() -> None:
+    # Can't use the default port values as they are already in use by the local instances
+    client = weaviate.connect_to_embedded(port=8078, grpc_port=50151, version="1.23.4")
+
+    client.connect()
+    assert client.is_connected()
+    metadata = client.get_meta()
+    assert "1.23.4" == metadata["version"]
+    assert client.is_ready()
+    assert client.is_live()
+
+    client.close()
+    assert not client.is_connected()
+    with pytest.raises(WeaviateClosedClientError):
+        client.get_meta()
+
+def test_embedded_as_context_manager() -> None:
+    default_version = "1.22.3"
+    with weaviate.connect_to_embedded(port=8077, grpc_port=50152) as client:
+        assert client.is_connected()
+        metadata = client.get_meta()
+        assert default_version == metadata["version"]
+        assert client.is_ready()
+        assert client.is_live()
+
+    assert not client.is_connected()
+    with pytest.raises(WeaviateClosedClientError):
+        client.get_meta()
+
+def test_embedded_with_wrong_version() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateEmbeddedInvalidVersionError):
+        weaviate.connect_to_embedded(version="this_version_does_not_exist")
+
+def test_embedded_custom_ports() -> None:
+    client = weaviate.connect_to_embedded(
+        port=8092,
+        grpc_port=50153,
+        version="latest"
+    )
+    client.connect()
+    assert client.is_connected()
+    metadata = client.get_meta()
+    assert "8092" == metadata["hostname"].split(":")[2]
+    assert client.is_live()
+    # TODO: check if the ports are actually used
+
+    client.close()
+
