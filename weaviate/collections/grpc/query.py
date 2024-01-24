@@ -314,6 +314,7 @@ class _QueryGRPC(_BaseGRPC):
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[_MetadataQuery] = None,
@@ -325,6 +326,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_hybrid(query, alpha, vector, properties, fusion_type)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -340,6 +342,7 @@ class _QueryGRPC(_BaseGRPC):
         query: str,
         properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[_MetadataQuery] = None,
@@ -351,6 +354,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_bm25(query, properties)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -367,6 +371,7 @@ class _QueryGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -382,6 +387,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -399,6 +405,7 @@ class _QueryGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -416,6 +423,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -435,6 +443,7 @@ class _QueryGRPC(_BaseGRPC):
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -458,6 +467,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -486,6 +496,7 @@ class _QueryGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -514,6 +525,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
