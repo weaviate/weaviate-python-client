@@ -262,11 +262,12 @@ class _BatchBase:
 
                             if (
                                 self.__max_batch_size == self.__recommended_num_objects
+                                and len(self.__batch_objects) > self.__recommended_num_objects
                                 and time.time() - self.__last_scale_up > 1
+                                and self.__concurrent_requests < 10
                             ):
                                 self.__concurrent_requests += 1
                                 self.__last_scale_up = time.time()
-
                         else:
                             ratio = batch_length / rate
                             if (
@@ -312,7 +313,6 @@ class _BatchBase:
                     self.__active_requests_lock.acquire()
                     self.__active_requests += 1
                     self.__active_requests_lock.release()
-
                     # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                     asyncio.run_coroutine_threadsafe(
                         self.__send_batch_async(
