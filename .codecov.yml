@@ -3,3 +3,10 @@ codecov:
         after_n_builds: 1
 comment:
     after_n_builds: 1
+
+component_management:
+  individual_components:
+    - component_id: weaviate  # this is an identifier that should not be changed
+      name: weaviate  # this is a display name, and can be changed freely
+      paths:
+        - weaviate
