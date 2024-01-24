@@ -609,7 +609,7 @@ def test_search_hybrid_only_vector(collection_factory: CollectionFactory) -> Non
 @pytest.mark.parametrize("limit", [1, 2])
 def test_hybrid_limit(collection_factory: CollectionFactory, limit: int) -> None:
     collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT, tokenization=Tokenization.WORD)],
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
@@ -627,7 +627,7 @@ def test_hybrid_limit(collection_factory: CollectionFactory, limit: int) -> None
 @pytest.mark.parametrize("offset,expected", [(0, 2), (1, 1), (2, 0)])
 def test_hybrid_offset(collection_factory: CollectionFactory, offset: int, expected: int) -> None:
     collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT, tokenization=Tokenization.WORD)],
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
