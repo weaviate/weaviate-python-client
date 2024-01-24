@@ -4,7 +4,12 @@ from typing import List, Optional, Any, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.collections.batch.base import _BatchBase, _BatchDataWrapper
+from weaviate.collections.batch.base import (
+    _BatchBase,
+    _BatchDataWrapper,
+    _DynamicBatching,
+    _BatchMode,
+)
 from weaviate.collections.classes.batch import BatchResult, ErrorObject, ErrorReference, Shard
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.connect import ConnectionV4
@@ -19,8 +24,7 @@ class _BatchWrapper:
         self._consistency_level = consistency_level
         self._current_batch: Optional[_BatchBase] = None
         # config options
-        self._batch_size: Optional[int] = None
-        self._concurrent_requests: int = 2
+        self._batch_mode: _BatchMode = _DynamicBatching()
 
         self._batch_data = _BatchDataWrapper()
 

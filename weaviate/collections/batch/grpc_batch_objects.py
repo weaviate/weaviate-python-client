@@ -134,7 +134,7 @@ class _BatchGRPC(_BaseGRPC):
         except grpc.RpcError as e:
             raise WeaviateBatchError(e.details())  # pyright: ignore
 
-    async def objects_async(self, objects: List[_BatchObject]) -> BatchObjectReturn:
+    async def aobjects(self, objects: List[_BatchObject]) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
 
         Parameters:
@@ -176,14 +176,6 @@ class _BatchGRPC(_BaseGRPC):
         start = time.time()
         errors = await self.__send_batch_async(weaviate_objs)
         elapsed_time = time.time() - start
-
-        if len(errors) == len(weaviate_objs):
-            # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: Pylance
-            raise WeaviateInsertManyAllFailedError(
-                "Here is the set of all errors: {}".format(
-                    "\n".join(err for err in set(errors.values()))
-                )
-            )
 
         all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
             List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))

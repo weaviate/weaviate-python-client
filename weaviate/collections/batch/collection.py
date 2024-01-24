@@ -1,6 +1,12 @@
 from typing import Generic, List, Optional, Sequence, Union
 
-from weaviate.collections.batch.base import _BatchBase, _BatchDataWrapper
+from weaviate.collections.batch.base import (
+    _BatchBase,
+    _BatchDataWrapper,
+    _BatchMode,
+    _FixedSizeBatching,
+    _RateLimitedBatching,
+)
 from weaviate.collections.batch.batch_wrapper import _BatchWrapper
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
@@ -15,8 +21,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
-        fixed_batch_size: Optional[int],
-        fixed_concurrent_requests: Optional[int],
+        batch_mode: _BatchMode,
         name: str,
         tenant: Optional[str] = None,
     ) -> None:
@@ -24,8 +29,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
             connection=connection,
             consistency_level=consistency_level,
             results=results,
-            fixed_batch_size=fixed_batch_size,
-            fixed_concurrent_requests=fixed_concurrent_requests,
+            batch_mode=batch_mode,
         )
         self.__name = name
         self.__tenant = tenant
@@ -113,8 +117,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
             connection=self._connection,
             consistency_level=self._consistency_level,
             results=self._batch_data,
-            fixed_batch_size=self._batch_size,
-            fixed_concurrent_requests=self._concurrent_requests,
+            batch_mode=self._batch_mode,
             name=self.__name,
             tenant=self.__tenant,
         )
@@ -136,5 +139,18 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                 The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate and not the speed of batch creation within Python.
         """
-        self._batch_size = batch_size
-        self._concurrent_requests = concurrent_requests
+        self._batch_mode: _BatchMode = _FixedSizeBatching(batch_size, concurrent_requests)
+
+    def configure_rate_limit(
+        self,
+        requests_per_minute: int = 1,
+    ) -> None:
+        """Configure batches with a rate limited vectorizer. Note that the default is dynamic batching.
+
+        When you exit the context manager, the final batch will be sent automatically.
+
+        Arguments:
+            `requests_per_minute`
+                The number of requests that the vectorizer can process per minute.
+        """
+        self._batch_mode = _RateLimitedBatching(requests_per_minute)

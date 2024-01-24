@@ -1,7 +1,12 @@
 from typing import Optional, Sequence, Union
 
-from weaviate.collections.batch.base import _BatchBase
-from weaviate.collections.batch.batch_wrapper import _BatchWrapper
+from weaviate.collections.batch.base import (
+    _BatchBase,
+    _DynamicBatching,
+    _FixedSizeBatching,
+    _RateLimitedBatching,
+)
+from weaviate.collections.batch.batch_wrapper import _BatchWrapper, _BatchMode
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInput
 from weaviate.collections.classes.tenants import Tenant
@@ -96,8 +101,7 @@ class _BatchClientWrapper(_BatchWrapper):
             connection=self._connection,
             consistency_level=self._consistency_level,
             results=self._batch_data,
-            fixed_batch_size=self._batch_size,
-            fixed_concurrent_requests=self._concurrent_requests,
+            batch_mode=self._batch_mode,
         )
         return self._current_batch
 
@@ -109,6 +113,7 @@ class _BatchClientWrapper(_BatchWrapper):
                 The consistency level to be used to send batches. If not provided, the default value is `None`.
         """
         self._consistency_level = consistency_level
+        self._batch_mode: _BatchMode = _DynamicBatching()
 
     def configure_fixed_size(
         self,
@@ -121,12 +126,27 @@ class _BatchClientWrapper(_BatchWrapper):
         Arguments:
             `batch_size`
                 The number of objects/references to be sent in one batch. If not provided, the default value is 100.
-            `consistency_level`
-                The consistency level to be used to send the batch. If not provided, the default value is `None`.
             `concurrent_requests`
                 The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate and not the speed of batch creation within Python.
+            `consistency_level`
+                The consistency level to be used to send the batch. If not provided, the default value is `None`.
         """
-        self._batch_size = batch_size
+        self._batch_mode = _FixedSizeBatching(batch_size, concurrent_requests)
         self._consistency_level = consistency_level
-        self._concurrent_requests = concurrent_requests
+
+    def configure_rate_limit(
+        self, requests_per_minute: int = 1, consistency_level: Optional[ConsistencyLevel] = None
+    ) -> None:
+        """Configure batches with a rate limited vectorizer. Note that the default is dynamic batching.
+
+        When you exit the context manager, the final batch will be sent automatically.
+
+        Arguments:
+            `requests_per_minute`
+                The number of requests that the vectorizer can process per minute.
+            `consistency_level`
+                The consistency level to be used to send the batch. If not provided, the default value is `None`.
+        """
+        self._batch_mode = _RateLimitedBatching(requests_per_minute)
+        self._consistency_level = consistency_level

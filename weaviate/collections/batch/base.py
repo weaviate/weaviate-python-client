@@ -5,9 +5,19 @@ import time
 from abc import ABC
 from copy import copy
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Optional, Sequence, Set, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+    Union,
+)
 import uuid as uuid_package
-
+from typing_extensions import TypeAlias
 from pydantic import ValidationError
 from requests import ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
@@ -57,14 +67,19 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
     def __len__(self) -> int:
         return len(self.__items)
 
-    def clear(self) -> None:
-        """Remove all the items from the BatchRequest."""
-        self.__items.clear()
-
     def add(self, item: TBatchInput) -> None:
         """Add an item to the BatchRequest."""
         self.__lock.acquire()
         self.__items.append(item)
+        self.__lock.release()
+
+    def prepend(self, item: List[TBatchInput]) -> None:
+        """Add items to the front of the BatchRequest.
+
+        This is intended to be used when objects should be retries, eg. after a temporary error.
+        """
+        self.__lock.acquire()
+        self.__items = item + self.__items
         self.__lock.release()
 
     def pop_items(self, pop_amount: int) -> List[TBatchInput]:
@@ -86,49 +101,11 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
 
 
 class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]):
-    """
-    Collect Weaviate-object references to add them in one request to Weaviate.
-
-    Caution this request will miss some validations to be faster.
-    """
-
-    def _add_failed_objects_from_response(
-        self,
-        return_: BatchReferenceReturn,
-        errors_to_exclude: Optional[List[str]] = None,
-        errors_to_include: Optional[List[str]] = None,
-    ) -> None:
-        # successful_responses = []
-
-        for err in return_.errors.values():
-            # if self._skip_objects_retry(ref, errors_to_exclude, errors_to_include):
-            #     successful_responses.append(ref)
-            #     continue
-            self.add(err.reference)
-        # return successful_responses
+    """Collect Weaviate-object references to add them in one request to Weaviate."""
 
 
 class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
-    """
-    Collect objects for one batch request to weaviate.
-
-    Caution this batch will not be validated through weaviate.
-    """
-
-    def _add_failed_objects_from_response(
-        self,
-        return_: BatchObjectReturn,
-        errors_to_exclude: Optional[List[str]] = None,
-        errors_to_include: Optional[List[str]] = None,
-    ) -> None:
-        # successful_responses = []
-        if return_.has_errors:
-            for err in return_.errors.values():
-                # if self._skip_objects_retry(obj, errors_to_exclude, errors_to_include):
-                #     successful_responses.append(obj)
-                #     continue
-                self.add(err.object_)
-        # return successful_responses
+    """Collect objects for one batch request to weaviate."""
 
 
 @dataclass
@@ -139,19 +116,39 @@ class _BatchDataWrapper:
     imported_shards: Set[Shard] = field(default_factory=set)
 
 
+@dataclass
+class _DynamicBatching:
+    pass
+
+
+@dataclass
+class _FixedSizeBatching:
+    batch_size: int
+    concurrent_requests: int
+
+
+@dataclass
+class _RateLimitedBatching:
+    requests_per_minute: int
+
+
+_BatchMode: TypeAlias = Union[_DynamicBatching, _FixedSizeBatching, _RateLimitedBatching]
+
+
 class _BatchBase:
     def __init__(
         self,
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
-        fixed_batch_size: Optional[int] = None,  # dynamic by default
-        fixed_concurrent_requests: Optional[int] = None,  # dynamic by default
+        batch_mode: _BatchMode,
         objects_: Optional[ObjectsBatchRequest] = None,
-        references: Optional[ReferencesBatchRequest] = None,
+        references: Optional[BatchRequest[_BatchReference, BatchReferenceReturn]] = None,
     ) -> None:
         self.__batch_objects = objects_ or ObjectsBatchRequest()
-        self.__batch_references = references or ReferencesBatchRequest()
+        self.__batch_references = (
+            references or BatchRequest[_BatchReference, BatchReferenceReturn]()
+        )
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = consistency_level
 
@@ -161,26 +158,45 @@ class _BatchBase:
         self.__results_for_wrapper = results
         self.__results_lock = threading.Lock()
 
-        self.__retry_failed_objects: bool = False
-        self.__retry_failed_references: bool = False
-
         self.__cluster = Cluster(self.__connection)
 
+        self.__batching_mode: _BatchMode = batch_mode
         self.__max_batch_size: int = 1000
-        self.__dynamic_batching = fixed_batch_size is None
-        self.__recommended_num_objects: int = (
-            fixed_batch_size if fixed_batch_size is not None else 10
-        )
+
+        if isinstance(self.__batching_mode, _FixedSizeBatching):
+            self.__recommended_num_objects = self.__batching_mode.batch_size
+            self.__concurrent_requests = self.__batching_mode.concurrent_requests
+        elif isinstance(self.__batching_mode, _RateLimitedBatching):
+            # Batch with rate limiting should never send more than the given amount of objects per minute.
+            # We could send all objects in a single batch every 60 seconds but that could cause problems with too large requests. Therefore, we
+            # limit the size of a batch to self.__max_batch_size and send multiple batches of equal size and send them in equally space in time.
+            # Example:
+            #  3000 objects, 1000/min -> 3 batches of 1000 objects, send every 20 seconds
+            self.__concurrent_requests = (
+                self.__batching_mode.requests_per_minute + self.__max_batch_size
+            ) // self.__max_batch_size
+            self.__recommended_num_objects = (
+                self.__batching_mode.requests_per_minute // self.__concurrent_requests
+            )
+        else:
+            assert isinstance(self.__batching_mode, _DynamicBatching)
+            self.__recommended_num_objects = 10
+            self.__concurrent_requests = 2
+
         # there seems to be a bug with weaviate when sending > 50 refs at once
         self.__recommended_num_refs: int = 50
 
-        self.__concurrent_requests: int = (
-            fixed_concurrent_requests if fixed_concurrent_requests is not None else 2
-        )
         self.__active_requests = 0
         self.__active_requests_lock = threading.Lock()
-        self.__last_scale_up: float = 0
+
+        # dynamic batching
+        self.__time_last_scale_up: float = 0
         self.__max_observed_rate: int = 0
+
+        # fixed rate batching
+        self.__time_stamp_last_request: float = 0
+        # do 62 secs to give us some buffer to the "per-minute" calculation
+        self.__fix_rate_batching_base_time = 62 // self.__concurrent_requests
 
         self.__bg_thread = self.__start_bg_thread()
 
@@ -231,74 +247,22 @@ class _BatchBase:
                 self.__shut_background_thread_down is not None
                 and not self.__shut_background_thread_down.is_set()
             ):
-                if not self.__dynamic_batching:
+                if isinstance(self.__batching_mode, _FixedSizeBatching):
                     refresh_time: float = 0.1
+                elif isinstance(self.__batching_mode, _RateLimitedBatching):
+                    if (
+                        time.time() - self.__time_stamp_last_request
+                        < self.__fix_rate_batching_base_time // self.__concurrent_requests
+                    ):
+                        time.sleep(1)
+                        continue
+
+                    self.__time_stamp_last_request = time.time()
+                    refresh_time = 0
                 else:
+                    assert isinstance(self.__batching_mode, _DynamicBatching)
                     try:
-                        status = self.__cluster.get_nodes_status()
-                        if (
-                            "batchStats" not in status[0]
-                            or "queueLength" not in status[0]["batchStats"]
-                        ):
-                            # async indexing - just send a lot
-                            self.__dynamic_batching = False
-                            self.__recommended_num_objects = 1000
-                            self.__concurrent_requests = 10
-                            continue
-
-                        rate = status[0]["batchStats"]["ratePerSecond"]
-                        rate_per_worker = rate / self.__concurrent_requests
-
-                        batch_length = status[0]["batchStats"]["queueLength"]
-
-                        if rate > self.__max_observed_rate:
-                            self.__max_observed_rate = rate
-
-                        if batch_length == 0:  # scale up if queue is empty
-                            self.__recommended_num_objects = min(
-                                self.__recommended_num_objects + 50,
-                                self.__max_batch_size,
-                            )
-
-                            if (
-                                self.__max_batch_size == self.__recommended_num_objects
-                                and time.time() - self.__last_scale_up > 1
-                            ):
-                                self.__concurrent_requests += 1
-                                self.__last_scale_up = time.time()
-
-                        else:
-                            ratio = batch_length / rate
-                            if (
-                                2.1 > ratio > 1.9
-                            ):  # ideal, send exactly as many objects as weaviate can process
-                                self.__recommended_num_objects = math.floor(rate_per_worker)
-                            elif ratio <= 1.9:  # we can send more
-                                self.__recommended_num_objects = math.floor(
-                                    min(
-                                        self.__recommended_num_objects * 1.5,
-                                        rate_per_worker * 2 / ratio,
-                                    )
-                                )
-
-                                if self.__max_batch_size == self.__recommended_num_objects:
-                                    self.__concurrent_requests += 1
-
-                            elif ratio < 10:  # too high, scale down
-                                self.__recommended_num_objects = math.floor(
-                                    rate_per_worker * 2 / ratio
-                                )
-
-                                if (
-                                    self.__recommended_num_objects < 100
-                                    and self.__concurrent_requests > 2
-                                ):
-                                    self.__concurrent_requests -= 1
-
-                            else:  # way too high, stop sending new batches
-                                self.__recommended_num_objects = 0
-                                self.__concurrent_requests = 2
-
+                        self.__dynamic_batching()
                         refresh_time = 0.01
                     except (RequestsHTTPError, ReadTimeout):
                         refresh_time = 0.1
@@ -318,6 +282,7 @@ class _BatchBase:
                         self.__send_batch_async(
                             self.__batch_objects.pop_items(self.__recommended_num_objects),
                             self.__batch_references.pop_items(self.__recommended_num_refs),
+                            readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
                         ),
                         loop,
                     )
@@ -336,13 +301,68 @@ class _BatchBase:
         demon.start()
         return demon
 
+    def __dynamic_batching(self) -> None:
+        status = self.__cluster.get_nodes_status()
+        if "batchStats" not in status[0] or "queueLength" not in status[0]["batchStats"]:
+            # async indexing - just send a lot
+            self.__batching_mode = _FixedSizeBatching(1000, 10)
+            self.__recommended_num_objects = 1000
+            self.__concurrent_requests = 10
+            return
+
+        rate = status[0]["batchStats"]["ratePerSecond"]
+        rate_per_worker = rate / self.__concurrent_requests
+
+        batch_length = status[0]["batchStats"]["queueLength"]
+
+        if rate > self.__max_observed_rate:
+            self.__max_observed_rate = rate
+
+        if batch_length == 0:  # scale up if queue is empty
+            self.__recommended_num_objects = min(
+                self.__recommended_num_objects + 50,
+                self.__max_batch_size,
+            )
+
+            if (
+                self.__max_batch_size == self.__recommended_num_objects
+                and time.time() - self.__time_last_scale_up > 1
+            ):
+                self.__concurrent_requests += 1
+                self.__time_last_scale_up = time.time()
+
+        else:
+            ratio = batch_length / rate
+            if 2.1 > ratio > 1.9:  # ideal, send exactly as many objects as weaviate can process
+                self.__recommended_num_objects = math.floor(rate_per_worker)
+            elif ratio <= 1.9:  # we can send more
+                self.__recommended_num_objects = math.floor(
+                    min(
+                        self.__recommended_num_objects * 1.5,
+                        rate_per_worker * 2 / ratio,
+                    )
+                )
+
+                if self.__max_batch_size == self.__recommended_num_objects:
+                    self.__concurrent_requests += 1
+
+            elif ratio < 10:  # too high, scale down
+                self.__recommended_num_objects = math.floor(rate_per_worker * 2 / ratio)
+
+                if self.__recommended_num_objects < 100 and self.__concurrent_requests > 2:
+                    self.__concurrent_requests -= 1
+
+            else:  # way too high, stop sending new batches
+                self.__recommended_num_objects = 0
+                self.__concurrent_requests = 2
+
     async def __send_batch_async(
-        self, objs: List[_BatchObject], refs: List[_BatchReference]
+        self, objs: List[_BatchObject], refs: List[_BatchReference], readd_rate_limit: bool
     ) -> None:
         if len(objs) > 0:
             start = time.time()
             try:
-                response_obj = await self.__batch_grpc.objects_async(objects=objs)
+                response_obj = await self.__batch_grpc.aobjects(objects=objs)
             except Exception as e:
                 errors_obj = {
                     idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
@@ -354,13 +374,65 @@ class _BatchBase:
                     has_errors=True,
                     uuids={},
                 )
+
+            if readd_rate_limit:
+                readded_objects = []
+                highest_retry_count = 0
+                for i, err in response_obj.errors.items():
+                    if ("support@cohere.com" in err.message and "rate limit" in err.message) or (
+                        "rate_limit_exceeded" in err.message
+                    ):
+                        if err.object_.retry_count > highest_retry_count:
+                            highest_retry_count = err.object_.retry_count
+
+                        if err.object_.retry_count > 5:
+                            continue  # too many retries, give up
+                        err.object_.retry_count += 1
+                        readded_objects.append(i)
+
+                if len(readded_objects) > 0:
+                    _Warnings.batch_rate_limit_reached(
+                        response_obj.errors[readded_objects[0]].message,
+                        self.__fix_rate_batching_base_time * (highest_retry_count + 1),
+                    )
+
+                    self.__batch_objects.prepend(
+                        [
+                            err.object_
+                            for i, err in response_obj.errors.items()
+                            if i in readded_objects
+                        ]
+                    )
+
+                    new_errors = {
+                        i: err for i, err in response_obj.errors.items() if i not in readded_objects
+                    }
+                    response_obj = BatchObjectReturn(
+                        uuids={
+                            i: uid
+                            for i, uid in response_obj.uuids.items()
+                            if i not in readded_objects
+                        },
+                        errors=new_errors,
+                        has_errors=len(new_errors) > 0,
+                        all_responses=[
+                            err
+                            for i, err in enumerate(response_obj.all_responses)
+                            if i not in readded_objects
+                        ],
+                        elapsed_seconds=response_obj.elapsed_seconds,
+                    )
+                    self.__time_stamp_last_request = (
+                        time.time() + self.__fix_rate_batching_base_time * (highest_retry_count + 1)
+                    )  # skip a full minute to recover from the rate limit
+                    self.__fix_rate_batching_base_time += (
+                        1  # increase the base time as the current one is too low
+                    )
+
             self.__results_lock.acquire()
             self.__results_for_wrapper.results.objs += response_obj
             self.__results_for_wrapper.failed_objects.extend(response_obj.errors.values())
             self.__results_lock.release()
-
-            if self.__retry_failed_objects and response_obj.has_errors:
-                self.__batch_objects._add_failed_objects_from_response(response_obj)
 
         if len(refs) > 0:
             start = time.time()
@@ -377,8 +449,6 @@ class _BatchBase:
                     errors=errors_ref,
                     has_errors=True,
                 )
-            if self.__retry_failed_references and response_ref.has_errors:
-                self.__batch_references._add_failed_objects_from_response(response_ref)
             self.__results_lock.acquire()
             self.__results_for_wrapper.results.refs += response_ref
             self.__results_for_wrapper.failed_references.extend(response_ref.errors.values())
