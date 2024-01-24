@@ -1622,7 +1622,7 @@ def test_near_text_offset(collection_factory: CollectionFactory) -> None:
         return_properties=["value"],
     ).objects
 
-    assert len(objects) == 1
+    assert len(objects) == 3
     assert objects[0].uuid == batch_return.uuids[2]
     assert objects[0].properties["value"] == "apple cake"
 
