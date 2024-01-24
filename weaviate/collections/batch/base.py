@@ -55,6 +55,7 @@ BatchResponse = List[Dict[str, Any]]
 
 TBatchInput = TypeVar("TBatchInput")
 TBatchReturn = TypeVar("TBatchReturn")
+MAX_CONCURRENT_REQUESTS = 10
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
@@ -199,9 +200,9 @@ class _BatchBase:
         self.__fix_rate_batching_base_time = 62 // self.__concurrent_requests
 
         self.__bg_thread = self.__start_bg_thread()
+        self.__bg_thread_exception: Optional[Exception] = None
 
     def __run_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
-        loop.set_debug(True)  # in case of errors, shows async errors in the terminal to users
         try:
             loop.run_forever()
         finally:
@@ -234,67 +235,73 @@ class _BatchBase:
         while self.__bg_thread.is_alive():
             time.sleep(0.01)
 
+    def __periodic_check(self) -> None:
+        loop = self.__start_new_event_loop()
+        future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
+        future.result()  # Wait for self._connection.aopen() to finish
+
+        while (
+            self.__shut_background_thread_down is not None
+            and not self.__shut_background_thread_down.is_set()
+        ):
+            if isinstance(self.__batching_mode, _FixedSizeBatching):
+                refresh_time: float = 0.1
+            elif isinstance(self.__batching_mode, _RateLimitedBatching):
+                if (
+                    time.time() - self.__time_stamp_last_request
+                    < self.__fix_rate_batching_base_time // self.__concurrent_requests
+                ):
+                    time.sleep(1)
+                    continue
+
+                self.__time_stamp_last_request = time.time()
+                refresh_time = 0
+            else:
+                assert isinstance(self.__batching_mode, _DynamicBatching)
+                try:
+                    self.__dynamic_batching()
+                    refresh_time = 0.01
+                except (RequestsHTTPError, ReadTimeout):
+                    refresh_time = 0.1
+                except Exception as e:
+                    _Warnings.batch_refresh_failed(repr(e))
+                    refresh_time = 10
+
+            if self.__active_requests < self.__concurrent_requests and (
+                len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
+            ):
+                self.__active_requests_lock.acquire()
+                self.__active_requests += 1
+                self.__active_requests_lock.release()
+
+                # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
+                asyncio.run_coroutine_threadsafe(
+                    self.__send_batch_async(
+                        self.__batch_objects.pop_items(self.__recommended_num_objects),
+                        self.__batch_references.pop_items(self.__recommended_num_refs),
+                        readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
+                    ),
+                    loop,
+                )
+
+            time.sleep(refresh_time)
+
+        future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
+        future.result()  # Wait for self._connection.aclose() to finish
+        loop.call_soon_threadsafe(loop.stop)
+
     def __start_bg_thread(self) -> threading.Thread:
         """Create a background thread that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
 
-        def periodic_check() -> None:
-            loop = self.__start_new_event_loop()
-            future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
-            future.result()  # Wait for self._connection.aopen() to finish
-
-            while (
-                self.__shut_background_thread_down is not None
-                and not self.__shut_background_thread_down.is_set()
-            ):
-                if isinstance(self.__batching_mode, _FixedSizeBatching):
-                    refresh_time: float = 0.1
-                elif isinstance(self.__batching_mode, _RateLimitedBatching):
-                    if (
-                        time.time() - self.__time_stamp_last_request
-                        < self.__fix_rate_batching_base_time // self.__concurrent_requests
-                    ):
-                        time.sleep(1)
-                        continue
-
-                    self.__time_stamp_last_request = time.time()
-                    refresh_time = 0
-                else:
-                    assert isinstance(self.__batching_mode, _DynamicBatching)
-                    try:
-                        self.__dynamic_batching()
-                        refresh_time = 0.01
-                    except (RequestsHTTPError, ReadTimeout):
-                        refresh_time = 0.1
-                    except Exception as e:
-                        _Warnings.batch_refresh_failed(repr(e))
-                        refresh_time = 10
-
-                if self.__active_requests < self.__concurrent_requests and (
-                    len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
-                ):
-                    self.__active_requests_lock.acquire()
-                    self.__active_requests += 1
-                    self.__active_requests_lock.release()
-
-                    # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
-                    asyncio.run_coroutine_threadsafe(
-                        self.__send_batch_async(
-                            self.__batch_objects.pop_items(self.__recommended_num_objects),
-                            self.__batch_references.pop_items(self.__recommended_num_refs),
-                            readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
-                        ),
-                        loop,
-                    )
-
-                time.sleep(refresh_time)
-
-            future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
-            future.result()  # Wait for self._connection.aclose() to finish
-            loop.call_soon_threadsafe(loop.stop)
+        def periodic_check_wrapper() -> None:
+            try:
+                self.__periodic_check()
+            except Exception as e:
+                self.__bg_thread_exception = e
 
         demon = threading.Thread(
-            target=periodic_check,
+            target=periodic_check_wrapper,
             daemon=True,
             name="BgBatchScheduler",
         )
@@ -326,7 +333,9 @@ class _BatchBase:
 
             if (
                 self.__max_batch_size == self.__recommended_num_objects
+                and len(self.__batch_objects) > self.__recommended_num_objects
                 and time.time() - self.__time_last_scale_up > 1
+                and self.__concurrent_requests < MAX_CONCURRENT_REQUESTS
             ):
                 self.__concurrent_requests += 1
                 self.__time_last_scale_up = time.time()
@@ -467,6 +476,7 @@ class _BatchBase:
             or len(self.__batch_references) > 0
         ):
             time.sleep(0.01)
+            self.__check_bg_thread_alive()
 
     def _add_object(
         self,
@@ -477,6 +487,7 @@ class _BatchBase:
         vector: Optional[Sequence] = None,
         tenant: Optional[str] = None,
     ) -> UUID:
+        self.__check_bg_thread_alive()
         try:
             batch_object = BatchObject(
                 collection=collection,
@@ -499,6 +510,7 @@ class _BatchBase:
             self.__recommended_num_objects == 0
             or len(self.__batch_objects) >= self.__recommended_num_objects * 10
         ):
+            self.__check_bg_thread_alive()
             time.sleep(1)
 
         assert batch_object.uuid is not None
@@ -512,6 +524,7 @@ class _BatchBase:
         to: ReferenceInput,
         tenant: Optional[str] = None,
     ) -> None:
+        self.__check_bg_thread_alive()
         if isinstance(to, _Reference) or isinstance(to, ReferenceToMulti):
             to_strs: Union[List[str], List[UUID]] = to.uuids_str
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
@@ -539,3 +552,10 @@ class _BatchBase:
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
             time.sleep(1)  # block if weaviate is overloaded, also do not send any refs
+            self.__check_bg_thread_alive()
+
+    def __check_bg_thread_alive(self) -> None:
+        if self.__bg_thread.is_alive():
+            return
+
+        raise self.__bg_thread_exception or Exception("Batch thread died unexpectedly")
