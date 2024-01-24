@@ -400,6 +400,7 @@ class _BatchBase:
             or len(self.__batch_objects) > 0
             or len(self.__batch_references) > 0
         ):
+            self.__check_bg_thread_alive()
             time.sleep(0.01)
 
     def _add_object(
@@ -436,6 +437,7 @@ class _BatchBase:
             or len(self.__batch_objects) >= self.__recommended_num_objects * 10
         ):
             time.sleep(1)
+            self.__check_bg_thread_alive()
 
         assert batch_object.uuid is not None
         return batch_object.uuid
@@ -476,6 +478,7 @@ class _BatchBase:
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
             time.sleep(1)  # block if weaviate is overloaded, also do not send any refs
+            self.__check_bg_thread_alive()
 
     def __check_bg_thread_alive(self) -> None:
         if self.__bg_thread.is_alive():
