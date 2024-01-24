@@ -359,6 +359,7 @@ def test_client_with_extra_options() -> None:
     ]:
         assert client._connection.timeout_config == (1, 2)
 
+
 def test_connect_and_close_to_embedded() -> None:
     # Can't use the default port values as they are already in use by the local instances
     client = weaviate.connect_to_embedded(port=8078, grpc_port=50151, version="1.23.4")
@@ -375,6 +376,7 @@ def test_connect_and_close_to_embedded() -> None:
     with pytest.raises(WeaviateClosedClientError):
         client.get_meta()
 
+
 def test_embedded_as_context_manager() -> None:
     default_version = "1.22.3"
     with weaviate.connect_to_embedded(port=8077, grpc_port=50152) as client:
@@ -388,16 +390,14 @@ def test_embedded_as_context_manager() -> None:
     with pytest.raises(WeaviateClosedClientError):
         client.get_meta()
 
+
 def test_embedded_with_wrong_version() -> None:
     with pytest.raises(weaviate.exceptions.WeaviateEmbeddedInvalidVersionError):
         weaviate.connect_to_embedded(version="this_version_does_not_exist")
 
+
 def test_embedded_custom_ports() -> None:
-    client = weaviate.connect_to_embedded(
-        port=8092,
-        grpc_port=50153,
-        version="latest"
-    )
+    client = weaviate.connect_to_embedded(port=8092, grpc_port=50153, version="latest")
     client.connect()
     assert client.is_connected()
     metadata = client.get_meta()
@@ -406,4 +406,3 @@ def test_embedded_custom_ports() -> None:
     # TODO: check if the ports are actually used
 
     client.close()
-
