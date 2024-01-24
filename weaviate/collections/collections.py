@@ -28,6 +28,7 @@ class _Collections(_CollectionsBase):
     def create(
         self,
         name: str,
+        *,
         description: Optional[str] = None,
         generative_config: Optional[_GenerativeConfigCreate] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
