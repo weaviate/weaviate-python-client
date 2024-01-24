@@ -37,6 +37,7 @@ class _NearTextGenerate(Generic[Properties, References], _BaseQuery[Properties, 
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
@@ -62,6 +63,8 @@ class _NearTextGenerate(Generic[Properties, References], _BaseQuery[Properties, 
                 The maximum distance to search. If not specified, the default distance specified by the server is used.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            `offset`
+                The offset to start from. If not specified, the retrieval begins from the first object in the server.
             `auto_limit`
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
@@ -96,6 +99,7 @@ class _NearTextGenerate(Generic[Properties, References], _BaseQuery[Properties, 
             move_to=move_to,
             move_away=move_away,
             limit=limit,
+            offset=offset,
             autocut=auto_limit,
             filters=filters,
             group_by=_GroupBy.from_input(group_by),

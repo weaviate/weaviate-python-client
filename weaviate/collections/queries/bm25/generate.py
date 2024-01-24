@@ -27,6 +27,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         grouped_properties: Optional[List[str]] = None,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
@@ -52,6 +53,8 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
                 The properties to search in. If not specified, all properties are searched.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            `offset`
+                The offset to start from. If not specified, the retrieval begins from the first object in the server.
             `auto_limit`
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
@@ -83,6 +86,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
             query=query,
             properties=query_properties,
             limit=limit,
+            offset=offset,
             autocut=auto_limit,
             filters=filters,
             rerank=rerank,
