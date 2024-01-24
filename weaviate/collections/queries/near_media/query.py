@@ -59,7 +59,7 @@ class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             `distance`
                 The maximum distance to search. If not specified, the default distance specified by the server is used.
             `limit`
-                The maximum number of results to return. If not specified, the default limit specified by the server is returned.\
+                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
             `offset`
                 The offset to start from. If not specified, the retrieval begins from the first object in the server.
             `auto_limit`
