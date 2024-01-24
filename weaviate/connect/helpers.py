@@ -154,11 +154,15 @@ def connect_to_local(
 
 
 def connect_to_embedded(
+    hostname: str = "127.0.0.1",
     port: int = 8079,
     grpc_port: int = 50050,
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     version: str = "1.22.3",
+    persistence_data_path: Optional[str] = None,
+    binary_path: Optional[str] = None,
+    environment_variables: Optional[Dict[str, str]] = None,
 ) -> WeaviateClient:
     """
     Connect to an embedded Weaviate instance.
@@ -168,6 +172,8 @@ def connect_to_embedded(
     in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
 
     Arguments:
+        `hostname`
+            The hostname to use for the underlying REST & GraphQL API calls.
         `port`
             The port to use for the underlying REST & GraphQL API calls.
         `grpc_port`
@@ -178,6 +184,12 @@ def connect_to_embedded(
             This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         `version`
             Weaviate version to be used for the embedded instance.
+        `persistence_data_path`
+            Path to the directory where the embedded instance should store its data. If not provided, a temporary directory will be used.
+        `binary_path`
+            Path to the Weaviate binary to be used for the embedded instance. If not provided, the version specified will be downloaded.
+        `environment_variables`
+            Additional environment variables to be passed to the embedded instance for configuration.
 
     Returns
         `weaviate.WeaviateClient`
@@ -202,12 +214,19 @@ def connect_to_embedded(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
+    options = EmbeddedOptions(
+        hostname=hostname,
+        port=port,
+        grpc_port=grpc_port,
+        version=version,
+        additional_env_vars=environment_variables,
+    )
+    if persistence_data_path is not None:
+        options.persistence_data_path = persistence_data_path
+    if binary_path is not None:
+        options.binary_path = binary_path
     client = WeaviateClient(
-        embedded_options=EmbeddedOptions(
-            port=port,
-            grpc_port=grpc_port,
-            version=version,
-        ),
+        embedded_options=options,
         additional_headers=headers,
         additional_config=additional_config,
     )
