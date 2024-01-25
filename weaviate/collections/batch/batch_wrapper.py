@@ -41,11 +41,12 @@ class _BatchWrapper:
         Upon network error, it will retry to get the shards' status for `how_many_failures` times
         with exponential backoff (2**n seconds with n=0,1,2,...,how_many_failures).
 
-        Parameters
-        ----------
-            shards {Optional[List[Shard]]} -- The shards to check the status of. If None it will
+        Arguments:
+            `shards`
+                The shards to check the status of. If `None` it will
                 check the status of all the shards of the imported objects in the batch.
-            how_many_failures {int} -- How many times to try to get the shards' status before
+            `how_many_failures`
+                How many times to try to get the shards' status before
                 raising an exception. Default 5.
         """
         if shards is not None and not isinstance(shards, list):
@@ -68,9 +69,13 @@ class _BatchWrapper:
                 time.sleep(2**how_many)
                 return is_ready(how_many + 1)
 
+        count = 0
         while not is_ready(0):
-            print("Waiting for async indexing to finish...")
+            if count % 20 == 0:  # print every 5s
+                print("Waiting for async indexing to finish...")
             time.sleep(0.25)
+            count += 1
+        print("Async indexing finished!")
 
     def _get_shards_readiness(self, shard: Shard) -> List[bool]:
         if not isinstance(shard.collection, str):
