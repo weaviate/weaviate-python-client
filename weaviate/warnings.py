@@ -225,6 +225,8 @@ class _Warnings:
             Consider upgrading to the new and improved v4 client instead!
             See here for usage: https://weaviate.io/developers/weaviate/client-libraries/python
             """,
+            category=DeprecationWarning,
+            stacklevel=1,
         )
 
     @staticmethod
