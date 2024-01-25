@@ -2,6 +2,7 @@ import asyncio
 import math
 import threading
 import time
+import uuid as uuid_package
 from abc import ABC
 from copy import copy
 from dataclasses import dataclass, field
@@ -16,11 +17,11 @@ from typing import (
     TypeVar,
     Union,
 )
-import uuid as uuid_package
-from typing_extensions import TypeAlias
+
 from pydantic import ValidationError
 from requests import ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
+from typing_extensions import TypeAlias
 
 from weaviate.cluster import Cluster
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
@@ -245,7 +246,7 @@ class _BatchBase:
             and not self.__shut_background_thread_down.is_set()
         ):
             if isinstance(self.__batching_mode, _FixedSizeBatching):
-                refresh_time: float = 0.1
+                refresh_time: float = 0.01
             elif isinstance(self.__batching_mode, _RateLimitedBatching):
                 if (
                     time.time() - self.__time_stamp_last_request
@@ -260,7 +261,7 @@ class _BatchBase:
                 assert isinstance(self.__batching_mode, _DynamicBatching)
                 try:
                     self.__dynamic_batching()
-                    refresh_time = 0.01
+                    refresh_time = 0.001
                 except (RequestsHTTPError, ReadTimeout):
                     refresh_time = 0.1
                 except Exception as e:
@@ -511,7 +512,7 @@ class _BatchBase:
             or len(self.__batch_objects) >= self.__recommended_num_objects * 10
         ):
             self.__check_bg_thread_alive()
-            time.sleep(1)
+            time.sleep(0.01)
 
         assert batch_object.uuid is not None
         return batch_object.uuid
@@ -551,7 +552,7 @@ class _BatchBase:
 
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
-            time.sleep(1)  # block if weaviate is overloaded, also do not send any refs
+            time.sleep(0.01)  # block if weaviate is overloaded, also do not send any refs
             self.__check_bg_thread_alive()
 
     def __check_bg_thread_alive(self) -> None:
