@@ -52,6 +52,9 @@ class _Collections(_CollectionsBase):
         Inspect [the docs](https://weaviate.io/developers/weaviate/configuration) for more information on the different
         configuration options and how they affect the behavior of your collection.
 
+        This method sends a request to Weaviate to create the collection given the configuration. It then returns the newly
+        created collection Python object for you to use to make requests.
+
         Arguments:
             `name`
                 The name of the collection to create.
@@ -116,6 +119,8 @@ class _Collections(_CollectionsBase):
         data_model_references: Optional[Type[References]] = None,
     ) -> Collection[Properties, References]:
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
+
+        This method does not send a request to Weaviate. It simply creates a Python object for you to use to make requests.
 
         Arguments:
             `name`
