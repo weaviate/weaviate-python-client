@@ -259,13 +259,13 @@ class Metrics:
 
     def text(
         self,
-        count: Optional[bool] = None,
-        top_occurrences_count: Optional[bool] = None,
-        top_occurrences_value: Optional[bool] = None,
+        count: bool = False,
+        top_occurrences_count: bool = False,
+        top_occurrences_value: bool = False,
     ) -> _MetricsText:
         """Define the metrics to be returned for a TEXT or TEXT_ARRAY property when aggregating over a collection.
 
-        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
+        If none of the arguments are provided then all metrics will be returned.
 
         Arguments:
             `count`
@@ -295,17 +295,17 @@ class Metrics:
 
     def integer(
         self,
-        count: Optional[bool] = None,
-        maximum: Optional[bool] = None,
-        mean: Optional[bool] = None,
-        median: Optional[bool] = None,
-        minimum: Optional[bool] = None,
-        mode: Optional[bool] = None,
-        sum_: Optional[bool] = None,
+        count: bool = False,
+        maximum: bool = False,
+        mean: bool = False,
+        median: bool = False,
+        minimum: bool = False,
+        mode: bool = False,
+        sum_: bool = False,
     ) -> _MetricsInteger:
         """Define the metrics to be returned for an INT or INT_ARRAY property when aggregating over a collection.
 
-        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
+        If none of the arguments are provided then all metrics will be returned.
 
         Arguments:
             `count`
@@ -326,17 +326,7 @@ class Metrics:
         Returns:
             A `_MetricsInteger` object that includes the metrics to be returned.
         """
-        if all(
-            [
-                count is None,
-                maximum is None,
-                mean is None,
-                median is None,
-                minimum is None,
-                mode is None,
-                sum_ is None,
-            ]
-        ):
+        if not all([not count, not maximum, not mean, not median, not minimum, not mode, not sum_]):
             count = True
             maximum = True
             mean = True
@@ -344,14 +334,6 @@ class Metrics:
             minimum = True
             mode = True
             sum_ = True
-        else:
-            count = count is True
-            maximum = maximum is True
-            mean = mean is True
-            median = median is True
-            minimum = minimum is True
-            mode = mode is True
-            sum_ = sum_ is True
         return _MetricsInteger(
             property_name=self.__property,
             count=count,
@@ -365,17 +347,17 @@ class Metrics:
 
     def number(
         self,
-        count: Optional[bool] = None,
-        maximum: Optional[bool] = None,
-        mean: Optional[bool] = None,
-        median: Optional[bool] = None,
-        minimum: Optional[bool] = None,
-        mode: Optional[bool] = None,
-        sum_: Optional[bool] = None,
+        count: bool = False,
+        maximum: bool = False,
+        mean: bool = False,
+        median: bool = False,
+        minimum: bool = False,
+        mode: bool = False,
+        sum_: bool = False,
     ) -> _MetricsNumber:
         """Define the metrics to be returned for a NUMBER or NUMBER_ARRAY property when aggregating over a collection.
 
-        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
+        If none of the arguments are provided then all metrics will be returned.
 
         Arguments:
             `count`
@@ -396,17 +378,7 @@ class Metrics:
         Returns:
             A `_MetricsNumber` object that includes the metrics to be returned.
         """
-        if all(
-            [
-                count is None,
-                maximum is None,
-                mean is None,
-                median is None,
-                minimum is None,
-                mode is None,
-                sum_ is None,
-            ]
-        ):
+        if all([not count, not maximum, not mean, not median, not minimum, not mode, not sum_]):
             count = True
             maximum = True
             mean = True
@@ -435,15 +407,15 @@ class Metrics:
 
     def boolean(
         self,
-        count: Optional[bool] = None,
-        percentage_false: Optional[bool] = None,
-        percentage_true: Optional[bool] = None,
-        total_false: Optional[bool] = None,
-        total_true: Optional[bool] = None,
+        count: bool = False,
+        percentage_false: bool = False,
+        percentage_true: bool = False,
+        total_false: bool = False,
+        total_true: bool = False,
     ) -> _MetricsBoolean:
         """Define the metrics to be returned for a BOOL or BOOL_ARRAY property when aggregating over a collection.
 
-        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
+        If none of the arguments are provided then all metrics will be returned.
 
         Arguments:
             `count`
@@ -461,25 +433,13 @@ class Metrics:
             A `_MetricsBoolean` object that includes the metrics to be returned.
         """
         if all(
-            [
-                count is None,
-                percentage_false is None,
-                percentage_true is None,
-                total_false is None,
-                total_true is None,
-            ]
+            [not count, not percentage_false, not percentage_true, not total_false, not total_true]
         ):
             count = True
             percentage_false = True
             percentage_true = True
             total_false = True
             total_true = True
-        else:
-            count = count is True
-            percentage_false = percentage_false is True
-            percentage_true = percentage_true is True
-            total_false = total_false is True
-            total_true = total_true is True
         return _MetricsBoolean(
             property_name=self.__property,
             count=count,
@@ -491,15 +451,15 @@ class Metrics:
 
     def date_(
         self,
-        count: Optional[bool] = None,
-        maximum: Optional[bool] = None,
-        median: Optional[bool] = None,
-        minimum: Optional[bool] = None,
-        mode: Optional[bool] = None,
+        count: bool = False,
+        maximum: bool = False,
+        median: bool = False,
+        minimum: bool = False,
+        mode: bool = False,
     ) -> _MetricsDate:
         """Define the metrics to be returned for a DATE or DATE_ARRAY property when aggregating over a collection.
 
-        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
+        If none of the arguments are provided then all metrics will be returned.
 
         Arguments:
             `count`
@@ -516,18 +476,12 @@ class Metrics:
         Returns:
             A `_MetricsDate` object that includes the metrics to be returned.
         """
-        if all([count is None, maximum is None, median is None, minimum is None, mode is None]):
+        if all([not count, not maximum, not median, not minimum, not mode]):
             count = True
             maximum = True
             median = True
             minimum = True
             mode = True
-        else:
-            count = count is True
-            maximum = maximum is True
-            median = median is True
-            minimum = minimum is True
-            mode = mode is True
         return _MetricsDate(
             property_name=self.__property,
             count=count,
@@ -539,11 +493,11 @@ class Metrics:
 
     def reference(
         self,
-        pointing_to: Optional[bool] = None,
+        pointing_to: bool = False,
     ) -> _MetricsReference:
         """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
 
-        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
+        If none of the arguments are provided then all metrics will be returned.
 
         Arguments:
             `pointing_to`
@@ -552,10 +506,8 @@ class Metrics:
         Returns:
             A `_MetricsReference` object that includes the metrics to be returned.
         """
-        if pointing_to is None:
+        if all([not pointing_to]):
             pointing_to = True
-        else:
-            pointing_to = pointing_to is True
         return _MetricsReference(
             property_name=self.__property,
             pointing_to=pointing_to,
