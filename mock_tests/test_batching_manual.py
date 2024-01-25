@@ -27,4 +27,4 @@ def test_manual_batching_warning_ref(recwarn, weaviate_mock):
     )
     client.batch.create_references()
 
-    assert any([str(w.message).startswith("Dep002") for w in recwarn])
+    assert any(str(w.message).startswith("Dep002") for w in recwarn)

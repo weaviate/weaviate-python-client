@@ -16,6 +16,6 @@ def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer, version: str, war
     client.query.get("Class", ["Property"]).with_generate(single_prompt="something")
 
     if warning:
-        assert any([str(w.message).startswith("Dep003") for w in recwarn])
+        assert any(str(w.message).startswith("Dep003") for w in recwarn)
     else:
-        assert not any([str(w.message).startswith("Dep003") for w in recwarn])
+        assert not any(str(w.message).startswith("Dep003") for w in recwarn)
