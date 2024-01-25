@@ -12,9 +12,10 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
     _ReferencePropertyMultiTarget,
     _VectorIndexConfigHNSWUpdate,
-    _CollectionConfig,
-    _CollectionConfigSimple,
+    CollectionConfig,
+    CollectionConfigSimple,
     _Property,
+    ShardStatus,
     _ShardStatus,
     ShardTypes,
 )
@@ -51,18 +52,18 @@ class _ConfigBase:
         return cast(Dict[str, Any], response.json())
 
     @overload
-    def get(self, simple: Literal[False] = ...) -> _CollectionConfig:
+    def get(self, simple: Literal[False] = ...) -> CollectionConfig:
         ...
 
     @overload
-    def get(self, simple: Literal[True]) -> _CollectionConfigSimple:
+    def get(self, simple: Literal[True]) -> CollectionConfigSimple:
         ...
 
     @overload
-    def get(self, simple: bool = ...) -> Union[_CollectionConfig, _CollectionConfigSimple]:
+    def get(self, simple: bool = ...) -> Union[CollectionConfig, CollectionConfigSimple]:
         ...
 
-    def get(self, simple: bool = False) -> Union[_CollectionConfig, _CollectionConfigSimple]:
+    def get(self, simple: bool = False) -> Union[CollectionConfig, CollectionConfigSimple]:
         """Get the configuration for this collection from Weaviate.
 
         Arguments:
@@ -145,7 +146,7 @@ class _ConfigBase:
                 return prop
         return None
 
-    def get_shards(self) -> List[_ShardStatus]:
+    def get_shards(self) -> List[ShardStatus]:
         """Get the statuses of the shards of this collection.
 
         If the collection is multi-tenancy and you did not call `.with_tenant` then you
