@@ -16,6 +16,7 @@ This beta version has breaking changes, a migration guide is available at https:
 - Enforces that all optional arguments to queries must be supplied as keyword arguments.
 - Adds runtime validation to all queries.
 - Renaming of ``prop`` to ``name`` in ``Filter.by_property``.
+- Moving of the ``timeout`` argument in ``weaviate.connect_to_x`` methods into new argument ``additional_config: Optional[AdditionalConfig]``.
 
 Improvements include:
 - Introduction of the ``.by_ref_count()`` method on ``Filter`` to filter on the number of references present in a reference property of an object.
@@ -26,7 +27,7 @@ Improvements include:
 
 Fixes include:
 - The potential for deadlocks and data races when batching has been reduced.
-- Fixes a number of missing properties and poor docstrings in ``weaviate.connect_`` methods.
+- Fixes a number of missing properties and poor docstrings in ``weaviate.connect_to_x`` methods.
 - Adds the missing ``offset`` paramater to all queries.
 
 Version 4.4.b8
