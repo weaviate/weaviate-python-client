@@ -15,6 +15,7 @@ This beta version has breaking changes, a migration guide is available at https:
         - Previously, this would silently error.
 - Enforces that all optional arguments to queries must be supplied as keyword arguments.
 - Adds runtime validation to all queries.
+- Renaming of ``prop`` to ``name`` in ``Filter.by_property``.
 
 Improvements include:
 - Introduction of the ``.by_ref_count()`` method on ``Filter`` to filter on the number of references present in a reference property of an object.
