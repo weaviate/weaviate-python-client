@@ -1580,12 +1580,12 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
 
 @dataclass
 class _ConfigBase:
-    def _to_dict(self) -> dict:
+    def to_dict(self) -> dict:
         out = {}
         for k, v in asdict(self).items():
             if v is None:
                 continue
-            out[k] = v._to_dict() if isinstance(v, _ConfigBase) else v
+            out[k] = v.to_dict() if isinstance(v, _ConfigBase) else v
         return out
 
 
@@ -1662,7 +1662,7 @@ class _PropertyBase(_ConfigBase):
     vectorizer_config: Optional[PropertyVectorizerConfig]
     vectorizer: Optional[str]
 
-    def _to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         module_config: Dict[str, Any] = {}
         if self.vectorizer is not None:
             module_config[self.vectorizer] = {}
@@ -1692,8 +1692,8 @@ class _Property(_PropertyBase):
     data_type: DataType
     nested_properties: Optional[List[NestedProperty]]
 
-    def _to_dict(self) -> Dict[str, Any]:
-        out = super()._to_dict()
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
         out["dataType"] = [self.data_type.value]
         return out
 
@@ -1705,8 +1705,8 @@ PropertyConfig = _Property
 class _ReferenceProperty(_PropertyBase):
     target_collections: List[str]
 
-    def _to_dict(self) -> Dict[str, Any]:
-        out = super()._to_dict()
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
         out["dataType"] = self.target_collections
         return out
 
@@ -1742,8 +1742,8 @@ class _PQEncoderConfig(_ConfigBase):
     type_: PQEncoderType
     distribution: PQEncoderDistribution
 
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
         ret_dict["type"] = str(ret_dict.pop("type_"))
         ret_dict["distribution"] = str(ret_dict.pop("distribution"))
         return ret_dict
@@ -1846,16 +1846,16 @@ class _CollectionConfig(_ConfigBase):
     vectorizer_config: Optional[VectorizerConfig]
     vectorizer: Vectorizers
 
-    def _to_dict(self) -> dict:
-        out = super()._to_dict()
+    def to_dict(self) -> dict:
+        out = super().to_dict()
         out["class"] = out.pop("name")
         out["moduleConfig"] = {
             **out.pop("generative_config", {}),
             **out.pop("vectorizer_config", {}),
         }
         out["properties"] = [
-            *[prop._to_dict() for prop in self.properties],
-            *[prop._to_dict() for prop in self.references],
+            *[prop.to_dict() for prop in self.properties],
+            *[prop.to_dict() for prop in self.references],
         ]
         out.pop("references")
         return out
