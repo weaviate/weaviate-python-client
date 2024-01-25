@@ -87,13 +87,10 @@ def test_add_object(
 ) -> None:
     collection = batch_collection()
 
-    with collection.batch as batch:
-        batch.add_object(
-            uuid=uuid,
-            vector=vector,
-        )
-    assert len(collection.batch.failed_objects()) == 0
-    assert len(collection.batch.failed_references()) == 0
+    with collection.batch.dynamic() as batch:
+        batch.add_object(uuid=uuid, vector=vector)
+    assert len(collection.batch.failed_objects) == 0
+    assert len(collection.batch.failed_references) == 0
     objs = collection.query.fetch_objects().objects
     assert len(objs) == 1
 
@@ -108,12 +105,12 @@ def test_add_reference(
     """Test the `add_reference` method"""
     collection = batch_collection()
 
-    with collection.batch as batch:
+    with collection.batch.dynamic() as batch:
         batch.add_object(uuid=from_uuid)
         batch.add_object(uuid=to_uuid)
         batch.add_reference(from_uuid=from_uuid, from_property="test", to=to_uuid)
-    assert len(collection.batch.failed_objects()) == 0
-    assert len(collection.batch.failed_references()) == 0
+    assert len(collection.batch.failed_objects) == 0
+    assert len(collection.batch.failed_references) == 0
     objs = collection.query.fetch_objects().objects
     obj = collection.query.fetch_object_by_id(
         from_uuid, return_references=FromReference(link_on="test")
@@ -128,12 +125,10 @@ def test_add_object_batch_with_tenant(batch_collection: BatchCollection) -> None
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
     for i in range(5):
         col = mt_collection.with_tenant("tenant" + str(i % 5))
-        with col.batch as batch:
-            batch.add_object(
-                properties={"name": "tenant" + str(i % 5)},
-            )
-        assert len(col.batch.failed_objects()) == 0
-        assert len(col.batch.failed_references()) == 0
+        with col.batch.fixed_size(batch_size=10, concurrent_requests=1) as batch:
+            batch.add_object(properties={"name": "tenant" + str(i % 5)})
+        assert len(col.batch.failed_objects) == 0
+        assert len(col.batch.failed_references) == 0
     objs = mt_collection.with_tenant("tenant1").query.fetch_objects().objects
     assert len(objs) == 1
     for obj in objs:
@@ -146,7 +141,7 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 
     batching = mt_collection.with_tenant("tenant1")
-    with batching.batch as batch:
+    with batching.batch.rate_limit(50) as batch:
         obj_uuid0 = uuid.uuid4()
         batch.add_object(properties={"name": "one"}, uuid=obj_uuid0)
 
@@ -168,11 +163,46 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
             to=ReferenceToMulti(uuids=obj_uuid1, target_collection=mt_collection.name),
         )
         # target collection required when inserting references into multi-tenancy collections
-    assert len(batching.batch.failed_objects()) == 0
-    assert len(batching.batch.failed_references()) == 0
+    assert len(batching.batch.failed_objects) == 0
+    assert len(batching.batch.failed_references) == 0
     ret_obj = mt_collection.with_tenant("tenant1").query.fetch_object_by_id(
         obj_uuid0, return_references=FromReference(link_on="test")
     )
     assert ret_obj.properties["name"] == "one"
     assert isinstance(ret_obj.references["test"], _CrossReference)
     assert ret_obj.references["test"].objects[0].uuid == obj_uuid1
+
+
+def test_warning_direct_batching(batch_collection: BatchCollection) -> None:
+    col = batch_collection()
+    with pytest.warns(DeprecationWarning) as record:
+        with col.batch as _:
+            pass
+        assert len(record) == 1
+        assert "Dep015" in str(record.list[0].message)
+
+
+def test_error_reset(batch_collection: BatchCollection) -> None:
+    col = batch_collection()
+    with col.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 1})
+        batch.add_object(properties={"name": "correct"})
+
+    errs = col.batch.failed_objects
+    assert len(errs) == 1
+    assert errs[0].object_.properties is not None
+    assert errs[0].object_.properties["name"] == 1
+
+    with col.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 2})
+        batch.add_object(properties={"name": "correct"})
+
+    errs2 = col.batch.failed_objects
+    assert len(errs2) == 1
+    assert errs2[0].object_.properties is not None
+    assert errs2[0].object_.properties["name"] == 2
+
+    # err still contains original errors
+    assert len(errs) == 1
+    assert errs[0].object_.properties is not None
+    assert errs[0].object_.properties["name"] == 1

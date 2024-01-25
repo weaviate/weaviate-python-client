@@ -4,15 +4,18 @@ from weaviate.collections.batch.base import (
     _BatchBase,
     _BatchDataWrapper,
     _BatchMode,
+    _DynamicBatching,
     _FixedSizeBatching,
     _RateLimitedBatching,
 )
-from weaviate.collections.batch.batch_wrapper import _BatchWrapper
+from weaviate.collections.batch.batch_wrapper import _BatchWrapper, _ContextManagerWrapper
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
 from weaviate.connect import ConnectionV4
 from weaviate.types import UUID
+
+from weaviate.warnings import _Warnings
 
 
 class _BatchCollection(Generic[Properties], _BatchBase):
@@ -112,7 +115,21 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__name = name
         self.__tenant = tenant
 
+    def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+        self._batch_data = _BatchDataWrapper()  # clear old data
+        return _ContextManagerWrapper(
+            _BatchCollection[Properties](
+                connection=self._connection,
+                consistency_level=self._consistency_level,
+                results=self._batch_data,
+                batch_mode=self._batch_mode,
+                name=self.__name,
+                tenant=self.__tenant,
+            )
+        )
+
     def __enter__(self) -> _BatchCollection[Properties]:
+        _Warnings.direct_batch_deprecated()
         self._current_batch = _BatchCollection[Properties](
             connection=self._connection,
             consistency_level=self._consistency_level,
@@ -123,11 +140,17 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         )
         return self._current_batch
 
-    def configure_fixed_size(
-        self,
-        batch_size: int = 100,
-        concurrent_requests: int = 2,
-    ) -> None:
+    def dynamic(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+        """Configure dynamic batching.
+
+        When you exit the context manager, the final batch will be sent automatically.
+        """
+        self._batch_mode: _BatchMode = _DynamicBatching()
+        return self.__create_batch_and_reset()
+
+    def fixed_size(
+        self, batch_size: int = 100, concurrent_requests: int = 2
+    ) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
         """Configure fixed size batches. Note that the default is dynamic batching.
 
         When you exit the context manager, the final batch will be sent automatically.
@@ -139,13 +162,13 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                 The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate and not the speed of batch creation within Python.
         """
-        self._batch_mode: _BatchMode = _FixedSizeBatching(batch_size, concurrent_requests)
+        self._batch_mode = _FixedSizeBatching(batch_size, concurrent_requests)
+        return self.__create_batch_and_reset()
 
-    def configure_rate_limit(
-        self,
-        requests_per_minute: int = 1,
-    ) -> None:
-        """Configure batches with a rate limited vectorizer. Note that the default is dynamic batching.
+    def rate_limit(
+        self, requests_per_minute: int
+    ) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+        """Configure batches with a rate limited vectorizer.
 
         When you exit the context manager, the final batch will be sent automatically.
 
@@ -154,3 +177,4 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                 The number of requests that the vectorizer can process per minute.
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)
+        return self.__create_batch_and_reset()

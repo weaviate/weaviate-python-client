@@ -211,6 +211,14 @@ class _Warnings:
         )
 
     @staticmethod
+    def direct_batch_deprecated() -> None:
+        warnings.warn(
+            message="""Dep015: You are creating a batch using client.batch or collection.batch, which is deprecated. Use X.batch._batch_mode_().""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
