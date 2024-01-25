@@ -133,7 +133,6 @@ class ErrorObject:
 
     message: str
     object_: _BatchObject
-    code: Optional[int] = None
     original_uuid: Optional[UUID] = None
 
 
@@ -143,7 +142,6 @@ class ErrorReference:
 
     message: str
     reference: _BatchReference
-    code: Optional[int] = None
 
 
 @dataclass

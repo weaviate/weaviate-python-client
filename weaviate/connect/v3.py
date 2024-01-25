@@ -287,7 +287,9 @@ class Connection(_ConnectionBase):
         )  # use 1minute as token lifetime if not supplied
         self._shutdown_background_event = Event()
 
-        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
+        def periodic_refresh_token(
+            refresh_time: int, _auth: Optional[_Auth[OAuth2Session]]
+        ) -> None:
             time.sleep(max(refresh_time - 30, 1))
             while (
                 self._shutdown_background_event is not None
