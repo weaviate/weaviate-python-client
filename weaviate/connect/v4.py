@@ -17,7 +17,6 @@ from httpx import (
     HTTPError,
     Limits,
     ReadError,
-    ReadTimeout,
     RemoteProtocolError,
     RequestError,
     Response,
@@ -44,7 +43,7 @@ from weaviate.connect.base import (
 )
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
-    AuthenticationFailedException,
+    AuthenticationFailedError,
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
     WeaviateClosedClientError,
@@ -256,7 +255,10 @@ class _Connection(_ConnectionBase):
                     credentials=auth_client_secret,
                     connection=self,
                 )
-                self._client = _auth.get_auth_session()
+                try:
+                    self._client = _auth.get_auth_session()
+                except HTTPError as e:
+                    raise AuthenticationFailedError(f"Failed to authenticate with OIDC: {repr(e)}")
 
                 if isinstance(auth_client_secret, AuthClientCredentials):
                     # credentials should only be saved for client credentials, otherwise use refresh token
@@ -282,7 +284,7 @@ class _Connection(_ConnectionBase):
                         password = YOUR_WCS_PW,
                       ))
                     """
-                raise AuthenticationFailedException(msg)
+                raise AuthenticationFailedError(msg)
         elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
             self.__make_clients()
@@ -311,7 +313,7 @@ class _Connection(_ConnectionBase):
         )  # use 1minute as token lifetime if not supplied
         self._shutdown_background_event = Event()
 
-        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
+        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth[OAuth2Client]]) -> None:
             time.sleep(max(refresh_time - 30, 1))
             while (
                 self._shutdown_background_event is not None
@@ -334,7 +336,7 @@ class _Connection(_ConnectionBase):
                         assert isinstance(self._client, OAuth2Client)
                         new_session = _auth.get_auth_session()
                         self._client.token = new_session.fetch_token()
-                except (HTTPError, ReadTimeout) as exc:
+                except HTTPError as exc:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
                     _Warnings.token_refresh_failed(exc)
