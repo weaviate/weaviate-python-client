@@ -929,9 +929,9 @@ class _FilterByRef:
         """Define a filter based on the update time to be used when querying and deleting from a collection."""
         return _FilterByUpdateTime(self.__target)
 
-    def by_property(self, prop: str, length: bool = False) -> _FilterByProperty:
+    def by_property(self, name: str, length: bool = False) -> _FilterByProperty:
         """Define a filter based on a property to be used when querying and deleting from a collection."""
-        return _FilterByProperty(prop=prop, length=length, target=self.__target)
+        return _FilterByProperty(prop=name, length=length, target=self.__target)
 
 
 class Filter(_FilterOld):
@@ -968,9 +968,9 @@ class Filter(_FilterOld):
         return _FilterByUpdateTime(target=None)
 
     @staticmethod
-    def by_property(prop: str, length: bool = False) -> _FilterByProperty:
+    def by_property(name: str, length: bool = False) -> _FilterByProperty:
         """Define a filter based on a property to be used when querying and deleting from a collection."""
-        return _FilterByProperty(prop=prop, length=length, target=None)
+        return _FilterByProperty(prop=name, length=length, target=None)
 
 
 # type aliases for return classes
