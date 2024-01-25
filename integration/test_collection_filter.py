@@ -212,7 +212,7 @@ def test_length_filter(collection_factory: CollectionFactory) -> None:
         collection.data.insert({"field": "four"}),
     ]
     objects = collection.query.fetch_objects(
-        filters=Filter.by_property(prop="field", length=True).equal(3)
+        filters=Filter.by_property(name="field", length=True).equal(3)
     ).objects
 
     results = [0, 1]
