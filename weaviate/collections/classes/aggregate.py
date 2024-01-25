@@ -7,7 +7,7 @@ from typing import (
 )
 from typing_extensions import TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 N = TypeVar("N", int, float)
 
@@ -96,44 +96,50 @@ AProperties = Dict[str, AggregateResult]
 
 
 @dataclass
-class _AggregateReturn:
+class AggregateReturn:
+    """The aggregation result for a collection."""
+
     properties: AProperties
     total_count: Optional[int]
 
 
 @dataclass
-class _GroupedBy:
+class GroupedBy:
+    """The property that the collection was grouped by."""
+
     prop: str
     value: str
 
 
 @dataclass
-class _AggregateGroup:
-    grouped_by: _GroupedBy
+class AggregateGroup:
+    """The aggregation result for a collection grouped by a property."""
+
+    grouped_by: GroupedBy
     properties: AProperties
     total_count: Optional[int]
 
 
 @dataclass
-class _AggregateGroupByReturn:
-    groups: List[_AggregateGroup]
+class AggregateGroupByReturn:
+    """The aggregation results for a collection grouped by a property."""
+
+    groups: List[AggregateGroup]
 
 
 class _MetricsBase(BaseModel):
     property_name: str
-    count: bool = Field(default=False)
-    type_: bool = Field(default=False)
+    count: bool
 
 
 class _MetricsText(_MetricsBase):
-    top_occurrences_count: bool = Field(default=False)
-    top_occurrences_value: bool = Field(default=False)
+    top_occurrences_count: bool
+    top_occurrences_value: bool
 
     def to_gql(self) -> str:
         body = " ".join(
             [
                 "count" if self.count else "",
-                "type" if self.type_ else "",
                 "topOccurrences {"
                 if self.top_occurrences_count or self.top_occurrences_value
                 else "",
@@ -146,18 +152,17 @@ class _MetricsText(_MetricsBase):
 
 
 class _MetricsNum(_MetricsBase):
-    maximum: bool = Field(default=False)
-    mean: bool = Field(default=False)
-    median: bool = Field(default=False)
-    minimum: bool = Field(default=False)
-    mode: bool = Field(default=False)
-    sum_: bool = Field(default=False)
+    maximum: bool
+    mean: bool
+    median: bool
+    minimum: bool
+    mode: bool
+    sum_: bool
 
     def to_gql(self) -> str:
         body = " ".join(
             [
                 "count" if self.count else "",
-                "type" if self.type_ else "",
                 "maximum" if self.maximum else "",
                 "mean" if self.mean else "",
                 "median" if self.median else "",
@@ -178,16 +183,15 @@ class _MetricsNumber(_MetricsNum):
 
 
 class _MetricsBoolean(_MetricsBase):
-    percentage_false: bool = Field(default=False)
-    percentage_true: bool = Field(default=False)
-    total_false: bool = Field(default=False)
-    total_true: bool = Field(default=False)
+    percentage_false: bool
+    percentage_true: bool
+    total_false: bool
+    total_true: bool
 
     def to_gql(self) -> str:
         body = " ".join(
             [
                 "count" if self.count else "",
-                "type" if self.type_ else "",
                 "percentageFalse" if self.percentage_false else "",
                 "percentageTrue" if self.percentage_true else "",
                 "totalFalse" if self.total_false else "",
@@ -198,16 +202,15 @@ class _MetricsBoolean(_MetricsBase):
 
 
 class _MetricsDate(_MetricsBase):
-    maximum: bool = Field(default=False)
-    median: bool = Field(default=False)
-    minimum: bool = Field(default=False)
-    mode: bool = Field(default=False)
+    maximum: bool
+    median: bool
+    minimum: bool
+    mode: bool
 
     def to_gql(self) -> str:
         body = " ".join(
             [
                 "count" if self.count else "",
-                "type" if self.type_ else "",
                 "maximum" if self.maximum else "",
                 "median" if self.median else "",
                 "minimum" if self.minimum else "",
@@ -219,14 +222,12 @@ class _MetricsDate(_MetricsBase):
 
 class _MetricsReference(BaseModel):
     property_name: str
-    pointing_to: bool = Field(default=False)
-    type_: bool = Field(default=False)
+    pointing_to: bool
 
     def to_gql(self) -> str:
         body = " ".join(
             [
                 "pointingTo" if self.pointing_to else "",
-                "type" if self.type_ else "",
             ]
         )
         return f"{self.property_name} {{ {body} }}"
@@ -258,11 +259,13 @@ class Metrics:
 
     def text(
         self,
-        count: bool = False,
-        top_occurrences_count: bool = False,
-        top_occurrences_value: bool = False,
+        count: Optional[bool] = None,
+        top_occurrences_count: Optional[bool] = None,
+        top_occurrences_value: Optional[bool] = None,
     ) -> _MetricsText:
         """Define the metrics to be returned for a TEXT or TEXT_ARRAY property when aggregating over a collection.
+
+        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
 
         Arguments:
             `count`
@@ -275,6 +278,14 @@ class Metrics:
         Returns:
             A `_MetricsStr` object that includes the metrics to be returned.
         """
+        if all([count is None, top_occurrences_count is None, top_occurrences_value is None]):
+            count = True
+            top_occurrences_count = True
+            top_occurrences_value = True
+        else:
+            count = count is True
+            top_occurrences_count = top_occurrences_count is True
+            top_occurrences_value = top_occurrences_value is True
         return _MetricsText(
             property_name=self.__property,
             count=count,
@@ -284,15 +295,17 @@ class Metrics:
 
     def integer(
         self,
-        count: bool = False,
-        maximum: bool = False,
-        mean: bool = False,
-        median: bool = False,
-        minimum: bool = False,
-        mode: bool = False,
-        sum_: bool = False,
+        count: Optional[bool] = None,
+        maximum: Optional[bool] = None,
+        mean: Optional[bool] = None,
+        median: Optional[bool] = None,
+        minimum: Optional[bool] = None,
+        mode: Optional[bool] = None,
+        sum_: Optional[bool] = None,
     ) -> _MetricsInteger:
         """Define the metrics to be returned for an INT or INT_ARRAY property when aggregating over a collection.
+
+        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
 
         Arguments:
             `count`
@@ -313,6 +326,32 @@ class Metrics:
         Returns:
             A `_MetricsInteger` object that includes the metrics to be returned.
         """
+        if all(
+            [
+                count is None,
+                maximum is None,
+                mean is None,
+                median is None,
+                minimum is None,
+                mode is None,
+                sum_ is None,
+            ]
+        ):
+            count = True
+            maximum = True
+            mean = True
+            median = True
+            minimum = True
+            mode = True
+            sum_ = True
+        else:
+            count = count is True
+            maximum = maximum is True
+            mean = mean is True
+            median = median is True
+            minimum = minimum is True
+            mode = mode is True
+            sum_ = sum_ is True
         return _MetricsInteger(
             property_name=self.__property,
             count=count,
@@ -326,15 +365,17 @@ class Metrics:
 
     def number(
         self,
-        count: bool = False,
-        maximum: bool = False,
-        mean: bool = False,
-        median: bool = False,
-        minimum: bool = False,
-        mode: bool = False,
-        sum_: bool = False,
+        count: Optional[bool] = None,
+        maximum: Optional[bool] = None,
+        mean: Optional[bool] = None,
+        median: Optional[bool] = None,
+        minimum: Optional[bool] = None,
+        mode: Optional[bool] = None,
+        sum_: Optional[bool] = None,
     ) -> _MetricsNumber:
         """Define the metrics to be returned for a NUMBER or NUMBER_ARRAY property when aggregating over a collection.
+
+        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
 
         Arguments:
             `count`
@@ -355,6 +396,32 @@ class Metrics:
         Returns:
             A `_MetricsNumber` object that includes the metrics to be returned.
         """
+        if all(
+            [
+                count is None,
+                maximum is None,
+                mean is None,
+                median is None,
+                minimum is None,
+                mode is None,
+                sum_ is None,
+            ]
+        ):
+            count = True
+            maximum = True
+            mean = True
+            median = True
+            minimum = True
+            mode = True
+            sum_ = True
+        else:
+            count = count is True
+            maximum = maximum is True
+            mean = mean is True
+            median = median is True
+            minimum = minimum is True
+            mode = mode is True
+            sum_ = sum_ is True
         return _MetricsNumber(
             property_name=self.__property,
             count=count,
@@ -368,13 +435,15 @@ class Metrics:
 
     def boolean(
         self,
-        count: bool = False,
-        percentage_false: bool = False,
-        percentage_true: bool = False,
-        total_false: bool = False,
-        total_true: bool = False,
+        count: Optional[bool] = None,
+        percentage_false: Optional[bool] = None,
+        percentage_true: Optional[bool] = None,
+        total_false: Optional[bool] = None,
+        total_true: Optional[bool] = None,
     ) -> _MetricsBoolean:
         """Define the metrics to be returned for a BOOL or BOOL_ARRAY property when aggregating over a collection.
+
+        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
 
         Arguments:
             `count`
@@ -391,6 +460,26 @@ class Metrics:
         Returns:
             A `_MetricsBoolean` object that includes the metrics to be returned.
         """
+        if all(
+            [
+                count is None,
+                percentage_false is None,
+                percentage_true is None,
+                total_false is None,
+                total_true is None,
+            ]
+        ):
+            count = True
+            percentage_false = True
+            percentage_true = True
+            total_false = True
+            total_true = True
+        else:
+            count = count is True
+            percentage_false = percentage_false is True
+            percentage_true = percentage_true is True
+            total_false = total_false is True
+            total_true = total_true is True
         return _MetricsBoolean(
             property_name=self.__property,
             count=count,
@@ -402,13 +491,15 @@ class Metrics:
 
     def date_(
         self,
-        count: bool = False,
-        maximum: bool = False,
-        median: bool = False,
-        minimum: bool = False,
-        mode: bool = False,
+        count: Optional[bool] = None,
+        maximum: Optional[bool] = None,
+        median: Optional[bool] = None,
+        minimum: Optional[bool] = None,
+        mode: Optional[bool] = None,
     ) -> _MetricsDate:
         """Define the metrics to be returned for a DATE or DATE_ARRAY property when aggregating over a collection.
+
+        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
 
         Arguments:
             `count`
@@ -425,6 +516,18 @@ class Metrics:
         Returns:
             A `_MetricsDate` object that includes the metrics to be returned.
         """
+        if all([count is None, maximum is None, median is None, minimum is None, mode is None]):
+            count = True
+            maximum = True
+            median = True
+            minimum = True
+            mode = True
+        else:
+            count = count is True
+            maximum = maximum is True
+            median = median is True
+            minimum = minimum is True
+            mode = mode is True
         return _MetricsDate(
             property_name=self.__property,
             count=count,
@@ -436,9 +539,11 @@ class Metrics:
 
     def reference(
         self,
-        pointing_to: bool = False,
+        pointing_to: Optional[bool] = None,
     ) -> _MetricsReference:
         """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
+
+        If none of the arguments are provided then all metrics will be returned. Otherwise, a `None` is treated as `False`.
 
         Arguments:
             `pointing_to`
@@ -447,6 +552,10 @@ class Metrics:
         Returns:
             A `_MetricsReference` object that includes the metrics to be returned.
         """
+        if pointing_to is None:
+            pointing_to = True
+        else:
+            pointing_to = pointing_to is True
         return _MetricsReference(
             property_name=self.__property,
             pointing_to=pointing_to,
