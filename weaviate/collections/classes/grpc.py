@@ -163,9 +163,9 @@ class _Sorting:
     def __init__(self) -> None:
         self.sorts: List[_Sort] = []
 
-    def by_property(self, prop: str, ascending: bool = True) -> "_Sorting":
+    def by_property(self, name: str, ascending: bool = True) -> "_Sorting":
         """Sort by an object property in the collection."""
-        self.sorts.append(_Sort(prop=prop, ascending=ascending))
+        self.sorts.append(_Sort(prop=name, ascending=ascending))
         return self
 
     def by_id(self, ascending: bool = True) -> "_Sorting":
@@ -196,9 +196,9 @@ class Sort(_Sort):
         super().__init__(prop=prop, ascending=ascending)
 
     @staticmethod
-    def by_property(prop: str, ascending: bool = True) -> Sorting:
+    def by_property(name: str, ascending: bool = True) -> Sorting:
         """Sort by an object property in the collection."""
-        return _Sorting().by_property(prop=prop, ascending=ascending)
+        return _Sorting().by_property(name=name, ascending=ascending)
 
     @staticmethod
     def by_id(ascending: bool = True) -> Sorting:
