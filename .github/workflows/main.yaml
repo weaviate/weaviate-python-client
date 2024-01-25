@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.22.10
-  NEW_WEAVIATE_VERSION: 1.23.4
+  NEW_WEAVIATE_VERSION: preview-fix-nested-obejcts-with-missing-values-1a1ed9e
 
 jobs:
   lint-and-format:

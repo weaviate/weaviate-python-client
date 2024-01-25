@@ -298,6 +298,17 @@ from weaviate.collections.classes.internal import Nested
             ),
             {"a": {"b": {"c": {"d": "e"}}}},
         ),
+        (
+            Property(
+                name="nested",
+                data_type=DataType.OBJECT,
+                nested_properties=[
+                    Property(name="a", data_type=DataType.TEXT),
+                    Property(name="b", data_type=DataType.TEXT),
+                ],
+            ),
+            {"a": "test"},
+        ),
     ],
 )
 def test_nested_return_all_properties(
