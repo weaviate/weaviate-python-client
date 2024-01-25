@@ -13,7 +13,7 @@ def test_manual_batching_warning_object(recwarn, weaviate_mock):
     client.batch.add_data_object({}, "ExistingClass")
     client.batch.create_objects()
 
-    assert any([str(w.message).startswith("Dep002") for w in recwarn])
+    assert any(str(w.message).startswith("Dep002") for w in recwarn)
 
 
 def test_manual_batching_warning_ref(recwarn, weaviate_mock):
