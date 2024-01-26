@@ -31,6 +31,7 @@ from .gql import Query
 from .schema import Schema
 from .types import NUMBER
 from .util import _decode_json_response_dict, _get_valid_timeout_config, _type_request_response
+from .warnings import _Warnings
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
@@ -410,6 +411,8 @@ class Client(_ClientBase):
             `TypeError`
                 If arguments are of a wrong data type.
         """
+        _Warnings.weaviate_v3_client_is_deprecated()
+
         config = Config() if additional_config is None else additional_config
         url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
 
