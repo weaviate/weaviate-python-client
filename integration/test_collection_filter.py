@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import pytest as pytest
 
@@ -14,8 +14,6 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.filters import (
-    _FilterCreationTime,
-    _FilterUpdateTime,
     Filter,
     _Filters,
     _FilterValue,
@@ -597,66 +595,6 @@ def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, pat
     assert objects[0].uuid == obj1_uuid
 
 
-@pytest.mark.parametrize("filter_type", [Filter.by_creation_time(), Filter.by_update_time()])
-def test_filter_timestamp_class(
-    collection_factory: CollectionFactory,
-    filter_type: Union[_FilterCreationTime, _FilterUpdateTime],
-) -> None:
-    collection = collection_factory(
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-        ],
-        vectorizer_config=Configure.Vectorizer.none(),
-        inverted_index_config=Configure.inverted_index(index_timestamps=True),
-    )
-    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("filter by id is not supported in this version")
-
-    obj1_uuid = collection.data.insert(properties={"name": "first"})
-    obj2_uuid = collection.data.insert(properties={"name": "second"})
-
-    obj1 = collection.query.fetch_object_by_id(uuid=obj1_uuid)
-    assert obj1 is not None
-    assert obj1.metadata is not None
-    assert obj1.metadata.creation_time is not None
-
-    obj2 = collection.query.fetch_object_by_id(uuid=obj2_uuid)
-    assert obj2 is not None
-    assert obj2.metadata is not None
-    assert obj2.metadata.creation_time is not None
-
-    filters = filter_type.less_than(obj2.metadata.creation_time)
-    objects = collection.query.fetch_objects(
-        filters=filters, return_metadata=MetadataQuery(creation_time=True)
-    ).objects
-    assert len(objects) == 1
-    assert objects[0].uuid == obj1_uuid
-
-    for filters in [
-        filter_type.greater_than(obj1.metadata.creation_time),
-        filter_type.not_equal(obj1.metadata.creation_time),
-        filter_type.equal(obj2.metadata.creation_time),
-    ]:
-        objects = collection.query.fetch_objects(
-            filters=filters, return_metadata=MetadataQuery(creation_time=True)
-        ).objects
-        assert len(objects) == 1
-        assert objects[0].uuid == obj2_uuid
-
-    for filters in [
-        filter_type.contains_any([obj1.metadata.creation_time, obj2.metadata.creation_time]),
-        filter_type.less_or_equal(obj2.metadata.creation_time),
-        filter_type.greater_or_equal(obj1.metadata.creation_time),
-    ]:
-        objects = collection.query.fetch_objects(
-            filters=filters, return_metadata=MetadataQuery(creation_time=True)
-        ).objects
-
-        uuids = [obj.uuid for obj in objects]
-        assert len(uuids) == 2
-        assert obj1_uuid in uuids and obj2_uuid in uuids
-
-
 def test_time_update_and_creation_time(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[
@@ -695,31 +633,13 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
     assert objects_update[0].uuid == obj2_uuid
 
 
-def test_warning_old_filter(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-
-    uuids = [
-        collection.data.insert({"name": "Banana"}),
-        collection.data.insert({"name": "Apple"}),
-    ]
-    with pytest.warns(DeprecationWarning):
-        objects = collection.query.fetch_objects(filters=Filter("name").equal("Banana")).objects
-    assert len(objects) == 1
-    assert objects[0].uuid == uuids[0]
-
-
 def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
     collection = collection_factory()
     collection.config.add_reference(
         ReferenceProperty(name="ref", target_collection=collection.name)
     )
 
-    if not collection._connection._weaviate_version.is_at_least(
-        1, 23, patch=3
-    ):  # todo change to patch=4 when it lands
+    if not collection._connection._weaviate_version.is_at_least(1, 23, patch=3):
         pytest.skip("single target ref counting is not supported by this version")
 
     uuid1 = collection.data.insert({})
@@ -741,9 +661,7 @@ def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) ->
         ReferenceProperty.MultiTarget(name="ref", target_collections=[collection.name])
     )
 
-    if not collection._connection._weaviate_version.is_at_least(
-        1, 23, patch=3
-    ):  # todo change to patch=4 when it lands
+    if not collection._connection._weaviate_version.is_at_least(1, 23, patch=3):
         pytest.skip("multi target ref counting is not supported by this version")
 
     uuid1 = collection.data.insert({})
@@ -766,9 +684,7 @@ def test_nested_ref_count_filter(collection_factory: CollectionFactory) -> None:
     )
     one.config.add_reference(ReferenceProperty(name="ref1", target_collection=one.name))
 
-    if not one._connection._weaviate_version.is_at_least(
-        1, 23, patch=3
-    ):  # todo change to patch=4 when it lands
+    if not one._connection._weaviate_version.is_at_least(1, 23, patch=3):
         pytest.skip("single target ref counting is not supported by this version")
 
     uuid11 = one.data.insert({})
