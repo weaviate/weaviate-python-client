@@ -244,7 +244,7 @@ def test_filters_comparison(
 
 
 @pytest.mark.parametrize(
-    "weaviate_filter,results,skip",
+    "weaviate_filter,results",
     [
         (Filter.by_property("ints").contains_any([1, 4]), [0, 3]),
         (Filter.by_property("ints").contains_any([1.0, 4]), [0, 3]),
@@ -286,7 +286,6 @@ def test_filters_contains(
     collection_factory: CollectionFactory,
     weaviate_filter: _FilterValue,
     results: List[int],
-    skip: bool,
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
