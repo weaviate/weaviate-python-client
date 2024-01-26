@@ -623,3 +623,43 @@ def test_config_nested_properties(collection_factory: CollectionFactory) -> None
     assert conf.properties[0].nested_properties[0].data_type == DataType.TEXT
     assert conf.properties[0].nested_properties[1].name == "last"
     assert conf.properties[0].nested_properties[1].data_type == DataType.TEXT
+
+
+def test_config_export_and_recreate_from_config(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+    conf = collection.config.get()
+
+    name = "TestCollectionConfigExportAndRecreateFromConfig"
+    conf.name = name
+
+    client = weaviate.connect_to_local()
+    client.collections.create_from_config(conf)
+    assert conf == client.collections.get(name).config.get()
+    client.collections.delete(name)
+    client.close()
+
+
+def test_config_export_and_recreate_from_dict(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+    conf = collection.config.get()
+
+    name = "TestCollectionConfigExportAndRecreateFromDict"
+    conf.name = name
+    dconf = conf.to_dict()
+
+    client = weaviate.connect_to_local()
+    client.collections.create_from_dict(dconf)
+    assert conf == client.collections.get(name).config.get()
+    client.collections.delete(name)
