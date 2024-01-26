@@ -1,3 +1,5 @@
+# DONT MERGE - FOR COMMENTING
+
 """Helper functions for creating a new WeaviateClient in common scenarios."""
 from urllib.parse import urlparse
 from typing import Optional, Dict
