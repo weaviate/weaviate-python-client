@@ -2,11 +2,9 @@ import uuid
 from typing import TypedDict, Union
 
 import pytest as pytest
-from _pytest.fixtures import SubRequest
 from typing_extensions import Annotated
 
 from integration.conftest import CollectionFactory, CollectionFactoryGet
-from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.config import (
     Configure,
     Property,
@@ -805,22 +803,6 @@ def test_references_batch_with_errors(collection_factory: CollectionFactory) -> 
 #     assert objects[0].references["ref"].objects[0].properties["weird__Name"] == 2
 #     assert objects[0].references["ref"].objects[0].uuid == uuid_A
 #     assert objects[0].references["ref"].objects[0].metadata.last_update_time_unix is not None
-
-
-def test_warning_refs_as_props(collection_factory: CollectionFactory, request: SubRequest) -> None:
-    with pytest.warns(DeprecationWarning):
-        collection_factory(
-            vectorizer_config=Configure.Vectorizer.none(),
-            properties=[
-                Property(name="Name", data_type=DataType.TEXT),
-                ReferenceProperty(name="ref", target_collection=_sanitize_collection_name(request.node.name)),  # type: ignore
-            ],
-        )
-
-    # temporary comment out
-    # assert len(recwarn) == 1
-    # w = recwarn.pop()
-    # assert str(w.message).startswith("Dep007")
 
 
 def test_object_without_references(collection_factory: CollectionFactory) -> None:

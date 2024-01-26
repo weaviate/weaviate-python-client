@@ -145,15 +145,6 @@ class _Warnings:
         )
 
     @staticmethod
-    def reference_in_properties() -> None:
-        warnings.warn(
-            message="""Dep007: You are adding references as properties, which will be removed in an upcoming release. Please use the `references`
-            parameter instead. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def root_module_import(name: str, loc: str) -> None:
         warnings.warn(
             f"Dep010: Importing {name} from weaviate is deprecated. "
