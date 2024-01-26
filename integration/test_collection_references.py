@@ -710,11 +710,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
         return_properties=["name"], return_references=QueryReference(link_on="self")
     ).objects:
         if obj.properties["name"] in ["A", "B"]:
-            assert (
-                obj.references == {}
-                if collection._connection._weaviate_version.is_at_least(1, 23, 3)
-                else obj.references is None
-            )
+            assert obj.references == {}
         else:
             assert obj.references is not None
             if obj.properties["name"] == "C":
@@ -916,17 +912,11 @@ def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    if not source._connection._weaviate_version.is_at_least(1, 23, 3):
-        pytest.skip("references return empty object only supported in 1.23.3+")
     uuid_source = source.data.insert(properties={})
     obj = source.query.fetch_object_by_id(
         uuid_source, return_references=[QueryReference(link_on="ref")]
     )
-    assert (
-        obj.references == {}
-        if source._connection._weaviate_version.is_at_least(1, 23, 3)
-        else obj.references is None
-    )
+    assert obj.references == {}
 
 
 @pytest.mark.parametrize(

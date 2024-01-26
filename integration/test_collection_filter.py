@@ -48,9 +48,6 @@ def test_filters_text(
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
-    if collection._connection._weaviate_version.is_lower_than(1, 23, 3):
-        pytest.skip("new filters are not supported in this version")
-
     uuids = [
         collection.data.insert({"name": "Banana"}),
         collection.data.insert({"name": "Apple"}),
@@ -89,9 +86,6 @@ def test_array_types(
         ],
     )
 
-    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("Fixes for this are not implemented in this version")
-
     uuids = [
         collection.data.insert({"texts": ["an", "apple"], "ints": [1, 2], "floats": [1.0, 2.0]}),
         collection.data.insert({"texts": ["a", "banana"], "ints": [2, 3], "floats": [2.0, 3.0]}),
@@ -127,8 +121,6 @@ def test_filter_with_wrong_types(
             Property(name="float", data_type=DataType.NUMBER),
         ],
     )
-    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("Fixes for this are not implemented in this version")
 
     uuids = [
         collection.data.insert({"int": 1, "float": 1.0}),
@@ -255,7 +247,7 @@ def test_filters_comparison(
     "weaviate_filter,results,skip",
     [
         (Filter.by_property("ints").contains_any([1, 4]), [0, 3], False),
-        (Filter.by_property("ints").contains_any([1.0, 4]), [0, 3], True),
+        (Filter.by_property("ints").contains_any([1.0, 4]), [0, 3], False),
         (Filter.by_property("ints").contains_any([10]), [], False),
         (Filter.by_property("int").contains_any([1]), [0, 1], False),
         (Filter.by_property("text").contains_any(["test"]), [0, 1], False),
@@ -287,7 +279,7 @@ def test_filters_comparison(
         (Filter.by_property("uuids").contains_any([UUID2, UUID1]), [0, 1, 3], False),
         (Filter.by_property("uuid").contains_any([UUID3]), [], False),
         (Filter.by_property("uuid").contains_any([UUID1]), [0], False),
-        (Filter.by_property("_id").contains_any([UUID1, UUID3]), [0, 2], True),
+        (Filter.by_property("_id").contains_any([UUID1, UUID3]), [0, 2], False),
     ],
 )
 def test_filters_contains(
@@ -313,7 +305,7 @@ def test_filters_contains(
             Property(name="uuid", data_type=DataType.UUID),
         ],
     )
-    if not collection._connection._weaviate_version.is_at_least(1, 23, 0) and skip:
+    if skip:
         pytest.skip("not supported in this version")
 
     uuids = [
@@ -415,10 +407,6 @@ def test_ref_filters(
         inverted_index_config=Configure.inverted_index(index_property_length=True),
     )
 
-    # patch=3 in reality, but to be able to test this
-    if to_collection._connection._weaviate_version.is_lower_than(1, 23, 3):
-        pytest.skip("new filters are not supported in this version")
-
     uuids_to = [
         to_collection.data.insert(properties={"int": 0, "text": "first"}, uuid=UUID1),
         to_collection.data.insert(properties={"int": 15, "text": "second"}, uuid=UUID2),
@@ -462,8 +450,6 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="int", data_type=DataType.INT)],
     )
-    if not to_collection._connection._weaviate_version.is_at_least(1, 23, patch=3):
-        pytest.skip("multi target refs are not supported by this version")
 
     uuid_to = to_collection.data.insert(properties={"int": 0})
     uuid_to2 = to_collection.data.insert(properties={"int": 5})
@@ -550,8 +536,6 @@ def test_filter_id(collection_factory: CollectionFactory, weav_filter: _FilterVa
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("filter by id is not supported in this version")
 
     collection.data.insert_many(
         [
@@ -575,8 +559,6 @@ def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, pat
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
-    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("filter by id is not supported in this version")
 
     obj1_uuid = collection.data.insert(properties={"name": "first"})
     obj2_uuid = collection.data.insert(properties={"name": "second"})
@@ -603,8 +585,6 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
         vectorizer_config=Configure.Vectorizer.none(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
-    if not collection._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("filter by id is not supported in this version")
 
     obj1_uuid = collection.data.insert(properties={"name": "first"})
     obj2_uuid = collection.data.insert(properties={"name": "second"})
@@ -639,9 +619,6 @@ def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
         ReferenceProperty(name="ref", target_collection=collection.name)
     )
 
-    if not collection._connection._weaviate_version.is_at_least(1, 23, patch=3):
-        pytest.skip("single target ref counting is not supported by this version")
-
     uuid1 = collection.data.insert({})
     uuid2 = collection.data.insert({})
 
@@ -660,9 +637,6 @@ def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) ->
     collection.config.add_reference(
         ReferenceProperty.MultiTarget(name="ref", target_collections=[collection.name])
     )
-
-    if not collection._connection._weaviate_version.is_at_least(1, 23, patch=3):
-        pytest.skip("multi target ref counting is not supported by this version")
 
     uuid1 = collection.data.insert({})
     uuid2 = collection.data.insert({})
@@ -683,9 +657,6 @@ def test_nested_ref_count_filter(collection_factory: CollectionFactory) -> None:
         references=[ReferenceProperty(name="ref2", target_collection=one.name)]
     )
     one.config.add_reference(ReferenceProperty(name="ref1", target_collection=one.name))
-
-    if not one._connection._weaviate_version.is_at_least(1, 23, patch=3):
-        pytest.skip("single target ref counting is not supported by this version")
 
     uuid11 = one.data.insert({})
     uuid12 = one.data.insert({}, references={"ref1": uuid11})
