@@ -415,3 +415,21 @@ def test_embedded_already_running() -> None:
 def test_connect_to_embedded_with_already_running_local_weaviate() -> None:
     with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
         weaviate.connect_to_embedded(port=8080, grpc_port=50051)
+
+
+def test_embedded_startup_with_blocked_http_port() -> None:
+    try:
+        client = weaviate.connect_to_embedded(port=8081, grpc_port=50053)
+        with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+            weaviate.connect_to_embedded(port=8081, grpc_port=50052)
+    finally:
+        client.close()
+
+
+def test_embedded_startup_with_blocked_grpc_port() -> None:
+    try:
+        client = weaviate.connect_to_embedded(port=8081, grpc_port=50053)
+        with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+            weaviate.connect_to_embedded(port=8082, grpc_port=50053)
+    finally:
+        client.close()
