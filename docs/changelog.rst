@@ -1,6 +1,35 @@
 Changelog
 =========
 
+Version 4.4.b9
+--------------
+
+This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
+
+- The batching algorithm has been streamlined and improved in its implementation and API surface.
+    - There are now three types of batching that can be performed:
+        - ``client.batch.dynamic()`` where the algorithm will automatically determine the optimal batch size and number of concurrent requests.
+        - ``client.batch.fixed_size()`` where the user can specify the batch size and number of concurrent requests.
+        - ``client.batch.rate_limit()`` where the user specifies the number of requests per minute that their third-party vectorisation API can support.
+    - If an exception is thrown in the background batching thread then this is surfaced to the main thread and re-raised in order to stop the batch.
+        - Previously, this would silently error.
+- Enforces that all optional arguments to queries must be supplied as keyword arguments.
+- Adds runtime validation to all queries.
+- Renaming of ``prop`` to ``name`` in ``Filter.by_property``.
+- Moving of the ``timeout`` argument in ``weaviate.connect_to_x`` methods into new argument ``additional_config: Optional[AdditionalConfig]``.
+
+Improvements include:
+- Introduction of the ``.by_ref_count()`` method on ``Filter`` to filter on the number of references present in a reference property of an object.
+    - This was previously achievable with ``Filter([refProp]).greater_than(0)`` but is now more explicit using the chaining syntax.
+- The syntax for sorting now feels similar to the new filtering syntax.
+    - Supports method chaining like ``Sort.by_property(prop).by_creation_time()`` which will apply the sorting in the order they are chained, i.e., this chain
+    is equivalent to the previous syntax of ``[Sort(prop), Sort("_creationTimeUnix")]``.
+
+Fixes include:
+- The potential for deadlocks and data races when batching has been reduced.
+- Fixes a number of missing properties and poor docstrings in ``weaviate.connect_to_x`` methods.
+- Adds the missing ``offset`` paramater to all queries.
+
 Version 4.4.b8
 --------------
 

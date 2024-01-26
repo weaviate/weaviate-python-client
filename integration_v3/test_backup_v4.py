@@ -5,8 +5,7 @@ from typing import Generator, List, Union
 import pytest
 
 import weaviate
-from weaviate.backup.backup import BackupStatus
-from weaviate import BackupStorage
+from weaviate.backup.backup import BackupStatus, BackupStorage
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
 from weaviate.exceptions import UnexpectedStatusCodeException, BackupFailedException
 from weaviate.collections.classes.internal import Reference

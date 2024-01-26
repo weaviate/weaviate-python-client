@@ -21,7 +21,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
     """This class is used to delete multiple objects from Weaviate using the gRPC API."""
 
     def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
-        super().__init__(connection, consistency_level, False)
+        super().__init__(connection, consistency_level)
 
     def batch_delete(
         self, name: str, filters: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
@@ -37,7 +37,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     verbose=verbose,
                     dry_run=dry_run,
                     tenant=tenant,
-                    filters=_FilterToGRPC.convert(filters, self._connection._weaviate_version),
+                    filters=_FilterToGRPC.convert(filters),
                 ),
                 metadata=metadata,
             )

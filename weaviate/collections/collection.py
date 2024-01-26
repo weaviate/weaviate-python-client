@@ -115,6 +115,9 @@ class Collection(_CollectionBase, Generic[Properties, References]):
 
         If multi-tenancy is not configured for this collection then Weaviate will throw an error.
 
+        This method does not send a request to Weaviate. It only returns a new collection object that is specific
+        to the tenant you specify.
+
         Arguments:
             `tenant`
                 The name of the tenant to use.
@@ -136,6 +139,9 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         """Use this method to return a collection object specific to a single consistency level.
 
         If replication is not configured for this collection then Weaviate will throw an error.
+
+        This method does not send a request to Weaviate. It only returns a new collection object that is specific
+        to the consistency level you specify.
 
         Arguments:
             `consistency_level`

@@ -2,6 +2,7 @@ import asyncio
 import math
 import threading
 import time
+import uuid as uuid_package
 from abc import ABC
 from copy import copy
 from dataclasses import dataclass, field
@@ -16,11 +17,11 @@ from typing import (
     TypeVar,
     Union,
 )
-import uuid as uuid_package
-from typing_extensions import TypeAlias
+
 from pydantic import ValidationError
 from requests import ReadTimeout
 from requests.exceptions import HTTPError as RequestsHTTPError
+from typing_extensions import TypeAlias
 
 from weaviate.cluster import Cluster
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
@@ -156,7 +157,10 @@ class _BatchBase:
         self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
         self.__batch_rest = _BatchRESTAsync(connection, self.__consistency_level)
 
-        self.__results_for_wrapper = results
+        # we do not want that users can acccess the results directly as they are not thread-safe
+        self.__results_for_wrapper_backup = results
+        self.__results_for_wrapper = _BatchDataWrapper()
+
         self.__results_lock = threading.Lock()
 
         self.__cluster = Cluster(self.__connection)
@@ -202,6 +206,13 @@ class _BatchBase:
         self.__bg_thread = self.__start_bg_thread()
         self.__bg_thread_exception: Optional[Exception] = None
 
+    @property
+    def number_errors(self) -> int:
+        """Return the number of errors in the batch."""
+        return len(self.__results_for_wrapper.failed_objects) + len(
+            self.__results_for_wrapper.failed_references
+        )
+
     def __run_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         try:
             loop.run_forever()
@@ -235,6 +246,16 @@ class _BatchBase:
         while self.__bg_thread.is_alive():
             time.sleep(0.01)
 
+        # copy the results to the public results
+        self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
+        self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
+        self.__results_for_wrapper_backup.failed_references = (
+            self.__results_for_wrapper.failed_references
+        )
+        self.__results_for_wrapper_backup.imported_shards = (
+            self.__results_for_wrapper.imported_shards
+        )
+
     def __periodic_check(self) -> None:
         loop = self.__start_new_event_loop()
         future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
@@ -245,7 +266,7 @@ class _BatchBase:
             and not self.__shut_background_thread_down.is_set()
         ):
             if isinstance(self.__batching_mode, _FixedSizeBatching):
-                refresh_time: float = 0.1
+                refresh_time: float = 0.01
             elif isinstance(self.__batching_mode, _RateLimitedBatching):
                 if (
                     time.time() - self.__time_stamp_last_request
@@ -260,7 +281,7 @@ class _BatchBase:
                 assert isinstance(self.__batching_mode, _DynamicBatching)
                 try:
                     self.__dynamic_batching()
-                    refresh_time = 0.01
+                    refresh_time = 0.001
                 except (RequestsHTTPError, ReadTimeout):
                     refresh_time = 0.1
                 except Exception as e:
@@ -511,7 +532,7 @@ class _BatchBase:
             or len(self.__batch_objects) >= self.__recommended_num_objects * 10
         ):
             self.__check_bg_thread_alive()
-            time.sleep(1)
+            time.sleep(0.01)
 
         assert batch_object.uuid is not None
         return batch_object.uuid
@@ -551,7 +572,7 @@ class _BatchBase:
 
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
-            time.sleep(1)  # block if weaviate is overloaded, also do not send any refs
+            time.sleep(0.01)  # block if weaviate is overloaded, also do not send any refs
             self.__check_bg_thread_alive()
 
     def __check_bg_thread_alive(self) -> None:

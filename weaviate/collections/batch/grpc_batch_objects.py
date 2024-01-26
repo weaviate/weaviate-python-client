@@ -35,9 +35,7 @@ class _BatchGRPC(_BaseGRPC):
     """
 
     def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
-        is_weaviate_version_123 = connection._weaviate_version.is_at_least(1, 23, 0)
-
-        super().__init__(connection, consistency_level, is_weaviate_version_123)
+        super().__init__(connection, consistency_level)
 
     def objects(self, objects: List[_BatchObject]) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
@@ -59,12 +57,7 @@ class _BatchGRPC(_BaseGRPC):
         weaviate_objs: List[batch_pb2.BatchObject] = [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector=get_vector(obj.vector)
-                if obj.vector is not None and not self._is_weaviate_version_123
-                else None,
-                vector_bytes=pack_vector(obj.vector)
-                if obj.vector is not None and self._is_weaviate_version_123
-                else None,
+                vector_bytes=pack_vector(obj.vector) if obj.vector is not None else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=self.__translate_properties_from_python_to_grpc(
                     obj.properties,
@@ -154,12 +147,7 @@ class _BatchGRPC(_BaseGRPC):
         weaviate_objs: List[batch_pb2.BatchObject] = [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector=get_vector(obj.vector)
-                if obj.vector is not None and not self._is_weaviate_version_123
-                else None,
-                vector_bytes=pack_vector(obj.vector)
-                if obj.vector is not None and self._is_weaviate_version_123
-                else None,
+                vector_bytes=pack_vector(obj.vector) if obj.vector is not None else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=self.__translate_properties_from_python_to_grpc(
                     obj.properties,
@@ -306,10 +294,7 @@ class _BatchGRPC(_BaseGRPC):
                     )
                 )
             elif isinstance(entry, list) and len(entry) == 0:
-                if self._connection._weaviate_version.is_at_least(1, 23, 4):
-                    empty_lists.append(key)
-                else:
-                    text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=[]))
+                empty_lists.append(key)
             elif isinstance(entry, list) and isinstance(entry[0], dict):
                 entry = cast(List[Dict[str, Any]], entry)
                 object_array_properties.append(
@@ -352,16 +337,9 @@ class _BatchGRPC(_BaseGRPC):
             elif isinstance(entry, list) and isinstance(entry[0], int):
                 int_arrays.append(base_pb2.IntArrayProperties(prop_name=key, values=entry))
             elif isinstance(entry, list) and isinstance(entry[0], float):
-                values = entry if not self._is_weaviate_version_123 else None
-                values_bytes = (
-                    struct.pack("{}d".format(len(entry)), *entry)
-                    if self._is_weaviate_version_123
-                    else None
-                )
+                values_bytes = struct.pack("{}d".format(len(entry)), *entry)
                 float_arrays.append(
-                    base_pb2.NumberArrayProperties(
-                        prop_name=key, values=values, values_bytes=values_bytes
-                    )
+                    base_pb2.NumberArrayProperties(prop_name=key, values_bytes=values_bytes)
                 )
             elif isinstance(entry, GeoCoordinate):
                 non_ref_properties.update({key: entry._to_dict()})

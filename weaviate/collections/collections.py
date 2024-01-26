@@ -2,8 +2,8 @@ from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overloa
 
 from weaviate.collections.base import _CollectionsBase
 from weaviate.collections.classes.config import (
-    _CollectionConfig,
-    _CollectionConfigSimple,
+    CollectionConfig,
+    CollectionConfigSimple,
     _CollectionConfigCreate,
     _GenerativeConfigCreate,
     _InvertedIndexConfigCreate,
@@ -28,6 +28,7 @@ class _Collections(_CollectionsBase):
     def create(
         self,
         name: str,
+        *,
         description: Optional[str] = None,
         generative_config: Optional[_GenerativeConfigCreate] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
@@ -50,6 +51,9 @@ class _Collections(_CollectionsBase):
 
         Inspect [the docs](https://weaviate.io/developers/weaviate/configuration) for more information on the different
         configuration options and how they affect the behavior of your collection.
+
+        This method sends a request to Weaviate to create the collection given the configuration. It then returns the newly
+        created collection Python object for you to use to make requests.
 
         Arguments:
             `name`
@@ -115,6 +119,8 @@ class _Collections(_CollectionsBase):
         data_model_references: Optional[Type[References]] = None,
     ) -> Collection[Properties, References]:
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
+
+        This method does not send a request to Weaviate. It simply creates a Python object for you to use to make requests.
 
         Arguments:
             `name`
@@ -206,7 +212,7 @@ class _Collections(_CollectionsBase):
             _raise_invalid_input("name", name, str)
         return self._exists(_capitalize_first_letter(name))
 
-    def export_config(self, name: str) -> _CollectionConfig:
+    def export_config(self, name: str) -> CollectionConfig:
         """Use this method to export the configuration of a collection from the Weaviate instance.
 
         Arguments:
@@ -214,7 +220,7 @@ class _Collections(_CollectionsBase):
                 The name of the collection to export.
 
         Returns:
-            The configuration of the collection as a dictionary.
+            The configuration of the collection as a `CollectionConfig` object.
 
         Raises:
             `requests.ConnectionError`
@@ -225,22 +231,22 @@ class _Collections(_CollectionsBase):
         return self._export(_capitalize_first_letter(name))
 
     @overload
-    def list_all(self, simple: Literal[False]) -> Dict[str, _CollectionConfig]:
+    def list_all(self, simple: Literal[False]) -> Dict[str, CollectionConfig]:
         ...
 
     @overload
-    def list_all(self, simple: Literal[True] = ...) -> Dict[str, _CollectionConfigSimple]:
+    def list_all(self, simple: Literal[True] = ...) -> Dict[str, CollectionConfigSimple]:
         ...
 
     @overload
     def list_all(
         self, simple: bool = ...
-    ) -> Union[Dict[str, _CollectionConfig], Dict[str, _CollectionConfigSimple]]:
+    ) -> Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]:
         ...
 
     def list_all(
         self, simple: bool = True
-    ) -> Union[Dict[str, _CollectionConfig], Dict[str, _CollectionConfigSimple]]:
+    ) -> Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]:
         """List the configurations of the all the collections currently in the Weaviate instance.
 
         Arguments:
@@ -279,10 +285,12 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
+        if "name" in config:
+            config["class"] = config.pop("name")
         name = super()._create(config)
         return self.get(name)
 
-    def create_from_config(self, config: _CollectionConfig) -> Collection:
+    def create_from_config(self, config: CollectionConfig) -> Collection:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
 
         Arguments:
@@ -295,4 +303,4 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        return self.create_from_dict(config._to_dict())
+        return self.create_from_dict(config.to_dict())

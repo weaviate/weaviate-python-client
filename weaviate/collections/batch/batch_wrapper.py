@@ -1,6 +1,5 @@
 import time
-from copy import copy
-from typing import List, Optional, Any, cast
+from typing import Generic, List, Optional, Any, TypeVar, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
@@ -42,11 +41,12 @@ class _BatchWrapper:
         Upon network error, it will retry to get the shards' status for `how_many_failures` times
         with exponential backoff (2**n seconds with n=0,1,2,...,how_many_failures).
 
-        Parameters
-        ----------
-            shards {Optional[List[Shard]]} -- The shards to check the status of. If None it will
+        Arguments:
+            `shards`
+                The shards to check the status of. If `None` it will
                 check the status of all the shards of the imported objects in the batch.
-            how_many_failures {int} -- How many times to try to get the shards' status before
+            `how_many_failures`
+                How many times to try to get the shards' status before
                 raising an exception. Default 5.
         """
         if shards is not None and not isinstance(shards, list):
@@ -69,9 +69,13 @@ class _BatchWrapper:
                 time.sleep(2**how_many)
                 return is_ready(how_many + 1)
 
+        count = 0
         while not is_ready(0):
-            print("Waiting for async indexing to finish...")
+            if count % 20 == 0:  # print every 5s
+                print("Waiting for async indexing to finish...")
             time.sleep(0.25)
+            count += 1
+        print("Async indexing finished!")
 
     def _get_shards_readiness(self, shard: Shard) -> List[bool]:
         if not isinstance(shard.collection, str):
@@ -97,38 +101,46 @@ class _BatchWrapper:
             for shard in res
         ]
 
+    @property
     def failed_objects(self) -> List[ErrorObject]:
-        """
-        Get all failed objects from the batch manager.
-
-        Returns a copy so that the results can be used even if a new batch manager is opened.
+        """Get all failed objects from the batch manager.
 
         Returns:
             `List[ErrorObject]`
                 A list of all the failed objects from the batch.
         """
-        return copy(self._batch_data.failed_objects)
+        return self._batch_data.failed_objects
 
+    @property
     def failed_references(self) -> List[ErrorReference]:
-        """
-        Get all failed references from the batch manager.
-
-        Returns a copy so that the results can be used even if a new batch manager is opened.
+        """Get all failed references from the batch manager.
 
         Returns:
             `List[ErrorReference]`
                 A list of all the failed references from the batch.
         """
-        return copy(self._batch_data.failed_references)
+        return self._batch_data.failed_references
 
+    @property
     def results(self) -> BatchResult:
-        """
-        Get the results of the batch operation.
-
-        Returns a copy so that the results can be used even if a new batch manager is opened.
+        """Get the results of the batch operation.
 
         Returns:
             `BatchResult`
                 The results of the batch operation.
         """
-        return copy(self._batch_data.results)
+        return self._batch_data.results
+
+
+T = TypeVar("T", bound=_BatchBase)
+
+
+class _ContextManagerWrapper(Generic[T]):
+    def __init__(self, current_batch: T):
+        self.__current_batch: T = current_batch
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        self.__current_batch._shutdown()
+
+    def __enter__(self) -> T:
+        return self.__current_batch

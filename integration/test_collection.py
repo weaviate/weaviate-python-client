@@ -15,6 +15,7 @@ from weaviate.collections.classes.config import (
     DataType,
     Property,
     ReferenceProperty,
+    Tokenization,
     Vectorizer,
 )
 from weaviate.collections.classes.data import (
@@ -605,20 +606,82 @@ def test_search_hybrid_only_vector(collection_factory: CollectionFactory) -> Non
     assert len(objs) == 2
 
 
-@pytest.mark.parametrize("limit", [1, 5])
-def test_search_limit(collection_factory: CollectionFactory, limit: int) -> None:
+@pytest.mark.parametrize("limit", [1, 2])
+def test_hybrid_limit(collection_factory: CollectionFactory, limit: int) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    for i in range(5):
-        collection.data.insert({"Name": str(i)})
 
-    assert len(collection.query.fetch_objects(limit=limit).objects) == limit
+    res = collection.data.insert_many(
+        [
+            {"Name": "test"},
+            {"Name": "another"},
+            {"Name": "test"},
+        ]
+    )
+    assert res.has_errors is False
+    assert len(collection.query.hybrid(query="test", alpha=0, limit=limit).objects) == limit
+
+
+@pytest.mark.parametrize("offset,expected", [(0, 2), (1, 1), (2, 0)])
+def test_hybrid_offset(collection_factory: CollectionFactory, offset: int, expected: int) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    res = collection.data.insert_many(
+        [
+            {"Name": "test"},
+            {"Name": "another"},
+            {"Name": "test"},
+        ]
+    )
+    assert res.has_errors is False
+
+    assert len(collection.query.hybrid(query="test", alpha=0, offset=offset).objects) == expected
+
+
+@pytest.mark.parametrize("limit", [1, 2])
+def test_bm25_limit(collection_factory: CollectionFactory, limit: int) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT, tokenization=Tokenization.WORD)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    res = collection.data.insert_many(
+        [
+            {"Name": "test"},
+            {"Name": "another"},
+            {"Name": "test"},
+        ]
+    )
+    assert res.has_errors is False
+    assert len(collection.query.bm25(query="test", limit=limit).objects) == limit
+
+
+@pytest.mark.parametrize("offset,expected", [(0, 2), (1, 1), (2, 0)])
+def test_bm25_offset(collection_factory: CollectionFactory, offset: int, expected: int) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT, tokenization=Tokenization.WORD)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    res = collection.data.insert_many(
+        [
+            {"Name": "test"},
+            {"Name": "another"},
+            {"Name": "test"},
+        ]
+    )
+    assert res.has_errors is False
+
+    assert len(collection.query.bm25(query="test", offset=offset).objects) == expected
 
 
 @pytest.mark.parametrize("offset", [0, 1, 5])
-def test_search_offset(collection_factory: CollectionFactory, offset: int) -> None:
+def test_fetch_objects_offset(collection_factory: CollectionFactory, offset: int) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
@@ -630,6 +693,18 @@ def test_search_offset(collection_factory: CollectionFactory, offset: int) -> No
 
     objects = collection.query.fetch_objects(offset=offset).objects
     assert len(objects) == nr_objects - offset
+
+
+@pytest.mark.parametrize("limit", [1, 5])
+def test_fetch_objects_limit(collection_factory: CollectionFactory, limit: int) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    for i in range(5):
+        collection.data.insert({"Name": str(i)})
+
+    assert len(collection.query.fetch_objects(limit=limit).objects) == limit
 
 
 def test_search_after(collection_factory: CollectionFactory) -> None:
@@ -738,6 +813,45 @@ def test_near_vector(collection_factory: CollectionFactory) -> None:
     assert len(objects_distance) == 3
 
 
+def test_near_vector_limit(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    uuid_banana = collection.data.insert({"Name": "Banana"})
+    collection.data.insert({"Name": "Fruit"})
+    collection.data.insert({"Name": "car"})
+    collection.data.insert({"Name": "Mountain"})
+
+    banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
+
+    assert banana.vector is not None
+    objs = collection.query.near_vector(banana.vector, limit=2).objects
+    assert len(objs) == 2
+
+
+def test_near_vector_offset(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    uuid_banana = collection.data.insert({"Name": "Banana"})
+    uuid_fruit = collection.data.insert({"Name": "Fruit"})
+    collection.data.insert({"Name": "car"})
+    collection.data.insert({"Name": "Mountain"})
+
+    banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
+
+    assert banana.vector is not None
+    objs = collection.query.near_vector(banana.vector, offset=1).objects
+    assert len(objs) == 3
+    assert objs[0].uuid == uuid_fruit
+
+
 def test_near_vector_group_by_namespace(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[
@@ -833,6 +947,45 @@ def test_near_object(collection_factory: CollectionFactory) -> None:
         uuid_banana, certainty=full_objects[2].metadata.certainty
     ).objects
     assert len(objects_certainty) == 3
+
+
+def test_near_object_limit(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    uuid_banana = collection.data.insert({"Name": "Banana"})
+    uuid_fruit = collection.data.insert({"Name": "Fruit"})
+    collection.data.insert({"Name": "car"})
+    collection.data.insert({"Name": "Mountain"})
+
+    banana = collection.query.fetch_object_by_id(uuid_banana)
+
+    objs = collection.query.near_object(banana.uuid, limit=2).objects
+    assert len(objs) == 2
+    assert objs[0].uuid == uuid_banana
+    assert objs[1].uuid == uuid_fruit
+
+
+def test_near_object_offset(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    uuid_banana = collection.data.insert({"Name": "Banana"})
+    uuid_fruit = collection.data.insert({"Name": "Fruit"})
+    collection.data.insert({"Name": "car"})
+    collection.data.insert({"Name": "Mountain"})
+
+    banana = collection.query.fetch_object_by_id(uuid_banana)
+
+    objs = collection.query.near_object(banana.uuid, offset=1).objects
+    assert len(objs) == 3
+    assert objs[0].uuid == uuid_fruit
 
 
 def test_near_object_group_by_namespace(collection_factory: CollectionFactory) -> None:
@@ -1062,13 +1215,7 @@ def test_add_reference(collection_factory: CollectionFactory) -> None:
         uuid2, return_properties=["name"], return_references=FromReference(link_on="self")
     )
     assert "name" in obj1.properties
-    assert (
-        obj1.references == {}
-        if collection._connection._weaviate_version.is_at_least(
-            1, 23, 2
-        )  # TODO: change to 1.23.3 when released
-        else obj1.references is None
-    )
+    assert obj1.references == {}
     assert "name" in obj2.properties
     assert "self" in obj2.references
 
@@ -1154,16 +1301,10 @@ def test_return_properties_metadata_references_combos(
     assert obj.uuid is not None
 
     if return_properties is None:
-        if (
-            return_references is not None
-            and not collection._connection._weaviate_version.is_at_least(1, 23, 0)
-        ):
-            assert obj.properties == {}
-        else:
-            assert "name" in obj.properties
-            assert "age" in obj.properties
-            assert obj.properties["name"] == "John"
-            assert obj.properties["age"] == 43
+        assert "name" in obj.properties
+        assert "age" in obj.properties
+        assert obj.properties["name"] == "John"
+        assert obj.properties["age"] == 43
     elif len(return_properties) == 0:
         assert "name" not in obj.properties
         assert "age" not in obj.properties
@@ -1446,6 +1587,34 @@ def test_near_text_limit(collection_factory: CollectionFactory) -> None:
     assert objects[1].properties["value"] == "apple cake"
 
 
+def test_near_text_offset(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+        properties=[Property(name="value", data_type=DataType.TEXT)],
+    )
+
+    batch_return = collection.data.insert_many(
+        [
+            DataObject(properties={"value": "Apple"}, uuid=UUID1),
+            DataObject(properties={"value": "Mountain climbing"}),
+            DataObject(properties={"value": "apple cake"}),
+            DataObject(properties={"value": "cake"}),
+        ]
+    )
+
+    objects = collection.query.near_text(
+        query="cake",
+        offset=1,
+        return_properties=["value"],
+    ).objects
+
+    assert len(objects) == 3
+    assert objects[0].uuid == batch_return.uuids[2]
+    assert objects[0].properties["value"] == "apple cake"
+
+
 @pytest.mark.parametrize(
     "image_maker",
     [
@@ -1473,16 +1642,30 @@ def test_near_image(
     )
 
     uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
-    collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
+    uuid2 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
 
     image = image_maker()
-    objects = collection.query.near_image(image, distance=distance, certainty=certainty).objects
+    objects1 = collection.query.near_image(image, distance=distance, certainty=certainty).objects
+    image = image_maker()  # need to reopen if file was consumed
+    objects2 = collection.query.near_image(
+        image, distance=distance, certainty=certainty, limit=1
+    ).objects
+    image = image_maker()  # need to reopen if file was consumed
+    objects3 = collection.query.near_image(
+        image, distance=distance, certainty=certainty, offset=1
+    ).objects
 
     if isinstance(image, io.BufferedReader):
         image.close()
 
-    assert len(objects) == 2
-    assert objects[0].uuid == uuid1
+    assert len(objects1) == 2
+    assert objects1[0].uuid == uuid1
+
+    assert len(objects2) == 1
+    assert objects2[0].uuid == uuid1
+
+    assert len(objects3) == 1
+    assert objects3[0].uuid == uuid2
 
 
 @pytest.mark.parametrize("which_case", [0, 1, 2, 3, 4])
@@ -1647,15 +1830,6 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize(
     "sort,expected",
     [
-        (Sort(prop="name", ascending=True), [0, 1, 2]),
-        (Sort(prop="name", ascending=False), [2, 1, 0]),
-        ([Sort(prop="age", ascending=False), Sort(prop="name", ascending=True)], [1, 2, 0]),
-        (Sort(prop="_id", ascending=True), [0, 1, 2]),
-        (Sort(prop="_id", ascending=False), [2, 1, 0]),
-        (Sort(prop="_creationTimeUnix", ascending=True), [0, 1, 2]),
-        (Sort(prop="_creationTimeUnix", ascending=False), [2, 1, 0]),
-        (Sort(prop="_lastUpdateTimeUnix", ascending=True), [0, 1, 2]),
-        (Sort(prop="_lastUpdateTimeUnix", ascending=False), [2, 1, 0]),
         (Sort.by_property("name", True), [0, 1, 2]),
         (Sort.by_property("name", False), [2, 1, 0]),
         (Sort.by_property("age", False).by_property("name", True), [1, 2, 0]),
@@ -1772,10 +1946,6 @@ def test_return_phone_number_property(collection_factory: CollectionFactory) -> 
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
         ]
     )
-    if not collection._connection._weaviate_version.is_at_least(
-        1, 23, 2
-    ):  # TODO: change to 1.23.3 when it is released
-        pytest.skip("Phone number properties are only supported on Weaviate >= 1.23.3")
     uuid1 = collection.data.insert({"phone": PhoneNumber(number="+441612345000")})
     uuid2 = collection.data.insert_many(
         [{"phone": PhoneNumber(default_country="GB", number="01612345000")}]

@@ -3,9 +3,9 @@ from typing import List, Literal, Optional, Union, overload
 from weaviate.collections.aggregations.base import _Aggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
-    _AggregateReturn,
-    _AggregateGroupByReturn,
-    _AggregateGroup,
+    AggregateReturn,
+    AggregateGroupByReturn,
+    AggregateGroup,
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.warnings import _Warnings
@@ -21,7 +21,7 @@ class _OverAll(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> _AggregateReturn:
+    ) -> AggregateReturn:
         ...
 
     @overload
@@ -33,7 +33,7 @@ class _OverAll(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> _AggregateGroupByReturn:
+    ) -> AggregateGroupByReturn:
         ...
 
     def over_all(
@@ -44,7 +44,7 @@ class _OverAll(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> Union[_AggregateReturn, _AggregateGroupByReturn]:
+    ) -> Union[AggregateReturn, AggregateGroupByReturn]:
         """Aggregate metrics over all the objects in this collection without any vector search.
 
         Arguments:
@@ -60,7 +60,7 @@ class _OverAll(_Aggregate):
                 A list of property metrics to aggregate together after the text search.
 
         Returns:
-            Depending on the presence of the `group_by` argument, either a `_AggregateReturn` object or a `_AggregateGroupByReturn that includes the aggregation objects.
+            Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
             `weaviate.exceptions.WeaviateGQLQueryError`:
@@ -92,7 +92,7 @@ class _OverAllGroupBy(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> List[_AggregateGroup]:
+    ) -> List[AggregateGroup]:
         """Aggregate metrics over all the objects in this collection without any vector search grouping the results by a property.
 
         Arguments:
@@ -108,7 +108,7 @@ class _OverAllGroupBy(_Aggregate):
                 A list of property metrics to aggregate together after the text search.
 
         Returns:
-            A list of `_AggregateGroup` objects that includes the aggregation objects.
+            A list of `AggregateGroup` objects that includes the aggregation objects.
 
         Raises:
             `weaviate.exceptions.WeaviateGQLQueryError`:

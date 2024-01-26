@@ -438,10 +438,6 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
 
 def test_update_flat(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if not dummy._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("flat index is not supported in this version")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
@@ -544,10 +540,6 @@ def test_collection_config_get_shards_multi_tenancy(collection_factory: Collecti
 
 
 def test_config_vector_index_flat_and_quantizer_bq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if not dummy._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("flat index is not supported in this version")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,
@@ -631,3 +623,43 @@ def test_config_nested_properties(collection_factory: CollectionFactory) -> None
     assert conf.properties[0].nested_properties[0].data_type == DataType.TEXT
     assert conf.properties[0].nested_properties[1].name == "last"
     assert conf.properties[0].nested_properties[1].data_type == DataType.TEXT
+
+
+def test_config_export_and_recreate_from_config(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+    conf = collection.config.get()
+
+    name = "TestCollectionConfigExportAndRecreateFromConfig"
+    conf.name = name
+
+    client = weaviate.connect_to_local()
+    client.collections.create_from_config(conf)
+    assert conf == client.collections.get(name).config.get()
+    client.collections.delete(name)
+    client.close()
+
+
+def test_config_export_and_recreate_from_dict(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+    conf = collection.config.get()
+
+    name = "TestCollectionConfigExportAndRecreateFromDict"
+    conf.name = name
+    dconf = conf.to_dict()
+
+    client = weaviate.connect_to_local()
+    client.collections.create_from_dict(dconf)
+    assert conf == client.collections.get(name).config.get()
+    client.collections.delete(name)

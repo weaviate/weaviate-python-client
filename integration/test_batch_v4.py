@@ -1,5 +1,4 @@
 import uuid
-import warnings
 from dataclasses import dataclass
 from typing import Generator, List, Optional, Sequence, Protocol, Tuple, Callable
 
@@ -97,11 +96,11 @@ def client_factory(
 
 def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
     client, name = client_factory()
-    with client.batch as batch:
+    with client.batch.rate_limit(50) as batch:
         batch.add_object(collection=name, properties={})
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         batch.add_object(collection=name, properties={})
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         batch.add_object(collection=name, properties={})
     objs = client.collections.get(name).query.fetch_objects().objects
     assert len(objs) == 3
@@ -110,7 +109,7 @@ def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
 def test_flushing(client_factory: ClientFactory) -> None:
     """Test that batch is working normally after flushing."""
     client, name = client_factory()
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         batch.add_object(collection=name, properties={})
         batch.flush()
         objs = client.collections.get(name).query.fetch_objects().objects
@@ -132,7 +131,7 @@ def test_add_object(
     vector: Optional[Sequence],
 ) -> None:
     client, name = client_factory()
-    with client.batch as batch:
+    with client.batch.fixed_size() as batch:
         batch.add_object(collection=name, properties={}, uuid=uid, vector=vector)
     objs = client.collections.get(name).query.fetch_objects().objects
     assert len(objs) == 1
@@ -149,7 +148,7 @@ def test_add_reference(
 ) -> None:
     """Test the `add_reference` method"""
     client, name = client_factory()
-    with client.batch as batch:
+    with client.batch.fixed_size() as batch:
         batch.add_object(
             properties={},
             collection=name,
@@ -183,7 +182,7 @@ def test_add_data_object_and_get_class_shards_readiness(
 ) -> None:
     client, name = client_factory()
 
-    with client.batch as batch:
+    with client.batch.fixed_size() as batch:
         batch.add_object(properties={}, collection=request.node.name)
     statuses = client.batch._get_shards_readiness(Shard(collection=name))
     assert len(statuses) == 1
@@ -196,7 +195,7 @@ def test_add_data_object_with_tenant_and_get_class_shards_readiness(
     """Test the `add_data_object` method"""
     client, name = client_factory(multi_tenant=True)
     client.collections.get(name).tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
-    with client.batch as batch:
+    with client.batch.fixed_size() as batch:
         batch.add_object(properties={}, collection=name, tenant="tenant1")
     statuses = client.batch._get_shards_readiness(Shard(collection=name, tenant="tenant1"))
     assert len(statuses) == 1
@@ -215,7 +214,7 @@ def test_add_object_batch_with_tenant(client_factory: ClientFactory, request: Su
 
     nr_objects = 100
     objects = []
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         for i in range(nr_objects):
             obj_uuid = uuid.uuid4()
             objects.append((obj_uuid, name1 if i % 2 else name2, "tenant" + str(i % 5)))
@@ -266,7 +265,7 @@ def test_add_ref_batch(client_factory: ClientFactory, to_ref: Callable) -> None:
 
     nr_objects = 100
     objects_class0 = []
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         for _ in range(nr_objects):
             obj_uuid0 = uuid.uuid4()
             objects_class0.append(obj_uuid0)
@@ -304,7 +303,7 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
 
     nr_objects = 100
     objects_class0 = []
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         for i in range(nr_objects):
             tenant = "tenant" + str(i % 5)
             obj_uuid0 = uuid.uuid4()
@@ -344,7 +343,7 @@ def test_add_ten_thousand_data_objects(client_factory: ClientFactory, request: S
     client, name = client_factory()
 
     nr_objects = 10000
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
@@ -377,7 +376,7 @@ def test_add_one_hundred_objects_and_references_between_all(client_factory: Clie
     client, name = client_factory()
     nr_objects = 100
     uuids: List[UUID] = []
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         for i in range(nr_objects):
             uuid_ = batch.add_object(
                 collection=name,
@@ -397,71 +396,20 @@ def test_add_one_hundred_objects_and_references_between_all(client_factory: Clie
     client.collections.delete(name)
 
 
-@pytest.mark.skip("disable retrying")
-def test_add_bad_prop(client_factory: ClientFactory, request: SubRequest) -> None:
-    """Test adding a data object with a bad property"""
-    client, name = client_factory()
-
-    # with warnings.catch_warnings():
-    #     # Tests that no warning is emitted when the batch is not configured to retry failed objects
-    #     client.batch.configure(retry_failed_objects=True)
-    #     with client.batch as batch:
-    #         batch.add_object(collection=name, properties={"bad": "test"})
-    #     assert len(client.batch.failed_objects()) == 1
-    #
-    # with pytest.warns(UserWarning):
-    #     # Tests that a warning is emitted when the batch is configured to retry failed objects
-    #     client.batch.configure(retry_failed_objects=True)
-    #     with client.batch as batch:
-    #         batch.add_object(collection=name, properties={"bad": "test"})
-    #     assert len(client.batch.failed_objects()) == 1
-
-
-@pytest.mark.skip("disable retrying")
-def test_add_bad_ref(client_factory: ClientFactory) -> None:
-    """Test adding a reference with a bad property name"""
-    client, name = client_factory()
-
-    with warnings.catch_warnings():
-        # Tests that no warning is emitted when the batch is not configured to retry failed references
-        # client.batch.configure(retry_failed_references=True)
-        with client.batch as batch:
-            batch.add_reference(
-                from_uuid=uuid.uuid4(),
-                from_collection=name,
-                from_property="bad",
-                to=uuid.uuid4(),
-            )
-        assert len(client.batch.failed_references()) == 1
-    #
-    # with pytest.warns(UserWarning):
-    #     # Tests that a warning is emitted when the batch is configured to retry failed references
-    #     client.batch.configure(retry_failed_references=True)
-    #     with client.batch as batch:
-    #         batch.add_reference(
-    #             from_object_uuid=uuid.uuid4(),
-    #             from_object_collection=name,
-    #             from_property_name="bad",
-    #             to_object_uuid=uuid.uuid4(),
-    #             to_object_collection=name,
-    #         )
-    #     assert len(client.batch.failed_references()) == 1
-
-
 def test_add_1000_objects_with_async_indexing_and_wait(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
     client, name = client_factory(ports=(8090, 50060))
 
     nr_objects = 1000
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
                 properties={"name": "text" + str(i)},
                 vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
             )
-    assert len(client.batch.failed_objects()) == 0
+    assert len(client.batch.failed_objects) == 0
     client.batch.wait_for_vector_indexing()
     ret = client.collections.get(name).aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
@@ -480,7 +428,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
 
     nr_objects = 10000
     vec_length = 1000
-    with client.batch as batch:
+    with client.batch.fixed_size(batch_size=1000, concurrent_requests=1) as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
@@ -491,7 +439,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
     assert shard_status[0]["status"] == "INDEXING"
     assert shard_status[0]["vectorQueueSize"] > 0
 
-    assert len(client.batch.failed_objects()) == 0
+    assert len(client.batch.failed_objects) == 0
 
     ret = client.collections.get(name).aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
@@ -506,7 +454,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     collection.tenants.create(tenants)
     nr_objects = 2000
 
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
@@ -514,7 +462,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
                 vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
                 tenant=tenants[i % len(tenants)].name,
             )
-    assert len(client.batch.failed_objects()) == 0
+    assert len(client.batch.failed_objects) == 0
     client.batch.wait_for_vector_indexing()
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
@@ -525,7 +473,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
         assert shard["vectorQueueSize"] == 0
 
 
-def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
+def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     client_factory: ClientFactory,
 ) -> None:
     client, name = client_factory(ports=(8090, 50060), multi_tenant=True)
@@ -535,7 +483,7 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
 
     nr_objects = 1001
 
-    with client.batch as batch:
+    with client.batch.dynamic() as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
@@ -543,7 +491,7 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
                 vector=[float((j + i) % nr_objects) / nr_objects for j in range(nr_objects)],
                 tenant=tenants[0].name if i < 1000 else tenants[1].name,
             )
-    assert len(client.batch.failed_objects()) == 0
+    assert len(client.batch.failed_objects) == 0
     client.batch.wait_for_vector_indexing(shards=[Shard(collection=name, tenant=tenants[0].name)])
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
@@ -556,3 +504,39 @@ def test_add_10000_tenant_objects_with_async_indexing_and_wait_for_only_one(
         else:
             assert shard["status"] == "INDEXING"
             assert shard["vectorQueueSize"] > 0
+
+
+def test_warning_direct_batching(client_factory: ClientFactory) -> None:
+    client, _ = client_factory()
+    with pytest.warns(DeprecationWarning) as record:
+        with client.batch as _:
+            pass
+        assert len(record) == 1
+        assert "Dep015" in str(record.list[0].message)
+
+
+def test_error_reset(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    with client.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 1}, collection=name)
+        batch.add_object(properties={"name": "correct"}, collection=name)
+
+    errs = client.batch.failed_objects
+
+    assert len(errs) == 1
+    assert errs[0].object_.properties is not None
+    assert errs[0].object_.properties["name"] == 1
+
+    with client.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 2}, collection=name)
+        batch.add_object(properties={"name": "correct"}, collection=name)
+
+    errs2 = client.batch.failed_objects
+    assert len(errs2) == 1
+    assert errs2[0].object_.properties is not None
+    assert errs2[0].object_.properties["name"] == 2
+
+    # err still contains original errors
+    assert len(errs) == 1
+    assert errs[0].object_.properties is not None
+    assert errs[0].object_.properties["name"] == 1

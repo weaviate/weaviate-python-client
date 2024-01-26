@@ -26,12 +26,15 @@ from . import (
     classes,
     cluster,
     collections,
+    config,
     connect,
     data,
+    embedded,
     exceptions,
     gql,
     outputs,
     schema,
+    types,
 )
 
 if not sys.warnoptions:
@@ -54,12 +57,15 @@ __all__ = [
     "classes",
     "cluster",
     "collections",
+    "config",
     "connect",
     "data",
+    "embedded",
     "exceptions",
     "gql",
     "outputs",
     "schema",
+    "types",
 ]
 
 deprs = [

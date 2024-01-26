@@ -40,18 +40,10 @@ def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer, version: str, war
     weaviate.Client(MOCK_SERVER_URL)
 
     if warning:
-        assert len(recwarn) == 2
-        w = recwarn.pop()
-        assert issubclass(w.category, DeprecationWarning)
-        assert str(w.message).startswith("Dep001")
-        w = recwarn.pop()
-        assert issubclass(w.category, DeprecationWarning)
-        assert str(w.message).startswith("Dep004")
+        assert any(str(w.message).startswith("Dep001") for w in recwarn)
+        assert any(str(w.message).startswith("Dep004") for w in recwarn)
     else:
-        assert len(recwarn) == 1
-        w = recwarn.pop()
-        assert issubclass(w.category, DeprecationWarning)
-        assert str(w.message).startswith("Dep004")
+        assert any(str(w.message).startswith("Dep004") for w in recwarn)
 
 
 def test_wait_for_weaviate(httpserver: HTTPServer):

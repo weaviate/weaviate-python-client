@@ -45,7 +45,6 @@ from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateQueryError
 from weaviate.types import NUMBER, UUID
-from weaviate.warnings import _Warnings
 
 from weaviate.proto.v1 import search_get_pb2
 
@@ -84,15 +83,10 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         default_properties: Optional[PROPERTIES] = None,
-        is_weaviate_version_123: bool = False,
-        has_reranking: bool = False,
     ):
-        super().__init__(
-            connection, consistency_level, is_weaviate_version_123=is_weaviate_version_123
-        )
+        super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
-        self.__has_reranking = has_reranking
 
         if default_properties is not None:
             self._default_props: Optional[Set[PROPERTY]] = self.__convert_to_set(default_properties)
@@ -314,6 +308,7 @@ class _QueryGRPC(_BaseGRPC):
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[_MetadataQuery] = None,
@@ -325,6 +320,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_hybrid(query, alpha, vector, properties, fusion_type)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -340,6 +336,7 @@ class _QueryGRPC(_BaseGRPC):
         query: str,
         properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         return_metadata: Optional[_MetadataQuery] = None,
@@ -351,6 +348,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_bm25(query, properties)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -367,6 +365,7 @@ class _QueryGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -382,6 +381,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -399,6 +399,7 @@ class _QueryGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -416,6 +417,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -435,6 +437,7 @@ class _QueryGRPC(_BaseGRPC):
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -458,6 +461,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -486,6 +490,7 @@ class _QueryGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
+        offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
@@ -514,6 +519,7 @@ class _QueryGRPC(_BaseGRPC):
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
             limit=limit,
+            offset=offset,
             filters=filters,
             metadata=return_metadata,
             return_properties=return_properties,
@@ -529,10 +535,6 @@ class _QueryGRPC(_BaseGRPC):
     def __call(self) -> search_get_pb2.SearchReply:
         metadata: Optional[Tuple[Tuple[str, str], ...]] = None
         access_token = self._connection.get_current_bearer_token()
-
-        if not self.__has_reranking and self._rerank is not None:
-            _Warnings.reranking_not_enabled()
-            self._rerank = None
 
         metadata_list: List[Tuple[str, str]] = []
         if len(access_token) > 0:
@@ -558,16 +560,11 @@ class _QueryGRPC(_BaseGRPC):
                     after=str(self._after) if self._after is not None else "",
                     autocut=self._autocut,
                     near_vector=search_get_pb2.NearVector(
-                        vector=self._near_vector_vec
-                        if self._near_vector_vec is not None and not self._is_weaviate_version_123
-                        else None,
                         certainty=self._near_certainty,
                         distance=self._near_distance,
                         vector_bytes=struct.pack(
                             "{}f".format(len(self._near_vector_vec)), *self._near_vector_vec
-                        )
-                        if self._near_vector_vec is not None and self._is_weaviate_version_123
-                        else None,
+                        ),
                     )
                     if self._near_vector_vec is not None
                     else None,
@@ -593,22 +590,19 @@ class _QueryGRPC(_BaseGRPC):
                         properties=self._hybrid_properties,
                         query=self._hybrid_query,
                         alpha=self._hybrid_alpha,
-                        vector=self._hybrid_vector if not self._is_weaviate_version_123 else None,
                         fusion_type=cast(
                             search_get_pb2.Hybrid.FusionType, self._hybrid_fusion_type
                         ),
                         vector_bytes=struct.pack(
                             "{}f".format(len(self._hybrid_vector)), *self._hybrid_vector
                         )
-                        if self._is_weaviate_version_123 and self._hybrid_vector is not None
+                        if self._hybrid_vector is not None
                         else None,
                     )
                     if self._hybrid_query is not None
                     else None,
                     tenant=self._tenant,
-                    filters=_FilterToGRPC.convert(
-                        self._filters, self._connection._weaviate_version
-                    ),
+                    filters=_FilterToGRPC.convert(self._filters),
                     near_audio=search_get_pb2.NearAudioSearch(
                         audio=self._near_audio,
                         distance=self._near_distance,
