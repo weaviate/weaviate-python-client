@@ -29,9 +29,9 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.internal import (
+    _Reference,
     Object,
     _metadata_from_dict,
-    _Reference,
     ReferenceToMulti,
     SingleReferenceInput,
     ReferenceInput,

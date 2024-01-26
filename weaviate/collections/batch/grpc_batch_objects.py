@@ -14,7 +14,7 @@ from weaviate.collections.classes.batch import (
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.classes.internal import _Reference, ReferenceToMulti, ReferenceInputs
+from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
@@ -226,22 +226,7 @@ class _BatchGRPC(_BaseGRPC):
         empty_lists: List[str] = []
 
         for key, ref in refs.items():
-            if isinstance(ref, _Reference):
-                if ref.is_multi_target:
-                    multi_target.append(
-                        batch_pb2.BatchObject.MultiTargetRefProps(
-                            uuids=ref.uuids_str,
-                            target_collection=ref.target_collection,
-                            prop_name=key,
-                        )
-                    )
-                else:
-                    single_target.append(
-                        batch_pb2.BatchObject.SingleTargetRefProps(
-                            uuids=ref.uuids_str, prop_name=key
-                        )
-                    )
-            elif isinstance(ref, ReferenceToMulti):
+            if isinstance(ref, ReferenceToMulti):
                 multi_target.append(
                     batch_pb2.BatchObject.MultiTargetRefProps(
                         uuids=ref.uuids_str, target_collection=ref.target_collection, prop_name=key
@@ -261,22 +246,7 @@ class _BatchGRPC(_BaseGRPC):
                 raise WeaviateInvalidInputError(f"Invalid reference: {ref}")
 
         for key, entry in data.items():
-            if isinstance(entry, _Reference):
-                if entry.is_multi_target:
-                    multi_target.append(
-                        batch_pb2.BatchObject.MultiTargetRefProps(
-                            uuids=entry.uuids_str,
-                            target_collection=entry.target_collection,
-                            prop_name=key,
-                        )
-                    )
-                else:
-                    single_target.append(
-                        batch_pb2.BatchObject.SingleTargetRefProps(
-                            uuids=entry.uuids_str, prop_name=key
-                        )
-                    )
-            elif isinstance(entry, dict):
+            if isinstance(entry, dict):
                 parsed = self.__translate_properties_from_python_to_grpc(entry, {}, clean_props)
                 object_properties.append(
                     base_pb2.ObjectProperties(

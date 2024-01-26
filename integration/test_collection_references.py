@@ -1,5 +1,5 @@
 import uuid
-from typing import TypedDict, Union
+from typing import TypedDict
 
 import pytest as pytest
 from typing_extensions import Annotated
@@ -18,33 +18,24 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.internal import (
     CrossReference,
-    Reference,
     ReferenceToMulti,
     ReferenceAnnotation,
     ReferenceInput,
     SingleReferenceInput,
-    _Reference,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.types import UUID, UUIDS
+from weaviate.types import UUID
 
 TO_UUID = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 TO_UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
 
 
-def reference_to_no_warning(uuids: UUIDS) -> _Reference:
-    with pytest.warns(DeprecationWarning):
-        return Reference.to(uuids)
-
-
-@pytest.mark.parametrize("add", [reference_to_no_warning(TO_UUID), TO_UUID, str(TO_UUID)])
-@pytest.mark.parametrize("delete", [reference_to_no_warning(TO_UUID), TO_UUID, str(TO_UUID)])
-@pytest.mark.parametrize("replace", [reference_to_no_warning([]), []])
+@pytest.mark.parametrize("add", [TO_UUID, str(TO_UUID)])
+@pytest.mark.parametrize("delete", [TO_UUID, str(TO_UUID)])
 def test_reference_add_delete_replace(
     collection_factory: CollectionFactory,
     add: SingleReferenceInput,
     delete: SingleReferenceInput,
-    replace: ReferenceInput,
 ) -> None:
     ref_collection = collection_factory(
         name="Target", vectorizer_config=Configure.Vectorizer.none()
@@ -81,7 +72,7 @@ def test_reference_add_delete_replace(
     assert len(obj.references["ref"].objects) == 2
     assert TO_UUID in [x.uuid for x in obj.references["ref"].objects]
 
-    collection.data.reference_replace(from_uuid=uuid_from2, from_property="ref", to=replace)
+    collection.data.reference_replace(from_uuid=uuid_from2, from_property="ref", to=[])
     assert (
         len(
             collection.query.fetch_object_by_id(
@@ -164,7 +155,6 @@ def test_reference_add_delete_replace_multi_target(
 @pytest.mark.parametrize(
     "to",
     [
-        reference_to_no_warning([TO_UUID, TO_UUID]),
         [TO_UUID, TO_UUID],
         ReferenceToMulti(target_collection="Target", uuids=[TO_UUID, TO_UUID]),
     ],
@@ -188,7 +178,6 @@ def test_reference_add_multiple_uuids_error(
 @pytest.mark.parametrize(
     "to",
     [
-        reference_to_no_warning([TO_UUID, TO_UUID]),
         [TO_UUID, TO_UUID],
         ReferenceToMulti(target_collection="Target", uuids=[TO_UUID, TO_UUID]),
     ],
@@ -232,10 +221,8 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    uuid_B = B.data.insert({"Name": "B"}, references={"a": reference_to_no_warning(uuids=uuid_A1)})
-    B.data.reference_add(
-        from_uuid=uuid_B, from_property="a", to=reference_to_no_warning(uuids=uuid_A2)
-    )
+    uuid_B = B.data.insert({"Name": "B"}, references={"a": uuid_A1})
+    B.data.reference_add(from_uuid=uuid_B, from_property="a", to=uuid_A2)
 
     b_objs = B.query.bm25(
         query="B",
@@ -259,7 +246,7 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    C.data.insert({"Name": "find me"}, references={"b": reference_to_no_warning(uuids=uuid_B)})
+    C.data.insert({"Name": "find me"}, references={"b": uuid_B})
 
     c_objs = C.query.bm25(
         query="find",
@@ -337,13 +324,11 @@ def test_mono_references_grpc_typed_dicts(
         ),
     )
     B = collection_factory_get(dummy_b.name, BProps)
-    uuid_B = B.data.insert(
-        properties={"name": "B"}, references={"a": reference_to_no_warning(uuids=uuid_A1)}
-    )
+    uuid_B = B.data.insert(properties={"name": "B"}, references={"a": uuid_A1})
     B.data.reference_add(
         from_uuid=uuid_B,
         from_property="a",
-        to=reference_to_no_warning(uuids=uuid_A2),
+        to=uuid_A2,
     )
 
     b_objs = B.query.bm25(query="B", return_references=BRefs).objects
@@ -903,7 +888,7 @@ def test_empty_return_reference(collection_factory: CollectionFactory) -> None:
 
 @pytest.mark.parametrize(
     "to_uuid",
-    [reference_to_no_warning(uuids=TO_UUID), TO_UUID, str(TO_UUID), [TO_UUID], [str(TO_UUID)]],
+    [TO_UUID, str(TO_UUID), [TO_UUID], [str(TO_UUID)]],
 )
 def test_refs_different_input_insert(
     collection_factory: CollectionFactory, to_uuid: ReferenceInput
@@ -928,7 +913,7 @@ def test_refs_different_input_insert(
 
 @pytest.mark.parametrize(
     "to_uuid",
-    [reference_to_no_warning(uuids=TO_UUID), TO_UUID, str(TO_UUID), [TO_UUID], [str(TO_UUID)]],
+    [TO_UUID, str(TO_UUID), [TO_UUID], [str(TO_UUID)]],
 )
 def test_refs_different_input_insert_many(
     collection_factory: CollectionFactory, to_uuid: ReferenceInput
@@ -972,10 +957,8 @@ def test_refs_different_input_insert_many(
     assert obj.references["multi"].objects[0].uuid == TO_UUID
 
 
-@pytest.mark.parametrize("to_uuid", [reference_to_no_warning(uuids=TO_UUID), TO_UUID, str(TO_UUID)])
-def test_refs_different_reference_add(
-    collection_factory: CollectionFactory, to_uuid: Union[str, _Reference]
-) -> None:
+@pytest.mark.parametrize("to_uuid", [TO_UUID, str(TO_UUID)])
+def test_refs_different_reference_add(collection_factory: CollectionFactory, to_uuid: str) -> None:
     to = collection_factory(name="To", vectorizer_config=Configure.Vectorizer.none())
     to.data.insert(properties={}, uuid=TO_UUID)
 
@@ -1027,7 +1010,7 @@ def test_refs_different_reference_add_many(
 
 @pytest.mark.parametrize(
     "to_uuid",
-    [reference_to_no_warning(uuids=TO_UUID2), TO_UUID2, str(TO_UUID2), [TO_UUID2], [str(TO_UUID2)]],
+    [TO_UUID2, str(TO_UUID2), [TO_UUID2], [str(TO_UUID2)]],
 )
 def test_refs_different_reference_replace(
     collection_factory: CollectionFactory, to_uuid: ReferenceInput
