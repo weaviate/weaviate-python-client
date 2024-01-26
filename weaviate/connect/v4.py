@@ -36,6 +36,7 @@ from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
     _ConnectionBase,
     ConnectionParams,
+    _Timeout,
     JSONPayload,
     _get_proxies,
     PYPI_TIMEOUT,
@@ -91,7 +92,7 @@ class _Connection(_ConnectionBase):
         self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_channel: Optional[Channel] = None
         self._grpc_channel_async: Optional[AsyncChannel] = None
-        self.timeout_config = timeout_config
+        self.timeout_config = _Timeout.from_timeout_config(timeout_config)
         self.__connection_config = connection_config
         self.__trust_env = trust_env
         self._weaviate_version = _ServerVersion.from_string("")
@@ -197,7 +198,9 @@ class _Connection(_ConnectionBase):
     def __make_sync_client(self) -> Client:
         return Client(
             headers=self._headers,
-            timeout=Timeout(None, connect=self.timeout_config[0], read=self.timeout_config[1]),
+            timeout=Timeout(
+                None, connect=self.timeout_config.connect, read=self.timeout_config.read
+            ),
             proxies=self._proxies,
             mounts=self.__make_mounts("sync"),
         )
@@ -205,7 +208,9 @@ class _Connection(_ConnectionBase):
     def __make_async_client(self) -> AsyncClient:
         return AsyncClient(
             headers=self._headers,
-            timeout=Timeout(None, connect=self.timeout_config[0], read=self.timeout_config[1]),
+            timeout=Timeout(
+                None, connect=self.timeout_config.connect, read=self.timeout_config.read
+            ),
             proxies=self._proxies,
             mounts=self.__make_mounts("async"),
         )

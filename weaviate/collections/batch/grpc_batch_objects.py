@@ -37,7 +37,7 @@ class _BatchGRPC(_BaseGRPC):
     def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
         super().__init__(connection, consistency_level)
 
-    def objects(self, objects: List[_BatchObject]) -> BatchObjectReturn:
+    def objects(self, objects: List[_BatchObject], timeout: int) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
 
         Parameters:
@@ -72,7 +72,7 @@ class _BatchGRPC(_BaseGRPC):
         ]
 
         start = time.time()
-        errors = self.__send_batch(weaviate_objs)
+        errors = self.__send_batch(weaviate_objs, timeout=timeout)
         elapsed_time = time.time() - start
 
         if len(errors) == len(weaviate_objs):
@@ -107,7 +107,7 @@ class _BatchGRPC(_BaseGRPC):
             elapsed_seconds=elapsed_time,
         )
 
-    def __send_batch(self, batch: List[batch_pb2.BatchObject]) -> Dict[int, str]:
+    def __send_batch(self, batch: List[batch_pb2.BatchObject], timeout: int) -> Dict[int, str]:
         metadata = self._get_metadata()
         try:
             assert self._connection.grpc_stub is not None
@@ -118,6 +118,7 @@ class _BatchGRPC(_BaseGRPC):
                     consistency_level=self._consistency_level,
                 ),
                 metadata=metadata,
+                timeout=timeout,
             )
 
             objects: Dict[int, str] = {}
@@ -127,7 +128,7 @@ class _BatchGRPC(_BaseGRPC):
         except grpc.RpcError as e:
             raise WeaviateBatchError(e.details())  # pyright: ignore
 
-    async def aobjects(self, objects: List[_BatchObject]) -> BatchObjectReturn:
+    async def aobjects(self, objects: List[_BatchObject], timeout: int) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
 
         Parameters:
@@ -162,7 +163,7 @@ class _BatchGRPC(_BaseGRPC):
         ]
 
         start = time.time()
-        errors = await self.__send_batch_async(weaviate_objs)
+        errors = await self.__send_batch_async(weaviate_objs, timeout=timeout)
         elapsed_time = time.time() - start
 
         all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
@@ -189,7 +190,9 @@ class _BatchGRPC(_BaseGRPC):
             elapsed_seconds=elapsed_time,
         )
 
-    async def __send_batch_async(self, batch: List[batch_pb2.BatchObject]) -> Dict[int, str]:
+    async def __send_batch_async(
+        self, batch: List[batch_pb2.BatchObject], timeout: int
+    ) -> Dict[int, str]:
         metadata = self._get_metadata()
         try:
             assert self._connection.agrpc_stub is not None
@@ -200,6 +203,7 @@ class _BatchGRPC(_BaseGRPC):
                     consistency_level=self._consistency_level,
                 ),
                 metadata=metadata,
+                timeout=timeout,
             )
 
             objects: Dict[int, str] = {}

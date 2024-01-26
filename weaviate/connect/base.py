@@ -2,6 +2,7 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Literal, Tuple, TypeVar, Union, cast, overload
 from urllib.parse import urlparse
 
@@ -22,6 +23,19 @@ GRPC_OPTIONS = [
     ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
     ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
 ]
+
+
+@dataclass
+class _Timeout:
+    connect: int
+    read: int
+
+    @classmethod
+    def from_timeout_config(cls, timeout: TIMEOUT_TYPE_RETURN) -> "_Timeout":
+        return cls(
+            connect=int(timeout[0]),
+            read=int(timeout[1]),
+        )
 
 
 class ProtocolParams(BaseModel):

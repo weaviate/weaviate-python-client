@@ -209,11 +209,6 @@ class _QueryGRPC(_BaseGRPC):
         self.__merge_default_and_return_properties(return_properties)
         self.__merge_return_references(return_references)
 
-    def __parse_autocut(self, autocut: Optional[int]) -> None:
-        if autocut is not None and not isinstance(autocut, int):
-            raise TypeError(f"autocut must be of type int, but got {type(autocut)}")
-        self._autocut = autocut
-
     def __parse_hybrid(
         self,
         query: str,
@@ -679,6 +674,7 @@ class _QueryGRPC(_BaseGRPC):
                     else None,
                 ),
                 metadata=metadata,
+                timeout=self._connection.timeout_config.connect,
             )
 
             return res
