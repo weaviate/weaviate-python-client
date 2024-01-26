@@ -317,55 +317,6 @@ def test_near_image_missing_param(collection_factory: CollectionFactory) -> None
     )
 
 
-def test_group_by_aggregation_namespace(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[
-            Property(name="text", data_type=DataType.TEXT),
-            Property(name="int", data_type=DataType.INT),
-        ],
-    )
-    collection.data.insert({"text": "some text", "int": 1})
-    collection.data.insert({"text": "some text", "int": 2})
-
-    with pytest.warns(DeprecationWarning):
-        res = collection.aggregate_group_by.over_all(
-            "text",
-            return_metrics=[
-                Metrics("text").text(count=True),
-                Metrics("int").integer(count=True),
-            ],
-        )
-    assert len(res) == 1
-    assert res[0].grouped_by.prop == "text"
-    assert res[0].grouped_by.value == "some text"
-    assert isinstance(res[0].properties["text"], AggregateText)
-    assert res[0].properties["text"].count == 2
-    assert isinstance(res[0].properties["int"], AggregateInteger)
-    assert res[0].properties["int"].count == 2
-
-    with pytest.warns(DeprecationWarning):
-        res = collection.aggregate_group_by.over_all(
-            "int",
-            return_metrics=[
-                Metrics("text").text(count=True),
-                Metrics("int").integer(count=True),
-            ],
-        )
-    assert len(res) == 2
-    assert res[0].grouped_by.prop == "int"
-    assert res[0].grouped_by.value == "1" or res[1].grouped_by.value == "1"
-    assert isinstance(res[0].properties["text"], AggregateText)
-    assert res[0].properties["text"].count == 1
-    assert isinstance(res[0].properties["int"], AggregateInteger)
-    assert res[0].properties["int"].count == 1
-    assert res[1].grouped_by.prop == "int"
-    assert res[1].grouped_by.value == "2" or res[0].grouped_by.value == "2"
-    assert isinstance(res[1].properties["text"], AggregateText)
-    assert res[1].properties["text"].count == 1
-    assert isinstance(res[1].properties["int"], AggregateInteger)
-    assert res[1].properties["int"].count == 1
-
-
 def test_group_by_aggregation_argument(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[

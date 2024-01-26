@@ -195,14 +195,6 @@ class _Warnings:
         )
 
     @staticmethod
-    def old_query_group_by_namespace(new_method: str, old_namespace: str) -> None:
-        warnings.warn(
-            message=f"""Dep013: Use {new_method} with the `group_by` argument instead. The {old_namespace} namespace will be removed in the final release.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def sort_init_deprecated() -> None:
         warnings.warn(
             message="""Dep014: You are initialising a Sort filter directly, which is deprecated. Use the static methods instead, e.g. Sort.by_property.""",

@@ -2,7 +2,7 @@ import json
 from dataclasses import asdict
 from typing import Generic, Literal, Optional, Type, Union, overload
 
-from weaviate.collections.aggregate import _AggregateCollection, _AggregateGroupByCollection
+from weaviate.collections.aggregate import _AggregateCollection
 from weaviate.collections.backups import _CollectionBackup
 from weaviate.collections.base import _CollectionBase
 from weaviate.collections.batch.collection import _BatchCollectionWrapper
@@ -22,7 +22,7 @@ from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.config import _ConfigCollection
 from weaviate.collections.data import _DataCollection
 from weaviate.collections.iterator import _ObjectIterator
-from weaviate.collections.query import _GenerateCollection, _GroupByCollection, _QueryCollection
+from weaviate.collections.query import _GenerateCollection, _QueryCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
@@ -71,10 +71,6 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             self._connection, self.name, consistency_level, tenant
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
-        self.aggregate_group_by = _AggregateGroupByCollection(
-            self._connection, self.name, consistency_level, tenant
-        )
-        """This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities."""
         self.batch = _BatchCollectionWrapper[Properties](
             connection, consistency_level, self.name, tenant
         )
@@ -89,10 +85,6 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             connection, self.name, consistency_level, tenant, properties, references
         )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
-        self.query_group_by = _GroupByCollection(
-            connection, self.name, consistency_level, tenant, properties, references
-        )
-        """This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities."""
         self.query = _QueryCollection[Properties, References](
             connection, self.name, consistency_level, tenant, properties, references
         )
