@@ -89,7 +89,6 @@ class _BaseQuery(Generic[Properties, References]):
         self.__consistency_level = consistency_level
         self._properties = properties
         self._references = references
-        self._is_weaviate_version_123: bool = connection._weaviate_version.is_at_least(1, 23, 0)
         self.__has_reranking: bool = connection._weaviate_version.is_at_least(1, 23, 1)
 
     def _query(self) -> _QueryGRPC:
@@ -100,7 +99,6 @@ class _BaseQuery(Generic[Properties, References]):
             self._name,
             self.__tenant,
             self.__consistency_level,
-            is_weaviate_version_123=self._is_weaviate_version_123,
             has_reranking=self.__has_reranking,
         )
 
@@ -320,21 +318,13 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> Object[Any, Any]:
         return Object(
             collection=props.target_collection,
-            properties=(
-                self.__parse_nonref_properties_result(props.non_ref_props)
-                if self._is_weaviate_version_123
-                else self.__parse_nonref_properties_result_122(props)
-            )
+            properties=self.__parse_nonref_properties_result(props.non_ref_props)
             if options.include_properties
             else {},
             metadata=self.__extract_metadata_for_object(meta)
             if options.include_metadata
             else MetadataReturn(),
-            references=(
-                self.__parse_ref_properties_result(props)
-                if self._is_weaviate_version_123
-                else self.__parse_ref_properties_result_122(props)
-            )
+            references=self.__parse_ref_properties_result(props)
             if options.include_references
             else None,
             uuid=self.__extract_id_for_object(meta),
@@ -349,21 +339,13 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> GenerativeObject[Any, Any]:
         return GenerativeObject(
             collection=props.target_collection,
-            properties=(
-                self.__parse_nonref_properties_result(props.non_ref_props)
-                if self._is_weaviate_version_123
-                else self.__parse_nonref_properties_result_122(props)
-            )
+            properties=self.__parse_nonref_properties_result(props.non_ref_props)
             if options.include_properties
             else {},
             metadata=self.__extract_metadata_for_object(meta)
             if options.include_metadata
             else MetadataReturn(),
-            references=(
-                self.__parse_ref_properties_result(props)
-                if self._is_weaviate_version_123
-                else self.__parse_ref_properties_result_122(props)
-            )
+            references=self.__parse_ref_properties_result(props)
             if options.include_references
             else None,
             uuid=self.__extract_id_for_object(meta),
@@ -414,21 +396,13 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> GroupedObject[Any, Any]:
         return GroupedObject(
             collection=props.target_collection,
-            properties=(
-                self.__parse_nonref_properties_result(props.non_ref_props)
-                if self._is_weaviate_version_123
-                else self.__parse_nonref_properties_result_122(props)
-            )
+            properties=self.__parse_nonref_properties_result(props.non_ref_props)
             if options.include_properties
             else {},
             metadata=self.__extract_metadata_for_group_by_object(meta)
             if options.include_metadata
             else GroupByMetadataReturn(),
-            references=(
-                self.__parse_ref_properties_result(props)
-                if self._is_weaviate_version_123
-                else self.__parse_ref_properties_result_122(props)
-            )
+            references=self.__parse_ref_properties_result(props)
             if options.include_references
             else None,
             uuid=self.__extract_id_for_object(meta),

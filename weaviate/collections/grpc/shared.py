@@ -10,11 +10,9 @@ class _BaseGRPC:
         self,
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
-        is_weaviate_version_123: bool,
     ):
         self._connection = connection
         self._consistency_level = self._get_consistency_level(consistency_level)
-        self._is_weaviate_version_123 = is_weaviate_version_123
 
     def _get_metadata(self) -> Optional[Tuple[Tuple[str, str], ...]]:
         metadata: Optional[Tuple[Tuple[str, str], ...]] = None
