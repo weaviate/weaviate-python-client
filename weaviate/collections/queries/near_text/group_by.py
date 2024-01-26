@@ -191,12 +191,12 @@ class _NearTextGroupBy(Generic[Properties, References], _BaseQuery[Properties, R
         GroupByReturn[TProperties, CrossReferences],
         GroupByReturn[TProperties, TReferences],
     ]:
-        """Group the results of a by-text object search in this collection using an text-capable vectorisation module and vector-based similarity search.
+        """Group the results of a by-text object search in this collection using an text-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.
 
         NOTE:
-            You must have a text-capable vectorisation module installed in order to use this method, e.g. any of the `text2vec-` and `multi2vec-` modules.
+            You must have a text-capable vectorization module installed in order to use this method, e.g. any of the `text2vec-` and `multi2vec-` modules.
 
         Arguments:
             `query`

@@ -58,10 +58,10 @@ class _Warnings:
 
     @staticmethod
     def auth_cannot_parse_oidc_config(url: str) -> None:
-        msg = f"""Auth005: Could not parse Weaviates OIDC configuration, using unauthenticated access. If you added
+        msg = f"""Auth005: Could not parse Weaviate's OIDC configuration, using unauthenticated access. If you added
         an authorization header yourself it will be unaffected.
 
-        This can happen if weaviate is miss-configured or you have a proxy inbetween the client and weaviate.
+        This can happen if weaviate is miss-configured or you have a proxy between the client and weaviate.
         You can test this by visiting {url}."""
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
@@ -164,7 +164,7 @@ class _Warnings:
     @staticmethod
     def old_filter_by_metadata() -> None:
         warnings.warn(
-            message="""Dep009: You are using the FilterMetada() class, please use Filter.by_id(), Filter.by_update_time() or Filter.by_creation_time() instead.""",
+            message="""Dep009: You are using the FilterMetadata() class, please use Filter.by_id(), Filter.by_update_time() or Filter.by_creation_time() instead.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -205,7 +205,7 @@ class _Warnings:
     @staticmethod
     def sort_init_deprecated() -> None:
         warnings.warn(
-            message="""Dep014: You are initialising a Sort filter directly, which is deprecated. Use the static methods instead, e.g. Sort.by_property.""",
+            message="""Dep014: You are initializing a Sort filter directly, which is deprecated. Use the static methods instead, e.g. Sort.by_property.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -243,7 +243,7 @@ class _Warnings:
     @staticmethod
     def text2vec_huggingface_endpoint_url_and_model_set_together() -> None:
         warnings.warn(
-            message="""Con003: You are setting the endpoint_url alongside model or passage_model & query_model in your Text2Vec-HuggingFace module configuration.
+            message="""Con003: You are setting the endpoint_url alongside model or passage_model and query_model in your Text2Vec-HuggingFace module configuration.
             The model definitions will be ignored in favour of endpoint_url.
             """,
             category=UserWarning,
