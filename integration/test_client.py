@@ -361,7 +361,7 @@ def test_client_with_extra_options() -> None:
     ]:
         assert client._connection.timeout_config == _Timeout(1, 2)
 
-
+        
 def test_connect_and_close_to_embedded() -> None:
     # Can't use the default port values as they are already in use by the local instances
     client = weaviate.connect_to_embedded(port=8078, grpc_port=50151, version="1.23.4")
