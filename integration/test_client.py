@@ -406,11 +406,8 @@ def test_embedded_already_running() -> None:
     assert client._connection.embedded_db is not None
     assert client._connection.embedded_db.process is not None
 
-    with weaviate.connect_to_embedded(port=8096, grpc_port=50154) as client_2:
-        assert client_2.is_connected()
-        assert client_2.is_live()
-        assert client_2._connection.embedded_db is not None
-        assert client_2._connection.embedded_db.process is None
+    with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+        weaviate.connect_to_embedded(port=8096, grpc_port=50154)
 
     client.close()
 

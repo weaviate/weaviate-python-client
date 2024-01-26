@@ -102,8 +102,10 @@ def embedded_db_binary_path(tmp_path_factory: pytest.TempPathFactory):
     )
 
 
-@pytest.mark.parametrize("options", [EmbeddedOptions(), EmbeddedOptions(port=30666)])
-def test_embedded_end_to_end(options, tmp_path):
+@pytest.mark.parametrize(
+    "options", [EmbeddedOptions(), EmbeddedOptions(port=30666, grpc_port=50046)]
+)
+def test_embedded_end_to_end(options: EmbeddedDB, tmp_path):
     options.binary_path = tmp_path
     options.persistence_data_path = tmp_path
     embedded_db = EmbeddedDB(options=options)
@@ -115,11 +117,6 @@ def test_embedded_end_to_end(options, tmp_path):
 
     embedded_db.ensure_running()
     assert embedded_db.is_listening() is True
-    with patch("builtins.print") as mocked_print:
-        embedded_db.start()
-        mocked_print.assert_called_once_with(
-            f"embedded weaviate is already listening on port {options.port}"
-        )
 
     # killing the process should restart it again when ensure running is called
     os.kill(embedded_db.process.pid, signal.SIGTERM)
@@ -185,6 +182,7 @@ def test_custom_env_vars(tmp_path_factory: pytest.TempPathFactory):
             additional_env_vars={"ENABLE_MODULES": "", "GRPC_PORT": "50057"},
             persistence_data_path=tmp_path_factory.mktemp("data"),
             port=30666,
+            grpc_port=50057,
         )
     )
     meta = client.get_meta()
@@ -300,7 +298,6 @@ def test_embedded_with_grpc_port_default(tmp_path_factory: pytest.TempPathFactor
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
             version="latest",
-            port=30669,
         )
     )
 
