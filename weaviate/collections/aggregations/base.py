@@ -2,7 +2,7 @@ import io
 import json
 import pathlib
 
-from typing import Callable, List, Optional, TypeVar, Union, cast
+from typing import List, Optional, TypeVar, Union, cast
 from typing_extensions import ParamSpec
 
 from weaviate.collections.classes.aggregate import (
@@ -14,18 +14,17 @@ from weaviate.collections.classes.aggregate import (
     AggregateNumber,
     AggregateReference,
     AggregateText,
-    _AggregateGroup,
-    _AggregateGroupByReturn,
-    _AggregateReturn,
+    AggregateGroup,
+    AggregateGroupByReturn,
+    AggregateReturn,
     _Metrics,
-    _MetricsBase,
     _MetricsBoolean,
     _MetricsDate,
     _MetricsNumber,
     _MetricsInteger,
     _MetricsReference,
     _MetricsText,
-    _GroupedBy,
+    GroupedBy,
     TopOccurrence,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
@@ -40,28 +39,6 @@ from weaviate.types import UUID
 
 P = ParamSpec("P")
 T = TypeVar("T")
-
-
-def validate(fn: Callable[P, T]) -> Callable[P, T]:
-    """Validate the aggregations argument."""
-
-    def inner(*args: P.args, **kwargs: P.kwargs) -> T:
-        try:
-            aggregations = args[1]
-        except IndexError:
-            aggregations = kwargs.get("return_metrics")
-        if not isinstance(aggregations, list):
-            raise TypeError(
-                f"The aggregations argument received an unexpected type: {type(aggregations)}. This argument must be a list!"
-            )
-        for aggregation in aggregations:
-            if not isinstance(aggregation, _MetricsBase):
-                raise TypeError(
-                    f"One of the aggregations is an unexpected type: {type(aggregation)}. Did you forget to append a method call?  E.g. .text(count=True)"
-                )
-        return fn(*args, **kwargs)
-
-    return inner
 
 
 class _Aggregate:
@@ -82,10 +59,10 @@ class _Aggregate:
 
     def _to_aggregate_result(
         self, response: dict, metrics: Optional[List[_Metrics]]
-    ) -> _AggregateReturn:
+    ) -> AggregateReturn:
         try:
             result: dict = response["data"]["Aggregate"][self.__name][0]
-            return _AggregateReturn(
+            return AggregateReturn(
                 properties=self.__parse_properties(result, metrics) if metrics is not None else {},
                 total_count=result["meta"]["count"] if result.get("meta") is not None else None,
             )
@@ -96,13 +73,13 @@ class _Aggregate:
 
     def _to_group_by_result(
         self, response: dict, metrics: Optional[List[_Metrics]]
-    ) -> _AggregateGroupByReturn:
+    ) -> AggregateGroupByReturn:
         try:
             results: dict = response["data"]["Aggregate"][self.__name]
-            return _AggregateGroupByReturn(
+            return AggregateGroupByReturn(
                 groups=[
-                    _AggregateGroup(
-                        grouped_by=_GroupedBy(
+                    AggregateGroup(
+                        grouped_by=GroupedBy(
                             prop=result["groupedBy"]["path"][0],
                             value=result["groupedBy"]["value"],
                         ),

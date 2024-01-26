@@ -10,6 +10,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateInteger,
     AggregateNumber,
     AggregateText,
+    AggregateReturn,
     Metrics,
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
@@ -76,7 +77,7 @@ def test_near_object_aggregation(
     text_2 = "nothing like the other one at all, not even a little bit"
     uuid = collection.data.insert({"text": text_1})
     collection.data.insert({"text": text_2})
-    res = collection.aggregate.near_object(
+    res: AggregateReturn = collection.aggregate.near_object(
         uuid,
         return_metrics=[
             Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
@@ -151,7 +152,7 @@ def test_near_vector_aggregation(
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.vector is not None
     collection.data.insert({"text": text_2})
-    res = collection.aggregate.near_vector(
+    res: AggregateReturn = collection.aggregate.near_vector(
         obj.vector,
         return_metrics=[
             Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
@@ -223,7 +224,7 @@ def test_near_text_aggregation(
     text_2 = "nothing like the other one at all, not even a little bit"
     collection.data.insert({"text": text_1})
     collection.data.insert({"text": text_2})
-    res = collection.aggregate.near_text(
+    res: AggregateReturn = collection.aggregate.near_text(
         text_1,
         return_metrics=[
             Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
@@ -281,7 +282,7 @@ def test_near_image_aggregation(collection_factory: CollectionFactory, option: d
     )
     img_path = pathlib.Path("integration/weaviate-logo.png")
     collection.data.insert({"image": file_encoder_b64(img_path), "rating": 9})
-    res = collection.aggregate.near_image(
+    res: AggregateReturn = collection.aggregate.near_image(
         img_path,
         return_metrics=[Metrics("rating").integer(count=True, maximum=True)],
         **option,

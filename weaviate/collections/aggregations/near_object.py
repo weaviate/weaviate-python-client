@@ -3,9 +3,9 @@ from typing import List, Literal, Optional, Union, overload
 from weaviate.collections.aggregations.base import _Aggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
-    _AggregateReturn,
-    _AggregateGroupByReturn,
-    _AggregateGroup,
+    AggregateReturn,
+    AggregateGroupByReturn,
+    AggregateGroup,
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.types import UUID
@@ -26,7 +26,7 @@ class _NearObject(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> _AggregateReturn:
+    ) -> AggregateReturn:
         ...
 
     @overload
@@ -42,7 +42,7 @@ class _NearObject(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> _AggregateGroupByReturn:
+    ) -> AggregateGroupByReturn:
         ...
 
     def near_object(
@@ -57,7 +57,7 @@ class _NearObject(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> Union[_AggregateReturn, _AggregateGroupByReturn]:
+    ) -> Union[AggregateReturn, AggregateGroupByReturn]:
         """Aggregate metrics over the objects returned by a near object search on this collection.
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
@@ -85,7 +85,7 @@ class _NearObject(_Aggregate):
                 A list of property metrics to aggregate together after the text search.
 
         Returns:
-            Depending on the presence of the `group_by` argument, either a `_AggregateReturn` object or a `_AggregateGroupByReturn that includes the aggregation objects.
+            Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
             `weaviate.exceptions.WeaviateGQLQueryError`:
@@ -122,7 +122,7 @@ class _NearObjectGroupBy(_Aggregate):
         limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> List[_AggregateGroup]:
+    ) -> List[AggregateGroup]:
         """Aggregate metrics over the objects returned by a near object vector search on this collection grouping the results by a property.
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
@@ -150,7 +150,7 @@ class _NearObjectGroupBy(_Aggregate):
                 A list of property metrics to aggregate together after the text search.
 
         Returns:
-            A list of `_AggregateGroup` objects that includes the aggregation objects.
+            A list of `AggregateGroup` objects that includes the aggregation objects.
 
         Raises:
             `weaviate.exceptions.WeaviateGQLQueryError`:
