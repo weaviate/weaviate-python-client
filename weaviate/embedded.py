@@ -33,7 +33,7 @@ DEFAULT_GRPC_PORT = 50060
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.23.2"
+    version: str = "1.23.5"
     port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
@@ -189,9 +189,16 @@ class EmbeddedDB:
             )
 
     def start(self) -> None:
-        if self.is_listening():
+        if (
+            self.is_listening()
+            and os.environ.get("WEAVIATE_RUNNING_EMBEDDED_PROCESS_ID") is not None
+        ):
             print(f"embedded weaviate is already listening on port {self.options.port}")
             return
+        elif self.is_listening():
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start because a process is already listening on port {self.options.port}"
+            )
 
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
@@ -233,6 +240,7 @@ class EmbeddedDB:
             )
             self.process = process
         print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
+        os.environ["WEAVIATE_RUNNING_EMBEDDED_PROCESS_ID"] = str(self.process.pid)
         self.wait_till_listening()
 
     def stop(self) -> None:
@@ -246,9 +254,10 @@ class EmbeddedDB:
                     anything"""
                 )
             self.process = None
+            os.environ.pop("WEAVIATE_RUNNING_EMBEDDED_PROCESS_ID", None)
 
     def ensure_running(self) -> None:
-        if not self.is_listening():
+        if not self.is_listening() and self.process is None:
             print(
                 f"Embedded weaviate wasn't listening on port {self.options.port}, so starting embedded weaviate again"
             )
