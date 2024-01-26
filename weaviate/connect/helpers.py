@@ -107,11 +107,13 @@ def connect_to_local(
         `grpc_port`
             The port to use for the underlying gRPC API.
         `headers`
+            DWC: 
             Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
         `timeout`
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
         `skip_init_checks`
+            DWC:
             Whether to skip the initialisation checks when connecting to Weaviate.
         `auth_credentials`
             The credentials to use for authentication with your instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
