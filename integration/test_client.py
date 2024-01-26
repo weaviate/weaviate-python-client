@@ -408,8 +408,6 @@ def test_embedded_already_running() -> None:
     client.close()
 
 
-@pytest.mark.skip(reason="EmbeddedDB doesn't check if the listening port belongs to an embedded or a local instance")
 def test_connect_to_embedded_with_already_running_local_weaviate() -> None:
     with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
-        weaviate.connect_to_embedded(port=8080,grpc_port=50051)
-
+        weaviate.connect_to_embedded(port=8080, grpc_port=50051)
