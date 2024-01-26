@@ -159,7 +159,7 @@ def connect_to_embedded(
     grpc_port: int = 50050,
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
-    version: str = "1.22.3",
+    version: str = "1.23.5",
     persistence_data_path: Optional[str] = None,
     binary_path: Optional[str] = None,
     environment_variables: Optional[Dict[str, str]] = None,
