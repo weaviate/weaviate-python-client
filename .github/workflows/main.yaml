@@ -73,7 +73,7 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
       - name: Run unittests
-        run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
+        run: pytest -n auto --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
       - name: Archive code coverage results
         if: matrix.version == '3.10' && (github.ref_name != 'main')
         uses: actions/upload-artifact@v3
