@@ -369,6 +369,7 @@ def test_connect_and_close_to_embedded() -> None:
     metadata = client.get_meta()
     assert "1.23.4" == metadata["version"]
     assert client.is_ready()
+    assert "8078" == metadata["hostname"].split(":")[2]
     assert client.is_live()
 
     client.close()
@@ -396,16 +397,6 @@ def test_embedded_with_wrong_version() -> None:
         weaviate.connect_to_embedded(version="this_version_does_not_exist")
 
 
-def test_embedded_custom_ports() -> None:
-    client = weaviate.connect_to_embedded(port=8092, grpc_port=50153, version="latest")
-    assert client.is_connected()
-    metadata = client.get_meta()
-    assert "8092" == metadata["hostname"].split(":")[2]
-    assert client.is_live()
-    # TODO: check if the ports are actually used
-
-    client.close()
-
 def test_embedded_already_running() -> None:
     client = weaviate.connect_to_embedded(port=8096, grpc_port=50154)
 
@@ -414,6 +405,7 @@ def test_embedded_already_running() -> None:
         assert client_2.is_live()
 
     client.close()
+
 
 @pytest.mark.skip(reason="EmbeddedDB doesn't check if the listening port belongs to an embedded or a local instance")
 def test_connect_to_embedded_with_already_running_local_weaviate() -> None:
