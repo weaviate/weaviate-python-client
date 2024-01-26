@@ -357,19 +357,21 @@ def test_client_with_extra_options() -> None:
         #     auth_credentials=WCS_CREDS,
         #     additional_config=additional_config,
         # ),
-        weaviate.connect_to_embedded(additional_config=additional_config),
+        weaviate.connect_to_embedded(
+            port=8070, grpc_port=50040, additional_config=additional_config
+        ),
     ]:
         assert client._connection.timeout_config == _Timeout(1, 2)
 
 
 def test_connect_and_close_to_embedded() -> None:
     # Can't use the default port values as they are already in use by the local instances
-    client = weaviate.connect_to_embedded(port=8078, grpc_port=50151, version="1.23.4")
+    client = weaviate.connect_to_embedded(port=8078, grpc_port=50151, version="1.23.5")
 
     client.connect()
     assert client.is_connected()
     metadata = client.get_meta()
-    assert "1.23.4" == metadata["version"]
+    assert "1.23.5" == metadata["version"]
     assert client.is_ready()
     assert "8078" == metadata["hostname"].split(":")[2]
     assert client.is_live()
@@ -419,18 +421,14 @@ def test_connect_to_embedded_with_already_running_local_weaviate() -> None:
 
 
 def test_embedded_startup_with_blocked_http_port() -> None:
-    try:
-        client = weaviate.connect_to_embedded(port=8081, grpc_port=50053)
-        with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
-            weaviate.connect_to_embedded(port=8081, grpc_port=50052)
-    finally:
-        client.close()
+    client = weaviate.connect_to_embedded(port=8098, grpc_port=50096)
+    with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+        weaviate.connect_to_embedded(port=8098, grpc_port=50097)
+    client.close()
 
 
 def test_embedded_startup_with_blocked_grpc_port() -> None:
-    try:
-        client = weaviate.connect_to_embedded(port=8081, grpc_port=50053)
-        with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
-            weaviate.connect_to_embedded(port=8082, grpc_port=50053)
-    finally:
-        client.close()
+    client = weaviate.connect_to_embedded(port=8099, grpc_port=50150)
+    with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
+        weaviate.connect_to_embedded(port=8100, grpc_port=50150)
+    client.close()
