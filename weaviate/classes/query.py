@@ -14,6 +14,7 @@ from weaviate.collections.classes.grpc import (
     Rerank,
     Sort,
 )
+from weaviate.collections.classes.types import GeoCoordinate
 
 
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     "FromNested",
     "FromReference",
     "FromReferenceMultiTarget",
+    "GeoCoordinate",
     "GroupBy",
     "HybridFusion",
     "MetadataQuery",

@@ -219,6 +219,17 @@ class _Warnings:
         )
 
     @staticmethod
+    def weaviate_v3_client_is_deprecated() -> None:
+        warnings.warn(
+            message="""Dep016: You are using the Weaviate v3 client, which is deprecated.
+            Consider upgrading to the new and improved v4 client instead!
+            See here for usage: https://weaviate.io/developers/weaviate/client-libraries/python
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.

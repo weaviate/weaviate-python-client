@@ -137,12 +137,9 @@ def test_authentication_user_pw(
     client = weaviate.Client(url, auth_client_secret=auth)
     client.schema.delete_all()  # no exception
     if warning:
-        assert len(recwarn) == 1
-        w = recwarn.pop()
-        assert issubclass(w.category, UserWarning)
-        assert str(w.message).startswith("Auth002")
+        assert any([str(w.message).startswith("Auth002") for w in recwarn])
     else:
-        assert len(recwarn) == 0
+        assert not any([str(w.message).startswith("Auth002") for w in recwarn])
 
 
 def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
@@ -220,10 +217,7 @@ def test_client_with_authentication_with_anon_weaviate(recwarn):
     )
 
     # only one warning
-    assert len(recwarn) == 1
-    w = recwarn.pop()
-    assert issubclass(w.category, UserWarning)
-    assert str(w.message).startswith("Auth001")
+    assert any([str(w.message).startswith("Auth001") for w in recwarn])
 
     client.schema.delete_all()  # no exception, client works
 
@@ -249,10 +243,7 @@ def test_bearer_token_without_refresh(recwarn):
     )
     client.schema.delete_all()  # no exception, client works
 
-    assert len(recwarn) == 1
-    w = recwarn.pop()
-    assert issubclass(w.category, UserWarning)
-    assert str(w.message).startswith("Auth002")
+    assert any([str(w.message).startswith("Auth002") for w in recwarn])
 
 
 def test_api_key():
