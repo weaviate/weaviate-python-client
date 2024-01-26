@@ -278,14 +278,10 @@ class Metrics:
         Returns:
             A `_MetricsStr` object that includes the metrics to be returned.
         """
-        if all([count is None, top_occurrences_count is None, top_occurrences_value is None]):
+        if not any([count, top_occurrences_count, top_occurrences_value]):
             count = True
             top_occurrences_count = True
             top_occurrences_value = True
-        else:
-            count = count is True
-            top_occurrences_count = top_occurrences_count is True
-            top_occurrences_value = top_occurrences_value is True
         return _MetricsText(
             property_name=self.__property,
             count=count,
@@ -326,7 +322,7 @@ class Metrics:
         Returns:
             A `_MetricsInteger` object that includes the metrics to be returned.
         """
-        if not all([not count, not maximum, not mean, not median, not minimum, not mode, not sum_]):
+        if not any([count, maximum, mean, median, minimum, mode, sum_]):
             count = True
             maximum = True
             mean = True
@@ -378,7 +374,7 @@ class Metrics:
         Returns:
             A `_MetricsNumber` object that includes the metrics to be returned.
         """
-        if all([not count, not maximum, not mean, not median, not minimum, not mode, not sum_]):
+        if not any([count, maximum, mean, median, minimum, mode, sum_]):
             count = True
             maximum = True
             mean = True
@@ -386,14 +382,6 @@ class Metrics:
             minimum = True
             mode = True
             sum_ = True
-        else:
-            count = count is True
-            maximum = maximum is True
-            mean = mean is True
-            median = median is True
-            minimum = minimum is True
-            mode = mode is True
-            sum_ = sum_ is True
         return _MetricsNumber(
             property_name=self.__property,
             count=count,
@@ -432,9 +420,7 @@ class Metrics:
         Returns:
             A `_MetricsBoolean` object that includes the metrics to be returned.
         """
-        if all(
-            [not count, not percentage_false, not percentage_true, not total_false, not total_true]
-        ):
+        if not any([count, percentage_false, percentage_true, total_false, total_true]):
             count = True
             percentage_false = True
             percentage_true = True
@@ -476,7 +462,7 @@ class Metrics:
         Returns:
             A `_MetricsDate` object that includes the metrics to be returned.
         """
-        if all([not count, not maximum, not median, not minimum, not mode]):
+        if not any([count, maximum, median, minimum, mode]):
             count = True
             maximum = True
             median = True
@@ -506,7 +492,7 @@ class Metrics:
         Returns:
             A `_MetricsReference` object that includes the metrics to be returned.
         """
-        if all([not pointing_to]):
+        if not any([pointing_to]):
             pointing_to = True
         return _MetricsReference(
             property_name=self.__property,
