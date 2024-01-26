@@ -125,18 +125,13 @@ class _Connection(_ConnectionBase):
         self._create_clients(self.__auth, skip_init_checks)
         self.__connected = True
 
+        # need this to get the version of weaviate for version checks
+        try:
+            self._weaviate_version = _ServerVersion.from_string(self.get_meta()["version"])
+        except (ConnectError, ReadError, RemoteProtocolError) as e:
+            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
+
         if not skip_init_checks:
-            # temporary need this to get the version of weaviate for version checks
-            try:
-                self._weaviate_version = _ServerVersion.from_string(self.get_meta()["version"])
-            except (ConnectError, ReadError, RemoteProtocolError) as e:
-                raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
-
-            if self._weaviate_version.is_lower_than(1, 23, 5):
-                raise WeaviateStartUpError(
-                    f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.5 or higher."
-                )
-
             try:
                 pkg_info = get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
                 pkg_info = pkg_info.get("info", {})
@@ -627,6 +622,11 @@ class ConnectionV4(_Connection):
         else:
             raise WeaviateGRPCUnavailableError(
                 "You must provide the gRPC port in `connection_params` to use gRPC."
+            )
+        # do it after all other init checks so as not to break all the tests
+        if self._weaviate_version.is_lower_than(1, 23, 5):
+            raise WeaviateStartUpError(
+                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.5 or higher."
             )
 
     @property
