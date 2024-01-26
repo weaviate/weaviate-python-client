@@ -23,10 +23,10 @@ BATCH_MANUAL_USE_W = (
 
 BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W = (
     "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-    "beacons. To use class namespaced beacons, please specify the "
-    "`to_object_class_name` argument. Non-class namespaced beacons (None value "
-    "for `to_object_class_name`) will be removed in future versions of the "
-    "Weaviate Server and Weaviate Python Client."
+    "beacons. To use class namespaced beacons, specify the `to_object_class_name` "
+    "argument. Non-class namespaced beacons (None value for `to_object_class_name`) "
+    "will be removed in future versions of the Weaviate Server and Weaviate "
+    "Python Client."
 )
 
 
@@ -41,10 +41,9 @@ BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W = (
 
 DATA_DEPRECATION_NEW_V14_CLS_NS_W = (
     "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-    "APIs. To use class namespaced APIs, please specify the `to_object_class_name`"
-    "argument. Non-class namespaced APIs (None value for `to_object_class_name`) "
-    "will be removed in future versions of the Weaviate Server and Weaviate "
-    "Python Client."
+    "APIs. To use class namespaced APIs, specify the `class_name` argument. "
+    "Non-class namespaced APIs (None value for `to_object_class_name`) will be "
+    "removed in future versions of the Weaviate Server and Weaviate Python Client."
 )
 
 
@@ -59,34 +58,35 @@ DATA_DEPRECATION_OLD_V14_CLS_NS_W = (
 
 REF_DEPRECATION_NEW_V14_CLS_NS_W = (  # del
     "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-    "APIs and beacons, please set the `from_class_name` AND `to_class_name` arguments "
-    "for this. The non-class namespaced APIs and beacons (None value for "
-    "`from_class_name` AND `to_class_name`) are going to be removed in future "
-    "versions of the Weaviate Server and Weaviate Python Client."
+    "APIs and beacons. To use class namespaced APIs and beacons, specify, the "
+    "`from_class_name` AND `to_class_name` arguments. Non-class namespaced APIs "
+    "and beacons (None value for `from_class_name` AND `to_class_name`) will be "
+    "removed in future versions of the Weaviate Server and Weaviate Python Client."
 )
 
 
 REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W = (
     "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
-    "The non-class namespaced APIs calls are going to be made instead "
-    "(None value for `from_class_name`). The non-class namespaced APIs and "
-    "beacons are going to be removed in future versions of the Weaviate Server "
-    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+    "Non-class namespaced APIs calls will to be made instead (None value for "
+    "`from_class_name`). Non-class namespaced APIs and  beacons will be removed "
+    "in future versions of the Weaviate Server and Weaviate Python Client. Please "
+    "upgrade your Weaviate Server version."
 )
 
 
 REF_DEPRECATION_OLD_V14_TO_CLS_NS_W = (
     "Weaviate Server version < 1.14.x does not support class namespaced beacons. "
-    "The non-class namespaced beacons are going to be constructed instead "
-    "(None value for `to_class_name`). The non-class namespaced APIs and "
-    "beacons are going to be removed in future versions of the Weaviate Server "
-    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+    "Non-class namespaced beacons will be constructed instead (None value for "
+    "`to_class_name`). Non-class namespaced APIs and beacons will be removed in "
+    "future versions of the Weaviate Server and Weaviate Python Client. Please "
+    "upgrade your Weaviate Server version."
 )
 
 
 BATCH_EXECUTOR_SHUTDOWN_W = (
     "The BatchExecutor was shutdown, most probably when it exited the `with` statement. "
-    "It will be initialized again. If you are not `batch` in the `with client.batch as batch` "
-    "please make sure to shut it down when done importing data: `client.batch.shutdown()`. "
-    "You can start it again using the `client.batch.start()` method."
+    "The BatchExecutor will be reinitialized. If you are not `batch` in "
+    "`with client.batch as batch`, be sure to shut the BatchExecutor down when "
+    "your data import finishes: `client.batch.shutdown()`. To restart the "
+    "BatchExecutor, use `client.batch.start()`."
 )
