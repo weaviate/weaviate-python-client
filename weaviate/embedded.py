@@ -12,7 +12,7 @@ import warnings
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import requests
 import validators  # type: ignore
@@ -57,6 +57,9 @@ class EmbeddedDB:
         self.ensure_paths_exist()
         self.check_supported_platform()
         self._parsed_weaviate_version = ""
+        self.__embedded_env_var = (
+            f"WEAVIATE_RUNNING_EMBEDDED_PROCESS_ID_PORTS_{options.port}:{self.grpc_port}"
+        )
         # regular expression to detect a version number: v[one digit].[1-2 digits].[1-2 digits]
         # optionally there can be a "-rc/alpha/beta.[1-2 digits]"
         # nothing in front or back
@@ -168,6 +171,22 @@ class EmbeddedDB:
             s.close()
             return False
 
+    def __is_listening(self) -> Tuple[bool, bool]:
+        http_listening, grpc_listening = False, False
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.connect((self.options.hostname, self.options.port))
+                http_listening = True
+            except (socket.error, ConnectionRefusedError):
+                pass
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.connect((self.options.hostname, self.grpc_port))
+                grpc_listening = True
+            except (socket.error, ConnectionRefusedError):
+                pass
+        return (http_listening, grpc_listening)
+
     def wait_till_listening(self) -> None:
         seconds = 30
         sleep_interval = 0.1
@@ -189,15 +208,23 @@ class EmbeddedDB:
             )
 
     def start(self) -> None:
-        if (
-            self.is_listening()
-            and os.environ.get("WEAVIATE_RUNNING_EMBEDDED_PROCESS_ID") is not None
-        ):
-            print(f"embedded weaviate is already listening on port {self.options.port}")
+        if os.environ.get(self.__embedded_env_var) is not None:
+            print(
+                f"embedded weaviate is already listening on ports http:{self.options.port} & grpc:{self.grpc_port}"
+            )
             return
-        elif self.is_listening():
+        up = self.__is_listening()
+        if up[0] and up[1]:
             raise WeaviateStartUpError(
-                f"Embedded DB did not start because a process is already listening on port {self.options.port}"
+                f"Embedded DB did not start because processes are already listening on ports http:{self.options.port} and grpc:{self.grpc_port}"
+            )
+        elif up[0] and not up[1]:
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start because a process is already listening on port http:{self.options.port}"
+            )
+        elif up[1] and not up[0]:
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start because a process is already listening on port grpc:{self.grpc_port}"
             )
 
         self.ensure_weaviate_binary_exists()
@@ -240,7 +267,7 @@ class EmbeddedDB:
             )
             self.process = process
         print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
-        os.environ["WEAVIATE_RUNNING_EMBEDDED_PROCESS_ID"] = str(self.process.pid)
+        os.environ[self.__embedded_env_var] = str(self.process.pid)
         self.wait_till_listening()
 
     def stop(self) -> None:
@@ -254,7 +281,7 @@ class EmbeddedDB:
                     anything"""
                 )
             self.process = None
-            os.environ.pop("WEAVIATE_RUNNING_EMBEDDED_PROCESS_ID", None)
+            os.environ.pop(self.__embedded_env_var, None)
 
     def ensure_running(self) -> None:
         if not self.is_listening() and self.process is None:
