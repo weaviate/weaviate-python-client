@@ -72,7 +72,7 @@ class _BatchREST:
     def references(self, references: List[_BatchReference]) -> BatchReferenceReturn:
         params: Dict[str, str] = {}
         if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level
+            params["consistency_level"] = self.__consistency_level.value
 
         refs = [
             {"from": ref.from_, "to": ref.to}
