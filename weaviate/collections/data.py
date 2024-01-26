@@ -160,12 +160,9 @@ class _Data:
         """
         if not isinstance(where, _Filters):
             _raise_invalid_input("where", where, _Filters)
-        if self._connection._weaviate_version.is_at_least(1, 23, patch=3):
-            return self._batch_delete_grpc.batch_delete(
-                self.name, where, verbose, dry_run, self._tenant
-            )
-        else:
-            return self._batch_rest.delete(self.name, where, verbose, dry_run, self._tenant)
+        return self._batch_delete_grpc.batch_delete(
+            self.name, where, verbose, dry_run, self._tenant
+        )
 
     def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"

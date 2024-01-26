@@ -45,7 +45,6 @@ from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateQueryError
 from weaviate.types import NUMBER, UUID
-from weaviate.warnings import _Warnings
 
 from weaviate.proto.v1 import search_get_pb2
 
@@ -84,12 +83,10 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         default_properties: Optional[PROPERTIES] = None,
-        has_reranking: bool = False,
     ):
         super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
-        self.__has_reranking = has_reranking
 
         if default_properties is not None:
             self._default_props: Optional[Set[PROPERTY]] = self.__convert_to_set(default_properties)
@@ -539,10 +536,6 @@ class _QueryGRPC(_BaseGRPC):
         metadata: Optional[Tuple[Tuple[str, str], ...]] = None
         access_token = self._connection.get_current_bearer_token()
 
-        if not self.__has_reranking and self._rerank is not None:
-            _Warnings.reranking_not_enabled()
-            self._rerank = None
-
         metadata_list: List[Tuple[str, str]] = []
         if len(access_token) > 0:
             metadata_list.append(("authorization", access_token))
@@ -609,9 +602,7 @@ class _QueryGRPC(_BaseGRPC):
                     if self._hybrid_query is not None
                     else None,
                     tenant=self._tenant,
-                    filters=_FilterToGRPC.convert(
-                        self._filters, self._connection._weaviate_version
-                    ),
+                    filters=_FilterToGRPC.convert(self._filters),
                     near_audio=search_get_pb2.NearAudioSearch(
                         audio=self._near_audio,
                         distance=self._near_distance,

@@ -438,10 +438,6 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
 
 def test_update_flat(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if not dummy._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("flat index is not supported in this version")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=5,
@@ -544,10 +540,6 @@ def test_collection_config_get_shards_multi_tenancy(collection_factory: Collecti
 
 
 def test_config_vector_index_flat_and_quantizer_bq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if not dummy._connection._weaviate_version.is_at_least(1, 23, 0):
-        pytest.skip("flat index is not supported in this version")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,

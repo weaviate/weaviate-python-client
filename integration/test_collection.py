@@ -1215,13 +1215,7 @@ def test_add_reference(collection_factory: CollectionFactory) -> None:
         uuid2, return_properties=["name"], return_references=FromReference(link_on="self")
     )
     assert "name" in obj1.properties
-    assert (
-        obj1.references == {}
-        if collection._connection._weaviate_version.is_at_least(
-            1, 23, 2
-        )  # TODO: change to 1.23.3 when released
-        else obj1.references is None
-    )
+    assert obj1.references == {}
     assert "name" in obj2.properties
     assert "self" in obj2.references
 
@@ -1307,16 +1301,10 @@ def test_return_properties_metadata_references_combos(
     assert obj.uuid is not None
 
     if return_properties is None:
-        if (
-            return_references is not None
-            and not collection._connection._weaviate_version.is_at_least(1, 23, 0)
-        ):
-            assert obj.properties == {}
-        else:
-            assert "name" in obj.properties
-            assert "age" in obj.properties
-            assert obj.properties["name"] == "John"
-            assert obj.properties["age"] == 43
+        assert "name" in obj.properties
+        assert "age" in obj.properties
+        assert obj.properties["name"] == "John"
+        assert obj.properties["age"] == 43
     elif len(return_properties) == 0:
         assert "name" not in obj.properties
         assert "age" not in obj.properties
@@ -1958,10 +1946,6 @@ def test_return_phone_number_property(collection_factory: CollectionFactory) -> 
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
         ]
     )
-    if not collection._connection._weaviate_version.is_at_least(
-        1, 23, 2
-    ):  # TODO: change to 1.23.3 when it is released
-        pytest.skip("Phone number properties are only supported on Weaviate >= 1.23.3")
     uuid1 = collection.data.insert({"phone": PhoneNumber(number="+441612345000")})
     uuid2 = collection.data.insert_many(
         [{"phone": PhoneNumber(default_country="GB", number="01612345000")}]
