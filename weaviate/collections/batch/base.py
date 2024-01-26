@@ -157,7 +157,10 @@ class _BatchBase:
         self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
         self.__batch_rest = _BatchRESTAsync(connection, self.__consistency_level)
 
-        self.__results_for_wrapper = results
+        # we do not want that users can acccess the results directly as they are not thread-safe
+        self.__results_for_wrapper_backup = results
+        self.__results_for_wrapper = _BatchDataWrapper()
+
         self.__results_lock = threading.Lock()
 
         self.__cluster = Cluster(self.__connection)
@@ -203,6 +206,13 @@ class _BatchBase:
         self.__bg_thread = self.__start_bg_thread()
         self.__bg_thread_exception: Optional[Exception] = None
 
+    @property
+    def number_errors(self) -> int:
+        """Return the number of errors in the batch."""
+        return len(self.__results_for_wrapper.failed_objects) + len(
+            self.__results_for_wrapper.failed_references
+        )
+
     def __run_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         try:
             loop.run_forever()
@@ -235,6 +245,16 @@ class _BatchBase:
         self.__shut_background_thread_down.set()
         while self.__bg_thread.is_alive():
             time.sleep(0.01)
+
+        # copy the results to the public results
+        self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
+        self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
+        self.__results_for_wrapper_backup.failed_references = (
+            self.__results_for_wrapper.failed_references
+        )
+        self.__results_for_wrapper_backup.imported_shards = (
+            self.__results_for_wrapper.imported_shards
+        )
 
     def __periodic_check(self) -> None:
         loop = self.__start_new_event_loop()

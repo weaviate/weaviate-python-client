@@ -184,9 +184,14 @@ def test_warning_direct_batching(batch_collection: BatchCollection) -> None:
 
 def test_error_reset(batch_collection: BatchCollection) -> None:
     col = batch_collection()
-    with col.batch.dynamic() as batch:
+    with col.batch.fixed_size(1) as batch:
         batch.add_object(properties={"name": 1})
         batch.add_object(properties={"name": "correct"})
+
+        # make sure that errors are processed
+        batch.flush()
+        assert len(col.batch.failed_objects) == 0  # error is still private
+        assert batch.number_errors == 1
 
     errs = col.batch.failed_objects
     assert len(errs) == 1
