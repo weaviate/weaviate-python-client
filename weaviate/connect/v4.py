@@ -131,6 +131,11 @@ class _Connection(_ConnectionBase):
         except (ConnectError, ReadError, RemoteProtocolError) as e:
             raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
+        if self._weaviate_version.is_lower_than(1, 23, 0):
+            raise WeaviateStartUpError(
+                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.0 or higher."
+            )
+
         if not skip_init_checks:
             if not self._weaviate_version.is_at_least(1, 14, 0):
                 _Warnings.weaviate_server_older_than_1_14(str(self._weaviate_version))

@@ -14,7 +14,7 @@ on:
   pull_request:
 
 env:
-  OLD_WEAVIATE_VERSION: 1.22.10
+  OLD_WEAVIATE_VERSION: 1.23.0
   NEW_WEAVIATE_VERSION: preview-fix-nested-obejcts-with-missing-values-1a1ed9e
 
 jobs:
@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: psf/black@stable
+        with:
+            version: "23.9.1"
       - uses: actions/setup-python@v4
         with:
           python-version: "3.11"
