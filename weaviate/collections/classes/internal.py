@@ -716,8 +716,8 @@ GenerativeReturnType = Union[
     GenerativeReturn[TProperties, CrossReferences],
 ]
 
-# The way in which generic typealiases work requires that all the generic arguments
-# are listed first and in the order of their apperance in the typealias.
+# The way in which generic type aliases work requires that all the generic arguments
+# are listed first and in the order of their appearance in the typealias.
 # GenerativeNearMediaReturn[Properties, References, TProperties, TReferences] is the intended use and so
 # these four generics appear first. All others resolve afterwards correctly
 GenerativeNearMediaReturnType = Union[

@@ -158,7 +158,7 @@ class _BatchBase:
         self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
         self.__batch_rest = _BatchRESTAsync(connection, self.__consistency_level)
 
-        # we do not want that users can acccess the results directly as they are not thread-safe
+        # we do not want that users can access the results directly as they are not thread-safe
         self.__results_for_wrapper_backup = results
         self.__results_for_wrapper = _BatchDataWrapper()
 

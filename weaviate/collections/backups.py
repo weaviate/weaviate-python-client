@@ -7,7 +7,7 @@ from weaviate.connect import ConnectionV4
 
 
 class _CollectionBackup:
-    """Backup functionatility for this collection."""
+    """Backup functionality for this collection."""
 
     def __init__(self, connection: ConnectionV4, name: str):
         self._connection = connection

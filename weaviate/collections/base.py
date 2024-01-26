@@ -70,7 +70,7 @@ class _CollectionsBase:
         try:
             response = self._connection.get(path=path)
         except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Existenz of class.") from conn_err
+            raise RequestsConnectionError("Existence of class.") from conn_err
 
         if response.status_code == 200:
             return True

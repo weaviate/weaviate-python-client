@@ -85,7 +85,7 @@ class _BatchClient(_BatchBase):
                 The name of the property that contains the reference.
             `to`
                 The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
-                For multi-target references use wvc.Reference.to_multi_targer().
+                For multi-target references use wvc.Reference.to_multi_target().
             `tenant`
                 Name of the tenant.
 

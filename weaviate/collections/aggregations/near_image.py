@@ -63,7 +63,7 @@ class _NearImage(_Aggregate):
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
 
-        This method requires a vectoriser capable of handling base64-encoded images, e.g. `img2vec-neural`, `multi2vec-clip`, and `multi2vec-bind`.
+        This method requires a vectorizer capable of handling base64-encoded images, e.g. `img2vec-neural`, `multi2vec-clip`, and `multi2vec-bind`.
 
         Arguments:
             `near_image`
@@ -128,7 +128,7 @@ class _NearImageGroupBy(_Aggregate):
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
 
-        This method requires a vectoriser capable of handling base64-encoded images, e.g. `img2vec-neural`, `multi2vec-clip`, and `multi2vec-bind`.
+        This method requires a vectorizer capable of handling base64-encoded images, e.g. `img2vec-neural`, `multi2vec-clip`, and `multi2vec-bind`.
 
         Arguments:
             `near_image`
