@@ -1,5 +1,5 @@
 """
-Error/Warning messages that are reused throughout the code.
+Error and Warning messages that are reused throughout the code.
 """
 
 
@@ -13,19 +13,20 @@ FILTER_BEACON_V14_CLS_NS_W = (
 
 
 BATCH_MANUAL_USE_W = (
-    "You are manually batching this means you are NOT using the client's "
-    "built-in multi-threading. Setting `batch_size` in `client.batch.configure()` "
-    "to an int value will enabled this. Also see: https://weaviate.io/developers/"
-    "weaviate/current/restful-api-references/batch.html#example-request-1"
+    "Manually batching means this code is NOT using the client's built-in "
+    "multi-threading. To enable built-in multi-threading, set `batch_size` in "
+    " `client.batch.configure()` to an integer value . See also:"
+    "https://weaviate.io/developers/weaviate/current/restful-api-references/"
+    "batch.html#example-request-1"
 )
 
 
 BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W = (
     "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-    "beacons, please specify the `to_object_class_name` argument for this. The "
-    "non-class namespaced beacons (None value for `to_object_class_name`) are going "
-    "to be removed in the future versions of the Weaviate Server and Weaviate Python "
-    "Client."
+    "beacons. To use class namespaced beacons, please specify the "
+    "`to_object_class_name` argument. Non-class namespaced beacons (None value "
+    "for `to_object_class_name`) will be removed in future versions of the "
+    "Weaviate Server and Weaviate Python Client."
 )
 
 
@@ -40,18 +41,19 @@ BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W = (
 
 DATA_DEPRECATION_NEW_V14_CLS_NS_W = (
     "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-    "APIs, please specify the `class_name` argument for this. The non-class "
-    "namespaced APIs (None value for `class_name`) are going to be removed in the "
-    "future versions of the Weaviate Server and Weaviate Python Client."
+    "APIs. To use class namespaced APIs, please specify the `to_object_class_name`"
+    "argument. Non-class namespaced APIs (None value for `to_object_class_name`) "
+    "will be removed in future versions of the Weaviate Server and Weaviate "
+    "Python Client."
 )
 
 
 DATA_DEPRECATION_OLD_V14_CLS_NS_W = (
-    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
-    "non-class namespaced APIs calls are going to be made instead (None value for "
-    "`class_name`). The non-class namespaced APIs are going to be removed in "
-    "future versions of the Weaviate Server and Weaviate Python Client. "
-    "Please upgrade your Weaviate Server version."
+    "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
+    "Non-class namespaced APIs calls will be made instead (None value for "
+    "`class_name`). Non-class namespaced APIs will be removed in future versions "
+    "of the Weaviate Server and Weaviate Python Client. Please upgrade your "
+    "Weaviate Server version."
 )
 
 
