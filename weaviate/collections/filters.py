@@ -14,7 +14,7 @@ from weaviate.collections.classes.filters import (
     _FilterTargets,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import _ServerVersion, _datetime_to_string
+from weaviate.util import _datetime_to_string
 from weaviate.types import TIME
 from weaviate.proto.v1 import base_pb2
 
@@ -22,26 +22,22 @@ from weaviate.proto.v1 import base_pb2
 class _FilterToGRPC:
     @overload
     @staticmethod
-    def convert(weav_filter: Literal[None], weaviate_version: _ServerVersion) -> None:
+    def convert(weav_filter: Literal[None]) -> None:
         ...
 
     @overload
     @staticmethod
-    def convert(weav_filter: _Filters, weaviate_version: _ServerVersion) -> base_pb2.Filters:
+    def convert(weav_filter: _Filters) -> base_pb2.Filters:
         ...
 
     @staticmethod
-    def convert(
-        weav_filter: Optional[_Filters], weaviate_version: _ServerVersion
-    ) -> Optional[base_pb2.Filters]:
+    def convert(weav_filter: Optional[_Filters]) -> Optional[base_pb2.Filters]:
         if weav_filter is None:
             return None
         elif isinstance(weav_filter, _FilterValue):
-            if weaviate_version.is_lower_than(major=1, minor=23, patch=3):
-                return _FilterToGRPC.__value_filter_bc(weav_filter)
             return _FilterToGRPC.__value_filter(weav_filter)
         else:
-            return _FilterToGRPC.__and_or_filter(weav_filter, weaviate_version)
+            return _FilterToGRPC.__and_or_filter(weav_filter)
 
     @staticmethod
     def __value_filter(weav_filter: _FilterValue) -> base_pb2.Filters:
@@ -58,36 +54,6 @@ class _FilterToGRPC:
             value_geo=_FilterToGRPC.__filter_to_geo(weav_filter.value),
             target=_FilterToGRPC.__to_target(weav_filter.target),
         )
-
-    @staticmethod
-    def __value_filter_bc(weav_filter: _FilterValue) -> base_pb2.Filters:
-        return base_pb2.Filters(
-            operator=weav_filter.operator._to_grpc(),
-            value_text=_FilterToGRPC.__filter_to_text(weav_filter.value),
-            value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
-            value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,  # type: ignore
-            value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
-            value_int_array=_FilterToGRPC.__filter_to_int_list(weav_filter.value),
-            value_number_array=_FilterToGRPC.__filter_to_float_list(weav_filter.value),
-            value_text_array=_FilterToGRPC.__filter_to_text_list(weav_filter.value),
-            value_boolean_array=_FilterToGRPC.__filter_to_bool_list(weav_filter.value),
-            value_geo=_FilterToGRPC.__filter_to_geo(weav_filter.value),
-            on=_FilterToGRPC.__to_target_bc(weav_filter.target),
-        )
-
-    @staticmethod
-    def __to_target_bc(target: _FilterTargets) -> List[str]:
-        if isinstance(target, str):
-            return [target]
-        elif isinstance(target, _SingleTargetRef):
-            raise WeaviateInvalidInputError(
-                "Single target references are not supported in this version of Weaviate. Please update to >=1.23.3."
-            )
-        else:
-            assert isinstance(target, _MultiTargetRef)
-            raise WeaviateInvalidInputError(
-                "Multi target references are not supported in this version of Weaviate. Please update to >=1.23.3."
-            )
 
     @staticmethod
     def __to_target(target: _FilterTargets) -> base_pb2.FilterTarget:
@@ -178,16 +144,14 @@ class _FilterToGRPC:
         return base_pb2.IntArray(values=cast(List[int], value))
 
     @staticmethod
-    def __and_or_filter(
-        weav_filter: _Filters, weaviate_version: _ServerVersion
-    ) -> Optional[base_pb2.Filters]:
+    def __and_or_filter(weav_filter: _Filters) -> Optional[base_pb2.Filters]:
         assert isinstance(weav_filter, _FilterAnd) or isinstance(weav_filter, _FilterOr)
         return base_pb2.Filters(
             operator=weav_filter.operator._to_grpc(),
             filters=[
                 filter_
                 for single_filter in weav_filter.filters
-                if (filter_ := _FilterToGRPC.convert(single_filter, weaviate_version)) is not None
+                if (filter_ := _FilterToGRPC.convert(single_filter)) is not None
             ],
         )
 

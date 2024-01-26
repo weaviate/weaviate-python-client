@@ -89,7 +89,6 @@ class _BaseQuery(Generic[Properties, References]):
         self.__consistency_level = consistency_level
         self._properties = properties
         self._references = references
-        self.__has_reranking: bool = connection._weaviate_version.is_at_least(1, 23, 1)
 
     def _query(self) -> _QueryGRPC:
         if not self.__connection._grpc_available:
@@ -99,7 +98,6 @@ class _BaseQuery(Generic[Properties, References]):
             self._name,
             self.__tenant,
             self.__consistency_level,
-            has_reranking=self.__has_reranking,
         )
 
     def __extract_metadata_for_object(

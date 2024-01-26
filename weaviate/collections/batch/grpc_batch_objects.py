@@ -294,10 +294,7 @@ class _BatchGRPC(_BaseGRPC):
                     )
                 )
             elif isinstance(entry, list) and len(entry) == 0:
-                if self._connection._weaviate_version.is_at_least(1, 23, 4):
-                    empty_lists.append(key)
-                else:
-                    text_arrays.append(base_pb2.TextArrayProperties(prop_name=key, values=[]))
+                empty_lists.append(key)
             elif isinstance(entry, list) and isinstance(entry[0], dict):
                 entry = cast(List[Dict[str, Any]], entry)
                 object_array_properties.append(

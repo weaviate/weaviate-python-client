@@ -37,7 +37,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     verbose=verbose,
                     dry_run=dry_run,
                     tenant=tenant,
-                    filters=_FilterToGRPC.convert(filters, self._connection._weaviate_version),
+                    filters=_FilterToGRPC.convert(filters),
                 ),
                 metadata=metadata,
             )

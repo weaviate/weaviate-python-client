@@ -125,22 +125,17 @@ class _Connection(_ConnectionBase):
         self._create_clients(self.__auth, skip_init_checks)
         self.__connected = True
 
-        # temporary need this to get the version of weaviate for version checks
-        try:
-            self._weaviate_version = _ServerVersion.from_string(self.get_meta()["version"])
-        except (ConnectError, ReadError, RemoteProtocolError) as e:
-            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
-
-        if self._weaviate_version.is_lower_than(1, 23, 0):
-            raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.0 or higher."
-            )
-
         if not skip_init_checks:
-            if not self._weaviate_version.is_at_least(1, 14, 0):
-                _Warnings.weaviate_server_older_than_1_14(str(self._weaviate_version))
-            if not self._weaviate_version.is_at_least(1, 16, 0):
-                _Warnings.weaviate_too_old_vs_latest(str(self._weaviate_version))
+            # temporary need this to get the version of weaviate for version checks
+            try:
+                self._weaviate_version = _ServerVersion.from_string(self.get_meta()["version"])
+            except (ConnectError, ReadError, RemoteProtocolError) as e:
+                raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
+
+            if self._weaviate_version.is_lower_than(1, 23, 5):
+                raise WeaviateStartUpError(
+                    f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.5 or higher."
+                )
 
             try:
                 pkg_info = get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
