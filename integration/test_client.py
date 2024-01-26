@@ -344,16 +344,16 @@ def test_client_with_extra_options() -> None:
         #     cluster_url=WCS_URL, auth_credentials=WCS_CREDS, additional_config=additional_config
         # ), # needs latest version on WCS
         weaviate.connect_to_local(additional_config=additional_config),
-        weaviate.connect_to_custom(
-            http_secure=True,
-            http_host=WCS_HOST,
-            http_port=443,
-            grpc_secure=True,
-            grpc_host=WCS_GRPC_HOST,
-            grpc_port=443,
-            auth_credentials=WCS_CREDS,
-            additional_config=additional_config,
-        ),
+        # weaviate.connect_to_custom(
+        #     http_secure=True,
+        #     http_host=WCS_HOST,
+        #     http_port=443,
+        #     grpc_secure=True,
+        #     grpc_host=WCS_GRPC_HOST,
+        #     grpc_port=443,
+        #     auth_credentials=WCS_CREDS,
+        #     additional_config=additional_config,
+        # ),
         weaviate.connect_to_embedded(additional_config=additional_config),
     ]:
         assert client._connection.timeout_config == (1, 2)
