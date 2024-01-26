@@ -91,8 +91,10 @@ def connect_to_local(
     auth_credentials: Optional[AuthCredentials] = None,
 ) -> WeaviateClient:
     """
+    DWC:
     Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
-
+    
+    DWC:
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
