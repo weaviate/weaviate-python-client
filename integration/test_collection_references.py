@@ -19,7 +19,7 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.internal import (
     CrossReference,
     ReferenceToMulti,
-    ReferenceAnnotation,
+    CrossReferenceAnnotation,
     ReferenceInput,
     SingleReferenceInput,
 )
@@ -291,14 +291,14 @@ def test_mono_references_grpc_typed_dicts(
     class BRefs(TypedDict):
         a: Annotated[
             CrossReference[AProps, None],
-            ReferenceAnnotation(metadata=MetadataQuery(creation_time=True)),
+            CrossReferenceAnnotation(metadata=MetadataQuery(creation_time=True)),
         ]
 
     class CProps(TypedDict):
         name: str
 
     class CRefs(TypedDict):
-        b: Annotated[CrossReference[BProps, BRefs], ReferenceAnnotation(include_vector=True)]
+        b: Annotated[CrossReference[BProps, BRefs], CrossReferenceAnnotation(include_vector=True)]
 
     dummy_a = collection_factory(
         name="a",
