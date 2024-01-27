@@ -82,16 +82,12 @@ class _QueryGRPC(_BaseGRPC):
         name: str,
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
-        default_properties: Optional[PROPERTIES] = None,
     ):
         super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
 
-        if default_properties is not None:
-            self._default_props: Optional[Set[PROPERTY]] = self.__convert_to_set(default_properties)
-        else:
-            self._default_props = None
+        self._default_props: Optional[Set[PROPERTY]] = None
         self._metadata: Optional[_MetadataQuery] = None
         self._refs: Optional[Set[REFERENCE]] = None
 
@@ -133,19 +129,11 @@ class _QueryGRPC(_BaseGRPC):
 
         self._filters: Optional[_Filters] = None
 
-    def __parse_sort(self, sort: Optional[Union[_Sort, List[_Sort], _Sorting]]) -> None:
+    def __parse_sort(self, sort: Optional[_Sorting]) -> None:
         if sort is None:
             self._sort = None
-        elif isinstance(sort, _Sort):
-            self._sort = [sort]
-        elif isinstance(sort, _Sorting):
-            self._sort = sort.sorts
-        elif isinstance(sort, list):
-            self._sort = sort
         else:
-            raise TypeError(
-                f"sort must be of type weaviate.classes.query.Sort, weaviate.classes.query.Sorting or List[weaviate.classes.query.Sort], but got {type(sort)}"
-            )
+            self._sort = sort.sorts
 
     def __parse_common(
         self,
@@ -274,7 +262,7 @@ class _QueryGRPC(_BaseGRPC):
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[_Sort, List[_Sort], _Sorting]] = None,
+        sort: Optional[_Sorting] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
