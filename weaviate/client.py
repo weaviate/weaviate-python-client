@@ -1,7 +1,7 @@
 """
 Client class definition.
 """
-from typing import Optional, Tuple, Union, Dict, Any
+from typing import Generic, Optional, Tuple, TypeVar, Union, Dict, Any
 
 from httpx import ConnectError as HTTPXConnectError
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -35,9 +35,11 @@ from .warnings import _Warnings
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
+C = TypeVar("C", Connection, ConnectionV4)
 
-class _ClientBase:
-    _connection: Union[Connection, ConnectionV4]
+
+class _ClientBase(Generic[C]):
+    _connection: C
 
     def is_ready(self) -> bool:
         """
@@ -108,7 +110,7 @@ class _ClientBase:
         raise UnexpectedStatusCodeError("Meta endpoint", response)
 
 
-class WeaviateClient(_ClientBase):
+class WeaviateClient(_ClientBase[ConnectionV4]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
@@ -130,8 +132,6 @@ class WeaviateClient(_ClientBase):
         `collections`
             A `_Collections` object instance connected to the same Weaviate instance as the Client.
     """
-
-    _connection: ConnectionV4  # pyright: ignore reportIncompatibleVariableOverride
 
     def __init__(
         self,
@@ -323,7 +323,7 @@ class WeaviateClient(_ClientBase):
         return _RawGQLReturn(aggregate={}, explore={}, get={}, errors=errors)
 
 
-class Client(_ClientBase):
+class Client(_ClientBase[Connection]):
     """
     The v3 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of

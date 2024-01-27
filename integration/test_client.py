@@ -6,6 +6,7 @@ from _pytest.fixtures import SubRequest
 import weaviate
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import Configure, _CollectionConfig, DataType, Property
+from weaviate.connect.base import _Timeout
 from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 import weaviate.classes as wvc
 
@@ -356,4 +357,4 @@ def test_client_with_extra_options() -> None:
         # ),
         weaviate.connect_to_embedded(additional_config=additional_config),
     ]:
-        assert client._connection.timeout_config == (1, 2)
+        assert client._connection.timeout_config == _Timeout(1, 2)

@@ -57,6 +57,7 @@ BatchResponse = List[Dict[str, Any]]
 TBatchInput = TypeVar("TBatchInput")
 TBatchReturn = TypeVar("TBatchReturn")
 MAX_CONCURRENT_REQUESTS = 10
+DEFAULT_REQUEST_TIMEOUT = 120
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
@@ -392,7 +393,9 @@ class _BatchBase:
         if len(objs) > 0:
             start = time.time()
             try:
-                response_obj = await self.__batch_grpc.aobjects(objects=objs)
+                response_obj = await self.__batch_grpc.aobjects(
+                    objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
+                )
             except Exception as e:
                 errors_obj = {
                     idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)

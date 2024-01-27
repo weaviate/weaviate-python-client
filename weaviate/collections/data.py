@@ -395,7 +395,8 @@ class _DataCollection(Generic[Properties], _Data):
                     references=None,
                 )
                 for obj in objects
-            ]
+            ],
+            timeout=self._connection.timeout_config.connect,
         )
 
     def replace(
@@ -663,7 +664,7 @@ class _DataCollectionModel(Generic[Model], _Data):
             for obj in objects
         ]
 
-        return self._batch_grpc.objects(data_objects)
+        return self._batch_grpc.objects(data_objects, self._connection.timeout_config.connect)
 
     def replace(self, obj: Model, uuid: UUID) -> None:
         self.__model.model_validate(obj)
