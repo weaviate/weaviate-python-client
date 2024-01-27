@@ -154,14 +154,6 @@ class _Warnings:
         )
 
     @staticmethod
-    def direct_batch_deprecated() -> None:
-        warnings.warn(
-            message="""Dep015: You are creating a batch using client.batch or collection.batch, which is deprecated. Use X.batch._batch_mode_().""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def weaviate_v3_client_is_deprecated() -> None:
         warnings.warn(
             message="""Dep016: You are using the Weaviate v3 client, which is deprecated.

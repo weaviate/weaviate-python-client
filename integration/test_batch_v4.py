@@ -489,15 +489,6 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
             assert shard["vectorQueueSize"] > 0
 
 
-def test_warning_direct_batching(client_factory: ClientFactory) -> None:
-    client, _ = client_factory()
-    with pytest.warns(DeprecationWarning) as record:
-        with client.batch as _:
-            pass
-        assert len(record) == 1
-        assert "Dep015" in str(record.list[0].message)
-
-
 def test_error_reset(client_factory: ClientFactory) -> None:
     client, name = client_factory()
     with client.batch.dynamic() as batch:
