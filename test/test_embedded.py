@@ -161,7 +161,6 @@ def test_embedded_different_versions(tmp_path_factory: pytest.TempPathFactory):
     client1 = weaviate.Client(
         embedded_options=EmbeddedOptions(
             port=30664,
-            grpc_port=50055,
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
             version="https://github.com/weaviate/weaviate/releases/download/v1.18.1/weaviate-v1.18.1-linux-amd64.tar.gz",
@@ -170,7 +169,6 @@ def test_embedded_different_versions(tmp_path_factory: pytest.TempPathFactory):
     client2 = weaviate.Client(
         embedded_options=EmbeddedOptions(
             port=30665,
-            grpc_port=50056,
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
             version="https://github.com/weaviate/weaviate/releases/download/v1.18.0/weaviate-v1.18.0-linux-amd64.tar.gz",
@@ -189,7 +187,6 @@ def test_custom_env_vars(tmp_path_factory: pytest.TempPathFactory):
             additional_env_vars={"ENABLE_MODULES": "", "GRPC_PORT": "50057"},
             persistence_data_path=tmp_path_factory.mktemp("data"),
             port=30666,
-            grpc_port=50057,
         )
     )
     meta = client.get_meta()
@@ -305,6 +302,7 @@ def test_embedded_with_grpc_port_default(tmp_path_factory: pytest.TempPathFactor
             persistence_data_path=tmp_path_factory.mktemp("data"),
             binary_path=tmp_path_factory.mktemp("bin"),
             version="latest",
+            port=30669,
         )
     )
 
