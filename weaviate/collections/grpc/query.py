@@ -129,19 +129,11 @@ class _QueryGRPC(_BaseGRPC):
 
         self._filters: Optional[_Filters] = None
 
-    def __parse_sort(self, sort: Optional[Union[_Sort, List[_Sort], _Sorting]]) -> None:
+    def __parse_sort(self, sort: Optional[_Sorting]) -> None:
         if sort is None:
             self._sort = None
-        elif isinstance(sort, _Sort):
-            self._sort = [sort]
-        elif isinstance(sort, _Sorting):
-            self._sort = sort.sorts
-        elif isinstance(sort, list):
-            self._sort = sort
         else:
-            raise TypeError(
-                f"sort must be of type weaviate.classes.query.Sort, weaviate.classes.query.Sorting or List[weaviate.classes.query.Sort], but got {type(sort)}"
-            )
+            self._sort = sort.sorts
 
     def __parse_common(
         self,
@@ -275,7 +267,7 @@ class _QueryGRPC(_BaseGRPC):
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[_Sort, List[_Sort], _Sorting]] = None,
+        sort: Optional[_Sorting] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
