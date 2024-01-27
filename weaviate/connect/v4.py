@@ -42,7 +42,7 @@ from weaviate.connect.base import (
     PYPI_TIMEOUT,
     TIMEOUT_TYPE_RETURN,
 )
-from weaviate.embedded import EmbeddedDB
+from weaviate.embedded import Embedded
 from weaviate.exceptions import (
     AuthenticationFailedError,
     WeaviateGRPCUnavailableError,
@@ -77,7 +77,7 @@ class _Connection(_ConnectionBase):
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
-        embedded_db: Optional[EmbeddedDB] = None,
+        embedded_db: Optional[Embedded] = None,
     ):
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
@@ -591,7 +591,7 @@ class ConnectionV4(_Connection):
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
-        embedded_db: Optional[EmbeddedDB] = None,
+        embedded_db: Optional[Embedded] = None,
     ):
         super().__init__(
             connection_params,

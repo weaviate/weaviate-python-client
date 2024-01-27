@@ -117,6 +117,11 @@ def test_embedded_end_to_end(options: EmbeddedDB, tmp_path):
 
     embedded_db.ensure_running()
     assert embedded_db.is_listening() is True
+    with patch("builtins.print") as mocked_print:
+        embedded_db.start()
+        mocked_print.assert_called_once_with(
+            f"embedded weaviate is already listening on port {options.port}"
+        )
 
     # killing the process should restart it again when ensure running is called
     os.kill(embedded_db.process.pid, signal.SIGTERM)

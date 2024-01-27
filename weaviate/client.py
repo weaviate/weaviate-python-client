@@ -25,7 +25,7 @@ from .connect.base import (
 )
 from .contextionary import Contextionary
 from .data import DataObject
-from .embedded import EmbeddedDB, EmbeddedOptions
+from .embedded import Embedded, EmbeddedDB, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeError
 from .gql import Query
 from .schema import Schema
@@ -202,7 +202,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
         self,
         connection_params: Optional[ConnectionParams],
         embedded_options: Optional[EmbeddedOptions],
-    ) -> Tuple[ConnectionParams, Optional[EmbeddedDB]]:
+    ) -> Tuple[ConnectionParams, Optional[Embedded]]:
         if connection_params is None and embedded_options is None:
             raise TypeError("Either connection_params or embedded_options must be present.")
         elif connection_params is not None and embedded_options is not None:
@@ -211,7 +211,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             )
 
         if embedded_options is not None:
-            embedded_db = EmbeddedDB(options=embedded_options)
+            embedded_db = Embedded(options=embedded_options)
             return (
                 ConnectionParams(
                     http=ProtocolParams(
