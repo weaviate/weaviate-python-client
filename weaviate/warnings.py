@@ -154,22 +154,6 @@ class _Warnings:
         )
 
     @staticmethod
-    def old_reference_to_multi_target() -> None:
-        warnings.warn(
-            message="""Dep012: You are using the old Reference.to_multi_target() method. Please use the ReferenceToMulti class instead.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def sort_init_deprecated() -> None:
-        warnings.warn(
-            message="""Dep014: You are initialising a Sort filter directly, which is deprecated. Use the static methods instead, e.g. Sort.by_property.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def direct_batch_deprecated() -> None:
         warnings.warn(
             message="""Dep015: You are creating a batch using client.batch or collection.batch, which is deprecated. Use X.batch._batch_mode_().""",
