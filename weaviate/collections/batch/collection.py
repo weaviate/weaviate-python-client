@@ -15,8 +15,6 @@ from weaviate.collections.classes.types import Properties
 from weaviate.connect import ConnectionV4
 from weaviate.types import UUID
 
-from weaviate.warnings import _Warnings
-
 
 class _BatchCollection(Generic[Properties], _BatchBase):
     def __init__(
@@ -127,18 +125,6 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                 tenant=self.__tenant,
             )
         )
-
-    def __enter__(self) -> _BatchCollection[Properties]:
-        _Warnings.direct_batch_deprecated()
-        self._current_batch = _BatchCollection[Properties](
-            connection=self._connection,
-            consistency_level=self._consistency_level,
-            results=self._batch_data,
-            batch_mode=self._batch_mode,
-            name=self.__name,
-            tenant=self.__tenant,
-        )
-        return self._current_batch
 
     def dynamic(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
         """Configure dynamic batching.

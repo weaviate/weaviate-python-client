@@ -9,7 +9,6 @@ from weaviate.collections.queries.fetch_objects import _FetchObjectsGenerate, _F
 from weaviate.collections.queries.hybrid import _HybridGenerate, _HybridQuery
 from weaviate.collections.queries.near_image import (
     _NearImageGenerate,
-    _NearImageGroupBy,
     _NearImageQuery,
 )
 from weaviate.collections.queries.near_media import (
@@ -18,17 +17,14 @@ from weaviate.collections.queries.near_media import (
 )
 from weaviate.collections.queries.near_object import (
     _NearObjectGenerate,
-    _NearObjectGroupBy,
     _NearObjectQuery,
 )
 from weaviate.collections.queries.near_text import (
     _NearTextGenerate,
-    _NearTextGroupBy,
     _NearTextQuery,
 )
 from weaviate.collections.queries.near_vector import (
     _NearVectorGenerate,
-    _NearVectorGroupBy,
     _NearVectorQuery,
 )
 
@@ -58,15 +54,5 @@ class _GenerateCollection(
     _NearObjectGenerate[TProperties, References],
     _NearTextGenerate[TProperties, References],
     _NearVectorGenerate[TProperties, References],
-):
-    pass
-
-
-class _GroupByCollection(
-    Generic[TProperties, References],
-    _NearImageGroupBy[TProperties, References],
-    _NearObjectGroupBy[TProperties, References],
-    _NearTextGroupBy[TProperties, References],
-    _NearVectorGroupBy[TProperties, References],
 ):
     pass

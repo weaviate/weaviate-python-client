@@ -7,7 +7,6 @@ from pydantic import Field
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.util import BaseEnum
 from weaviate.types import UUID
-from weaviate.warnings import _Warnings
 
 
 class HybridFusion(str, BaseEnum):
@@ -188,12 +187,11 @@ Sorting = _Sorting
 """The type returned by the `Sort` class to be used when defining programmatic sort chains."""
 
 
-class Sort(_Sort):
+class Sort:
     """Define how the query's sort operation should be performed using the available static methods."""
 
-    def __init__(self, prop: str, ascending: bool = True) -> None:
-        _Warnings.sort_init_deprecated()
-        super().__init__(prop=prop, ascending=ascending)
+    def __init__(self) -> None:
+        raise TypeError("Sort cannot be instantiated. Use the static methods to create a sorter.")
 
     @staticmethod
     def by_property(name: str, ascending: bool = True) -> Sorting:

@@ -852,40 +852,6 @@ def test_near_vector_offset(collection_factory: CollectionFactory) -> None:
     assert objs[0].uuid == uuid_fruit
 
 
-def test_near_vector_group_by_namespace(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            Property(name="Count", data_type=DataType.INT),
-        ],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
-    )
-    uuid_banana1 = collection.data.insert({"Name": "Banana", "Count": 51})
-    collection.data.insert({"Name": "Banana", "Count": 72})
-    collection.data.insert({"Name": "car", "Count": 12})
-    collection.data.insert({"Name": "Mountain", "Count": 1})
-
-    banana1 = collection.query.fetch_object_by_id(uuid_banana1, include_vector=True)
-
-    assert banana1.vector is not None
-    with pytest.warns(DeprecationWarning):
-        ret = collection.query_group_by.near_vector(
-            banana1.vector,
-            group_by_property="name",
-            number_of_groups=4,
-            objects_per_group=10,
-            return_metadata=MetadataQuery(distance=True, certainty=True),
-        )
-
-    assert len(ret.objects) == 4
-    assert ret.objects[0].belongs_to_group == "Banana"
-    assert ret.objects[1].belongs_to_group == "Banana"
-    assert ret.objects[2].belongs_to_group == "car"
-    assert ret.objects[3].belongs_to_group == "Mountain"
-
-
 def test_near_vector_group_by_argument(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[
@@ -986,37 +952,6 @@ def test_near_object_offset(collection_factory: CollectionFactory) -> None:
     objs = collection.query.near_object(banana.uuid, offset=1).objects
     assert len(objs) == 3
     assert objs[0].uuid == uuid_fruit
-
-
-def test_near_object_group_by_namespace(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            Property(name="Count", data_type=DataType.INT),
-        ],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
-    )
-    uuid_banana1 = collection.data.insert({"Name": "Banana", "Count": 51})
-    collection.data.insert({"Name": "Banana", "Count": 72})
-    collection.data.insert({"Name": "car", "Count": 12})
-    collection.data.insert({"Name": "Mountain", "Count": 1})
-
-    with pytest.warns(DeprecationWarning):
-        ret = collection.query_group_by.near_object(
-            uuid_banana1,
-            group_by_property="name",
-            number_of_groups=4,
-            objects_per_group=10,
-            return_metadata=MetadataQuery(distance=True, certainty=True),
-        )
-
-    assert len(ret.objects) == 4
-    assert ret.objects[0].belongs_to_group == "Banana"
-    assert ret.objects[1].belongs_to_group == "Banana"
-    assert ret.objects[2].belongs_to_group == "car"
-    assert ret.objects[3].belongs_to_group == "Mountain"
 
 
 def test_near_object_group_by_argument(collection_factory: CollectionFactory) -> None:
@@ -1482,42 +1417,6 @@ def test_near_text_error(collection_factory: CollectionFactory) -> None:
 
     with pytest.raises(ValueError):
         collection.query.near_text(query="test", move_to=Move(force=1.0))
-
-
-def test_near_text_group_by_namespace(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
-        properties=[Property(name="value", data_type=DataType.TEXT)],
-    )
-
-    batch_return = collection.data.insert_many(
-        [
-            DataObject(properties={"value": "Apple"}, uuid=UUID1),
-            DataObject(properties={"value": "Mountain climbing"}),
-            DataObject(properties={"value": "apple cake"}),
-            DataObject(properties={"value": "cake"}),
-        ]
-    )
-
-    with pytest.warns(DeprecationWarning):
-        ret = collection.query_group_by.near_text(
-            query="cake",
-            group_by_property="value",
-            number_of_groups=2,
-            objects_per_group=100,
-            include_vector=True,
-            return_properties=["value"],
-        )
-
-    assert len(ret.objects) == 2
-    assert ret.objects[0].uuid == batch_return.uuids[3]
-    assert ret.objects[0].vector is not None
-    assert ret.objects[0].belongs_to_group == "cake"
-    assert ret.objects[1].uuid == batch_return.uuids[2]
-    assert ret.objects[1].vector is not None
-    assert ret.objects[1].belongs_to_group == "apple cake"
 
 
 def test_near_text_group_by_argument(collection_factory: CollectionFactory) -> None:
