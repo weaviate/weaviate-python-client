@@ -3,10 +3,14 @@ from typing import Dict, Optional
 
 import httpx
 import pytest
+from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
+from integration.conftest import _sanitize_collection_name
 from weaviate import util
+from weaviate.collections.classes.config import DataType, Property
+from weaviate.collections.classes.filters import Filter
 from weaviate.exceptions import AuthenticationFailedError, UnexpectedStatusCodeError
 
 ANON_PORT = 8080
@@ -14,6 +18,7 @@ AZURE_PORT = 8081
 OKTA_PORT_CC = 8082
 OKTA_PORT_USERS = 8083
 WCS_PORT = 8085
+WCS_PORT_GRPC = 50056
 
 
 def is_auth_enabled(url: str) -> bool:
@@ -232,3 +237,29 @@ def test_api_key_wrong_key() -> None:
             port=WCS_PORT, auth_credentials=wvc.init.Auth.api_key(api_key="my-secret-key-wrong")
         )
     assert e.value.status_code == 401
+
+
+def test_auth_e2e(request: SubRequest) -> None:
+    name = _sanitize_collection_name(request.node.name)
+    url = f"localhost:{WCS_PORT}"
+    assert is_auth_enabled(url)
+
+    with weaviate.connect_to_local(
+        port=WCS_PORT,
+        grpc_port=WCS_PORT_GRPC,
+        auth_credentials=wvc.init.Auth.api_key(api_key="my-secret-key"),
+    ) as client:
+        client.collections.delete(name)
+        col = client.collections.create(
+            name=name,
+            description="test",
+            properties=[
+                Property(name="name", data_type=DataType.TEXT),
+            ],
+        )
+        col.data.insert({"name": "test"})
+        col.data.insert_many([{"name": "test2"}])
+        assert len(col.query.fetch_objects().objects) == 2
+
+        col.data.delete_many(Filter.by_property("name").equal("test"))
+        assert len(col.query.fetch_objects().objects) == 1
