@@ -1,6 +1,7 @@
 import pathlib
 
 import pytest
+from datetime import datetime, timezone
 from _pytest.fixtures import SubRequest
 
 from integration.conftest import CollectionFactory, CollectionFactoryGet
@@ -14,6 +15,7 @@ from weaviate.collections.classes.aggregate import (
     Metrics,
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
+from weaviate.collections.classes.filters import Filter, _Filters
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.util import file_encoder_b64
 
@@ -41,6 +43,81 @@ def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
     res = collection.aggregate.over_all(return_metrics=[Metrics("text").text(count=True)])
     assert isinstance(res.properties["text"], AggregateText)
     assert res.properties["text"].count == 1
+
+
+@pytest.mark.parametrize(
+    "filter_",
+    [
+        Filter.by_property("text").equal("two"),
+        Filter.by_property("int").equal(2),
+        Filter.by_property("float").equal(2.0),
+        Filter.by_property("bool").equal(False),
+        Filter.by_property("date").equal(datetime(2021, 1, 2, 0, 0, 0, 0, tzinfo=timezone.utc)),
+        Filter.by_property("text").equal("two") or (Filter.by_property("int").equal(2)),
+    ],
+)
+def test_over_all_with_filters(collection_factory: CollectionFactory, filter_: _Filters) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="int", data_type=DataType.INT),
+            Property(name="float", data_type=DataType.NUMBER),
+            Property(name="bool", data_type=DataType.BOOL),
+            Property(name="date", data_type=DataType.DATE),
+        ]
+    )
+    collection.data.insert(
+        {
+            "text": "one",
+            "int": 1,
+            "float": 1.0,
+            "bool": True,
+            "date": "2021-01-01T00:00:00Z",
+        }
+    )
+    collection.data.insert(
+        {
+            "text": "two",
+            "int": 2,
+            "float": 2.0,
+            "bool": False,
+            "date": "2021-01-02T00:00:00Z",
+        }
+    )
+
+    res = collection.aggregate.over_all(
+        filters=filter_,
+        return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
+    )
+    assert isinstance(res.properties["text"], AggregateText)
+    assert res.properties["text"].count == 1
+    assert res.properties["text"].top_occurrences[0].value == "two"
+
+
+def test_over_all_with_filters_ref(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+        ]
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="ref", target_collection=collection.name)
+    )
+    res = collection.aggregate.over_all(
+        filters=Filter.by_ref_multi_target("ref", collection.name).by_property("text").equal("one"),
+        return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
+    )
+    assert isinstance(res.properties["text"], AggregateText)
+    assert res.properties["text"].count == 1
+    assert res.properties["text"].top_occurrences[0].value == "two"
+
+    with pytest.raises(WeaviateInvalidInputError):
+        res = collection.aggregate.over_all(
+            filters=Filter.by_ref("ref")
+            .by_property("text")
+            .equal("one"),  # gRPC-compat API not support by GQL aggregation
+            return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
+        )
 
 
 def test_wrong_aggregation(collection_factory: CollectionFactory) -> None:
@@ -422,80 +499,16 @@ def test_all_available_aggregations(collection_factory: CollectionFactory) -> No
     )
     res = collection.aggregate.over_all(
         return_metrics=[
-            Metrics("text").text(
-                count=True,
-                top_occurrences_count=True,
-                top_occurrences_value=True,
-            ),
-            Metrics("texts").text(
-                count=True,
-                top_occurrences_count=True,
-                top_occurrences_value=True,
-            ),
-            Metrics("int").integer(
-                count=True,
-                maximum=True,
-                mean=True,
-                median=True,
-                minimum=True,
-                mode=True,
-                sum_=True,
-            ),
-            Metrics("ints").integer(
-                count=True,
-                maximum=True,
-                mean=True,
-                median=True,
-                minimum=True,
-                mode=True,
-                sum_=True,
-            ),
-            Metrics("float").number(
-                count=True,
-                maximum=True,
-                mean=True,
-                median=True,
-                minimum=True,
-                mode=True,
-                sum_=True,
-            ),
-            Metrics("floats").number(
-                count=True,
-                maximum=True,
-                mean=True,
-                median=True,
-                minimum=True,
-                mode=True,
-                sum_=True,
-            ),
-            Metrics("bool").boolean(
-                count=True,
-                percentage_false=True,
-                percentage_true=True,
-                total_false=True,
-                total_true=True,
-            ),
-            Metrics("bools").boolean(
-                count=True,
-                percentage_false=True,
-                percentage_true=True,
-                total_false=True,
-                total_true=True,
-            ),
-            Metrics("date").date_(
-                count=True,
-                maximum=True,
-                median=True,
-                minimum=True,
-                mode=True,
-            ),
-            Metrics("dates").date_(
-                count=True,
-                maximum=True,
-                median=True,
-                minimum=True,
-                mode=True,
-            ),
+            Metrics("text").text(),
+            Metrics("texts").text(),
+            Metrics("int").integer(),
+            Metrics("ints").integer(),
+            Metrics("float").number(),
+            Metrics("floats").number(),
+            Metrics("bool").boolean(),
+            Metrics("bools").boolean(),
+            Metrics("date").date_(),
+            Metrics("dates").date_(),
         ]
     )
 
