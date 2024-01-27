@@ -4,9 +4,8 @@ import pathlib
 import struct
 import uuid as uuid_lib
 from collections.abc import Sequence
-from typing import Any, Dict, Generic, List, Optional, Type, Union, cast
+from typing import Any, Generic, List, Optional, Type, Union, cast
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
 from typing_extensions import is_typeddict
 
 from weaviate.collections.classes.config import ConsistencyLevel
@@ -54,16 +53,13 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
-    UnexpectedStatusCodeError,
     WeaviateGRPCUnavailableError,
     WeaviateQueryError,
 )
 from weaviate.proto.v1 import search_get_pb2, properties_pb2
-from weaviate.types import UUID
 from weaviate.util import (
     file_encoder_b64,
     _datetime_from_weaviate_str,
-    _decode_json_response_dict,
 )
 
 
@@ -557,35 +553,6 @@ class _BaseQuery(Generic[Properties, References]):
             return media
         else:
             return file_encoder_b64(media)
-
-    def _get_by_id_rest(
-        self, name: str, uuid: UUID, include_vector: bool
-    ) -> Optional[Dict[str, Any]]:
-        path = f"/objects/{name}/{uuid}"
-        params: Dict[str, Any] = {}
-        if include_vector:
-            params["include"] = "vector"
-        return self.__get_from_weaviate(params=self.__apply_context(params), path=path)
-
-    def __get_from_weaviate(self, params: Dict[str, Any], path: str) -> Optional[Dict[str, Any]]:
-        try:
-            response = self.__connection.get(path=path, params=params)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Could not get object/s.") from conn_err
-        if response.status_code == 200:
-            response_json = _decode_json_response_dict(response, "get")
-            assert response_json is not None
-            return response_json
-        if response.status_code == 404:
-            return None
-        raise UnexpectedStatusCodeError("Get object/s", response)
-
-    def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        if self.__tenant is not None:
-            params["tenant"] = self.__tenant
-        if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level
-        return params
 
 
 # TODO: refactor PropertiesParser to handle new schema for specifying query parameters
