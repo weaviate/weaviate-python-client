@@ -153,14 +153,8 @@ class _BaseQuery(Generic[Properties, References]):
         if len(add_props.vector_bytes) == 0 and len(add_props.vector) == 0:
             return None
 
-        if len(add_props.vector_bytes) > 0:
-            vector_bytes = struct.unpack(
-                f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes
-            )
-            return list(vector_bytes)
-        else:
-            # backward compatibility
-            return list(add_props.vector)
+        vector_bytes = struct.unpack(f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes)
+        return list(vector_bytes)
 
     def __extract_generated_for_object(
         self,
