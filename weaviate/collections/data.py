@@ -54,12 +54,10 @@ from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
-    ObjectAlreadyExistsError,
     WeaviateInvalidInputError,
 )
 from weaviate.util import (
     _datetime_to_string,
-    _decode_json_response_dict,
     get_vector,
 )
 from weaviate.types import BEACON, UUID
@@ -93,13 +91,6 @@ class _Data:
         if response.status_code == 200:
             return uuid_package.UUID(weaviate_obj["id"])
 
-        try:
-            response_json = _decode_json_response_dict(response, "insert object")
-            assert response_json is not None
-            if "already exists" in response_json["error"][0]["message"]:
-                raise ObjectAlreadyExistsError(weaviate_obj["id"])
-        except KeyError:
-            pass
         raise UnexpectedStatusCodeError("Creating object", response)
 
     def delete_by_id(self, uuid: UUID) -> bool:
@@ -338,6 +329,13 @@ class _DataCollection(Generic[Properties], _Data):
                 The UUID of the object. If not provided, a random UUID will be generated.
             `vector`
                 The vector of the object.
+
+        Returns:
+            `uuid.UUID`, the UUID of the inserted object.
+
+        Raises:
+            `weaviate.exceptions.UnexpectedStatusCodeError`:
+                If any unexpected error occurs during the insert operation, for example the given UUID already exists.
         """
         if not isinstance(properties, dict):
             _raise_invalid_input("properties", properties, dict)

@@ -43,6 +43,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
+    UnexpectedStatusCodeError,
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
@@ -1859,3 +1860,10 @@ def test_return_phone_number_property(collection_factory: CollectionFactory) -> 
     assert obj2.properties["phone"].number == "01612345000"
     assert obj2.properties["phone"].valid
     assert obj2.properties["phone"].international_formatted == "+44 161 234 5000"
+
+
+def test_double_insert_with_same_uuid(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory()
+    uuid1 = collection.data.insert({})
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.data.insert({}, uuid=uuid1)
