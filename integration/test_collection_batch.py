@@ -173,15 +173,6 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
     assert ret_obj.references["test"].objects[0].uuid == obj_uuid1
 
 
-def test_warning_direct_batching(batch_collection: BatchCollection) -> None:
-    col = batch_collection()
-    with pytest.warns(DeprecationWarning) as record:
-        with col.batch as _:
-            pass
-        assert len(record) == 1
-        assert "Dep015" in str(record.list[0].message)
-
-
 def test_error_reset(batch_collection: BatchCollection) -> None:
     col = batch_collection()
     with col.batch.fixed_size(1) as batch:

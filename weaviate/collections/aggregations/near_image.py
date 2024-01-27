@@ -1,16 +1,14 @@
 from io import BufferedReader
 from pathlib import Path
-from typing import List, Literal, Optional, Union, overload
+from typing import Literal, Optional, Union, overload
 
 from weaviate.collections.aggregations.base import _Aggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
     AggregateGroupByReturn,
-    AggregateGroup,
 )
 from weaviate.collections.classes.filters import _Filters
-from weaviate.warnings import _Warnings
 
 
 class _NearImage(_Aggregate):
@@ -109,65 +107,3 @@ class _NearImage(_Aggregate):
             if group_by is None
             else self._to_group_by_result(res, return_metrics)
         )
-
-
-class _NearImageGroupBy(_Aggregate):
-    def near_image(
-        self,
-        near_image: Union[str, Path, BufferedReader],
-        group_by: str,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
-        object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        limit: Optional[int] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> List[AggregateGroup]:
-        """Aggregate metrics over the objects returned by a near image vector search on this collection grouping the results by a property.
-
-        At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
-
-        This method requires a vectorizer capable of handling base64-encoded images, e.g. `img2vec-neural`, `multi2vec-clip`, and `multi2vec-bind`.
-
-        Arguments:
-            `near_image`
-                The image to search on.
-            `group_by`
-                The property name to group the aggregation by.
-            `certainty`
-                The minimum certainty of the image search.
-            `distance`
-                The maximum distance of the image search.
-            `object_limit`
-                The maximum number of objects to return from the image search prior to the aggregation.
-            `filters`
-                The filters to apply to the search.
-            `limit`
-                The maximum number of aggregated objects to return.
-            `total_count`
-                Whether to include the total number of objects that match the query in the response.
-            `return_metrics`
-                A list of property metrics to aggregate together after the text search.
-
-        Returns:
-            A list of `AggregateGroup` objects that includes the aggregation objects.
-
-        Raises:
-            `weaviate.exceptions.WeaviateGQLQueryError`:
-                If an error occurs while performing the query against Weaviate.
-        """
-        _Warnings.old_query_group_by_namespace("aggregate.near_image", "aggregate_group_by")
-        return_metrics = (
-            return_metrics
-            if (return_metrics is None or isinstance(return_metrics, list))
-            else [return_metrics]
-        )
-        builder = (
-            self._base(return_metrics, filters, limit, total_count)
-            .with_group_by_filter([group_by])
-            .with_fields(" groupedBy { path value } ")
-        )
-        builder = self._add_near_image(builder, near_image, certainty, distance, object_limit)
-        res = self._do(builder)
-        return self._to_group_by_result(res, return_metrics).groups

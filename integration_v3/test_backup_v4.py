@@ -8,7 +8,6 @@ import weaviate
 from weaviate.backup.backup import BackupStatus, BackupStorage
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
 from weaviate.exceptions import UnexpectedStatusCodeException, BackupFailedException
-from weaviate.collections.classes.internal import Reference
 
 BACKEND = BackupStorage.FILESYSTEM
 
@@ -93,7 +92,7 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
         col_articles.data.reference_add(
             from_uuid=ARTICLES_IDS[i],
             from_property="hasParagraphs",
-            to=Reference.to(PARAGRAPHS_IDS[i]),
+            to=PARAGRAPHS_IDS[i],
         )
     yield client
     client.collections.delete("Paragraph")

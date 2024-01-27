@@ -145,77 +145,12 @@ class _Warnings:
         )
 
     @staticmethod
-    def reference_in_properties() -> None:
-        warnings.warn(
-            message="""Dep007: You are adding references as properties, which will be removed in an upcoming release. Please use the `references`
-            parameter instead. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def old_filter_by_property() -> None:
-        warnings.warn(
-            message="""Dep008: You are directly initiating the Filter() class, please use Filter.by_property("property") instead.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def old_filter_by_metadata() -> None:
-        warnings.warn(
-            message="""Dep009: You are using the FilterMetadata() class, please use Filter.by_id(), Filter.by_update_time() or Filter.by_creation_time() instead.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
     def root_module_import(name: str, loc: str) -> None:
         warnings.warn(
             f"Dep010: Importing {name} from weaviate is deprecated. "
             f"Please import it from its specific module: weaviate.{loc}",
             DeprecationWarning,
             stacklevel=2,  # don't increase stacklevel, as this otherwise writes the auth-secrets into the log
-        )
-
-    @staticmethod
-    def old_reference_to() -> None:
-        warnings.warn(
-            message="""Dep011: You are using the old Reference.to() method. Please supply raw UUIDs instead.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def old_reference_to_multi_target() -> None:
-        warnings.warn(
-            message="""Dep012: You are using the old Reference.to_multi_target() method. Please use the ReferenceToMulti class instead.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def old_query_group_by_namespace(new_method: str, old_namespace: str) -> None:
-        warnings.warn(
-            message=f"""Dep013: Use {new_method} with the `group_by` argument instead. The {old_namespace} namespace will be removed in the final release.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def sort_init_deprecated() -> None:
-        warnings.warn(
-            message="""Dep014: You are initializing a Sort filter directly, which is deprecated. Use the static methods instead, e.g. Sort.by_property.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def direct_batch_deprecated() -> None:
-        warnings.warn(
-            message="""Dep015: You are creating a batch using client.batch or collection.batch, which is deprecated. Use X.batch._batch_mode_().""",
-            category=DeprecationWarning,
-            stacklevel=1,
         )
 
     @staticmethod

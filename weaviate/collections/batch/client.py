@@ -18,8 +18,6 @@ from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.types import UUID
 
-from weaviate.warnings import _Warnings
-
 
 class _BatchClient(_BatchBase):
     def add_object(
@@ -103,16 +101,6 @@ class _BatchClient(_BatchBase):
 
 
 class _BatchClientWrapper(_BatchWrapper):
-    def __enter__(self) -> _BatchClient:
-        _Warnings.direct_batch_deprecated()
-        self._current_batch = _BatchClient(
-            connection=self._connection,
-            consistency_level=self._consistency_level,
-            results=self._batch_data,
-            batch_mode=self._batch_mode,
-        )
-        return self._current_batch
-
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchClient]:
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(

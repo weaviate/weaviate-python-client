@@ -15,7 +15,7 @@ from typing import (
     cast,
 )
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -2054,16 +2054,8 @@ T = TypeVar("T", bound="_CollectionConfigCreate")
 
 class _CollectionConfigCreate(_CollectionConfigCreateBase):
     name: str
-    properties: Optional[Sequence[Union[Property, _ReferencePropertyBase]]] = Field(default=None)
+    properties: Optional[Sequence[Property]] = Field(default=None)
     references: Optional[List[_ReferencePropertyBase]] = Field(default=None)
-
-    @model_validator(mode="after")
-    def model_validator_return_none(self: T) -> T:
-        if self.properties is not None and any(
-            isinstance(p, _ReferencePropertyBase) for p in self.properties
-        ):
-            _Warnings.reference_in_properties()
-        return self
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)

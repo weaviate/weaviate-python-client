@@ -33,7 +33,7 @@ class _Collections(_CollectionsBase):
         generative_config: Optional[_GenerativeConfigCreate] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        properties: Optional[Sequence[Union[Property, _ReferencePropertyBase]]] = None,
+        properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
         reranker_config: Optional[_RerankerConfigCreate] = None,
