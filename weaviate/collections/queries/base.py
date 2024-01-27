@@ -6,7 +6,6 @@ import uuid as uuid_lib
 from collections.abc import Sequence
 from typing import Any, Dict, Generic, List, Optional, Type, Union, cast
 
-from google.protobuf import struct_pb2
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from typing_extensions import is_typeddict
 
@@ -59,7 +58,7 @@ from weaviate.exceptions import (
     WeaviateGRPCUnavailableError,
     WeaviateQueryError,
 )
-from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
+from weaviate.proto.v1 import search_get_pb2, properties_pb2
 from weaviate.types import UUID
 from weaviate.util import (
     file_encoder_b64,
@@ -213,83 +212,6 @@ class _BaseQuery(Generic[Properties, References]):
         if len(properties.ref_props) == 0:
             return {} if properties.ref_props_requested else None
 
-        return {
-            ref_prop.prop_name: _CrossReference._from(
-                [
-                    self.__result_to_query_object(
-                        prop, prop.metadata, _QueryOptions(True, True, True, True, False)
-                    )
-                    for prop in ref_prop.properties
-                ]
-            )
-            for ref_prop in properties.ref_props
-        }
-
-    def __deserialize_primitive_122(self, value: Any) -> Any:
-        if isinstance(value, str) and len(value) > 0:
-            try:
-                return uuid_lib.UUID(value)
-            except ValueError:
-                pass
-            try:
-                return _datetime_from_weaviate_str(value)
-            except ValueError:
-                pass
-        if isinstance(value, list):
-            return [self.__deserialize_primitive_122(val) for val in value]
-        if isinstance(value, struct_pb2.Struct):
-            raise ValueError(
-                f"The query returned an object value where it expected a primitive. Have you missed a NestedProperty specification in your query? {value}"
-            )
-        return value
-
-    def __parse_nonref_properties_result_122(
-        self,
-        properties: Union[search_get_pb2.PropertiesResult, base_pb2.ObjectPropertiesValue],
-    ) -> dict:
-        result: dict = {}
-
-        for name, non_ref_prop in properties.non_ref_properties.items():
-            result[name] = self.__deserialize_primitive_122(non_ref_prop)
-
-        for number_array_property in properties.number_array_properties:
-            result[number_array_property.prop_name] = [
-                float(val) for val in number_array_property.values
-            ]
-
-        for int_array_property in properties.int_array_properties:
-            result[int_array_property.prop_name] = [int(val) for val in int_array_property.values]
-
-        for text_array_property in properties.text_array_properties:
-            result[text_array_property.prop_name] = [
-                self.__deserialize_primitive_122(val) for val in text_array_property.values
-            ]
-
-        for boolean_array_property in properties.boolean_array_properties:
-            result[boolean_array_property.prop_name] = [
-                bool(val) for val in boolean_array_property.values
-            ]
-
-        for object_property in properties.object_properties:
-            result[object_property.prop_name] = self.__parse_nonref_properties_result_122(
-                object_property.value,
-            )
-
-        for object_array_property in properties.object_array_properties:
-            result[object_array_property.prop_name] = [
-                self.__parse_nonref_properties_result_122(
-                    object_property,
-                )
-                for object_property in object_array_property.values
-            ]
-
-        return result
-
-    def __parse_ref_properties_result_122(
-        self, properties: search_get_pb2.PropertiesResult
-    ) -> Optional[dict]:
-        if len(properties.ref_props) == 0:
-            return None
         return {
             ref_prop.prop_name: _CrossReference._from(
                 [
