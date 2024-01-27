@@ -20,7 +20,7 @@ from weaviate.collections.classes.config import (
     Configure,
     _PropertyConfig,
 )
-from weaviate.collections.classes.internal import CrossReference, Reference
+from weaviate.collections.classes.internal import CrossReference
 from weaviate.collections.classes.orm import BaseProperty, CollectionModelConfig
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from pydantic import Field
@@ -260,43 +260,43 @@ def test_multi_searches(client: weaviate.WeaviateClient):
     assert objects[0].metadata.last_update_time_unix is None
 
 
-@pytest.mark.skip(reason="ORM models do not support references yet")
-def test_multi_searches_with_references(client: weaviate.WeaviateClient):
-    class TestMultiSearchesWithReferences(BaseProperty):
-        name: Optional[str] = None
-        group: Optional[CrossReference[Group]] = None  # type: ignore
+# @pytest.mark.skip(reason="ORM models do not support references yet")
+# def test_multi_searches_with_references(client: weaviate.WeaviateClient):
+#     class TestMultiSearchesWithReferences(BaseProperty):
+#         name: Optional[str] = None
+#         group: Optional[CrossReference[Group]] = None  # type: ignore
 
-    client._collection_model.delete(TestMultiSearchesWithReferences)
-    collection = client._collection_model.create(
-        CollectionModelConfig[TestMultiSearchesWithReferences](
-            model=TestMultiSearchesWithReferences, vectorizer_config=Configure.Vectorizer.none()
-        )
-    )
+#     client._collection_model.delete(TestMultiSearchesWithReferences)
+#     collection = client._collection_model.create(
+#         CollectionModelConfig[TestMultiSearchesWithReferences](
+#             model=TestMultiSearchesWithReferences, vectorizer_config=Configure.Vectorizer.none()
+#         )
+#     )
 
-    collection.data.insert(
-        TestMultiSearchesWithReferences(name="some word", group=Reference.to(REF_TO_UUID, Group))
-    )
-    collection.data.insert(
-        TestMultiSearchesWithReferences(name="other", group=Reference.to(REF_TO_UUID, Group))
-    )
+#     collection.data.insert(
+#         TestMultiSearchesWithReferences(name="some word", group=Reference.to(REF_TO_UUID, Group))
+#     )
+#     collection.data.insert(
+#         TestMultiSearchesWithReferences(name="other", group=Reference.to(REF_TO_UUID, Group))
+#     )
 
-    objects = collection.query.bm25(
-        query="word",
-        return_properties=["name", "group"],
-        return_metadata=MetadataQuery(last_update_time=True),
-    )
-    assert objects[0].properties.name == "some word"
-    assert objects[0].properties.group.objects == []
-    assert objects[0].metadata.last_update_time_unix is not None
+#     objects = collection.query.bm25(
+#         query="word",
+#         return_properties=["name", "group"],
+#         return_metadata=MetadataQuery(last_update_time=True),
+#     )
+#     assert objects[0].properties.name == "some word"
+#     assert objects[0].properties.group.objects == []
+#     assert objects[0].metadata.last_update_time_unix is not None
 
-    objects = collection.query.bm25(
-        query="other",
-        return_metadata=MetadataQuery(uuid=True),
-    )
-    assert objects[0].properties.name is None
-    assert objects[0].properties.group is None
-    assert objects[0].metadata.uuid is not None
-    assert objects[0].metadata.last_update_time_unix is None
+#     objects = collection.query.bm25(
+#         query="other",
+#         return_metadata=MetadataQuery(uuid=True),
+#     )
+#     assert objects[0].properties.name is None
+#     assert objects[0].properties.group is None
+#     assert objects[0].metadata.uuid is not None
+#     assert objects[0].metadata.last_update_time_unix is None
 
 
 def test_search_with_tenant(client: weaviate.WeaviateClient):

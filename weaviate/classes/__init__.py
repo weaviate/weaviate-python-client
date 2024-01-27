@@ -17,7 +17,6 @@ from .data import (
     DataObject,
     DataReference,
     GeoCoordinate,
-    Reference,
 )
 from .generics import Nested, CrossReference, ReferenceAnnotation, CrossReferenceAnnotation
 from .query import (
@@ -57,7 +56,6 @@ __all__ = [
     "Property",
     "QueryNested",
     "QueryReference",
-    "Reference",
     "ReferenceAnnotation",
     "ReferenceProperty",
     "ReferencePropertyMultiTarget",

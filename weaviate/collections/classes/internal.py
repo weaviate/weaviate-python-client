@@ -23,7 +23,6 @@ if sys.version_info < (3, 9):
 else:
     from typing import Annotated, get_type_hints, get_origin, get_args
 
-from weaviate.collections.base import _CollectionBase
 from weaviate.collections.classes.grpc import (
     FromNested,
     _QueryReference,
@@ -48,7 +47,6 @@ from weaviate.collections.classes.types import (
 from weaviate.exceptions import WeaviateQueryError, InvalidDataModelException
 from weaviate.util import _to_beacons
 from weaviate.types import UUID, UUIDS
-from weaviate.warnings import _Warnings
 
 from weaviate.proto.v1 import search_get_pb2
 
@@ -435,76 +433,12 @@ Example:
 CrossReferences = Mapping[str, _CrossReference[WeaviateProperties, "CrossReferences"]]
 
 
-class Reference:
-    """Factory class for cross references to other objects.
+SingleReferenceInput = Union[UUID, ReferenceToMulti]
 
-    Can be used with or without generics. If used with generics, the type of the cross reference can be defined from
-    which the nested relationship will be used when performing queries using the generics. If used without generics,
-    all returned objects will of the`Dict[str, Any]` type.
-    """
-
-    @classmethod
-    def to(
-        cls,
-        uuids: UUIDS,
-    ) -> _Reference:
-        """@deprecated: Supply the UUIDS directly instead.
-
-        ```python
-        >>> ...
-        >>> references = {"ref": [uuid1, uuid2]}
-        >>> ...
-        ```
-
-        Define cross references to other objects by their UUIDs.
-
-        Arguments:
-            `uuids`
-                A UUID or list of UUIDs of the objects to which the reference should point.
-        """  # noqa: D401
-        _Warnings.old_reference_to()
-        return _Reference(None, uuids)
-
-    @classmethod
-    def to_multi_target(
-        cls,
-        uuids: UUIDS,
-        target_collection: Union[str, _CollectionBase],
-    ) -> _Reference:
-        """@deprecated: Use `Reference.to_multi` instead.
-
-        Define cross references to other objects by their UUIDs and the collection in which they are stored.
-
-        Arguments:
-            `uuids`
-                A UUID or list of UUIDs of the objects to which the reference should point.
-            `target_collection`
-                The collection in which the objects are stored. Can be either the name of the collection or the collection object itself.
-        """  # noqa: D401
-        _Warnings.old_reference_to_multi_target()
-        return _Reference(
-            target_collection.name
-            if isinstance(target_collection, _CollectionBase)
-            else target_collection,
-            uuids,
-        )
-
-
-SingleReferenceInput = Union[
-    UUID, ReferenceToMulti, _Reference
-]  # TODO: remove _Reference when Reference.to is removed
-
-ReferenceInput: TypeAlias = Union[
-    UUID, Sequence[UUID], ReferenceToMulti, _Reference
-]  # TODO: remove _Reference when Reference.to is removed
+ReferenceInput: TypeAlias = Union[UUID, Sequence[UUID], ReferenceToMulti]
 """This type alias is used when providing references as inputs within the `.data` namespace of a collection."""
 ReferenceInputs: TypeAlias = Mapping[str, ReferenceInput]
 """This type alias is used when providing references as inputs within the `.data` namespace of a collection."""
-
-WeaviateReference = Union[UUIDS, _Reference]
-"""@deprecated: Use `ReferenceInput` instead."""
-WeaviateReferences = Mapping[str, WeaviateReference]
-"""@deprecated: Use `ReferenceInputs` instead."""
 
 
 @dataclass

@@ -17,8 +17,6 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.grpc import FromReference
 from weaviate.collections.classes.internal import (
     _CrossReference,
-    _Reference,
-    Reference,
     ReferenceToMulti,
 )
 from weaviate.collections.classes.tenants import Tenant
@@ -238,10 +236,6 @@ def _from_uuid_to_str(uuid: uuid.UUID) -> str:
     return str(uuid)
 
 
-def _from_uuid_to_ref(uuid: uuid.UUID) -> _Reference:
-    return Reference.to(uuid)
-
-
 def _from_uuid_to_uuid_list(uuid: uuid.UUID) -> List[uuid.UUID]:
     return [uuid]
 
@@ -255,7 +249,6 @@ def _from_uuid_to_str_list(uuid: uuid.UUID) -> List[str]:
     [
         _from_uuid_to_uuid,
         _from_uuid_to_str,
-        _from_uuid_to_ref,
         _from_uuid_to_uuid_list,
         _from_uuid_to_str_list,
     ],
@@ -270,22 +263,12 @@ def test_add_ref_batch(client_factory: ClientFactory, to_ref: Callable) -> None:
             obj_uuid0 = uuid.uuid4()
             objects_class0.append(obj_uuid0)
             batch.add_object(collection=name, uuid=obj_uuid0)
-
-            if to_ref == _from_uuid_to_ref:
-                with pytest.warns(DeprecationWarning):
-                    batch.add_reference(
-                        from_property="test",
-                        from_collection=name,
-                        from_uuid=obj_uuid0,
-                        to=to_ref(obj_uuid0),
-                    )
-            else:
-                batch.add_reference(
-                    from_property="test",
-                    from_collection=name,
-                    from_uuid=obj_uuid0,
-                    to=to_ref(obj_uuid0),
-                )
+            batch.add_reference(
+                from_property="test",
+                from_collection=name,
+                from_uuid=obj_uuid0,
+                to=to_ref(obj_uuid0),
+            )
 
     collection = client.collections.get(name)
     for obj in objects_class0:
@@ -504,15 +487,6 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
         else:
             assert shard["status"] == "INDEXING"
             assert shard["vectorQueueSize"] > 0
-
-
-def test_warning_direct_batching(client_factory: ClientFactory) -> None:
-    client, _ = client_factory()
-    with pytest.warns(DeprecationWarning) as record:
-        with client.batch as _:
-            pass
-        assert len(record) == 1
-        assert "Dep015" in str(record.list[0].message)
 
 
 def test_error_reset(client_factory: ClientFactory) -> None:
