@@ -82,16 +82,12 @@ class _QueryGRPC(_BaseGRPC):
         name: str,
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
-        default_properties: Optional[PROPERTIES] = None,
     ):
         super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
 
-        if default_properties is not None:
-            self._default_props: Optional[Set[PROPERTY]] = self.__convert_to_set(default_properties)
-        else:
-            self._default_props = None
+        self._default_props: Optional[Set[PROPERTY]] = None
         self._metadata: Optional[_MetadataQuery] = None
         self._refs: Optional[Set[REFERENCE]] = None
 
