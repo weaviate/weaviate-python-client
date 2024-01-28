@@ -3,8 +3,7 @@ import io
 import pathlib
 import struct
 import uuid as uuid_lib
-from collections.abc import Sequence
-from typing import Any, Generic, List, Optional, Type, Union, cast
+from typing import Any, Generic, List, Optional, Sequence, Type, Union, cast
 
 from typing_extensions import is_typeddict
 
