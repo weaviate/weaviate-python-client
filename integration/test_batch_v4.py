@@ -475,6 +475,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
                 tenant=tenants[0].name if i < 1000 else tenants[1].name,
             )
     assert len(client.batch.failed_objects) == 0
+    assert len(client.batch.results.objs.all_responses) == 1001
     client.batch.wait_for_vector_indexing(shards=[Shard(collection=name, tenant=tenants[0].name)])
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)

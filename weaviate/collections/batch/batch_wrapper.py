@@ -70,12 +70,6 @@ class _BatchWrapper:
         print("Async indexing finished!")
 
     def _get_shards_readiness(self, shard: Shard) -> List[bool]:
-        if not isinstance(shard.collection, str):
-            raise TypeError(
-                "'collection' argument must be of type `str`! "
-                f"Given type: {type(shard.collection)}."
-            )
-
         path = f"/schema/{_capitalize_first_letter(shard.collection)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
         response = self._connection.get(path=path)
 
