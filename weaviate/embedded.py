@@ -159,26 +159,6 @@ class _EmbeddedBase:
                 self._weaviate_binary_path.stat().st_mode | stat.S_IEXEC
             )
 
-    def is_listening(self) -> bool:
-        up = self.__is_listening()
-        return up[0] and up[1]
-
-    def __is_listening(self) -> Tuple[bool, bool]:
-        http_listening, grpc_listening = False, False
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.connect((self.options.hostname, self.options.port))
-                http_listening = True
-            except (socket.error, ConnectionRefusedError):
-                pass
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.connect((self.options.hostname, self.grpc_port))
-                grpc_listening = True
-            except (socket.error, ConnectionRefusedError):
-                pass
-        return (http_listening, grpc_listening)
-
     def wait_till_listening(self) -> None:
         seconds = 30
         sleep_interval = 0.1
@@ -220,6 +200,10 @@ class _EmbeddedBase:
 
     @abstractmethod
     def start(self) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def is_listening(self) -> bool:
         raise NotImplementedError()
 
 
