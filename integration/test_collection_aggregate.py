@@ -103,6 +103,10 @@ def test_over_all_with_filters_ref(collection_factory: CollectionFactory) -> Non
     collection.config.add_reference(
         ReferenceProperty(name="ref", target_collection=collection.name)
     )
+
+    uuid1 = collection.data.insert({"text": "one"})
+    collection.data.insert({"text": "two"}, references={"ref": uuid1})
+
     res = collection.aggregate.over_all(
         filters=Filter.by_ref_multi_target("ref", collection.name).by_property("text").equal("one"),
         return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
