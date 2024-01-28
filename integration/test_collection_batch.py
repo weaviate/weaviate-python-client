@@ -12,7 +12,7 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
 )
-from weaviate.collections.classes.grpc import FromReference
+from weaviate.collections.classes.grpc import QueryReference
 from weaviate.collections.classes.internal import _CrossReference, ReferenceToMulti
 from weaviate.collections.classes.tenants import Tenant
 
@@ -113,7 +113,7 @@ def test_add_reference(
     assert len(collection.batch.failed_references) == 0
     objs = collection.query.fetch_objects().objects
     obj = collection.query.fetch_object_by_id(
-        from_uuid, return_references=FromReference(link_on="test")
+        from_uuid, return_references=QueryReference(link_on="test")
     )
     assert len(objs) == 2
     assert isinstance(obj.references["test"], _CrossReference)
@@ -166,7 +166,7 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
     assert len(batching.batch.failed_objects) == 0
     assert len(batching.batch.failed_references) == 0
     ret_obj = mt_collection.with_tenant("tenant1").query.fetch_object_by_id(
-        obj_uuid0, return_references=FromReference(link_on="test")
+        obj_uuid0, return_references=QueryReference(link_on="test")
     )
     assert ret_obj.properties["name"] == "one"
     assert isinstance(ret_obj.references["test"], _CrossReference)

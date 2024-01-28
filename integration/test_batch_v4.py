@@ -14,7 +14,7 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
 )
-from weaviate.collections.classes.grpc import FromReference
+from weaviate.collections.classes.grpc import QueryReference
 from weaviate.collections.classes.internal import (
     _CrossReference,
     ReferenceToMulti,
@@ -165,11 +165,11 @@ def test_add_reference(
         )
     objs = (
         client.collections.get(name)
-        .query.fetch_objects(return_references=FromReference(link_on="test"))
+        .query.fetch_objects(return_references=QueryReference(link_on="test"))
         .objects
     )
     obj = client.collections.get(name).query.fetch_object_by_id(
-        from_object_uuid, return_references=FromReference(link_on="test")
+        from_object_uuid, return_references=QueryReference(link_on="test")
     )
     assert len(objs) == 2
     assert isinstance(obj.references["test"], _CrossReference)
@@ -274,7 +274,7 @@ def test_add_ref_batch(client_factory: ClientFactory, to_ref: Callable) -> None:
     for obj in objects_class0:
         ret_obj = collection.query.fetch_object_by_id(
             obj,
-            return_references=FromReference(link_on="test"),
+            return_references=QueryReference(link_on="test"),
         )
         assert ret_obj is not None
         assert ret_obj.references["test"].objects[0].uuid == obj
@@ -313,7 +313,7 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
             .query.fetch_object_by_id(
                 obj[0],
                 return_properties="name",
-                return_references=FromReference(link_on="test"),
+                return_references=QueryReference(link_on="test"),
             )
         )
         assert ret_obj is not None
@@ -370,7 +370,7 @@ def test_add_one_hundred_objects_and_references_between_all(client_factory: Clie
             batch.add_reference(**ref)
     objs = (
         client.collections.get(name)
-        .query.fetch_objects(limit=nr_objects, return_references=FromReference(link_on="test"))
+        .query.fetch_objects(limit=nr_objects, return_references=QueryReference(link_on="test"))
         .objects
     )
     assert len(objs) == nr_objects

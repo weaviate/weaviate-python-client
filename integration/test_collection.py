@@ -22,9 +22,8 @@ from weaviate.collections.classes.data import (
     DataObject,
 )
 from weaviate.collections.classes.grpc import (
-    FromReferenceMultiTarget,
+    QueryReference,
     HybridFusion,
-    FromReference,
     GroupBy,
     MetadataQuery,
     Move,
@@ -310,8 +309,8 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
             "name",
         ],
         return_references=[
-            FromReference(link_on="ref_single"),
-            FromReferenceMultiTarget(link_on="ref_many", target_collection=collection.name),
+            QueryReference(link_on="ref_single"),
+            QueryReference.MultiTarget(link_on="ref_many", target_collection=collection.name),
         ],
     )
     assert obj1 is not None
@@ -325,8 +324,8 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
             "name",
         ],
         return_references=[
-            FromReference(link_on="ref_single"),
-            FromReferenceMultiTarget(link_on="ref_many", target_collection=ref_collection.name),
+            QueryReference(link_on="ref_single"),
+            QueryReference.MultiTarget(link_on="ref_many", target_collection=ref_collection.name),
         ],
     )
     assert obj1 is not None
@@ -430,7 +429,7 @@ def test_replace_with_refs(collection_factory: CollectionFactory, to_uuids: UUID
             "name",
         ],
         return_references=[
-            FromReference(link_on="ref"),
+            QueryReference(link_on="ref"),
         ],
     )
     assert len(obj.references["ref"].objects) == 1
@@ -531,7 +530,7 @@ def test_update_with_refs(collection_factory: CollectionFactory, to_uuids: UUIDS
             "name",
         ],
         return_references=[
-            FromReference(link_on="ref"),
+            QueryReference(link_on="ref"),
         ],
     )
     assert len(obj.references["ref"].objects) == 3
@@ -1145,10 +1144,10 @@ def test_add_reference(collection_factory: CollectionFactory) -> None:
     )
     uuid2 = collection.data.insert({"name": "second"}, references={"self": uuid1})
     obj1 = collection.query.fetch_object_by_id(
-        uuid1, return_properties=["name"], return_references=FromReference(link_on="self")
+        uuid1, return_properties=["name"], return_references=QueryReference(link_on="self")
     )
     obj2 = collection.query.fetch_object_by_id(
-        uuid2, return_properties=["name"], return_references=FromReference(link_on="self")
+        uuid2, return_properties=["name"], return_references=QueryReference(link_on="self")
     )
     assert "name" in obj1.properties
     assert obj1.references == {}
@@ -1193,7 +1192,7 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
         MetadataQuery._full(),
     ],
 )
-@pytest.mark.parametrize("return_references", [None, [], [FromReference(link_on="friend")]])
+@pytest.mark.parametrize("return_references", [None, [], [QueryReference(link_on="friend")]])
 @pytest.mark.parametrize("include_vector", [False, True])
 def test_return_properties_metadata_references_combos(
     collection_factory: CollectionFactory,
@@ -1788,7 +1787,7 @@ def test_optional_ref_returns(collection_factory: CollectionFactory) -> None:
     collection.data.insert({}, references={"ref": uuid_to1})
 
     objects = collection.query.fetch_objects(
-        return_references=[FromReference(link_on="ref")]
+        return_references=[QueryReference(link_on="ref")]
     ).objects
 
     assert objects[0].references["ref"].objects[0].properties["text"] == "ref text"

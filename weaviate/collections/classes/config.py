@@ -2016,10 +2016,6 @@ class _ReferencePropertyMultiTarget(_ReferencePropertyBase):
         return ret_dict
 
 
-ReferencePropertyMultiTarget = _ReferencePropertyMultiTarget
-"""@deprecated: Use `ReferenceProperty.MultiTarget` instead."""
-
-
 class ReferenceProperty(_ReferencePropertyBase):
     """This class defines properties that are cross references to a single target collection.
 
