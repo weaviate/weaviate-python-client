@@ -33,6 +33,7 @@ from weaviate.collections.classes.grpc import (
     PROPERTIES,
     PROPERTY,
     REFERENCE,
+    NearMediaType,
 )
 from weaviate.collections.classes.internal import (
     _CrossReference,
@@ -1552,6 +1553,61 @@ def test_near_image(
     image = image_maker()  # need to reopen if file was consumed
     objects3 = collection.query.near_image(
         image, distance=distance, certainty=certainty, offset=1
+    ).objects
+
+    if isinstance(image, io.BufferedReader):
+        image.close()
+
+    assert len(objects1) == 2
+    assert objects1[0].uuid == uuid1
+
+    assert len(objects2) == 1
+    assert objects2[0].uuid == uuid1
+
+    assert len(objects3) == 1
+    assert objects3[0].uuid == uuid2
+
+
+@pytest.mark.parametrize(
+    "image_maker",
+    [
+        lambda: WEAVIATE_LOGO_OLD_ENCODED,
+        lambda: pathlib.Path("./integration/weaviate-logo.png"),
+        lambda: pathlib.Path("./integration/weaviate-logo.png").open("rb"),
+    ],
+    ids=["base64", "pathlib.Path", "io.BufferedReader"],
+)
+@pytest.mark.parametrize(
+    "distance,certainty",
+    [(None, None), (10.0, None), (None, 0.1)],
+)
+def test_near_media(
+    collection_factory: CollectionFactory,
+    image_maker: Callable[[], Union[str, pathlib.Path, io.BufferedReader]],
+    distance: Optional[float],
+    certainty: Optional[float],
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.img2vec_neural(image_fields=["imageProp"]),
+        properties=[
+            Property(name="imageProp", data_type=DataType.BLOB),
+        ],
+    )
+
+    uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
+    uuid2 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
+
+    image = image_maker()
+    objects1 = collection.query.near_media(
+        image, NearMediaType.IMAGE, distance=distance, certainty=certainty
+    ).objects
+    image = image_maker()  # need to reopen if file was consumed
+    objects2 = collection.query.near_media(
+        image, NearMediaType.IMAGE, distance=distance, certainty=certainty, limit=1
+    ).objects
+    image = image_maker()  # need to reopen if file was consumed
+    objects3 = collection.query.near_media(
+        image, NearMediaType.IMAGE, distance=distance, certainty=certainty, offset=1
     ).objects
 
     if isinstance(image, io.BufferedReader):
