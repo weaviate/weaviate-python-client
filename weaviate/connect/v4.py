@@ -1,9 +1,10 @@
 from __future__ import annotations
+from dataclasses import dataclass, field
 
 import time
 from copy import copy
 from threading import Thread, Event
-from typing import Any, Dict, Literal, Optional, Tuple, Union, cast, overload
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
 
 from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client  # type: ignore
 from grpc import _channel, Channel  # type: ignore
@@ -45,6 +46,7 @@ from weaviate.connect.base import (
 from weaviate.embedded import EmbeddedDB
 from weaviate.exceptions import (
     AuthenticationFailedError,
+    UnexpectedStatusCodeError,
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
     WeaviateClosedClientError,
@@ -61,6 +63,19 @@ from weaviate.warnings import _Warnings
 
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
+
+
+@dataclass
+class _ExpectedStatusCodes:
+    ok_in: Union[List[int], int]
+    error: str
+    ok: List[int] = field(init=False)
+
+    def __post_init__(self) -> None:
+        if isinstance(self.ok_in, int):
+            self.ok = [self.ok_in]
+        else:
+            self.ok = self.ok_in
 
 
 class _Connection(_ConnectionBase):
@@ -405,6 +420,7 @@ class _Connection(_ConnectionBase):
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
         if not self.is_connected():
             raise WeaviateClosedClientError()
@@ -419,6 +435,8 @@ class _Connection(_ConnectionBase):
                 headers=self.__get_latest_headers(),
             )
             res = self._client.send(req)
+            if status_codes is not None and res.status_code not in status_codes.ok:
+                raise UnexpectedStatusCodeError(error_msg, response=res)
             return cast(Response, res)
         except RuntimeError as e:
             raise WeaviateClosedClientError() from e
@@ -431,6 +449,7 @@ class _Connection(_ConnectionBase):
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
         return self.__send(
             "DELETE",
@@ -438,6 +457,7 @@ class _Connection(_ConnectionBase):
             weaviate_object=weaviate_object,
             params=params,
             error_msg=error_msg,
+            status_codes=status_codes,
         )
 
     def patch(
@@ -512,6 +532,7 @@ class _Connection(_ConnectionBase):
         params: Optional[Dict[str, Any]] = None,
         external_url: bool = False,
         error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
@@ -524,10 +545,7 @@ class _Connection(_ConnectionBase):
             request_url = self.url + self._api_version_path + path
 
         return self.__send(
-            "GET",
-            url=request_url,
-            params=params,
-            error_msg=error_msg,
+            "GET", url=request_url, params=params, error_msg=error_msg, status_codes=status_codes
         )
 
     def head(

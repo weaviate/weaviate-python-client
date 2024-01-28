@@ -31,6 +31,8 @@ from weaviate.exceptions import (
 )
 from weaviate.util import _decode_json_response_dict, _decode_json_response_list
 
+from weaviate.connect.v4 import _ExpectedStatusCodes
+
 
 class _ConfigBase:
     def __init__(self, connection: ConnectionV4, name: str, tenant: Optional[str]) -> None:
@@ -42,9 +44,8 @@ class _ConfigBase:
         response = self.__connection.get(
             path=f"/schema/{self._name}",
             error_msg="Collection configuration could not be retrieved.",
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="Get collection configuration"),
         )
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError("Get collection configuration", response)
         return cast(Dict[str, Any], response.json())
 
     @overload

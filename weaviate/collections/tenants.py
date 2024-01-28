@@ -5,6 +5,8 @@ from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import UnexpectedStatusCodeError
 
+from weaviate.connect.v4 import _ExpectedStatusCodes
+
 
 class _Tenants:
     """Represents all the CRUD methods available on a collection's multi-tenancy specification within Weaviate.
@@ -72,15 +74,14 @@ class _Tenants:
             _raise_invalid_input("tenants", tenants, List[str])
 
         path = "/schema/" + self.__name + "/tenants"
-        response = self.__connection.delete(
+        self.__connection.delete(
             path=path,
             weaviate_object=tenants,
             error_msg=f"Collection tenants may not have been deleted for {self.__name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=200, error=f"Delete collection tenants for {self.__name}"
+            ),
         )
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError(
-                f"Delete collection tenants for {self.__name}", response
-            )
 
     def get(self) -> Dict[str, Tenant]:
         """Return all tenants currently associated with a collection in Weaviate.
