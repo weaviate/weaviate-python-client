@@ -51,6 +51,7 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
+from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateGRPCUnavailableError,
@@ -521,6 +522,14 @@ class _BaseQuery(Generic[Properties, References]):
     def _parse_return_metadata(
         self, return_metadata: Optional[METADATA], include_vector: bool
     ) -> Optional[_MetadataQuery]:
+        _validate_input(
+            [
+                _ValidateArgument(
+                    [Sequence[str], MetadataQuery], "return_metadata", return_metadata
+                ),
+                _ValidateArgument([bool], "include_vector", include_vector),
+            ]
+        )
         if return_metadata is None:
             ret_md = None
         elif isinstance(return_metadata, Sequence):

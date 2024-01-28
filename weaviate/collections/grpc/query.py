@@ -129,6 +129,10 @@ class _QueryGRPC(_BaseGRPC):
         self._filters: Optional[_Filters] = None
 
     def __parse_sort(self, sort: Optional[_Sorting]) -> None:
+        if sort is not None and not isinstance(sort, _Sorting):
+            raise TypeError(
+                f"sort must be of type weaviate.classes.query.Sorting, but got {type(sort)}"
+            )
         if sort is None:
             self._sort = None
         else:
