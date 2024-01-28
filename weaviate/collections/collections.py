@@ -265,9 +265,7 @@ class _Collections(_CollectionsBase):
         """
         if not isinstance(simple, bool):
             _raise_invalid_input("simple", simple, bool)
-        if simple:
-            return self._get_simple()
-        return self._get_all()
+        return self._get_all(simple=simple)
 
     def create_from_dict(self, config: dict) -> Collection:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration dictionary object.

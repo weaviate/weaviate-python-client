@@ -1,7 +1,5 @@
 from typing import Dict, Any, List, Literal, Optional, Type, Tuple, Union, cast, overload
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
-
 from weaviate.collections.classes.config import (
     _CollectionConfigUpdate,
     _InvertedIndexConfigUpdate,
@@ -41,12 +39,10 @@ class _ConfigBase:
         self.__tenant = tenant
 
     def __get(self) -> Dict[str, Any]:
-        try:
-            response = self.__connection.get(path=f"/schema/{self._name}")
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Collection configuration could not be retrieved."
-            ) from conn_err
+        response = self.__connection.get(
+            path=f"/schema/{self._name}",
+            error_msg="Collection configuration could not be retrieved.",
+        )
         if response.status_code != 200:
             raise UnexpectedStatusCodeError("Get collection configuration", response)
         return cast(Dict[str, Any], response.json())
@@ -121,22 +117,20 @@ class _ConfigBase:
         )
         schema = self.__get()
         schema = config.merge_with_existing(schema)
-        try:
-            response = self.__connection.put(path=f"/schema/{self._name}", weaviate_object=schema)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Collection configuration could not be updated."
-            ) from conn_err
+        response = self.__connection.put(
+            path=f"/schema/{self._name}",
+            weaviate_object=schema,
+            error_msg="Collection configuration may not have been updated.",
+        )
         if response.status_code != 200:
             raise UnexpectedStatusCodeError("Update collection configuration", response)
 
     def _add_property(self, additional_property: PropertyType) -> None:
         path = f"/schema/{self._name}/properties"
         obj = additional_property._to_dict()
-        try:
-            response = self.__connection.post(path=path, weaviate_object=obj)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Property was not created properly.") from conn_err
+        response = self.__connection.post(
+            path=path, weaviate_object=obj, error_msg="Property may not have been added properly."
+        )
         if response.status_code != 200:
             raise UnexpectedStatusCodeError("Add property to collection", response)
 
@@ -163,22 +157,20 @@ class _ConfigBase:
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        try:
-            response = self.__connection.get(
-                path=f"/schema/{self._name}/shards{f'?tenant={self.__tenant}' if self.__tenant else ''}"
+        response = self.__connection.get(
+            path=f"/schema/{self._name}/shards{f'?tenant={self.__tenant}' if self.__tenant else ''}",
+            error_msg="Shard statuses could not be retrieved.",
+        )
+        shards = _decode_json_response_list(response, "get shards")
+        assert shards is not None
+        return [
+            _ShardStatus(
+                name=shard["name"],
+                status=shard["status"],
+                vector_queue_size=shard["vectorQueueSize"],
             )
-            shards = _decode_json_response_list(response, "get shards")
-            assert shards is not None
-            return [
-                _ShardStatus(
-                    name=shard["name"],
-                    status=shard["status"],
-                    vector_queue_size=shard["vectorQueueSize"],
-                )
-                for shard in shards
-            ]
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Shard statuses could not be retrieved.") from conn_err
+            for shard in shards
+        ]
 
     def update_shards(
         self,
@@ -213,16 +205,11 @@ class _ConfigBase:
 
         for _shard_name in shard_names:
             path = f"/schema/{self._name}/shards/{_shard_name}"
-            try:
-                response = self.__connection.put(
-                    path=path,
-                    weaviate_object=data,
-                )
-            except RequestsConnectionError as conn_err:
-                raise RequestsConnectionError(
-                    f"Class shards' status could not be updated for shard '{_shard_name}' due to "
-                    "connection error."
-                ) from conn_err
+            response = self.__connection.put(
+                path=path,
+                weaviate_object=data,
+                error_msg=f"shard '{_shard_name}' may not have been updated.",
+            )
             resp = _decode_json_response_dict(response, f"Update shard '{_shard_name}' status")
             assert resp is not None
             to_return[_shard_name] = resp["status"]

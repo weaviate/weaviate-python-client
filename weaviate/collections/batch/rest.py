@@ -1,7 +1,5 @@
 from typing import Any, Dict, List, Optional, Union
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
-
 from weaviate.collections.classes.batch import (
     DeleteManyReturn,
     ErrorReference,
@@ -44,14 +42,12 @@ class _BatchREST:
         if tenant is not None:
             params["tenant"] = tenant
 
-        try:
-            response = self.__connection.delete(
-                path="/batch/objects",
-                weaviate_object=payload,
-                params=params,
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Batch delete was not successful.") from conn_err
+        response = self.__connection.delete(
+            path="/batch/objects",
+            weaviate_object=payload,
+            params=params,
+            error_msg="Batch may have not been succesfull.",
+        )
         res = _decode_json_response_dict(response, "Delete in batch")
         assert res is not None
         if verbose:
