@@ -1,11 +1,10 @@
 from typing import Dict, Any, List
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
-
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import UnexpectedStatusCodeError
+
+from weaviate.connect.v4 import _ExpectedStatusCodes
 
 
 class _Tenants:
@@ -45,14 +44,14 @@ class _Tenants:
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"
-        try:
-            response = self.__connection.post(path=path, weaviate_object=loaded_tenants)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                f"Collection tenants may not have been added properly for {self.__name}"
-            ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError(f"Add collection tenants for {self.__name}", response)
+        self.__connection.post(
+            path=path,
+            weaviate_object=loaded_tenants,
+            error_msg=f"Collection tenants may not have been added properly for {self.__name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=200, error=f"Add collection tenants for {self.__name}"
+            ),
+        )
 
     def remove(self, tenants: List[str]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
@@ -75,16 +74,14 @@ class _Tenants:
             _raise_invalid_input("tenants", tenants, List[str])
 
         path = "/schema/" + self.__name + "/tenants"
-        try:
-            response = self.__connection.delete(path=path, weaviate_object=tenants)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                f"Collection tenants may not have been deleted for {self.__name}"
-            ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError(
-                f"Delete collection tenants for {self.__name}", response
-            )
+        self.__connection.delete(
+            path=path,
+            weaviate_object=tenants,
+            error_msg=f"Collection tenants may not have been deleted for {self.__name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=200, error=f"Delete collection tenants for {self.__name}"
+            ),
+        )
 
     def get(self) -> Dict[str, Tenant]:
         """Return all tenants currently associated with a collection in Weaviate.
@@ -98,14 +95,13 @@ class _Tenants:
                 If Weaviate reports a non-OK status.
         """
         path = "/schema/" + self.__name + "/tenants"
-        try:
-            response = self.__connection.get(path=path)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                f"Could not get collection tenants for {self.__name}"
-            ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError(f"Get collection tenants for {self.__name}", response)
+        response = self.__connection.get(
+            path=path,
+            error_msg=f"Could not get collection tenants for {self.__name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=200, error=f"Get collection tenants for {self.__name}"
+            ),
+        )
 
         tenant_resp: List[Dict[str, Any]] = response.json()
         return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
@@ -135,13 +131,11 @@ class _Tenants:
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
         path = "/schema/" + self.__name + "/tenants"
-        try:
-            response = self.__connection.put(path=path, weaviate_object=loaded_tenants)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                f"Collection tenants may not have been updated properly for {self.__name}"
-            ) from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError(
-                f"Update collection tenants for {self.__name}", response
-            )
+        self.__connection.put(
+            path=path,
+            weaviate_object=loaded_tenants,
+            error_msg=f"Collection tenants may not have been updated properly for {self.__name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=200, error=f"Update collection tenants for {self.__name}"
+            ),
+        )
