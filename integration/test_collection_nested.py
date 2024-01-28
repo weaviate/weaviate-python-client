@@ -8,7 +8,7 @@ from weaviate.collections.classes.config import (
     DataType,
     Property,
 )
-from weaviate.collections.classes.grpc import PROPERTIES, FromNested
+from weaviate.collections.classes.grpc import PROPERTIES, QueryNested
 from weaviate.collections.classes.internal import Nested
 
 
@@ -332,16 +332,16 @@ def test_nested_return_all_properties(
 @pytest.mark.parametrize(
     "return_properties,expected",
     [
-        (FromNested(name="nested", properties=["text"]), {"text": "Hello World"}),
-        (FromNested(name="nested", properties=["texts"]), {"texts": ["Hello", "World"]}),
-        (FromNested(name="nested", properties=["number"]), {"number": 42.0}),
-        (FromNested(name="nested", properties=["numbers"]), {"numbers": [42.0, 43.0]}),
-        (FromNested(name="nested", properties=["int"]), {"int": 42}),
-        (FromNested(name="nested", properties=["ints"]), {"ints": [42, 43]}),
-        (FromNested(name="nested", properties=["bool"]), {"bool": True}),
-        (FromNested(name="nested", properties=["bools"]), {"bools": [True, False]}),
+        (QueryNested(name="nested", properties=["text"]), {"text": "Hello World"}),
+        (QueryNested(name="nested", properties=["texts"]), {"texts": ["Hello", "World"]}),
+        (QueryNested(name="nested", properties=["number"]), {"number": 42.0}),
+        (QueryNested(name="nested", properties=["numbers"]), {"numbers": [42.0, 43.0]}),
+        (QueryNested(name="nested", properties=["int"]), {"int": 42}),
+        (QueryNested(name="nested", properties=["ints"]), {"ints": [42, 43]}),
+        (QueryNested(name="nested", properties=["bool"]), {"bool": True}),
+        (QueryNested(name="nested", properties=["bools"]), {"bools": [True, False]}),
         (
-            FromNested(name="nested", properties=["date"]),
+            QueryNested(name="nested", properties=["date"]),
             {
                 "date": datetime.datetime(
                     year=2020,
@@ -355,7 +355,7 @@ def test_nested_return_all_properties(
             },
         ),
         (
-            FromNested(name="nested", properties=["dates"]),
+            QueryNested(name="nested", properties=["dates"]),
             {
                 "dates": [
                     datetime.datetime(
@@ -380,20 +380,20 @@ def test_nested_return_all_properties(
             },
         ),
         (
-            FromNested(name="nested", properties=[FromNested(name="obj", properties=["text"])]),
+            QueryNested(name="nested", properties=[QueryNested(name="obj", properties=["text"])]),
             {"obj": {"text": "Hello World"}},
         ),
         (
-            FromNested(name="nested", properties=[FromNested(name="objs", properties=["text"])]),
+            QueryNested(name="nested", properties=[QueryNested(name="objs", properties=["text"])]),
             {"objs": [{"text": "Hello World"}, {"text": "Hello World"}]},
         ),
         (
-            FromNested(
+            QueryNested(
                 name="nested",
-                properties=FromNested(
+                properties=QueryNested(
                     name="a",
                     properties=[
-                        FromNested(name="b", properties=[FromNested(name="c", properties=["d"])])
+                        QueryNested(name="b", properties=[QueryNested(name="c", properties=["d"])])
                     ],
                 ),
             ),

@@ -23,8 +23,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
     HybridFusion,
-    FromReferenceMultiTarget,
-    FromNested,
+    _QueryReferenceMultiTarget,
     _MetadataQuery,
     Move,
     QueryNested,
@@ -674,13 +673,13 @@ class _QueryGRPC(_BaseGRPC):
             is_consistent=metadata.is_consistent,
         )
 
-    def __resolve_property(self, prop: FromNested) -> search_get_pb2.ObjectPropertiesRequest:
+    def __resolve_property(self, prop: QueryNested) -> search_get_pb2.ObjectPropertiesRequest:
         props = prop.properties if isinstance(prop.properties, list) else [prop.properties]
         return search_get_pb2.ObjectPropertiesRequest(
             prop_name=prop.name,
             primitive_properties=[p for p in props if isinstance(p, str)],
             object_properties=[
-                self.__resolve_property(p) for p in props if isinstance(p, FromNested)
+                self.__resolve_property(p) for p in props if isinstance(p, QueryNested)
             ],
         )
 
@@ -711,7 +710,7 @@ class _QueryGRPC(_BaseGRPC):
                     if ref._return_metadata is not None
                     else None,
                     target_collection=ref.target_collection
-                    if isinstance(ref, FromReferenceMultiTarget)
+                    if isinstance(ref, _QueryReferenceMultiTarget)
                     else None,
                 )
                 for ref in references
@@ -719,7 +718,9 @@ class _QueryGRPC(_BaseGRPC):
             object_properties=None
             if properties is None
             else [
-                self.__resolve_property(prop) for prop in properties if isinstance(prop, FromNested)
+                self.__resolve_property(prop)
+                for prop in properties
+                if isinstance(prop, QueryNested)
             ],
         )
 

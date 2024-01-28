@@ -10,7 +10,6 @@ from weaviate.collections.classes.config import (
     Property,
     DataType,
     ReferenceProperty,
-    ReferencePropertyMultiTarget,
     Tokenization,
 )
 from weaviate.collections.classes.data import DataObject
@@ -553,7 +552,7 @@ def test_batch_delete_with_refs(collection_factory: CollectionFactory) -> None:
         name="source", references=[ReferenceProperty(name="ref", target_collection=to.name)]
     )
     source.config.add_reference(
-        ReferencePropertyMultiTarget(name="ref_self", target_collections=[source.name, to.name])
+        ReferenceProperty.MultiTarget(name="ref_self", target_collections=[source.name, to.name])
     )
 
     uuid_source1 = source.data.insert(properties={})
@@ -596,7 +595,7 @@ def test_delete_by_time_metadata_with_ref(
         name="source", references=[ReferenceProperty(name="ref", target_collection=to.name)]
     )
     source.config.add_reference(
-        ReferencePropertyMultiTarget(name="ref_self", target_collections=[source.name, to.name])
+        ReferenceProperty.MultiTarget(name="ref_self", target_collections=[source.name, to.name])
     )
 
     uuid_source1 = source.data.insert(properties={})

@@ -10,10 +10,10 @@ from typing_extensions import is_typeddict
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    FromReference,
+    _QueryReference,
     MetadataQuery,
     _MetadataQuery,
-    FromNested,
+    QueryNested,
     METADATA,
     PROPERTIES,
     REFERENCES,
@@ -497,7 +497,7 @@ class _BaseQuery(Generic[Properties, References]):
         if (
             isinstance(return_properties, Sequence)
             or isinstance(return_properties, str)
-            or isinstance(return_properties, FromNested)
+            or isinstance(return_properties, QueryNested)
             or (return_properties is None and self._properties is None)
         ):
             # return self.__parse_properties(return_properties)
@@ -534,7 +534,7 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> Optional[REFERENCES]:
         if (
             isinstance(return_references, Sequence)
-            or isinstance(return_references, FromReference)
+            or isinstance(return_references, _QueryReference)
             or (return_references is None and self._references is None)
         ):
             return return_references

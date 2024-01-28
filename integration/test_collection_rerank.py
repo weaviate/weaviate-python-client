@@ -10,9 +10,9 @@ from .conftest import CollectionFactory
 
 def test_query_using_rerank_with_old_server(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        reranker_config=wvc.Configure.Reranker.transformers(),
-        vectorizer_config=wvc.Configure.Vectorizer.none(),
-        properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
+        reranker_config=wvc.config.Configure.Reranker.transformers(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+        properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
         ports=(8079, 50050),
     )
     if collection._connection._weaviate_version >= _ServerVersion(1, 23, 1):
@@ -36,9 +36,9 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
 
     collection = collection_factory(
         name="Test_test_queries_with_rerank",
-        reranker_config=wvc.Configure.Reranker.transformers(),
-        vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(),
-        properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
+        reranker_config=wvc.config.Configure.Reranker.transformers(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_openai(),
+        properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
         ports=(8079, 50050),
         headers={"X-OpenAI-Api-Key": api_key},
     )
@@ -92,9 +92,11 @@ def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory)
 
     collection = collection_factory(
         name="Test_test_queries_with_rerank_and_group_by",
-        reranker_config=wvc.Configure.Reranker.transformers(),
-        vectorizer_config=wvc.Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
-        properties=[wvc.Property(name="text", data_type=wvc.DataType.TEXT)],
+        reranker_config=wvc.config.Configure.Reranker.transformers(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_openai(
+            vectorize_collection_name=False
+        ),
+        properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
         ports=(8079, 50050),
         headers={"X-OpenAI-Api-Key": api_key},
     )
