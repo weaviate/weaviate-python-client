@@ -2,6 +2,7 @@ import pytest
 from typing import Callable
 from weaviate.connect import ConnectionV4
 from weaviate.collections.query import _QueryCollection
+from weaviate.exceptions import WeaviateInvalidInputError
 
 # TODO: re-enable tests once string syntax is re-enabled in the API
 
@@ -81,7 +82,7 @@ from weaviate.collections.query import _QueryCollection
 
 
 def _test_query(query: Callable) -> None:
-    with pytest.raises(TypeError):
+    with pytest.raises(WeaviateInvalidInputError):
         query()
 
 

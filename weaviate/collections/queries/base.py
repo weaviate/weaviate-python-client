@@ -525,7 +525,7 @@ class _BaseQuery(Generic[Properties, References]):
         _validate_input(
             [
                 _ValidateArgument(
-                    [Sequence[str], MetadataQuery], "return_metadata", return_metadata
+                    [Sequence[str], MetadataQuery, None], "return_metadata", return_metadata
                 ),
                 _ValidateArgument([bool], "include_vector", include_vector),
             ]
