@@ -54,10 +54,9 @@ class _Operator(str, Enum):
             return base_pb2.Filters.OPERATOR_WITHIN_GEO_RANGE
         elif self == _Operator.AND:
             return base_pb2.Filters.OPERATOR_AND
-        elif self == _Operator.OR:
-            return base_pb2.Filters.OPERATOR_OR
         else:
-            raise ValueError(f"Unknown operator {self}")
+            assert self == _Operator.OR
+            return base_pb2.Filters.OPERATOR_OR
 
 
 class _Filters:

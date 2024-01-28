@@ -11,7 +11,6 @@ from weaviate.collections.classes.config import (
     StopwordsPreset,
     Tokenization,
     Vectorizers,
-    VectorDistance,
     VectorDistances,
 )
 
@@ -28,6 +27,5 @@ __all__ = [
     "StopwordsPreset",
     "Tokenization",
     "Vectorizers",
-    "VectorDistance",
     "VectorDistances",
 ]

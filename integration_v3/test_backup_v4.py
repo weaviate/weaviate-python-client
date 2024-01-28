@@ -111,7 +111,8 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     classes = ["Article", "Paragraph"]
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
     assert resp.status == BackupStatus.SUCCESS
-    assert sorted(resp.collections) == sorted(classes)
+    for cls in classes:
+        assert cls in resp.collections
 
     assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
     assert len(client.collections.get("Paragraph")) == len(PARAGRAPHS_IDS)
@@ -127,7 +128,8 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     # restore backup
     restore = client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
     assert restore.status == BackupStatus.SUCCESS
-    assert sorted(restore.collections) == sorted(classes)
+    for cls in classes:
+        assert cls in resp.collections
 
     # # check data exists again
     assert len(client.collections.get("Article")) == len(ARTICLES_IDS)

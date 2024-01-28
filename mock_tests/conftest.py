@@ -36,7 +36,7 @@ def ready_mock(httpserver: HTTPServer):
 
 @pytest.fixture(scope="function")
 def weaviate_mock(ready_mock):
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.16"})
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
     ready_mock.expect_request("/v1/nodes").respond_with_json({"nodes": [{"gitHash": "ABC"}]})
 
     yield ready_mock

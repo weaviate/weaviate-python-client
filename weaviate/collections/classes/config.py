@@ -238,9 +238,6 @@ class VectorDistances(str, Enum):
     MANHATTAN = "manhattan"
 
 
-VectorDistance = VectorDistances  # TODO: deprecate and remove
-
-
 class StopwordsPreset(str, Enum):
     """Preset stopwords to use in the `Stopwords` class.
 

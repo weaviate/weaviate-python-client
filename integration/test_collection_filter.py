@@ -1,6 +1,7 @@
 import datetime
+import time
 import uuid
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import pytest as pytest
 
@@ -18,7 +19,7 @@ from weaviate.collections.classes.filters import (
     _Filters,
     _FilterValue,
 )
-from weaviate.collections.classes.grpc import MetadataQuery, QueryReference
+from weaviate.collections.classes.grpc import MetadataQuery, QueryReference, Sort
 from weaviate.collections.classes.internal import ReferenceToMulti
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
@@ -558,6 +559,7 @@ def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, pat
     )
 
     obj1_uuid = collection.data.insert(properties={"name": "first"})
+    time.sleep(0.01)
     obj2_uuid = collection.data.insert(properties={"name": "second"})
 
     obj2 = collection.query.fetch_object_by_id(uuid=obj2_uuid)
@@ -584,6 +586,7 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
     )
 
     obj1_uuid = collection.data.insert(properties={"name": "first"})
+    time.sleep(0.01)
     obj2_uuid = collection.data.insert(properties={"name": "second"})
 
     collection.data.update(uuid=obj1_uuid, properties={"name": "first updated"})
@@ -608,6 +611,68 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
     ).objects
     assert len(objects_update) == 1
     assert objects_update[0].uuid == obj2_uuid
+
+
+@pytest.mark.parametrize(
+    "weav_filter,filter_value,results",
+    [
+        (Filter.by_creation_time().equal, 2, [2]),
+        (Filter.by_creation_time().not_equal, 1, [0, 2]),
+        (Filter.by_creation_time().greater_than, 1, [2]),
+        (Filter.by_creation_time().greater_or_equal, 1, [1, 2]),
+        (Filter.by_creation_time().less_than, 1, [0]),
+        (Filter.by_creation_time().less_or_equal, 1, [0, 1]),
+    ],
+)
+def test_time_filter(
+    collection_factory: CollectionFactory,
+    weav_filter: Callable,
+    filter_value: int,
+    results: List[int],
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+    collection.data.insert(properties={})
+    time.sleep(0.01)
+    collection.data.insert(properties={})
+    time.sleep(0.01)
+    collection.data.insert(properties={})
+
+    all_objects = collection.query.fetch_objects(
+        sort=Sort.by_creation_time(), return_metadata=["creation_time"]
+    ).objects
+    weaviate_filter = weav_filter(all_objects[filter_value].metadata.creation_time)
+    objects = collection.query.fetch_objects(filters=weaviate_filter).objects
+    assert len(objects) == len(results)
+
+    uuids = [all_objects[result].uuid for result in results]
+    assert all(obj.uuid in uuids for obj in objects)
+
+
+def test_time_filter_contains(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        inverted_index_config=Configure.inverted_index(index_timestamps=True),
+    )
+    collection.data.insert(properties={})
+    time.sleep(0.01)
+    uuid2 = collection.data.insert(properties={})
+    time.sleep(0.01)
+    uuid3 = collection.data.insert(properties={})
+
+    obj2 = collection.query.fetch_object_by_id(uuid=uuid2)
+    obj3 = collection.query.fetch_object_by_id(uuid=uuid3)
+
+    objects = collection.query.fetch_objects(
+        filters=Filter.by_creation_time().contains_any(
+            [obj2.metadata.creation_time, obj3.metadata.creation_time]
+        )
+    ).objects
+    assert len(objects) == 2
+    uuids = [uuid2, uuid3]
+    assert all(obj.uuid in uuids for obj in objects)
 
 
 def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
