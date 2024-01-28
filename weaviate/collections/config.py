@@ -25,7 +25,6 @@ from weaviate.collections.classes.orm import Model
 from weaviate.collections.validator import _raise_invalid_input
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
-    UnexpectedStatusCodeError,
     ObjectAlreadyExistsError,
     WeaviateAddInvalidPropertyError,
 )
@@ -118,22 +117,22 @@ class _ConfigBase:
         )
         schema = self.__get()
         schema = config.merge_with_existing(schema)
-        response = self.__connection.put(
+        self.__connection.put(
             path=f"/schema/{self._name}",
             weaviate_object=schema,
             error_msg="Collection configuration may not have been updated.",
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="Update collection configuration"),
         )
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError("Update collection configuration", response)
 
     def _add_property(self, additional_property: PropertyType) -> None:
         path = f"/schema/{self._name}/properties"
         obj = additional_property._to_dict()
-        response = self.__connection.post(
-            path=path, weaviate_object=obj, error_msg="Property may not have been added properly."
+        self.__connection.post(
+            path=path,
+            weaviate_object=obj,
+            error_msg="Property may not have been added properly.",
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="Add property to collection"),
         )
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError("Add property to collection", response)
 
     def _get_property_by_name(self, property_name: str) -> Optional[_Property]:
         for prop in self.get().properties:

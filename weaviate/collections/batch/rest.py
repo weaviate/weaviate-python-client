@@ -12,7 +12,9 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToREST
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import UnexpectedStatusCodeError
-from weaviate.util import _decode_json_response_dict
+from weaviate.util import _decode_json_response_dict, _decode_json_response_list
+
+from weaviate.connect.v4 import _ExpectedStatusCodes
 
 
 class _BatchREST:
@@ -78,24 +80,27 @@ class _BatchREST:
         ]
 
         response = self.__connection.post(
-            path="/batch/references", weaviate_object=refs, params=params
+            path="/batch/references",
+            weaviate_object=refs,
+            params=params,
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="Send ref batch"),
         )
-        if response.status_code == 200:
-            payload = response.json()
-            errors = {
-                idx: ErrorReference(
-                    message=entry["result"]["errors"]["error"][0]["message"],
-                    reference=references[idx],
-                )
-                for idx, entry in enumerate(payload)
-                if entry["result"]["status"] == "FAILED"
-            }
-            return BatchReferenceReturn(
-                elapsed_seconds=response.elapsed.total_seconds(),
-                errors=errors,
-                has_errors=len(errors) > 0,
+
+        payload = _decode_json_response_list(response, "batch ref")
+        assert payload is not None
+        errors = {
+            idx: ErrorReference(
+                message=entry["result"]["errors"]["error"][0]["message"],
+                reference=references[idx],
             )
-        raise UnexpectedStatusCodeError("Send ref batch", response)
+            for idx, entry in enumerate(payload)
+            if entry["result"]["status"] == "FAILED"
+        }
+        return BatchReferenceReturn(
+            elapsed_seconds=response.elapsed.total_seconds(),
+            errors=errors,
+            has_errors=len(errors) > 0,
+        )
 
 
 class _BatchRESTAsync:

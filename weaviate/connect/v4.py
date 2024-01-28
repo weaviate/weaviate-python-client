@@ -417,10 +417,10 @@ class _Connection(_ConnectionBase):
         self,
         method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
         url: str,
+        error_msg: str,
+        status_codes: Optional[_ExpectedStatusCodes],
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
         if not self.is_connected():
             raise WeaviateClosedClientError()
@@ -466,6 +466,7 @@ class _Connection(_ConnectionBase):
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
         return self.__send(
             "PATCH",
@@ -473,6 +474,7 @@ class _Connection(_ConnectionBase):
             weaviate_object=weaviate_object,
             params=params,
             error_msg=error_msg,
+            status_codes=status_codes,
         )
 
     def post(
@@ -481,6 +483,7 @@ class _Connection(_ConnectionBase):
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
         return self.__send(
             "POST",
@@ -488,6 +491,7 @@ class _Connection(_ConnectionBase):
             weaviate_object=weaviate_object,
             params=params,
             error_msg=error_msg,
+            status_codes=status_codes,
         )
 
     async def apost(
@@ -517,6 +521,7 @@ class _Connection(_ConnectionBase):
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
         return self.__send(
             "PUT",
@@ -524,6 +529,7 @@ class _Connection(_ConnectionBase):
             weaviate_object=weaviate_object,
             params=params,
             error_msg=error_msg,
+            status_codes=status_codes,
         )
 
     def get(
@@ -549,10 +555,18 @@ class _Connection(_ConnectionBase):
         )
 
     def head(
-        self, path: str, params: Optional[Dict[str, Any]] = None, error_msg: str = ""
+        self,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
         return self.__send(
-            "HEAD", url=self.url + self._api_version_path + path, params=params, error_msg=error_msg
+            "HEAD",
+            url=self.url + self._api_version_path + path,
+            params=params,
+            error_msg=error_msg,
+            status_codes=status_codes,
         )
 
     @property

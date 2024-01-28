@@ -14,8 +14,9 @@ from weaviate.collections.classes.config_methods import (
 )
 from weaviate.collections.cluster import _Cluster
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
+
+from weaviate.connect.v4 import _ExpectedStatusCodes
 
 
 class _CollectionBase:
@@ -58,9 +59,8 @@ class _CollectionsBase:
             path="/schema",
             weaviate_object=config,
             error_msg="Collection may not have been created properly.",
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="Create collection"),
         )
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError("Create class", response)
 
         collection_name = response.json()["class"]
         assert isinstance(collection_name, str)
@@ -68,13 +68,17 @@ class _CollectionsBase:
 
     def _exists(self, name: str) -> bool:
         path = f"/schema/{name}"
-        response = self._connection.get(path=path, error_msg="Collection may not exist.")
+        response = self._connection.get(
+            path=path,
+            error_msg="Collection may not exist.",
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="collection exists"),
+        )
 
         if response.status_code == 200:
             return True
-        elif response.status_code == 404:
+        else:
+            assert response.status_code == 404
             return False
-        raise UnexpectedStatusCodeError("collection exists", response)
 
     def _export(self, name: str) -> _CollectionConfig:
         path = f"/schema/{name}"
@@ -85,13 +89,11 @@ class _CollectionsBase:
 
     def _delete(self, name: str) -> None:
         path = f"/schema/{name}"
-        response = self._connection.delete(
-            path=path, error_msg="Collection may not have been deleted properly."
+        self._connection.delete(
+            path=path,
+            error_msg="Collection may not have been deleted properly.",
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="Delete collection"),
         )
-        if response.status_code == 200:
-            return
-
-        UnexpectedStatusCodeError("Delete collection", response)
 
     def _get_all(
         self, simple: bool
