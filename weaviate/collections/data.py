@@ -6,6 +6,7 @@ from typing import (
     Literal,
     Optional,
     List,
+    Mapping,
     Tuple,
     Sequence,
     Generic,
@@ -42,14 +43,16 @@ from weaviate.collections.classes.orm import (
 from weaviate.collections.classes.types import (
     GeoCoordinate,
     PhoneNumber,
+    _PhoneNumber,
     Properties,
     TProperties,
+    WeaviateField,
     _check_properties_generic,
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
-from weaviate.collections.validator import _raise_invalid_input
+from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import (
@@ -149,8 +152,7 @@ class _Data:
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        if not isinstance(where, _Filters):
-            _raise_invalid_input("where", where, _Filters)
+        _ValidateArgument(expected=[_Filters], name="where", value=where)
         return self._batch_delete_grpc.batch_delete(
             self.name, where, verbose, dry_run, self._tenant
         )
@@ -268,18 +270,30 @@ class _Data:
             for key, val in refs.items()
         }
 
-    def __serialize_primitive(self, value: Any) -> Any:
+    def __serialize_primitive(self, value: WeaviateField) -> Any:
+        if isinstance(value, str) or isinstance(value, int) or isinstance(value, float):
+            return value
         if isinstance(value, uuid_package.UUID):
             return str(value)
         if isinstance(value, datetime.datetime):
             return _datetime_to_string(value)
-        if isinstance(value, list):
-            return [self.__serialize_primitive(val) for val in value]
         if isinstance(value, GeoCoordinate):
             return value._to_dict()
         if isinstance(value, PhoneNumber):
             return value._to_dict()
-        return value
+        if isinstance(value, _PhoneNumber):
+            raise WeaviateInvalidInputError(
+                "Cannot use _PhoneNumber when inserting a phone number. Use PhoneNumber instead."
+            )
+        if isinstance(value, Mapping):
+            return {key: self.__serialize_primitive(val) for key, val in value.items()}
+        if isinstance(value, Sequence):
+            return [self.__serialize_primitive(val) for val in value]
+        if value is None:
+            return value
+        raise WeaviateInvalidInputError(
+            f"Cannot serialize value of type {type(value)} to Weaviate."
+        )
 
 
 class _DataCollection(Generic[Properties], _Data):
@@ -326,11 +340,14 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.exceptions.UnexpectedStatusCodeError`:
                 If any unexpected error occurs during the insert operation, for example the given UUID already exists.
         """
-        if not isinstance(properties, dict):
-            _raise_invalid_input("properties", properties, dict)
-        if references is not None and not isinstance(references, dict):
-            _raise_invalid_input("references", references, dict)
-
+        _validate_input(
+            [
+                _ValidateArgument(expected=[str, uuid_package.UUID, None], name="uuid", value=uuid),
+                _ValidateArgument(expected=[Mapping], name="properties", value=properties),
+                _ValidateArgument(expected=[Mapping, None], name="references", value=references),
+                _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+            ]
+        )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
@@ -393,7 +410,7 @@ class _DataCollection(Generic[Properties], _Data):
         uuid: UUID,
         properties: Properties,
         references: Optional[ReferenceInputs] = None,
-        vector: Optional[List[float]] = None,
+        vector: Optional[Sequence[float]] = None,
     ) -> None:
         """Replace an object in the collection.
 
@@ -412,16 +429,21 @@ class _DataCollection(Generic[Properties], _Data):
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateInvalidInputError`:
+                If any of the arguments are invalid.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
-        if not isinstance(properties, dict):
-            _raise_invalid_input("properties", properties, dict)
-        if references is not None and not isinstance(references, dict):
-            _raise_invalid_input("references", references, dict)
-
+        _validate_input(
+            [
+                _ValidateArgument(expected=[str, uuid_package.UUID], name="uuid", value=uuid),
+                _ValidateArgument(expected=[Mapping], name="properties", value=properties),
+                _ValidateArgument(expected=[Mapping, None], name="references", value=references),
+                _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+            ]
+        )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
@@ -456,11 +478,14 @@ class _DataCollection(Generic[Properties], _Data):
             `vector`
                 The vector of the object.
         """
-        if properties is not None and not isinstance(properties, dict):
-            _raise_invalid_input("properties", properties, dict)
-        if references is not None and not isinstance(references, dict):
-            _raise_invalid_input("references", references, dict)
-
+        _validate_input(
+            [
+                _ValidateArgument(expected=[str, uuid_package.UUID], name="uuid", value=uuid),
+                _ValidateArgument(expected=[Mapping, None], name="properties", value=properties),
+                _ValidateArgument(expected=[Mapping, None], name="references", value=references),
+                _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+            ]
+        )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
@@ -486,13 +511,17 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        if (
-            not isinstance(to, str)
-            and not isinstance(to, uuid_package.UUID)
-            and not isinstance(to, ReferenceToMulti)
-            and not isinstance(to, _Reference)
-        ):
-            _raise_invalid_input("to", to, SingleReferenceInput)
+        _validate_input(
+            [
+                _ValidateArgument(
+                    expected=[str, uuid_package.UUID], name="from_uuid", value=from_uuid
+                ),
+                _ValidateArgument(expected=[str], name="from_property", value=from_property),
+                _ValidateArgument(
+                    expected=[str, uuid_package.UUID, ReferenceToMulti], name="references", value=to
+                ),
+            ]
+        )
         if isinstance(to, _Reference):
             ref = to
         elif isinstance(to, ReferenceToMulti):
@@ -533,13 +562,17 @@ class _DataCollection(Generic[Properties], _Data):
             `to`
                 The reference to delete, REQUIRED.
         """
-        if (
-            not isinstance(to, str)
-            and not isinstance(to, uuid_package.UUID)
-            and not isinstance(to, ReferenceToMulti)
-            and not isinstance(to, _Reference)
-        ):
-            _raise_invalid_input("to", to, SingleReferenceInput)
+        _validate_input(
+            [
+                _ValidateArgument(
+                    expected=[str, uuid_package.UUID], name="from_uuid", value=from_uuid
+                ),
+                _ValidateArgument(expected=[str], name="from_property", value=from_property),
+                _ValidateArgument(
+                    expected=[str, uuid_package.UUID, ReferenceToMulti], name="references", value=to
+                ),
+            ]
+        )
         if isinstance(to, _Reference):
             ref = to
         elif isinstance(to, ReferenceToMulti):
@@ -559,14 +592,25 @@ class _DataCollection(Generic[Properties], _Data):
             `to`
                 The reference to replace, REQUIRED.
         """
-        if (
-            not isinstance(to, str)
-            and not isinstance(to, uuid_package.UUID)
-            and not isinstance(to, _Reference)
-            and not isinstance(to, Sequence)
-            and not isinstance(to, ReferenceToMulti)
-        ):
-            _raise_invalid_input("to", to, ReferenceInput)
+        _validate_input(
+            [
+                _ValidateArgument(
+                    expected=[str, uuid_package.UUID], name="from_uuid", value=from_uuid
+                ),
+                _ValidateArgument(expected=[str], name="from_property", value=from_property),
+                _ValidateArgument(
+                    expected=[
+                        str,
+                        uuid_package.UUID,
+                        ReferenceToMulti,
+                        Sequence[str],
+                        Sequence[uuid_package.UUID],
+                    ],
+                    name="references",
+                    value=to,
+                ),
+            ]
+        )
         if isinstance(to, _Reference):
             ref = to
         elif isinstance(to, ReferenceToMulti):

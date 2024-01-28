@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.collections.validator import _raise_invalid_input
+from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 
 from weaviate.connect.v4 import _ExpectedStatusCodes
@@ -36,10 +36,7 @@ class _Tenants:
             `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of `wvc.Tenant` objects.
         """
-        if not isinstance(tenants, list) or not all(
-            isinstance(tenant, Tenant) for tenant in tenants
-        ):
-            _raise_invalid_input("tenants", tenants, List[Tenant])
+        _validate_input([_ValidateArgument(expected=[List[Tenant]], name="tenants", value=tenants)])
 
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 
@@ -70,8 +67,7 @@ class _Tenants:
             `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of strings.
         """
-        if not isinstance(tenants, list) or not all(isinstance(tenant, str) for tenant in tenants):
-            _raise_invalid_input("tenants", tenants, List[str])
+        _validate_input([_ValidateArgument(expected=[List[str]], name="tenants", value=tenants)])
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.delete(
@@ -123,10 +119,7 @@ class _Tenants:
             `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of `wvc.Tenant` objects.
         """
-        if not isinstance(tenants, list) or not all(
-            isinstance(tenant, Tenant) for tenant in tenants
-        ):
-            _raise_invalid_input("tenants", tenants, List[Tenant])
+        _validate_input([_ValidateArgument(expected=[List[Tenant]], name="tenants", value=tenants)])
 
         loaded_tenants = [tenant.model_dump() for tenant in tenants]
 

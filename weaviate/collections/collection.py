@@ -24,7 +24,7 @@ from weaviate.collections.data import _DataCollection
 from weaviate.collections.iterator import _ObjectIterator
 from weaviate.collections.query import _GenerateCollection, _QueryCollection
 from weaviate.collections.tenants import _Tenants
-from weaviate.collections.validator import _raise_invalid_input
+from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 
 
@@ -114,8 +114,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             `tenant`
                 The name of the tenant to use.
         """
-        if tenant is not None and not isinstance(tenant, str) and not isinstance(tenant, Tenant):
-            _raise_invalid_input("tenant", tenant, Union[str, Tenant])
+        _validate_input([_ValidateArgument(expected=[str, Tenant], name="tenant", value=tenant)])
         return Collection[Properties, References](
             self._connection,
             self.name,
@@ -139,8 +138,15 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             `consistency_level`
                 The consistency level to use.
         """
-        if consistency_level is not None and not isinstance(consistency_level, ConsistencyLevel):
-            _raise_invalid_input("consistency_level", consistency_level, ConsistencyLevel)
+        _validate_input(
+            [
+                _ValidateArgument(
+                    expected=[ConsistencyLevel, None],
+                    name="consistency_level",
+                    value=consistency_level,
+                )
+            ]
+        )
         return Collection[Properties, References](
             self._connection,
             self.name,
