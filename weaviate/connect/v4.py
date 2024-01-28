@@ -404,6 +404,7 @@ class _Connection(_ConnectionBase):
         url: str,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
     ) -> Response:
         if not self.is_connected():
             raise WeaviateClosedClientError()
@@ -421,18 +422,22 @@ class _Connection(_ConnectionBase):
             return cast(Response, res)
         except RuntimeError as e:
             raise WeaviateClosedClientError() from e
+        except ConnectError as conn_err:
+            raise ConnectError(error_msg) from conn_err
 
     def delete(
         self,
         path: str,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
     ) -> Response:
         return self.__send(
             "DELETE",
             url=self.url + self._api_version_path + path,
             weaviate_object=weaviate_object,
             params=params,
+            error_msg=error_msg,
         )
 
     def patch(
@@ -440,12 +445,14 @@ class _Connection(_ConnectionBase):
         path: str,
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
     ) -> Response:
         return self.__send(
             "PATCH",
             url=self.url + self._api_version_path + path,
             weaviate_object=weaviate_object,
             params=params,
+            error_msg=error_msg,
         )
 
     def post(
@@ -453,12 +460,14 @@ class _Connection(_ConnectionBase):
         path: str,
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
     ) -> Response:
         return self.__send(
             "POST",
             url=self.url + self._api_version_path + path,
             weaviate_object=weaviate_object,
             params=params,
+            error_msg=error_msg,
         )
 
     async def apost(
@@ -487,16 +496,22 @@ class _Connection(_ConnectionBase):
         path: str,
         weaviate_object: JSONPayload,
         params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
     ) -> Response:
         return self.__send(
             "PUT",
             url=self.url + self._api_version_path + path,
             weaviate_object=weaviate_object,
             params=params,
+            error_msg=error_msg,
         )
 
     def get(
-        self, path: str, params: Optional[Dict[str, Any]] = None, external_url: bool = False
+        self,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        external_url: bool = False,
+        error_msg: str = "",
     ) -> Response:
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
@@ -512,17 +527,14 @@ class _Connection(_ConnectionBase):
             "GET",
             url=request_url,
             params=params,
+            error_msg=error_msg,
         )
 
     def head(
-        self,
-        path: str,
-        params: Optional[Dict[str, Any]] = None,
+        self, path: str, params: Optional[Dict[str, Any]] = None, error_msg: str = ""
     ) -> Response:
         return self.__send(
-            "HEAD",
-            url=self.url + self._api_version_path + path,
-            params=params,
+            "HEAD", url=self.url + self._api_version_path + path, params=params, error_msg=error_msg
         )
 
     @property
