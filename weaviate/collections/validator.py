@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, List, Sequence, get_args, get_origin
+from typing import Any, List, Sequence, Union, get_args, get_origin
 
 from weaviate.exceptions import WeaviateInvalidInputError
 
@@ -25,16 +25,22 @@ def _validate_input(inputs: List[_ValidateArgument]) -> None:
 
 
 def __is_valid(expected: Any, value: Any) -> bool:
-    if get_origin(expected) == Sequence:
-        if not isinstance(value, Sequence):
-            return False
-        args = get_args(expected)
-        return all(isinstance(val, args[0]) for val in value)
-    if get_origin(expected) == list:
-        if not isinstance(value, list):
-            return False
-        args = get_args(expected)
-        return all(isinstance(val, args[0]) for val in value)
     if expected is None:
         return value is None
+    expected_origin = get_origin(expected)
+    if expected_origin is Union:
+        args = get_args(expected)
+        return any(isinstance(value, arg) for arg in args)
+    if expected_origin is not None and (
+        issubclass(expected_origin, Sequence) or expected_origin is list
+    ):
+        if not isinstance(value, Sequence) and not isinstance(value, list):
+            return False
+        args = get_args(expected)
+        if len(args) == 1:
+            if get_origin(args[0]) is Union:
+                union_args = get_args(args[0])
+                return any(isinstance(val, union_arg) for val in value for union_arg in union_args)
+            else:
+                return all(isinstance(val, args[0]) for val in value)
     return isinstance(value, expected)

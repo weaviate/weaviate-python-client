@@ -342,7 +342,7 @@ class _DataCollection(Generic[Properties], _Data):
         """
         _validate_input(
             [
-                _ValidateArgument(expected=[str, uuid_package.UUID, None], name="uuid", value=uuid),
+                _ValidateArgument(expected=[UUID, None], name="uuid", value=uuid),
                 _ValidateArgument(expected=[Mapping], name="properties", value=properties),
                 _ValidateArgument(expected=[Mapping, None], name="references", value=references),
                 _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
@@ -438,7 +438,7 @@ class _DataCollection(Generic[Properties], _Data):
         """
         _validate_input(
             [
-                _ValidateArgument(expected=[str, uuid_package.UUID], name="uuid", value=uuid),
+                _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
                 _ValidateArgument(expected=[Mapping], name="properties", value=properties),
                 _ValidateArgument(expected=[Mapping, None], name="references", value=references),
                 _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
@@ -480,7 +480,7 @@ class _DataCollection(Generic[Properties], _Data):
         """
         _validate_input(
             [
-                _ValidateArgument(expected=[str, uuid_package.UUID], name="uuid", value=uuid),
+                _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
                 _ValidateArgument(expected=[Mapping, None], name="properties", value=properties),
                 _ValidateArgument(expected=[Mapping, None], name="references", value=references),
                 _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
@@ -513,13 +513,9 @@ class _DataCollection(Generic[Properties], _Data):
         """
         _validate_input(
             [
-                _ValidateArgument(
-                    expected=[str, uuid_package.UUID], name="from_uuid", value=from_uuid
-                ),
+                _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
                 _ValidateArgument(expected=[str], name="from_property", value=from_property),
-                _ValidateArgument(
-                    expected=[str, uuid_package.UUID, ReferenceToMulti], name="references", value=to
-                ),
+                _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
             ]
         )
         if isinstance(to, _Reference):
@@ -564,13 +560,9 @@ class _DataCollection(Generic[Properties], _Data):
         """
         _validate_input(
             [
-                _ValidateArgument(
-                    expected=[str, uuid_package.UUID], name="from_uuid", value=from_uuid
-                ),
+                _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
                 _ValidateArgument(expected=[str], name="from_property", value=from_property),
-                _ValidateArgument(
-                    expected=[str, uuid_package.UUID, ReferenceToMulti], name="references", value=to
-                ),
+                _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
             ]
         )
         if isinstance(to, _Reference):
@@ -594,17 +586,15 @@ class _DataCollection(Generic[Properties], _Data):
         """
         _validate_input(
             [
-                _ValidateArgument(
-                    expected=[str, uuid_package.UUID], name="from_uuid", value=from_uuid
-                ),
+                _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
                 _ValidateArgument(expected=[str], name="from_property", value=from_property),
                 _ValidateArgument(
                     expected=[
-                        str,
-                        uuid_package.UUID,
+                        UUID,
                         ReferenceToMulti,
-                        Sequence[str],
-                        Sequence[uuid_package.UUID],
+                        List[str],
+                        List[uuid_package.UUID],
+                        List[UUID],
                     ],
                     name="references",
                     value=to,
