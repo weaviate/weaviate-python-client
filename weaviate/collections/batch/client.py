@@ -45,7 +45,7 @@ class _BatchClient(_BatchBase):
             `vector`:
                 The embedding of the object that should be validated. Can be used when a collection does not have a vectorization module or the given vector was generated using the _identical_ vectorization module that is configured for the class. In this case this vector takes precedence. Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
             `tenant`
-                Name of the tenant.
+                The tenant name or Tenant object to be used for this request.
 
         Returns:
             `str`
@@ -70,7 +70,7 @@ class _BatchClient(_BatchBase):
         from_collection: str,
         from_property: str,
         to: ReferenceInput,
-        tenant: Optional[str] = None,
+        tenant: Optional[Union[str, Tenant]] = None,
     ) -> None:
         """Add one reference to this batch.
 
@@ -85,7 +85,7 @@ class _BatchClient(_BatchBase):
                 The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
                 For multi-target references use wvc.Reference.to_multi_targer().
             `tenant`
-                Name of the tenant.
+                The tenant name or Tenant object to be used for this request.
 
         Raises:
             `WeaviateBatchValidationError`
@@ -96,7 +96,7 @@ class _BatchClient(_BatchBase):
             from_object_collection=from_collection,
             from_property_name=from_property,
             to=to,
-            tenant=tenant,
+            tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
         )
 
 
