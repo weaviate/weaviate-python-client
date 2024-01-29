@@ -515,9 +515,7 @@ class _DataCollection(Generic[Properties], _Data):
                 _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
             ]
         )
-        if isinstance(to, _Reference):
-            ref = to
-        elif isinstance(to, ReferenceToMulti):
+        if isinstance(to, ReferenceToMulti):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
             ref = _Reference(target_collection=None, uuids=to)
@@ -562,9 +560,7 @@ class _DataCollection(Generic[Properties], _Data):
                 _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
             ]
         )
-        if isinstance(to, _Reference):
-            ref = to
-        elif isinstance(to, ReferenceToMulti):
+        if isinstance(to, ReferenceToMulti):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
             ref = _Reference(target_collection=None, uuids=to)
@@ -598,9 +594,7 @@ class _DataCollection(Generic[Properties], _Data):
                 ),
             ]
         )
-        if isinstance(to, _Reference):
-            ref = to
-        elif isinstance(to, ReferenceToMulti):
+        if isinstance(to, ReferenceToMulti):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
             ref = _Reference(target_collection=None, uuids=to)

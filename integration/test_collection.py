@@ -43,6 +43,7 @@ from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
+    WeaviateInvalidInputError,
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
@@ -107,16 +108,30 @@ def test_insert_with_no_generic(collection_factory: CollectionFactory) -> None:
 
 def test_delete_by_id(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
 
-    uuid = collection.data.insert(properties={"name": "some name"})
+    uuid = collection.data.insert(properties={})
     assert collection.query.fetch_object_by_id(uuid) is not None
     assert collection.data.delete_by_id(uuid)
     assert collection.query.fetch_object_by_id(uuid) is None
     # does not exist anymore
     assert not collection.data.delete_by_id(uuid)
+
+
+def test_delete_by_id_tenant(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+    collection.tenants.create([Tenant(name="tenant1")])
+    tenant1 = collection.with_tenant("tenant1")
+    uuid = tenant1.data.insert(properties={})
+    assert tenant1.query.fetch_object_by_id(uuid) is not None
+    assert tenant1.data.delete_by_id(uuid)
+    assert tenant1.query.fetch_object_by_id(uuid) is None
+    # does not exist anymore
+    assert not tenant1.data.delete_by_id(uuid)
 
 
 @pytest.mark.parametrize(
@@ -453,6 +468,11 @@ def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> Non
     assert obj.properties["name"] == "other name"
     assert obj.vector is None
 
+    collection.data.replace(properties={"name": "real name"}, uuid=uuid, vector=[2, 3, 4])
+    obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
+    assert obj.properties["name"] == "real name"
+    assert obj.vector == [2, 3, 4]
+
 
 def test_replace_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
@@ -477,8 +497,10 @@ def test_update(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
     )
     uuid = collection.data.insert(properties={"name": "some name"})
-    collection.data.update(properties={"name": "other name"}, uuid=uuid)
-    assert collection.query.fetch_object_by_id(uuid).properties["name"] == "other name"
+    collection.data.update(properties={"name": "other name"}, uuid=uuid, vector=[1, 2, 3])
+    obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
+    assert obj.properties["name"] == "other name"
+    assert obj.vector == [1, 2, 3]
 
 
 def test_update_with_tenant(collection_factory: CollectionFactory) -> None:
@@ -1916,6 +1938,18 @@ def test_return_phone_number_property(collection_factory: CollectionFactory) -> 
     assert obj2.properties["phone"].number == "01612345000"
     assert obj2.properties["phone"].valid
     assert obj2.properties["phone"].international_formatted == "+44 161 234 5000"
+
+
+def test_return_phone_number_property_wrong_type(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="phone", data_type=DataType.PHONE_NUMBER),
+        ]
+    )
+    uuid1 = collection.data.insert({"phone": PhoneNumber(number="+441612345000")})
+    obj1 = collection.query.fetch_object_by_id(uuid1)
+    with pytest.raises(WeaviateInvalidInputError):
+        uuid1 = collection.data.insert({"phone": obj1.properties["phone"]})
 
 
 def test_double_insert_with_same_uuid(collection_factory: CollectionFactory) -> None:
