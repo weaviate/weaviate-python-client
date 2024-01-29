@@ -16,6 +16,7 @@ from typing import (
     get_type_hints,
     cast,
 )
+from typing_extensions import is_typeddict
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_core import PydanticUndefined
@@ -31,6 +32,10 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.types import T
 from weaviate.util import _capitalize_first_letter, _to_beacons
 from weaviate.types import PYTHON_TYPE_TO_DATATYPE, UUID
+
+from weaviate.exceptions import InvalidDataModelException
+
+from weaviate.collections.classes.internal import References
 
 
 @dataclass
@@ -229,3 +234,12 @@ class CollectionModelConfig(_CollectionConfigCreateBase, Generic[Model]):
             ret_dict["properties"] = self.model.type_to_dict(self.model)
 
         return ret_dict
+
+
+def _check_references_generic(references: Optional[Type["References"]]) -> None:
+    if (
+        references is not None
+        and get_origin(references) is not dict
+        and not is_typeddict(references)
+    ):
+        raise InvalidDataModelException("references")
