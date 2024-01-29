@@ -157,18 +157,8 @@ class _FilterToGRPC:
 
 
 class _FilterToREST:
-    @overload
-    @staticmethod
-    def convert(weav_filter: Literal[None]) -> None:
-        ...
-
-    @overload
     @staticmethod
     def convert(weav_filter: _Filters) -> Dict[str, Any]:
-        ...
-
-    @staticmethod
-    def convert(weav_filter: _Filters) -> Optional[Dict[str, Any]]:
         if isinstance(weav_filter, _FilterValue):
             return _FilterToREST.__value_filter(weav_filter)
         else:
