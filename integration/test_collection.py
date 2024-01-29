@@ -301,7 +301,7 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
                 references={
                     "ref_single": [uuid_to1, uuid_to2],
                     "ref_many": ReferenceToMulti(
-                        uuids=uuid_from, target_collection=collection.name
+                        uuids=[uuid_from], target_collection=collection.name
                     ),
                 },
                 vector=[1, 2, 3],
