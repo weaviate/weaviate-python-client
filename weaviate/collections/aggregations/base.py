@@ -114,10 +114,10 @@ class _Aggregate:
                 count=property_.get("count"),
                 top_occurrences=[
                     TopOccurrence(
-                        count=cast(dict, top_occurence).get("occurs"),
-                        value=cast(dict, top_occurence).get("value"),
+                        count=cast(dict, top_occurrence).get("occurs"),
+                        value=cast(dict, top_occurrence).get("value"),
                     )
-                    for top_occurence in property_.get("topOccurrences", [])
+                    for top_occurrence in property_.get("topOccurrences", [])
                 ],
             )
         elif isinstance(metric, _MetricsInteger):

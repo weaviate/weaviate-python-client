@@ -10,7 +10,7 @@ This beta version has breaking changes, a migration guide is available at https:
     - There are now three types of batching that can be performed:
         - ``client.batch.dynamic()`` where the algorithm will automatically determine the optimal batch size and number of concurrent requests.
         - ``client.batch.fixed_size()`` where the user can specify the batch size and number of concurrent requests.
-        - ``client.batch.rate_limit()`` where the user specifies the number of requests per minute that their third-party vectorisation API can support.
+        - ``client.batch.rate_limit()`` where the user specifies the number of requests per minute that their third-party vectorization API can support.
     - If an exception is thrown in the background batching thread then this is surfaced to the main thread and re-raised in order to stop the batch.
         - Previously, this would silently error.
 - Enforces that all optional arguments to queries must be supplied as keyword arguments.

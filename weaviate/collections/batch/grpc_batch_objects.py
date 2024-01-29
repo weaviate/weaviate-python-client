@@ -75,7 +75,7 @@ class _BatchGRPC(_BaseGRPC):
         elapsed_time = time.time() - start
 
         if len(errors) == len(weaviate_objs):
-            # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: Pylance
+            # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: pylance
             raise WeaviateInsertManyAllFailedError(
                 "Here is the set of all errors: {}".format(
                     "\n".join(err for err in set(errors.values()))

@@ -10,9 +10,10 @@ import time
 import urllib.request
 import warnings
 import zipfile
+from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import requests
 import validators  # type: ignore
@@ -33,7 +34,7 @@ DEFAULT_GRPC_PORT = 50060
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.23.2"
+    version: str = "1.23.6"
     port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
@@ -48,7 +49,7 @@ def get_random_port() -> int:
     return port_num
 
 
-class EmbeddedDB:
+class _EmbeddedBase:
     def __init__(self, options: EmbeddedOptions) -> None:
         self.data_bind_port = get_random_port()
         self.options = options
@@ -158,16 +159,6 @@ class EmbeddedDB:
                 self._weaviate_binary_path.stat().st_mode | stat.S_IEXEC
             )
 
-    def is_listening(self) -> bool:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.connect((self.options.hostname, self.options.port))
-            s.close()
-            return True
-        except (socket.error, ConnectionRefusedError):
-            s.close()
-            return False
-
     def wait_till_listening(self) -> None:
         seconds = 30
         sleep_interval = 0.1
@@ -184,15 +175,30 @@ class EmbeddedDB:
     def check_supported_platform() -> None:
         if platform.system() in ["Windows"]:
             raise WeaviateStartUpError(
-                f"{platform.system()} is not supported with EmbeddedDB. Please upvote this feature request if "
+                f"{platform.system()} is not supported with Embedded. Please upvote this feature request if "
                 f"you want this: https://github.com/weaviate/weaviate/issues/3315"
             )
 
-    def start(self) -> None:
-        if self.is_listening():
-            print(f"embedded weaviate is already listening on port {self.options.port}")
-            return
+    def stop(self) -> None:
+        if self.process is not None:
+            try:
+                self.process.terminate()
+                self.process.wait()
+            except ProcessLookupError:
+                print(
+                    f"""Tried to stop embedded weaviate process {self.process.pid}. Process was not found. So not doing
+                    anything"""
+                )
+            self.process = None
 
+    def ensure_running(self) -> None:
+        if self.is_listening() is False:
+            print(
+                f"Embedded weaviate wasn't listening on ports http:{self.options.port} & grpc:{self.options.grpc_port}, so starting embedded weaviate again"
+            )
+            self.start()
+
+    def start(self) -> None:
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
 
@@ -235,21 +241,68 @@ class EmbeddedDB:
         print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
 
-    def stop(self) -> None:
-        if self.process is not None:
-            try:
-                self.process.terminate()
-                self.process.wait()
-            except ProcessLookupError:
-                print(
-                    f"""Tried to stop embedded weaviate process {self.process.pid}. Process was not found. So not doing
-                    anything"""
-                )
-            self.process = None
+    @abstractmethod
+    def is_listening(self) -> bool:
+        raise NotImplementedError()
 
-    def ensure_running(self) -> None:
-        if not self.is_listening():
-            print(
-                f"Embedded weaviate wasn't listening on port {self.options.port}, so starting embedded weaviate again"
+
+class EmbeddedV3(_EmbeddedBase):
+    def is_listening(self) -> bool:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect((self.options.hostname, self.options.port))
+            s.close()
+            return True
+        except (socket.error, ConnectionRefusedError):
+            s.close()
+            return False
+
+    def start(self) -> None:
+        if self.is_listening():
+            print(f"embedded weaviate is already listening on port {self.options.port}")
+            return
+        super().start()
+
+
+EmbeddedDB = EmbeddedV3  # needed for BC from v3 -> v4
+
+
+class EmbeddedV4(_EmbeddedBase):
+    def is_listening(self) -> bool:
+        up = self.__is_listening()
+        return up[0] and up[1]
+
+    def __is_listening(self) -> Tuple[bool, bool]:
+        http_listening, grpc_listening = False, False
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.connect((self.options.hostname, self.options.port))
+                http_listening = True
+            except (socket.error, ConnectionRefusedError):
+                pass
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.connect((self.options.hostname, self.grpc_port))
+                grpc_listening = True
+            except (socket.error, ConnectionRefusedError):
+                pass
+        return (http_listening, grpc_listening)
+
+    def start(self) -> None:
+        up = self.__is_listening()
+        if up[0] and up[1]:
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start because processes are already listening on ports http:{self.options.port} and grpc:{self.grpc_port}"
+                f"use weaviate.connect_to_local(port={self.options.port}, grpc_port={self.options.grpc_port}) to connect to the existing instance"
             )
-            self.start()
+        elif up[0] and not up[1]:
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start because a process is already listening on port http:{self.options.port}"
+                "look for another free port for the HTTP connection to you embedded instance"
+            )
+        elif up[1] and not up[0]:
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start because a process is already listening on port grpc:{self.grpc_port}"
+                "look for another free port for the gRPC connection to your embedded instance"
+            )
+        super().start()
