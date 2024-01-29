@@ -46,7 +46,7 @@ def connect_to_wcs(
         >>> import weaviate
         >>> client = weaviate.connect_to_wcs(
         ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
-        ...     auth_credentials=weaviate.AuthApiKey("my-api-key"),
+        ...     auth_credentials=weaviate.auth.AuthApiKey("my-api-key"),
         ... )
         >>> client.is_ready()
         True
@@ -55,7 +55,7 @@ def connect_to_wcs(
         >>> import weaviate
         >>> with weaviate.connect_to_wcs(
         ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
-        ...     auth_credentials=weaviate.AuthApiKey("my-api-key"),
+        ...     auth_credentials=weaviate.auth.AuthApiKey("my-api-key"),
         ... ) as client:
         ...     client.is_ready()
         True
@@ -64,7 +64,11 @@ def connect_to_wcs(
     if cluster_url.startswith("http"):
         # Handle the common case of copy/pasting a URL instead of the hostname.
         cluster_url = urlparse(cluster_url).netloc
-    grpc_host = f"grpc-{cluster_url}"
+    if cluster_url.endswith(".weaviate.network"):
+        ident, domain = cluster_url.split(".", 1)
+        grpc_host = f"{ident}.grpc.{domain}"
+    else:
+        grpc_host = f"grpc-{cluster_url}"
 
     client = WeaviateClient(
         connection_params=ConnectionParams(
