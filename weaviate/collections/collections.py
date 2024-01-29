@@ -17,7 +17,8 @@ from weaviate.collections.classes.config import (
     _VectorizerConfigCreate,
     _Vectorizer,
 )
-from weaviate.collections.classes.internal import References, _check_references_generic
+from weaviate.collections.classes.internal import References
+from weaviate.collections.classes.orm import _check_references_generic
 from weaviate.collections.classes.types import Properties, _check_properties_generic
 from weaviate.collections.collection import Collection
 from weaviate.collections.validator import _validate_input, _ValidateArgument

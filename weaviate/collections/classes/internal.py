@@ -14,7 +14,7 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import TypeAlias, TypeVar, is_typeddict
+from typing_extensions import TypeAlias, TypeVar
 
 import uuid as uuid_package
 
@@ -27,7 +27,6 @@ from weaviate.collections.classes.grpc import (
     QueryNested,
     _QueryReference,
     _QueryReferenceMultiTarget,
-    Generate,
     GroupBy,
     MetadataQuery,
     METADATA,
@@ -44,7 +43,6 @@ from weaviate.collections.classes.types import (
     WeaviateProperties,
     _WeaviateInput,
 )
-from weaviate.exceptions import InvalidDataModelException
 from weaviate.util import _to_beacons
 from weaviate.types import UUID, UUIDS
 
@@ -52,20 +50,6 @@ from weaviate.proto.v1 import search_get_pb2
 
 
 IReferences = TypeVar("IReferences", bound=Optional[Mapping[str, Any]], default=None)
-
-
-@dataclass
-class _MetadataResult:
-    uuid: Optional[uuid_package.UUID]
-    vector: Optional[List[float]]
-    creation_time_unix: Optional[int]
-    last_update_time_unix: Optional[int]
-    distance: Optional[float]
-    certainty: Optional[float]
-    score: Optional[float]
-    explain_score: Optional[str]
-    is_consistent: Optional[bool]
-    generative: Optional[str]
 
 
 @dataclass
@@ -101,9 +85,6 @@ class GroupByMetadataReturn:
     """Metadata of an object returned by a group by query."""
 
     distance: Optional[float] = None
-
-    def _is_empty(self) -> bool:
-        return self.distance is None
 
 
 @dataclass
@@ -242,18 +223,6 @@ class _Generative:
             single_response_prompt=self.single,
             grouped_response_task=self.grouped,
             grouped_properties=self.grouped_properties,
-        )
-
-    @classmethod
-    def from_input(cls, generate: Optional[Generate]) -> Optional["_Generative"]:
-        return (
-            cls(
-                single=generate.single_prompt,
-                grouped=generate.grouped_task,
-                grouped_properties=generate.grouped_properties,
-            )
-            if generate
-            else None
         )
 
 
@@ -502,10 +471,6 @@ def __create_link_to_from_annotated_reference(
         )
 
 
-def __is_reference(value: Any) -> bool:
-    return get_origin(value) is _CrossReference
-
-
 def __create_link_to_from_reference(
     link_on: str,
     value: CrossReference[Properties, "References"],
@@ -552,15 +517,6 @@ References = TypeVar("References", bound=Optional[Mapping[str, Any]], default=No
 # I wish we could have bound=Mapping[str, CrossReference["P", "R"]] here, but you can't have generic bounds, so Any must suffice
 TReferences = TypeVar("TReferences", bound=Optional[Mapping[str, Any]], default=None)
 """`TReferences` is used alongside `References` wherever there are two generic types needed"""
-
-
-def _check_references_generic(references: Optional[Type["References"]]) -> None:
-    if (
-        references is not None
-        and get_origin(references) is not dict
-        and not is_typeddict(references)
-    ):
-        raise InvalidDataModelException("references")
 
 
 ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
