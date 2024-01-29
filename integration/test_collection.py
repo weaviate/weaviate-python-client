@@ -1213,7 +1213,7 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
             "explain_score",
             "is_consistent",
         ],
-        MetadataQuery.all(),
+        MetadataQuery.full(),
     ],
 )
 @pytest.mark.parametrize("return_references", [None, [], [QueryReference(link_on="friend")]])

@@ -43,7 +43,7 @@ class Data(TypedDict):
     "include_vector",
     [False, True],
 )
-@pytest.mark.parametrize("return_metadata", [None, MetadataQuery.all()])
+@pytest.mark.parametrize("return_metadata", [None, MetadataQuery.full()])
 @pytest.mark.parametrize(
     "return_properties",
     [None, Data, ["data"]],
@@ -73,7 +73,7 @@ def test_iterator_arguments(
     )
 
     # Expect everything back
-    if include_vector and return_properties is None and return_metadata == MetadataQuery.all():
+    if include_vector and return_properties is None and return_metadata == MetadataQuery.full():
         all_data: list[int] = sorted([cast(int, obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
         assert all("text" in obj.properties for obj in iter_)
@@ -82,7 +82,7 @@ def test_iterator_arguments(
         assert all(obj.metadata.score is not None for obj in iter_)
     # Expect everything back except vector
     elif (
-        not include_vector and return_properties is None and return_metadata == MetadataQuery.all()
+        not include_vector and return_properties is None and return_metadata == MetadataQuery.full()
     ):
         all_data = sorted([cast(int, obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
