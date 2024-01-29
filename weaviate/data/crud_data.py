@@ -1,6 +1,7 @@
 """
 DataObject class definition.
 """
+
 import uuid as uuid_lib
 import warnings
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast

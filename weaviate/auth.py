@@ -1,6 +1,7 @@
 """
 Authentication class definitions.
 """
+
 from dataclasses import dataclass
 from typing import Optional, Union, List
 

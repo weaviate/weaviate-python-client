@@ -18,7 +18,7 @@ class _CollectionBackup:
         self, backup_id: str, backend: BackupStorage, wait_for_completion: bool = False
     ) -> BackupStatusReturn:
         """Create a backup of this collection.
-        
+
         Arguments:
             `backup_id`
                 The identifier name of the backup. NOTE: Case insensitive.

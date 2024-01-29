@@ -1,6 +1,7 @@
 """
 Client class definition.
 """
+
 from typing import Generic, Optional, Tuple, TypeVar, Union, Dict, Any
 
 from httpx import ConnectError as HTTPXConnectError

@@ -1,6 +1,7 @@
 """
 GraphQL query module.
 """
+
 from typing import List, Any, Dict, Optional
 
 from requests.exceptions import ConnectionError as RequestsConnectionError

@@ -83,12 +83,12 @@ class _Aggregate:
                             prop=result["groupedBy"]["path"][0],
                             value=result["groupedBy"]["value"],
                         ),
-                        properties=self.__parse_properties(result, metrics)
-                        if metrics is not None
-                        else {},
-                        total_count=result["meta"]["count"]
-                        if result.get("meta") is not None
-                        else None,
+                        properties=(
+                            self.__parse_properties(result, metrics) if metrics is not None else {}
+                        ),
+                        total_count=(
+                            result["meta"]["count"] if result.get("meta") is not None else None
+                        ),
                     )
                     for result in results
                 ]

@@ -1,6 +1,7 @@
 """
 Batch class definitions.
 """
+
 import datetime
 import sys
 import threading

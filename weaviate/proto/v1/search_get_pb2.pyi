@@ -295,6 +295,7 @@ class NearTextSearch(_message.Message):
             concepts: _Optional[_Iterable[str]] = ...,
             uuids: _Optional[_Iterable[str]] = ...,
         ) -> None: ...
+
     QUERY_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]

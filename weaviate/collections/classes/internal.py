@@ -479,9 +479,11 @@ def _extract_references_from_data_model(type_: Type["References"]) -> Optional[R
     in the data model and lists out the references as classes readily consumable by the underlying API.
     """
     refs = [
-        __create_link_to_from_annotated_reference(key, value)
-        if __is_annotated_reference(value)
-        else __create_link_to_from_reference(key, value)
+        (
+            __create_link_to_from_annotated_reference(key, value)
+            if __is_annotated_reference(value)
+            else __create_link_to_from_reference(key, value)
+        )
         for key, value in get_type_hints(type_, include_extras=True).items()
     ]
     return refs if len(refs) > 0 else None

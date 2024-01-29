@@ -256,9 +256,11 @@ class _Data:
 
     def _serialize_refs(self, refs: ReferenceInputs) -> Dict[str, Any]:
         return {
-            key: val._to_beacons()
-            if isinstance(val, _Reference) or isinstance(val, ReferenceToMulti)
-            else _Reference(target_collection=None, uuids=val)._to_beacons()
+            key: (
+                val._to_beacons()
+                if isinstance(val, _Reference) or isinstance(val, ReferenceToMulti)
+                else _Reference(target_collection=None, uuids=val)._to_beacons()
+            )
             for key, val in refs.items()
         }
 
@@ -375,22 +377,24 @@ class _DataCollection(Generic[Properties], _Data):
         """
         return self._batch_grpc.objects(
             [
-                _BatchObject(
-                    collection=self.name,
-                    vector=obj.vector,
-                    uuid=obj.uuid,
-                    properties=cast(dict, obj.properties),
-                    tenant=self._tenant,
-                    references=obj.references,
-                )
-                if isinstance(obj, DataObject)
-                else _BatchObject(
-                    collection=self.name,
-                    vector=None,
-                    uuid=None,
-                    properties=cast(dict, obj),
-                    tenant=None,
-                    references=None,
+                (
+                    _BatchObject(
+                        collection=self.name,
+                        vector=obj.vector,
+                        uuid=obj.uuid,
+                        properties=cast(dict, obj.properties),
+                        tenant=self._tenant,
+                        references=obj.references,
+                    )
+                    if isinstance(obj, DataObject)
+                    else _BatchObject(
+                        collection=self.name,
+                        vector=None,
+                        uuid=None,
+                        properties=cast(dict, obj),
+                        tenant=None,
+                        references=None,
+                    )
                 )
                 for obj in objects
             ],

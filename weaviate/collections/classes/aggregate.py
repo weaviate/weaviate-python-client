@@ -141,9 +141,11 @@ class _MetricsText(_MetricsBase):
         body = " ".join(
             [
                 "count" if self.count else "",
-                "topOccurrences {"
-                if self.top_occurrences_count or self.top_occurrences_value
-                else "",
+                (
+                    "topOccurrences {"
+                    if self.top_occurrences_count or self.top_occurrences_value
+                    else ""
+                ),
                 "occurs" if self.top_occurrences_count else "",
                 "value" if self.top_occurrences_value else "",
                 "}" if self.top_occurrences_count or self.top_occurrences_value else "",

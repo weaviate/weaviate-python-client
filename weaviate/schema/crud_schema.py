@@ -1,6 +1,7 @@
 """
 Schema class definition.
 """
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Union, Optional, List, Dict, cast

@@ -59,12 +59,14 @@ class _BatchGRPC(_BaseGRPC):
                 collection=obj.collection,
                 vector_bytes=pack_vector(obj.vector) if obj.vector is not None else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=self.__translate_properties_from_python_to_grpc(
-                    obj.properties,
-                    obj.references if obj.references is not None else {},
-                )
-                if obj.properties is not None
-                else None,
+                properties=(
+                    self.__translate_properties_from_python_to_grpc(
+                        obj.properties,
+                        obj.references if obj.references is not None else {},
+                    )
+                    if obj.properties is not None
+                    else None
+                ),
                 tenant=obj.tenant,
             )
             for obj in objects
@@ -149,12 +151,14 @@ class _BatchGRPC(_BaseGRPC):
                 collection=obj.collection,
                 vector_bytes=pack_vector(obj.vector) if obj.vector is not None else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=self.__translate_properties_from_python_to_grpc(
-                    obj.properties,
-                    obj.references if obj.references is not None else {},
-                )
-                if obj.properties is not None
-                else None,
+                properties=(
+                    self.__translate_properties_from_python_to_grpc(
+                        obj.properties,
+                        obj.references if obj.references is not None else {},
+                    )
+                    if obj.properties is not None
+                    else None
+                ),
                 tenant=obj.tenant,
             )
             for obj in objects

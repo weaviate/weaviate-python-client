@@ -104,16 +104,20 @@ class _BaseQuery(Generic[Properties, References]):
         meta = MetadataReturn(
             distance=add_props.distance if add_props.distance_present else None,
             certainty=add_props.certainty if add_props.certainty_present else None,
-            creation_time=datetime.datetime.fromtimestamp(
-                add_props.creation_time_unix / 1000, tz=datetime.timezone.utc
-            )
-            if add_props.creation_time_unix_present
-            else None,
-            last_update_time=datetime.datetime.fromtimestamp(
-                add_props.last_update_time_unix / 1000, tz=datetime.timezone.utc
-            )
-            if add_props.last_update_time_unix_present
-            else None,
+            creation_time=(
+                datetime.datetime.fromtimestamp(
+                    add_props.creation_time_unix / 1000, tz=datetime.timezone.utc
+                )
+                if add_props.creation_time_unix_present
+                else None
+            ),
+            last_update_time=(
+                datetime.datetime.fromtimestamp(
+                    add_props.last_update_time_unix / 1000, tz=datetime.timezone.utc
+                )
+                if add_props.last_update_time_unix_present
+                else None
+            ),
             score=add_props.score if add_props.score_present else None,
             explain_score=add_props.explain_score if add_props.explain_score_present else None,
             is_consistent=add_props.is_consistent if add_props.is_consistent_present else None,
@@ -229,15 +233,19 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> Object[Any, Any]:
         return Object(
             collection=props.target_collection,
-            properties=self.__parse_nonref_properties_result(props.non_ref_props)
-            if options.include_properties
-            else {},
-            metadata=self.__extract_metadata_for_object(meta)
-            if options.include_metadata
-            else MetadataReturn(),
-            references=self.__parse_ref_properties_result(props)
-            if options.include_references
-            else None,
+            properties=(
+                self.__parse_nonref_properties_result(props.non_ref_props)
+                if options.include_properties
+                else {}
+            ),
+            metadata=(
+                self.__extract_metadata_for_object(meta)
+                if options.include_metadata
+                else MetadataReturn()
+            ),
+            references=(
+                self.__parse_ref_properties_result(props) if options.include_references else None
+            ),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
         )
@@ -250,15 +258,19 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> GenerativeObject[Any, Any]:
         return GenerativeObject(
             collection=props.target_collection,
-            properties=self.__parse_nonref_properties_result(props.non_ref_props)
-            if options.include_properties
-            else {},
-            metadata=self.__extract_metadata_for_object(meta)
-            if options.include_metadata
-            else MetadataReturn(),
-            references=self.__parse_ref_properties_result(props)
-            if options.include_references
-            else None,
+            properties=(
+                self.__parse_nonref_properties_result(props.non_ref_props)
+                if options.include_properties
+                else {}
+            ),
+            metadata=(
+                self.__extract_metadata_for_object(meta)
+                if options.include_metadata
+                else MetadataReturn()
+            ),
+            references=(
+                self.__parse_ref_properties_result(props) if options.include_references else None
+            ),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
             generated=self.__extract_generated_for_object(meta),
@@ -307,15 +319,19 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> GroupedObject[Any, Any]:
         return GroupedObject(
             collection=props.target_collection,
-            properties=self.__parse_nonref_properties_result(props.non_ref_props)
-            if options.include_properties
-            else {},
-            metadata=self.__extract_metadata_for_group_by_object(meta)
-            if options.include_metadata
-            else GroupByMetadataReturn(),
-            references=self.__parse_ref_properties_result(props)
-            if options.include_references
-            else None,
+            properties=(
+                self.__parse_nonref_properties_result(props.non_ref_props)
+                if options.include_properties
+                else {}
+            ),
+            metadata=(
+                self.__extract_metadata_for_group_by_object(meta)
+                if options.include_metadata
+                else GroupByMetadataReturn()
+            ),
+            references=(
+                self.__parse_ref_properties_result(props) if options.include_references else None
+            ),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
         )
@@ -368,9 +384,9 @@ class _BaseQuery(Generic[Properties, References]):
                 self.__result_to_generative_object(obj.properties, obj.metadata, options)
                 for obj in res.results
             ],
-            generated=res.generative_grouped_result
-            if res.generative_grouped_result != ""
-            else None,
+            generated=(
+                res.generative_grouped_result if res.generative_grouped_result != "" else None
+            ),
         )
 
     def _result_to_generative_return(
@@ -457,9 +473,9 @@ class _BaseQuery(Generic[Properties, References]):
         return GenerativeGroupByReturn(
             objects=objects_group_by,
             groups=groups,
-            generated=res.generative_grouped_result
-            if res.generative_grouped_result != ""
-            else None,
+            generated=(
+                res.generative_grouped_result if res.generative_grouped_result != "" else None
+            ),
         )
 
     def _result_to_query_or_groupby_return(

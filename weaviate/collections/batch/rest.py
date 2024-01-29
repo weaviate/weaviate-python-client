@@ -26,9 +26,11 @@ class _BatchREST:
             params["consistency_level"] = self.__consistency_level.value
 
         refs = [
-            {"from": ref.from_, "to": ref.to}
-            if ref.tenant is None
-            else {"from": ref.from_, "to": ref.to, "tenant": ref.tenant}
+            (
+                {"from": ref.from_, "to": ref.to}
+                if ref.tenant is None
+                else {"from": ref.from_, "to": ref.to, "tenant": ref.tenant}
+            )
             for ref in references
         ]
 
@@ -69,9 +71,11 @@ class _BatchRESTAsync:
             params["consistency_level"] = self.__consistency_level
 
         refs = [
-            {"from": ref.from_, "to": ref.to}
-            if ref.tenant is None
-            else {"from": ref.from_, "to": ref.to, "tenant": ref.tenant}
+            (
+                {"from": ref.from_, "to": ref.to}
+                if ref.tenant is None
+                else {"from": ref.from_, "to": ref.to, "tenant": ref.tenant}
+            )
             for ref in references
         ]
 
