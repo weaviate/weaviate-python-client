@@ -1,5 +1,6 @@
 import datetime
 import io
+import os
 import pathlib
 import struct
 import uuid as uuid_lib
@@ -549,8 +550,11 @@ class _BaseQuery(Generic[Properties, References]):
 
     @staticmethod
     def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
-        if isinstance(media, str):  # if already encoded by user
-            return media
+        if isinstance(media, str):  # if already encoded by user or string to path
+            if os.path.isfile(media):
+                return file_encoder_b64(media)
+            else:
+                return media
         elif isinstance(media, pathlib.Path) or isinstance(media, io.BufferedReader):
             return file_encoder_b64(media)
         else:

@@ -33,7 +33,7 @@ class _CollectionBase:
             The list of shards belonging to this collection.
 
         Raises
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If weaviate reports a none OK status.

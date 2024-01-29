@@ -139,7 +139,7 @@ class _Data:
                 Whether to perform a dry run. If set to `True`, the objects will not be deleted, but the response will contain the objects that would have been deleted.
 
         Raises:
-            `requests.ConnectionError`:
+            `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
@@ -419,7 +419,7 @@ class _DataCollection(Generic[Properties], _Data):
                 The vector of the object.
 
         Raises:
-            `requests.ConnectionError`:
+            `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.exceptions.WeaviateInvalidInputError`:
                 If any of the arguments are invalid.
@@ -498,7 +498,7 @@ class _DataCollection(Generic[Properties], _Data):
                 The reference to add, REQUIRED.
 
         Raises:
-            `requests.ConnectionError`:
+            `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
@@ -528,7 +528,7 @@ class _DataCollection(Generic[Properties], _Data):
                 A `BatchReferenceReturn` object containing the results of the batch operation.
 
         Raises:
-            `requests.ConnectionError`:
+            `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError
                 If Weaviate reports a non-OK status.

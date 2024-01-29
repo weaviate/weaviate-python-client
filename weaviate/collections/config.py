@@ -65,7 +65,7 @@ class _ConfigBase:
             simple : If True, return a simplified version of the configuration containing only name and properties.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -97,7 +97,7 @@ class _ConfigBase:
             vector_index_config: Configuration for the vector index. Use `Reconfigure.vector_index` to generate one.
 
         Raises:
-            `requests.ConnectionError`:
+            `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
@@ -156,7 +156,7 @@ class _ConfigBase:
                 A list of objects containing the statuses of the shards.
 
         Raises:
-            `requests.ConnectionError`:
+            `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
@@ -194,7 +194,7 @@ class _ConfigBase:
                 The shard name for which to update the status of the class of the shard. If None all shards are going to be updated.
 
         Raises:
-            `requests.ConnectionError`:
+            `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
@@ -231,7 +231,7 @@ class _ConfigCollection(_ConfigBase):
             prop : The property to add to the collection.
 
         Raises:
-            `requests.ConnectionError`:
+            `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
@@ -252,7 +252,7 @@ class _ConfigCollection(_ConfigBase):
             ref : The reference to add to the collection.
 
         Raises:
-            `requests.ConnectionError`:
+            `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.

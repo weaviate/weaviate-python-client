@@ -57,7 +57,7 @@ class _Cluster:
             List of nodes and their respective status.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If weaviate reports a none OK status.

@@ -34,7 +34,7 @@ class _CollectionBackup:
 
         Raises
         ------
-        requests.ConnectionError
+        weaviate.WeaviateConnectionError
             If the network connection to weaviate fails.
         weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.
@@ -68,7 +68,7 @@ class _CollectionBackup:
 
         Raises
         ------
-        requests.ConnectionError
+        weaviate.WeaviateConnectionError
             If the network connection to weaviate fails.
         weaviate.UnexpectedStatusCodeError
             If weaviate reports a none OK status.

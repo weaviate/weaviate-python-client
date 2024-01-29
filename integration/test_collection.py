@@ -1541,11 +1541,12 @@ def test_near_text_offset(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize(
     "image_maker",
     [
+        lambda: "./integration/weaviate-logo.png",
         lambda: WEAVIATE_LOGO_OLD_ENCODED,
         lambda: pathlib.Path("./integration/weaviate-logo.png"),
         lambda: pathlib.Path("./integration/weaviate-logo.png").open("rb"),
     ],
-    ids=["base64", "pathlib.Path", "io.BufferedReader"],
+    ids=["path", "base64", "pathlib.Path", "io.BufferedReader"],
 )
 @pytest.mark.parametrize(
     "distance,certainty",
@@ -1594,11 +1595,12 @@ def test_near_image(
 @pytest.mark.parametrize(
     "image_maker",
     [
+        lambda: "./integration/weaviate-logo.png",
         lambda: WEAVIATE_LOGO_OLD_ENCODED,
         lambda: pathlib.Path("./integration/weaviate-logo.png"),
         lambda: pathlib.Path("./integration/weaviate-logo.png").open("rb"),
     ],
-    ids=["base64", "pathlib.Path", "io.BufferedReader"],
+    ids=["path", "base64", "pathlib.Path", "io.BufferedReader"],
 )
 @pytest.mark.parametrize(
     "distance,certainty",
@@ -1644,6 +1646,15 @@ def test_near_media(
 
     assert len(objects3) == 1
     assert objects3[0].uuid == uuid2
+
+
+def test_bad_near_media_input(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory()
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.near_media(42, NearMediaType.IMAGE).objects  # type: ignore
 
 
 @pytest.mark.parametrize("which_case", [0, 1, 2, 3, 4])

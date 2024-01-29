@@ -29,7 +29,7 @@ class _Tenants:
                 List of tenants to add to the given collection.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -60,7 +60,7 @@ class _Tenants:
                 List of tenant names to remove from the given class.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -85,7 +85,7 @@ class _Tenants:
         The collection must have been created with multi-tenancy enabled.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -112,7 +112,7 @@ class _Tenants:
                 List of tenants to update for the given collection.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
