@@ -44,7 +44,7 @@ from weaviate.collections.classes.types import (
     WeaviateProperties,
     _WeaviateInput,
 )
-from weaviate.exceptions import WeaviateQueryError, InvalidDataModelException
+from weaviate.exceptions import InvalidDataModelException
 from weaviate.util import _to_beacons
 from weaviate.types import UUID, UUIDS
 
@@ -66,29 +66,6 @@ class _MetadataResult:
     explain_score: Optional[str]
     is_consistent: Optional[bool]
     generative: Optional[str]
-
-
-def _metadata_from_dict(
-    metadata: Dict[str, Any]
-) -> Tuple[uuid_package.UUID, Optional[List[float]], "MetadataReturn"]:
-    uuid = uuid_package.UUID(metadata["id"]) if "id" in metadata else None
-    if uuid is None:
-        raise WeaviateQueryError(
-            "The query returned an object with an empty ID string", "GRPC search"
-        )
-    return (
-        uuid,
-        metadata.get("vector"),
-        MetadataReturn(
-            creation_time=metadata.get("creationTimeUnix"),
-            last_update_time=metadata.get("lastUpdateTimeUnix"),
-            distance=metadata.get("distance"),
-            certainty=metadata.get("certainty"),
-            explain_score=metadata.get("explainScore"),
-            score=metadata.get("score"),
-            is_consistent=metadata.get("isConsistent"),
-        ),
-    )
 
 
 @dataclass

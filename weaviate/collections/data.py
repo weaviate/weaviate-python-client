@@ -32,8 +32,8 @@ from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.internal import (
     _Reference,
+    MetadataReturn,
     Object,
-    _metadata_from_dict,
     ReferenceToMulti,
     SingleReferenceInput,
     ReferenceInput,
@@ -632,20 +632,22 @@ class _DataCollectionModel(Generic[Model], _Data):
             if prop not in obj["properties"]:
                 obj["properties"][prop] = None
 
-        uuid, vector, metadata = _metadata_from_dict(obj)
+        # uuid, vector, metadata = _metadata_from_dict(obj)
+        uuid = uuid_package.uuid4()
+        metadata = MetadataReturn()
         model_object = Object[Model, dict](
             collection=self.name,
             properties=self.__model.model_validate(
                 {
                     **obj["properties"],
-                    "uuid": uuid,
-                    "vector": vector,
+                    # "uuid": uuid,
+                    # "vector": vector,
                 }
             ),
             references={},
             metadata=metadata,
             uuid=uuid,
-            vector=vector,
+            vector=None,
         )
         return model_object
 
