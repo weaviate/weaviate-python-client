@@ -1,18 +1,14 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from weaviate.collections.classes.batch import (
-    DeleteManyReturn,
     ErrorReference,
     _BatchReference,
     BatchReferenceReturn,
-    DeleteManyObject,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.filters import _FilterToREST
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import UnexpectedStatusCodeError
-from weaviate.util import _decode_json_response_dict, _decode_json_response_list
+from weaviate.util import _decode_json_response_list
 
 from weaviate.connect.v4 import _ExpectedStatusCodes
 
@@ -23,49 +19,6 @@ class _BatchREST:
     ) -> None:
         self.__connection = connection
         self.__consistency_level = consistency_level
-
-    def delete(
-        self, collection: str, where: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
-    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
-        payload: Dict[str, Any] = {
-            "match": {
-                "class": collection,
-                "where": _FilterToREST.convert(where),
-            }
-        }
-        if verbose:
-            payload["output"] = "verbose"
-        if dry_run:
-            payload["dryRun"] = True
-
-        params = {}
-        if self.__consistency_level is not None:
-            params["consistency"] = self.__consistency_level.value
-        if tenant is not None:
-            params["tenant"] = tenant
-
-        response = self.__connection.delete(
-            path="/batch/objects",
-            weaviate_object=payload,
-            params=params,
-            error_msg="Batch may have not been succesfull.",
-        )
-        res = _decode_json_response_dict(response, "Delete in batch")
-        assert res is not None
-        if verbose:
-            return DeleteManyReturn(
-                failed=res["results"]["failed"],
-                matches=res["results"]["matches"],
-                objects=res["results"]["objects"],
-                successful=res["results"]["successful"],
-            )
-        else:
-            return DeleteManyReturn(
-                failed=res["results"]["failed"],
-                matches=res["results"]["matches"],
-                successful=res["results"]["successful"],
-                objects=None,
-            )
 
     def references(self, references: List[_BatchReference]) -> BatchReferenceReturn:
         params: Dict[str, str] = {}
