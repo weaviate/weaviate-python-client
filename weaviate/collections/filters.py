@@ -14,9 +14,9 @@ from weaviate.collections.classes.filters import (
     _FilterTargets,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import _datetime_to_string
-from weaviate.types import TIME
 from weaviate.proto.v1 import base_pb2
+from weaviate.types import TIME
+from weaviate.util import _datetime_to_string
 
 
 class _FilterToGRPC:
@@ -168,10 +168,8 @@ class _FilterToREST:
         ...
 
     @staticmethod
-    def convert(weav_filter: Optional[_Filters]) -> Optional[Dict[str, Any]]:
-        if weav_filter is None:
-            return None
-        elif isinstance(weav_filter, _FilterValue):
+    def convert(weav_filter: _Filters) -> Optional[Dict[str, Any]]:
+        if isinstance(weav_filter, _FilterValue):
             return _FilterToREST.__value_filter(weav_filter)
         else:
             return _FilterToREST.__and_or_filter(weav_filter)
