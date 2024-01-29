@@ -3,19 +3,16 @@ import io
 import pathlib
 import struct
 import uuid as uuid_lib
-from collections.abc import Sequence
-from typing import Any, Dict, Generic, List, Optional, Type, Union, cast
+from typing import Any, Generic, List, Optional, Sequence, Type, Union, cast
 
-from google.protobuf import struct_pb2
-from requests.exceptions import ConnectionError as RequestsConnectionError
 from typing_extensions import is_typeddict
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    FromReference,
+    _QueryReference,
     MetadataQuery,
     _MetadataQuery,
-    FromNested,
+    QueryNested,
     METADATA,
     PROPERTIES,
     REFERENCES,
@@ -53,18 +50,17 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
+from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
-    UnexpectedStatusCodeError,
     WeaviateGRPCUnavailableError,
     WeaviateQueryError,
+    WeaviateInvalidInputError,
 )
-from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
-from weaviate.types import UUID
+from weaviate.proto.v1 import search_get_pb2, properties_pb2
 from weaviate.util import (
     file_encoder_b64,
     _datetime_from_weaviate_str,
-    _decode_json_response_dict,
 )
 
 
@@ -153,14 +149,8 @@ class _BaseQuery(Generic[Properties, References]):
         if len(add_props.vector_bytes) == 0 and len(add_props.vector) == 0:
             return None
 
-        if len(add_props.vector_bytes) > 0:
-            vector_bytes = struct.unpack(
-                f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes
-            )
-            return list(vector_bytes)
-        else:
-            # backward compatibility
-            return list(add_props.vector)
+        vector_bytes = struct.unpack(f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes)
+        return list(vector_bytes)
 
     def __extract_generated_for_object(
         self,
@@ -219,83 +209,6 @@ class _BaseQuery(Generic[Properties, References]):
         if len(properties.ref_props) == 0:
             return {} if properties.ref_props_requested else None
 
-        return {
-            ref_prop.prop_name: _CrossReference._from(
-                [
-                    self.__result_to_query_object(
-                        prop, prop.metadata, _QueryOptions(True, True, True, True, False)
-                    )
-                    for prop in ref_prop.properties
-                ]
-            )
-            for ref_prop in properties.ref_props
-        }
-
-    def __deserialize_primitive_122(self, value: Any) -> Any:
-        if isinstance(value, str) and len(value) > 0:
-            try:
-                return uuid_lib.UUID(value)
-            except ValueError:
-                pass
-            try:
-                return _datetime_from_weaviate_str(value)
-            except ValueError:
-                pass
-        if isinstance(value, list):
-            return [self.__deserialize_primitive_122(val) for val in value]
-        if isinstance(value, struct_pb2.Struct):
-            raise ValueError(
-                f"The query returned an object value where it expected a primitive. Have you missed a NestedProperty specification in your query? {value}"
-            )
-        return value
-
-    def __parse_nonref_properties_result_122(
-        self,
-        properties: Union[search_get_pb2.PropertiesResult, base_pb2.ObjectPropertiesValue],
-    ) -> dict:
-        result: dict = {}
-
-        for name, non_ref_prop in properties.non_ref_properties.items():
-            result[name] = self.__deserialize_primitive_122(non_ref_prop)
-
-        for number_array_property in properties.number_array_properties:
-            result[number_array_property.prop_name] = [
-                float(val) for val in number_array_property.values
-            ]
-
-        for int_array_property in properties.int_array_properties:
-            result[int_array_property.prop_name] = [int(val) for val in int_array_property.values]
-
-        for text_array_property in properties.text_array_properties:
-            result[text_array_property.prop_name] = [
-                self.__deserialize_primitive_122(val) for val in text_array_property.values
-            ]
-
-        for boolean_array_property in properties.boolean_array_properties:
-            result[boolean_array_property.prop_name] = [
-                bool(val) for val in boolean_array_property.values
-            ]
-
-        for object_property in properties.object_properties:
-            result[object_property.prop_name] = self.__parse_nonref_properties_result_122(
-                object_property.value,
-            )
-
-        for object_array_property in properties.object_array_properties:
-            result[object_array_property.prop_name] = [
-                self.__parse_nonref_properties_result_122(
-                    object_property,
-                )
-                for object_property in object_array_property.values
-            ]
-
-        return result
-
-    def __parse_ref_properties_result_122(
-        self, properties: search_get_pb2.PropertiesResult
-    ) -> Optional[dict]:
-        if len(properties.ref_props) == 0:
-            return None
         return {
             ref_prop.prop_name: _CrossReference._from(
                 [
@@ -585,7 +498,7 @@ class _BaseQuery(Generic[Properties, References]):
         if (
             isinstance(return_properties, Sequence)
             or isinstance(return_properties, str)
-            or isinstance(return_properties, FromNested)
+            or isinstance(return_properties, QueryNested)
             or (return_properties is None and self._properties is None)
         ):
             # return self.__parse_properties(return_properties)
@@ -599,7 +512,7 @@ class _BaseQuery(Generic[Properties, References]):
         else:
             assert return_properties is not None
             if not is_typeddict(return_properties):
-                raise TypeError(
+                raise WeaviateInvalidInputError(
                     f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(return_properties)}"
                 )
             return _extract_properties_from_data_model(
@@ -609,6 +522,14 @@ class _BaseQuery(Generic[Properties, References]):
     def _parse_return_metadata(
         self, return_metadata: Optional[METADATA], include_vector: bool
     ) -> Optional[_MetadataQuery]:
+        _validate_input(
+            [
+                _ValidateArgument(
+                    [Sequence[str], MetadataQuery, None], "return_metadata", return_metadata
+                ),
+                _ValidateArgument([bool], "include_vector", include_vector),
+            ]
+        )
         if return_metadata is None:
             ret_md = None
         elif isinstance(return_metadata, Sequence):
@@ -622,7 +543,7 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> Optional[REFERENCES]:
         if (
             isinstance(return_references, Sequence)
-            or isinstance(return_references, FromReference)
+            or isinstance(return_references, _QueryReference)
             or (return_references is None and self._references is None)
         ):
             return return_references
@@ -633,43 +554,22 @@ class _BaseQuery(Generic[Properties, References]):
             return refs
         else:
             assert return_references is not None
+            if not is_typeddict(return_references):
+                raise WeaviateInvalidInputError(
+                    f"return_references must only be a TypedDict or ReturnReferences within this context but is {type(return_references)}"
+                )
             return _extract_references_from_data_model(return_references)
 
     @staticmethod
     def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
         if isinstance(media, str):  # if already encoded by user
             return media
-        else:
+        elif isinstance(media, pathlib.Path) or isinstance(media, io.BufferedReader):
             return file_encoder_b64(media)
-
-    def _get_by_id_rest(
-        self, name: str, uuid: UUID, include_vector: bool
-    ) -> Optional[Dict[str, Any]]:
-        path = f"/objects/{name}/{uuid}"
-        params: Dict[str, Any] = {}
-        if include_vector:
-            params["include"] = "vector"
-        return self.__get_from_weaviate(params=self.__apply_context(params), path=path)
-
-    def __get_from_weaviate(self, params: Dict[str, Any], path: str) -> Optional[Dict[str, Any]]:
-        try:
-            response = self.__connection.get(path=path, params=params)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Could not get object/s.") from conn_err
-        if response.status_code == 200:
-            response_json = _decode_json_response_dict(response, "get")
-            assert response_json is not None
-            return response_json
-        if response.status_code == 404:
-            return None
-        raise UnexpectedStatusCodeError("Get object/s", response)
-
-    def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        if self.__tenant is not None:
-            params["tenant"] = self.__tenant
-        if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level
-        return params
+        else:
+            raise WeaviateInvalidInputError(
+                f"media must be a string, pathlib.Path, or io.BufferedReader but is {type(media)}"
+            )
 
 
 # TODO: refactor PropertiesParser to handle new schema for specifying query parameters

@@ -6,6 +6,7 @@ from typing import (
     Literal,
     Optional,
     List,
+    Mapping,
     Tuple,
     Sequence,
     Generic,
@@ -15,7 +16,6 @@ from typing import (
     overload,
 )
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 
 from weaviate.collections.classes.batch import (
@@ -43,26 +43,25 @@ from weaviate.collections.classes.orm import (
 from weaviate.collections.classes.types import (
     GeoCoordinate,
     PhoneNumber,
+    _PhoneNumber,
     Properties,
     TProperties,
+    WeaviateField,
     _check_properties_generic,
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC, _validate_props
 from weaviate.collections.batch.rest import _BatchREST
-from weaviate.collections.validator import _raise_invalid_input
+from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import (
-    UnexpectedStatusCodeError,
-    ObjectAlreadyExistsError,
-    WeaviateInvalidInputError,
-)
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import (
     _datetime_to_string,
-    _decode_json_response_dict,
     get_vector,
 )
 from weaviate.types import BEACON, UUID
+
+from weaviate.connect.v4 import _ExpectedStatusCodes
 
 
 class _Data:
@@ -86,21 +85,14 @@ class _Data:
         _validate_props(weaviate_obj["properties"], clean_props=clean_props)
 
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
-        try:
-            response = self._connection.post(path=path, weaviate_object=weaviate_obj, params=params)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Object was not added to Weaviate.") from conn_err
-        if response.status_code == 200:
-            return uuid_package.UUID(weaviate_obj["id"])
-
-        try:
-            response_json = _decode_json_response_dict(response, "insert object")
-            assert response_json is not None
-            if "already exists" in response_json["error"][0]["message"]:
-                raise ObjectAlreadyExistsError(weaviate_obj["id"])
-        except KeyError:
-            pass
-        raise UnexpectedStatusCodeError("Creating object", response)
+        self._connection.post(
+            path=path,
+            weaviate_object=weaviate_obj,
+            params=params,
+            error_msg="Object was not added",
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="insert object"),
+        )
+        return uuid_package.UUID(weaviate_obj["id"])
 
     def delete_by_id(self, uuid: UUID) -> bool:
         """Delete an object from the collection based on its UUID.
@@ -111,15 +103,17 @@ class _Data:
         """
         path = f"/objects/{self.name}/{uuid}"
 
-        try:
-            response = self._connection.delete(path=path, params=self.__apply_context({}))
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Object could not be deleted.") from conn_err
+        response = self._connection.delete(
+            path=path,
+            params=self.__apply_context({}),
+            error_msg="Object could not be deleted.",
+            status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
+        )
         if response.status_code == 204:
             return True  # Successfully deleted
-        elif response.status_code == 404:
+        else:
+            assert response.status_code == 404
             return False  # did not exist
-        raise UnexpectedStatusCodeError("Delete object", response)
 
     @overload
     def delete_many(
@@ -158,8 +152,7 @@ class _Data:
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        if not isinstance(where, _Filters):
-            _raise_invalid_input("where", where, _Filters)
+        _ValidateArgument(expected=[_Filters], name="where", value=where)
         return self._batch_delete_grpc.batch_delete(
             self.name, where, verbose, dry_run, self._tenant
         )
@@ -170,27 +163,25 @@ class _Data:
 
         weaviate_obj["id"] = str(uuid)  # must add ID to payload for PUT request
 
-        try:
-            response = self._connection.put(path=path, weaviate_object=weaviate_obj, params=params)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Object was not replaced.") from conn_err
-        if response.status_code == 200:
-            return
-        raise UnexpectedStatusCodeError("Replacing object", response)
+        self._connection.put(
+            path=path,
+            weaviate_object=weaviate_obj,
+            params=params,
+            error_msg="Object was not replaced.",
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="replace object"),
+        )
 
     def _update(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
 
-        try:
-            response = self._connection.patch(
-                path=path, weaviate_object=weaviate_obj, params=params
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Object was not updated.") from conn_err
-        if response.status_code == 204 or response.status_code == 200:
-            return
-        raise UnexpectedStatusCodeError("Update object", response)
+        self._connection.patch(
+            path=path,
+            weaviate_object=weaviate_obj,
+            params=params,
+            error_msg="Object was not updated.",
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 204], error="update object"),
+        )
 
     def _reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
@@ -202,16 +193,13 @@ class _Data:
                 "reference_add does not support adding multiple objects to a reference at once. Use reference_add_many or reference_replace instead."
             )
         for beacon in ref._to_beacons():
-            try:
-                response = self._connection.post(
-                    path=path,
-                    weaviate_object=beacon,
-                    params=self.__apply_context(params),
-                )
-            except RequestsConnectionError as conn_err:
-                raise RequestsConnectionError("Reference was not added.") from conn_err
-            if response.status_code != 200:
-                raise UnexpectedStatusCodeError("Add property reference to object", response)
+            self._connection.post(
+                path=path,
+                weaviate_object=beacon,
+                params=self.__apply_context(params),
+                error_msg="Reference was not added.",
+                status_codes=_ExpectedStatusCodes(ok_in=200, error="add reference to object"),
+            )
 
     def _reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
         batch = [
@@ -235,31 +223,25 @@ class _Data:
                 "reference_delete does not support deleting multiple objects from a reference at once. Use reference_replace instead."
             )
         for beacon in ref._to_beacons():
-            try:
-                response = self._connection.delete(
-                    path=path,
-                    weaviate_object=beacon,
-                    params=self.__apply_context(params),
-                )
-            except RequestsConnectionError as conn_err:
-                raise RequestsConnectionError("Reference was not added.") from conn_err
-            if response.status_code != 204:
-                raise UnexpectedStatusCodeError("Add property reference to object", response)
+            self._connection.delete(
+                path=path,
+                weaviate_object=beacon,
+                params=self.__apply_context(params),
+                error_msg="Reference was not deleted.",
+                status_codes=_ExpectedStatusCodes(ok_in=204, error="delete reference from object"),
+            )
 
     def _reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        try:
-            response = self._connection.put(
-                path=path,
-                weaviate_object=ref._to_beacons(),
-                params=self.__apply_context(params),
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Reference was not added.") from conn_err
-        if response.status_code != 200:
-            raise UnexpectedStatusCodeError("Add property reference to object", response)
+        self._connection.put(
+            path=path,
+            weaviate_object=ref._to_beacons(),
+            params=self.__apply_context(params),
+            error_msg="Reference was not replaced.",
+            status_codes=_ExpectedStatusCodes(ok_in=200, error="replace reference on object"),
+        )
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
         if self._tenant is not None:
@@ -288,18 +270,30 @@ class _Data:
             for key, val in refs.items()
         }
 
-    def __serialize_primitive(self, value: Any) -> Any:
+    def __serialize_primitive(self, value: WeaviateField) -> Any:
+        if isinstance(value, str) or isinstance(value, int) or isinstance(value, float):
+            return value
         if isinstance(value, uuid_package.UUID):
             return str(value)
         if isinstance(value, datetime.datetime):
             return _datetime_to_string(value)
-        if isinstance(value, list):
-            return [self.__serialize_primitive(val) for val in value]
         if isinstance(value, GeoCoordinate):
             return value._to_dict()
         if isinstance(value, PhoneNumber):
             return value._to_dict()
-        return value
+        if isinstance(value, _PhoneNumber):
+            raise WeaviateInvalidInputError(
+                "Cannot use _PhoneNumber when inserting a phone number. Use PhoneNumber instead."
+            )
+        if isinstance(value, Mapping):
+            return {key: self.__serialize_primitive(val) for key, val in value.items()}
+        if isinstance(value, Sequence):
+            return [self.__serialize_primitive(val) for val in value]
+        if value is None:
+            return value
+        raise WeaviateInvalidInputError(
+            f"Cannot serialize value of type {type(value)} to Weaviate."
+        )
 
 
 class _DataCollection(Generic[Properties], _Data):
@@ -338,12 +332,22 @@ class _DataCollection(Generic[Properties], _Data):
                 The UUID of the object. If not provided, a random UUID will be generated.
             `vector`
                 The vector of the object.
-        """
-        if not isinstance(properties, dict):
-            _raise_invalid_input("properties", properties, dict)
-        if references is not None and not isinstance(references, dict):
-            _raise_invalid_input("references", references, dict)
 
+        Returns:
+            `uuid.UUID`, the UUID of the inserted object.
+
+        Raises:
+            `weaviate.exceptions.UnexpectedStatusCodeError`:
+                If any unexpected error occurs during the insert operation, for example the given UUID already exists.
+        """
+        _validate_input(
+            [
+                _ValidateArgument(expected=[UUID, None], name="uuid", value=uuid),
+                _ValidateArgument(expected=[Mapping], name="properties", value=properties),
+                _ValidateArgument(expected=[Mapping, None], name="references", value=references),
+                _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+            ]
+        )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
@@ -406,7 +410,7 @@ class _DataCollection(Generic[Properties], _Data):
         uuid: UUID,
         properties: Properties,
         references: Optional[ReferenceInputs] = None,
-        vector: Optional[List[float]] = None,
+        vector: Optional[Sequence[float]] = None,
     ) -> None:
         """Replace an object in the collection.
 
@@ -425,16 +429,21 @@ class _DataCollection(Generic[Properties], _Data):
         Raises:
             `requests.ConnectionError`:
                 If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateInvalidInputError`:
+                If any of the arguments are invalid.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
-        if not isinstance(properties, dict):
-            _raise_invalid_input("properties", properties, dict)
-        if references is not None and not isinstance(references, dict):
-            _raise_invalid_input("references", references, dict)
-
+        _validate_input(
+            [
+                _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
+                _ValidateArgument(expected=[Mapping], name="properties", value=properties),
+                _ValidateArgument(expected=[Mapping, None], name="references", value=references),
+                _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+            ]
+        )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
@@ -469,11 +478,14 @@ class _DataCollection(Generic[Properties], _Data):
             `vector`
                 The vector of the object.
         """
-        if properties is not None and not isinstance(properties, dict):
-            _raise_invalid_input("properties", properties, dict)
-        if references is not None and not isinstance(references, dict):
-            _raise_invalid_input("references", references, dict)
-
+        _validate_input(
+            [
+                _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
+                _ValidateArgument(expected=[Mapping, None], name="properties", value=properties),
+                _ValidateArgument(expected=[Mapping, None], name="references", value=references),
+                _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+            ]
+        )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
@@ -499,13 +511,13 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        if (
-            not isinstance(to, str)
-            and not isinstance(to, uuid_package.UUID)
-            and not isinstance(to, ReferenceToMulti)
-            and not isinstance(to, _Reference)
-        ):
-            _raise_invalid_input("to", to, SingleReferenceInput)
+        _validate_input(
+            [
+                _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
+                _ValidateArgument(expected=[str], name="from_property", value=from_property),
+                _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
+            ]
+        )
         if isinstance(to, _Reference):
             ref = to
         elif isinstance(to, ReferenceToMulti):
@@ -546,13 +558,13 @@ class _DataCollection(Generic[Properties], _Data):
             `to`
                 The reference to delete, REQUIRED.
         """
-        if (
-            not isinstance(to, str)
-            and not isinstance(to, uuid_package.UUID)
-            and not isinstance(to, ReferenceToMulti)
-            and not isinstance(to, _Reference)
-        ):
-            _raise_invalid_input("to", to, SingleReferenceInput)
+        _validate_input(
+            [
+                _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
+                _ValidateArgument(expected=[str], name="from_property", value=from_property),
+                _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
+            ]
+        )
         if isinstance(to, _Reference):
             ref = to
         elif isinstance(to, ReferenceToMulti):
@@ -572,14 +584,23 @@ class _DataCollection(Generic[Properties], _Data):
             `to`
                 The reference to replace, REQUIRED.
         """
-        if (
-            not isinstance(to, str)
-            and not isinstance(to, uuid_package.UUID)
-            and not isinstance(to, _Reference)
-            and not isinstance(to, Sequence)
-            and not isinstance(to, ReferenceToMulti)
-        ):
-            _raise_invalid_input("to", to, ReferenceInput)
+        _validate_input(
+            [
+                _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
+                _ValidateArgument(expected=[str], name="from_property", value=from_property),
+                _ValidateArgument(
+                    expected=[
+                        UUID,
+                        ReferenceToMulti,
+                        List[str],
+                        List[uuid_package.UUID],
+                        List[UUID],
+                    ],
+                    name="references",
+                    value=to,
+                ),
+            ]
+        )
         if isinstance(to, _Reference):
             ref = to
         elif isinstance(to, ReferenceToMulti):

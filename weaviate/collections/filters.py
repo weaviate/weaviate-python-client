@@ -190,13 +190,16 @@ class _FilterToREST:
             return [target]
         elif isinstance(target, _SingleTargetRef):
             raise WeaviateInvalidInputError(
-                "Single target references are not supported in this version of Weaviate. Please update to >=1.23.3."
+                "Cannot use Filter.by_ref() in the aggregate API currently. Instead use Filter.by_ref_multi_target() and specify the target collection explicitly."
             )
         else:
             assert isinstance(target, _MultiTargetRef)
-            raise WeaviateInvalidInputError(
-                "Multi target references are not supported in this version of Weaviate. Please update to >=1.23.3."
-            )
+            assert target.target is not None
+            return [
+                target.link_on,
+                target.target_collection,
+                *_FilterToREST.__to_path(target.target),
+            ]
 
     @staticmethod
     def __parse_filter(value: FilterValues) -> Dict[str, Any]:

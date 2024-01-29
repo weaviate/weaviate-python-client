@@ -19,6 +19,7 @@ from weaviate.collections.classes.grpc import (
     PROPERTIES,
 )
 from weaviate.collections.iterator import ITERATOR_CACHE_SIZE
+from weaviate.exceptions import WeaviateInvalidInputError
 
 
 @pytest.fixture(scope="module")
@@ -123,7 +124,7 @@ def test_iterator_dict_hint(collection_factory: CollectionFactory, request: SubR
 
     collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
 
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(WeaviateInvalidInputError) as e:
         for _ in collection.iterator(return_properties=dict):
             pass
     assert (

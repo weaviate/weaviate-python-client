@@ -58,7 +58,7 @@ class BackupReturn(BackupStatusReturn):
 class _Backup:
     """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
 
-    def __init__(self, connection: Union[Connection, ConnectionV4]):
+    def __init__(self, connection: ConnectionV4):
         self._connection = connection
 
     def create(
@@ -120,15 +120,11 @@ class _Backup:
         }
         path = f"/backups/{backend.value}"
 
-        try:
-            response = self._connection.post(
-                path=path,
-                weaviate_object=payload,
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Backup creation failed due to connection error."
-            ) from conn_err
+        response = self._connection.post(
+            path=path,
+            weaviate_object=payload,
+            error_msg="Backup creation failed due to connection error.",
+        )
 
         create_status = _decode_json_response_dict(response, "Backup creation")
         assert create_status is not None
@@ -169,14 +165,9 @@ class _Backup:
 
         path = f"/backups/{backend.value}/{backup_id}"
 
-        try:
-            response = self._connection.get(
-                path=path,
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Backup creation status failed due to connection error."
-            ) from conn_err
+        response = self._connection.get(
+            path=path, error_msg="Backup creation status failed due to connection error."
+        )
 
         typed_response = _decode_json_response_dict(response, "Backup status check")
         if typed_response is None:
@@ -240,16 +231,11 @@ class _Backup:
             "exclude": exclude_collections,
         }
         path = f"/backups/{backend.value}/{backup_id}/restore"
-
-        try:
-            response = self._connection.post(
-                path=path,
-                weaviate_object=payload,
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Backup restore failed due to connection error."
-            ) from conn_err
+        response = self._connection.post(
+            path=path,
+            weaviate_object=payload,
+            error_msg="Backup restore failed due to connection error.",
+        )
         restore_status = _decode_json_response_dict(response, "Backup restore")
         assert restore_status is not None
         if wait_for_completion:
@@ -289,15 +275,9 @@ class _Backup:
         )
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
-        try:
-            response = self._connection.get(
-                path=path,
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Backup restore status failed due to connection error."
-            ) from conn_err
-
+        response = self._connection.get(
+            path=path, error_msg="Backup restore status failed due to connection error."
+        )
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
             raise EmptyResponseException()

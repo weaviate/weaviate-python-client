@@ -238,9 +238,6 @@ class VectorDistances(str, Enum):
     MANHATTAN = "manhattan"
 
 
-VectorDistance = VectorDistances  # TODO: deprecate and remove
-
-
 class StopwordsPreset(str, Enum):
     """Preset stopwords to use in the `Stopwords` class.
 
@@ -2014,10 +2011,6 @@ class _ReferencePropertyMultiTarget(_ReferencePropertyBase):
         ]
         del ret_dict["target_collections"]
         return ret_dict
-
-
-ReferencePropertyMultiTarget = _ReferencePropertyMultiTarget
-"""@deprecated: Use `ReferenceProperty.MultiTarget` instead."""
 
 
 class ReferenceProperty(_ReferencePropertyBase):

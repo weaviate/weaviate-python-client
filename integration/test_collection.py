@@ -22,18 +22,17 @@ from weaviate.collections.classes.data import (
     DataObject,
 )
 from weaviate.collections.classes.grpc import (
-    FromReferenceMultiTarget,
+    QueryReference,
     HybridFusion,
-    FromReference,
     GroupBy,
     MetadataQuery,
     Move,
     Sort,
-    _Sort,
     _Sorting,
     PROPERTIES,
     PROPERTY,
     REFERENCE,
+    NearMediaType,
 )
 from weaviate.collections.classes.internal import (
     _CrossReference,
@@ -43,6 +42,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
+    UnexpectedStatusCodeError,
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
@@ -113,8 +113,10 @@ def test_delete_by_id(collection_factory: CollectionFactory) -> None:
 
     uuid = collection.data.insert(properties={"name": "some name"})
     assert collection.query.fetch_object_by_id(uuid) is not None
-    collection.data.delete_by_id(uuid)
+    assert collection.data.delete_by_id(uuid)
     assert collection.query.fetch_object_by_id(uuid) is None
+    # does not exist anymore
+    assert not collection.data.delete_by_id(uuid)
 
 
 @pytest.mark.parametrize(
@@ -309,8 +311,8 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
             "name",
         ],
         return_references=[
-            FromReference(link_on="ref_single"),
-            FromReferenceMultiTarget(link_on="ref_many", target_collection=collection.name),
+            QueryReference(link_on="ref_single"),
+            QueryReference.MultiTarget(link_on="ref_many", target_collection=collection.name),
         ],
     )
     assert obj1 is not None
@@ -324,8 +326,8 @@ def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
             "name",
         ],
         return_references=[
-            FromReference(link_on="ref_single"),
-            FromReferenceMultiTarget(link_on="ref_many", target_collection=ref_collection.name),
+            QueryReference(link_on="ref_single"),
+            QueryReference.MultiTarget(link_on="ref_many", target_collection=ref_collection.name),
         ],
     )
     assert obj1 is not None
@@ -429,7 +431,7 @@ def test_replace_with_refs(collection_factory: CollectionFactory, to_uuids: UUID
             "name",
         ],
         return_references=[
-            FromReference(link_on="ref"),
+            QueryReference(link_on="ref"),
         ],
     )
     assert len(obj.references["ref"].objects) == 1
@@ -530,7 +532,7 @@ def test_update_with_refs(collection_factory: CollectionFactory, to_uuids: UUIDS
             "name",
         ],
         return_references=[
-            FromReference(link_on="ref"),
+            QueryReference(link_on="ref"),
         ],
     )
     assert len(obj.references["ref"].objects) == 3
@@ -1144,10 +1146,10 @@ def test_add_reference(collection_factory: CollectionFactory) -> None:
     )
     uuid2 = collection.data.insert({"name": "second"}, references={"self": uuid1})
     obj1 = collection.query.fetch_object_by_id(
-        uuid1, return_properties=["name"], return_references=FromReference(link_on="self")
+        uuid1, return_properties=["name"], return_references=QueryReference(link_on="self")
     )
     obj2 = collection.query.fetch_object_by_id(
-        uuid2, return_properties=["name"], return_references=FromReference(link_on="self")
+        uuid2, return_properties=["name"], return_references=QueryReference(link_on="self")
     )
     assert "name" in obj1.properties
     assert obj1.references == {}
@@ -1192,7 +1194,7 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
         MetadataQuery._full(),
     ],
 )
-@pytest.mark.parametrize("return_references", [None, [], [FromReference(link_on="friend")]])
+@pytest.mark.parametrize("return_references", [None, [], [QueryReference(link_on="friend")]])
 @pytest.mark.parametrize("include_vector", [False, True])
 def test_return_properties_metadata_references_combos(
     collection_factory: CollectionFactory,
@@ -1567,6 +1569,61 @@ def test_near_image(
     assert objects3[0].uuid == uuid2
 
 
+@pytest.mark.parametrize(
+    "image_maker",
+    [
+        lambda: WEAVIATE_LOGO_OLD_ENCODED,
+        lambda: pathlib.Path("./integration/weaviate-logo.png"),
+        lambda: pathlib.Path("./integration/weaviate-logo.png").open("rb"),
+    ],
+    ids=["base64", "pathlib.Path", "io.BufferedReader"],
+)
+@pytest.mark.parametrize(
+    "distance,certainty",
+    [(None, None), (10.0, None), (None, 0.1)],
+)
+def test_near_media(
+    collection_factory: CollectionFactory,
+    image_maker: Callable[[], Union[str, pathlib.Path, io.BufferedReader]],
+    distance: Optional[float],
+    certainty: Optional[float],
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.img2vec_neural(image_fields=["imageProp"]),
+        properties=[
+            Property(name="imageProp", data_type=DataType.BLOB),
+        ],
+    )
+
+    uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
+    uuid2 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
+
+    image = image_maker()
+    objects1 = collection.query.near_media(
+        image, NearMediaType.IMAGE, distance=distance, certainty=certainty
+    ).objects
+    image = image_maker()  # need to reopen if file was consumed
+    objects2 = collection.query.near_media(
+        image, NearMediaType.IMAGE, distance=distance, certainty=certainty, limit=1
+    ).objects
+    image = image_maker()  # need to reopen if file was consumed
+    objects3 = collection.query.near_media(
+        image, NearMediaType.IMAGE, distance=distance, certainty=certainty, offset=1
+    ).objects
+
+    if isinstance(image, io.BufferedReader):
+        image.close()
+
+    assert len(objects1) == 2
+    assert objects1[0].uuid == uuid1
+
+    assert len(objects2) == 1
+    assert objects2[0].uuid == uuid1
+
+    assert len(objects3) == 1
+    assert objects3[0].uuid == uuid2
+
+
 @pytest.mark.parametrize("which_case", [0, 1, 2, 3, 4])
 def test_return_properties_with_query_specific_typed_dict(
     collection_factory: CollectionFactory, which_case: int
@@ -1742,7 +1799,7 @@ def test_batch_with_arrays(collection_factory: CollectionFactory) -> None:
 )
 def test_sort(
     collection_factory: CollectionFactory,
-    sort: Union[_Sort, List[_Sort], _Sorting],
+    sort: _Sorting,
     expected: List[int],
 ) -> None:
     collection = collection_factory(
@@ -1787,7 +1844,7 @@ def test_optional_ref_returns(collection_factory: CollectionFactory) -> None:
     collection.data.insert({}, references={"ref": uuid_to1})
 
     objects = collection.query.fetch_objects(
-        return_references=[FromReference(link_on="ref")]
+        return_references=[QueryReference(link_on="ref")]
     ).objects
 
     assert objects[0].references["ref"].objects[0].properties["text"] == "ref text"
@@ -1859,3 +1916,10 @@ def test_return_phone_number_property(collection_factory: CollectionFactory) -> 
     assert obj2.properties["phone"].number == "01612345000"
     assert obj2.properties["phone"].valid
     assert obj2.properties["phone"].international_formatted == "+44 161 234 5000"
+
+
+def test_double_insert_with_same_uuid(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory()
+    uuid1 = collection.data.insert({})
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.data.insert({}, uuid=uuid1)

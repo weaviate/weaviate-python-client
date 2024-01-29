@@ -113,7 +113,7 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
 
 @dataclass
 class _BatchDataWrapper:
-    results: BatchResult = BatchResult()
+    results: BatchResult = field(default_factory=BatchResult)
     failed_objects: List[ErrorObject] = field(default_factory=list)
     failed_references: List[ErrorReference] = field(default_factory=list)
     imported_shards: Set[Shard] = field(default_factory=set)

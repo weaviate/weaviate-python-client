@@ -2,9 +2,6 @@ from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.grpc import (
     HybridFusion,
-    FromNested,
-    FromReference,
-    FromReferenceMultiTarget,
     GroupBy,
     MetadataQuery,
     Move,
@@ -19,9 +16,6 @@ from weaviate.collections.classes.types import GeoCoordinate
 
 __all__ = [
     "Filter",
-    "FromNested",
-    "FromReference",
-    "FromReferenceMultiTarget",
     "GeoCoordinate",
     "GroupBy",
     "HybridFusion",

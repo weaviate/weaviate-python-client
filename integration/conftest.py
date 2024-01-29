@@ -20,6 +20,7 @@ from weaviate.collections.classes.config import (
     _RerankerConfigCreate,
 )
 from weaviate.collections.classes.types import Properties
+from weaviate.config import AdditionalConfig
 
 
 class CollectionFactory(Protocol):
@@ -72,7 +73,10 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(request.node.name) + name
         client_fixture = weaviate.connect_to_local(
-            headers=headers, grpc_port=ports[1], port=ports[0]
+            headers=headers,
+            grpc_port=ports[1],
+            port=ports[0],
+            additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
         )
         client_fixture.collections.delete(name_fixture)
 

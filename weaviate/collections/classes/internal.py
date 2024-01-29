@@ -24,7 +24,7 @@ else:
     from typing import Annotated, get_type_hints, get_origin, get_args
 
 from weaviate.collections.classes.grpc import (
-    FromNested,
+    QueryNested,
     _QueryReference,
     _QueryReferenceMultiTarget,
     Generate,
@@ -321,13 +321,13 @@ def __is_nested(value: Any) -> bool:
     )
 
 
-def __create_nested_property_from_nested(name: str, value: Any) -> FromNested:
+def __create_nested_property_from_nested(name: str, value: Any) -> QueryNested:
     if not __is_nested(value):
         raise ValueError(
             f"Non nested property detected in generic resolution, {value} of type {type(value)} is not allowed as a nested property."
         )
     inner_type = get_args(value)[0]
-    return FromNested(
+    return QueryNested(
         name=name,
         properties=[
             __create_nested_property_from_nested(key, val) if __is_nested(val) else key
@@ -464,10 +464,6 @@ class CrossReferenceAnnotation:
     target_collection: Optional[str] = field(default=None)
 
 
-ReferenceAnnotation = CrossReferenceAnnotation
-"""@deprecated: Use `CrossReferenceAnnotation` instead."""
-
-
 def _extract_types_from_reference(
     type_: CrossReference[Properties, "References"]
 ) -> Tuple[Type[Properties], Type["References"]]:
@@ -478,7 +474,7 @@ def _extract_types_from_reference(
 
 
 def _extract_types_from_annotated_reference(
-    type_: Annotated[CrossReference[Properties, "References"], ReferenceAnnotation]
+    type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation]
 ) -> Tuple[Type[Properties], Type["References"]]:
     """Extract inner type from Annotated[CrossReference[Properties, References]]."""
     if get_origin(type_) is Annotated:
@@ -497,14 +493,17 @@ def __is_annotated_reference(value: Any) -> bool:
 
 
 def __create_link_to_from_annotated_reference(
-    link_on: str, value: Annotated[CrossReference[Properties, "References"], ReferenceAnnotation]
+    link_on: str,
+    value: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation],
 ) -> Union[_QueryReference, _QueryReferenceMultiTarget]:
     """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
     assert get_origin(value) is Annotated
     args = cast(List[CrossReference[Properties, References]], get_args(value))
     inner_type = args[0]
     assert get_origin(inner_type) is _CrossReference
-    inner_type_metadata = cast(Tuple[ReferenceAnnotation], getattr(value, "__metadata__", None))
+    inner_type_metadata = cast(
+        Tuple[CrossReferenceAnnotation], getattr(value, "__metadata__", None)
+    )
     annotation = inner_type_metadata[0]
     types = _extract_types_from_annotated_reference(value)
     if annotation.target_collection is not None:

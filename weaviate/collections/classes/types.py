@@ -1,7 +1,7 @@
 import datetime
 import uuid as uuid_package
 
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, get_origin
+from typing import Any, Dict, Mapping, Optional, Sequence, Type, Union, get_origin
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -68,22 +68,18 @@ WeaviateField: TypeAlias = Union[
     GeoCoordinate,  # geoCoordinates
     Union[PhoneNumber, PhoneNumberType],  # phoneNumber
     Mapping[str, "WeaviateField"],  # object
-    List[str],  # text[]
-    List[bool],  # boolean[]
-    List[int],  # int[]
-    List[float],  # number[]
-    List[datetime.datetime],  # date[]
-    List[uuid_package.UUID],  # uuid[]
+    Sequence[str],  # text[]
+    Sequence[bool],  # boolean[]
+    Sequence[int],  # int[]
+    Sequence[float],  # number[]
+    Sequence[datetime.datetime],  # date[]
+    Sequence[uuid_package.UUID],  # uuid[]
     Sequence[Mapping[str, "WeaviateField"]],  # object[]
     # Sequence is covariant while List is not, so we use Sequence here to allow for
     # List[Dict[str, WeaviateField]] to be used interchangeably with List[Dict[str, Any]]
 ]
 
 WeaviateProperties: TypeAlias = Mapping[str, WeaviateField]
-# current limitation of mypy is that Dict[str, WeaviateField] is not successfully inferred
-# when used in DataObject. It can't understand that DataObject[Dict[str, str], None] is covariant
-# with DataObject[Dict[str, WeaviateField], None]
-
 
 Properties = TypeVar("Properties", bound=Mapping[str, Any], default=WeaviateProperties)
 """`Properties` is used wherever a single generic type is needed for properties"""

@@ -7,12 +7,10 @@ from weaviate.collections.classes.config import (
     Multi2VecField,
     Property,
     ReferenceProperty,
-    ReferencePropertyMultiTarget,
     Rerankers,
     StopwordsPreset,
     Tokenization,
     Vectorizers,
-    VectorDistance,
     VectorDistances,
 )
 
@@ -25,11 +23,9 @@ __all__ = [
     "Multi2VecField",
     "Property",
     "ReferenceProperty",
-    "ReferencePropertyMultiTarget",
     "Rerankers",
     "StopwordsPreset",
     "Tokenization",
     "Vectorizers",
-    "VectorDistance",
     "VectorDistances",
 ]

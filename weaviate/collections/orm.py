@@ -1,7 +1,6 @@
 from typing import Type, Optional, Any, Dict, Generic, Tuple
 
 from pydantic import create_model
-from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.collections.base import _CollectionBase, _CollectionsBase
 from weaviate.collections.classes.config import ConsistencyLevel
@@ -86,10 +85,7 @@ class _CollectionModel(_CollectionsBase):
     def get_dynamic(self, name: str) -> Tuple[_CollectionObjectModel[BaseProperty], UserModelType]:
         path = f"/schema/{_capitalize_first_letter(name)}"
 
-        try:
-            response = self._connection.get(path=path)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Schema could not be retrieved.") from conn_err
+        response = self._connection.get(path=path, error_msg="Collection could not be retrieved.")
         if response.status_code != 200:
             raise UnexpectedStatusCodeError("Get schema", response)
 

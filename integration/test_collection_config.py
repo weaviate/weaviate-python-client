@@ -19,7 +19,7 @@ from weaviate.collections.classes.config import (
     PQEncoderType,
     PQEncoderDistribution,
     StopwordsPreset,
-    VectorDistance,
+    VectorDistances,
     VectorIndexType,
     Vectorizer,
     GenerativeSearches,
@@ -137,7 +137,7 @@ def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
-    assert config.vector_index_config.distance_metric == VectorDistance.COSINE
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
     assert config.vector_index_config.dynamic_ef_factor == 8
     assert config.vector_index_config.dynamic_ef_max == 500
     assert config.vector_index_config.dynamic_ef_min == 100
@@ -190,7 +190,7 @@ def test_collection_config_defaults(collection_factory: CollectionFactory) -> No
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
-    assert config.vector_index_config.distance_metric == VectorDistance.COSINE
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
     assert config.vector_index_config.dynamic_ef_factor == 8
     assert config.vector_index_config.dynamic_ef_max == 500
     assert config.vector_index_config.dynamic_ef_min == 100
@@ -238,7 +238,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         replication_config=Configure.replication(factor=2),
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
-            distance_metric=VectorDistance.DOT,
+            distance_metric=VectorDistances.DOT,
             dynamic_ef_factor=6,
             dynamic_ef_max=100,
             dynamic_ef_min=10,
@@ -312,7 +312,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
     assert config.vector_index_config.cleanup_interval_seconds == 10
-    assert config.vector_index_config.distance_metric == VectorDistance.DOT
+    assert config.vector_index_config.distance_metric == VectorDistances.DOT
     assert config.vector_index_config.dynamic_ef_factor == 6
     assert config.vector_index_config.dynamic_ef_max == 100
     assert config.vector_index_config.dynamic_ef_min == 10
@@ -385,7 +385,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
     assert config.vector_index_config.cleanup_interval_seconds == 300
-    assert config.vector_index_config.distance_metric == VectorDistance.COSINE
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
     assert config.vector_index_config.dynamic_ef_factor == 8
     assert config.vector_index_config.dynamic_ef_max == 500
     assert config.vector_index_config.dynamic_ef_min == 100
@@ -422,7 +422,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
-    assert config.vector_index_config.distance_metric == VectorDistance.COSINE
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
     assert config.vector_index_config.dynamic_ef_factor == 8
     assert config.vector_index_config.dynamic_ef_max == 500
     assert config.vector_index_config.dynamic_ef_min == 100

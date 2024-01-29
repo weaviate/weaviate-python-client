@@ -1,8 +1,6 @@
 import time
 from typing import Generic, List, Optional, Any, TypeVar, cast
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
-
 from weaviate.collections.batch.base import (
     _BatchBase,
     _BatchDataWrapper,
@@ -54,7 +52,7 @@ class _BatchWrapper:
                     all(self._get_shards_readiness(shard))
                     for shard in shards or self._batch_data.imported_shards
                 )
-            except RequestsConnectionError as e:
+            except Exception as e:
                 print(
                     f"Error while getting class shards statuses: {e}, trying again with 2**n={2**how_many}s exponential backoff with n={how_many}"
                 )
@@ -72,20 +70,8 @@ class _BatchWrapper:
         print("Async indexing finished!")
 
     def _get_shards_readiness(self, shard: Shard) -> List[bool]:
-        if not isinstance(shard.collection, str):
-            raise TypeError(
-                "'collection' argument must be of type `str`! "
-                f"Given type: {type(shard.collection)}."
-            )
-
         path = f"/schema/{_capitalize_first_letter(shard.collection)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
-
-        try:
-            response = self._connection.get(path=path)
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Class shards' status could not be retrieved due to connection error."
-            ) from conn_err
+        response = self._connection.get(path=path)
 
         res = _decode_json_response_list(response, "Get shards' status")
         assert res is not None

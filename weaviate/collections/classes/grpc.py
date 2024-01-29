@@ -122,7 +122,7 @@ class _MetadataQuery:
 
 
 METADATA = Union[
-    Sequence[
+    List[
         Literal[
             "creation_time",
             "last_update_time",
@@ -257,23 +257,13 @@ class QueryNested(_WeaviateInput):
         return hash(str(self))
 
 
-# deprecated and should be removed in v4 GA
-FromReference = _QueryReference
-"""@deprecated: Use `QueryReference` instead."""
-FromReferenceMultiTarget = _QueryReferenceMultiTarget
-"""@deprecated: Use `QueryReference.MultiTarget` instead."""
-FromNested = QueryNested
-"""@deprecated: Use `QueryNested` instead."""
-
-REFERENCE = Union[
-    FromReference, FromReferenceMultiTarget, _QueryReference, _QueryReferenceMultiTarget
-]
+REFERENCE = Union[_QueryReference, _QueryReferenceMultiTarget]
 REFERENCES = Union[Sequence[REFERENCE], REFERENCE]
 
-PROPERTY = Union[str, FromNested, QueryNested]
+PROPERTY = Union[str, QueryNested]
 PROPERTIES = Union[Sequence[PROPERTY], PROPERTY]
 
-NestedProperties = Union[List[Union[str, FromNested, QueryNested]], str, FromNested, QueryNested]
+NestedProperties = Union[List[Union[str, QueryNested]], str, QueryNested]
 
 _PROPERTY = Union[PROPERTY, REFERENCE]
 _PROPERTIES = Union[PROPERTIES, REFERENCES]
