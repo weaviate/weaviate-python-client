@@ -1,6 +1,7 @@
 """
 ConfigBuilder class definition.
 """
+
 import time
 from typing import Dict, Any, cast, TYPE_CHECKING
 

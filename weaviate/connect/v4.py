@@ -227,15 +227,6 @@ class _Connection(_ConnectionBase):
     def _create_clients(
         self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool
     ) -> None:
-        """Creates sync and async httpx clients.
-
-        Either through authlib.oauth2 if authentication is enabled or a normal httpx sync client otherwise.
-
-        Raises
-        ------
-        ValueError
-            If no authentication credentials provided but the Weaviate server has OpenID configured.
-        """
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self.__make_clients()

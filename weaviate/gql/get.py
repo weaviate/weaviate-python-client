@@ -1,6 +1,7 @@
 """
 GraphQL `Get` command.
 """
+
 from dataclasses import dataclass, Field, fields
 from enum import Enum
 from json import dumps
@@ -1838,47 +1839,57 @@ class GetBuilder(GraphQL):
                     search_get_pb2.SearchRequest(
                         collection=self._class_name,
                         limit=self._limit,
-                        near_vector=search_get_pb2.NearVector(
-                            vector=self._near_clause.content["vector"],
-                            certainty=self._near_clause.content.get("certainty", None),
-                            distance=self._near_clause.content.get("distance", None),
-                        )
-                        if self._near_clause is not None
-                        and isinstance(self._near_clause, NearVector)
-                        else None,
-                        near_object=search_get_pb2.NearObject(
-                            id=self._near_clause.content["id"],
-                            certainty=self._near_clause.content.get("certainty", None),
-                            distance=self._near_clause.content.get("distance", None),
-                        )
-                        if self._near_clause is not None
-                        and isinstance(self._near_clause, NearObject)
-                        else None,
+                        near_vector=(
+                            search_get_pb2.NearVector(
+                                vector=self._near_clause.content["vector"],
+                                certainty=self._near_clause.content.get("certainty", None),
+                                distance=self._near_clause.content.get("distance", None),
+                            )
+                            if self._near_clause is not None
+                            and isinstance(self._near_clause, NearVector)
+                            else None
+                        ),
+                        near_object=(
+                            search_get_pb2.NearObject(
+                                id=self._near_clause.content["id"],
+                                certainty=self._near_clause.content.get("certainty", None),
+                                distance=self._near_clause.content.get("distance", None),
+                            )
+                            if self._near_clause is not None
+                            and isinstance(self._near_clause, NearObject)
+                            else None
+                        ),
                         properties=self._convert_references_to_grpc(self._properties),
-                        metadata=search_get_pb2.MetadataRequest(
-                            uuid=self._additional_dataclass.uuid,
-                            vector=self._additional_dataclass.vector,
-                            creation_time_unix=self._additional_dataclass.creationTimeUnix,
-                            last_update_time_unix=self._additional_dataclass.lastUpdateTimeUnix,
-                            distance=self._additional_dataclass.distance,
-                            explain_score=self._additional_dataclass.explainScore,
-                            score=self._additional_dataclass.score,
-                        )
-                        if self._additional_dataclass is not None
-                        else None,
-                        bm25_search=search_get_pb2.BM25(
-                            properties=self._bm25.properties, query=self._bm25.query
-                        )
-                        if self._bm25 is not None
-                        else None,
-                        hybrid_search=search_get_pb2.Hybrid(
-                            properties=self._hybrid.properties,
-                            query=self._hybrid.query,
-                            alpha=self._hybrid.alpha,
-                            vector=self._hybrid.vector,
-                        )
-                        if self._hybrid is not None
-                        else None,
+                        metadata=(
+                            search_get_pb2.MetadataRequest(
+                                uuid=self._additional_dataclass.uuid,
+                                vector=self._additional_dataclass.vector,
+                                creation_time_unix=self._additional_dataclass.creationTimeUnix,
+                                last_update_time_unix=self._additional_dataclass.lastUpdateTimeUnix,
+                                distance=self._additional_dataclass.distance,
+                                explain_score=self._additional_dataclass.explainScore,
+                                score=self._additional_dataclass.score,
+                            )
+                            if self._additional_dataclass is not None
+                            else None
+                        ),
+                        bm25_search=(
+                            search_get_pb2.BM25(
+                                properties=self._bm25.properties, query=self._bm25.query
+                            )
+                            if self._bm25 is not None
+                            else None
+                        ),
+                        hybrid_search=(
+                            search_get_pb2.Hybrid(
+                                properties=self._hybrid.properties,
+                                query=self._hybrid.query,
+                                alpha=self._hybrid.alpha,
+                                vector=self._hybrid.vector,
+                            )
+                            if self._hybrid is not None
+                            else None
+                        ),
                     ),
                     metadata=metadata,
                 )

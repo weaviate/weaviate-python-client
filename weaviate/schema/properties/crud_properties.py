@@ -1,6 +1,7 @@
 """
 Property class definition.
 """
+
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection

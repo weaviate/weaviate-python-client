@@ -565,115 +565,143 @@ class _QueryGRPC(_BaseGRPC):
                     offset=self._offset,
                     after=str(self._after) if self._after is not None else "",
                     autocut=self._autocut,
-                    near_vector=search_get_pb2.NearVector(
-                        certainty=self._near_certainty,
-                        distance=self._near_distance,
-                        vector_bytes=struct.pack(
-                            "{}f".format(len(self._near_vector_vec)), *self._near_vector_vec
-                        ),
-                    )
-                    if self._near_vector_vec is not None
-                    else None,
-                    near_object=search_get_pb2.NearObject(
-                        id=str(self._near_object_obj),
-                        certainty=self._near_certainty,
-                        distance=self._near_distance,
-                    )
-                    if self._near_object_obj is not None
-                    else None,
+                    near_vector=(
+                        search_get_pb2.NearVector(
+                            certainty=self._near_certainty,
+                            distance=self._near_distance,
+                            vector_bytes=struct.pack(
+                                "{}f".format(len(self._near_vector_vec)), *self._near_vector_vec
+                            ),
+                        )
+                        if self._near_vector_vec is not None
+                        else None
+                    ),
+                    near_object=(
+                        search_get_pb2.NearObject(
+                            id=str(self._near_object_obj),
+                            certainty=self._near_certainty,
+                            distance=self._near_distance,
+                        )
+                        if self._near_object_obj is not None
+                        else None
+                    ),
                     properties=self._translate_properties_from_python_to_grpc(
                         self._default_props, self._refs
                     ),
-                    metadata=self._metadata_to_grpc(self._metadata)
-                    if self._metadata is not None
-                    else None,
-                    bm25_search=search_get_pb2.BM25(
-                        properties=self._bm25_properties, query=self._bm25_query
-                    )
-                    if self._bm25_query is not None
-                    else None,
-                    hybrid_search=search_get_pb2.Hybrid(
-                        properties=self._hybrid_properties,
-                        query=self._hybrid_query,
-                        alpha=self._hybrid_alpha,
-                        fusion_type=cast(
-                            search_get_pb2.Hybrid.FusionType, self._hybrid_fusion_type
-                        ),
-                        vector_bytes=struct.pack(
-                            "{}f".format(len(self._hybrid_vector)), *self._hybrid_vector
+                    metadata=(
+                        self._metadata_to_grpc(self._metadata)
+                        if self._metadata is not None
+                        else None
+                    ),
+                    bm25_search=(
+                        search_get_pb2.BM25(
+                            properties=self._bm25_properties, query=self._bm25_query
                         )
-                        if self._hybrid_vector is not None
-                        else None,
-                    )
-                    if self._hybrid_query is not None
-                    else None,
+                        if self._bm25_query is not None
+                        else None
+                    ),
+                    hybrid_search=(
+                        search_get_pb2.Hybrid(
+                            properties=self._hybrid_properties,
+                            query=self._hybrid_query,
+                            alpha=self._hybrid_alpha,
+                            fusion_type=cast(
+                                search_get_pb2.Hybrid.FusionType, self._hybrid_fusion_type
+                            ),
+                            vector_bytes=(
+                                struct.pack(
+                                    "{}f".format(len(self._hybrid_vector)), *self._hybrid_vector
+                                )
+                                if self._hybrid_vector is not None
+                                else None
+                            ),
+                        )
+                        if self._hybrid_query is not None
+                        else None
+                    ),
                     tenant=self._tenant,
                     filters=_FilterToGRPC.convert(self._filters),
-                    near_audio=search_get_pb2.NearAudioSearch(
-                        audio=self._near_audio,
-                        distance=self._near_distance,
-                        certainty=self._near_certainty,
-                    )
-                    if self._near_audio is not None
-                    else None,
-                    near_depth=search_get_pb2.NearDepthSearch(
-                        depth=self._near_depth,
-                        distance=self._near_distance,
-                        certainty=self._near_certainty,
-                    )
-                    if self._near_depth is not None
-                    else None,
-                    near_image=search_get_pb2.NearImageSearch(
-                        image=self._near_image,
-                        distance=self._near_distance,
-                        certainty=self._near_certainty,
-                    )
-                    if self._near_image is not None
-                    else None,
-                    near_imu=search_get_pb2.NearIMUSearch(
-                        imu=self._near_imu,
-                        distance=self._near_distance,
-                        certainty=self._near_certainty,
-                    )
-                    if self._near_imu is not None
-                    else None,
-                    near_text=search_get_pb2.NearTextSearch(
-                        query=self._near_text,
-                        certainty=self._near_certainty,
-                        distance=self._near_distance,
-                        move_to=self._near_text_move_to,
-                        move_away=self._near_text_move_away,
-                    )
-                    if self._near_text is not None
-                    else None,
-                    near_thermal=search_get_pb2.NearThermalSearch(
-                        thermal=self._near_thermal,
-                        distance=self._near_distance,
-                        certainty=self._near_certainty,
-                    )
-                    if self._near_thermal is not None
-                    else None,
-                    near_video=search_get_pb2.NearVideoSearch(
-                        video=self._near_video,
-                        distance=self._near_distance,
-                        certainty=self._near_certainty,
-                    )
-                    if self._near_video is not None
-                    else None,
+                    near_audio=(
+                        search_get_pb2.NearAudioSearch(
+                            audio=self._near_audio,
+                            distance=self._near_distance,
+                            certainty=self._near_certainty,
+                        )
+                        if self._near_audio is not None
+                        else None
+                    ),
+                    near_depth=(
+                        search_get_pb2.NearDepthSearch(
+                            depth=self._near_depth,
+                            distance=self._near_distance,
+                            certainty=self._near_certainty,
+                        )
+                        if self._near_depth is not None
+                        else None
+                    ),
+                    near_image=(
+                        search_get_pb2.NearImageSearch(
+                            image=self._near_image,
+                            distance=self._near_distance,
+                            certainty=self._near_certainty,
+                        )
+                        if self._near_image is not None
+                        else None
+                    ),
+                    near_imu=(
+                        search_get_pb2.NearIMUSearch(
+                            imu=self._near_imu,
+                            distance=self._near_distance,
+                            certainty=self._near_certainty,
+                        )
+                        if self._near_imu is not None
+                        else None
+                    ),
+                    near_text=(
+                        search_get_pb2.NearTextSearch(
+                            query=self._near_text,
+                            certainty=self._near_certainty,
+                            distance=self._near_distance,
+                            move_to=self._near_text_move_to,
+                            move_away=self._near_text_move_away,
+                        )
+                        if self._near_text is not None
+                        else None
+                    ),
+                    near_thermal=(
+                        search_get_pb2.NearThermalSearch(
+                            thermal=self._near_thermal,
+                            distance=self._near_distance,
+                            certainty=self._near_certainty,
+                        )
+                        if self._near_thermal is not None
+                        else None
+                    ),
+                    near_video=(
+                        search_get_pb2.NearVideoSearch(
+                            video=self._near_video,
+                            distance=self._near_distance,
+                            certainty=self._near_certainty,
+                        )
+                        if self._near_video is not None
+                        else None
+                    ),
                     consistency_level=self._consistency_level,
-                    sort_by=[
-                        search_get_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
-                        for sort in self._sort
-                    ]
-                    if self._sort is not None
-                    else None,
+                    sort_by=(
+                        [
+                            search_get_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
+                            for sort in self._sort
+                        ]
+                        if self._sort is not None
+                        else None
+                    ),
                     generative=self._generative.to_grpc() if self._generative is not None else None,
                     group_by=self._group_by.to_grpc() if self._group_by is not None else None,
-                    rerank=search_get_pb2.Rerank(
-                        property=self._rerank.prop, query=self._rerank.query
-                    )
-                    if self._rerank is not None
-                    else None,
+                    rerank=(
+                        search_get_pb2.Rerank(property=self._rerank.prop, query=self._rerank.query)
+                        if self._rerank is not None
+                        else None
+                    ),
                 ),
                 metadata=metadata,
                 timeout=self._connection.timeout_config.connect,
@@ -714,38 +742,52 @@ class _QueryGRPC(_BaseGRPC):
             return None
         return search_get_pb2.PropertiesRequest(
             return_all_nonref_properties=properties is None,
-            non_ref_properties=None
-            if properties is None
-            else [prop for prop in properties if isinstance(prop, str)],
-            ref_properties=None
-            if references is None
-            else [
-                search_get_pb2.RefPropertiesRequest(
-                    reference_property=ref.link_on,
-                    properties=self._translate_properties_from_python_to_grpc(
-                        None
-                        if ref.return_properties is None
-                        else self.__convert_to_set(ref.return_properties),
-                        None
-                        if ref.return_references is None
-                        else self.__convert_to_set(ref.return_references),
-                    ),
-                    metadata=self._metadata_to_grpc(ref._return_metadata)
-                    if ref._return_metadata is not None
-                    else None,
-                    target_collection=ref.target_collection
-                    if isinstance(ref, _QueryReferenceMultiTarget)
-                    else None,
-                )
-                for ref in references
-            ],
-            object_properties=None
-            if properties is None
-            else [
-                self.__resolve_property(prop)
-                for prop in properties
-                if isinstance(prop, QueryNested)
-            ],
+            non_ref_properties=(
+                None
+                if properties is None
+                else [prop for prop in properties if isinstance(prop, str)]
+            ),
+            ref_properties=(
+                None
+                if references is None
+                else [
+                    search_get_pb2.RefPropertiesRequest(
+                        reference_property=ref.link_on,
+                        properties=self._translate_properties_from_python_to_grpc(
+                            (
+                                None
+                                if ref.return_properties is None
+                                else self.__convert_to_set(ref.return_properties)
+                            ),
+                            (
+                                None
+                                if ref.return_references is None
+                                else self.__convert_to_set(ref.return_references)
+                            ),
+                        ),
+                        metadata=(
+                            self._metadata_to_grpc(ref._return_metadata)
+                            if ref._return_metadata is not None
+                            else None
+                        ),
+                        target_collection=(
+                            ref.target_collection
+                            if isinstance(ref, _QueryReferenceMultiTarget)
+                            else None
+                        ),
+                    )
+                    for ref in references
+                ]
+            ),
+            object_properties=(
+                None
+                if properties is None
+                else [
+                    self.__resolve_property(prop)
+                    for prop in properties
+                    if isinstance(prop, QueryNested)
+                ]
+            ),
         )
 
     def __merge_default_and_return_properties(

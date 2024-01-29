@@ -2,6 +2,7 @@
 GraphQL filters for `Get` and `Aggregate` commands.
 GraphQL abstract class for GraphQL commands to inherit from.
 """
+
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy

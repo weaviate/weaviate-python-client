@@ -1,6 +1,7 @@
 """
 Connection class definition.
 """
+
 from __future__ import annotations
 
 import socket

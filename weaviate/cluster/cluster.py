@@ -1,6 +1,7 @@
 """
 Cluster class definition.
 """
+
 from typing import List, Literal, Optional, Union, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError

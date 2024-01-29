@@ -1,6 +1,7 @@
 """
 Weaviate Exceptions.
 """
+
 from json.decoder import JSONDecodeError
 from typing import Union
 import httpx

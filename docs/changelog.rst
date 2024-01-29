@@ -1,6 +1,27 @@
 Changelog
 =========
 
+Version 4.4.rc0
+--------------
+
+This version is a release candidate for the python v4 client.
+
+All backward compatibility code is being removed and _requires_  weaviate versions >= 1.23.5.
+
+All deprecated code has been removed. Check the migration guide (https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides) how to update your code.
+
+Improvements include:
+- Input validation
+- Embedded weaviate shows an error when the chosen port(s) are already occupied
+
+Fixes include:
+- Filter chained references by reference count
+- Various bug with filtered aggregation
+- Aggregation with move to/away_from objects
+- Timeouts also apply to GRPC calls
+
+
+
 Version 4.4.b9
 --------------
 

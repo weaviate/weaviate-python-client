@@ -63,7 +63,7 @@ class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properti
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
-            - If `return_metadata` is not provided then no metadata is provided.
+            - If `return_metadata` is not provided then no metadata is provided. Use MetadataQuery.full() to retrieve all metadata.
             - If `return_references` is not provided then no references are provided.
 
         Returns:

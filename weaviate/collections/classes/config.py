@@ -2074,9 +2074,11 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
         existing_props = ret_dict.get("properties", [])
         existing_props.extend(
             [
-                prop._to_dict(self.moduleConfig.vectorizer)
-                if isinstance(prop, Property)
-                else prop._to_dict()
+                (
+                    prop._to_dict(self.moduleConfig.vectorizer)
+                    if isinstance(prop, Property)
+                    else prop._to_dict()
+                )
                 for prop in props
             ]
         )
@@ -2229,9 +2231,11 @@ class Configure:
             raise ValueError("bm25_b and bm25_k1 must be specified together")
 
         return _InvertedIndexConfigCreate(
-            bm25=_BM25ConfigCreate(b=bm25_b, k1=bm25_k1)
-            if bm25_b is not None and bm25_k1 is not None
-            else None,
+            bm25=(
+                _BM25ConfigCreate(b=bm25_b, k1=bm25_k1)
+                if bm25_b is not None and bm25_k1 is not None
+                else None
+            ),
             cleanupIntervalSeconds=cleanup_interval_seconds,
             indexTimestamps=index_timestamps,
             indexPropertyLength=index_property_length,
@@ -2322,9 +2326,11 @@ class _VectorIndexQuantizerUpdate:
             centroids=centroids,
             segments=segments,
             trainingLimit=training_limit,
-            encoder=_PQEncoderConfigUpdate(type_=encoder_type, distribution=encoder_distribution)
-            if encoder_type is not None or encoder_distribution is not None
-            else None,
+            encoder=(
+                _PQEncoderConfigUpdate(type_=encoder_type, distribution=encoder_distribution)
+                if encoder_type is not None or encoder_distribution is not None
+                else None
+            ),
         )
 
     @staticmethod

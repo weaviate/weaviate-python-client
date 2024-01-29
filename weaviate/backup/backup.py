@@ -1,6 +1,7 @@
 """
 Backup class definition.
 """
+
 from enum import Enum
 from time import sleep
 from typing import Optional, Union, List, Tuple, Any, Dict

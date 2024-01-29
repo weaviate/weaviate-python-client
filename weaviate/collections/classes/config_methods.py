@@ -242,12 +242,14 @@ def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedP
             index_filterable=prop["indexFilterable"],
             index_searchable=prop["indexSearchable"],
             name=prop["name"],
-            nested_properties=_nested_properties_from_config(prop["nestedProperties"])
-            if prop.get("nestedProperties") is not None
-            else None,
-            tokenization=Tokenization(prop["tokenization"])
-            if prop.get("tokenization") is not None
-            else None,
+            nested_properties=(
+                _nested_properties_from_config(prop["nestedProperties"])
+                if prop.get("nestedProperties") is not None
+                else None
+            ),
+            tokenization=(
+                Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
+            ),
         )
         for prop in props
     ]
@@ -261,20 +263,24 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
             index_filterable=prop["indexFilterable"],
             index_searchable=prop["indexSearchable"],
             name=prop["name"],
-            nested_properties=_nested_properties_from_config(prop["nestedProperties"])
-            if prop.get("nestedProperties") is not None
-            else None,
-            tokenization=Tokenization(prop["tokenization"])
-            if prop.get("tokenization") is not None
-            else None,
-            vectorizer_config=_PropertyVectorizerConfig(
-                skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
-                vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
-                    "vectorizePropertyName"
-                ],
-            )
-            if schema["vectorizer"] != "none"
-            else None,
+            nested_properties=(
+                _nested_properties_from_config(prop["nestedProperties"])
+                if prop.get("nestedProperties") is not None
+                else None
+            ),
+            tokenization=(
+                Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
+            ),
+            vectorizer_config=(
+                _PropertyVectorizerConfig(
+                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
+                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
+                        "vectorizePropertyName"
+                    ],
+                )
+                if schema["vectorizer"] != "none"
+                else None
+            ),
             vectorizer=schema["vectorizer"],
         )
         for prop in schema["properties"]
@@ -290,17 +296,19 @@ def _references_from_config(schema: Dict[str, Any]) -> List[_ReferenceProperty]:
             index_filterable=prop["indexFilterable"],
             index_searchable=prop["indexSearchable"],
             name=prop["name"],
-            tokenization=Tokenization(prop["tokenization"])
-            if prop.get("tokenization") is not None
-            else None,
-            vectorizer_config=_PropertyVectorizerConfig(
-                skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
-                vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
-                    "vectorizePropertyName"
-                ],
-            )
-            if schema["vectorizer"] != "none"
-            else None,
+            tokenization=(
+                Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
+            ),
+            vectorizer_config=(
+                _PropertyVectorizerConfig(
+                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
+                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
+                        "vectorizePropertyName"
+                    ],
+                )
+                if schema["vectorizer"] != "none"
+                else None
+            ),
             vectorizer=schema["vectorizer"],
         )
         for prop in schema["properties"]

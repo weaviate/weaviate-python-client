@@ -70,7 +70,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
 
         NOTE:
             If `return_properties` is not provided then all non-reference properties are returned including nested properties.
-            If `return_metadata` is not provided then no metadata is provided.
+            If `return_metadata` is not provided then no metadata is provided. Use MetadataQuery.full() to retrieve all metadata.
             If `return_references` is not provided then no references are provided.
 
         Returns:
