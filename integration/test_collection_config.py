@@ -515,6 +515,9 @@ def test_collection_update_shards(collection_factory: CollectionFactory) -> None
     )
     assert all(shard == "READY" for shard in updated_shards.values())
 
+    updated_shards = collection.config.update_shards(status="READONLY")
+    assert all(shard == "READONLY" for shard in updated_shards.values())
+
 
 def test_collection_config_get_shards_multi_tenancy(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
