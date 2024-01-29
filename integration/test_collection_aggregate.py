@@ -329,7 +329,7 @@ def test_near_vector_missing_param(collection_factory: CollectionFactory) -> Non
         ({"move_away": Move(concepts="something", force=0.000001), "distance": 0.9}, 2),
         ({"move_away": Move(objects=UUID1, force=0.000001), "distance": 0.9}, 2),
         ({"move_away": Move(concepts=["something", "else"], force=0.000001), "distance": 0.9}, 2),
-        ({"move_away": Move(objects=[UUID1, UUID2], force=0.000001), "distance": 0.9}, 2),
+        ({"move_to": Move(objects=[UUID1, UUID2], force=0.000001), "distance": 0.9}, 2),
     ],
 )
 def test_near_text_aggregation(
