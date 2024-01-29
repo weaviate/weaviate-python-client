@@ -198,31 +198,7 @@ class _EmbeddedBase:
             )
             self.start()
 
-    @abstractmethod
     def start(self) -> None:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def is_listening(self) -> bool:
-        raise NotImplementedError()
-
-
-class EmbeddedV3(_EmbeddedBase):
-    def is_listening(self) -> bool:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.connect((self.options.hostname, self.options.port))
-            s.close()
-            return True
-        except (socket.error, ConnectionRefusedError):
-            s.close()
-            return False
-
-    def start(self) -> None:
-        if self.is_listening():
-            print(f"embedded weaviate is already listening on port {self.options.port}")
-            return
-
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
 
@@ -264,6 +240,28 @@ class EmbeddedV3(_EmbeddedBase):
             self.process = process
         print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
+
+    @abstractmethod
+    def is_listening(self) -> bool:
+        raise NotImplementedError()
+
+
+class EmbeddedV3(_EmbeddedBase):
+    def is_listening(self) -> bool:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect((self.options.hostname, self.options.port))
+            s.close()
+            return True
+        except (socket.error, ConnectionRefusedError):
+            s.close()
+            return False
+
+    def start(self) -> None:
+        if self.is_listening():
+            print(f"embedded weaviate is already listening on port {self.options.port}")
+            return
+        super().start()
 
 
 EmbeddedDB = EmbeddedV3  # needed for BC from v3 -> v4
@@ -307,45 +305,4 @@ class EmbeddedV4(_EmbeddedBase):
                 f"Embedded DB did not start because a process is already listening on port grpc:{self.grpc_port}"
                 "look for another free port for the gRPC connection to your embedded instance"
             )
-
-        self.ensure_weaviate_binary_exists()
-        my_env = os.environ.copy()
-
-        my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
-        my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
-        my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
-        # Bug with weaviate requires setting gossip and data bind port
-        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
-        my_env.setdefault("GRPC_PORT", str(self.grpc_port))
-
-        my_env.setdefault(
-            "ENABLE_MODULES",
-            "text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai,"
-            "reranker-cohere",
-        )
-
-        # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel
-        # instances
-        my_env.setdefault("CLUSTER_HOSTNAME", f"Embedded_at_{self.options.port}")
-
-        if self.options.additional_env_vars is not None:
-            my_env.update(self.options.additional_env_vars)
-
-        # filter warning about running processes.
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", ResourceWarning)
-            process = subprocess.Popen(
-                [
-                    f"{self._weaviate_binary_path}",
-                    "--host",
-                    self.options.hostname,
-                    "--port",
-                    str(self.options.port),
-                    "--scheme",
-                    "http",
-                ],
-                env=my_env,
-            )
-            self.process = process
-        print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
-        self.wait_till_listening()
+        super().start()
