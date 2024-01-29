@@ -1,4 +1,5 @@
 import pathlib
+import uuid
 from datetime import datetime, timezone
 
 import pytest
@@ -18,6 +19,9 @@ from weaviate.collections.classes.config import DataType, Property, ReferencePro
 from weaviate.collections.classes.filters import Filter, _Filters
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.util import file_encoder_b64
+
+UUID1 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
+UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
 
 
 @pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
@@ -54,6 +58,15 @@ def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
         Filter.by_property("bool").equal(False),
         Filter.by_property("date").equal(datetime(2021, 1, 2, 0, 0, 0, 0, tzinfo=timezone.utc)),
         Filter.by_property("text").equal("two") | Filter.by_property("int").equal(2),
+        Filter.by_property("uuid").equal(UUID2),
+        Filter.by_property("texts").contains_any(["two"]),
+        Filter.by_property("ints").contains_any([2]),
+        Filter.by_property("floats").contains_any([2.0]),
+        Filter.by_property("bools").contains_any([False]),
+        Filter.by_property("dates").contains_any(
+            [datetime(2021, 1, 2, 0, 0, 0, 0, tzinfo=timezone.utc)]
+        ),
+        Filter.by_property("uuids").contains_any([UUID2]),
     ],
 )
 def test_over_all_with_filters(collection_factory: CollectionFactory, filter_: _Filters) -> None:
@@ -64,6 +77,13 @@ def test_over_all_with_filters(collection_factory: CollectionFactory, filter_: _
             Property(name="float", data_type=DataType.NUMBER),
             Property(name="bool", data_type=DataType.BOOL),
             Property(name="date", data_type=DataType.DATE),
+            Property(name="uuid", data_type=DataType.UUID),
+            Property(name="texts", data_type=DataType.TEXT_ARRAY),
+            Property(name="ints", data_type=DataType.INT_ARRAY),
+            Property(name="floats", data_type=DataType.NUMBER_ARRAY),
+            Property(name="bools", data_type=DataType.BOOL_ARRAY),
+            Property(name="dates", data_type=DataType.DATE_ARRAY),
+            Property(name="uuids", data_type=DataType.UUID_ARRAY),
         ]
     )
     collection.data.insert(
@@ -73,6 +93,13 @@ def test_over_all_with_filters(collection_factory: CollectionFactory, filter_: _
             "float": 1.0,
             "bool": True,
             "date": "2021-01-01T00:00:00Z",
+            "uuid": UUID1,
+            "texts": ["one"],
+            "ints": [1],
+            "floats": [1.0],
+            "bools": [True],
+            "dates": ["2021-01-01T00:00:00Z"],
+            "uuids": [UUID1],
         }
     )
     collection.data.insert(
@@ -82,6 +109,13 @@ def test_over_all_with_filters(collection_factory: CollectionFactory, filter_: _
             "float": 2.0,
             "bool": False,
             "date": "2021-01-02T00:00:00Z",
+            "uuid": UUID2,
+            "texts": ["two"],
+            "ints": [2],
+            "floats": [2.0],
+            "bools": [False],
+            "dates": ["2021-01-02T00:00:00Z"],
+            "uuids": [UUID2],
         }
     )
 

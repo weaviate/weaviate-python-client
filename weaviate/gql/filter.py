@@ -21,6 +21,7 @@ VALUE_LIST_TYPES = {
     "valueIntList",
     "valueNumberList",
     "valueBooleanList",
+    "valueDateList",
 }
 
 VALUE_ARRAY_TYPES = {
@@ -29,6 +30,7 @@ VALUE_ARRAY_TYPES = {
     "valueIntArray",
     "valueNumberArray",
     "valueBooleanArray",
+    "valueDateArray",
 }
 
 VALUE_PRIMITIVE_TYPES = {
@@ -878,6 +880,9 @@ class Where(Filter):
                     gql += f"{_render_list(self.value)}}}"
                 else:
                     gql += f"{_bool_to_str(self.value)}}}"
+            elif self.value_type in ["valueDateArray", "valueDateList"]:
+                _check_is_list(self.value, self.value_type)
+                gql += f"{_render_list_date(self.value)}}}"
             elif self.value_type == "valueGeoRange":
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_geo_range_to_str(self.value)}}}"
@@ -924,12 +929,12 @@ def _convert_value_type(_type: str) -> str:
         return _type
 
 
-def _render_list(value: list) -> str:
+def _render_list(input_list: list) -> str:
     """Convert a list of values to string (lowercased) to match `json` formatting.
 
     Parameters
     ----------
-    value : list
+    input_list : list
         The value to be converted
 
     Returns
@@ -937,7 +942,13 @@ def _render_list(value: list) -> str:
     str
         The string interpretation of the value in `json` format.
     """
-    return f'[{",".join(value)}]'
+    str_list = ", ".join(str(item) for item in input_list)
+    return f"[{str_list}]"
+
+
+def _render_list_date(input_list: list) -> str:
+    str_list = ", ".join('"' + str(item) + '"' for item in input_list)
+    return f"[{str_list}]"
 
 
 def _check_is_list(value: Any, _type: str) -> None:
