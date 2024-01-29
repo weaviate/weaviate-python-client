@@ -293,32 +293,12 @@ class _Reference:
         self.__uuids = uuids
 
     def _to_beacons(self) -> List[Dict[str, str]]:
-        if self.__uuids is None:
-            return []
         return _to_beacons(self.__uuids, self.__target_collection)
-
-    @property
-    def is_multi_target(self) -> bool:
-        """Returns True if the reference is to a multi-target collection."""
-        return self.__target_collection != ""
 
     @property
     def is_one_to_many(self) -> bool:
         """Returns True if the reference is to a one-to-many references, i.e. points to more than one object."""
         return self.__uuids is not None and isinstance(self.__uuids, list) and len(self.__uuids) > 1
-
-    @property
-    def uuids_str(self) -> List[str]:
-        """Returns the UUIDs as strings."""
-        if isinstance(self.__uuids, list):
-            return [str(uid) for uid in self.__uuids]
-        else:
-            return [str(self.__uuids)]
-
-    @property
-    def target_collection(self) -> str:
-        """Returns the target collection name."""
-        return self.__target_collection
 
 
 class ReferenceToMulti(_WeaviateInput):
