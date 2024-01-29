@@ -15,10 +15,8 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     _QueryOptions,
     QueryNearMediaReturnType,
-    References,
-    TReferences,
 )
-from weaviate.collections.classes.types import Properties, TProperties
+from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
 from weaviate.types import NUMBER
 

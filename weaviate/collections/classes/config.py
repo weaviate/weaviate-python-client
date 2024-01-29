@@ -162,9 +162,6 @@ class Vectorizers(str, Enum):
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
-Vectorizer = Vectorizers  # TODO: deprecate and remove
-
-
 class GenerativeSearches(str, Enum):
     """The available generative search modules in Weaviate.
 
@@ -207,9 +204,6 @@ class Rerankers(str, Enum):
     NONE = "none"
     COHERE = "reranker-cohere"
     TRANSFORMERS = "reranker-transformers"
-
-
-Reranker = Rerankers  # TODO: deprecate and remove
 
 
 class VectorDistances(str, Enum):

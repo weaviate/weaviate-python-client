@@ -16,7 +16,7 @@ from weaviate.collections.classes.config import (
     Property,
     ReferenceProperty,
     Tokenization,
-    Vectorizer,
+    Vectorizers,
 )
 from weaviate.collections.classes.data import (
     DataObject,
@@ -1194,7 +1194,7 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
     assert config.properties[0].data_type == DataType.TEXT
     assert config.properties[1].name == "age"
     assert config.properties[1].data_type == DataType.INT
-    assert config.vectorizer == Vectorizer.NONE
+    assert config.vectorizer == Vectorizers.NONE
 
 
 @pytest.mark.parametrize("return_properties", [None, [], ["name"]])
@@ -1213,7 +1213,7 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
             "explain_score",
             "is_consistent",
         ],
-        MetadataQuery._full(),
+        MetadataQuery.full(),
     ],
 )
 @pytest.mark.parametrize("return_references", [None, [], [QueryReference(link_on="friend")]])

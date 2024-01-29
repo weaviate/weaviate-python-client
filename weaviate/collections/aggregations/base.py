@@ -12,7 +12,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateDate,
     AggregateInteger,
     AggregateNumber,
-    AggregateReference,
+    # AggregateReference, # Aggregate references currently bugged on Weaviate's side
     AggregateText,
     AggregateGroup,
     AggregateGroupByReturn,
@@ -22,7 +22,7 @@ from weaviate.collections.classes.aggregate import (
     _MetricsDate,
     _MetricsNumber,
     _MetricsInteger,
-    _MetricsReference,
+    # _MetricsReference, # Aggregate references currently bugged on Weaviate's side
     _MetricsText,
     GroupedBy,
     TopOccurrence,
@@ -156,8 +156,9 @@ class _Aggregate:
                 minimum=property_.get("minimum"),
                 mode=property_.get("mode"),
             )
-        elif isinstance(metric, _MetricsReference):
-            return AggregateReference(pointing_to=property_.get("pointingTo"))
+        # Aggregate references currently bugged on Weaviate's side
+        # elif isinstance(metric, _MetricsReference):
+        #     return AggregateReference(pointing_to=property_.get("pointingTo"))
         else:
             raise ValueError(
                 f"Unknown aggregation type {metric} encountered in _Aggregate.__parse_property() for property {property_}"

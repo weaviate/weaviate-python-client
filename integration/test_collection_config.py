@@ -21,9 +21,9 @@ from weaviate.collections.classes.config import (
     StopwordsPreset,
     VectorDistances,
     VectorIndexType,
-    Vectorizer,
+    Vectorizers,
     GenerativeSearches,
-    Reranker,
+    Rerankers,
     _RerankerConfigCreate,
 )
 from weaviate.collections.classes.tenants import Tenant
@@ -117,7 +117,7 @@ def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
 
     assert config.name == collection.name
     assert config.description is None
-    assert config.vectorizer == Vectorizer.NONE
+    assert config.vectorizer == Vectorizers.NONE
 
     assert config.properties == []
 
@@ -171,7 +171,7 @@ def test_collection_config_defaults(collection_factory: CollectionFactory) -> No
 
     assert config.name == collection.name
     assert config.description is None
-    assert config.vectorizer == Vectorizer.NONE
+    assert config.vectorizer == Vectorizers.NONE
 
     assert config.properties == []
 
@@ -265,7 +265,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
 
     assert config.name == collection.name
     assert config.description == "Test"
-    assert config.vectorizer == Vectorizer.NONE
+    assert config.vectorizer == Vectorizers.NONE
 
     assert config.properties[0].name == "text"
     assert config.properties[0].data_type == DataType.TEXT
@@ -515,6 +515,9 @@ def test_collection_update_shards(collection_factory: CollectionFactory) -> None
     )
     assert all(shard == "READY" for shard in updated_shards.values())
 
+    updated_shards = collection.config.update_shards(status="READONLY")
+    assert all(shard == "READONLY" for shard in updated_shards.values())
+
 
 def test_collection_config_get_shards_multi_tenancy(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
@@ -575,19 +578,19 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
 @pytest.mark.parametrize(
     "reranker_config,expected_reranker,expected_model",
     [
-        (Configure.Reranker.cohere(), Reranker.COHERE, {}),
+        (Configure.Reranker.cohere(), Rerankers.COHERE, {}),
         (
             Configure.Reranker.cohere(model="rerank-english-v2.0"),
-            Reranker.COHERE,
+            Rerankers.COHERE,
             {"model": "rerank-english-v2.0"},
         ),
-        (Configure.Reranker.transformers(), Reranker.TRANSFORMERS, {}),
+        (Configure.Reranker.transformers(), Rerankers.TRANSFORMERS, {}),
     ],
 )
 def test_config_reranker_module(
     client: weaviate.WeaviateClient,
     reranker_config: _RerankerConfigCreate,
-    expected_reranker: Reranker,
+    expected_reranker: Rerankers,
     expected_model: dict,
 ) -> None:
     client.collections.delete("TestCollectionConfigRerankerModule")
@@ -663,3 +666,21 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
     client.collections.create_from_dict(dconf)
     assert conf == client.collections.get(name).config.get()
     client.collections.delete(name)
+
+
+def test_config_add_existing_property_and_reference(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="self", target_collection=collection.name)
+    )
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        collection.config.add_property(Property(name="name", data_type=DataType.TEXT))
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        collection.config.add_reference(
+            ReferenceProperty(name="self", target_collection=collection.name)
+        )

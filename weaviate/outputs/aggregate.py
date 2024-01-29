@@ -5,7 +5,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateGroupByReturn,
     AggregateInteger,
     AggregateNumber,
-    AggregateReference,
+    # AggregateReference, # Aggregate references currently bugged on Weaviate's side
     AggregateResult,
     AggregateReturn,
     AggregateText,
@@ -19,7 +19,7 @@ __all__ = [
     "AggregateGroupByReturn",
     "AggregateInteger",
     "AggregateNumber",
-    "AggregateReference",
+    # "AggregateReference",
     "AggregateResult",
     "AggregateReturn",
     "AggregateText",

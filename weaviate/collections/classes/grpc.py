@@ -76,7 +76,7 @@ class MetadataQuery(_WeaviateInput):
     is_consistent: bool = Field(default=False)
 
     @classmethod
-    def _full(cls) -> "MetadataQuery":
+    def full(cls) -> "MetadataQuery":
         """Return a MetadataQuery with all fields set to True."""
         return cls(
             creation_time=True,
