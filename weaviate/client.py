@@ -25,7 +25,7 @@ from .connect.base import (
 )
 from .contextionary import Contextionary
 from .data import DataObject
-from .embedded import Embedded, EmbeddedDB, EmbeddedOptions
+from .embedded import EmbeddedV3, EmbeddedV4, EmbeddedOptions
 from .exceptions import UnexpectedStatusCodeError
 from .gql import Query
 from .schema import Schema
@@ -114,7 +114,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
-    WARNING: This client is only compatible with Weaviate v1.22.0 and higher!
+    WARNING: This client is only compatible with Weaviate v1.23.6 and higher!
 
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
     them to the same Weaviate instance. See below the Attributes of the Client instance. For the
@@ -202,7 +202,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
         self,
         connection_params: Optional[ConnectionParams],
         embedded_options: Optional[EmbeddedOptions],
-    ) -> Tuple[ConnectionParams, Optional[Embedded]]:
+    ) -> Tuple[ConnectionParams, Optional[EmbeddedV4]]:
         if connection_params is None and embedded_options is None:
             raise TypeError("Either connection_params or embedded_options must be present.")
         elif connection_params is not None and embedded_options is not None:
@@ -211,7 +211,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             )
 
         if embedded_options is not None:
-            embedded_db = Embedded(options=embedded_options)
+            embedded_db = EmbeddedV4(options=embedded_options)
             return (
                 ConnectionParams(
                     http=ProtocolParams(
@@ -446,7 +446,7 @@ class Client(_ClientBase[Connection]):
 
     def __parse_url_and_embedded_db(
         self, url: Optional[str], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[str, Optional[EmbeddedDB]]:
+    ) -> Tuple[str, Optional[EmbeddedV3]]:
         if embedded_options is None and url is None:
             raise TypeError("Either url or embedded options must be present.")
         elif embedded_options is not None and url is not None:
@@ -455,7 +455,7 @@ class Client(_ClientBase[Connection]):
             )
 
         if embedded_options is not None:
-            embedded_db = EmbeddedDB(options=embedded_options)
+            embedded_db = EmbeddedV3(options=embedded_options)
             embedded_db.start()
             return f"http://localhost:{embedded_db.options.port}", embedded_db
 

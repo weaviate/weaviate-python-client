@@ -175,7 +175,7 @@ class _EmbeddedBase:
     def check_supported_platform() -> None:
         if platform.system() in ["Windows"]:
             raise WeaviateStartUpError(
-                f"{platform.system()} is not supported with EmbeddedDB. Please upvote this feature request if "
+                f"{platform.system()} is not supported with Embedded. Please upvote this feature request if "
                 f"you want this: https://github.com/weaviate/weaviate/issues/3315"
             )
 
@@ -207,7 +207,7 @@ class _EmbeddedBase:
         raise NotImplementedError()
 
 
-class EmbeddedDB(_EmbeddedBase):
+class EmbeddedV3(_EmbeddedBase):
     def is_listening(self) -> bool:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
@@ -266,7 +266,10 @@ class EmbeddedDB(_EmbeddedBase):
         self.wait_till_listening()
 
 
-class Embedded(_EmbeddedBase):
+EmbeddedDB = EmbeddedV3  # needed for BC from v3 -> v4
+
+
+class EmbeddedV4(_EmbeddedBase):
     def is_listening(self) -> bool:
         up = self.__is_listening()
         return up[0] and up[1]
