@@ -1,7 +1,7 @@
 import pathlib
+from datetime import datetime, timezone
 
 import pytest
-from datetime import datetime, timezone
 from _pytest.fixtures import SubRequest
 
 from integration.conftest import CollectionFactory, CollectionFactoryGet
@@ -53,7 +53,7 @@ def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
         Filter.by_property("float").equal(2.0),
         Filter.by_property("bool").equal(False),
         Filter.by_property("date").equal(datetime(2021, 1, 2, 0, 0, 0, 0, tzinfo=timezone.utc)),
-        Filter.by_property("text").equal("two") or (Filter.by_property("int").equal(2)),
+        Filter.by_property("text").equal("two") | Filter.by_property("int").equal(2),
     ],
 )
 def test_over_all_with_filters(collection_factory: CollectionFactory, filter_: _Filters) -> None:
