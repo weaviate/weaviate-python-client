@@ -366,12 +366,12 @@ def test_client_with_extra_options() -> None:
 
 def test_connect_and_close_to_embedded() -> None:
     # Can't use the default port values as they are already in use by the local instances
-    client = weaviate.connect_to_embedded(port=8078, grpc_port=50151, version="1.23.5")
+    client = weaviate.connect_to_embedded(port=8078, grpc_port=50151, version="1.23.6")
 
     client.connect()
     assert client.is_connected()
     metadata = client.get_meta()
-    assert "1.23.5" == metadata["version"]
+    assert "1.23.6" == metadata["version"]
     assert client.is_ready()
     assert "8078" == metadata["hostname"].split(":")[2]
     assert client.is_live()
@@ -383,7 +383,7 @@ def test_connect_and_close_to_embedded() -> None:
 
 
 def test_embedded_as_context_manager() -> None:
-    default_version = "1.23.5"
+    default_version = "1.23.6"
     with weaviate.connect_to_embedded(port=8077, grpc_port=50152) as client:
         assert client.is_connected()
         metadata = client.get_meta()
