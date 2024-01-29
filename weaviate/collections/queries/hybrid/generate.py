@@ -54,7 +54,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
             `alpha`
                 The weight of the BM25 score. If not specified, the default weight specified by the server is used.
             `vector`
-                The specific vector to search for. If not specified, the query is vectorised and used in the similarity search.
+                The specific vector to search for. If not specified, the query is vectorized and used in the similarity search.
             `query_properties`
                 The properties to search in. If not specified, all properties are searched.
             `fusion_type`

@@ -66,7 +66,7 @@ class _NearText(_Aggregate):
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
 
-        This method requires a vectoriser capable of handling text, e.g. `text2vec-contextionary`, `text2vec-openai`, etc.
+        This method requires a vectorizer capable of handling text, e.g. `text2vec-contextionary`, `text2vec-openai`, etc.
 
         Arguments:
             `query`

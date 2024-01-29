@@ -31,11 +31,11 @@ def connect_to_wcs(
             a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
             or a username and password, in which case use `weaviate.AuthClientPassword`.
         `headers`
-            Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorisation.
+            Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorization.
         `additional_config`
             This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         `skip_init_checks`
-            Whether to skip the initialisation checks when connecting to Weaviate.
+            Whether to skip the initialization checks when connecting to Weaviate.
 
     Returns
         `weaviate.WeaviateClient`
@@ -97,18 +97,18 @@ def connect_to_local(
 
     Arguments:
         `host`
-            The host to use for the underlying REST & GraphQL API calls.
+            The host to use for the underlying REST and GraphQL API calls.
         `port`
-            The port to use for the underlying REST & GraphQL API calls.
+            The port to use for the underlying REST and GraphQL API calls.
         `grpc_port`
             The port to use for the underlying gRPC API.
         `headers`
-            Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
+            Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         `timeout`
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
         `skip_init_checks`
-            Whether to skip the initialisation checks when connecting to Weaviate.
+            Whether to skip the initialization checks when connecting to Weaviate.
         `auth_credentials`
             The credentials to use for authentication with your instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
             a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
@@ -154,11 +154,15 @@ def connect_to_local(
 
 
 def connect_to_embedded(
+    hostname: str = "127.0.0.1",
     port: int = 8079,
     grpc_port: int = 50050,
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
-    version: str = "1.22.3",
+    version: str = "1.23.6",
+    persistence_data_path: Optional[str] = None,
+    binary_path: Optional[str] = None,
+    environment_variables: Optional[Dict[str, str]] = None,
 ) -> WeaviateClient:
     """
     Connect to an embedded Weaviate instance.
@@ -167,17 +171,31 @@ def connect_to_embedded(
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
 
+    See [the docs](https://weaviate.io/developers/weaviate/installation/embedded#embedded-options) for more details.
+
     Arguments:
+        `hostname`
+            The hostname to use for the underlying REST & GraphQL API calls.
         `port`
-            The port to use for the underlying REST & GraphQL API calls.
+            The port to use for the underlying REST and GraphQL API calls.
         `grpc_port`
             The port to use for the underlying gRPC API.
         `headers`
-            Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
+            Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         `additional_config`
             This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         `version`
             Weaviate version to be used for the embedded instance.
+        `persistence_data_path`
+            Directory where the files making up the database are stored.
+            When the XDG_DATA_HOME env variable is set, the default value is: `XDG_DATA_HOME/weaviate/`
+            Otherwise it is: `~/.local/share/weaviate`
+        `binary_path`
+            Directory where to download the binary. If deleted, the client will download the binary again.
+            When the XDG_CACHE_HOME env variable is set, the default value is: `XDG_CACHE_HOME/weaviate-embedded/`
+            Otherwise it is: `~/.cache/weaviate-embedded`
+        `environment_variables`
+            Additional environment variables to be passed to the embedded instance for configuration.
 
     Returns
         `weaviate.WeaviateClient`
@@ -202,12 +220,19 @@ def connect_to_embedded(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
+    options = EmbeddedOptions(
+        hostname=hostname,
+        port=port,
+        grpc_port=grpc_port,
+        version=version,
+        additional_env_vars=environment_variables,
+    )
+    if persistence_data_path is not None:
+        options.persistence_data_path = persistence_data_path
+    if binary_path is not None:
+        options.binary_path = binary_path
     client = WeaviateClient(
-        embedded_options=EmbeddedOptions(
-            port=port,
-            grpc_port=grpc_port,
-            version=version,
-        ),
+        embedded_options=options,
         additional_headers=headers,
         additional_config=additional_config,
     )
@@ -230,7 +255,7 @@ def connect_to_custom(
     """
     Connect to a Weaviate instance with custom connection parameters.
 
-    If this is not sufficient for your customisation needs then instantiate a `weaviate.WeaviateClient` directly.
+    If this is not sufficient for your customization needs then instantiate a `weaviate.WeaviateClient` directly.
 
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
@@ -238,11 +263,11 @@ def connect_to_custom(
 
     Arguments:
         `http_host`
-            The host to use for the underlying REST & GraphQL API calls.
+            The host to use for the underlying REST and GraphQL API calls.
         `http_port`
-            The port to use for the underlying REST & GraphQL API calls.
+            The port to use for the underlying REST and GraphQL API calls.
         `http_secure`
-            Whether to use https for the underlying REST & GraphQL API calls.
+            Whether to use https for the underlying REST and GraphQL API calls.
         `grpc_host`
             The host to use for the underlying gRPC API.
         `grpc_port`
@@ -250,7 +275,7 @@ def connect_to_custom(
         `grpc_secure`
             Whether to use a secure channel for the underlying gRPC API.
         `headers`
-            Additional headers to include in the requests, e.g. API keys for Cloud vectorisation.
+            Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         `timeout`
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
@@ -259,7 +284,7 @@ def connect_to_custom(
             a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
             or a username and password, in which case use `weaviate.AuthClientPassword`.
         `skip_init_checks`
-            Whether to skip the initialisation checks when connecting to Weaviate.
+            Whether to skip the initialization checks when connecting to Weaviate.
 
     Returns
         `weaviate.WeaviateClient`

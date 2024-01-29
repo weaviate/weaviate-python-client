@@ -65,7 +65,7 @@ class Shard:
 
 @dataclass()
 class WeaviateErrorRetryConf:
-    """Configures how often objects should be retried when Weavaite returns an error and which errors should be included
+    """Configures how often objects should be retried when Weaviate returns an error and which errors should be included
     or excluded.
     By default, all errors are retried.
 
@@ -755,7 +755,7 @@ class Batch:
     def _run_callback(self, response: BatchResponse) -> None:
         if self._callback is None:
             return
-        # We don't know if user-supplied functions are threadsafe
+        # We don't know if user-supplied functions are thread-safe
         with self._callback_lock:
             self._callback(response)
 

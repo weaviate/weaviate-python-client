@@ -102,8 +102,10 @@ def embedded_db_binary_path(tmp_path_factory: pytest.TempPathFactory):
     )
 
 
-@pytest.mark.parametrize("options", [EmbeddedOptions(), EmbeddedOptions(port=30666)])
-def test_embedded_end_to_end(options, tmp_path):
+@pytest.mark.parametrize(
+    "options", [EmbeddedOptions(), EmbeddedOptions(port=30666, grpc_port=50046)]
+)
+def test_embedded_end_to_end(options: EmbeddedDB, tmp_path):
     options.binary_path = tmp_path
     options.persistence_data_path = tmp_path
     embedded_db = EmbeddedDB(options=options)

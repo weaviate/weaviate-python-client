@@ -620,7 +620,7 @@ class Connection(_ConnectionBase):
 
     def wait_for_weaviate(self, startup_period: int) -> None:
         """
-        Waits until weaviate is ready or the timelimit given in 'startup_period' has passed.
+        Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
 
         Parameters
         ----------
@@ -630,7 +630,7 @@ class Connection(_ConnectionBase):
         Raises
         ------
         WeaviateStartUpError
-            If weaviate takes longer than the timelimit to respond.
+            If weaviate takes longer than the time limit to respond.
         """
 
         ready_url = self.url + self._api_version_path + "/.well-known/ready"

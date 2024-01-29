@@ -37,12 +37,12 @@ class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
-        """Search for objects by audio in this collection using an audio-capable vectorisation module and vector-based similarity search.
+        """Search for objects by audio in this collection using an audio-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
 
         NOTE:
-            You must have a multi-media-capable vectorisation module installed in order to use this method, e.g. `multi2vec-bind`.
+            You must have a multi-media-capable vectorization module installed in order to use this method, e.g. `multi2vec-bind`.
 
         Arguments:
             `media`
