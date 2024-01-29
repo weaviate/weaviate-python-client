@@ -293,3 +293,11 @@ class WeaviateClosedClientError(WeaviateBaseError):
     def __init__(self) -> None:
         msg = "The `WeaviateClient` is closed. Run `client.connect()` to (re)connect!"
         super().__init__(msg)
+
+
+class WeaviateConnectionError(WeaviateBaseError):
+    """Is raised when the connection to Weaviate fails."""
+
+    def __init__(self, message: str = "") -> None:
+        msg = f"""Connection to Weaviate failed. {message}"""
+        super().__init__(msg)
