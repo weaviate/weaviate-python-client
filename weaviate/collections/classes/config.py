@@ -400,6 +400,14 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
         return ret_dict
 
 
+class _VectorIndexSkipConfigCreate(_VectorIndexConfigCreate):
+    skip: bool = True
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.HNSW
+
+
 class _VectorIndexHNSWConfigCreate(_VectorIndexConfigCreate):
     cleanupIntervalSeconds: Optional[int]
     dynamicEfMin: Optional[int]
@@ -409,7 +417,6 @@ class _VectorIndexHNSWConfigCreate(_VectorIndexConfigCreate):
     ef: Optional[int]
     flatSearchCutoff: Optional[int]
     maxConnections: Optional[int]
-    skip: Optional[bool]
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -428,7 +435,6 @@ class _VectorIndexConfigHNSWUpdate(_ConfigUpdateModel):
     dynamicEfMax: Optional[int]
     ef: Optional[int]
     flatSearchCutoff: Optional[int]
-    skip: Optional[bool]
     vectorCacheMaxObjects: Optional[int]
     quantizer: Optional[_PQConfigUpdate]
 
@@ -2124,6 +2130,18 @@ class _VectorIndex:
     Quantizer = _VectorIndexQuantizer
 
     @staticmethod
+    def none() -> _VectorIndexSkipConfigCreate:
+        """Create a `_VectorIndexSkipConfigCreate` object to be used when configuring Weaviate to not index your vectors.
+
+        Use this method when defining the `vector_index_config` argument in `collections.create()`.
+        """
+        return _VectorIndexSkipConfigCreate(
+            distance=None,
+            vectorCacheMaxObjects=None,
+            quantizer=None,
+        )
+
+    @staticmethod
     def hnsw(
         cleanup_interval_seconds: Optional[int] = None,
         distance_metric: Optional[VectorDistances] = None,
@@ -2134,7 +2152,6 @@ class _VectorIndex:
         ef_construction: Optional[int] = None,
         flat_search_cutoff: Optional[int] = None,
         max_connections: Optional[int] = None,
-        skip: Optional[bool] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_PQConfigCreate] = None,
     ) -> _VectorIndexHNSWConfigCreate:
@@ -2155,7 +2172,6 @@ class _VectorIndex:
             ef=ef,
             flatSearchCutoff=flat_search_cutoff,
             maxConnections=max_connections,
-            skip=skip,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
         )
@@ -2333,7 +2349,6 @@ class _VectorIndexUpdate:
         dynamic_ef_max: Optional[int] = None,
         ef: Optional[int] = None,
         flat_search_cutoff: Optional[int] = None,
-        skip: Optional[bool] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_PQConfigUpdate] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
@@ -2350,7 +2365,6 @@ class _VectorIndexUpdate:
             dynamicEfFactor=dynamic_ef_factor,
             ef=ef,
             flatSearchCutoff=flat_search_cutoff,
-            skip=skip,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
         )
