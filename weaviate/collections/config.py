@@ -13,6 +13,7 @@ from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
     _Property,
+    _ReferenceProperty,
     ShardStatus,
     _ShardStatus,
     ShardTypes,
@@ -25,7 +26,7 @@ from weaviate.collections.classes.orm import Model
 from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
-    ObjectAlreadyExistsError,
+    WeaviateInvalidInputError,
     WeaviateAddInvalidPropertyError,
 )
 from weaviate.util import _decode_json_response_dict, _decode_json_response_list
@@ -139,6 +140,12 @@ class _ConfigBase:
                 return prop
         return None
 
+    def _get_reference_by_name(self, reference_name: str) -> Optional[_ReferenceProperty]:
+        for ref in self.get().references:
+            if ref.name == reference_name:
+                return ref
+        return None
+
     def get_shards(self) -> List[ShardStatus]:
         """Get the statuses of the shards of this collection.
 
@@ -228,12 +235,12 @@ class _ConfigCollection(_ConfigBase):
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
-            `weaviate.ObjectAlreadyExistsError`:
+            `weaviate.WeaviateInvalidInputError`:
                 If the property already exists in the collection.
         """
         _validate_input([_ValidateArgument(expected=[Property], name="prop", value=prop)])
         if self._get_property_by_name(prop.name) is not None:
-            raise ObjectAlreadyExistsError(
+            raise WeaviateInvalidInputError(
                 f"Property with name '{prop.name}' already exists in collection '{self._name}'."
             )
         self._add_property(prop)
@@ -249,7 +256,7 @@ class _ConfigCollection(_ConfigBase):
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
-            `weaviate.ObjectAlreadyExistsError`:
+            `weaviate.WeaviateInvalidInputError`:
                 If the reference already exists in the collection.
         """
         _validate_input(
@@ -261,8 +268,8 @@ class _ConfigCollection(_ConfigBase):
                 )
             ]
         )
-        if self._get_property_by_name(ref.name) is not None:
-            raise ObjectAlreadyExistsError(
+        if self._get_reference_by_name(ref.name) is not None:
+            raise WeaviateInvalidInputError(
                 f"Reference with name '{ref.name}' already exists in collection '{self._name}'."
             )
         self._add_property(ref)
