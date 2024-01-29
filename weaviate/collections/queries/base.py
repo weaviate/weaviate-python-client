@@ -3,8 +3,7 @@ import io
 import pathlib
 import struct
 import uuid as uuid_lib
-from collections.abc import Sequence
-from typing import Any, Generic, List, Optional, Type, Union, cast
+from typing import Any, Generic, List, Optional, Sequence, Type, Union, cast
 
 from typing_extensions import is_typeddict
 
@@ -51,10 +50,12 @@ from weaviate.collections.classes.types import (
     TProperties,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
+from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateGRPCUnavailableError,
     WeaviateQueryError,
+    WeaviateInvalidInputError,
 )
 from weaviate.proto.v1 import search_get_pb2, properties_pb2
 from weaviate.util import (
@@ -511,7 +512,7 @@ class _BaseQuery(Generic[Properties, References]):
         else:
             assert return_properties is not None
             if not is_typeddict(return_properties):
-                raise TypeError(
+                raise WeaviateInvalidInputError(
                     f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(return_properties)}"
                 )
             return _extract_properties_from_data_model(
@@ -521,6 +522,14 @@ class _BaseQuery(Generic[Properties, References]):
     def _parse_return_metadata(
         self, return_metadata: Optional[METADATA], include_vector: bool
     ) -> Optional[_MetadataQuery]:
+        _validate_input(
+            [
+                _ValidateArgument(
+                    [Sequence[str], MetadataQuery, None], "return_metadata", return_metadata
+                ),
+                _ValidateArgument([bool], "include_vector", include_vector),
+            ]
+        )
         if return_metadata is None:
             ret_md = None
         elif isinstance(return_metadata, Sequence):
@@ -545,14 +554,22 @@ class _BaseQuery(Generic[Properties, References]):
             return refs
         else:
             assert return_references is not None
+            if not is_typeddict(return_references):
+                raise WeaviateInvalidInputError(
+                    f"return_references must only be a TypedDict or ReturnReferences within this context but is {type(return_references)}"
+                )
             return _extract_references_from_data_model(return_references)
 
     @staticmethod
     def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
         if isinstance(media, str):  # if already encoded by user
             return media
-        else:
+        elif isinstance(media, pathlib.Path) or isinstance(media, io.BufferedReader):
             return file_encoder_b64(media)
+        else:
+            raise WeaviateInvalidInputError(
+                f"media must be a string, pathlib.Path, or io.BufferedReader but is {type(media)}"
+            )
 
 
 # TODO: refactor PropertiesParser to handle new schema for specifying query parameters

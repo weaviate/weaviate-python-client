@@ -122,7 +122,7 @@ class _MetadataQuery:
 
 
 METADATA = Union[
-    Sequence[
+    List[
         Literal[
             "creation_time",
             "last_update_time",

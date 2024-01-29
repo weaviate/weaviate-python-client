@@ -1,3 +1,9 @@
+import pytest
+from typing import Callable
+from weaviate.connect import ConnectionV4
+from weaviate.collections.query import _QueryCollection
+from weaviate.exceptions import WeaviateInvalidInputError
+
 # TODO: re-enable tests once string syntax is re-enabled in the API
 
 # from typing import List, Optional, Union
@@ -73,3 +79,51 @@
 #         out = _PropertiesParser().parse(wrong)
 #         print(out)
 #     assert e.value.args[0] == ERROR_MESSAGE(wrong[0] if len(wrong) == 1 else wrong)
+
+
+def _test_query(query: Callable) -> None:
+    with pytest.raises(WeaviateInvalidInputError):
+        query()
+
+
+def test_bad_query_inputs(connection: ConnectionV4) -> None:
+    query = _QueryCollection(connection, "dummy", None, None, None, None)
+    # fetch_objects
+    _test_query(lambda: query.fetch_objects(limit="thing"))
+    _test_query(lambda: query.fetch_objects(offset="wrong"))
+    _test_query(lambda: query.fetch_objects(after=42))
+    _test_query(lambda: query.fetch_objects(filters="wrong"))
+    _test_query(lambda: query.fetch_objects(sort="wrong"))
+    _test_query(lambda: query.fetch_objects(include_vector="wrong"))
+    _test_query(lambda: query.fetch_objects(return_metadata=42))
+    _test_query(lambda: query.fetch_objects(return_properties=42))
+    _test_query(lambda: query.fetch_objects(return_references="wrong"))
+
+    # bm25
+    _test_query(lambda: query.bm25(42))
+    _test_query(lambda: query.bm25("hi", query_properties="wrong"))
+    _test_query(lambda: query.bm25("hi", auto_limit="wrong"))
+    _test_query(lambda: query.bm25("hi", rerank="wrong"))
+
+    # hybrid
+    _test_query(lambda: query.hybrid(42))
+    _test_query(lambda: query.hybrid("hi", query_properties="wrong"))
+    _test_query(lambda: query.hybrid("hi", alpha="wrong"))
+    _test_query(lambda: query.hybrid("hi", vector="wrong"))
+    _test_query(lambda: query.hybrid("hi", fusion_type="wrong"))
+
+    # near text
+    _test_query(lambda: query.near_text(42))
+    _test_query(lambda: query.near_text("hi", certainty="wrong"))
+    _test_query(lambda: query.near_text("hi", distance="wrong"))
+    _test_query(lambda: query.near_text("hi", move_to="wrong"))
+    _test_query(lambda: query.near_text("hi", move_away="wrong"))
+
+    # near object
+    _test_query(lambda: query.near_object(42))
+
+    # near vector
+    _test_query(lambda: query.near_vector(42))
+
+    # near image
+    _test_query(lambda: query.near_image(42))

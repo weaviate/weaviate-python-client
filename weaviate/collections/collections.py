@@ -20,7 +20,7 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.internal import References, _check_references_generic
 from weaviate.collections.classes.types import Properties, _check_properties_generic
 from weaviate.collections.collection import Collection
-from weaviate.collections.validator import _raise_invalid_input
+from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.util import _capitalize_first_letter
 
 
@@ -138,8 +138,9 @@ class _Collections(_CollectionsBase):
             `weaviate.exceptions.InvalidDataModelException`
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
-        if not isinstance(name, str):
-            _raise_invalid_input("name", name, str)
+        _validate_input(
+            [_ValidateArgument(expected=[str], name="name", value=name)],
+        )
         _check_properties_generic(data_model_properties)
         _check_references_generic(data_model_references)
         name = _capitalize_first_letter(name)
@@ -166,10 +167,7 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if not isinstance(name, str) and (
-            not isinstance(name, list) or not all(isinstance(n, str) for n in name)
-        ):
-            _raise_invalid_input("name", name, Union[str, List[str]])
+        _validate_input([_ValidateArgument(expected=[str, List[str]], name="name", value=name)])
 
         if isinstance(name, str):
             self._delete(_capitalize_first_letter(name))
@@ -208,8 +206,7 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if not isinstance(name, str):
-            _raise_invalid_input("name", name, str)
+        _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
         return self._exists(_capitalize_first_letter(name))
 
     def export_config(self, name: str) -> CollectionConfig:
@@ -263,8 +260,7 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if not isinstance(simple, bool):
-            _raise_invalid_input("simple", simple, bool)
+        _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
         return self._get_all(simple=simple)
 
     def create_from_dict(self, config: dict) -> Collection:

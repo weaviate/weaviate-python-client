@@ -42,7 +42,7 @@ from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateQueryError
+from weaviate.exceptions import WeaviateQueryError, WeaviateInvalidInputError
 from weaviate.types import NUMBER, UUID
 
 from weaviate.proto.v1 import search_get_pb2
@@ -129,6 +129,10 @@ class _QueryGRPC(_BaseGRPC):
         self._filters: Optional[_Filters] = None
 
     def __parse_sort(self, sort: Optional[_Sorting]) -> None:
+        if sort is not None and not isinstance(sort, _Sorting):
+            raise WeaviateInvalidInputError(
+                f"sort must be of type weaviate.classes.query.Sorting, but got {type(sort)}"
+            )
         if sort is None:
             self._sort = None
         else:
@@ -149,35 +153,37 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
     ) -> None:
         if limit is not None and not isinstance(limit, int):
-            raise TypeError(f"limit must be of type int, but got {type(limit)}")
+            raise WeaviateInvalidInputError(f"limit must be of type int, but got {type(limit)}")
         if offset is not None and not isinstance(offset, int):
-            raise TypeError(f"offset must be of type int, but got {type(offset)}")
+            raise WeaviateInvalidInputError(f"offset must be of type int, but got {type(offset)}")
         if (
             after is not None
             and not isinstance(after, uuid_lib.UUID)
             and not isinstance(after, str)
         ):
-            raise TypeError(f"after must be of type str or uuid.UUID, but got {type(after)}")
+            raise WeaviateInvalidInputError(
+                f"after must be of type str or uuid.UUID, but got {type(after)}"
+            )
         if filters is not None and not isinstance(filters, _Filters):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"filters must be of type weaviate.classes.query.Filters, but got {type(filters)}"
             )
         if metadata is not None and not isinstance(metadata, _MetadataQuery):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"metadata must be of type weaviate.classes.query.MetadataQuery, but got {type(metadata)}"
             )
         if generative is not None and not isinstance(generative, _Generative):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"generative must be of type weaviate.classes.query.Generative, but got {type(generative)}"
             )
         if rerank is not None and not isinstance(rerank, Rerank):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"rerank must be of type weaviate.classes.query.Rerank, but got {type(rerank)}"
             )
         if autocut is not None and not isinstance(autocut, int):
-            raise TypeError(f"autocut must be of type int, but got {type(autocut)}")
+            raise WeaviateInvalidInputError(f"autocut must be of type int, but got {type(autocut)}")
         if group_by is not None and not isinstance(group_by, _GroupBy):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"group_by must be of type weaviate.classes.query.GroupBy, but got {type(group_by)}"
             )
 
@@ -202,15 +208,21 @@ class _QueryGRPC(_BaseGRPC):
         fusion_type: Optional[HybridFusion] = None,
     ) -> None:
         if not isinstance(query, str):
-            raise TypeError(f"query must be of type str, but got {type(query)}")
+            raise WeaviateInvalidInputError(f"query must be of type str, but got {type(query)}")
         if alpha is not None and not isinstance(alpha, float) and not isinstance(alpha, int):
-            raise TypeError(f"alpha must be of type float or int, but got {type(alpha)}")
+            raise WeaviateInvalidInputError(
+                f"alpha must be of type float or int, but got {type(alpha)}"
+            )
         if vector is not None and not isinstance(vector, list):
-            raise TypeError(f"vector must be of type List[float], but got {type(vector)}")
+            raise WeaviateInvalidInputError(
+                f"vector must be of type List[float], but got {type(vector)}"
+            )
         if properties is not None and not isinstance(properties, list):
-            raise TypeError(f"properties must be of type List[str], but got {type(properties)}")
+            raise WeaviateInvalidInputError(
+                f"properties must be of type List[str], but got {type(properties)}"
+            )
         if fusion_type is not None and not isinstance(fusion_type, HybridFusion):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"fusion_type must be of type weaviate.classes.query.HybridFusion, but got {type(fusion_type)}."
             )
         self._hybrid_query = query
@@ -229,9 +241,11 @@ class _QueryGRPC(_BaseGRPC):
         properties: Optional[List[str]] = None,
     ) -> None:
         if not isinstance(query, str):
-            raise TypeError(f"query must be of type str, but got {type(query)}")
+            raise WeaviateInvalidInputError(f"query must be of type str, but got {type(query)}")
         if properties is not None and not isinstance(properties, list):
-            raise TypeError(f"properties must be of type List[str], but got {type(properties)}")
+            raise WeaviateInvalidInputError(
+                f"properties must be of type List[str], but got {type(properties)}"
+            )
         self._bm25_query = query
         self._bm25_properties = properties
 
@@ -245,13 +259,17 @@ class _QueryGRPC(_BaseGRPC):
             and not isinstance(certainty, float)
             and not isinstance(certainty, int)
         ):
-            raise TypeError(f"certainty must be of type float or int, but got {type(certainty)}")
+            raise WeaviateInvalidInputError(
+                f"certainty must be of type float or int, but got {type(certainty)}"
+            )
         if (
             distance is not None
             and not isinstance(distance, float)
             and not isinstance(distance, int)
         ):
-            raise TypeError(f"distance must be of type float or int, but got {type(distance)}")
+            raise WeaviateInvalidInputError(
+                f"distance must be of type float or int, but got {type(distance)}"
+            )
         self._near_certainty = float(certainty) if certainty is not None else None
         self._near_distance = float(distance) if distance is not None else None
 
@@ -358,7 +376,9 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
         if not isinstance(near_vector, list):
-            raise TypeError(f"near_vector must be of type List[float], but got {type(near_vector)}")
+            raise WeaviateInvalidInputError(
+                f"near_vector must be of type List[float], but got {type(near_vector)}"
+            )
         self._near_vector_vec = near_vector
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
@@ -392,7 +412,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
         if not isinstance(near_object, str) and not isinstance(near_object, uuid_lib.UUID):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"near_object must be of type str or uuid.UUID, but got {type(near_object)}"
             )
         self._near_object_obj = near_object
@@ -430,13 +450,17 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
         if not isinstance(near_text, list) and not isinstance(near_text, str):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"near_text must be of type List[str] or str, but got {type(near_text)}"
             )
         if move_away is not None and not isinstance(move_away, Move):
-            raise TypeError(f"move_away must be of type Move, but got {type(move_away)}")
+            raise WeaviateInvalidInputError(
+                f"move_away must be of type Move, but got {type(move_away)}"
+            )
         if move_to is not None and not isinstance(move_to, Move):
-            raise TypeError(f"move_to must be of type Move, but got {type(move_to)}")
+            raise WeaviateInvalidInputError(
+                f"move_to must be of type Move, but got {type(move_to)}"
+            )
         if isinstance(near_text, str):
             near_text = [near_text]
         self._near_text = near_text
@@ -734,7 +758,7 @@ class _QueryGRPC(_BaseGRPC):
             and not isinstance(return_properties, Sequence)
             and not isinstance(return_properties, QueryNested)
         ):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"return_properties must be of type str, QueryNested or List[str, QueryNested], but got {type(return_properties)}"
             )
         elif isinstance(return_properties, Sequence):
@@ -742,7 +766,7 @@ class _QueryGRPC(_BaseGRPC):
                 not isinstance(prop, str) and not isinstance(prop, QueryNested)
                 for prop in return_properties
             ):
-                raise TypeError(
+                raise WeaviateInvalidInputError(
                     f"return_properties must be of type str, QueryNested or List[str, QueryNested], but got {type(return_properties)}"
                 )
         if self._default_props is not None:
@@ -758,12 +782,12 @@ class _QueryGRPC(_BaseGRPC):
         if not isinstance(return_references, _QueryReference) and not isinstance(
             return_references, Sequence
         ):
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 f"return_references must be of type QueryReference, QueryReferenceMultiTarget or List[QueryReference | QueryReferenceMultiTarget], but got {type(return_references)}"
             )
         elif isinstance(return_references, Sequence):
             if any(not isinstance(ref, _QueryReference) for ref in return_references):
-                raise TypeError(
+                raise WeaviateInvalidInputError(
                     f"return_references must be of type QueryReference, QueryReferenceMultiTarget or List[QueryReference | QueryReferenceMultiTarget], but got {type(return_references)}"
                 )
         if self._refs is not None:
