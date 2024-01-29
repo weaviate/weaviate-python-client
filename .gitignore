@@ -22,6 +22,4 @@ image.png
 .vscode/
 scratch/
 
-int-test.sh
-unit-test.sh
-static-test.sh
+*-test.sh
