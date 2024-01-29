@@ -254,7 +254,6 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
                 segments=4,
                 training_limit=1000001,
             ),
-            skip=True,
             vector_cache_max_objects=100000,
         ),
     )
@@ -326,7 +325,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     # assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE # potential weaviate bug, this returns as PQEncoderType.KMEANS
     assert config.vector_index_config.quantizer.segments == 4
     assert config.vector_index_config.quantizer.training_limit == 1000001
-    assert config.vector_index_config.skip is True
+    assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 100000
 
     assert config.vector_index_type == VectorIndexType.HNSW
@@ -357,7 +356,6 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
         ),
         replication_config=Reconfigure.replication(factor=2),
         vector_index_config=Reconfigure.VectorIndex.hnsw(
-            skip=True,
             vector_cache_max_objects=2000000,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(
                 bit_compression=True,
@@ -399,7 +397,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.quantizer.encoder.distribution == PQEncoderDistribution.NORMAL
     assert config.vector_index_config.quantizer.segments == 4
     assert config.vector_index_config.quantizer.training_limit == 100001
-    assert config.vector_index_config.skip is True
+    assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
     assert config.vector_index_type == VectorIndexType.HNSW
@@ -431,7 +429,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.flat_search_cutoff == 40000
     assert config.vector_index_config.max_connections == 64
     assert config.vector_index_config.quantizer is None
-    assert config.vector_index_config.skip is True
+    assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
     assert config.vector_index_type == VectorIndexType.HNSW
@@ -684,3 +682,24 @@ def test_config_add_existing_property_and_reference(collection_factory: Collecti
         collection.config.add_reference(
             ReferenceProperty(name="self", target_collection=collection.name)
         )
+
+
+def test_config_skip_vector_index(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        vector_index_config=Configure.VectorIndex.none(),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.cleanup_interval_seconds == 300
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
+    assert config.vector_index_config.dynamic_ef_factor == 8
+    assert config.vector_index_config.dynamic_ef_max == 500
+    assert config.vector_index_config.dynamic_ef_min == 100
+    assert config.vector_index_config.ef == -1
+    assert config.vector_index_config.ef_construction == 128
+    assert config.vector_index_config.flat_search_cutoff == 40000
+    assert config.vector_index_config.max_connections == 64
+    assert config.vector_index_config.quantizer is None
+    assert config.vector_index_config.skip is True
+    assert config.vector_index_config.vector_cache_max_objects == 1000000000000
