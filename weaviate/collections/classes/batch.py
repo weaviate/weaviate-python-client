@@ -2,7 +2,7 @@ import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar, Union, cast
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.types import WeaviateField
@@ -36,11 +36,7 @@ class BatchObject(BaseModel):
     Also converts the vector to a list of floats if it is provided as a numpy array.
     """
 
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True
-    )  # stop-gap for now until _Reference is implemented to work with Pydantic
-
-    collection: str
+    collection: str = Field(min_length=1)
     properties: Optional[Dict[str, Any]] = Field(default=None)
     references: Optional[ReferenceInputs] = Field(default=None)
     uuid: Optional[UUID] = Field(default=None)
@@ -66,8 +62,6 @@ class BatchObject(BaseModel):
 
     @field_validator("collection")
     def _validate_collection(cls, v: str) -> str:
-        if len(v) == 0:
-            raise ValueError("collection must not be empty")
         return _capitalize_first_letter(v)
 
 

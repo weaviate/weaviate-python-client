@@ -181,17 +181,16 @@ class _BaseQuery(Generic[Properties, References]):
             )
         if value.HasField("blob_value"):
             return value.blob_value
-        if value.HasField("phone_value"):
-            return _PhoneNumber(
-                country_code=value.phone_value.country_code,
-                default_country=value.phone_value.default_country,
-                international_formatted=value.phone_value.international_formatted,
-                national=value.phone_value.national,
-                national_formatted=value.phone_value.national_formatted,
-                number=value.phone_value.input,
-                valid=value.phone_value.valid,
-            )
-        return value
+        assert value.HasField("phone_value")
+        return _PhoneNumber(
+            country_code=value.phone_value.country_code,
+            default_country=value.phone_value.default_country,
+            international_formatted=value.phone_value.international_formatted,
+            national=value.phone_value.national,
+            national_formatted=value.phone_value.national_formatted,
+            number=value.phone_value.input,
+            valid=value.phone_value.valid,
+        )
 
     def __parse_nonref_properties_result(
         self,
@@ -478,18 +477,6 @@ class _BaseQuery(Generic[Properties, References]):
             if not options.is_group_by
             else self._result_to_groupby_return(res, options, properties, references)
         )
-
-    def __parse_generic_properties(
-        self, generic_properties: Type[TProperties]
-    ) -> Optional[PROPERTIES]:
-        if not is_typeddict(generic_properties):
-            raise TypeError(
-                f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(generic_properties)}"
-            )
-        return _extract_properties_from_data_model(generic_properties)
-
-    # def __parse_properties(self, return_properties: Optional[PROPERTIES]) -> Optional[PROPERTIES]:
-    #     return _PropertiesParser().parse(return_properties)
 
     def _parse_return_properties(
         self,
