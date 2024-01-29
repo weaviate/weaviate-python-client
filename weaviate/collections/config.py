@@ -186,12 +186,14 @@ class _ConfigBase:
         """Update the status of one or all shards of this collection.
 
         Returns:
-            `Dict[str, ShardTypes]`: All updated shards idexed by their name.
+            `Dict[str, ShardTypes]`:
+                All updated shards indexed by their name.
 
-        Parameters
-        ----------
-            status: The new status of the shard. The available options are: 'READY' and 'READONLY'.
-            shard_name: The shard name for which to update the status of the class of the shard. If None all shards are going to be updated.
+        Arguments:
+            `status`:
+                The new status of the shard. The available options are: 'READY' and 'READONLY'.
+            `shard_name`:
+                The shard name for which to update the status of the class of the shard. If None all shards are going to be updated.
 
         Raises:
             `requests.ConnectionError`:
