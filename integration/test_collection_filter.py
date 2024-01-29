@@ -675,23 +675,37 @@ def test_time_filter_contains(collection_factory: CollectionFactory) -> None:
     assert all(obj.uuid in uuids for obj in objects)
 
 
-def test_ref_count_filter(collection_factory: CollectionFactory) -> None:
+@pytest.mark.parametrize(
+    "weav_filter,results",
+    [
+        (Filter.by_ref_count("ref").not_equal(1), [0, 2]),
+        (Filter.by_ref_count("ref").less_than(count=2), [0, 1]),
+        (Filter.by_ref_count("ref").less_or_equal(count=1), [0, 1]),
+        (Filter.by_ref_count("ref").greater_than(0), [1, 2]),
+        (Filter.by_ref_count("ref").greater_or_equal(1), [1, 2]),
+    ],
+)
+def test_ref_count_filter(
+    collection_factory: CollectionFactory,
+    weav_filter: _FilterValue,
+    results: List[int],
+) -> None:
     collection = collection_factory()
     collection.config.add_reference(
         ReferenceProperty(name="ref", target_collection=collection.name)
     )
 
-    uuid1 = collection.data.insert({})
-    uuid2 = collection.data.insert({})
+    uuids = [
+        collection.data.insert({}, uuid=UUID1),
+        collection.data.insert({}, uuid=UUID2, references={"ref": UUID1}),
+        collection.data.insert({}, references={"ref": [UUID1, UUID2]}, uuid=UUID3),
+    ]
 
-    uuid3 = collection.data.insert({}, references={"ref": [uuid1, uuid2]})
+    objects = collection.query.fetch_objects(filters=weav_filter).objects
+    assert len(objects) == len(results)
 
-    objects = collection.query.fetch_objects(
-        filters=Filter.by_ref_count("ref").greater_than(0),
-        return_references=QueryReference(link_on="ref"),
-    ).objects
-    assert len(objects) == 1
-    assert objects[0].uuid == uuid3
+    uuids_res = [uuids[result] for result in results]
+    assert all(obj.uuid in uuids_res for obj in objects)
 
 
 def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) -> None:
@@ -714,9 +728,9 @@ def test_multi_target_ref_count_filter(collection_factory: CollectionFactory) ->
 
 
 def test_nested_ref_count_filter(collection_factory: CollectionFactory) -> None:
-    one = collection_factory()
+    one = collection_factory("one")
     two = collection_factory(
-        references=[ReferenceProperty(name="ref2", target_collection=one.name)]
+        "two", references=[ReferenceProperty(name="ref2", target_collection=one.name)]
     )
     one.config.add_reference(ReferenceProperty(name="ref1", target_collection=one.name))
 
@@ -733,3 +747,34 @@ def test_nested_ref_count_filter(collection_factory: CollectionFactory) -> None:
     ).objects
     assert len(objects) == 1
     assert objects[0].uuid == uuid21
+
+
+def test_filter_by_ref_and_multi_ref(collection_factory: CollectionFactory) -> None:
+    one = collection_factory("one")
+    two = collection_factory(
+        name="two", references=[ReferenceProperty(name="ref2", target_collection=one.name)]
+    )
+    one.config.add_reference(
+        ReferenceProperty.MultiTarget(name="ref1", target_collections=[one.name, two.name])
+    )
+    uuid11 = one.data.insert({})
+    uuid12 = one.data.insert(
+        {}, references={"ref1": ReferenceToMulti(uuids=uuid11, target_collection=one.name)}
+    )
+    uuid13 = one.data.insert(
+        {},
+        references={"ref1": ReferenceToMulti(uuids=[uuid11, uuid12], target_collection=one.name)},
+    )
+
+    two.data.insert({}, references={"ref2": uuid11})
+    two.data.insert({}, references={"ref2": uuid12})
+    uuid23 = two.data.insert({}, references={"ref2": uuid13})
+
+    objects = two.query.fetch_objects(
+        filters=Filter.by_ref("ref2")
+        .by_ref_multi_target("ref1", target_collection=one.name)
+        .by_ref_count("ref1")
+        .equal(1),
+    ).objects
+
+    assert objects[0].uuid == uuid23

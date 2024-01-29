@@ -17,7 +17,8 @@ from typing import (
 )
 
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
-
+from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
+from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
     DeleteManyObject,
     _BatchObject,
@@ -28,10 +29,11 @@ from weaviate.collections.classes.batch import (
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
+from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.internal import (
     _Reference,
+    MetadataReturn,
     Object,
-    _metadata_from_dict,
     ReferenceToMulti,
     SingleReferenceInput,
     ReferenceInput,
@@ -49,19 +51,15 @@ from weaviate.collections.classes.types import (
     WeaviateField,
     _check_properties_generic,
 )
-from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC, _validate_props
-from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.types import BEACON, UUID
 from weaviate.util import (
     _datetime_to_string,
     get_vector,
 )
-from weaviate.types import BEACON, UUID
-
-from weaviate.connect.v4 import _ExpectedStatusCodes
 
 
 class _Data:
@@ -80,9 +78,8 @@ class _Data:
         self._batch_delete_grpc = _BatchDeleteGRPC(connection, consistency_level)
         self._batch_rest = _BatchREST(connection, consistency_level)
 
-    def _insert(self, weaviate_obj: Dict[str, Any], clean_props: bool) -> uuid_package.UUID:
+    def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
-        _validate_props(weaviate_obj["properties"], clean_props=clean_props)
 
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
         self._connection.post(
@@ -359,7 +356,7 @@ class _DataCollection(Generic[Properties], _Data):
         if vector is not None:
             weaviate_obj["vector"] = get_vector(vector)
 
-        return self._insert(weaviate_obj, False)
+        return self._insert(weaviate_obj)
 
     def insert_many(
         self,
@@ -518,9 +515,7 @@ class _DataCollection(Generic[Properties], _Data):
                 _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
             ]
         )
-        if isinstance(to, _Reference):
-            ref = to
-        elif isinstance(to, ReferenceToMulti):
+        if isinstance(to, ReferenceToMulti):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
             ref = _Reference(target_collection=None, uuids=to)
@@ -565,9 +560,7 @@ class _DataCollection(Generic[Properties], _Data):
                 _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
             ]
         )
-        if isinstance(to, _Reference):
-            ref = to
-        elif isinstance(to, ReferenceToMulti):
+        if isinstance(to, ReferenceToMulti):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
             ref = _Reference(target_collection=None, uuids=to)
@@ -601,9 +594,7 @@ class _DataCollection(Generic[Properties], _Data):
                 ),
             ]
         )
-        if isinstance(to, _Reference):
-            ref = to
-        elif isinstance(to, ReferenceToMulti):
+        if isinstance(to, ReferenceToMulti):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
             ref = _Reference(target_collection=None, uuids=to)
@@ -641,20 +632,22 @@ class _DataCollectionModel(Generic[Model], _Data):
             if prop not in obj["properties"]:
                 obj["properties"][prop] = None
 
-        uuid, vector, metadata = _metadata_from_dict(obj)
+        # uuid, vector, metadata = _metadata_from_dict(obj)
+        uuid = uuid_package.uuid4()
+        metadata = MetadataReturn()
         model_object = Object[Model, dict](
             collection=self.name,
             properties=self.__model.model_validate(
                 {
                     **obj["properties"],
-                    "uuid": uuid,
-                    "vector": vector,
+                    # "uuid": uuid,
+                    # "vector": vector,
                 }
             ),
             references={},
             metadata=metadata,
             uuid=uuid,
-            vector=vector,
+            vector=None,
         )
         return model_object
 
@@ -668,7 +661,7 @@ class _DataCollectionModel(Generic[Model], _Data):
         if obj.vector is not None:
             weaviate_obj["vector"] = obj.vector
 
-        self._insert(weaviate_obj, False)
+        self._insert(weaviate_obj)
         return uuid_package.UUID(str(obj.uuid))
 
     def insert_many(self, objects: List[Model]) -> BatchObjectReturn:

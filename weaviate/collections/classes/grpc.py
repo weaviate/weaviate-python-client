@@ -58,7 +58,7 @@ class Move:
     def _to_gql_payload(self) -> dict:
         payload: dict = {"force": self.force}
         if self.__objects is not None:
-            payload["objects"] = self.__objects
+            payload["objects"] = [{"id": obj} for obj in self.__objects]
         if self.__concepts is not None:
             payload["concepts"] = self.__concepts
         return payload

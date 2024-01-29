@@ -486,7 +486,7 @@ class _FilterByRef:
 
     def by_ref_count(self, link_on: str) -> _FilterByCount:
         """Filter on the given reference."""
-        return _FilterByCount(link_on, self.__last_target)
+        return _FilterByCount(link_on, self.__target)
 
     def by_id(self) -> _FilterById:
         """Define a filter based on the uuid to be used when querying and deleting from a collection."""

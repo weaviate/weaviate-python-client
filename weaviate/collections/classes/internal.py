@@ -14,7 +14,7 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import TypeAlias, TypeVar, is_typeddict
+from typing_extensions import TypeAlias, TypeVar
 
 import uuid as uuid_package
 
@@ -27,7 +27,6 @@ from weaviate.collections.classes.grpc import (
     QueryNested,
     _QueryReference,
     _QueryReferenceMultiTarget,
-    Generate,
     GroupBy,
     MetadataQuery,
     METADATA,
@@ -44,7 +43,6 @@ from weaviate.collections.classes.types import (
     WeaviateProperties,
     _WeaviateInput,
 )
-from weaviate.exceptions import WeaviateQueryError, InvalidDataModelException
 from weaviate.util import _to_beacons
 from weaviate.types import UUID, UUIDS
 
@@ -52,43 +50,6 @@ from weaviate.proto.v1 import search_get_pb2
 
 
 IReferences = TypeVar("IReferences", bound=Optional[Mapping[str, Any]], default=None)
-
-
-@dataclass
-class _MetadataResult:
-    uuid: Optional[uuid_package.UUID]
-    vector: Optional[List[float]]
-    creation_time_unix: Optional[int]
-    last_update_time_unix: Optional[int]
-    distance: Optional[float]
-    certainty: Optional[float]
-    score: Optional[float]
-    explain_score: Optional[str]
-    is_consistent: Optional[bool]
-    generative: Optional[str]
-
-
-def _metadata_from_dict(
-    metadata: Dict[str, Any]
-) -> Tuple[uuid_package.UUID, Optional[List[float]], "MetadataReturn"]:
-    uuid = uuid_package.UUID(metadata["id"]) if "id" in metadata else None
-    if uuid is None:
-        raise WeaviateQueryError(
-            "The query returned an object with an empty ID string", "GRPC search"
-        )
-    return (
-        uuid,
-        metadata.get("vector"),
-        MetadataReturn(
-            creation_time=metadata.get("creationTimeUnix"),
-            last_update_time=metadata.get("lastUpdateTimeUnix"),
-            distance=metadata.get("distance"),
-            certainty=metadata.get("certainty"),
-            explain_score=metadata.get("explainScore"),
-            score=metadata.get("score"),
-            is_consistent=metadata.get("isConsistent"),
-        ),
-    )
 
 
 @dataclass
@@ -124,9 +85,6 @@ class GroupByMetadataReturn:
     """Metadata of an object returned by a group by query."""
 
     distance: Optional[float] = None
-
-    def _is_empty(self) -> bool:
-        return self.distance is None
 
 
 @dataclass
@@ -267,18 +225,6 @@ class _Generative:
             grouped_properties=self.grouped_properties,
         )
 
-    @classmethod
-    def from_input(cls, generate: Optional[Generate]) -> Optional["_Generative"]:
-        return (
-            cls(
-                single=generate.single_prompt,
-                grouped=generate.grouped_task,
-                grouped_properties=generate.grouped_properties,
-            )
-            if generate
-            else None
-        )
-
 
 class _GroupBy:
     prop: str
@@ -347,32 +293,12 @@ class _Reference:
         self.__uuids = uuids
 
     def _to_beacons(self) -> List[Dict[str, str]]:
-        if self.__uuids is None:
-            return []
         return _to_beacons(self.__uuids, self.__target_collection)
-
-    @property
-    def is_multi_target(self) -> bool:
-        """Returns True if the reference is to a multi-target collection."""
-        return self.__target_collection != ""
 
     @property
     def is_one_to_many(self) -> bool:
         """Returns True if the reference is to a one-to-many references, i.e. points to more than one object."""
         return self.__uuids is not None and isinstance(self.__uuids, list) and len(self.__uuids) > 1
-
-    @property
-    def uuids_str(self) -> List[str]:
-        """Returns the UUIDs as strings."""
-        if isinstance(self.__uuids, list):
-            return [str(uid) for uid in self.__uuids]
-        else:
-            return [str(self.__uuids)]
-
-    @property
-    def target_collection(self) -> str:
-        """Returns the target collection name."""
-        return self.__target_collection
 
 
 class ReferenceToMulti(_WeaviateInput):
@@ -525,10 +451,6 @@ def __create_link_to_from_annotated_reference(
         )
 
 
-def __is_reference(value: Any) -> bool:
-    return get_origin(value) is _CrossReference
-
-
 def __create_link_to_from_reference(
     link_on: str,
     value: CrossReference[Properties, "References"],
@@ -575,15 +497,6 @@ References = TypeVar("References", bound=Optional[Mapping[str, Any]], default=No
 # I wish we could have bound=Mapping[str, CrossReference["P", "R"]] here, but you can't have generic bounds, so Any must suffice
 TReferences = TypeVar("TReferences", bound=Optional[Mapping[str, Any]], default=None)
 """`TReferences` is used alongside `References` wherever there are two generic types needed"""
-
-
-def _check_references_generic(references: Optional[Type["References"]]) -> None:
-    if (
-        references is not None
-        and get_origin(references) is not dict
-        and not is_typeddict(references)
-    ):
-        raise InvalidDataModelException("references")
 
 
 ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]

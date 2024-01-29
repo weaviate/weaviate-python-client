@@ -40,7 +40,6 @@ from weaviate.collections.classes.batch import (
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import (
-    _Reference,
     ReferenceToMulti,
     ReferenceInput,
     ReferenceInputs,
@@ -549,7 +548,7 @@ class _BatchBase:
         tenant: Optional[str] = None,
     ) -> None:
         self.__check_bg_thread_alive()
-        if isinstance(to, _Reference) or isinstance(to, ReferenceToMulti):
+        if isinstance(to, ReferenceToMulti):
             to_strs: Union[List[str], List[UUID]] = to.uuids_str
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
             to_strs = [to]
@@ -563,8 +562,7 @@ class _BatchBase:
                     from_object_uuid=from_object_uuid,
                     from_property_name=from_property_name,
                     to_object_collection=to.target_collection
-                    if (isinstance(to, _Reference) and to.is_multi_target)
-                    or isinstance(to, ReferenceToMulti)
+                    if isinstance(to, ReferenceToMulti)
                     else None,
                     to_object_uuid=uid,
                     tenant=tenant,
