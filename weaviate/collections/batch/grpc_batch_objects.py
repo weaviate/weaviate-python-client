@@ -62,7 +62,6 @@ class _BatchGRPC(_BaseGRPC):
                 properties=self.__translate_properties_from_python_to_grpc(
                     obj.properties,
                     obj.references if obj.references is not None else {},
-                    False,
                 )
                 if obj.properties is not None
                 else None,
@@ -153,7 +152,6 @@ class _BatchGRPC(_BaseGRPC):
                 properties=self.__translate_properties_from_python_to_grpc(
                     obj.properties,
                     obj.references if obj.references is not None else {},
-                    False,
                 )
                 if obj.properties is not None
                 else None,
@@ -214,9 +212,9 @@ class _BatchGRPC(_BaseGRPC):
             raise WeaviateBatchError(e.details())  # pyright: ignore
 
     def __translate_properties_from_python_to_grpc(
-        self, data: Dict[str, Any], refs: ReferenceInputs, clean_props: bool
+        self, data: Dict[str, Any], refs: ReferenceInputs
     ) -> batch_pb2.BatchObject.Properties:
-        _validate_props(data, clean_props)
+        _validate_props(data)
 
         multi_target: List[batch_pb2.BatchObject.MultiTargetRefProps] = []
         single_target: List[batch_pb2.BatchObject.SingleTargetRefProps] = []
@@ -251,7 +249,7 @@ class _BatchGRPC(_BaseGRPC):
 
         for key, entry in data.items():
             if isinstance(entry, dict):
-                parsed = self.__translate_properties_from_python_to_grpc(entry, {}, clean_props)
+                parsed = self.__translate_properties_from_python_to_grpc(entry, {})
                 object_properties.append(
                     base_pb2.ObjectProperties(
                         prop_name=key,
@@ -285,11 +283,7 @@ class _BatchGRPC(_BaseGRPC):
                                 empty_list_props=parsed.empty_list_props,
                             )
                             for v in entry
-                            if (
-                                parsed := self.__translate_properties_from_python_to_grpc(
-                                    v, {}, clean_props
-                                )
-                            )
+                            if (parsed := self.__translate_properties_from_python_to_grpc(v, {}))
                         ],
                         prop_name=key,
                     )
@@ -336,19 +330,8 @@ class _BatchGRPC(_BaseGRPC):
         )
 
 
-def _validate_props(props: Dict[str, Any], clean_props: bool) -> None:
-    should_throw = False
-    if "id" in props:
-        if clean_props:
-            del props["id"]
-        else:
-            should_throw = True
-    if "vector" in props:
-        if clean_props:
-            del props["vector"]
-        else:
-            should_throw = True
-    if should_throw:
+def _validate_props(props: Dict[str, Any]) -> None:
+    if "id" in props or "vector" in props:
         raise WeaviateInsertInvalidPropertyError(props)
 
 
