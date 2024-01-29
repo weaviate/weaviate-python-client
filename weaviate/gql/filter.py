@@ -942,12 +942,12 @@ def _render_list(input_list: list) -> str:
     str
         The string interpretation of the value in `json` format.
     """
-    str_list = ", ".join(str(item) for item in input_list)
+    str_list = ",".join(str(item) for item in input_list)
     return f"[{str_list}]"
 
 
 def _render_list_date(input_list: list) -> str:
-    str_list = ", ".join('"' + str(item) + '"' for item in input_list)
+    str_list = ",".join('"' + str(item) + '"' for item in input_list)
     return f"[{str_list}]"
 
 

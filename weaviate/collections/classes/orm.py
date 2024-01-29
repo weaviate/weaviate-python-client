@@ -15,8 +15,8 @@ from typing import (
     get_origin,
     get_type_hints,
     cast,
-    is_typeddict,
 )
+from typing_extensions import is_typeddict
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_core import PydanticUndefined

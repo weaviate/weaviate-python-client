@@ -619,7 +619,7 @@ class TestWhere(unittest.TestCase):
             }
         )
 
-    def test___str__(self):
+    def test___str__(self) -> None:
         """
         Test the `__str__` method.
         """
