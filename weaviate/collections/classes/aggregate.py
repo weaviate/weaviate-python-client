@@ -65,11 +65,12 @@ class AggregateBoolean:
     total_true: Optional[int]
 
 
-@dataclass
-class AggregateReference:
-    """The aggregation result for a cross-reference property."""
+# Aggregate references currently bugged on Weaviate's side
+# @dataclass
+# class AggregateReference:
+#     """The aggregation result for a cross-reference property."""
 
-    pointing_to: Optional[str]
+#     pointing_to: Optional[str]
 
 
 @dataclass
@@ -89,7 +90,7 @@ AggregateResult = Union[
     AggregateText,
     AggregateBoolean,
     AggregateDate,
-    AggregateReference,
+    # AggregateReference, # Aggregate references currently bugged on Weaviate's side
 ]
 
 AProperties = Dict[str, AggregateResult]
@@ -220,17 +221,18 @@ class _MetricsDate(_MetricsBase):
         return f"{self.property_name} {{ {body} }}"
 
 
-class _MetricsReference(BaseModel):
-    property_name: str
-    pointing_to: bool
+# Aggregate references currently bugged on Weaviate's side
+# class _MetricsReference(BaseModel):
+#     property_name: str
+#     pointing_to: bool
 
-    def to_gql(self) -> str:
-        body = " ".join(
-            [
-                "pointingTo" if self.pointing_to else "",
-            ]
-        )
-        return f"{self.property_name} {{ {body} }}"
+#     def to_gql(self) -> str:
+#         body = " ".join(
+#             [
+#                 "pointingTo" if self.pointing_to else "",
+#             ]
+#         )
+#         return f"{self.property_name} {{ {body} }}"
 
 
 _Metrics = Union[
@@ -239,7 +241,7 @@ _Metrics = Union[
     _MetricsNumber,
     _MetricsDate,
     _MetricsBoolean,
-    _MetricsReference,
+    # _MetricsReference, # Aggregate references currently bugged on Weaviate's side
 ]
 
 PropertiesMetrics = Union[_Metrics, List[_Metrics]]
@@ -477,24 +479,25 @@ class Metrics:
             mode=mode,
         )
 
-    def reference(
-        self,
-        pointing_to: bool = False,
-    ) -> _MetricsReference:
-        """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
+    # Aggregate references currently bugged on Weaviate's side
+    # def reference(
+    #     self,
+    #     pointing_to: bool = False,
+    # ) -> _MetricsReference:
+    #     """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
 
-        If none of the arguments are provided then all metrics will be returned.
+    #     If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `pointing_to`
-                Whether to include the collection names that this property references.
+    #     Arguments:
+    #         `pointing_to`
+    #             Whether to include the collection names that this property references.
 
-        Returns:
-            A `_MetricsReference` object that includes the metrics to be returned.
-        """
-        if not any([pointing_to]):
-            pointing_to = True
-        return _MetricsReference(
-            property_name=self.__property,
-            pointing_to=pointing_to,
-        )
+    #     Returns:
+    #         A `_MetricsReference` object that includes the metrics to be returned.
+    #     """
+    #     if not any([pointing_to]):
+    #         pointing_to = True
+    #     return _MetricsReference(
+    #         property_name=self.__property,
+    #         pointing_to=pointing_to,
+    #     )
