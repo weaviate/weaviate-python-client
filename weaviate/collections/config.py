@@ -179,7 +179,7 @@ class _ConfigBase:
         """Update the status of one or all shards of this collection.
 
         Returns:
-            `Dict[str, ShardTypes]`: All updated shards idexed by their name.
+            `Dict[str, ShardTypes]`: All updated shards indexed by their name.
 
         Parameters
         ----------

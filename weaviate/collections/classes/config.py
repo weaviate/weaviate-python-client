@@ -918,7 +918,7 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
             ]
         ):
             raise ValueError(
-                "Must specify at least one of model, passage_model & query_model, or endpoint_url"
+                "Must specify at least one of model, passage_model and query_model, or endpoint_url"
             )
         return values
 
@@ -1903,8 +1903,8 @@ class _PropertyConfig:  # noqa
     description: Optional[str] = None
     vectorizer_config: Optional[_VectorizerConfigCreate] = None
 
-    # tmp solution. replace with a pydantic BaseModel, see bugreport: https://github.com/pydantic/pydantic/issues/6948
-    # bugreport was closed as not planned :( so dataclasses must stay
+    # tmp solution. replace with a pydantic BaseModel, see bug report: https://github.com/pydantic/pydantic/issues/6948
+    # bug report was closed as not planned :( so dataclasses must stay
     def _to_dict(self) -> Dict[str, Any]:
         return {
             "indexFilterable": self.index_filterable,

@@ -58,10 +58,10 @@ class _Warnings:
 
     @staticmethod
     def auth_cannot_parse_oidc_config(url: str) -> None:
-        msg = f"""Auth005: Could not parse Weaviates OIDC configuration, using unauthenticated access. If you added
+        msg = f"""Auth005: Could not parse Weaviate's OIDC configuration, using unauthenticated access. If you added
         an authorization header yourself it will be unaffected.
 
-        This can happen if weaviate is miss-configured or you have a proxy inbetween the client and weaviate.
+        This can happen if weaviate is miss-configured or you have a proxy between the client and weaviate.
         You can test this by visiting {url}."""
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
@@ -178,7 +178,7 @@ class _Warnings:
     @staticmethod
     def text2vec_huggingface_endpoint_url_and_model_set_together() -> None:
         warnings.warn(
-            message="""Con003: You are setting the endpoint_url alongside model or passage_model & query_model in your Text2Vec-HuggingFace module configuration.
+            message="""Con003: You are setting the endpoint_url alongside model or passage_model and query_model in your Text2Vec-HuggingFace module configuration.
             The model definitions will be ignored in favour of endpoint_url.
             """,
             category=UserWarning,

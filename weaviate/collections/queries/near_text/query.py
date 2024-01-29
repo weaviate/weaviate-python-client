@@ -43,12 +43,12 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
-        """Search for objects in this collection by text using text-capable vectorisation module and vector-based similarity search.
+        """Search for objects in this collection by text using text-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.
 
         NOTE:
-            You must have a text-capable vectorisation module installed in order to use this method, e.g. any of the `text2vec-` and `multi2vec-` modules.
+            You must have a text-capable vectorization module installed in order to use this method, e.g. any of the `text2vec-` and `multi2vec-` modules.
 
         Arguments:
             `query`

@@ -144,7 +144,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
     ) -> None:
         """Initialise a WeaviateClient class instance to use when interacting with Weaviate.
 
-        Use this specific initialiser when you want to create a custom Client specific to your Weaviate setup.
+        Use this specific initializer when you want to create a custom Client specific to your Weaviate setup.
 
         If you want to get going quickly connecting to WCS or a local instance then use the `weaviate.connect_to_wcs` or
         `weaviate.connect_to_local` helper functions instead.
