@@ -88,7 +88,7 @@ class _Collections(_CollectionsBase):
                 The generic class that you want to use to represent the references of objects in this collection. See the `get` method for more information.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -166,7 +166,7 @@ class _Collections(_CollectionsBase):
                 The name(s) of the collection(s) to delete.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -186,7 +186,7 @@ class _Collections(_CollectionsBase):
         for these collections within your code, they will cease to function correctly after this operation.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -205,7 +205,7 @@ class _Collections(_CollectionsBase):
             `True` if the collection exists, `False` otherwise.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -224,7 +224,7 @@ class _Collections(_CollectionsBase):
             The configuration of the collection as a `CollectionConfig` object.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -259,7 +259,7 @@ class _Collections(_CollectionsBase):
             collection name to collection configuration.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -278,7 +278,7 @@ class _Collections(_CollectionsBase):
                 The dictionary representation of the collection's configuration.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
@@ -296,7 +296,7 @@ class _Collections(_CollectionsBase):
                 The collection's configuration.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.

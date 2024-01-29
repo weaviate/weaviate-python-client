@@ -254,7 +254,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
         This method is idempotent and will only perform the checks once. Any subsequent calls do nothing while `client.is_connected() == True`.
 
         Raises:
-            `requests.ConnectionError`
+            `weaviate.WeaviateConnectionError`
                 If the network connection to weaviate fails.
             `weaviate.UnexpectedStatusCodeException`
                 If weaviate reports a none OK status.
@@ -284,23 +284,20 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
 
         Be cautious of injection risks when generating query strings.
 
-        Parameters
-        ----------
-        gql_query : str
-            GraphQL query as a string.
+        Arguments:
+            `gql_query`
+                GraphQL query as a string.
 
-        Returns
-        -------
+        Returns:
             A dict with the response from the GraphQL query.
 
         Raises
-        ------
-        TypeError
-            If 'gql_query' is not of type str.
-        requests.ConnectionError
-            If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeError
-            If weaviate reports a none OK status.
+            `TypeError`
+                If 'gql_query' is not of type str.
+            `weaviate.WeaviateConnectionError`
+                If the network connection to weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If weaviate reports a none OK status.
         """
 
         if not isinstance(gql_query, str):

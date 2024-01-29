@@ -1039,3 +1039,21 @@ def test_refs_different_reference_replace(
         from_uuid, return_references=[QueryReference(link_on="ref")]
     )
     assert obj.references["ref"].objects[0].uuid == TO_UUID2
+
+
+def test_bad_generic_return_references(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        name="Test",
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+    )
+
+    class SomeGeneric:
+        field: int
+
+    uuid = collection.data.insert(properties={"Name": "A"})
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.fetch_object_by_id(  # type: ignore
+            uuid,
+            return_references=SomeGeneric,
+        )

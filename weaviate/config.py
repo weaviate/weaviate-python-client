@@ -48,5 +48,5 @@ class Config:
 class AdditionalConfig(BaseModel):
     connection: ConnectionConfig = Field(default_factory=ConnectionConfig)
     proxies: Union[dict, str, None] = Field(default=None)
-    timeout: Tuple[int, int] = Field(default_factory=lambda: (10, 60))
+    timeout: Tuple[int, int] = Field(default_factory=lambda: (30, 90))
     trust_env: bool = Field(default=False)

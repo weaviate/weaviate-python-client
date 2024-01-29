@@ -268,10 +268,6 @@ def __is_nested(value: Any) -> bool:
 
 
 def __create_nested_property_from_nested(name: str, value: Any) -> QueryNested:
-    if not __is_nested(value):
-        raise ValueError(
-            f"Non nested property detected in generic resolution, {value} of type {type(value)} is not allowed as a nested property."
-        )
     inner_type = get_args(value)[0]
     return QueryNested(
         name=name,

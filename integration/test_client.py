@@ -401,12 +401,12 @@ def test_embedded_with_wrong_version() -> None:
 
 
 def test_embedded_already_running() -> None:
-    client = weaviate.connect_to_embedded(port=8096, grpc_port=50154)
+    client = weaviate.connect_to_embedded(port=8096, grpc_port=50155)
     assert client._connection.embedded_db is not None
     assert client._connection.embedded_db.process is not None
 
     with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
-        weaviate.connect_to_embedded(port=8096, grpc_port=50154)
+        weaviate.connect_to_embedded(port=8096, grpc_port=50155)
 
     client.close()
 

@@ -50,6 +50,7 @@ from weaviate.exceptions import (
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
     WeaviateClosedClientError,
+    WeaviateConnectionError,
 )
 from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.util import (
@@ -144,7 +145,7 @@ class _Connection(_ConnectionBase):
         # need this to get the version of weaviate for version checks
         try:
             self._weaviate_version = _ServerVersion.from_string(self.get_meta()["version"])
-        except (ConnectError, ReadError, RemoteProtocolError) as e:
+        except (WeaviateConnectionError, ReadError, RemoteProtocolError) as e:
             raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
         if not skip_init_checks:
@@ -432,7 +433,7 @@ class _Connection(_ConnectionBase):
         except RuntimeError as e:
             raise WeaviateClosedClientError() from e
         except ConnectError as conn_err:
-            raise ConnectError(error_msg) from conn_err
+            raise WeaviateConnectionError(error_msg) from conn_err
 
     def delete(
         self,
