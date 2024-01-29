@@ -32,15 +32,10 @@ from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.internal import (
     _Reference,
-    MetadataReturn,
-    Object,
     ReferenceToMulti,
     SingleReferenceInput,
     ReferenceInput,
     ReferenceInputs,
-)
-from weaviate.collections.classes.orm import (
-    Model,
 )
 from weaviate.collections.classes.types import (
     GeoCoordinate,
@@ -599,121 +594,3 @@ class _DataCollection(Generic[Properties], _Data):
         else:
             ref = _Reference(target_collection=None, uuids=to)
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
-
-
-class _DataCollectionModel(Generic[Model], _Data):
-    def __init__(
-        self,
-        connection: ConnectionV4,
-        name: str,
-        model: Type[Model],
-        consistency_level: Optional[ConsistencyLevel],
-        tenant: Optional[str],
-    ):
-        super().__init__(connection, name, consistency_level, tenant)
-        self.__model = model
-
-    def _json_to_object(self, obj: Dict[str, Any]) -> Object[Model, dict]:
-        for ref in self.__model.get_ref_fields(self.__model):
-            if ref not in obj["properties"]:
-                continue
-
-            beacons = obj["properties"][ref]
-            uuids = []
-            for beacon in beacons:
-                uri = beacon["beacon"]
-                assert isinstance(uri, str)
-                uuids.append(uri.split("/")[-1])
-
-            obj["properties"][ref] = uuids
-
-        # weaviate does not save none values, so we need to add them to pass model validation
-        for prop in self.__model.get_non_default_fields(self.__model):
-            if prop not in obj["properties"]:
-                obj["properties"][prop] = None
-
-        # uuid, vector, metadata = _metadata_from_dict(obj)
-        uuid = uuid_package.uuid4()
-        metadata = MetadataReturn()
-        model_object = Object[Model, dict](
-            collection=self.name,
-            properties=self.__model.model_validate(
-                {
-                    **obj["properties"],
-                    # "uuid": uuid,
-                    # "vector": vector,
-                }
-            ),
-            references={},
-            metadata=metadata,
-            uuid=uuid,
-            vector=None,
-        )
-        return model_object
-
-    def insert(self, obj: Model) -> uuid_package.UUID:
-        self.__model.model_validate(obj)
-        weaviate_obj: Dict[str, Any] = {
-            "class": self.name,
-            "properties": self._serialize_props(obj.props_to_dict()),
-            "id": str(obj.uuid),
-        }
-        if obj.vector is not None:
-            weaviate_obj["vector"] = obj.vector
-
-        self._insert(weaviate_obj)
-        return uuid_package.UUID(str(obj.uuid))
-
-    def insert_many(self, objects: List[Model]) -> BatchObjectReturn:
-        for obj in objects:
-            self.__model.model_validate(obj)
-
-        data_objects = [
-            _BatchObject(
-                collection=self.name,
-                properties=obj.props_to_dict(),
-                tenant=self._tenant,
-                uuid=obj.uuid,
-                vector=obj.vector,
-                references=None,
-            )
-            for obj in objects
-        ]
-
-        return self._batch_grpc.objects(data_objects, self._connection.timeout_config.connect)
-
-    def replace(self, obj: Model, uuid: UUID) -> None:
-        self.__model.model_validate(obj)
-
-        weaviate_obj: Dict[str, Any] = {
-            "class": self.name,
-            "properties": self._serialize_props(obj.props_to_dict()),
-        }
-        if obj.vector is not None:
-            weaviate_obj["vector"] = obj.vector
-
-        self._replace(weaviate_obj, uuid)
-
-    def update(self, obj: Model, uuid: UUID) -> None:
-        self.__model.model_validate(obj)
-
-        weaviate_obj: Dict[str, Any] = {
-            "class": self.name,
-            "properties": self._serialize_props(obj.props_to_dict()),
-        }
-        if obj.vector is not None:
-            weaviate_obj["vector"] = obj.vector
-
-        self._update(weaviate_obj, uuid)
-
-    def reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
-        self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
-
-    def reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
-        self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
-
-    def reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
-        self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
-
-    def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
-        return self._reference_add_many(refs)

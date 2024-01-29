@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Literal, Optional, Type, Tuple, Union, cast, overload
+from typing import Dict, Any, List, Literal, Optional, Union, cast, overload
 
 from weaviate.collections.classes.config import (
     _CollectionConfigUpdate,
@@ -22,12 +22,10 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
-from weaviate.collections.classes.orm import Model
 from weaviate.collections.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
-    WeaviateAddInvalidPropertyError,
 )
 from weaviate.util import _decode_json_response_dict, _decode_json_response_list
 
@@ -275,55 +273,3 @@ class _ConfigCollection(_ConfigBase):
                 f"Reference with name '{ref.name}' already exists in collection '{self._name}'."
             )
         self._add_property(ref)
-
-
-class _ConfigCollectionModel(_ConfigBase):
-    def __compare_properties_with_model(
-        self, schema_props: List[_Property], model_props: List[PropertyType]
-    ) -> Tuple[List[_Property], List[PropertyType]]:
-        only_in_model: List[PropertyType] = []
-        only_in_schema: List[_Property] = list(schema_props)
-
-        schema_props_simple = [
-            {
-                "name": prop.name,
-                "dataType": prop.to_dict().get("dataType"),
-            }
-            for prop in schema_props
-        ]
-
-        for prop in model_props:
-            try:
-                idx = schema_props_simple.index(
-                    {"name": prop.name, "dataType": prop._to_dict().get("dataType")}
-                )
-                schema_props_simple.pop(idx)
-                only_in_schema.pop(idx)
-            except ValueError:
-                only_in_model.append(prop)
-        return only_in_schema, only_in_model
-
-    def update_model(self, model: Type[Model]) -> None:
-        only_in_schema, only_in_model = self.__compare_properties_with_model(
-            self.get().properties, model.type_to_properties(model)
-        )
-        if len(only_in_schema) > 0:
-            raise TypeError("Schema has extra properties")
-
-        # we can only allow new optional types unless the default is None
-        for prop in only_in_model:
-            new_field = model.model_fields[prop.name]
-            if new_field.annotation is None:
-                continue  # if user did not annotate with type then ignore field
-            non_optional_type = model.remove_optional_type(new_field.annotation)
-            if new_field.default is not None and non_optional_type == new_field.annotation:
-                raise WeaviateAddInvalidPropertyError(prop.name)
-
-        for prop in only_in_model:
-            self._add_property(prop)
-
-    def is_invalid(self, model: Type[Model]) -> bool:
-        only_in_schema, only_in_model = self.__compare_properties_with_model(
-            self.get().properties, model.type_to_properties(model)
-        )
-        return len(only_in_schema) > 0 or len(only_in_model) > 0

@@ -38,8 +38,6 @@ from weaviate.collections.classes.internal import (
     _QueryOptions,
     ReturnProperties,
     ReturnReferences,
-    References,
-    TReferences,
     CrossReferences,
     _CrossReference,
 )
@@ -48,6 +46,8 @@ from weaviate.collections.classes.types import (
     _PhoneNumber,
     Properties,
     TProperties,
+    References,
+    TReferences,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.validator import _validate_input, _ValidateArgument

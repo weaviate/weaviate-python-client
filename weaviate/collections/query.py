@@ -1,7 +1,6 @@
 from typing import Generic
 
-from weaviate.collections.classes.internal import References
-from weaviate.collections.classes.types import TProperties
+from weaviate.collections.classes.types import TProperties, References
 
 from weaviate.collections.queries.bm25 import _BM25Generate, _BM25Query
 from weaviate.collections.queries.fetch_object_by_id import _FetchObjectByIDQuery

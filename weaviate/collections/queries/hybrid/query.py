@@ -9,10 +9,8 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
-    References,
-    TReferences,
 )
-from weaviate.collections.classes.types import Properties, TProperties
+from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
 from weaviate.types import NUMBER
 

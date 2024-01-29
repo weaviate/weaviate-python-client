@@ -6,11 +6,9 @@ from weaviate.collections.classes.filters import (
 from weaviate.collections.classes.grpc import Rerank, METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
     QueryReturn,
-    References,
-    TReferences,
     CrossReferences,
 )
-from weaviate.collections.classes.types import Properties, TProperties
+from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
 
 class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, References]):

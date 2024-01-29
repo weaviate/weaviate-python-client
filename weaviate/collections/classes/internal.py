@@ -14,7 +14,7 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import TypeAlias, TypeVar
+from typing_extensions import TypeAlias
 
 import uuid as uuid_package
 
@@ -36,6 +36,9 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.types import (
     Properties,
+    References,
+    IReferences,
+    TReferences,
     M,
     P,
     R,
@@ -47,9 +50,6 @@ from weaviate.util import _to_beacons
 from weaviate.types import UUID, UUIDS
 
 from weaviate.proto.v1 import search_get_pb2
-
-
-IReferences = TypeVar("IReferences", bound=Optional[Mapping[str, Any]], default=None)
 
 
 @dataclass
@@ -489,14 +489,6 @@ def _extract_references_from_data_model(type_: Type["References"]) -> Optional[R
         for key, value in get_type_hints(type_, include_extras=True).items()
     ]
     return refs if len(refs) > 0 else None
-
-
-References = TypeVar("References", bound=Optional[Mapping[str, Any]], default=None)
-"""`References` is used wherever a single generic type is needed for references"""
-
-# I wish we could have bound=Mapping[str, CrossReference["P", "R"]] here, but you can't have generic bounds, so Any must suffice
-TReferences = TypeVar("TReferences", bound=Optional[Mapping[str, Any]], default=None)
-"""`TReferences` is used alongside `References` wherever there are two generic types needed"""
 
 
 ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]

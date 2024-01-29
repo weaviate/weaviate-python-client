@@ -121,6 +121,15 @@ within the non-ORM and ORM APIs interchangeably"""
 T = TypeVar("T")
 """`T` is a completely general type that is used in any kind of generic"""
 
+References = TypeVar("References", bound=Optional[Mapping[str, Any]], default=None)
+"""`References` is used wherever a single generic type is needed for references"""
+
+IReferences = TypeVar("IReferences", bound=Optional[Mapping[str, Any]], default=None)
+
+# I wish we could have bound=Mapping[str, CrossReference["P", "R"]] here, but you can't have generic bounds, so Any must suffice
+TReferences = TypeVar("TReferences", bound=Optional[Mapping[str, Any]], default=None)
+"""`TReferences` is used alongside `References` wherever there are two generic types needed"""
+
 
 def _check_properties_generic(properties: Optional[Type[Properties]]) -> None:
     if (
@@ -129,3 +138,12 @@ def _check_properties_generic(properties: Optional[Type[Properties]]) -> None:
         and not is_typeddict(properties)
     ):
         raise InvalidDataModelException("properties")
+
+
+def _check_references_generic(references: Optional[Type["References"]]) -> None:
+    if (
+        references is not None
+        and get_origin(references) is not dict
+        and not is_typeddict(references)
+    ):
+        raise InvalidDataModelException("references")
