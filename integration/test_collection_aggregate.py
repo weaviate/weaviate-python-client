@@ -22,6 +22,8 @@ from weaviate.util import file_encoder_b64
 
 from weaviate.collections.classes.grpc import Move
 
+from weaviate.collections.classes.tenants import Tenant
+
 UUID1 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
 
@@ -30,11 +32,28 @@ UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
 def test_collection_length(collection_factory: CollectionFactory, how_many: int) -> None:
     """Uses .aggregate behind-the-scenes"""
     collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    collection.data.insert_many([{"Name": f"name {i}"} for i in range(how_many)])
+    collection.data.insert_many([{} for _ in range(how_many)])
     assert len(collection) == how_many
+
+
+@pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
+def test_collection_length_tenant(collection_factory: CollectionFactory, how_many: int) -> None:
+    """Uses .aggregate behind-the-scenes"""
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+
+    collection.tenants.create(
+        tenants=[Tenant(name="tenant1"), Tenant(name="tenant2"), Tenant(name="tenant3")]
+    )
+    collection.with_tenant("tenant1").data.insert_many([{} for _ in range(how_many)])
+    collection.with_tenant("tenant2").data.insert_many([{} for _ in range(how_many * 2)])
+
+    assert len(collection.with_tenant("tenant2")) == how_many * 2
+    assert len(collection.with_tenant("tenant3")) == 0
 
 
 def test_empty_aggregation(collection_factory: CollectionFactory) -> None:

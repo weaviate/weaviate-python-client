@@ -404,7 +404,7 @@ class _DataCollection(Generic[Properties], _Data):
                         vector=None,
                         uuid=None,
                         properties=cast(dict, obj),
-                        tenant=None,
+                        tenant=self._tenant,
                         references=None,
                     )
                 )
