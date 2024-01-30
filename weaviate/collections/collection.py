@@ -112,9 +112,11 @@ class Collection(_CollectionBase, Generic[Properties, References]):
 
         Arguments:
             `tenant`
-                The name of the tenant to use.
+                The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
         """
-        _validate_input([_ValidateArgument(expected=[str, Tenant], name="tenant", value=tenant)])
+        _validate_input(
+            [_ValidateArgument(expected=[str, Tenant, None], name="tenant", value=tenant)]
+        )
         return Collection[Properties, References](
             self._connection,
             self.name,
