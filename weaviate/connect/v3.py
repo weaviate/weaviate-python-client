@@ -232,8 +232,7 @@ class Connection(_ConnectionBase):
             else:
                 msg = f""""No login credentials provided. The weaviate instance at {self.url} requires login credentials.
 
-                    Please check our documentation at https://weaviate.io/developers/weaviate/client-libraries/python#authentication
-                    for more information about how to use authentication."""
+                    For more information, see: https://weaviate.io/developers/weaviate/client-libraries/python#authentication"""
 
                 if is_weaviate_domain(self.url):
                     msg += """

@@ -81,8 +81,7 @@ class _Warnings:
         warnings.warn(
             message="""Dep002: You are batching manually. This means you are NOT using the client's built-in
             multi-threading. Setting `batch_size` in `client.batch.configure()`  to an int value will enabled automatic
-            batching. See:
-            https://weaviate.io/developers/weaviate/current/restful-api-references/batch.html#example-request-1""",
+            batching. See:hhttps://weaviate.io/developers/weaviate/client-libraries/python#batching""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -139,7 +138,7 @@ class _Warnings:
         warnings.warn(
             message="""Dep006: You are using the `client.batch()` method, which will be removed in the next major release.
             Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
-            See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
+            See https://weaviate.io/developers/weaviate/client-libraries/python#batching for details.""",
             category=DeprecationWarning,
             stacklevel=1,
         )

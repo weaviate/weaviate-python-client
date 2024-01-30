@@ -14,9 +14,8 @@ FILTER_BEACON_V14_CLS_NS_W = (
 BATCH_MANUAL_USE_W = (
     "Manually batching means this code is NOT using the client's built-in "
     "multi-threading. To enable built-in multi-threading, set `batch_size` in "
-    " `client.batch.configure()` to an integer value . See also:"
-    "https://weaviate.io/developers/weaviate/current/restful-api-references/"
-    "batch.html#example-request-1"
+    " `client.batch.configure()` to an integer value . See also: "
+    "https://weaviate.io/developers/weaviate/client-libraries/python#batching"
 )
 
 
