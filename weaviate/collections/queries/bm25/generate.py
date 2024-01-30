@@ -20,10 +20,10 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         self,
         query: str,
         *,
+        query_properties: Optional[List[str]] = None,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         auto_limit: Optional[int] = None,
@@ -41,14 +41,14 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         Arguments:
             `query`
                 The keyword-based query to search for, REQUIRED.
+            `query_properties`
+                The properties to search in. If not specified, all properties are searched.
             `single_prompt`
                 The prompt to use for RaG on each object individually.
             `grouped_task`
                 The prompt to use for RaG on the entire result set.
             `grouped_properties`
                 The properties to use in the RaG on the entire result set.
-            `query_properties`
-                The properties to search in. If not specified, all properties are searched.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by the server is returned.
             `offset`

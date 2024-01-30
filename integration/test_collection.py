@@ -604,16 +604,15 @@ def test_search_hybrid(collection_factory: CollectionFactory, fusion_type: Hybri
     )
     collection.data.insert({"Name": "some name"}, uuid=uuid.uuid4())
     collection.data.insert({"Name": "other word"}, uuid=uuid.uuid4())
-    objs = collection.query.hybrid(
+    objs1 = collection.query.hybrid(
         alpha=0, query="name", fusion_type=fusion_type, include_vector=True
     ).objects
-    assert len(objs) == 1
+    assert len(objs1) == 1
 
-    assert objs[0].vector is not None
-    objs = collection.query.hybrid(
-        alpha=1, query="name", fusion_type=fusion_type, vector=objs[0].vector["default"]
+    objs2 = collection.query.hybrid(
+        alpha=1, query="name", fusion_type=fusion_type, vector=objs1[0].vector["default"]
     ).objects
-    assert len(objs) == 2
+    assert len(objs2) == 2
 
 
 @pytest.mark.skip(reason="currently bugged in weaviate")
@@ -1723,11 +1722,11 @@ def test_return_properties_with_query_specific_typed_dict(
         pass
 
     objects: Union[
-        List[Object[DataModel0, None]],
-        List[Object[DataModel1, None]],
-        List[Object[DataModel2, None]],
-        List[Object[DataModel3, None]],
-        List[Object[DataModel4, None]],
+        List[Object[DataModel0, None, None]],
+        List[Object[DataModel1, None, None]],
+        List[Object[DataModel2, None, None]],
+        List[Object[DataModel3, None, None]],
+        List[Object[DataModel4, None, None]],
     ]
     if which_case == 0:
         objects = collection.query.fetch_objects(return_properties=DataModel0).objects

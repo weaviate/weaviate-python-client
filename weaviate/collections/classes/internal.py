@@ -42,7 +42,9 @@ from weaviate.collections.classes.types import (
     M,
     P,
     R,
+    V,
     TProperties,
+    Vectors,
     WeaviateProperties,
     _WeaviateInput,
 )
@@ -88,17 +90,17 @@ class GroupByMetadataReturn:
 
 
 @dataclass
-class _Object(Generic[P, R, M]):
+class _Object(Generic[P, R, M, V]):
     uuid: uuid_package.UUID
     metadata: M
     properties: P
     references: R
-    vector: Optional[Dict[str, List[float]]]
+    vector: V
     collection: str
 
 
 @dataclass
-class Object(Generic[P, R], _Object[P, R, MetadataReturn]):
+class Object(Generic[P, R, V], _Object[P, R, MetadataReturn, V]):
     """A single Weaviate object returned by a query within the `.query` namespace of a collection."""
 
     pass
@@ -114,82 +116,82 @@ class MetadataSingleObjectReturn:
 
 
 @dataclass
-class ObjectSingleReturn(Generic[P, R], _Object[P, R, MetadataSingleObjectReturn]):
+class ObjectSingleReturn(Generic[P, R, V], _Object[P, R, MetadataSingleObjectReturn, V]):
     """A single Weaviate object returned by the `fetch_object_by_id` query."""
 
     pass
 
 
 @dataclass
-class GroupByObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
+class GroupByObject(Generic[P, R, V], _Object[P, R, GroupByMetadataReturn, V]):
     """A single Weaviate object returned by a query with the `group_by` argument specified."""
 
     belongs_to_group: str
 
 
 @dataclass
-class GroupedObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
+class GroupedObject(Generic[P, R, V], _Object[P, R, GroupByMetadataReturn, V]):
     """A single Weaviate object returned by a query with the `group_by` argument specified."""
 
     pass
 
 
 @dataclass
-class GenerativeObject(Generic[P, R], Object[P, R]):
+class GenerativeObject(Generic[P, R, V], Object[P, R, V]):
     """A single Weaviate object returned by a query within the `generate` namespace of a collection."""
 
     generated: Optional[str]
 
 
 @dataclass
-class GenerativeReturn(Generic[P, R]):
+class GenerativeReturn(Generic[P, R, V]):
     """The return type of a query within the `generate` namespace of a collection."""
 
-    objects: List[GenerativeObject[P, R]]
+    objects: List[GenerativeObject[P, R, V]]
     generated: Optional[str]
 
 
 @dataclass
-class Group(Generic[P, R]):
+class Group(Generic[P, R, V]):
     """A group of objects returned in a group by query."""
 
     name: str
     min_distance: float
     max_distance: float
     number_of_objects: int
-    objects: List[GroupedObject[P, R]]
+    objects: List[GroupedObject[P, R, V]]
     rerank_score: Optional[float]
 
 
 @dataclass
-class GenerativeGroup(Generic[P, R], Group[P, R]):
+class GenerativeGroup(Generic[P, R, V], Group[P, R, V]):
     """A group of objects returned in a generative group by query."""
 
     generated: Optional[str]
 
 
 @dataclass
-class GenerativeGroupByReturn(Generic[P, R]):
+class GenerativeGroupByReturn(Generic[P, R, V]):
     """The return type of a query within the `.generate` namespace of a collection with the `group_by` argument specified."""
 
-    objects: List[GroupByObject[P, R]]
-    groups: Dict[str, GenerativeGroup[P, R]]
+    objects: List[GroupByObject[P, R, V]]
+    groups: Dict[str, GenerativeGroup[P, R, V]]
     generated: Optional[str]
 
 
 @dataclass
-class GroupByReturn(Generic[P, R]):
+class GroupByReturn(Generic[P, R, V]):
     """The return type of a query within the `.query` namespace of a collection with the `group_by` argument specified."""
 
-    objects: List[GroupByObject[P, R]]
-    groups: Dict[str, Group[P, R]]
+    objects: List[GroupByObject[P, R, V]]
+    groups: Dict[str, Group[P, R, V]]
 
 
 @dataclass
-class QueryReturn(Generic[P, R]):
+class QueryReturn(Generic[P, R, V]):
     """The return type of a query within the `.query` namespace of a collection."""
 
-    objects: List[Object[P, R]]
+    objects: List[Object[P, R, V]]
 
 
 _GQLEntryReturnType: TypeAlias = Dict[str, List[Dict[str, Any]]]
@@ -318,18 +320,18 @@ class ReferenceToMulti(_WeaviateInput):
 class _CrossReference(Generic[Properties, IReferences]):
     def __init__(
         self,
-        objects: Optional[List[Object[Properties, IReferences]]],
+        objects: Optional[List[Object[Properties, IReferences, Optional[Vectors]]]],
     ):
         self.__objects = objects
 
     @classmethod
     def _from(
-        cls, objects: List[Object[Properties, IReferences]]
+        cls, objects: List[Object[Properties, IReferences, Optional[Vectors]]]
     ) -> "_CrossReference[Properties, IReferences]":
         return cls(objects)
 
     @property
-    def objects(self) -> List[Object[Properties, IReferences]]:
+    def objects(self) -> List[Object[Properties, IReferences, Optional[Vectors]]]:
         """Returns the objects of the cross reference."""
         return self.__objects or []
 
@@ -526,30 +528,48 @@ class _QueryOptions:
 
 
 QuerySingleReturn = Union[
-    ObjectSingleReturn[Properties, References],
-    ObjectSingleReturn[TProperties, TReferences],
-    ObjectSingleReturn[Properties, CrossReferences],
-    ObjectSingleReturn[Properties, TReferences],
-    ObjectSingleReturn[TProperties, References],
-    ObjectSingleReturn[TProperties, CrossReferences],
+    ObjectSingleReturn[Properties, References, None],
+    ObjectSingleReturn[Properties, References, Vectors],
+    ObjectSingleReturn[TProperties, TReferences, None],
+    ObjectSingleReturn[TProperties, TReferences, Vectors],
+    ObjectSingleReturn[Properties, CrossReferences, None],
+    ObjectSingleReturn[Properties, CrossReferences, Vectors],
+    ObjectSingleReturn[Properties, TReferences, None],
+    ObjectSingleReturn[Properties, TReferences, Vectors],
+    ObjectSingleReturn[TProperties, References, None],
+    ObjectSingleReturn[TProperties, References, Vectors],
+    ObjectSingleReturn[TProperties, CrossReferences, None],
+    ObjectSingleReturn[TProperties, CrossReferences, Vectors],
 ]
 
 GenerativeGroupByReturnType = Union[
-    GenerativeGroupByReturn[Properties, References],
-    GenerativeGroupByReturn[TProperties, TReferences],
-    GenerativeGroupByReturn[Properties, CrossReferences],
-    GenerativeGroupByReturn[Properties, TReferences],
-    GenerativeGroupByReturn[TProperties, References],
-    GenerativeGroupByReturn[TProperties, CrossReferences],
+    GenerativeGroupByReturn[Properties, References, None],
+    GenerativeGroupByReturn[Properties, References, Vectors],
+    GenerativeGroupByReturn[TProperties, TReferences, None],
+    GenerativeGroupByReturn[TProperties, TReferences, Vectors],
+    GenerativeGroupByReturn[Properties, CrossReferences, None],
+    GenerativeGroupByReturn[Properties, CrossReferences, Vectors],
+    GenerativeGroupByReturn[Properties, TReferences, None],
+    GenerativeGroupByReturn[Properties, TReferences, Vectors],
+    GenerativeGroupByReturn[TProperties, References, None],
+    GenerativeGroupByReturn[TProperties, References, Vectors],
+    GenerativeGroupByReturn[TProperties, CrossReferences, None],
+    GenerativeGroupByReturn[TProperties, CrossReferences, Vectors],
 ]
 
 GenerativeReturnType = Union[
-    GenerativeReturn[Properties, References],
-    GenerativeReturn[TProperties, TReferences],
-    GenerativeReturn[Properties, CrossReferences],
-    GenerativeReturn[Properties, TReferences],
-    GenerativeReturn[TProperties, References],
-    GenerativeReturn[TProperties, CrossReferences],
+    GenerativeReturn[Properties, References, None],
+    GenerativeReturn[Properties, References, Vectors],
+    GenerativeReturn[TProperties, TReferences, None],
+    GenerativeReturn[TProperties, TReferences, Vectors],
+    GenerativeReturn[Properties, CrossReferences, None],
+    GenerativeReturn[Properties, CrossReferences, Vectors],
+    GenerativeReturn[Properties, TReferences, None],
+    GenerativeReturn[Properties, TReferences, Vectors],
+    GenerativeReturn[TProperties, References, None],
+    GenerativeReturn[TProperties, References, Vectors],
+    GenerativeReturn[TProperties, CrossReferences, None],
+    GenerativeReturn[TProperties, CrossReferences, Vectors],
 ]
 
 # The way in which generic type aliases work requires that all the generic arguments
@@ -561,22 +581,42 @@ GenerativeNearMediaReturnType = Union[
     GenerativeGroupByReturnType[Properties, References, TProperties, TReferences],
 ]
 
+QueryReturnWithoutVectors = Union[
+    QueryReturn[Properties, References, None],
+    QueryReturn[TProperties, TReferences, None],
+    QueryReturn[Properties, CrossReferences, None],
+    QueryReturn[Properties, TReferences, None],
+    QueryReturn[TProperties, References, None],
+    QueryReturn[TProperties, CrossReferences, None],
+]
+
+QueryReturnWithVectors = Union[
+    QueryReturn[Properties, References, Vectors],
+    QueryReturn[TProperties, TReferences, Vectors],
+    QueryReturn[Properties, CrossReferences, Vectors],
+    QueryReturn[Properties, TReferences, Vectors],
+    QueryReturn[TProperties, References, Vectors],
+    QueryReturn[TProperties, CrossReferences, Vectors],
+]
+
 QueryReturnType = Union[
-    QueryReturn[Properties, References],
-    QueryReturn[TProperties, TReferences],
-    QueryReturn[Properties, CrossReferences],
-    QueryReturn[Properties, TReferences],
-    QueryReturn[TProperties, References],
-    QueryReturn[TProperties, CrossReferences],
+    QueryReturnWithoutVectors[Properties, References, TProperties, TReferences],
+    QueryReturnWithVectors[Properties, References, TProperties, TReferences],
 ]
 
 GroupByReturnType = Union[
-    GroupByReturn[Properties, References],
-    GroupByReturn[TProperties, TReferences],
-    GroupByReturn[Properties, CrossReferences],
-    GroupByReturn[Properties, TReferences],
-    GroupByReturn[TProperties, References],
-    GroupByReturn[TProperties, CrossReferences],
+    GroupByReturn[Properties, References, None],
+    GroupByReturn[Properties, References, Vectors],
+    GroupByReturn[TProperties, TReferences, None],
+    GroupByReturn[TProperties, TReferences, Vectors],
+    GroupByReturn[Properties, CrossReferences, None],
+    GroupByReturn[Properties, CrossReferences, Vectors],
+    GroupByReturn[Properties, TReferences, None],
+    GroupByReturn[Properties, TReferences, Vectors],
+    GroupByReturn[TProperties, References, None],
+    GroupByReturn[TProperties, References, Vectors],
+    GroupByReturn[TProperties, CrossReferences, None],
+    GroupByReturn[TProperties, CrossReferences, Vectors],
 ]
 
 QueryNearMediaReturnType = Union[

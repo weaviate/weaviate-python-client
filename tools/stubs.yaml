@@ -1,0 +1,994 @@
+functions:
+  - name: bm25
+    required:
+      - name: self
+      - name: query
+        type: str
+    optional:
+      - name: query_properties
+        type: Optional[List[str]] = None
+      - name: single_prompt
+        type: Optional[str] = None
+      - name: grouped_task
+        type: Optional[str] = None
+      - name: grouped_properties
+        type: Optional[List[str]] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    return: GenerativeReturn
+    target_file: weaviate/collections/queries/bm25/generate.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters,)
+      - from weaviate.collections.classes.grpc import Rerank, METADATA, PROPERTIES, REFERENCES
+      - from weaviate.collections.classes.internal import (GenerativeReturn,CrossReferences,)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - "class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: bm25
+    required:
+      - name: self
+      - name: query
+        type: str
+    optional:
+      - name: query_properties
+        type: Optional[List[str]] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    return: QueryReturn
+    target_file: weaviate/collections/queries/bm25/query.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters,)
+      - from weaviate.collections.classes.grpc import Rerank, METADATA, PROPERTIES, REFERENCES
+      - from weaviate.collections.classes.internal import (QueryReturn,CrossReferences,)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - "class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: fetch_object_by_id
+    required:
+      - name: self
+      - name: uuid
+        type: UUID
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    return: ObjectSingleReturn
+    target_file: weaviate/collections/queries/fetch_object_by_id/query.pyi
+    header:
+      - from typing import (Generic,Literal,Optional,Type,Union,overload)
+      - from weaviate.collections.classes.grpc import PROPERTIES, REFERENCES
+      - from weaviate.collections.classes.internal import (ObjectSingleReturn,CrossReferences,)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - from weaviate.types import UUID
+      - "class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: fetch_objects
+    required:
+      - name: self
+    optional:
+      - name: single_prompt
+        type: Optional[str] = None
+      - name: grouped_task
+        type: Optional[str] = None
+      - name: grouped_properties
+        type: Optional[List[str]] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: after
+        type: Optional[UUID] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: sort
+        type: Optional[_Sorting] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    return: GenerativeReturn
+    target_file: weaviate/collections/queries/fetch_objects/generate.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Union, Type, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import (METADATA,PROPERTIES,REFERENCES,_Sorting,)
+      - from weaviate.collections.classes.internal import (GenerativeReturn,CrossReferences,)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - from weaviate.types import UUID
+      - "class _FetchObjectsGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: fetch_objects
+    required:
+      - name: self
+    optional:
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: after
+        type: Optional[UUID] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: sort
+        type: Optional[_Sorting] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    return: QueryReturn
+    target_file: weaviate/collections/queries/fetch_objects/query.pyi
+    header:
+      - from typing import Generic, Literal, Optional, Union, Type, overload
+      - from weaviate.collections.classes.filters import (_Filters,)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, _Sorting
+      - from weaviate.collections.classes.internal import (QueryReturn,CrossReferences,ReturnProperties,ReturnReferences,QueryReturnType)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - from weaviate.types import UUID
+      - "class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: hybrid
+    required:
+      - name: self
+      - name: query
+        type: str
+    optional:
+      - name: single_prompt
+        type: Optional[str] = None
+      - name: grouped_task
+        type: Optional[str] = None
+      - name: grouped_properties
+        type: Optional[List[str]] = None
+      - name: alpha
+        type: NUMBER = 0.5
+      - name: vector
+        type: Optional[List[float]] = None
+      - name: query_properties
+        type: Optional[List[str]] = None
+      - name: fusion_type
+        type: Optional[HybridFusion] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    return: GenerativeReturn
+    target_file: weaviate/collections/queries/hybrid/generate.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters,)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, HybridFusion, Rerank
+      - from weaviate.collections.classes.internal import (GenerativeReturn,CrossReferences,)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - from weaviate.types import NUMBER
+      - "class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: hybrid
+    required:
+      - name: self
+      - name: query
+        type: str
+    optional:
+      - name: alpha
+        type: NUMBER = 0.5
+      - name: vector
+        type: Optional[List[float]] = None
+      - name: query_properties
+        type: Optional[List[str]] = None
+      - name: fusion_type
+        type: Optional[HybridFusion] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    return: QueryReturn
+    target_file: weaviate/collections/queries/hybrid/query.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters,)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, HybridFusion, Rerank
+      - from weaviate.collections.classes.internal import (QueryReturn,CrossReferences,)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - from weaviate.types import NUMBER
+      - "class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_image
+    required:
+      - name: self
+      - name: near_image
+        type: Union[str, Path, BufferedReader]
+    optional:
+      - name: single_prompt
+        type: Optional[str] = None
+      - name: grouped_task
+        type: Optional[str] = None
+      - name: grouped_properties
+        type: Optional[List[str]] = None
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: GenerativeReturn
+      - type: GroupBy
+        return: GenerativeGroupByReturn
+    target_file: weaviate/collections/queries/near_image/generate.pyi
+    header:
+      - from io import BufferedReader
+      - from pathlib import Path
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
+      - from weaviate.collections.classes.internal import (GenerativeReturn,GenerativeGroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - "class _NearImageGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_image
+    required:
+      - name: self
+      - name: near_image
+        type: Union[str, Path, BufferedReader]
+    optional:
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: QueryReturn
+      - type: GroupBy
+        return: GroupByReturn
+    target_file: weaviate/collections/queries/near_image/query.pyi
+    header:
+      - from io import BufferedReader
+      - from pathlib import Path
+      - from typing import Generic, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
+      - from weaviate.collections.classes.internal import (QueryReturn,GroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - "class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_media
+    required:
+      - name: self
+      - name: media
+        type: Union[str, Path, BufferedReader]
+      - name: media_type
+        type: NearMediaType
+    optional:
+      - name: single_prompt
+        type: Optional[str] = None
+      - name: grouped_task
+        type: Optional[str] = None
+      - name: grouped_properties
+        type: Optional[List[str]] = None
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: GenerativeReturn
+      - type: GroupBy
+        return: GenerativeGroupByReturn
+    target_file: weaviate/collections/queries/near_media/generate.pyi
+    header:
+      - from io import BufferedReader
+      - from pathlib import Path
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank, NearMediaType
+      - from weaviate.collections.classes.internal import (GenerativeReturn,GenerativeGroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - "class _NearMediaGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_media
+    required:
+      - name: self
+      - name: media
+        type: Union[str, Path, BufferedReader]
+      - name: media_type
+        type: NearMediaType
+    optional:
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: QueryReturn
+      - type: GroupBy
+        return: GroupByReturn
+    target_file: weaviate/collections/queries/near_media/query.pyi
+    header:
+      - from io import BufferedReader
+      - from pathlib import Path
+      - from typing import Generic, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank, NearMediaType
+      - from weaviate.collections.classes.internal import (QueryReturn,GroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - "class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_object
+    required:
+      - name: self
+      - name: near_object
+        type: UUID
+    optional:
+      - name: single_prompt
+        type: Optional[str] = None
+      - name: grouped_task
+        type: Optional[str] = None
+      - name: grouped_properties
+        type: Optional[List[str]] = None
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: GenerativeReturn
+      - type: GroupBy
+        return: GenerativeGroupByReturn
+    target_file: weaviate/collections/queries/near_object/generate.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
+      - from weaviate.collections.classes.internal import (GenerativeReturn,GenerativeGroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - from weaviate.types import UUID
+      - "class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_object
+    required:
+      - name: self
+      - name: near_object
+        type: UUID
+    optional:
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: QueryReturn
+      - type: GroupBy
+        return: GroupByReturn
+    target_file: weaviate/collections/queries/near_object/query.pyi
+    header:
+      - from typing import Generic, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
+      - from weaviate.collections.classes.internal import (QueryReturn,GroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - from weaviate.types import UUID
+      - "class _NearObjectQuery(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_text
+    required:
+      - name: self
+      - name: query
+        type: Union[str, List[str]]
+    optional:
+      - name: single_prompt
+        type: Optional[str] = None
+      - name: grouped_task
+        type: Optional[str] = None
+      - name: grouped_properties
+        type: Optional[List[str]] = None
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: move_to
+        type: Optional[Move] = None
+      - name: move_away
+        type: Optional[Move] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: GenerativeReturn
+      - type: GroupBy
+        return: GenerativeGroupByReturn
+    target_file: weaviate/collections/queries/near_text/generate.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Move, Rerank
+      - from weaviate.collections.classes.internal import (GenerativeReturn,GenerativeGroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - from weaviate.types import UUID
+      - "class _NearTextGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_text
+    required:
+      - name: self
+      - name: query
+        type: Union[str, List[str]]
+    optional:
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: move_to
+        type: Optional[Move] = None
+      - name: move_away
+        type: Optional[Move] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: QueryReturn
+      - type: GroupBy
+        return: GroupByReturn
+    target_file: weaviate/collections/queries/near_text/query.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Move, Rerank
+      - from weaviate.collections.classes.internal import (QueryReturn,GroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - from weaviate.types import UUID
+      - "class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_vector
+    required:
+      - name: self
+      - name: near_vector
+        type: List[float]
+    optional:
+      - name: single_prompt
+        type: Optional[str] = None
+      - name: grouped_task
+        type: Optional[str] = None
+      - name: grouped_properties
+        type: Optional[List[str]] = None
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: GenerativeReturn
+      - type: GroupBy
+        return: GenerativeGroupByReturn
+    target_file: weaviate/collections/queries/near_vector/generate.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
+      - from weaviate.collections.classes.internal import (GenerativeReturn,GenerativeGroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - "class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: near_vector
+    required:
+      - name: self
+      - name: near_vector
+        type: List[float]
+    optional:
+      - name: certainty
+        type: Optional[float] = None
+      - name: distance
+        type: Optional[float] = None
+      - name: limit
+        type: Optional[int] = None
+      - name: offset
+        type: Optional[int] = None
+      - name: auto_limit
+        type: Optional[int] = None
+      - name: filters
+        type: Optional[_Filters] = None
+      - name: rerank
+        type: Optional[Rerank] = None
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    group_by:
+      - type: Literal[None] = None
+        return: QueryReturn
+      - type: GroupBy
+        return: GroupByReturn
+    target_file: weaviate/collections/queries/near_vector/query.pyi
+    header:
+      - from typing import Generic, List, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.classes.filters import (_Filters)
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, GroupBy, Rerank
+      - from weaviate.collections.classes.internal import (QueryReturn,GroupByReturn,CrossReferences)
+      - from weaviate.collections.classes.types import Properties, TProperties, References, TReferences, Vectors
+      - from weaviate.collections.queries.base import _BaseQuery
+      - "class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, References]):"
+  - name: iterator
+    required:
+      - name: self
+    optional:
+      - name: return_metadata
+        type: Optional[METADATA] = None
+    include_vector:
+      - type: Literal[False] = False
+        generic: None
+      - type: Literal[True]
+        generic: Vectors
+      - type: bool = False
+        generic: None,Vectors
+    return_properties:
+      - type: Optional[PROPERTIES] = None
+        generic: Properties
+      - type: Type[TProperties]
+        generic: TProperties
+    return_references:
+      - type: Literal[None] = None
+        generic: None
+      - type: REFERENCES
+        generic: CrossReferences
+      - type: Type[TReferences]
+        generic: TReferences
+    return: _ObjectIterator
+    target_file: weaviate/collections/collection.pyi
+    header:
+      - from typing import Generic, Literal, Optional, Type, Union, overload
+      - from weaviate.collections.base import _CollectionBase
+      - from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
+      - from weaviate.collections.classes.internal import CrossReferences
+      - from weaviate.collections.classes.types import References, TReferences, Properties, TProperties, Vectors
+      - from weaviate.collections.iterator import _ObjectIterator
+      - "class Collection(_CollectionBase, Generic[Properties, References]):"

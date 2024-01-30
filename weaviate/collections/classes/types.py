@@ -1,7 +1,7 @@
 import datetime
 import uuid as uuid_package
 
-from typing import Any, Dict, Mapping, Optional, Sequence, Type, Union, get_origin
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, get_origin
 from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -102,6 +102,9 @@ NProperties = TypeVar("NProperties", bound=Optional[Mapping[str, Any]], default=
 M = TypeVar("M")
 """`M` is a completely general type that is used wherever generic metadata objects are defined that can be used"""
 
+V = TypeVar("V")
+"""`V` is a completely general type that is used wherever generic vector objects are defined that can be used"""
+
 P = TypeVar("P")
 """`P` is a completely general type that is used wherever generic properties objects are defined that can be used
 within the non-ORM and ORM APIs interchangeably"""
@@ -129,6 +132,9 @@ IReferences = TypeVar("IReferences", bound=Optional[Mapping[str, Any]], default=
 # I wish we could have bound=Mapping[str, CrossReference["P", "R"]] here, but you can't have generic bounds, so Any must suffice
 TReferences = TypeVar("TReferences", bound=Optional[Mapping[str, Any]], default=None)
 """`TReferences` is used alongside `References` wherever there are two generic types needed"""
+
+
+Vectors = Dict[str, List[float]]
 
 
 def _check_properties_generic(properties: Optional[Type[Properties]]) -> None:

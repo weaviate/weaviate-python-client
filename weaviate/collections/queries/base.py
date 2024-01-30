@@ -4,7 +4,7 @@ import os
 import pathlib
 import struct
 import uuid as uuid_lib
-from typing import Any, Dict, Generic, List, Optional, Sequence, Type, Union, cast
+from typing import Any, Generic, List, Optional, Sequence, Type, Union, cast
 
 from typing_extensions import is_typeddict
 
@@ -29,17 +29,19 @@ from weaviate.collections.classes.internal import (
     _extract_references_from_data_model,
     GenerativeNearMediaReturnType,
     GenerativeReturn,
+    GenerativeReturnType,
     GenerativeGroupByReturn,
+    GenerativeGroupByReturnType,
     GroupByReturn,
     GroupByReturnType,
     Group,
     GenerativeGroup,
     QueryReturn,
+    QueryReturnType,
     QueryNearMediaReturnType,
     _QueryOptions,
     ReturnProperties,
     ReturnReferences,
-    CrossReferences,
     _CrossReference,
 )
 from weaviate.collections.classes.types import (
@@ -49,6 +51,7 @@ from weaviate.collections.classes.types import (
     TProperties,
     References,
     TReferences,
+    Vectors,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.validator import _validate_input, _ValidateArgument
@@ -150,7 +153,7 @@ class _BaseQuery(Generic[Properties, References]):
     def __extract_vector_for_object(
         self,
         add_props: "search_get_pb2.MetadataResult",
-    ) -> Optional[Dict[str, List[float]]]:
+    ) -> Optional[Vectors]:
         if len(add_props.vector_bytes) == 0 and len(add_props.vector) == 0:
             return None
 
@@ -230,7 +233,7 @@ class _BaseQuery(Generic[Properties, References]):
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
         options: _QueryOptions,
-    ) -> Object[Any, Any]:
+    ) -> Object[Any, Any, Optional[Vectors]]:
         return Object(
             collection=props.target_collection,
             properties=(
@@ -255,7 +258,7 @@ class _BaseQuery(Generic[Properties, References]):
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
         options: _QueryOptions,
-    ) -> GenerativeObject[Any, Any]:
+    ) -> GenerativeObject[Any, Any, Optional[Vectors]]:
         return GenerativeObject(
             collection=props.target_collection,
             properties=(
@@ -280,7 +283,7 @@ class _BaseQuery(Generic[Properties, References]):
         self,
         res: search_get_pb2.GroupByResult,
         options: _QueryOptions,
-    ) -> Group[Any, Any]:
+    ) -> Group[Any, Any, Optional[Vectors]]:
         return Group(
             objects=[
                 self.__result_to_group_by_object(obj.properties, obj.metadata, options)
@@ -297,7 +300,7 @@ class _BaseQuery(Generic[Properties, References]):
         self,
         res: search_get_pb2.GroupByResult,
         options: _QueryOptions,
-    ) -> GenerativeGroup[Any, Any]:
+    ) -> GenerativeGroup[Any, Any, Optional[Vectors]]:
         return GenerativeGroup(
             objects=[
                 self.__result_to_group_by_object(obj.properties, obj.metadata, options)
@@ -316,7 +319,7 @@ class _BaseQuery(Generic[Properties, References]):
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
         options: _QueryOptions,
-    ) -> GroupedObject[Any, Any]:
+    ) -> GroupedObject[Any, Any, Optional[Vectors]]:
         return GroupedObject(
             collection=props.target_collection,
             properties=(
@@ -346,15 +349,8 @@ class _BaseQuery(Generic[Properties, References]):
         references: Optional[
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
-    ) -> Union[
-        QueryReturn[Properties, References],
-        QueryReturn[Properties, CrossReferences],
-        QueryReturn[Properties, TReferences],
-        QueryReturn[TProperties, References],
-        QueryReturn[TProperties, CrossReferences],
-        QueryReturn[TProperties, TReferences],
-    ]:
-        return QueryReturn(
+    ) -> QueryReturnType[Properties, References, TProperties, TReferences]:
+        return QueryReturn(  # type: ignore # used internally so types not important
             objects=[
                 self.__result_to_query_object(obj.properties, obj.metadata, options)
                 for obj in res.results
@@ -371,15 +367,8 @@ class _BaseQuery(Generic[Properties, References]):
         references: Optional[
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
-    ) -> Union[
-        GenerativeReturn[Properties, References],
-        GenerativeReturn[Properties, CrossReferences],
-        GenerativeReturn[Properties, TReferences],
-        GenerativeReturn[TProperties, References],
-        GenerativeReturn[TProperties, CrossReferences],
-        GenerativeReturn[TProperties, TReferences],
-    ]:
-        return GenerativeReturn(
+    ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
+        return GenerativeReturn(  # type: ignore # used internally so types not important
             objects=[
                 self.__result_to_generative_object(obj.properties, obj.metadata, options)
                 for obj in res.results
@@ -445,14 +434,7 @@ class _BaseQuery(Generic[Properties, References]):
         references: Optional[
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
-    ) -> Union[
-        GenerativeGroupByReturn[Properties, References],
-        GenerativeGroupByReturn[Properties, CrossReferences],
-        GenerativeGroupByReturn[Properties, TReferences],
-        GenerativeGroupByReturn[TProperties, References],
-        GenerativeGroupByReturn[TProperties, CrossReferences],
-        GenerativeGroupByReturn[TProperties, TReferences],
-    ]:
+    ) -> GenerativeGroupByReturnType[Properties, References, TProperties, TReferences]:
         groups = {
             group.name: self.__result_to_generative_group(group, options)
             for group in res.group_by_results

@@ -11,17 +11,21 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
-    References,
-    TReferences,
     ReturnProperties,
     ReturnReferences,
     CrossReferences,
 )
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.collections.classes.types import Properties, TProperties
+from weaviate.collections.classes.types import (
+    References,
+    TReferences,
+    Properties,
+    TProperties,
+    Vectors,
+)
 from weaviate.collections.config import _ConfigCollection
 from weaviate.collections.data import _DataCollection
-from weaviate.collections.iterator import _ObjectIterator
+from weaviate.collections.iterator import _ObjectIterator, ObjectIterator
 from weaviate.collections.query import _GenerateCollection, _QueryCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.validator import _validate_input, _ValidateArgument
@@ -171,83 +175,223 @@ class Collection(_CollectionBase, Generic[Properties, References]):
     @overload
     def iterator(
         self,
-        include_vector: bool = False,
-        return_metadata: Optional[METADATA] = None,
         *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[False] = False,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
-    ) -> _ObjectIterator[Properties, References]:
+    ) -> _ObjectIterator[Properties, None, None]:
         ...
 
     @overload
     def iterator(
         self,
-        include_vector: bool = False,
-        return_metadata: Optional[METADATA] = None,
         *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[False] = False,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
-    ) -> _ObjectIterator[Properties, CrossReferences]:
+    ) -> _ObjectIterator[Properties, CrossReferences, None]:
         ...
 
     @overload
     def iterator(
         self,
-        include_vector: bool = False,
-        return_metadata: Optional[METADATA] = None,
         *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[False] = False,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
-    ) -> _ObjectIterator[Properties, TReferences]:
+    ) -> _ObjectIterator[Properties, TReferences, None]:
         ...
 
     @overload
     def iterator(
         self,
-        include_vector: bool = False,
-        return_metadata: Optional[METADATA] = None,
         *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[False] = False,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
-    ) -> _ObjectIterator[TProperties, References]:
+    ) -> _ObjectIterator[TProperties, None, None]:
         ...
 
     @overload
     def iterator(
         self,
-        include_vector: bool = False,
-        return_metadata: Optional[METADATA] = None,
         *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[False] = False,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
-    ) -> _ObjectIterator[TProperties, CrossReferences]:
+    ) -> _ObjectIterator[TProperties, CrossReferences, None]:
         ...
 
     @overload
     def iterator(
         self,
-        include_vector: bool = False,
-        return_metadata: Optional[METADATA] = None,
         *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[False] = False,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
-    ) -> _ObjectIterator[TProperties, TReferences]:
+    ) -> _ObjectIterator[TProperties, TReferences, None]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[True],
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Literal[None] = None,
+    ) -> _ObjectIterator[Properties, None, Vectors]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[True],
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES,
+    ) -> _ObjectIterator[Properties, CrossReferences, Vectors]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[True],
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences],
+    ) -> _ObjectIterator[Properties, TReferences, Vectors]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[True],
+        return_properties: Type[TProperties],
+        return_references: Literal[None] = None,
+    ) -> _ObjectIterator[TProperties, None, Vectors]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[True],
+        return_properties: Type[TProperties],
+        return_references: REFERENCES,
+    ) -> _ObjectIterator[TProperties, CrossReferences, Vectors]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: Literal[True],
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences],
+    ) -> _ObjectIterator[TProperties, TReferences, Vectors]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: bool = False,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Literal[None] = None,
+    ) -> Union[_ObjectIterator[Properties, None, None], _ObjectIterator[Properties, None, Vectors]]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: bool = False,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: REFERENCES,
+    ) -> Union[
+        _ObjectIterator[Properties, CrossReferences, None],
+        _ObjectIterator[Properties, CrossReferences, Vectors],
+    ]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: bool = False,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Type[TReferences],
+    ) -> Union[
+        _ObjectIterator[Properties, TReferences, None],
+        _ObjectIterator[Properties, TReferences, Vectors],
+    ]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: bool = False,
+        return_properties: Type[TProperties],
+        return_references: Literal[None] = None,
+    ) -> Union[
+        _ObjectIterator[TProperties, None, None], _ObjectIterator[TProperties, None, Vectors]
+    ]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: bool = False,
+        return_properties: Type[TProperties],
+        return_references: REFERENCES,
+    ) -> Union[
+        _ObjectIterator[TProperties, CrossReferences, None],
+        _ObjectIterator[TProperties, CrossReferences, Vectors],
+    ]:
+        ...
+
+    @overload
+    def iterator(
+        self,
+        *,
+        return_metadata: Optional[METADATA] = None,
+        include_vector: bool = False,
+        return_properties: Type[TProperties],
+        return_references: Type[TReferences],
+    ) -> Union[
+        _ObjectIterator[TProperties, TReferences, None],
+        _ObjectIterator[TProperties, TReferences, Vectors],
+    ]:
         ...
 
     def iterator(
         self,
+        *,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Union[
-        _ObjectIterator[Properties, References],
-        _ObjectIterator[Properties, CrossReferences],
-        _ObjectIterator[Properties, TReferences],
-        _ObjectIterator[TProperties, References],
-        _ObjectIterator[TProperties, CrossReferences],
-        _ObjectIterator[TProperties, TReferences],
-    ]:
+    ) -> ObjectIterator[Properties, References, TProperties, TReferences]:
         """Use this method to return an iterator over the objects in the collection.
 
         This iterator keeps a record of the last object that it returned to be used in each subsequent call to
@@ -278,7 +422,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                 after=after,
                 include_vector=include_vector,
                 return_metadata=return_metadata,
-                return_properties=return_properties,
-                return_references=return_references,
+                return_properties=return_properties,  # type: ignore
+                return_references=return_references,  # type: ignore
             ).objects
         )
