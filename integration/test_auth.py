@@ -229,6 +229,15 @@ def test_api_key() -> None:
         client.collections.list_all()
 
 
+@pytest.mark.parametrize("header_name", ["Authorization", "authorization"])
+def test_api_key_in_header(header_name: str) -> None:
+    assert is_auth_enabled(f"localhost:{WCS_PORT}")
+    with weaviate.connect_to_local(
+        port=WCS_PORT, headers={header_name: "Bearer my-secret-key"}
+    ) as client:
+        client.collections.list_all()
+
+
 def test_api_key_wrong_key() -> None:
     assert is_auth_enabled(f"localhost:{WCS_PORT}")
 

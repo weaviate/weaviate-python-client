@@ -423,3 +423,9 @@ def test_embedded_startup_with_blocked_grpc_port() -> None:
     with pytest.raises(weaviate.exceptions.WeaviateStartUpError):
         weaviate.connect_to_embedded(port=8100, grpc_port=50150)
     client.close()
+
+
+def test_client_error_for_wcs_without_auth() -> None:
+    with pytest.raises(weaviate.exceptions.AuthenticationFailedError) as e:
+        weaviate.connect_to_wcs(cluster_url=WCS_URL, auth_credentials=None),
+        assert "wvc.init.Auth.api_key" in e.value.message

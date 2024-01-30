@@ -1,8 +1,8 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
 
 import time
 from copy import copy
+from dataclasses import dataclass, field
 from threading import Thread, Event
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
 
@@ -60,9 +60,8 @@ from weaviate.util import (
     _decode_json_response_dict,
     _ServerVersion,
 )
-from weaviate.warnings import _Warnings
-
 from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.warnings import _Warnings
 
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
@@ -253,7 +252,7 @@ class _Connection(_ConnectionBase):
                 self.__make_clients()
                 return
 
-            if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
+            if auth_client_secret is not None:
                 _auth = _Auth(
                     session_type=OAuth2Client,
                     oidc_config=resp,
@@ -282,12 +281,10 @@ class _Connection(_ConnectionBase):
 
                     You can instantiate the client with login credentials for WCS using
 
-                    client = weaviate.Client(
+                    client = weaviate.connect_to_wcs(
                       url=YOUR_WEAVIATE_URL,
-                      auth_client_secret=weaviate.AuthClientPassword(
-                        username = YOUR_WCS_USER,
-                        password = YOUR_WCS_PW,
-                      ))
+                      auth_client_secret=wvc.init.Auth.api_key("YOUR_API_KEY")
+                    )
                     """
                 raise AuthenticationFailedError(msg)
         elif response.status_code == 404 and auth_client_secret is not None:
