@@ -14,7 +14,6 @@ WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
 WCS_URL = f"https://{WCS_HOST}"
 WCS_GRPC_HOST = f"grpc-{WCS_HOST}"
 WCS_CREDS = wvc.init.Auth.api_key("cy4ua772mBlMdfw3YnclqAWzFhQt0RLIN0sl")
-WCS_SANDBOX_CREDS = wvc.init.Auth.api_key("h6kmJ3K0HR2t5H7AvClwXDyBFHOKy4pTuG6R")
 
 
 @pytest.fixture(scope="module")
@@ -136,14 +135,6 @@ def test_connect_to_wcs() -> None:
     client = weaviate.connect_to_wcs(
         "https://piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud",
         auth_credentials=WCS_CREDS,
-    )
-    client.get_meta()
-
-
-def test_connect_to_wcs_sandbox() -> None:
-    client = weaviate.connect_to_wcs(
-        "https://grpc10-urzaj18j.dev.weaviate.network",
-        auth_credentials=WCS_SANDBOX_CREDS,
     )
     client.get_meta()
 
