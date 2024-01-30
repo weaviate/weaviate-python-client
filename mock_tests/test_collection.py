@@ -6,7 +6,7 @@ from pytest_httpserver import HTTPServer
 import weaviate
 from mock_tests.conftest import MOCK_SERVER_URL, MOCK_PORT, MOCK_IP
 
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
 
 
 @pytest.mark.skip(reason="Fails with gRPC not enabled error")
@@ -36,3 +36,10 @@ def test_status_code_exception(weaviate_mock: HTTPServer) -> None:
         collection.config.get()
     assert e.value.status_code == 403
     weaviate_mock.check_assertions()
+
+
+def test_old_version(ready_mock: HTTPServer) -> None:
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.23.4"})
+    with pytest.raises(WeaviateStartUpError):
+        weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, skip_init_checks=True)
+    ready_mock.check_assertions()
