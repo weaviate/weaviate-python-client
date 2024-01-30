@@ -84,7 +84,7 @@ class BatchReference(BaseModel):
     Converts provided data to an internal object containing beacons for insertion into Weaviate.
     """
 
-    from_object_collection: str
+    from_object_collection: str = Field(min_length=1)
     from_object_uuid: UUID
     from_property_name: str
     to_object_uuid: UUID
@@ -93,8 +93,6 @@ class BatchReference(BaseModel):
 
     @field_validator("from_object_collection")
     def _validate_from_object_collection(cls, v: str) -> str:
-        if len(v) == 0:
-            raise ValueError("from_object_collection must not be empty")
         return _capitalize_first_letter(v)
 
     @field_validator("to_object_collection")
@@ -222,11 +220,6 @@ class BatchResult:
     def __init__(self) -> None:
         self.objs: BatchObjectReturn = BatchObjectReturn([], 0.0, {}, {})
         self.refs: BatchReferenceReturn = BatchReferenceReturn(0.0, {})
-
-    def __add__(self, other: "BatchResult") -> "BatchResult":
-        self.objs += other.objs
-        self.refs += other.refs
-        return self
 
 
 @dataclass
