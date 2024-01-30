@@ -17,6 +17,7 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
     Tokenization,
     Vectorizers,
+    ConsistencyLevel,
 )
 from weaviate.collections.classes.data import (
     DataObject,
@@ -104,6 +105,29 @@ def test_insert_with_no_generic(collection_factory: CollectionFactory) -> None:
     assert len(objects.objects) == 1
     prop = collection.query.fetch_object_by_id(uuid).properties["name"]
     assert prop == "some name"
+
+
+def test_insert_with_consistency_level(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    ).with_consistency_level(ConsistencyLevel.ALL)
+    uuid = collection.data.insert(properties={"name": "some name"})
+    objects = collection.query.fetch_objects()
+    assert len(objects.objects) == 1
+    prop = collection.query.fetch_object_by_id(uuid).properties["name"]
+    assert prop == "some name"
+
+
+def test_insert_bad_input(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory()
+
+    class BadInput:
+        def __init__(self) -> None:
+            self.name = "test"
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.data.insert({"name": BadInput})
 
 
 def test_delete_by_id(collection_factory: CollectionFactory) -> None:
