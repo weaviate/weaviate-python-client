@@ -258,7 +258,7 @@ class _BaseQuery(Generic[Properties, References]):
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
         options: _QueryOptions,
-    ) -> GenerativeObject[Any, Any, Optional[Vectors]]:
+    ) -> GenerativeObject[Any, Any, Any]:
         return GenerativeObject(
             collection=props.target_collection,
             properties=(
@@ -283,7 +283,7 @@ class _BaseQuery(Generic[Properties, References]):
         self,
         res: search_get_pb2.GroupByResult,
         options: _QueryOptions,
-    ) -> Group[Any, Any, Optional[Vectors]]:
+    ) -> Group[Any, Any, Any]:
         return Group(
             objects=[
                 self.__result_to_group_by_object(obj.properties, obj.metadata, options)
@@ -300,7 +300,7 @@ class _BaseQuery(Generic[Properties, References]):
         self,
         res: search_get_pb2.GroupByResult,
         options: _QueryOptions,
-    ) -> GenerativeGroup[Any, Any, Optional[Vectors]]:
+    ) -> GenerativeGroup[Any, Any, Any]:
         return GenerativeGroup(
             objects=[
                 self.__result_to_group_by_object(obj.properties, obj.metadata, options)
@@ -319,7 +319,7 @@ class _BaseQuery(Generic[Properties, References]):
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
         options: _QueryOptions,
-    ) -> GroupedObject[Any, Any, Optional[Vectors]]:
+    ) -> GroupedObject[Any, Any, Any]:
         return GroupedObject(
             collection=props.target_collection,
             properties=(
@@ -350,7 +350,7 @@ class _BaseQuery(Generic[Properties, References]):
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> QueryReturnType[Properties, References, TProperties, TReferences]:
-        return QueryReturn(  # type: ignore # used internally so types not important
+        return QueryReturn(  # type: ignore
             objects=[
                 self.__result_to_query_object(obj.properties, obj.metadata, options)
                 for obj in res.results
@@ -368,7 +368,7 @@ class _BaseQuery(Generic[Properties, References]):
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
     ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
-        return GenerativeReturn(  # type: ignore # used internally so types not important
+        return GenerativeReturn(
             objects=[
                 self.__result_to_generative_object(obj.properties, obj.metadata, options)
                 for obj in res.results

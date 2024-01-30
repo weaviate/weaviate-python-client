@@ -387,8 +387,8 @@ class Collection(_CollectionBase, Generic[Properties, References]):
     def iterator(
         self,
         *,
-        include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        include_vector: bool = False,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> ObjectIterator[Properties, References, TProperties, TReferences]:

@@ -581,27 +581,19 @@ GenerativeNearMediaReturnType = Union[
     GenerativeGroupByReturnType[Properties, References, TProperties, TReferences],
 ]
 
-QueryReturnWithoutVectors = Union[
+QueryReturnType = Union[
     QueryReturn[Properties, References, None],
     QueryReturn[TProperties, TReferences, None],
     QueryReturn[Properties, CrossReferences, None],
     QueryReturn[Properties, TReferences, None],
     QueryReturn[TProperties, References, None],
     QueryReturn[TProperties, CrossReferences, None],
-]
-
-QueryReturnWithVectors = Union[
     QueryReturn[Properties, References, Vectors],
     QueryReturn[TProperties, TReferences, Vectors],
     QueryReturn[Properties, CrossReferences, Vectors],
     QueryReturn[Properties, TReferences, Vectors],
     QueryReturn[TProperties, References, Vectors],
     QueryReturn[TProperties, CrossReferences, Vectors],
-]
-
-QueryReturnType = Union[
-    QueryReturnWithoutVectors[Properties, References, TProperties, TReferences],
-    QueryReturnWithVectors[Properties, References, TProperties, TReferences],
 ]
 
 GroupByReturnType = Union[

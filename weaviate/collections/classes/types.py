@@ -102,10 +102,10 @@ NProperties = TypeVar("NProperties", bound=Optional[Mapping[str, Any]], default=
 M = TypeVar("M")
 """`M` is a completely general type that is used wherever generic metadata objects are defined that can be used"""
 
-V = TypeVar("V")
+V = TypeVar("V", covariant=True)
 """`V` is a completely general type that is used wherever generic vector objects are defined that can be used"""
 
-P = TypeVar("P")
+P = TypeVar("P", covariant=True)
 """`P` is a completely general type that is used wherever generic properties objects are defined that can be used
 within the non-ORM and ORM APIs interchangeably"""
 
@@ -113,7 +113,7 @@ QP = TypeVar("QP")
 """`QP` is a completely general type that is used wherever generic properties objects are defined that can be used
 within the non-ORM and ORM APIs interchangeably"""
 
-R = TypeVar("R")
+R = TypeVar("R", covariant=True)
 """`R` is a completely general type that is used wherever generic reference objects are defined that can be used
 within the non-ORM and ORM APIs interchangeably"""
 
