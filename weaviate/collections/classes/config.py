@@ -627,7 +627,7 @@ CohereModel = Literal[
     "embed-english-light-v3.0",
 ]
 CohereTruncation = Literal["NONE", "START", "END", "LEFT", "RIGHT"]
-OpenAIModel = Literal["ada", "babbage", "curie", "davinci"]
+OpenAIModel = Literal["text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"]
 JinaModels = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
 AWSModel = Literal[
     "amazon.titan-embed-text-v1",
