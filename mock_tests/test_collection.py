@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import time
 import grpc
 from werkzeug import Request, Response
 
@@ -7,7 +8,7 @@ import pytest
 from pytest_httpserver import HTTPServer
 
 import weaviate
-from mock_tests.conftest import MOCK_SERVER_URL, MOCK_PORT, MOCK_IP, MOCK_PORT_GRPC
+from mock_tests.conftest import MOCK_SERVER_URL, MOCK_PORT, MOCK_IP, MOCK_PORT_GRPC, CLIENT_ID
 
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
 import weaviate.classes as wvc
@@ -101,3 +102,27 @@ def test_auth_header_with_catchall_proxy(
             auth_credentials=wvc.init.Auth.bearer_token("token"),
         )
         assert str(recwarn[0].message).startswith("Auth005")
+
+
+def test_refresh(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
+    """Test that refresh tokens are used to get a new access token."""
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": {}})
+
+    weaviate_auth_mock.expect_request(
+        "/auth",
+        data=f"grant_type=refresh_token&refresh_token={REFRESH_TOKEN}&client_id={CLIENT_ID}",
+    ).respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 1, "refresh_token": REFRESH_TOKEN}
+    )
+    with weaviate.connect_to_local(
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        host=MOCK_IP,
+        auth_credentials=wvc.init.Auth.bearer_token(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1
+        ),
+    ) as client:
+        time.sleep(1)  # client gets a new token 1s before expiration
+        client.collections.list_all()
