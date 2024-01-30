@@ -158,6 +158,19 @@ def test_delete_by_id_tenant(collection_factory: CollectionFactory) -> None:
     assert not tenant1.data.delete_by_id(uuid)
 
 
+def test_delete_by_id_consistency_level(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+    ).with_consistency_level(ConsistencyLevel.ALL)
+
+    uuid = collection.data.insert(properties={})
+    assert collection.query.fetch_object_by_id(uuid) is not None
+    assert collection.data.delete_by_id(uuid)
+    assert collection.query.fetch_object_by_id(uuid) is None
+    # does not exist anymore
+    assert not collection.data.delete_by_id(uuid)
+
+
 @pytest.mark.parametrize(
     "objects,should_error",
     [
