@@ -283,8 +283,6 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if "name" in config:
-            config["class"] = config.pop("name")
         name = super()._create(config)
         return self.get(name)
 
