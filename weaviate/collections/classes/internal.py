@@ -388,23 +388,27 @@ class CrossReferenceAnnotation:
 
 
 def _extract_types_from_reference(
-    type_: CrossReference[Properties, "References"]
-) -> Optional[Tuple[Type[Properties], Type["References"]]]:
+    type_: CrossReference[Properties, "References"], field: str
+) -> Tuple[Type[Properties], Type["References"]]:
     """Extract first inner type from CrossReference[Properties, References]."""
     if get_origin(type_) == _CrossReference:
         return cast(Tuple[Type[Properties], Type[References]], get_args(type_))
-    return None
+    raise WeaviateInvalidInputError(
+        f"Type: {type_} of field: {field} is not CrossReference[Properties, References]"
+    )
 
 
 def _extract_types_from_annotated_reference(
-    type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation]
-) -> Optional[Tuple[Type[Properties], Type["References"]]]:
+    type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation], field: str
+) -> Tuple[Type[Properties], Type["References"]]:
     """Extract inner type from Annotated[CrossReference[Properties, References]]."""
     if get_origin(type_) is Annotated:
         args = get_args(type_)
         inner_type = cast(CrossReference[Properties, References], args[0])
-        return _extract_types_from_reference(inner_type)
-    return None
+        return _extract_types_from_reference(inner_type, field)
+    raise WeaviateInvalidInputError(
+        f"Type: {type_} of field: {field} is not Annotated[CrossReference[Properties, References]]"
+    )
 
 
 def __is_annotated_reference(value: Any) -> bool:
@@ -428,11 +432,7 @@ def __create_link_to_from_annotated_reference(
         Tuple[CrossReferenceAnnotation], getattr(value, "__metadata__", None)
     )
     annotation = inner_type_metadata[0]
-    types = _extract_types_from_annotated_reference(value)
-    if types is None:
-        raise WeaviateInvalidInputError(
-            f"Type: {value} of field: {link_on} is not Annotated[CrossReference[Properties, References]]"
-        )
+    types = _extract_types_from_annotated_reference(value, link_on)
     if annotation.target_collection is not None:
         return _QueryReferenceMultiTarget(
             link_on=link_on,
@@ -457,11 +457,7 @@ def __create_link_to_from_reference(
     value: CrossReference[Properties, "References"],
 ) -> _QueryReference:
     """Create FromReference from CrossReference[Properties]."""
-    types = _extract_types_from_reference(value)
-    if types is None:
-        raise WeaviateInvalidInputError(
-            f"Type: {value} of field: {link_on} is not CrossReference[Properties, References]"
-        )
+    types = _extract_types_from_reference(value, link_on)
     return _QueryReference(
         link_on=link_on,
         return_properties=_extract_properties_from_data_model(types[0]),
