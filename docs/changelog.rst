@@ -1,6 +1,22 @@
 Changelog
 =========
 
+Version 4.4.rc1
+--------------
+
+This version is a release candidate for the python v4 client.
+
+There is a significant breaking change in this version in anticipation of the named vectors functionality of future Weaviate versions.
+- The ``vector`` property of ``Object`` has had its type changed from ``Optional[List[float]]`` to ``Optional[Dict[str, List[float]]]``.
+- Accessing of the vector property has changed from ``object.vector`` to ``object.vector["default"]``.
+- When using the client with future releases, other named vectors will be accessible as ``object.vector["name"]``.
+
+Newly created (as of 15:00UTC 01/30/24) WCS sandbox instances are now capable of handling gRPC connections and so the client has been updated accordingly in its ``connect_to_wcs`` method.
+If you are using an old sandbox, make a new one and use the new one instead.
+
+Minor bugfixes are also included.
+
+
 Version 4.4.rc0
 --------------
 
