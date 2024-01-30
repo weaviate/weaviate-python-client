@@ -1,4 +1,6 @@
 from datetime import datetime
+import json
+from werkzeug import Request, Response
 
 import pytest
 from pytest_httpserver import HTTPServer
@@ -7,6 +9,10 @@ import weaviate
 from mock_tests.conftest import MOCK_SERVER_URL, MOCK_PORT, MOCK_IP
 
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
+import weaviate.classes as wvc
+
+ACCESS_TOKEN = "HELLO!IamAnAccessToken"
+REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
 
 
 @pytest.mark.skip(reason="Fails with gRPC not enabled error")
@@ -43,3 +49,43 @@ def test_old_version(ready_mock: HTTPServer) -> None:
     with pytest.raises(WeaviateStartUpError):
         weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, skip_init_checks=True)
     ready_mock.check_assertions()
+
+
+@pytest.mark.parametrize("header_name", ["Authorization", "authorization"])
+def test_auth_header_priority(weaviate_auth_mock: HTTPServer, header_name: str) -> None:
+    """Test that auth_client_secret has priority over the auth header."""
+
+    bearer_token = "OTHER TOKEN"
+
+    weaviate_auth_mock.expect_request("/auth").respond_with_json(
+        {"access_token": ACCESS_TOKEN, "expires_in": 500, "refresh_token": REFRESH_TOKEN}
+    )
+
+    def handler(request: Request) -> Response:
+        assert request.headers["Authorization"] == "Bearer " + ACCESS_TOKEN
+        return Response(json.dumps({}))
+
+    weaviate_auth_mock.expect_request("/v1/schema").respond_with_handler(handler)
+
+    with pytest.warns(UserWarning) as recwarn:
+        weaviate.connect_to_local(
+            port=MOCK_PORT,
+            host=MOCK_IP,
+            headers={header_name: "Bearer " + bearer_token},
+            auth_credentials=wvc.init.Auth.api_key("key"),
+        )
+        assert str(recwarn[0].message).startswith("Auth004")
+
+
+def test_auth_header_with_catchall_proxy(weaviate_mock: HTTPServer) -> None:
+    """Test that the client can handle situations in which a proxy returns a catchall page for all requests."""
+    weaviate_mock.expect_request("/v1/schema").respond_with_json({})
+    weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_data(
+        "JsonCannotParseThis"
+    )
+
+    with pytest.warns(UserWarning) as recwarn:
+        weaviate.connect_to_local(
+            port=MOCK_PORT, host=MOCK_IP, auth_credentials=wvc.init.Auth.bearer_token("token")
+        )
+        assert str(recwarn[0].message).startswith("Auth005")
