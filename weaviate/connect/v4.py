@@ -1,8 +1,8 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
 
 import time
 from copy import copy
+from dataclasses import dataclass, field
 from threading import Thread, Event
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
 
@@ -60,6 +60,7 @@ from weaviate.util import (
     _decode_json_response_dict,
     _ServerVersion,
 )
+from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.warnings import _Warnings
 
 Session = Union[Client, OAuth2Client]
@@ -116,10 +117,7 @@ class _Connection(_ConnectionBase):
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
-            if not isinstance(additional_headers, dict):
-                raise TypeError(
-                    f"'additional_headers' must be of type dict or None. Given type: {type(additional_headers)}."
-                )
+            _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
             self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
@@ -185,7 +183,8 @@ class _Connection(_ConnectionBase):
                 "http://": atransport,
                 "https://": atransport,
             }
-        elif type_ == "sync":
+        else:
+            assert type_ == "sync"
             transport = HTTPTransport(
                 limits=Limits(
                     max_connections=self.__connection_config.session_pool_maxsize,
@@ -198,8 +197,6 @@ class _Connection(_ConnectionBase):
                 "http://": transport,
                 "https://": transport,
             }
-        else:
-            raise ValueError(f"Unknown type {type_}")
 
     def __make_sync_client(self) -> Client:
         return Client(
@@ -255,7 +252,7 @@ class _Connection(_ConnectionBase):
                 self.__make_clients()
                 return
 
-            if auth_client_secret is not None and not isinstance(auth_client_secret, AuthApiKey):
+            if auth_client_secret is not None:
                 _auth = _Auth(
                     session_type=OAuth2Client,
                     oidc_config=resp,
@@ -284,12 +281,10 @@ class _Connection(_ConnectionBase):
 
                     You can instantiate the client with login credentials for WCS using
 
-                    client = weaviate.Client(
+                    client = weaviate.connect_to_wcs(
                       url=YOUR_WEAVIATE_URL,
-                      auth_client_secret=weaviate.AuthClientPassword(
-                        username = YOUR_WCS_USER,
-                        password = YOUR_WCS_PW,
-                      ))
+                      auth_client_secret=wvc.init.Auth.api_key("YOUR_API_KEY")
+                    )
                     """
                 raise AuthenticationFailedError(msg)
         elif response.status_code == 404 and auth_client_secret is not None:
@@ -528,7 +523,6 @@ class _Connection(_ConnectionBase):
         self,
         path: str,
         params: Optional[Dict[str, Any]] = None,
-        external_url: bool = False,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
@@ -537,10 +531,7 @@ class _Connection(_ConnectionBase):
         if params is None:
             params = {}
 
-        if external_url:
-            request_url = path
-        else:
-            request_url = self.url + self._api_version_path + path
+        request_url = self.url + self._api_version_path + path
 
         return self.__send(
             "GET", url=request_url, params=params, error_msg=error_msg, status_codes=status_codes
@@ -562,43 +553,11 @@ class _Connection(_ConnectionBase):
         )
 
     @property
-    def proxies(self) -> dict:
-        return self._proxies
-
-    def wait_for_weaviate(self, startup_period: int) -> None:
-        ready_url = self.url + self._api_version_path + "/.well-known/ready"
-        with Client(headers=self._headers) as client:
-            for _i in range(startup_period):
-                try:
-                    res: Response = client.get(ready_url)
-                    res.raise_for_status()
-                    return
-                except (ConnectError, HTTPError):
-                    time.sleep(1)
-
-            try:
-                res = client.get(ready_url)
-                res.raise_for_status()
-                return
-            except (ConnectError, HTTPError) as error:
-                raise WeaviateStartUpError(
-                    f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
-                ) from error
-
-    @property
-    def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
-        return self._grpc_stub
-
-    @property
     def server_version(self) -> str:
         """
         Version of the weaviate instance.
         """
         return str(self._weaviate_version)
-
-    @property
-    def grpc_available(self) -> bool:
-        return self._grpc_available
 
     def get_proxies(self) -> dict:
         return self._proxies
@@ -659,17 +618,13 @@ class ConnectionV4(_Connection):
     def connect(self, skip_init_checks: bool) -> None:
         super().connect(skip_init_checks)
         # create GRPC channel. If Weaviate does not support GRPC then error now.
-        if self._connection_params._has_grpc:
-            self._grpc_channel = self._connection_params._grpc_channel(async_channel=False)
-            assert self._grpc_channel is not None
-            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
-            self._grpc_available = True
-            if not skip_init_checks:
-                self._ping_grpc()
-        else:
-            raise WeaviateGRPCUnavailableError(
-                "You must provide the gRPC port in `connection_params` to use gRPC."
-            )
+        self._grpc_channel = self._connection_params._grpc_channel(async_channel=False)
+        assert self._grpc_channel is not None
+        self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
+        self._grpc_available = True
+        if not skip_init_checks:
+            self._ping_grpc()
+
         # do it after all other init checks so as not to break all the tests
         if self._weaviate_version.is_lower_than(1, 23, 5):
             raise WeaviateStartUpError(
@@ -678,16 +633,12 @@ class ConnectionV4(_Connection):
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
-        if not self._grpc_available:
-            raise WeaviateGRPCUnavailableError(
-                "Did you forget to call client.connect() before using the client?"
-            )
+        if not self.is_connected():
+            raise WeaviateClosedClientError()
         return self._grpc_stub
 
     @property
     def agrpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
-        if not self._grpc_available:
-            raise WeaviateGRPCUnavailableError(
-                "Did you forget to call client.connect() before using the client?"
-            )
+        if not self.is_connected():
+            raise WeaviateClosedClientError()
         return self._grpc_stub_async

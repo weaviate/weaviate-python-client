@@ -24,7 +24,7 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import Collection
-from weaviate.collections.validator import _validate_input, _ValidateArgument
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.util import _capitalize_first_letter
 
 

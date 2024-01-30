@@ -24,7 +24,7 @@ from weaviate.collections.data import _DataCollection
 from weaviate.collections.iterator import _ObjectIterator
 from weaviate.collections.query import _GenerateCollection, _QueryCollection
 from weaviate.collections.tenants import _Tenants
-from weaviate.collections.validator import _validate_input, _ValidateArgument
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 
 

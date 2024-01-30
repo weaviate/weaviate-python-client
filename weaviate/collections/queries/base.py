@@ -51,7 +51,7 @@ from weaviate.collections.classes.types import (
     TReferences,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
-from weaviate.collections.validator import _validate_input, _ValidateArgument
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateGRPCUnavailableError,
