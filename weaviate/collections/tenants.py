@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.collections.validator import _validate_input, _ValidateArgument
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 
 from weaviate.connect.v4 import _ExpectedStatusCodes

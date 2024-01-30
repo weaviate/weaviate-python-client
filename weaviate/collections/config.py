@@ -22,7 +22,7 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
-from weaviate.collections.validator import _validate_input, _ValidateArgument
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateInvalidInputError,

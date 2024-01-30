@@ -62,6 +62,8 @@ from weaviate.util import (
 )
 from weaviate.warnings import _Warnings
 
+from weaviate.validator import _ValidateArgument, _validate_input
+
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 
@@ -116,10 +118,7 @@ class _Connection(_ConnectionBase):
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
-            if not isinstance(additional_headers, dict):
-                raise TypeError(
-                    f"'additional_headers' must be of type dict or None. Given type: {type(additional_headers)}."
-                )
+            _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
             self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
