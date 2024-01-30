@@ -154,29 +154,24 @@ class _QueryGRPC(_BaseGRPC):
         autocut: Optional[int] = None,
         group_by: Optional[_GroupBy] = None,
     ) -> None:
-        _validate_input(_ValidateArgument(expected=[int, None], name="limit", value=limit))
-        _validate_input(_ValidateArgument(expected=[int, None], name="offset", value=offset))
         _validate_input(
-            _ValidateArgument(expected=[uuid_lib.UUID, str, None], name="after", value=after)
-        )
-        _validate_input(_ValidateArgument(expected=[_Filters, None], name="filters", value=filters))
-        _validate_input(
-            _ValidateArgument(expected=[_MetadataQuery, None], name="metadata", value=metadata)
-        )
-        _validate_input(
-            _ValidateArgument(expected=[_Generative, None], name="generative", value=generative)
-        )
-        _validate_input(_ValidateArgument(expected=[Rerank, None], name="rerank", value=rerank))
-        _validate_input(_ValidateArgument(expected=[int, None], name="autocut", value=autocut))
-        _validate_input(
-            _ValidateArgument(expected=[_GroupBy, None], name="group_by", value=group_by)
-        )
-        _validate_input(
-            _ValidateArgument(
-                expected=[str, QueryNested, Sequence, None],
-                name="return_properties",
-                value=return_properties,
-            )
+            [
+                _ValidateArgument([int, None], "limit", limit),
+                _ValidateArgument([int, None], "offset", offset),
+                _ValidateArgument([uuid_lib.UUID, str, None], "after", after),
+                _ValidateArgument([_Filters, None], "filters", filters),
+                _ValidateArgument([_MetadataQuery, None], "metadata", metadata),
+                _ValidateArgument([_Generative, None], "generative", generative),
+                _ValidateArgument([Rerank, None], "rerank", rerank),
+                _ValidateArgument([int, None], "autocut", autocut),
+                _ValidateArgument([_GroupBy, None], "group_by", group_by),
+                _ValidateArgument(
+                    [str, QueryNested, Sequence, None], "return_properties", return_properties
+                ),
+                _ValidateArgument(
+                    [_QueryReference, Sequence, None], "return_references", return_references
+                ),
+            ]
         )
         if isinstance(return_properties, Sequence):
             for prop in return_properties:
@@ -186,13 +181,6 @@ class _QueryGRPC(_BaseGRPC):
                     )
                 )
 
-        _validate_input(
-            _ValidateArgument(
-                expected=[_QueryReference, Sequence, None],
-                name="return_references",
-                value=return_references,
-            )
-        )
         if isinstance(return_references, Sequence):
             for ref in return_references:
                 _validate_input(
