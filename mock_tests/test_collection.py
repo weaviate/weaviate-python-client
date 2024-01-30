@@ -1,15 +1,17 @@
 from datetime import datetime
 import json
+import grpc
 from werkzeug import Request, Response
 
 import pytest
 from pytest_httpserver import HTTPServer
 
 import weaviate
-from mock_tests.conftest import MOCK_SERVER_URL, MOCK_PORT, MOCK_IP
+from mock_tests.conftest import MOCK_SERVER_URL, MOCK_PORT, MOCK_IP, MOCK_PORT_GRPC
 
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
 import weaviate.classes as wvc
+
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
@@ -33,10 +35,12 @@ def test_warning_old_weaviate(recwarn: pytest.WarningsRecorder, ready_mock: HTTP
     assert str(w.message).startswith("Con002")
 
 
-def test_status_code_exception(weaviate_mock: HTTPServer) -> None:
+def test_status_code_exception(weaviate_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
     weaviate_mock.expect_request("/v1/schema/Test").respond_with_json(response_json={}, status=403)
 
-    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, skip_init_checks=True)
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    )
     collection = client.collections.get("Test")
     with pytest.raises(UnexpectedStatusCodeError) as e:
         collection.config.get()
@@ -44,7 +48,7 @@ def test_status_code_exception(weaviate_mock: HTTPServer) -> None:
     weaviate_mock.check_assertions()
 
 
-def test_old_version(ready_mock: HTTPServer) -> None:
+def test_old_version(ready_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
     ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.23.4"})
     with pytest.raises(WeaviateStartUpError):
         weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, skip_init_checks=True)
@@ -52,7 +56,9 @@ def test_old_version(ready_mock: HTTPServer) -> None:
 
 
 @pytest.mark.parametrize("header_name", ["Authorization", "authorization"])
-def test_auth_header_priority(weaviate_auth_mock: HTTPServer, header_name: str) -> None:
+def test_auth_header_priority(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, header_name: str
+) -> None:
     """Test that auth_client_secret has priority over the auth header."""
 
     bearer_token = "OTHER TOKEN"
@@ -71,13 +77,16 @@ def test_auth_header_priority(weaviate_auth_mock: HTTPServer, header_name: str) 
         weaviate.connect_to_local(
             port=MOCK_PORT,
             host=MOCK_IP,
+            grpc_port=MOCK_PORT_GRPC,
             headers={header_name: "Bearer " + bearer_token},
             auth_credentials=wvc.init.Auth.api_key("key"),
         )
         assert str(recwarn[0].message).startswith("Auth004")
 
 
-def test_auth_header_with_catchall_proxy(weaviate_mock: HTTPServer) -> None:
+def test_auth_header_with_catchall_proxy(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
     """Test that the client can handle situations in which a proxy returns a catchall page for all requests."""
     weaviate_mock.expect_request("/v1/schema").respond_with_json({})
     weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_data(
@@ -86,6 +95,9 @@ def test_auth_header_with_catchall_proxy(weaviate_mock: HTTPServer) -> None:
 
     with pytest.warns(UserWarning) as recwarn:
         weaviate.connect_to_local(
-            port=MOCK_PORT, host=MOCK_IP, auth_credentials=wvc.init.Auth.bearer_token("token")
+            port=MOCK_PORT,
+            grpc_port=MOCK_PORT_GRPC,
+            host=MOCK_IP,
+            auth_credentials=wvc.init.Auth.bearer_token("token"),
         )
         assert str(recwarn[0].message).startswith("Auth005")
