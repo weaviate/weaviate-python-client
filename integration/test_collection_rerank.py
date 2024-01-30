@@ -64,7 +64,7 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
                 uuid1, rerank=wvc.query.Rerank(prop="text", query="another")
             ),
             lambda: collection.query.near_vector(
-                vector1, rerank=wvc.query.Rerank(prop="text", query="another")
+                vector1["default"], rerank=wvc.query.Rerank(prop="text", query="another")
             ),
             lambda: collection.query.near_text(
                 "test", rerank=wvc.query.Rerank(prop="text", query="another")
@@ -118,7 +118,7 @@ def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory)
                 group_by=wvc.query.GroupBy(prop="text", objects_per_group=1, number_of_groups=2),
             ),
             lambda: collection.query.near_vector(
-                vector1,
+                vector1["default"],
                 rerank=wvc.query.Rerank(prop="text", query="another"),
                 group_by=wvc.query.GroupBy(prop="text", objects_per_group=1, number_of_groups=2),
             ),

@@ -270,7 +270,7 @@ def test_near_vector_aggregation(
     assert obj.vector is not None
     collection.data.insert({"text": text_2})
     res: AggregateReturn = collection.aggregate.near_vector(
-        obj.vector,
+        obj.vector["default"],
         return_metrics=[
             Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
         ],
@@ -304,7 +304,7 @@ def test_near_vector_missing_param(collection_factory: CollectionFactory) -> Non
     assert obj.vector is not None
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection.aggregate.near_vector(
-            obj.vector,
+            obj.vector["default"],
             return_metrics=[
                 Metrics("text").text(
                     count=True, top_occurrences_count=True, top_occurrences_value=True
