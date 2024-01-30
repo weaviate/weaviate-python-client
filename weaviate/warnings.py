@@ -81,7 +81,7 @@ class _Warnings:
         warnings.warn(
             message="""Dep002: You are batching manually. This means you are NOT using the client's built-in
             multi-threading. Setting `batch_size` in `client.batch.configure()`  to an int value will enabled automatic
-            batching. See:hhttps://weaviate.io/developers/weaviate/client-libraries/python#batching""",
+            batching. See:https://weaviate.io/developers/weaviate/client-libraries/python#batching""",
             category=DeprecationWarning,
             stacklevel=1,
         )
