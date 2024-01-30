@@ -185,7 +185,8 @@ class _Connection(_ConnectionBase):
                 "http://": atransport,
                 "https://": atransport,
             }
-        elif type_ == "sync":
+        else:
+            assert type_ == "sync"
             transport = HTTPTransport(
                 limits=Limits(
                     max_connections=self.__connection_config.session_pool_maxsize,
@@ -198,8 +199,6 @@ class _Connection(_ConnectionBase):
                 "http://": transport,
                 "https://": transport,
             }
-        else:
-            raise ValueError(f"Unknown type {type_}")
 
     def __make_sync_client(self) -> Client:
         return Client(
@@ -528,7 +527,6 @@ class _Connection(_ConnectionBase):
         self,
         path: str,
         params: Optional[Dict[str, Any]] = None,
-        external_url: bool = False,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
@@ -537,10 +535,7 @@ class _Connection(_ConnectionBase):
         if params is None:
             params = {}
 
-        if external_url:
-            request_url = path
-        else:
-            request_url = self.url + self._api_version_path + path
+        request_url = self.url + self._api_version_path + path
 
         return self.__send(
             "GET", url=request_url, params=params, error_msg=error_msg, status_codes=status_codes
@@ -560,30 +555,6 @@ class _Connection(_ConnectionBase):
             error_msg=error_msg,
             status_codes=status_codes,
         )
-
-    @property
-    def proxies(self) -> dict:
-        return self._proxies
-
-    def wait_for_weaviate(self, startup_period: int) -> None:
-        ready_url = self.url + self._api_version_path + "/.well-known/ready"
-        with Client(headers=self._headers) as client:
-            for _i in range(startup_period):
-                try:
-                    res: Response = client.get(ready_url)
-                    res.raise_for_status()
-                    return
-                except (ConnectError, HTTPError):
-                    time.sleep(1)
-
-            try:
-                res = client.get(ready_url)
-                res.raise_for_status()
-                return
-            except (ConnectError, HTTPError) as error:
-                raise WeaviateStartUpError(
-                    f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
-                ) from error
 
     @property
     def server_version(self) -> str:
