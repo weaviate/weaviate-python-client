@@ -28,9 +28,9 @@ def connect_to_wcs(
         `cluster_url`
             The WCS cluster URL or hostname to connect to. Usually in the form rAnD0mD1g1t5.something.weaviate.cloud
         `auth_credentials`
-            The credentials to use for authentication with your WCS instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
-            a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
-            or a username and password, in which case use `weaviate.AuthClientPassword`.
+            The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
+            a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
+            or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
         `headers`
             Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorization.
         `additional_config`
@@ -46,7 +46,7 @@ def connect_to_wcs(
         >>> import weaviate
         >>> client = weaviate.connect_to_wcs(
         ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
-        ...     auth_credentials=weaviate.AuthApiKey("my-api-key"),
+        ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
         ... )
         >>> client.is_ready()
         True
@@ -55,7 +55,7 @@ def connect_to_wcs(
         >>> import weaviate
         >>> with weaviate.connect_to_wcs(
         ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
-        ...     auth_credentials=weaviate.AuthApiKey("my-api-key"),
+        ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
         ... ) as client:
         ...     client.is_ready()
         True
@@ -64,7 +64,11 @@ def connect_to_wcs(
     if cluster_url.startswith("http"):
         # Handle the common case of copy/pasting a URL instead of the hostname.
         cluster_url = urlparse(cluster_url).netloc
-    grpc_host = f"grpc-{cluster_url}"
+    if cluster_url.endswith(".weaviate.network"):
+        ident, domain = cluster_url.split(".", 1)
+        grpc_host = f"{ident}.grpc.{domain}"
+    else:
+        grpc_host = f"grpc-{cluster_url}"
 
     client = WeaviateClient(
         connection_params=ConnectionParams(
@@ -76,8 +80,7 @@ def connect_to_wcs(
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
     )
-    client.connect()
-    return client
+    return __connect(client)
 
 
 def connect_to_local(
@@ -111,9 +114,9 @@ def connect_to_local(
         `skip_init_checks`
             Whether to skip the initialization checks when connecting to Weaviate.
         `auth_credentials`
-            The credentials to use for authentication with your instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
-            a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
-            or a username and password, in which case use `weaviate.AuthClientPassword`.
+            The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
+            a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
+            or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
 
     Returns
         `weaviate.WeaviateClient`
@@ -150,8 +153,7 @@ def connect_to_local(
         skip_init_checks=skip_init_checks,
         auth_client_secret=auth_credentials,
     )
-    client.connect()
-    return client
+    return __connect(client)
 
 
 def connect_to_embedded(
@@ -237,8 +239,7 @@ def connect_to_embedded(
         additional_headers=headers,
         additional_config=additional_config,
     )
-    client.connect()
-    return client
+    return __connect(client)
 
 
 def connect_to_custom(
@@ -281,9 +282,9 @@ def connect_to_custom(
             The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
             represents the connect timeout and the second integer represents the read timeout.
         `auth_credentials`
-            The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.AuthApiKey`,
-            a bearer token, in which case use `weaviate.AuthBearerToken`, a client secret, in which case use `weaviate.AuthClientCredentials`
-            or a username and password, in which case use `weaviate.AuthClientPassword`.
+            The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
+            a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
+            or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
         `skip_init_checks`
             Whether to skip the initialization checks when connecting to Weaviate.
 
@@ -332,5 +333,13 @@ def connect_to_custom(
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
     )
-    client.connect()
-    return client
+    return __connect(client)
+
+
+def __connect(client: WeaviateClient) -> WeaviateClient:
+    try:
+        client.connect()
+        return client
+    except Exception as e:
+        client.close()
+        raise e

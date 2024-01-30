@@ -641,6 +641,7 @@ class ConnectionV4(_Connection):
         )
 
     def _ping_grpc(self) -> None:
+        """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         if not self.is_connected():
             raise WeaviateClosedClientError()
         assert self._grpc_channel is not None
