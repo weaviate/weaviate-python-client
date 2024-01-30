@@ -212,6 +212,11 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             )
 
         if embedded_options is not None:
+            if not isinstance(embedded_options, EmbeddedOptions):
+                raise TypeError(
+                    f"embedded_options is expected to be a EmbeddedOptions object but is {type(embedded_options)}"
+                )
+
             embedded_db = EmbeddedV4(options=embedded_options)
             return (
                 ConnectionParams(
