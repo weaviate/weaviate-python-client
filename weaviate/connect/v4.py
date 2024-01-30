@@ -640,7 +640,7 @@ class ConnectionV4(_Connection):
             embedded_db,
         )
 
-    def _ping_grpc(self, close_on_error: bool = True) -> None:
+    def _ping_grpc(self) -> None:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         if not self.is_connected():
             raise WeaviateClosedClientError()
@@ -652,12 +652,8 @@ class ConnectionV4(_Connection):
                 response_deserializer=health_pb2.HealthCheckResponse.FromString,
             )(health_pb2.HealthCheckRequest(), timeout=1)
             if res.status != health_pb2.HealthCheckResponse.SERVING:
-                if close_on_error:
-                    self.close()
                 raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}")
         except _channel._InactiveRpcError as e:
-            if close_on_error:
-                self.close()
             raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}") from e
 
     def connect(self, skip_init_checks: bool) -> None:

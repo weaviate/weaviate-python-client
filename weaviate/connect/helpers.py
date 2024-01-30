@@ -80,7 +80,11 @@ def connect_to_wcs(
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
     )
-    client.connect()
+    try:
+        client.connect()
+    except Exception as e:
+        client.close()
+        raise e
     return client
 
 
@@ -154,7 +158,11 @@ def connect_to_local(
         skip_init_checks=skip_init_checks,
         auth_client_secret=auth_credentials,
     )
-    client.connect()
+    try:
+        client.connect()
+    except Exception as e:
+        client.close()
+        raise e
     return client
 
 
@@ -241,7 +249,11 @@ def connect_to_embedded(
         additional_headers=headers,
         additional_config=additional_config,
     )
-    client.connect()
+    try:
+        client.connect()
+    except Exception as e:
+        client.close()
+        raise e
     return client
 
 
@@ -336,5 +348,9 @@ def connect_to_custom(
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
     )
-    client.connect()
+    try:
+        client.connect()
+    except Exception as e:
+        client.close()
+        raise e
     return client
