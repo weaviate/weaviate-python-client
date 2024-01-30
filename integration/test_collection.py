@@ -1321,6 +1321,33 @@ def test_insert_date_property(
     # when parsing the date property in generics and the ORM in the future
 
 
+def test_exist(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    uuid1 = collection.data.insert({})
+
+    assert collection.data.exists(uuid1)
+    assert not collection.data.exists(uuid.uuid4())
+
+
+def test_exist_with_tenant(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+    collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
+
+    uuid1 = collection.with_tenant("Tenant1").data.insert({})
+    uuid2 = collection.with_tenant("Tenant2").data.insert({})
+
+    assert collection.with_tenant("Tenant1").data.exists(uuid1)
+    assert not collection.with_tenant("Tenant2").data.exists(uuid1)
+    assert collection.with_tenant("Tenant2").data.exists(uuid2)
+    assert not collection.with_tenant("Tenant1").data.exists(uuid2)
+
+
 def test_tenant_with_activity(collection_factory: CollectionFactory) -> None:
     name = "TestTenantActivity"
     collection = collection_factory(
