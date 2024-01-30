@@ -47,6 +47,8 @@ from weaviate.types import NUMBER, UUID
 
 from weaviate.proto.v1 import search_get_pb2
 
+from weaviate.collections.validator import _ValidateArgument, _validate_input
+
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
 _PyValue: TypeAlias = Union[
@@ -86,9 +88,9 @@ class _QueryGRPC(_BaseGRPC):
         self._name: str = name
         self._tenant = tenant
 
-        self._default_props: Optional[Set[PROPERTY]] = None
+        self._return_props: Optional[Set[PROPERTY]] = None
         self._metadata: Optional[_MetadataQuery] = None
-        self._refs: Optional[Set[REFERENCE]] = None
+        self._return_refs: Optional[Set[REFERENCE]] = None
 
         self._limit: Optional[int] = None
         self._offset: Optional[int] = None
@@ -152,40 +154,52 @@ class _QueryGRPC(_BaseGRPC):
         autocut: Optional[int] = None,
         group_by: Optional[_GroupBy] = None,
     ) -> None:
-        if limit is not None and not isinstance(limit, int):
-            raise WeaviateInvalidInputError(f"limit must be of type int, but got {type(limit)}")
-        if offset is not None and not isinstance(offset, int):
-            raise WeaviateInvalidInputError(f"offset must be of type int, but got {type(offset)}")
-        if (
-            after is not None
-            and not isinstance(after, uuid_lib.UUID)
-            and not isinstance(after, str)
-        ):
-            raise WeaviateInvalidInputError(
-                f"after must be of type str or uuid.UUID, but got {type(after)}"
+        _validate_input(_ValidateArgument(expected=[int, None], name="limit", value=limit))
+        _validate_input(_ValidateArgument(expected=[int, None], name="offset", value=offset))
+        _validate_input(
+            _ValidateArgument(expected=[uuid_lib.UUID, str, None], name="after", value=after)
+        )
+        _validate_input(_ValidateArgument(expected=[_Filters, None], name="filters", value=filters))
+        _validate_input(
+            _ValidateArgument(expected=[_MetadataQuery, None], name="metadata", value=metadata)
+        )
+        _validate_input(
+            _ValidateArgument(expected=[_Generative, None], name="generative", value=generative)
+        )
+        _validate_input(_ValidateArgument(expected=[Rerank, None], name="rerank", value=rerank))
+        _validate_input(_ValidateArgument(expected=[int, None], name="autocut", value=autocut))
+        _validate_input(
+            _ValidateArgument(expected=[_GroupBy, None], name="group_by", value=group_by)
+        )
+        _validate_input(
+            _ValidateArgument(
+                expected=[str, QueryNested, Sequence, None],
+                name="return_properties",
+                value=return_properties,
             )
-        if filters is not None and not isinstance(filters, _Filters):
-            raise WeaviateInvalidInputError(
-                f"filters must be of type weaviate.classes.query.Filters, but got {type(filters)}"
+        )
+        if isinstance(return_properties, Sequence):
+            for prop in return_properties:
+                _validate_input(
+                    _ValidateArgument(
+                        expected=[str, QueryNested], name="return_properties", value=prop
+                    )
+                )
+
+        _validate_input(
+            _ValidateArgument(
+                expected=[_QueryReference, Sequence, None],
+                name="return_references",
+                value=return_references,
             )
-        if metadata is not None and not isinstance(metadata, _MetadataQuery):
-            raise WeaviateInvalidInputError(
-                f"metadata must be of type weaviate.classes.query.MetadataQuery, but got {type(metadata)}"
-            )
-        if generative is not None and not isinstance(generative, _Generative):
-            raise WeaviateInvalidInputError(
-                f"generative must be of type weaviate.classes.query.Generative, but got {type(generative)}"
-            )
-        if rerank is not None and not isinstance(rerank, Rerank):
-            raise WeaviateInvalidInputError(
-                f"rerank must be of type weaviate.classes.query.Rerank, but got {type(rerank)}"
-            )
-        if autocut is not None and not isinstance(autocut, int):
-            raise WeaviateInvalidInputError(f"autocut must be of type int, but got {type(autocut)}")
-        if group_by is not None and not isinstance(group_by, _GroupBy):
-            raise WeaviateInvalidInputError(
-                f"group_by must be of type weaviate.classes.query.GroupBy, but got {type(group_by)}"
-            )
+        )
+        if isinstance(return_references, Sequence):
+            for ref in return_references:
+                _validate_input(
+                    _ValidateArgument(
+                        expected=[_QueryReference], name="return_references", value=ref
+                    )
+                )
 
         self._limit = limit
         self._offset = offset
@@ -196,8 +210,11 @@ class _QueryGRPC(_BaseGRPC):
         self._rerank = rerank
         self._autocut = autocut
         self._group_by = group_by
-        self.__merge_default_and_return_properties(return_properties)
-        self.__merge_return_references(return_references)
+
+        if return_references is not None:
+            self._return_refs = self.__convert_to_set(return_references)
+        if return_properties is not None:
+            self._return_props = self.__convert_to_set(return_properties)
 
     def __parse_hybrid(
         self,
@@ -586,7 +603,7 @@ class _QueryGRPC(_BaseGRPC):
                         else None
                     ),
                     properties=self._translate_properties_from_python_to_grpc(
-                        self._default_props, self._refs
+                        self._return_props, self._return_refs
                     ),
                     metadata=(
                         self._metadata_to_grpc(self._metadata)
@@ -789,53 +806,6 @@ class _QueryGRPC(_BaseGRPC):
                 ]
             ),
         )
-
-    def __merge_default_and_return_properties(
-        self, return_properties: Optional[PROPERTIES]
-    ) -> None:
-        if return_properties is None:
-            return
-        if (
-            not isinstance(return_properties, str)
-            and not isinstance(return_properties, Sequence)
-            and not isinstance(return_properties, QueryNested)
-        ):
-            raise WeaviateInvalidInputError(
-                f"return_properties must be of type str, QueryNested or List[str, QueryNested], but got {type(return_properties)}"
-            )
-        elif isinstance(return_properties, Sequence):
-            if any(
-                not isinstance(prop, str) and not isinstance(prop, QueryNested)
-                for prop in return_properties
-            ):
-                raise WeaviateInvalidInputError(
-                    f"return_properties must be of type str, QueryNested or List[str, QueryNested], but got {type(return_properties)}"
-                )
-        if self._default_props is not None:
-            self._default_props = self._default_props.union(
-                self.__convert_to_set(return_properties)
-            )
-        else:
-            self._default_props = self.__convert_to_set(return_properties)
-
-    def __merge_return_references(self, return_references: Optional[REFERENCES]) -> None:
-        if return_references is None:
-            return None
-        if not isinstance(return_references, _QueryReference) and not isinstance(
-            return_references, Sequence
-        ):
-            raise WeaviateInvalidInputError(
-                f"return_references must be of type QueryReference, QueryReferenceMultiTarget or List[QueryReference | QueryReferenceMultiTarget], but got {type(return_references)}"
-            )
-        elif isinstance(return_references, Sequence):
-            if any(not isinstance(ref, _QueryReference) for ref in return_references):
-                raise WeaviateInvalidInputError(
-                    f"return_references must be of type QueryReference, QueryReferenceMultiTarget or List[QueryReference | QueryReferenceMultiTarget], but got {type(return_references)}"
-                )
-        if self._refs is not None:
-            self._refs = self._refs.union(self.__convert_to_set(return_references))
-        else:
-            self._refs = self.__convert_to_set(return_references)
 
     @staticmethod
     def __convert_to_set(args: Union[A, Sequence[A]]) -> Set[A]:

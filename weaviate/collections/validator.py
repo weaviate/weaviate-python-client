@@ -11,12 +11,14 @@ class _ValidateArgument:
     value: Any
 
 
-def _validate_input(inputs: List[_ValidateArgument]) -> None:
+def _validate_input(inputs: Union[List[_ValidateArgument], _ValidateArgument]) -> None:
     """Validate the values of the input arguments in comparison to the expected types defined in _ValidateArgument.
 
     It is not completely robust so be careful supplying subscripted generics in expected as it may not function as expected.
     To avoid this, only supply simply generics like Sequence[...] and List[...] as seen below in __is_valid.
     """
+    if isinstance(inputs, _ValidateArgument):
+        inputs = [inputs]
     for validate in inputs:
         if not any(__is_valid(exp, validate.value) for exp in validate.expected):
             raise WeaviateInvalidInputError(
