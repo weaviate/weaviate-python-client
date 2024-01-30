@@ -474,7 +474,7 @@ def test_openai_batch_upload(openai_collection: OpenAICollection, request: SubRe
 
     objects = collection.query.fetch_objects(include_vector=True).objects
     assert objects[0].vector is not None
-    assert len(objects[0].vector) > 0
+    assert len(objects[0].vector["default"]) > 0
 
 
 def test_queries_with_rerank_and_generative(collection_factory: CollectionFactory) -> None:
@@ -519,7 +519,7 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
                 single_prompt="What is it? {text}",
             ),
             lambda: collection.generate.near_vector(
-                vector1,
+                vector1["default"],
                 rerank=Rerank(prop="text", query="another"),
                 single_prompt="What is it? {text}",
             ),

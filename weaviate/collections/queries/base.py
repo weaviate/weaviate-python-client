@@ -4,7 +4,7 @@ import os
 import pathlib
 import struct
 import uuid as uuid_lib
-from typing import Any, Generic, List, Optional, Sequence, Type, Union, cast
+from typing import Any, Dict, Generic, List, Optional, Sequence, Type, Union, cast
 
 from typing_extensions import is_typeddict
 
@@ -150,12 +150,12 @@ class _BaseQuery(Generic[Properties, References]):
     def __extract_vector_for_object(
         self,
         add_props: "search_get_pb2.MetadataResult",
-    ) -> Optional[List[float]]:
+    ) -> Optional[Dict[str, List[float]]]:
         if len(add_props.vector_bytes) == 0 and len(add_props.vector) == 0:
             return None
 
         vector_bytes = struct.unpack(f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes)
-        return list(vector_bytes)
+        return {"default": list(vector_bytes)}
 
     def __extract_generated_for_object(
         self,

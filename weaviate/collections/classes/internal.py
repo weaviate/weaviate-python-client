@@ -93,7 +93,7 @@ class _Object(Generic[P, R, M]):
     metadata: M
     properties: P
     references: R
-    vector: Optional[List[float]]
+    vector: Optional[Dict[str, List[float]]]
     collection: str
 
 
