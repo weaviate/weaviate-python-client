@@ -586,19 +586,11 @@ class _Connection(_ConnectionBase):
                 ) from error
 
     @property
-    def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
-        return self._grpc_stub
-
-    @property
     def server_version(self) -> str:
         """
         Version of the weaviate instance.
         """
         return str(self._weaviate_version)
-
-    @property
-    def grpc_available(self) -> bool:
-        return self._grpc_available
 
     def get_proxies(self) -> dict:
         return self._proxies
