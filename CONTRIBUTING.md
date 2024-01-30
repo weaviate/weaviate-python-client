@@ -16,7 +16,7 @@ The newest client versions sometimes require upcoming Weaviate core features. We
 
 #### Installation
 
-To install the Python client library in your virtual environment while in development, use “edit mode”:
+To install a development version of the Python client library in your virtual environment, use “edit mode”:
 
 ```shell
 pip install -e /PATH/TO/WEAVIATE-PYTHON-CLIENT
