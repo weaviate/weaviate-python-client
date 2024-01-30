@@ -1968,3 +1968,13 @@ def test_double_insert_with_same_uuid(collection_factory: CollectionFactory) -> 
     uuid1 = collection.data.insert({})
     with pytest.raises(UnexpectedStatusCodeError):
         collection.data.insert({}, uuid=uuid1)
+
+
+def test_bad_return_references_generic(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory()
+
+    class Refs(TypedDict):
+        ref: str
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.fetch_objects(return_references=Refs)
