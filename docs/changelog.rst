@@ -11,7 +11,8 @@ There is a significant breaking change in this version in anticipation of the na
 - Accessing of the vector property has changed from ``object.vector`` to ``object.vector["default"]``.
 - When using the client with future releases, other named vectors will be accessible as ``object.vector["name"]``.
 
-WCS sandbox instances are now capable of handling gRPC connections and so the client has been updated accordingly in its ``connect_to_wcs`` method.
+Newly created (as of 15:00UTC 01/30/24) WCS sandbox instances are now capable of handling gRPC connections and so the client has been updated accordingly in its ``connect_to_wcs`` method.
+If you are using an old sandbox, make a new one and use the new one instead.
 
 Minor bugfixes are also included.
 
