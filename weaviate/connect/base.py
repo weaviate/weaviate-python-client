@@ -157,10 +157,6 @@ class ConnectionParams(BaseModel):
     def _http_url(self) -> str:
         return f"{self._http_scheme}://{self.http.host}:{self.http.port}"
 
-    @property
-    def _has_grpc(self) -> bool:
-        return self.grpc is not None
-
 
 class _ConnectionBase(ABC):
     @abstractmethod

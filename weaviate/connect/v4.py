@@ -658,17 +658,13 @@ class ConnectionV4(_Connection):
     def connect(self, skip_init_checks: bool) -> None:
         super().connect(skip_init_checks)
         # create GRPC channel. If Weaviate does not support GRPC then error now.
-        if self._connection_params._has_grpc:
-            self._grpc_channel = self._connection_params._grpc_channel(async_channel=False)
-            assert self._grpc_channel is not None
-            self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
-            self._grpc_available = True
-            if not skip_init_checks:
-                self._ping_grpc()
-        else:
-            raise WeaviateGRPCUnavailableError(
-                "You must provide the gRPC port in `connection_params` to use gRPC."
-            )
+        self._grpc_channel = self._connection_params._grpc_channel(async_channel=False)
+        assert self._grpc_channel is not None
+        self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
+        self._grpc_available = True
+        if not skip_init_checks:
+            self._ping_grpc()
+
         # do it after all other init checks so as not to break all the tests
         if self._weaviate_version.is_lower_than(1, 23, 5):
             raise WeaviateStartUpError(
@@ -677,16 +673,12 @@ class ConnectionV4(_Connection):
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
-        if not self._grpc_available:
-            raise WeaviateGRPCUnavailableError(
-                "Did you forget to call client.connect() before using the client?"
-            )
+        if not self.is_connected():
+            raise WeaviateClosedClientError()
         return self._grpc_stub
 
     @property
     def agrpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
-        if not self._grpc_available:
-            raise WeaviateGRPCUnavailableError(
-                "Did you forget to call client.connect() before using the client?"
-            )
+        if not self.is_connected():
+            raise WeaviateClosedClientError()
         return self._grpc_stub_async
