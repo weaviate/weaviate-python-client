@@ -86,6 +86,18 @@ class _Data:
         )
         return uuid_package.UUID(weaviate_obj["id"])
 
+    def _exists(self, uuid: str) -> bool:
+        path = "/objects/" + self.name + "/" + uuid
+
+        params = self.__apply_context({})
+        request = self._connection.head(
+            path=path,
+            params=params,
+            error_msg="object existence",
+            status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="object existence"),
+        )
+        return request.status_code == 204
+
     def delete_by_id(self, uuid: UUID) -> bool:
         """Delete an object from the collection based on its UUID.
 
@@ -598,3 +610,20 @@ class _DataCollection(Generic[Properties], _Data):
         else:
             ref = _Reference(target_collection=None, uuids=to)
         self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
+
+    def exists(self, uuid: UUID) -> bool:
+        """Check for existence of a single object in the collection.
+
+        Arguments:
+            `uuid`
+                The UUID of the object.
+
+        Returns:
+            `bool`, True if objects exists and False if not.
+
+        Raises:
+            `weaviate.exceptions.UnexpectedStatusCodeError`:
+                If any unexpected error occurs during the operation.
+        """
+        _validate_input(_ValidateArgument(expected=[UUID], name="uuid", value=uuid))
+        return self._exists(str(uuid))
