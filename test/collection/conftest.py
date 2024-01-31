@@ -15,5 +15,5 @@ def connection() -> ConnectionV4:
         ConnectionConfig(),
         None,
     )
-    con.connect(skip_init_checks=True)
+    con._Connection__connected = True
     return con
