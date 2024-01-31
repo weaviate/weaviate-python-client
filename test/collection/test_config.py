@@ -582,6 +582,39 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.azure_openai(resource_name="name", deployment_id="id"),
+        {
+            "generative-openai": {
+                "deploymentId": "id",
+                "resourceName": "name",
+            }
+        },
+    ),
+    (
+        Configure.Generative.azure_openai(
+            resource_name="name",
+            deployment_id="id",
+            frequency_penalty=0.5,
+            max_tokens=100,
+            presence_penalty=0.5,
+            temperature=0.5,
+            top_p=0.5,
+            base_url="https://api.openai.com",
+        ),
+        {
+            "generative-openai": {
+                "deploymentId": "id",
+                "resourceName": "name",
+                "frequencyPenaltyProperty": 0.5,
+                "maxTokensProperty": 100,
+                "presencePenaltyProperty": 0.5,
+                "temperatureProperty": 0.5,
+                "topPProperty": 0.5,
+                "baseURL": "https://api.openai.com/",
+            }
+        },
+    ),
 ]
 
 
@@ -592,7 +625,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
 def test_config_with_generative(
     generative_config: _GenerativeConfigCreate,
     expected_mc: dict,
-):
+) -> None:
     config = _CollectionConfigCreate(name="test", generative_config=generative_config)
     assert config._to_dict() == {
         **DEFAULTS,

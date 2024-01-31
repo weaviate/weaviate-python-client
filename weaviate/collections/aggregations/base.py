@@ -164,6 +164,15 @@ class _Aggregate:
                 f"Unknown aggregation type {metric} encountered in _Aggregate.__parse_property() for property {property_}"
             )
 
+    @staticmethod
+    def _add_groupby_to_builder(
+        builder: AggregateBuilder, group_by: Optional[str]
+    ) -> AggregateBuilder:
+        if group_by is None:
+            return builder
+        builder = builder.with_group_by_filter([group_by])
+        return builder.with_fields(" groupedBy { path value } ")
+
     def _base(
         self,
         metrics: Optional[List[_Metrics]],

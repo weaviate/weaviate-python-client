@@ -210,7 +210,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         description="Test",
         vectorizer_config=Configure.Vectorizer.none(),
         properties=[
-            Property(name="text", data_type=DataType.TEXT),
+            Property(name="text", data_type=DataType.TEXT, description="desc"),
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
             Property(name="number", data_type=DataType.NUMBER),
             Property(name="numbers", data_type=DataType.NUMBER_ARRAY),
@@ -268,6 +268,8 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
 
     assert config.properties[0].name == "text"
     assert config.properties[0].data_type == DataType.TEXT
+    prop_dict = config.properties[0].to_dict()
+    assert prop_dict["description"] == "desc"
     assert config.properties[1].name == "texts"
     assert config.properties[1].data_type == DataType.TEXT_ARRAY
     assert config.properties[2].name == "number"

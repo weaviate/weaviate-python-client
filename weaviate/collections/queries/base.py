@@ -54,7 +54,7 @@ from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
-    WeaviateGRPCUnavailableError,
+    WeaviateClosedClientError,
     WeaviateQueryError,
     WeaviateInvalidInputError,
 )
@@ -88,8 +88,8 @@ class _BaseQuery(Generic[Properties, References]):
         self._references = references
 
     def _query(self) -> _QueryGRPC:
-        if not self.__connection._grpc_available:
-            raise WeaviateGRPCUnavailableError()
+        if not self.__connection.is_connected():
+            raise WeaviateClosedClientError()
         return _QueryGRPC(
             self.__connection,
             self._name,

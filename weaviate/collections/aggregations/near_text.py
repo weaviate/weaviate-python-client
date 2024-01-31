@@ -105,9 +105,7 @@ class _NearText(_Aggregate):
             else [return_metrics]
         )
         builder = self._base(return_metrics, filters, limit, total_count)
-        if group_by is not None:
-            builder = builder.with_group_by_filter([group_by])
-            builder = builder.with_fields(" groupedBy { path value } ")
+        builder = self._add_groupby_to_builder(builder, group_by)
         builder = self._add_near_text(
             builder, query, certainty, distance, move_to, move_away, object_limit
         )
