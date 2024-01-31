@@ -17,6 +17,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateGroup,
     AggregateGroupByReturn,
     AggregateReturn,
+    GroupBy,
     _Metrics,
     _MetricsBoolean,
     _MetricsDate,
@@ -166,18 +167,19 @@ class _Aggregate:
 
     @staticmethod
     def _add_groupby_to_builder(
-        builder: AggregateBuilder, group_by: Optional[str]
+        builder: AggregateBuilder, group_by: Optional[GroupBy]
     ) -> AggregateBuilder:
         if group_by is None:
             return builder
-        builder = builder.with_group_by_filter([group_by])
+        builder = builder.with_group_by_filter([group_by.prop])
+        if group_by.limit is not None:
+            builder = builder.with_limit(group_by.limit)
         return builder.with_fields(" groupedBy { path value } ")
 
     def _base(
         self,
         metrics: Optional[List[_Metrics]],
         filters: Optional[_Filters],
-        limit: Optional[int],
         total_count: bool,
     ) -> AggregateBuilder:
         builder = self._query()
@@ -185,8 +187,6 @@ class _Aggregate:
             builder = builder.with_fields(" ".join([metric.to_gql() for metric in metrics]))
         if filters is not None:
             builder = builder.with_where(_FilterToREST.convert(filters))
-        if limit is not None:
-            builder = builder.with_limit(limit)
         if total_count:
             builder = builder.with_meta_count()
         if self._tenant is not None:
