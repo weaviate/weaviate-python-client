@@ -1,5 +1,5 @@
 import uuid
-from typing import TypedDict
+from typing import Dict, TypedDict
 
 import pytest as pytest
 from typing_extensions import Annotated
@@ -1043,8 +1043,6 @@ def test_refs_different_reference_replace(
 
 def test_bad_generic_return_references(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        name="Test",
-        vectorizer_config=Configure.Vectorizer.none(),
         properties=[Property(name="Name", data_type=DataType.TEXT)],
     )
 
@@ -1057,3 +1055,25 @@ def test_bad_generic_return_references(collection_factory: CollectionFactory) ->
             uuid,
             return_references=SomeGeneric,
         )
+
+
+def test_generic_type_hint_return_references(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        data_model_refs=Dict[str, CrossReference[Dict[str, str], None]],
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="self", target_collection=collection.name)
+    )
+
+    uuid1 = collection.data.insert(properties={"Name": "A"})
+    uuid2 = collection.data.insert(properties={"Name": "B"}, references={"self": uuid1})
+    obj = collection.query.fetch_object_by_id(
+        uuid2,
+        return_references=QueryReference(
+            link_on="self",
+        ),
+    )
+    assert obj.properties == {"name": "B"}
+    assert obj.references["self"].objects[0].uuid == uuid1
+    assert obj.references["self"].objects[0].properties == {"name": "A"}
