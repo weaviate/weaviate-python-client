@@ -63,7 +63,7 @@ def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfi
         == 1
     ):
         return _GenerativeConfig(
-            generator=GenerativeSearches(generators[0]),
+            generative=GenerativeSearches(generators[0]),
             model=schema["moduleConfig"][generators[0]],
         )
     else:
