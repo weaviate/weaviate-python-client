@@ -1,6 +1,8 @@
 import pytest
 import weaviate
 
+from weaviate.exceptions import WeaviateInvalidInputError
+
 
 def test_client_no_connection_params_nor_embedded_options() -> None:
     with pytest.raises(TypeError):
@@ -23,5 +25,5 @@ def test_client_bad_connection_params() -> None:
 
 
 def test_client_bad_embedded_options() -> None:
-    with pytest.raises(TypeError):
+    with pytest.raises(WeaviateInvalidInputError):
         weaviate.client.WeaviateClient(embedded_options="bad")
