@@ -4,7 +4,7 @@ Changelog
 Version 4.4.0
 --------------
 
-This version is the first full release for the Python v4 client.
+This version is the first full release for the Python v4 client and _requires_  weaviate versions >= 1.23.7.
 
 Since the previous RC, there have been a number of improvements and final bug fixes.
 - The type of ``object.vector`` has changed from ``Optional[Dict[str, List[float]]]`` to ``Dict[str, List[float]]`` so that ``object.vector`` is never ``None``.
