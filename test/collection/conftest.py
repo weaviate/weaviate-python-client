@@ -15,5 +15,5 @@ def connection() -> ConnectionV4:
         ConnectionConfig(),
         None,
     )
-    con._grpc_available = True
+    con.connect(skip_init_checks=True)
     return con

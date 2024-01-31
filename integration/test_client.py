@@ -316,7 +316,7 @@ def test_grpc_call_without_connect() -> None:
     client = weaviate.WeaviateClient(
         weaviate.connect.ConnectionParams.from_url("http://localhost:8080", 50051)
     )
-    with pytest.raises(weaviate.exceptions.WeaviateGRPCUnavailableError):
+    with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
         client.collections.get("does-not-exist").query.fetch_objects()
 
 
