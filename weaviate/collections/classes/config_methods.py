@@ -38,19 +38,22 @@ def _is_primitive(d_type: str) -> bool:
     return d_type[0][0].lower() == d_type[0][0]
 
 
-def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
-    if schema["vectorizer"] != "none":
-        vec_config: Optional[Dict[str, Any]] = schema["moduleConfig"].pop(
-            schema["vectorizer"], None
+def __get_rerank_config(schema: Dict[str, Any]) -> Optional[_RerankerConfig]:
+    if (
+        len(
+            rerankers := [key for key in schema.get("moduleConfig", {}).keys() if "reranker" in key]
         )
-        assert vec_config is not None
-        vectorizer_config = _VectorizerConfig(
-            vectorize_collection_name=vec_config.pop("vectorizeClassName", False),
-            model=vec_config,
+        == 1
+    ):
+        return _RerankerConfig(
+            model=schema["moduleConfig"][rerankers[0]],
+            reranker=Rerankers(rerankers[0]),
         )
     else:
-        vectorizer_config = None
+        return None
 
+
+def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfig]:
     if (
         len(
             generators := [
@@ -59,79 +62,43 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
         )
         == 1
     ):
-        generative_config = _GenerativeConfig(
+        return _GenerativeConfig(
             generator=GenerativeSearches(generators[0]),
             model=schema["moduleConfig"][generators[0]],
         )
     else:
-        generative_config = None
+        return None
 
-    if (
-        len(
-            rerankers := [key for key in schema.get("moduleConfig", {}).keys() if "reranker" in key]
+
+def __get_vectorizer_config(schema: Dict[str, Any]) -> Optional[_VectorizerConfig]:
+    if schema["vectorizer"] != "none":
+        vec_config: Optional[Dict[str, Any]] = schema["moduleConfig"].pop(
+            schema["vectorizer"], None
         )
-        == 1
-    ):
-        reranker_config = _RerankerConfig(
-            model=schema["moduleConfig"][rerankers[0]],
-            reranker=Rerankers(rerankers[0]),
+        assert vec_config is not None
+        return _VectorizerConfig(
+            vectorize_collection_name=vec_config.pop("vectorizeClassName", False),
+            model=vec_config,
+            vectorizer=Vectorizers(schema["vectorizer"]),
         )
     else:
-        reranker_config = None
+        return None
 
+
+def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
     return _CollectionConfigSimple(
         name=schema["class"],
         description=schema.get("description"),
-        generative_config=generative_config,
+        generative_config=__get_generative_config(schema),
         properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
-        reranker_config=reranker_config,
-        vectorizer_config=vectorizer_config,
+        reranker_config=__get_rerank_config(schema),
+        vectorizer_config=__get_vectorizer_config(schema),
         vectorizer=Vectorizers(schema["vectorizer"]),
     )
 
 
 def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
-    if schema["vectorizer"] != "none":
-        vec_config: Optional[Dict[str, Any]] = schema["moduleConfig"].pop(
-            schema["vectorizer"], None
-        )
-        assert vec_config is not None
-        vectorizer_config = _VectorizerConfig(
-            vectorize_collection_name=vec_config.pop("vectorizeClassName", False),
-            model=vec_config,
-        )
-    else:
-        vectorizer_config = None
-
-    if (
-        len(
-            generators := [
-                key for key in schema.get("moduleConfig", {}).keys() if "generative" in key
-            ]
-        )
-        == 1
-    ):
-        generative_config = _GenerativeConfig(
-            generator=GenerativeSearches(generators[0]),
-            model=schema["moduleConfig"][generators[0]],
-        )
-    else:
-        generative_config = None
-
-    if (
-        len(
-            rerankers := [key for key in schema.get("moduleConfig", {}).keys() if "reranker" in key]
-        )
-        == 1
-    ):
-        reranker_config = _RerankerConfig(
-            model=schema["moduleConfig"][rerankers[0]],
-            reranker=Rerankers(rerankers[0]),
-        )
-    else:
-        reranker_config = None
-
     quantizer: Optional[Union[_PQConfig, _BQConfig]] = None
     if "bq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["bq"]["enabled"]:
         quantizer = _BQConfig(
@@ -179,7 +146,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     return _CollectionConfig(
         name=schema["class"],
         description=schema.get("description"),
-        generative_config=generative_config,
+        generative_config=__get_generative_config(schema),
         inverted_index_config=_InvertedIndexConfig(
             bm25=_BM25Config(
                 b=schema["invertedIndexConfig"]["bm25"]["b"],
@@ -204,7 +171,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
         replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
-        reranker_config=reranker_config,
+        reranker_config=__get_rerank_config(schema),
         sharding_config=_ShardingConfig(
             virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
             desired_count=schema["shardingConfig"]["desiredCount"],
@@ -217,7 +184,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         ),
         vector_index_config=vector_index_config,
         vector_index_type=VectorIndexType(schema["vectorIndexType"]),
-        vectorizer_config=vectorizer_config,
+        vectorizer_config=__get_vectorizer_config(schema),
         vectorizer=Vectorizers(schema["vectorizer"]),
     )
 

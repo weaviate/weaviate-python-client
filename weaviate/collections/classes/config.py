@@ -1805,6 +1805,7 @@ GenerativeConfig = _GenerativeConfig
 
 @dataclass
 class _VectorizerConfig(_ConfigBase):
+    vectorizer: Vectorizers
     model: Dict[str, Any]
     vectorize_collection_name: bool
 
