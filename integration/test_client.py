@@ -5,7 +5,15 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 from weaviate.collections import Collection
-from weaviate.collections.classes.config import Configure, _CollectionConfig, DataType, Property
+from weaviate.collections.classes.config import (
+    Configure,
+    _CollectionConfig,
+    DataType,
+    GenerativeSearches,
+    Property,
+    ReferenceProperty,
+    Vectorizers,
+)
 from weaviate.connect.base import _Timeout
 from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 import weaviate.classes as wvc
@@ -201,7 +209,31 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
 
     col = client.collections.create(
         name=name1,
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+        generative_config=Configure.Generative.cohere(model="something", k=10),
+        properties=[
+            Property(
+                name="name",
+                data_type=DataType.TEXT,
+                description="desc",
+                index_filterable=True,
+                index_searchable=True,
+                skip_vectorization=True,
+                vectorize_property_name=True,
+            ),
+            Property(
+                name="name_vectorized",
+                data_type=DataType.TEXT,
+                description="desc",
+                index_filterable=True,
+                index_searchable=True,
+                skip_vectorization=False,
+                vectorize_property_name=False,
+            ),
+        ],
+        references=[ReferenceProperty(name="ref", target_collection=name1)],
     )
     assert client.collections.exists(name1)
     assert isinstance(col, Collection)
@@ -213,6 +245,19 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
     col = client.collections.create_from_config(export)
     assert client.collections.exists(name2)
     assert isinstance(col, Collection)
+    export = client.collections.export_config(name2)
+    assert len(export.properties) == 2
+    assert export.properties[0].description == "desc"
+    assert len(export.references) == 1
+    assert export.properties[0].index_searchable
+    assert export.vectorizer_config is not None
+    assert export.vectorizer_config.vectorizer == Vectorizers.TEXT2VEC_CONTEXTIONARY
+    assert not export.vectorizer_config.vectorize_collection_name
+
+    assert export.generative_config is not None
+    assert export.generative_config.generative == GenerativeSearches.COHERE
+    assert export.generative_config.model["model"] == "something"
+    assert export.generative_config.model["kProperty"] == 10
 
     client.collections.delete([name1, name2])
     assert not client.collections.exists(name1)

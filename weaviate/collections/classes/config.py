@@ -1796,7 +1796,7 @@ VectorIndexConfigFlat = _VectorIndexConfigFlat
 
 @dataclass
 class _GenerativeConfig(_ConfigBase):
-    generator: GenerativeSearches
+    generative: GenerativeSearches
     model: Dict[str, Any]
 
 
@@ -1805,6 +1805,7 @@ GenerativeConfig = _GenerativeConfig
 
 @dataclass
 class _VectorizerConfig(_ConfigBase):
+    vectorizer: Vectorizers
     model: Dict[str, Any]
     vectorize_collection_name: bool
 
@@ -1841,10 +1842,21 @@ class _CollectionConfig(_ConfigBase):
     def to_dict(self) -> dict:
         out = super().to_dict()
         out["class"] = out.pop("name")
-        out["moduleConfig"] = {
-            **out.pop("generative_config", {}),
-            **out.pop("vectorizer_config", {}),
-        }
+        out["moduleConfig"] = {}
+        for name in [("generative_config", "generative"), ("vectorizer_config", "vectorizer")]:
+            if name[0] not in out:
+                continue
+
+            val = out.pop(name[0])
+            module_name = val[name[1]]
+            assert isinstance(module_name, Enum)
+            out["moduleConfig"][module_name.value] = val.get("model", {})
+            vectorize_collection_name = val.get("vectorize_collection_name", None)
+            if vectorize_collection_name is not None:
+                out["moduleConfig"][module_name.value][
+                    "vectorizeClassName"
+                ] = vectorize_collection_name
+
         out["properties"] = [
             *[prop.to_dict() for prop in self.properties],
             *[prop.to_dict() for prop in self.references],
