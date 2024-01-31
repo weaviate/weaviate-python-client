@@ -18,7 +18,6 @@ from typing import (
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 from weaviate.util import _capitalize_first_letter
-from weaviate.warnings import _Warnings
 
 
 class ConsistencyLevel(str, Enum):
@@ -894,33 +893,6 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
     useGPU: Optional[bool]
     useCache: Optional[bool]
     vectorizeClassName: bool
-
-    def validate_mutually_exclusive_fields(self, values: Dict[str, Any]) -> Dict[str, Any]:
-        if "passageModel" in values and "queryModel" not in values:
-            raise ValueError("Must specify query_model when specifying passage_model")
-        if "queryModel" in values and "passageModel" not in values:
-            raise ValueError("Must specify passage_model when specifying query_model")
-        if "model" in values and any(["passageModel" in values, "queryModel" in values]):
-            raise ValueError(
-                "Can only specify model alone or passage_model and query_model together"
-            )
-        if (
-            any(["passageModel" in values, "queryModel" in values, "model" in values])
-            and "endpointURL" in values
-        ):
-            _Warnings.text2vec_huggingface_endpoint_url_and_model_set_together()
-        if all(
-            [
-                "passageModel" not in values,
-                "queryModel" not in values,
-                "model" not in values,
-                "endpointURL" not in values,
-            ]
-        ):
-            raise ValueError(
-                "Must specify at least one of model, passage_model and query_model, or endpoint_url"
-            )
-        return values
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
