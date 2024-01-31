@@ -12,7 +12,7 @@ pip install -r requirements-devel.txt
 
 To activate your virtual environment, run `source .venv/bin/activate`.
 
-The newest client versions sometimes require upcoming Weaviate core features. We recommend using Docker (see https://weaviate.io/developers/weaviate/installation/docker-compose) to run a local instance of the latest Weaviate core for client development.
+The newest client versions sometimes require upcoming Weaviate core features. We recommend using Docker (see https://weaviate.io/developers/weaviate/installation/docker-compose) to run a local instance of the `latest Weaviate core <https://hub.docker.com/r/semitechnologies/weaviate/tags>`_ for client development. 
 
 #### Installation
 
