@@ -94,9 +94,7 @@ class _NearVector(_Aggregate):
             else [return_metrics]
         )
         builder = self._base(return_metrics, filters, limit, total_count)
-        if group_by is not None:
-            builder = builder.with_group_by_filter([group_by])
-            builder = builder.with_fields(" groupedBy { path value } ")
+        builder = self._add_groupby_to_builder(builder, group_by)
         builder = self._add_near_vector(builder, near_vector, certainty, distance, object_limit)
         res = self._do(builder)
         return (
