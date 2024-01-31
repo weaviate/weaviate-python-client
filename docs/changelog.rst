@@ -1,6 +1,354 @@
 Changelog
 =========
 
+
+Version 4.4.rc1
+--------------
+
+This version is a release candidate for the python v4 client.
+
+There is a significant breaking change in this version in anticipation of the named vectors functionality of future Weaviate versions.
+- The ``vector`` property of ``Object`` has had its type changed from ``Optional[List[float]]`` to ``Optional[Dict[str, List[float]]]``.
+- Accessing of the vector property has changed from ``object.vector`` to ``object.vector["default"]``.
+- When using the client with future releases, other named vectors will be accessible as ``object.vector["name"]``.
+
+Newly created (as of 15:00UTC 01/30/24) WCS sandbox instances are now capable of handling gRPC connections and so the client has been updated accordingly in its ``connect_to_wcs`` method.
+If you are using an old sandbox, make a new one and use the new one instead.
+
+Minor bugfixes are also included.
+
+
+Version 4.4.rc0
+--------------
+
+This version is a release candidate for the python v4 client.
+
+All backward compatibility code is being removed and _requires_  weaviate versions >= 1.23.5.
+
+All deprecated code has been removed. Check the migration guide (https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides) how to update your code.
+
+Improvements include:
+- Input validation
+- Embedded weaviate shows an error when the chosen port(s) are already occupied
+
+Fixes include:
+- Filter chained references by reference count
+- Various bug with filtered aggregation
+- Aggregation with move to/away_from objects
+- Timeouts also apply to GRPC calls
+
+
+
+Version 4.4.b9
+--------------
+
+This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
+
+- The batching algorithm has been streamlined and improved in its implementation and API surface.
+    - There are now three types of batching that can be performed:
+        - ``client.batch.dynamic()`` where the algorithm will automatically determine the optimal batch size and number of concurrent requests.
+        - ``client.batch.fixed_size()`` where the user can specify the batch size and number of concurrent requests.
+        - ``client.batch.rate_limit()`` where the user specifies the number of requests per minute that their third-party vectorization API can support.
+    - If an exception is thrown in the background batching thread then this is surfaced to the main thread and re-raised in order to stop the batch.
+        - Previously, this would silently error.
+- Enforces that all optional arguments to queries must be supplied as keyword arguments.
+- Adds runtime validation to all queries.
+- Renaming of ``prop`` to ``name`` in ``Filter.by_property``.
+- Moving of the ``timeout`` argument in ``weaviate.connect_to_x`` methods into new argument ``additional_config: Optional[AdditionalConfig]``.
+
+Improvements include:
+- Introduction of the ``.by_ref_count()`` method on ``Filter`` to filter on the number of references present in a reference property of an object.
+    - This was previously achievable with ``Filter([refProp]).greater_than(0)`` but is now more explicit using the chaining syntax.
+- The syntax for sorting now feels similar to the new filtering syntax.
+    - Supports method chaining like ``Sort.by_property(prop).by_creation_time()`` which will apply the sorting in the order they are chained, i.e., this chain
+    is equivalent to the previous syntax of ``[Sort(prop), Sort("_creationTimeUnix")]``.
+
+Fixes include:
+- The potential for deadlocks and data races when batching has been reduced.
+- Fixes a number of missing properties and poor docstrings in ``weaviate.connect_to_x`` methods.
+- Adds the missing ``offset`` paramater to all queries.
+
+Version 4.4.b8
+--------------
+
+This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
+
+- Filters have been reworked and have a new syntax.
+    - Coming from <=4.4.b6 you can replace:
+        - ``Filter(path=property)`` with ``Filter.by_property(property)``
+        - ``Filter(path=["ref","target_class", "target_property"])`` with ``Filter.by_ref("ref").by_property("target_property")``
+        - ``FilterMetadata.ByXX``with ``Filter.by_id/creation_time/update_time()``
+    - Coming from =4.4b7 you can replace:
+        -  ``Filter.by_ref().link_on("ref").by_property("target_property")`` with ``Filter.by_ref("ref").by_property("target_property")``
+
+Bugfixes include:
+- Error message when creating the client directly without calling ``connect_to_XXX``.
+- Fix deadlock in new batching algorithm.
+- Fix ``skip_init_checks=True`` resulting in compatibility with weavaite 1.22 only.
+
+Version 4.4.b7
+--------------
+
+This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
+
+- For ``client.batch`` the ``add_reference`` method was revised. The ``to_object_collection`` parameter was removed and the other parameters were harmonised with ``collection.batch``. Available parameters are now: ``from_uuid``, ``from_collection``, ``from_property``, ``to`` and ``tenant``.
+- It is no longer possible to use ``client.batch`` directly, you must use it as a context manager (``with client.batch as batch``)
+- Manual batch mode has been removed.
+- Dynamic batching (for batch_size and number of concurrent requests) is now default. Fixed-size batching can be configured with ``batch.configure_fixed_size(..)``.
+- Filters have been reworked and have a new syntax. You can replace:
+    - ``Filter(path=property)`` with ``Filter.by_property(property)``
+    - ``Filter(path=["ref","target_class", "target_property"])`` with ``Filter.by_ref().link_on("ref").by_property("target_property")``
+    - ``FilterMetadata.ByXX``with ``Filter.by_id/creation_time/update_time()``
+- Importing directly from ``weaviate`` has been deprecated. Use ``import weaviate.classes as wvc`` instead and import from there.
+- Multi-target references functions have been moved to:
+    - ``ReferenceProperty.MultiTarget``
+    - ``DataReference.MultiTarget``
+    - ``QueryReference.MultiTarget``
+- Exception names are now compatible with PEP8, old names are still available but deprecated.
+- References can now be provided directly as ``UUIDs``, ``str`` and ``Reference.XXX()`` has been deprecated. For multi-target references use ``ReferenceToMulti``.
+
+New functionality includes:
+- New batching algorithm that supports dynamic scaling of batch-size and number of concurrent requests.
+- New filter syntax that also supports structured filtering on references for normal properties and metadata.
+- All reference functions have unified input formats and now accept ``UUID``, ``str`` and (where applicable) ``List[str]``, ``List[UUID]``.
+- Returned types are now available in ``weaviate.output``.
+- Add missing classes to ``weaviate.classes``.
+- Add missing parameters to ``connect_to_XXX``, all functions should support skipping of init checks and auth.
+- The client can now be used in a context manager ``with connect_to_XX(..) as client`` and all connections will be closed when exiting the manager.
+- New close function ``client.close()`` that needs to be called when not using a context manager to avoid stale connections and potential memory leaks.
+- Support for ``Phonenumber`` datatype.
+- Referenced objects now contain the name of their collection.
+- Adds ``collection.config.update_shards()``.
+
+Bugfixes include:
+- object.reference is empty instead of None, if an object does not have a reference.
+- Fixes creating backups on weaviate master.
+- Add missing classes to ``wvc``.
+
+New client usage:
+- Client as a context manager:
+    .. code-block:: python
+        with weaviate.connect_to_local() as client:
+            # Your code
+- Client without a context manager:
+    .. code-block:: python
+        try:
+            client = weaviate.connect_to_local()
+            # Your code
+        finally:
+            client.close()
+
+Version 4.4.b6
+--------------
+
+This beta version includes:
+
+- A fix to the ``_Property`` dataclass returned within ``collection.config.get()`` to include any ``nested_properties`` of ``object`` and ``object[]`` type properties
+- Fix batch inserts with empty lists
+
+Version 4.4.b5
+--------------
+
+This beta version includes:
+
+- fetch_object_by_id with Weaviate 1.22 returned ``None`` for non-existing references
+- empty strings in returned objects caused a panic with weaviate 1.22
+- Support for nodes/cluster API
+- Speed up client creation when connecting to WCS using ``connect_to_wcs``
+- Checks GRPC availability of Weaviate instance and return an error if it is not supported yet
+- Adds ``skip_init_checks`` to ``connect_to_wcs``
+
+With the next Weaviate version (1.23.1) this beta version supports:
+- Blob properties
+- Reranker
+
+
+Version 4.4.b4
+--------------
+
+This beta version fixes an issue with being unable to disable PQ once enabled
+
+
+Version 4.4.b3
+--------------
+
+This beta version fixes a naming issue:
+- All instances of ``quantitizer`` have been renamed to ``quantizer``
+
+Version 4.4.b2
+--------------
+
+This version works best with Weaviate 1.23 which was released on 2023-12-18.
+
+This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
+
+- Refactor ``weaviate.classes`` structure
+- Rename various classes and methods:
+    - In all vectorizer configuration methods: ``vectorize_class_name`` => ``vectorize_collection_name``
+    - ``object.metadata.creation_time_unix`` => ``object.metadata.creation_time`` which is now a datetime
+    - ``object.metadata.last_update_time_unix`` => ``object.metadata.last_update_time`` which is now a datetime
+    - ``MetadataQuery(creation_time_unix=.., last_update_time_unix= ..)`` => ``MetadataQuery(creation_time=.., last_update_time=..)``
+    - ``FromReference`` => ``QueryReference`` when querying references
+
+- Splits out references from properties when creating, changing and querying collections
+- UUID and UUID_ARRAY properties are now returned as typed UUID objects
+- DATE and DATE_ARRAY properties are now returned as typed datetime objects
+- ``vector_index_type``has been remove from ``collection.create()`` and is now determined automatically
+- ``Configure.vector_index()`` has been moved to ``Configure.VectorIndex.hnsw()``
+- PQ can now be configured using Configure.VectorIndex.hnsw(quantitizer=Configure.VectorIndex.Quantitizer.pq(..options..))
+- ``object.metadata.vector`` was moved to ``object.vector`` and can be requested by using ``include_vector=True/False`` when querying
+- ``object.metadata.uuid`` was moved to ``object.uuid`` and is always available
+- Order of arguments in .data.update() and .replace() changed to accommodate not providing properties when updating.
+- In .data.reference_add, .reference_delete and .reference_replace the ``ref`` keyword was renamed to ``to``
+- In collections.create() and .get() the keyword to provide generics was renamed from ``data_model`` to ``data_model_properties``
+
+
+New functionality includes:
+
+- Adds backup functionality to v4 client (``client.backup``) and directly to the collection (``collection.backup``)
+- Adds support for FLAT vector index
+- Adds binary quantization for FLAT vector index
+- Adds ``text2vec_jinaai`` static method to ``Configure.Vectorizer``
+- Adds ``anyscale`` static method to ``Configure.Generative``
+- Adds collection.batch for uploading to a single collection in batches
+- Adds methods for creating a collection from dict and exporting a collection config as dict
+- Adds support for geo-coordinates
+- Adds metadata filtering with ``FilterMetadata``
+- Adds ``client.graphql_raw_query`` to use Weaviate features that are not directly supported.
+- Adds ``DataReferenceOneToMany`` which allows to add multiple references at once.
+- Adds validation of input parameters for non-mypy users.
+- Various performance improvements and bugfixes
+
+Version 4.4.b1
+--------------
+This patch beta version includes:
+
+- Performance improvements when making queries
+
+Version 4.4.b0
+--------------
+This minor beta version includes:
+
+- Adds support for connecting to WCS using the ``connect_to_wcs`` helper function
+- Changes default ``num_workers`` in ``client.batch`` from ``1`` to Python's ``ThreadPoolExecutor`` default
+- Adds ``text2vec-aws`` and ``generative-aws`` static methods to ``Configure.Vectorizer`` and ``Configure.Generative``
+- Tidy up stale docstrings
+- Add missing class exports
+
+Version 4.3.b2
+--------------
+This patch beta version includes:
+
+- Fixes to the ``dataclass`` types returned by aggregate queries
+
+Version 4.3.b1
+--------------
+This patch beta version includes:
+
+- Bump default Weaviate embedded version
+
+Version 4.3.b0
+--------------
+This minor beta version includes:
+
+- Refactoring of the ``_Object`` class
+    - ``_Object.metadata.uuid`` moved to ``_Object.uuid`` and is not ``Optional``
+    - ``_Object.metadata.vector`` moved to ``_Object.vector``
+- Addition of ``include_vector`` argument to all queries
+    - ``include_vector`` is ``False`` by default
+- ``return_metadata`` in queries is now ``Optional`` and defaults to ``None``
+    - ``_Object.metadata`` is now ``Optional`` as a result
+- Addition of ``include_vector`` to ``FromReference``
+- Addition of ``ReferenceAnnotation`` for use when defining generic annotated cross references
+
+Version 4.2.b2
+--------------
+This patch beta version includes:
+
+- Allow ``None`` when batch inserting using ``DataObject`` and ``BatchObject``
+
+Version 4.2.b1
+--------------
+This patch beta version includes:
+
+- Bug fix of the default ``alpha`` argument to ``query.hybrid``
+- Extend the ``Configure.Vectorizer.multi2vec_`` methods to accept lists of strings
+- Correctly export ``StopwordsPreset`` from ``weaviate.classes``
+- Add ``generative_config`` and ``vectorizer_config`` to ``_CollectionConfig``
+- Add ``skip_vectorization`` and ``vectorize_class_name`` to ``_PropertyConfig``
+
+Version 4.2.b0
+--------------
+This minor beta version includes:
+
+- A refactoring of the ``collection.aggregate`` namepsace methods
+- Change ``Metrics`` to no longer accept the ``type_`` argument
+- Instead, ``Metrics`` has multiple methods, e.g. ``.text()``, for each type of metric
+- Allow ``return_metrics`` to be a single metric object or a list of metric objects in each aggregate query
+
+Version 4.1.b2
+--------------
+This patch beta version incldues:
+
+- Correctly exporting ``weaviate.collections.classes.aggregate.Metrics`` from ``weaviate.classes``
+
+Version 4.1.b1
+--------------
+This patch beta version incldues:
+
+- Bumping the default embedded version to Weaviate latest
+- Adding the ``version`` argument to ``weaviate.connect_to_embedded`` to allow users to specify the embedded version
+
+Version 4.1.b0
+--------------
+This minor beta version includes:
+
+- Makes ``total_count=True`` the default in aggregation queries to avoid unintentional GraphQL errors
+- Catches empty GraphQL errors in aggregation queries in case of user error
+- Renames ``class_name`` to ``collections`` within the ``collections.batch`` namespace
+- Adds ``get_vector`` to the ``collections.data`` namespace so that users can supply numpy and pytorch vectors
+- Adds ``__str__`` magic method to ``Collections`` class so that ``print(collection)`` outputs the collection's schema as pretty JSON
+
+Version 4.0.b5
+--------------
+This patch beta version includes:
+
+- Update changelog
+
+Version 4.0.b4
+--------------
+This patch beta version includes:
+
+- A small bug fix to remove a redundant print
+- Raising an exception from ``connect_to_wcs`` as gRPC support is not ready
+- Making ``_Collection`` a public class as ``Collection`` to be used in type hinting
+
+Version 4.0.b3
+--------------
+This patch beta version includes:
+
+- Addition of ``batch_size`` to ``client.batch.configure`` for users who want automatic non-dynamic batching
+- Renaming of ``ConfigureUpdate`` to ``Reconfigure``
+- Fixing of missing arguments to ``Configure.Vectorizer.text2vec_`` methods
+
+Version 4.0.b2
+--------------
+This patch beta version includes:
+
+- Fixes to the readthedocs documentation appearance
+
+Version 4.0.b1
+--------------
+This beta version includes:
+
+- Introduction of the new beta Python collections client API
+    - Streamlined and simplified client API for mutating and querying your data
+    - Full support for gRPC batching and searching
+    - End-to-end generics support for type safety
+    - Python-native dataclasses for easy data manipulation
+    - No more builder methods or raw dictionaries
+- Join the discussion and contribute your feedback `here <https://forum.weaviate.io/t/python-v4-client-feedback-megathread/892>`_
+
 Version 3.26.2
 --------------
 This patch version includes

@@ -16,7 +16,7 @@ def test_schema_timeout_error(weaviate_mock):
         return Response(status=200)
 
     weaviate_mock.expect_request("/v1/schema/Test").respond_with_handler(handler)
-    client = weaviate.Client(url=MOCK_SERVER_URL, timeout_config=(1, 1))
+    client = weaviate.Client(MOCK_SERVER_URL, timeout_config=(1, 1))
 
     with pytest.raises(ReadTimeout):
         client.schema.exists("Test")
@@ -29,7 +29,7 @@ def test_schema_unknown_status_code(weaviate_mock):
         return Response(status=403)
 
     weaviate_mock.expect_request("/v1/schema/Test").respond_with_handler(handler)
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(MOCK_SERVER_URL)
 
     with pytest.raises(weaviate.UnexpectedStatusCodeException):
         client.schema.exists("Test")
@@ -47,7 +47,7 @@ def test_schema_exists(weaviate_mock):
     weaviate_mock.expect_request("/v1/schema/DoesNotExists").respond_with_handler(
         lambda r: handler(r, 404)
     )
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(MOCK_SERVER_URL)
 
     assert client.schema.exists("Exists") is True
     assert client.schema.exists("DoesNotExists") is False

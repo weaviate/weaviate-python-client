@@ -1,31 +1,37 @@
 """
 Helper functions!
 """
+
 import base64
+import datetime
+import io
 import json
 import os
 import re
 from enum import Enum, EnumMeta
-from io import BufferedReader
-from typing import Union, Sequence, Any, Optional, List, Dict, Tuple, cast
+from pathlib import Path
+from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
 
 import requests
+import httpx
 import uuid as uuid_lib
 import validators  # type: ignore
 from requests.exceptions import JSONDecodeError
 
 from weaviate.exceptions import (
-    SchemaValidationException,
-    UnexpectedStatusCodeException,
-    ResponseCannotBeDecodedException,
+    SchemaValidationError,
+    UnexpectedStatusCodeError,
+    ResponseCannotBeDecodedError,
 )
-from weaviate.types import NUMBERS
+from weaviate.warnings import _Warnings
+from weaviate.types import NUMBER, UUIDS, TIME
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
 MINIMUM_NO_WARNING_VERSION = (
     "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
 )
+BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding files ~ 64kb
 
 
 # MetaEnum and BaseEnum are required to support `in` statements:
@@ -45,7 +51,7 @@ class BaseEnum(Enum, metaclass=MetaEnum):
     pass
 
 
-def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
+def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str:
     """
     Encode a image in a Weaviate understandable format from a binary read file or by providing
     the image path.
@@ -74,7 +80,7 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
         with open(image_or_image_path, "br") as file:
             content = file.read()
 
-    elif isinstance(image_or_image_path, BufferedReader):
+    elif isinstance(image_or_image_path, io.BufferedReader):
         content = image_or_image_path.read()
     else:
         raise TypeError(
@@ -84,14 +90,16 @@ def image_encoder_b64(image_or_image_path: Union[str, BufferedReader]) -> str:
     return base64.b64encode(content).decode("utf-8")
 
 
-def file_encoder_b64(file_or_file_path: Union[str, BufferedReader]) -> str:
+def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> str:
     """
-    Encode a file in a Weaviate understandable format from a binary read file or by providing
-    the file path.
+    Encode a file in a Weaviate understandable format from an io.BufferedReader binary read file or by providing
+    the file path as either a string of a pathlib.Path object
+
+    If you pass an io.BufferedReader object, it is your responsibility to close it after encoding.
 
     Parameters
     ----------
-    file_or_file_path : str, io.BufferedReader
+    file_or_file_path : str, pathlib.Path io.BufferedReader
         The binary read file or the path to the file.
 
     Returns
@@ -107,19 +115,45 @@ def file_encoder_b64(file_or_file_path: Union[str, BufferedReader]) -> str:
         If the argument is of a wrong data type.
     """
 
+    def _chunks(buffer: io.BufferedReader, chunk_size: int) -> Generator[bytes, Any, Any]:
+        while True:
+            data = buffer.read(chunk_size)
+            if not data:
+                break
+            yield data
+
+    should_close_file = False
+    use_buffering = True
+
     if isinstance(file_or_file_path, str):
         if not os.path.isfile(file_or_file_path):
             raise ValueError("No file found at location " + file_or_file_path)
-        with open(file_or_file_path, "br") as file:
-            content = file.read()
-
-    elif isinstance(file_or_file_path, BufferedReader):
-        content = file_or_file_path.read()
+        file = open(file_or_file_path, "br")
+        should_close_file = True
+        use_buffering = os.path.getsize(file_or_file_path) > BYTES_PER_CHUNK
+    elif isinstance(file_or_file_path, Path):
+        if not file_or_file_path.is_file():
+            raise ValueError("No file found at location " + str(file_or_file_path))
+        file = file_or_file_path.open("br")
+        should_close_file = True
+        use_buffering = file_or_file_path.stat().st_size > BYTES_PER_CHUNK
+    elif isinstance(file_or_file_path, io.BufferedReader):
+        file = file_or_file_path
     else:
         raise TypeError(
             '"file_or_file_path" should be a file path or a binary read file' " (io.BufferedReader)"
         )
-    return base64.b64encode(content).decode("utf-8")
+
+    if use_buffering:
+        encoded: str = ""
+        for chunk in _chunks(file, BYTES_PER_CHUNK):
+            encoded += base64.b64encode(chunk).decode("utf-8")
+    else:
+        encoded = base64.b64encode(file.read()).decode("utf-8")
+
+    if should_close_file:
+        file.close()
+    return encoded
 
 
 def image_decoder_b64(encoded_image: str) -> bytes:
@@ -373,7 +407,7 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
     return _uuid
 
 
-def get_vector(vector: Sequence) -> list:
+def get_vector(vector: Sequence) -> List[float]:
     """
     Get weaviate compatible format of the embedding vector.
 
@@ -478,7 +512,7 @@ def _compare_class_sets(sub_set: list, set_: list) -> bool:
         found = False
         for set_class in set_:
             if "class" not in sub_set_class:
-                raise SchemaValidationException(
+                raise SchemaValidationError(
                     "The sub schema class/es MUST have a 'class' keyword each!"
                 )
             if _capitalize_first_letter(sub_set_class["class"]) == _capitalize_first_letter(
@@ -677,6 +711,74 @@ def parse_version_string(ver_str: str) -> tuple:
         )
 
 
+class _ServerVersion:
+    def __init__(self, major: int, minor: int, patch: int) -> None:
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _ServerVersion):
+            return NotImplemented
+        return self.major == other.major and self.minor == other.minor and self.patch == other.patch
+
+    def __neq__(self, other: object) -> bool:
+        return not self.__eq__(other)
+
+    def __gt__(self, other: "_ServerVersion") -> bool:
+        if self.major > other.major:
+            return True
+        elif self.major == other.major:
+            if self.minor > other.minor:
+                return True
+            elif self.minor == other.minor:
+                if self.patch > other.patch:
+                    return True
+        return False
+
+    def __lt__(self, other: "_ServerVersion") -> bool:
+        return not self.__gt__(other) and not self.__eq__(other)
+
+    def __ge__(self, other: "_ServerVersion") -> bool:
+        return self.__gt__(other) or self.__eq__(other)
+
+    def __le__(self, other: "_ServerVersion") -> bool:
+        return self.__lt__(other) or self.__eq__(other)
+
+    def __repr__(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def __str__(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def is_at_least(self, major: int, minor: int, patch: int) -> bool:
+        return self >= _ServerVersion(major, minor, patch)
+
+    def is_lower_than(self, major: int, minor: int, patch: int) -> bool:
+        return self < _ServerVersion(major, minor, patch)
+
+    @classmethod
+    def from_string(cls, version: str) -> "_ServerVersion":
+        initial = version
+        if version == "":
+            version = "0"
+        if version.count(".") == 0:
+            version = version + ".0"
+        if version.count(".") == 1:
+            version = version + ".0"
+
+        pattern = r"v?(\d+)\.(\d+)\.(\d+)"
+        match = re.match(pattern, version)
+
+        if match:
+            ver_tup = tuple(map(int, match.groups()))
+            return cls(major=ver_tup[0], minor=ver_tup[1], patch=ver_tup[2])
+        else:
+            raise ValueError(
+                f"Unable to parse a version from the input string: {initial}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
+            )
+
+
 def is_weaviate_too_old(current_version_str: str) -> bool:
     """
     Check if the user should be gently nudged to upgrade their Weaviate server version.
@@ -728,8 +830,8 @@ def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str
 
 
 def _get_valid_timeout_config(
-    timeout_config: Union[Tuple[NUMBERS, NUMBERS], NUMBERS, None]
-) -> Tuple[NUMBERS, NUMBERS]:
+    timeout_config: Union[Tuple[NUMBER, NUMBER], NUMBER, None]
+) -> Tuple[NUMBER, NUMBER]:
     """
     Validate and return TimeOut configuration.
 
@@ -751,7 +853,7 @@ def _get_valid_timeout_config(
         If 'timeout_config' is/contains negative number/s.
     """
 
-    def check_number(num: Union[NUMBERS, Tuple[NUMBERS, NUMBERS], None]) -> bool:
+    def check_number(num: Union[NUMBER, Tuple[NUMBER, NUMBER], None]) -> bool:
         return isinstance(num, float) or isinstance(num, int)
 
     if (isinstance(timeout_config, float) or isinstance(timeout_config, int)) and not isinstance(
@@ -782,24 +884,36 @@ def _type_request_response(json_response: Any) -> Optional[Dict[str, Any]]:
     return json_response
 
 
+def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
+    if isinstance(uuids, uuid_lib.UUID) or isinstance(
+        uuids, str
+    ):  # replace with isinstance(uuids, UUID) in 3.10
+        uuids = [uuids]
+
+    if len(to_class) > 0:
+        to_class = to_class + "/"
+
+    return [{"beacon": f"weaviate://localhost/{to_class}{uuid_to}"} for uuid_to in uuids]
+
+
 def _decode_json_response_dict(
-    response: requests.Response, location: str
+    response: Union[httpx.Response, requests.Response], location: str
 ) -> Optional[Dict[str, Any]]:
     if response is None:
         return None
 
     if 200 <= response.status_code < 300:
         try:
-            json_response = cast(dict, response.json())
+            json_response = cast(Dict[str, Any], response.json())
             return json_response
         except JSONDecodeError:
-            raise ResponseCannotBeDecodedException(location, response)
+            raise ResponseCannotBeDecodedError(location, response)
 
-    raise UnexpectedStatusCodeException(location, response)
+    raise UnexpectedStatusCodeError(location, response)
 
 
 def _decode_json_response_list(
-    response: requests.Response, location: str
+    response: Union[httpx.Response, requests.Response], location: str
 ) -> Optional[List[Dict[str, Any]]]:
     if response is None:
         return None
@@ -809,5 +923,25 @@ def _decode_json_response_list(
             json_response = response.json()
             return cast(list, json_response)
         except JSONDecodeError:
-            raise ResponseCannotBeDecodedException(location, response)
-    raise UnexpectedStatusCodeException(location, response)
+            raise ResponseCannotBeDecodedError(location, response)
+    raise UnexpectedStatusCodeError(location, response)
+
+
+def _datetime_to_string(value: TIME) -> str:
+    if value.tzinfo is None:
+        _Warnings.datetime_insertion_with_no_specified_timezone(value)
+        value = value.replace(tzinfo=datetime.timezone.utc)
+    return value.isoformat(sep="T", timespec="microseconds")
+
+
+def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
+    try:
+        return datetime.datetime.strptime(
+            "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
+            "%Y-%m-%dT%H:%M:%S.%f%z",
+        )
+    except ValueError:  # if the string does not have microseconds
+        return datetime.datetime.strptime(
+            "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
+            "%Y-%m-%dT%H:%M:%S%z",
+        )

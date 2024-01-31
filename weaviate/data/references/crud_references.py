@@ -1,6 +1,7 @@
 """
 Reference class definition.
 """
+
 import warnings
 from typing import Union, Optional, List
 

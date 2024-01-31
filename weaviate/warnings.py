@@ -1,4 +1,5 @@
 import warnings
+from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
 from typing import Optional
 
@@ -57,10 +58,10 @@ class _Warnings:
 
     @staticmethod
     def auth_cannot_parse_oidc_config(url: str) -> None:
-        msg = f"""Auth005: Could not parse Weaviates OIDC configuration, using unauthenticated access. If you added
+        msg = f"""Auth005: Could not parse Weaviate's OIDC configuration, using unauthenticated access. If you added
         an authorization header yourself it will be unaffected.
 
-        This can happen if weaviate is miss-configured or you have a proxy inbetween the client and weaviate.
+        This can happen if weaviate is miss-configured or you have a proxy between the client and weaviate.
         You can test this by visiting {url}."""
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
@@ -91,6 +92,14 @@ class _Warnings:
         warnings.warn(
             message=f"""Dep003: You are trying to use the generative search, but you are connected to Weaviate {server_version}.
             Support for generative search was added in weaviate version 1.17.3.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def startup_period_deprecated() -> None:
+        warnings.warn(
+            message="""Dep004: startup_period is deprecated and has no effect. Please remove it from your code.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -132,5 +141,100 @@ class _Warnings:
             Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
             See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
             category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def root_module_import(name: str, loc: str) -> None:
+        warnings.warn(
+            f"Dep010: Importing {name} from weaviate is deprecated. "
+            f"Please import it from its specific module: weaviate.{loc}",
+            DeprecationWarning,
+            stacklevel=2,  # don't increase stacklevel, as this otherwise writes the auth-secrets into the log
+        )
+
+    @staticmethod
+    def weaviate_v3_client_is_deprecated() -> None:
+        warnings.warn(
+            message="""Dep016: You are using the Weaviate v3 client, which is deprecated.
+            Consider upgrading to the new and improved v4 client instead!
+            See here for usage: https://weaviate.io/developers/weaviate/client-libraries/python
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
+        warnings.warn(
+            message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
+            If you want to use a different timezone, please specify it in the datetime object. For example:
+            datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone(-datetime.timedelta(hours=2))).isoformat() = 2021-01-01T00:00:00-02:00
+            """,
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def text2vec_huggingface_endpoint_url_and_model_set_together() -> None:
+        warnings.warn(
+            message="""Con003: You are setting the endpoint_url alongside model or passage_model and query_model in your Text2Vec-HuggingFace module configuration.
+            The model definitions will be ignored in favour of endpoint_url.
+            """,
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_executor_is_shutdown() -> None:
+        warnings.warn(
+            message="""Bat001: The BatchExecutor was shutdown, most probably when it exited the `with` statement.
+                It will be initialized again. If you are not `batch` in the `with client.batch as batch`
+                please make sure to shut it down when done importing data: `client.batch.shutdown()`.
+                You can start it again using the `client.batch.start()` method.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_weaviate_overloaded_sleeping(sleep: int) -> None:
+        warnings.warn(
+            message=f"""Bat002: Weaviate is currently overloaded. Sleeping for {sleep} seconds.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_refresh_failed(err: str) -> None:
+        warnings.warn(
+            message=f"""Bat003: The dynamic batch-size could not be refreshed successfully. Algorithm backing off by 10 seconds. {err}""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_retrying_failed_batches_hit_hard_limit(limit: int) -> None:
+        warnings.warn(
+            message=f"""Bat004: Attempts to retry failed objects and/or references have hit the hard limit of {limit}.
+            The failed objects and references can be accessed in client.collections.batch.failed_objects and client.collections.batch.failed_references.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def batch_rate_limit_reached(msg: str, seconds: int) -> None:
+        warnings.warn(
+            message=f"""Bat005: Rate limit reached with error {msg}.
+            Sleeping for {seconds} seconds.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def reranking_not_enabled() -> None:
+        warnings.warn(
+            message="""Grpc001: Reranking is not in the gRPC API for this Weaviate version. You must update to the latest Weaviate server version to use this new functionality.
+            This query will execute without reranking.""",
+            category=UserWarning,
             stacklevel=1,
         )

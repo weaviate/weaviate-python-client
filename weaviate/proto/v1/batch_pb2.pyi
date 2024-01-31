@@ -1,5 +1,5 @@
 from google.protobuf import struct_pb2 as _struct_pb2
-from v1 import base_pb2 as _base_pb2
+from weaviate.proto.v1 import base_pb2 as _base_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -26,7 +26,7 @@ class BatchObjectsRequest(_message.Message):
     ) -> None: ...
 
 class BatchObject(_message.Message):
-    __slots__ = ["uuid", "vector", "properties", "collection", "tenant"]
+    __slots__ = ["uuid", "vector", "properties", "collection", "tenant", "vector_bytes"]
 
     class Properties(_message.Message):
         __slots__ = [
@@ -39,6 +39,7 @@ class BatchObject(_message.Message):
             "boolean_array_properties",
             "object_properties",
             "object_array_properties",
+            "empty_list_props",
         ]
         NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         SINGLE_TARGET_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
@@ -49,6 +50,7 @@ class BatchObject(_message.Message):
         BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+        EMPTY_LIST_PROPS_FIELD_NUMBER: _ClassVar[int]
         non_ref_properties: _struct_pb2.Struct
         single_target_ref_props: _containers.RepeatedCompositeFieldContainer[
             BatchObject.SingleTargetRefProps
@@ -72,6 +74,7 @@ class BatchObject(_message.Message):
         object_array_properties: _containers.RepeatedCompositeFieldContainer[
             _base_pb2.ObjectArrayProperties
         ]
+        empty_list_props: _containers.RepeatedScalarFieldContainer[str]
         def __init__(
             self,
             non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
@@ -99,6 +102,7 @@ class BatchObject(_message.Message):
             object_array_properties: _Optional[
                 _Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]
             ] = ...,
+            empty_list_props: _Optional[_Iterable[str]] = ...,
         ) -> None: ...
 
     class SingleTargetRefProps(_message.Message):
@@ -130,11 +134,13 @@ class BatchObject(_message.Message):
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     uuid: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     properties: BatchObject.Properties
     collection: str
     tenant: str
+    vector_bytes: bytes
     def __init__(
         self,
         uuid: _Optional[str] = ...,
@@ -142,6 +148,7 @@ class BatchObject(_message.Message):
         properties: _Optional[_Union[BatchObject.Properties, _Mapping]] = ...,
         collection: _Optional[str] = ...,
         tenant: _Optional[str] = ...,
+        vector_bytes: _Optional[bytes] = ...,
     ) -> None: ...
 
 class BatchObjectsReply(_message.Message):

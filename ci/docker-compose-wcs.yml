@@ -10,9 +10,10 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.23.0-rc.0
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
       - 8085:8085
+      - "50056:50051"
     restart: on-failure:0
     environment:
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'

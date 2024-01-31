@@ -2,6 +2,7 @@
 GraphQL filters for `Get` and `Aggregate` commands.
 GraphQL abstract class for GraphQL commands to inherit from.
 """
+
 import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
@@ -11,7 +12,7 @@ from typing import Any, Tuple, Union
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.connect import Connection
+from weaviate.connect import Connection, ConnectionV4
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
 from weaviate.util import get_vector, _sanitize_str, _decode_json_response_dict
 
@@ -21,6 +22,7 @@ VALUE_LIST_TYPES = {
     "valueIntList",
     "valueNumberList",
     "valueBooleanList",
+    "valueDateList",
 }
 
 VALUE_ARRAY_TYPES = {
@@ -29,6 +31,7 @@ VALUE_ARRAY_TYPES = {
     "valueIntArray",
     "valueNumberArray",
     "valueBooleanArray",
+    "valueDateArray",
 }
 
 VALUE_PRIMITIVE_TYPES = {
@@ -75,7 +78,7 @@ class GraphQL(ABC):
     A base abstract class for GraphQL commands, such as Get, Aggregate.
     """
 
-    def __init__(self, connection: Connection):
+    def __init__(self, connection: Union[Connection, ConnectionV4]):
         """
         Initialize a GraphQL abstract class instance.
 
@@ -878,6 +881,9 @@ class Where(Filter):
                     gql += f"{_render_list(self.value)}}}"
                 else:
                     gql += f"{_bool_to_str(self.value)}}}"
+            elif self.value_type in ["valueDateArray", "valueDateList"]:
+                _check_is_list(self.value, self.value_type)
+                gql += f"{_render_list_date(self.value)}}}"
             elif self.value_type == "valueGeoRange":
                 _check_is_not_list(self.value, self.value_type)
                 gql += f"{_geo_range_to_str(self.value)}}}"
@@ -924,12 +930,12 @@ def _convert_value_type(_type: str) -> str:
         return _type
 
 
-def _render_list(value: list) -> str:
+def _render_list(input_list: list) -> str:
     """Convert a list of values to string (lowercased) to match `json` formatting.
 
     Parameters
     ----------
-    value : list
+    input_list : list
         The value to be converted
 
     Returns
@@ -937,7 +943,13 @@ def _render_list(value: list) -> str:
     str
         The string interpretation of the value in `json` format.
     """
-    return f'[{",".join(value)}]'
+    str_list = ",".join(str(item) for item in input_list)
+    return f"[{str_list}]"
+
+
+def _render_list_date(input_list: list) -> str:
+    str_list = ",".join('"' + str(item) + '"' for item in input_list)
+    return f"[{str_list}]"
 
 
 def _check_is_list(value: Any, _type: str) -> None:

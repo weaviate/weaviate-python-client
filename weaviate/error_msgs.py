@@ -1,7 +1,6 @@
 """
-Error/Warning messages that are reused throughout the code.
+Error and Warning messages that are reused throughout the code.
 """
-
 
 FILTER_BEACON_V14_CLS_NS_W = (
     "Based on the number of '/' in the beacon it seems that the beacon is not "
@@ -13,19 +12,20 @@ FILTER_BEACON_V14_CLS_NS_W = (
 
 
 BATCH_MANUAL_USE_W = (
-    "You are manually batching this means you are NOT using the client's "
-    "built-in multi-threading. Setting `batch_size` in `client.batch.configure()` "
-    "to an int value will enabled this. Also see: https://weaviate.io/developers/"
-    "weaviate/current/restful-api-references/batch.html#example-request-1"
+    "Manually batching means this code is NOT using the client's built-in "
+    "multi-threading. To enable built-in multi-threading, set `batch_size` in "
+    " `client.batch.configure()` to an integer value . See also:"
+    "https://weaviate.io/developers/weaviate/current/restful-api-references/"
+    "batch.html#example-request-1"
 )
 
 
 BATCH_REF_DEPRECATION_NEW_V14_CLS_NS_W = (
     "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-    "beacons, please specify the `to_object_class_name` argument for this. The "
-    "non-class namespaced beacons (None value for `to_object_class_name`) are going "
-    "to be removed in the future versions of the Weaviate Server and Weaviate Python "
-    "Client."
+    "beacons. To use class namespaced beacons, specify the `to_object_class_name` "
+    "argument. Non-class namespaced beacons (None value for `to_object_class_name`) "
+    "will be removed in future versions of the Weaviate Server and Weaviate "
+    "Python Client."
 )
 
 
@@ -40,51 +40,52 @@ BATCH_REF_DEPRECATION_OLD_V14_CLS_NS_W = (
 
 DATA_DEPRECATION_NEW_V14_CLS_NS_W = (
     "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-    "APIs, please specify the `class_name` argument for this. The non-class "
-    "namespaced APIs (None value for `class_name`) are going to be removed in the "
-    "future versions of the Weaviate Server and Weaviate Python Client."
+    "APIs. To use class namespaced APIs, specify the `class_name` argument. "
+    "Non-class namespaced APIs (None value for `to_object_class_name`) will be "
+    "removed in future versions of the Weaviate Server and Weaviate Python Client."
 )
 
 
 DATA_DEPRECATION_OLD_V14_CLS_NS_W = (
-    "Weaviate Server version < 1.14.x does not support class namespaced APIs. The "
-    "non-class namespaced APIs calls are going to be made instead (None value for "
-    "`class_name`). The non-class namespaced APIs are going to be removed in "
-    "future versions of the Weaviate Server and Weaviate Python Client. "
-    "Please upgrade your Weaviate Server version."
+    "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
+    "Non-class namespaced APIs calls will be made instead (None value for "
+    "`class_name`). Non-class namespaced APIs will be removed in future versions "
+    "of the Weaviate Server and Weaviate Python Client. Please upgrade your "
+    "Weaviate Server version."
 )
 
 
 REF_DEPRECATION_NEW_V14_CLS_NS_W = (  # del
     "Weaviate Server version >= 1.14.x STRONGLY recommends using class namespaced "
-    "APIs and beacons, please set the `from_class_name` AND `to_class_name` arguments "
-    "for this. The non-class namespaced APIs and beacons (None value for "
-    "`from_class_name` AND `to_class_name`) are going to be removed in future "
-    "versions of the Weaviate Server and Weaviate Python Client."
+    "APIs and beacons. To use class namespaced APIs and beacons, specify, the "
+    "`from_class_name` AND `to_class_name` arguments. Non-class namespaced APIs "
+    "and beacons (None value for `from_class_name` AND `to_class_name`) will be "
+    "removed in future versions of the Weaviate Server and Weaviate Python Client."
 )
 
 
 REF_DEPRECATION_OLD_V14_FROM_CLS_NS_W = (
     "Weaviate Server version < 1.14.x does not support class namespaced APIs. "
-    "The non-class namespaced APIs calls are going to be made instead "
-    "(None value for `from_class_name`). The non-class namespaced APIs and "
-    "beacons are going to be removed in future versions of the Weaviate Server "
-    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+    "Non-class namespaced APIs calls will to be made instead (None value for "
+    "`from_class_name`). Non-class namespaced APIs and  beacons will be removed "
+    "in future versions of the Weaviate Server and Weaviate Python Client. Please "
+    "upgrade your Weaviate Server version."
 )
 
 
 REF_DEPRECATION_OLD_V14_TO_CLS_NS_W = (
     "Weaviate Server version < 1.14.x does not support class namespaced beacons. "
-    "The non-class namespaced beacons are going to be constructed instead "
-    "(None value for `to_class_name`). The non-class namespaced APIs and "
-    "beacons are going to be removed in future versions of the Weaviate Server "
-    "and Weaviate Python Client. Please upgrade your Weaviate Server version."
+    "Non-class namespaced beacons will be constructed instead (None value for "
+    "`to_class_name`). Non-class namespaced APIs and beacons will be removed in "
+    "future versions of the Weaviate Server and Weaviate Python Client. Please "
+    "upgrade your Weaviate Server version."
 )
 
 
 BATCH_EXECUTOR_SHUTDOWN_W = (
     "The BatchExecutor was shutdown, most probably when it exited the `with` statement. "
-    "It will be initialized again. If you are not `batch` in the `with client.batch as batch` "
-    "please make sure to shut it down when done importing data: `client.batch.shutdown()`. "
-    "You can start it again using the `client.batch.start()` method."
+    "The BatchExecutor will be reinitialized. If you are not `batch` in "
+    "`with client.batch as batch`, be sure to shut the BatchExecutor down when "
+    "your data import finishes: `client.batch.shutdown()`. To restart the "
+    "BatchExecutor, use `client.batch.start()`."
 )

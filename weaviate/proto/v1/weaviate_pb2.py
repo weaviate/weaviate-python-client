@@ -12,12 +12,13 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-from proto.v1 import batch_pb2 as v1_dot_batch__pb2
-from proto.v1 import search_get_pb2 as v1_dot_search__get__pb2
+from weaviate.proto.v1 import batch_pb2 as v1_dot_batch__pb2
+from weaviate.proto.v1 import batch_delete_pb2 as v1_dot_batch__delete__pb2
+from weaviate.proto.v1 import search_get_pb2 as v1_dot_search__get__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x11v1/weaviate.proto\x12\x0bweaviate.v1\x1a\x0ev1/batch.proto\x1a\x13v1/search_get.proto2\xa0\x01\n\x08Weaviate\x12@\n\x06Search\x12\x1a.weaviate.v1.SearchRequest\x1a\x18.weaviate.v1.SearchReply"\x00\x12R\n\x0c\x42\x61tchObjects\x12 .weaviate.v1.BatchObjectsRequest\x1a\x1e.weaviate.v1.BatchObjectsReply"\x00\x42j\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3'
+    b'\n\x11v1/weaviate.proto\x12\x0bweaviate.v1\x1a\x0ev1/batch.proto\x1a\x15v1/batch_delete.proto\x1a\x13v1/search_get.proto2\xf1\x01\n\x08Weaviate\x12@\n\x06Search\x12\x1a.weaviate.v1.SearchRequest\x1a\x18.weaviate.v1.SearchReply"\x00\x12R\n\x0c\x42\x61tchObjects\x12 .weaviate.v1.BatchObjectsRequest\x1a\x1e.weaviate.v1.BatchObjectsReply"\x00\x12O\n\x0b\x42\x61tchDelete\x12\x1f.weaviate.v1.BatchDeleteRequest\x1a\x1d.weaviate.v1.BatchDeleteReply"\x00\x42j\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3'
 )
 
 _globals = globals()
@@ -26,6 +27,6 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "v1.weaviate_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
     DESCRIPTOR._options = None
     DESCRIPTOR._serialized_options = b"\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocol"
-    _globals["_WEAVIATE"]._serialized_start = 72
-    _globals["_WEAVIATE"]._serialized_end = 232
+    _globals["_WEAVIATE"]._serialized_start = 95
+    _globals["_WEAVIATE"]._serialized_end = 336
 # @@protoc_insertion_point(module_scope)
