@@ -423,7 +423,7 @@ def __create_link_to_from_annotated_reference(
     """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
     assert (
         get_origin(value) is Annotated
-    ), f"field: {link_on} with type: {value} must be not annotated"
+    ), f"field: {link_on} with type: {value} must be Annotated[CrossReference]"
     args = cast(List[CrossReference[Properties, References]], get_args(value))
     inner_type = args[0]
     assert (
