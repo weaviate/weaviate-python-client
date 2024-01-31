@@ -13,6 +13,8 @@ from mock_tests.conftest import MOCK_SERVER_URL, MOCK_PORT, MOCK_IP, MOCK_PORT_G
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
 import weaviate.classes as wvc
 
+from weaviate.connect.base import ConnectionParams, ProtocolParams
+
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
@@ -126,3 +128,20 @@ def test_refresh(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server)
     ) as client:
         time.sleep(1)  # client gets a new token 1s before expiration
         client.collections.list_all()
+
+
+def test_closed_connection(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
+    client = weaviate.WeaviateClient(
+        ConnectionParams(
+            grpc=ProtocolParams(host=MOCK_IP, port=MOCK_PORT_GRPC, secure=False),
+            http=ProtocolParams(host=MOCK_IP, port=MOCK_PORT, secure=False),
+        )
+    )
+    with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
+        client.collections.list_all()
+    with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
+        collection = client.collections.get("Test")
+        collection.query.fetch_objects()
+    with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
+        collection = client.collections.get("Test")
+        collection.data.insert_many([{}])

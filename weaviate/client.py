@@ -9,6 +9,8 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.backup.backup import _Backup
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
+
+from weaviate.validator import _ValidateArgument, _validate_input
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
@@ -212,6 +214,10 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             )
 
         if embedded_options is not None:
+            _validate_input(
+                _ValidateArgument([EmbeddedOptions], "embedded_options", embedded_options)
+            )
+
             embedded_db = EmbeddedV4(options=embedded_options)
             return (
                 ConnectionParams(

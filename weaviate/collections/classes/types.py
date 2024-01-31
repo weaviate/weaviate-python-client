@@ -6,7 +6,7 @@ from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from weaviate.exceptions import InvalidDataModelException
+from weaviate.exceptions import InvalidDataModelError
 
 
 class _WeaviateInput(BaseModel):
@@ -137,7 +137,7 @@ def _check_properties_generic(properties: Optional[Type[Properties]]) -> None:
         and get_origin(properties) is not dict
         and not is_typeddict(properties)
     ):
-        raise InvalidDataModelException("properties")
+        raise InvalidDataModelError("properties")
 
 
 def _check_references_generic(references: Optional[Type["References"]]) -> None:
@@ -146,4 +146,4 @@ def _check_references_generic(references: Optional[Type["References"]]) -> None:
         and get_origin(references) is not dict
         and not is_typeddict(references)
     ):
-        raise InvalidDataModelException("references")
+        raise InvalidDataModelError("references")

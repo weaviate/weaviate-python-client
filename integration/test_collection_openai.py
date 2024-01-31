@@ -473,7 +473,7 @@ def test_openai_batch_upload(openai_collection: OpenAICollection, request: SubRe
     assert not ret.has_errors
 
     objects = collection.query.fetch_objects(include_vector=True).objects
-    assert objects[0].vector is not None
+    assert "default" in objects[0].vector
     assert len(objects[0].vector["default"]) > 0
 
 

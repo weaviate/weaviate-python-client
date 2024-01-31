@@ -293,23 +293,7 @@ def _references_from_config(schema: Dict[str, Any]) -> List[_ReferenceProperty]:
         _ReferenceProperty(
             target_collections=prop["dataType"],
             description=prop.get("description"),
-            index_filterable=prop["indexFilterable"],
-            index_searchable=prop["indexSearchable"],
             name=prop["name"],
-            tokenization=(
-                Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
-            ),
-            vectorizer_config=(
-                _PropertyVectorizerConfig(
-                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
-                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
-                        "vectorizePropertyName"
-                    ],
-                )
-                if schema["vectorizer"] != "none"
-                else None
-            ),
-            vectorizer=schema["vectorizer"],
         )
         for prop in schema["properties"]
         if not _is_primitive(prop["dataType"])
