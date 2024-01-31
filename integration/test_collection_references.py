@@ -277,7 +277,7 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
 
 
 @pytest.mark.parametrize("level", ["col-col", "col-query", "query-col", "query-query"])
-def test_mono_references_grpc_typed_dicts(
+def test_mono_references_grpc_with_generics(
     collection_factory: CollectionFactory,
     collection_factory_get: CollectionFactoryGet,
     level: str,
@@ -501,6 +501,100 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
             ],
             return_metadata=MetadataQuery(last_update_time=True),
         ),
+    ).objects
+    assert objects[0].collection == C.name
+    assert objects[0].properties["name"] == "second"
+    assert len(objects[0].references["ref"].objects) == 1
+    assert objects[0].references["ref"].objects[0].collection == B.name
+    assert objects[0].references["ref"].objects[0].properties["name"] == "B"
+    assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
+
+
+def test_multi_references_grpc_with_generics(collection_factory: CollectionFactory) -> None:
+    A = collection_factory(
+        name="A",
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+    )
+    uuid_A = A.data.insert(properties={"Name": "A"})
+
+    B = collection_factory(
+        name="B",
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    uuid_B = B.data.insert({"Name": "B"})
+
+    C = collection_factory(
+        name="C",
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        references=[
+            ReferenceProperty.MultiTarget(name="ref", target_collections=[A.name, B.name]),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    C.data.insert(
+        {
+            "Name": "first",
+        },
+        references={
+            "ref": ReferenceToMulti(uuids=uuid_A, target_collection=A.name),
+        },
+    )
+    C.data.insert(
+        {
+            "Name": "second",
+        },
+        references={
+            "ref": ReferenceToMulti(uuids=uuid_B, target_collection=B.name),
+        },
+    )
+
+    class AProps(TypedDict):
+        name: str
+
+    class BProps(TypedDict):
+        name: str
+
+    class CProps(TypedDict):
+        name: str
+
+    class CRefsA(TypedDict):
+        ref: Annotated[
+            CrossReference[AProps, None],
+            CrossReferenceAnnotation(
+                metadata=MetadataQuery(last_update_time=True), target_collection=A.name
+            ),
+        ]
+
+    class CRefsB(TypedDict):
+        ref: Annotated[
+            CrossReference[BProps, None],
+            CrossReferenceAnnotation(
+                metadata=MetadataQuery(last_update_time=True), target_collection=B.name
+            ),
+        ]
+
+    objects = C.query.bm25(
+        query="first",
+        return_properties=CProps,
+        return_references=CRefsA,
+    ).objects
+    assert objects[0].collection == C.name
+    assert objects[0].properties["name"] == "first"
+    assert len(objects[0].references["ref"].objects) == 1
+    assert objects[0].references["ref"].objects[0].collection == A.name
+    assert objects[0].references["ref"].objects[0].properties["name"] == "A"
+    assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
+
+    objects = C.query.bm25(
+        query="second",
+        return_properties=CProps,
+        return_references=CRefsB,
     ).objects
     assert objects[0].collection == C.name
     assert objects[0].properties["name"] == "second"
