@@ -70,6 +70,19 @@ def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
     assert res.properties["text"].count == 1
 
 
+def test_aggregation_with_limit(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
+    collection.data.insert({"text": "one"})
+    collection.data.insert({"text": "two"})
+    collection.data.insert({"text": "three"})
+    res = collection.aggregate.over_all(
+        return_metrics=[Metrics("text").text(count=True)], limit=2, group_by="text"
+    )
+    assert len(res.groups) == 2
+    assert res.groups[0].properties["text"].count == 1
+    assert res.groups[1].properties["text"].count == 1
+
+
 @pytest.mark.parametrize(
     "filter_",
     [
