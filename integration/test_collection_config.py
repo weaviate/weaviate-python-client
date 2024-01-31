@@ -674,17 +674,16 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
     conf.name = name
     dconf = conf.to_dict()
 
-    try:
-        client = weaviate.connect_to_local(port=8079, grpc_port=50050)
-        client.collections.create_from_dict(dconf)
-        old = collection.config.get()
-        old.name = "dummy"
-        new = client.collections.get(name).config.get()
-        new.name = "dummy"
-        assert old == new
-    finally:
-        client.collections.delete(name)
-        client.close()
+    client = weaviate.connect_to_local(port=8079, grpc_port=50050)
+    client.collections.create_from_dict(dconf)
+    old = collection.config.get()
+    old.name = "dummy"
+    new = client.collections.get(name).config.get()
+    new.name = "dummy"
+    assert old == new
+
+    client.collections.delete(name)
+    client.close()
 
 
 def test_config_add_existing_property_and_reference(collection_factory: CollectionFactory) -> None:
