@@ -112,7 +112,7 @@ class _Collections(_CollectionsBase):
         name = super()._create(config._to_dict())
         assert (
             config.name == name
-        ), "Name of created collection ({name}) does not match given name ({config.name})"
+        ), f"Name of created collection ({name}) does not match given name ({config.name})"
         return self.get(name, data_model_properties, data_model_references)
 
     def get(
