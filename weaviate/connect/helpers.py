@@ -108,9 +108,8 @@ def connect_to_local(
             The port to use for the underlying gRPC API.
         `headers`
             Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
-        `timeout`
-            The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
-            represents the connect timeout and the second integer represents the read timeout.
+        `additional_config`
+            This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         `skip_init_checks`
             Whether to skip the initialization checks when connecting to Weaviate.
         `auth_credentials`
@@ -278,9 +277,8 @@ def connect_to_custom(
             Whether to use a secure channel for the underlying gRPC API.
         `headers`
             Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
-        `timeout`
-            The timeout to use for the underlying HTTP calls. Accepts a tuple of integers, where the first integer
-            represents the connect timeout and the second integer represents the read timeout.
+        `additional_config`
+            This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         `auth_credentials`
             The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
