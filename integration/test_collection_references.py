@@ -277,7 +277,7 @@ def test_mono_references_grpc(collection_factory: CollectionFactory) -> None:
 
 
 @pytest.mark.parametrize("level", ["col-col", "col-query", "query-col", "query-query"])
-def test_mono_references_grpc_typed_dicts(
+def test_mono_references_grpc_with_generics(
     collection_factory: CollectionFactory,
     collection_factory_get: CollectionFactoryGet,
     level: str,
@@ -291,14 +291,16 @@ def test_mono_references_grpc_typed_dicts(
     class BRefs(TypedDict):
         a: Annotated[
             CrossReference[AProps, None],
-            CrossReferenceAnnotation(metadata=MetadataQuery(creation_time=True)),
+            CrossReferenceAnnotation(
+                metadata=MetadataQuery(creation_time=True), include_vector=True
+            ),
         ]
 
     class CProps(TypedDict):
         name: str
 
     class CRefs(TypedDict):
-        b: Annotated[CrossReference[BProps, BRefs], CrossReferenceAnnotation(include_vector=True)]
+        b: CrossReference[BProps, BRefs]
 
     dummy_a = collection_factory(
         name="a",
@@ -401,14 +403,14 @@ def test_mono_references_grpc_typed_dicts(
         c_objs[0].properties["name"] == "find me"
     )  # happy path (in type and in return_properties)
     assert c_objs[0].uuid is not None
-    assert c_objs[0].vector is not None
+    assert "default" in c_objs[0].vector
     assert (
         c_objs[0].properties.get("not_specified") is None
     )  # type is str but instance is None (in type but not in return_properties)
     assert c_objs[0].references["b"].objects[0].collection == B.name
     assert c_objs[0].references["b"].objects[0].properties["name"] == "B"
     assert c_objs[0].references["b"].objects[0].uuid == uuid_B
-    assert c_objs[0].references["b"].objects[0].vector is not None
+    assert "default" not in c_objs[0].references["b"].objects[0].vector
     assert c_objs[0].references["b"].objects[0].references["a"].objects[0].collection == A.name
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[0].properties["name"] == "A1"
@@ -418,6 +420,7 @@ def test_mono_references_grpc_typed_dicts(
         c_objs[0].references["b"].objects[0].references["a"].objects[0].metadata.creation_time
         is not None
     )
+    assert "default" in c_objs[0].references["b"].objects[0].references["a"].objects[0].vector
     assert c_objs[0].references["b"].objects[0].references["a"].objects[1].collection == A.name
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[1].properties["name"] == "A2"
@@ -427,6 +430,7 @@ def test_mono_references_grpc_typed_dicts(
         c_objs[0].references["b"].objects[0].references["a"].objects[1].metadata.creation_time
         is not None
     )
+    assert "default" in c_objs[0].references["b"].objects[0].references["a"].objects[1].vector
 
 
 def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
@@ -501,6 +505,100 @@ def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
             ],
             return_metadata=MetadataQuery(last_update_time=True),
         ),
+    ).objects
+    assert objects[0].collection == C.name
+    assert objects[0].properties["name"] == "second"
+    assert len(objects[0].references["ref"].objects) == 1
+    assert objects[0].references["ref"].objects[0].collection == B.name
+    assert objects[0].references["ref"].objects[0].properties["name"] == "B"
+    assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
+
+
+def test_multi_references_grpc_with_generics(collection_factory: CollectionFactory) -> None:
+    A = collection_factory(
+        name="A",
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+    )
+    uuid_A = A.data.insert(properties={"Name": "A"})
+
+    B = collection_factory(
+        name="B",
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    uuid_B = B.data.insert({"Name": "B"})
+
+    C = collection_factory(
+        name="C",
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        references=[
+            ReferenceProperty.MultiTarget(name="ref", target_collections=[A.name, B.name]),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    C.data.insert(
+        {
+            "Name": "first",
+        },
+        references={
+            "ref": ReferenceToMulti(uuids=uuid_A, target_collection=A.name),
+        },
+    )
+    C.data.insert(
+        {
+            "Name": "second",
+        },
+        references={
+            "ref": ReferenceToMulti(uuids=uuid_B, target_collection=B.name),
+        },
+    )
+
+    class AProps(TypedDict):
+        name: str
+
+    class BProps(TypedDict):
+        name: str
+
+    class CProps(TypedDict):
+        name: str
+
+    class CRefsA(TypedDict):
+        ref: Annotated[
+            CrossReference[AProps, None],
+            CrossReferenceAnnotation(
+                metadata=MetadataQuery(last_update_time=True), target_collection=A.name
+            ),
+        ]
+
+    class CRefsB(TypedDict):
+        ref: Annotated[
+            CrossReference[BProps, None],
+            CrossReferenceAnnotation(
+                metadata=MetadataQuery(last_update_time=True), target_collection=B.name
+            ),
+        ]
+
+    objects = C.query.bm25(
+        query="first",
+        return_properties=CProps,
+        return_references=CRefsA,
+    ).objects
+    assert objects[0].collection == C.name
+    assert objects[0].properties["name"] == "first"
+    assert len(objects[0].references["ref"].objects) == 1
+    assert objects[0].references["ref"].objects[0].collection == A.name
+    assert objects[0].references["ref"].objects[0].properties["name"] == "A"
+    assert objects[0].references["ref"].objects[0].metadata.last_update_time is not None
+
+    objects = C.query.bm25(
+        query="second",
+        return_properties=CProps,
+        return_references=CRefsB,
     ).objects
     assert objects[0].collection == C.name
     assert objects[0].properties["name"] == "second"
@@ -1046,12 +1144,24 @@ def test_bad_generic_return_references(collection_factory: CollectionFactory) ->
         properties=[Property(name="Name", data_type=DataType.TEXT)],
     )
 
-    class SomeGeneric:
+    class SomeGeneric(TypedDict):
         field: int
 
     uuid = collection.data.insert(properties={"Name": "A"})
     with pytest.raises(WeaviateInvalidInputError):
-        collection.query.fetch_object_by_id(  # type: ignore
+        collection.query.fetch_object_by_id(
+            uuid,
+            return_references=SomeGeneric,
+        )
+
+    class OtherGeneric(TypedDict):
+        field: Annotated[
+            int,
+            CrossReferenceAnnotation(metadata=MetadataQuery(creation_time=True)),
+        ]
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.fetch_object_by_id(
             uuid,
             return_references=SomeGeneric,
         )

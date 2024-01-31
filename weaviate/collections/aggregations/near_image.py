@@ -7,8 +7,10 @@ from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
     AggregateGroupByReturn,
+    GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
+from weaviate.types import NUMBER
 
 
 class _NearImage(_Aggregate):
@@ -17,12 +19,11 @@ class _NearImage(_Aggregate):
         self,
         near_image: Union[str, Path, BufferedReader],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
-        limit: Optional[int] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateReturn:
@@ -33,12 +34,11 @@ class _NearImage(_Aggregate):
         self,
         near_image: Union[str, Path, BufferedReader],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: str,
-        limit: Optional[int] = None,
+        group_by: GroupByAggregate,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn:
@@ -48,12 +48,11 @@ class _NearImage(_Aggregate):
         self,
         near_image: Union[str, Path, BufferedReader],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Optional[str] = None,
-        limit: Optional[int] = None,
+        group_by: Optional[GroupByAggregate] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
@@ -76,8 +75,6 @@ class _NearImage(_Aggregate):
                 The filters to apply to the search.
             `group_by`
                 The property name to group the aggregation by.
-            `limit`
-                The maximum number of aggregated objects to return.
             `total_count`
                 Whether to include the total number of objects that match the query in the response.
             `return_metrics`
@@ -87,15 +84,17 @@ class _NearImage(_Aggregate):
             Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateGQLQueryError`:
+            `weaviate.exceptions.WeaviateQueryError`:
                 If an error occurs while performing the query against Weaviate.
+            `weaviate.exceptions.WeaviateInvalidInputError`:
+                If any of the input arguments are of the wrong type.
         """
         return_metrics = (
             return_metrics
             if (return_metrics is None or isinstance(return_metrics, list))
             else [return_metrics]
         )
-        builder = self._base(return_metrics, filters, limit, total_count)
+        builder = self._base(return_metrics, filters, total_count)
         builder = self._add_groupby_to_builder(builder, group_by)
         builder = self._add_near_image(builder, near_image, certainty, distance, object_limit)
         res = self._do(builder)

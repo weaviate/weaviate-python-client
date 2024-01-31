@@ -94,7 +94,7 @@ class _Object(Generic[P, R, M]):
     metadata: M
     properties: P
     references: R
-    vector: Optional[Dict[str, List[float]]]
+    vector: Dict[str, List[float]]
     collection: str
 
 
@@ -402,13 +402,10 @@ def _extract_types_from_annotated_reference(
     type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation], field: str
 ) -> Tuple[Type[Properties], Type["References"]]:
     """Extract inner type from Annotated[CrossReference[Properties, References]]."""
-    if get_origin(type_) is Annotated:
-        args = get_args(type_)
-        inner_type = cast(CrossReference[Properties, References], args[0])
-        return _extract_types_from_reference(inner_type, field)
-    raise WeaviateInvalidInputError(
-        f"Type: {type_} of field: {field} is not Annotated[CrossReference[Properties, References]]"
-    )
+    assert get_origin(type_) is Annotated, f"field: {field} with type: {type_} must be annotated"
+    args = get_args(type_)
+    inner_type = cast(CrossReference[Properties, References], args[0])
+    return _extract_types_from_reference(inner_type, field)
 
 
 def __is_annotated_reference(value: Any) -> bool:
@@ -424,10 +421,14 @@ def __create_link_to_from_annotated_reference(
     value: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation],
 ) -> Union[_QueryReference, _QueryReferenceMultiTarget]:
     """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
-    assert get_origin(value) is Annotated
+    assert (
+        get_origin(value) is Annotated
+    ), f"field: {link_on} with type: {value} must be Annotated[CrossReference]"
     args = cast(List[CrossReference[Properties, References]], get_args(value))
     inner_type = args[0]
-    assert get_origin(inner_type) is _CrossReference
+    assert (
+        get_origin(inner_type) is _CrossReference
+    ), f"field: {link_on} with inner_type: {inner_type} must be CrossReference"
     inner_type_metadata = cast(
         Tuple[CrossReferenceAnnotation], getattr(value, "__metadata__", None)
     )

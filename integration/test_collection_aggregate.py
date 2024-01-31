@@ -14,6 +14,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateText,
     AggregateReturn,
     Metrics,
+    GroupByAggregate,
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
 from weaviate.collections.classes.filters import Filter, _Filters
@@ -68,6 +69,20 @@ def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
     res = collection.aggregate.over_all(return_metrics=[Metrics("text").text(count=True)])
     assert isinstance(res.properties["text"], AggregateText)
     assert res.properties["text"].count == 1
+
+
+def test_aggregation_with_limit(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
+    collection.data.insert({"text": "one"})
+    collection.data.insert({"text": "two"})
+    collection.data.insert({"text": "three"})
+    res = collection.aggregate.over_all(
+        return_metrics=[Metrics("text").text(count=True)],
+        group_by=GroupByAggregate(prop="text", limit=2),
+    )
+    assert len(res.groups) == 2
+    assert res.groups[0].properties["text"].count == 1
+    assert res.groups[1].properties["text"].count == 1
 
 
 @pytest.mark.parametrize(
@@ -286,7 +301,7 @@ def test_near_vector_aggregation(
     text_2 = "nothing like the other one at all, not even a little bit"
     uuid = collection.data.insert({"text": text_1})
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
-    assert obj.vector is not None
+    assert "default" in obj.vector
     collection.data.insert({"text": text_2})
     res: AggregateReturn = collection.aggregate.near_vector(
         obj.vector["default"],
@@ -320,7 +335,7 @@ def test_near_vector_missing_param(collection_factory: CollectionFactory) -> Non
     )
     uuid_ = collection.data.insert({"text": "some text"})
     obj = collection.query.fetch_object_by_id(uuid_, include_vector=True)
-    assert obj.vector is not None
+    assert "default" in obj.vector
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection.aggregate.near_vector(
             obj.vector["default"],
@@ -468,7 +483,7 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     collection.data.insert({"text": "some text", "int": 2})
 
     res = collection.aggregate.over_all(
-        group_by="text",
+        group_by=GroupByAggregate(prop="text"),
         return_metrics=[
             Metrics("text").text(count=True),
             Metrics("int").integer(count=True),
@@ -484,7 +499,7 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     assert groups[0].properties["int"].count == 2
 
     res = collection.aggregate.over_all(
-        group_by="int",
+        group_by=GroupByAggregate(prop="int"),
         return_metrics=[
             Metrics("text").text(count=True),
             Metrics("int").integer(count=True),

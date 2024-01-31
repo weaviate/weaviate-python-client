@@ -7,7 +7,9 @@ from typing import (
 )
 from typing_extensions import TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from weaviate.collections.classes.types import _WeaviateInput
 
 N = TypeVar("N", int, float)
 
@@ -247,6 +249,13 @@ _Metrics = Union[
 ]
 
 PropertiesMetrics = Union[_Metrics, List[_Metrics]]
+
+
+class GroupByAggregate(_WeaviateInput):
+    """Define how the aggregations's group-by operation should be performed."""
+
+    prop: str
+    limit: Optional[int] = Field(default=None)
 
 
 class Metrics:

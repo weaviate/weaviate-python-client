@@ -64,14 +64,14 @@ def test_get_vector(client: weaviate.WeaviateClient) -> None:
     assert len(batchReturn.uuids) == 1000
 
     obj = col.query.fetch_object_by_id(batchReturn.uuids[0], include_vector=True)
-    assert obj is not None and obj.vector is not None
+    assert obj is not None and "default" in obj.vector
 
     for _ in range(100):
         objs = col.query.fetch_objects(
             limit=1000, include_vector=True, return_properties=None, return_metadata=None
         )
         assert len(objs.objects) == 1000
-        assert objs.objects[0].vector is not None
+        assert "default" in objs.objects[0].vector
         assert compare_float_lists(objs.objects[0].vector, obj.vector)
 
     client.collections.delete(name)

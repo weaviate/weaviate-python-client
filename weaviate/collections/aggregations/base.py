@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import pathlib
 
 from typing import List, Optional, TypeVar, Union, cast
@@ -17,6 +18,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateGroup,
     AggregateGroupByReturn,
     AggregateReturn,
+    GroupByAggregate,
     _Metrics,
     _MetricsBoolean,
     _MetricsDate,
@@ -35,7 +37,8 @@ from weaviate.collections.filters import _FilterToREST
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.util import file_encoder_b64
-from weaviate.types import UUID
+from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.types import NUMBER, UUID
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -166,27 +169,34 @@ class _Aggregate:
 
     @staticmethod
     def _add_groupby_to_builder(
-        builder: AggregateBuilder, group_by: Optional[str]
+        builder: AggregateBuilder, group_by: Optional[GroupByAggregate]
     ) -> AggregateBuilder:
+        _validate_input(_ValidateArgument([GroupByAggregate, None], "group_by", group_by))
         if group_by is None:
             return builder
-        builder = builder.with_group_by_filter([group_by])
+        builder = builder.with_group_by_filter([group_by.prop])
+        if group_by.limit is not None:
+            builder = builder.with_limit(group_by.limit)
         return builder.with_fields(" groupedBy { path value } ")
 
     def _base(
         self,
-        metrics: Optional[List[_Metrics]],
+        return_metrics: Optional[List[_Metrics]],
         filters: Optional[_Filters],
-        limit: Optional[int],
         total_count: bool,
     ) -> AggregateBuilder:
+        _validate_input(
+            [
+                _ValidateArgument([List[_Metrics], None], "return_metrics", return_metrics),
+                _ValidateArgument([_Filters, None], "filters", filters),
+                _ValidateArgument([bool], "total_count", total_count),
+            ]
+        )
         builder = self._query()
-        if metrics is not None:
-            builder = builder.with_fields(" ".join([metric.to_gql() for metric in metrics]))
+        if return_metrics is not None:
+            builder = builder.with_fields(" ".join([metric.to_gql() for metric in return_metrics]))
         if filters is not None:
             builder = builder.with_where(_FilterToREST.convert(filters))
-        if limit is not None:
-            builder = builder.with_limit(limit)
         if total_count:
             builder = builder.with_meta_count()
         if self._tenant is not None:
@@ -209,17 +219,35 @@ class _Aggregate:
         return res
 
     @staticmethod
+    def _parse_near_options(
+        certainty: Optional[NUMBER],
+        distance: Optional[NUMBER],
+        object_limit: Optional[int],
+    ) -> None:
+        _validate_input(
+            [
+                _ValidateArgument([int, float, None], "certainty", certainty),
+                _ValidateArgument([int, float, None], "distance", distance),
+                _ValidateArgument([int, None], "object_limit", object_limit),
+            ]
+        )
+
+    @staticmethod
     def _add_near_image(
         builder: AggregateBuilder,
         near_image: Union[str, pathlib.Path, io.BufferedReader],
-        certainty: Optional[float],
-        distance: Optional[float],
+        certainty: Optional[NUMBER],
+        distance: Optional[NUMBER],
         object_limit: Optional[int],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
             raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
+        _validate_input(
+            _ValidateArgument([str, pathlib.Path, io.BufferedReader], "near_image", near_image)
+        )
+        _Aggregate._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["image"] = _parse_media(near_image)
         if certainty is not None:
@@ -235,14 +263,16 @@ class _Aggregate:
     def _add_near_object(
         builder: AggregateBuilder,
         near_object: UUID,
-        certainty: Optional[float],
-        distance: Optional[float],
+        certainty: Optional[NUMBER],
+        distance: Optional[NUMBER],
         object_limit: Optional[int],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
             raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
+        _validate_input(_ValidateArgument([UUID], "near_object", near_object))
+        _Aggregate._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["id"] = str(near_object)
         if certainty is not None:
@@ -258,8 +288,8 @@ class _Aggregate:
     def _add_near_text(
         builder: AggregateBuilder,
         query: Union[List[str], str],
-        certainty: Optional[float],
-        distance: Optional[float],
+        certainty: Optional[NUMBER],
+        distance: Optional[NUMBER],
         move_to: Optional[Move],
         move_away: Optional[Move],
         object_limit: Optional[int],
@@ -268,6 +298,14 @@ class _Aggregate:
             raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
+        _validate_input(
+            [
+                _ValidateArgument([List[str], str], "query", query),
+                _ValidateArgument([Move, None], "move_to", move_to),
+                _ValidateArgument([Move, None], "move_away", move_away),
+            ]
+        )
+        _Aggregate._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["concepts"] = query if isinstance(query, list) else [query]
         if certainty is not None:
@@ -287,14 +325,16 @@ class _Aggregate:
     def _add_near_vector(
         builder: AggregateBuilder,
         near_vector: List[float],
-        certainty: Optional[float],
-        distance: Optional[float],
+        certainty: Optional[NUMBER],
+        distance: Optional[NUMBER],
         object_limit: Optional[int],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
             raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
+        _validate_input(_ValidateArgument([list], "near_vector", near_vector))
+        _Aggregate._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["vector"] = near_vector
         if certainty is not None:
@@ -308,7 +348,10 @@ class _Aggregate:
 
 
 def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
-    if isinstance(media, str):  # if already encoded by user
-        return media
+    if isinstance(media, str):  # if already encoded by user or string to path
+        if os.path.isfile(media):
+            return file_encoder_b64(media)
+        else:
+            return media
     else:
         return file_encoder_b64(media)
