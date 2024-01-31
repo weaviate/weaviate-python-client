@@ -34,7 +34,7 @@ DEFAULT_GRPC_PORT = 50060
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.23.6"
+    version: str = "1.23.7"
     port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
