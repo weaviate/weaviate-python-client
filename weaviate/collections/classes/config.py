@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from enum import Enum
 from typing import (
     Any,
@@ -18,7 +18,6 @@ from typing import (
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 from weaviate.util import _capitalize_first_letter
-from weaviate.warnings import _Warnings
 
 
 class ConsistencyLevel(str, Enum):
@@ -895,33 +894,6 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
     useCache: Optional[bool]
     vectorizeClassName: bool
 
-    def validate_mutually_exclusive_fields(self, values: Dict[str, Any]) -> Dict[str, Any]:
-        if "passageModel" in values and "queryModel" not in values:
-            raise ValueError("Must specify query_model when specifying passage_model")
-        if "queryModel" in values and "passageModel" not in values:
-            raise ValueError("Must specify passage_model when specifying query_model")
-        if "model" in values and any(["passageModel" in values, "queryModel" in values]):
-            raise ValueError(
-                "Can only specify model alone or passage_model and query_model together"
-            )
-        if (
-            any(["passageModel" in values, "queryModel" in values, "model" in values])
-            and "endpointURL" in values
-        ):
-            _Warnings.text2vec_huggingface_endpoint_url_and_model_set_together()
-        if all(
-            [
-                "passageModel" not in values,
-                "queryModel" not in values,
-                "model" not in values,
-                "endpointURL" not in values,
-            ]
-        ):
-            raise ValueError(
-                "Must specify at least one of model, passage_model and query_model, or endpoint_url"
-            )
-        return values
-
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         options = {}
@@ -1575,10 +1547,15 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
 class _ConfigBase:
     def to_dict(self) -> dict:
         out = {}
-        for k, v in asdict(self).items():
+        for k, v in self.__dict__.items():
+            words = k.split("_")
+            key = words[0].lower() + "".join(word.title() for word in words[1:])
             if v is None:
                 continue
-            out[k] = v.to_dict() if isinstance(v, _ConfigBase) else v
+            if isinstance(v, Enum):
+                out[key] = v.value
+                continue
+            out[key] = v.to_dict() if isinstance(v, _ConfigBase) else v
         return out
 
 
@@ -1736,7 +1713,7 @@ class _PQEncoderConfig(_ConfigBase):
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-        ret_dict["type"] = str(ret_dict.pop("type_"))
+        ret_dict["type"] = str(ret_dict.pop("type"))
         ret_dict["distribution"] = str(ret_dict.pop("distribution"))
         return ret_dict
 
@@ -1766,7 +1743,20 @@ BQConfig = _BQConfig
 
 
 @dataclass
-class _VectorIndexConfigHNSW(_ConfigBase):
+class _VectorIndexConfig(_ConfigBase):
+    quantizer: Optional[Union[PQConfig, BQConfig]]
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        if isinstance(self.quantizer, _PQConfig):
+            out["pq"] = {**out.pop("quantizer"), "enabled": True}
+        elif isinstance(self.quantizer, _BQConfig):
+            out["bq"] = {**out.pop("quantizer"), "enabled": True}
+        return out
+
+
+@dataclass
+class _VectorIndexConfigHNSW(_VectorIndexConfig):
     cleanup_interval_seconds: int
     distance_metric: VectorDistances
     dynamic_ef_min: int
@@ -1776,7 +1766,6 @@ class _VectorIndexConfigHNSW(_ConfigBase):
     ef_construction: int
     flat_search_cutoff: int
     max_connections: int
-    quantizer: Optional[Union[PQConfig, BQConfig]]
     skip: bool
     vector_cache_max_objects: int
 
@@ -1785,9 +1774,8 @@ VectorIndexConfigHNSW = _VectorIndexConfigHNSW
 
 
 @dataclass
-class _VectorIndexConfigFlat(_ConfigBase):
+class _VectorIndexConfigFlat(_VectorIndexConfig):
     distance_metric: VectorDistances
-    quantizer: Optional[Union[PQConfig, BQConfig]]
     vector_cache_max_objects: int
 
 
@@ -1833,7 +1821,7 @@ class _CollectionConfig(_ConfigBase):
     references: List[ReferencePropertyConfig]
     replication_config: ReplicationConfig
     reranker_config: Optional[RerankerConfig]
-    sharding_config: ShardingConfig
+    sharding_config: Optional[ShardingConfig]
     vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]
     vector_index_type: VectorIndexType
     vectorizer_config: Optional[VectorizerConfig]
@@ -1843,19 +1831,20 @@ class _CollectionConfig(_ConfigBase):
         out = super().to_dict()
         out["class"] = out.pop("name")
         out["moduleConfig"] = {}
-        for name in [("generative_config", "generative"), ("vectorizer_config", "vectorizer")]:
+        for name in [
+            ("generativeConfig", "generative"),
+            ("vectorizerConfig", "vectorizer"),
+            ("rerankerConfig", "reranker"),
+        ]:
             if name[0] not in out:
                 continue
 
             val = out.pop(name[0])
             module_name = val[name[1]]
-            assert isinstance(module_name, Enum)
-            out["moduleConfig"][module_name.value] = val.get("model", {})
-            vectorize_collection_name = val.get("vectorize_collection_name", None)
+            out["moduleConfig"][module_name] = val.get("model", {})
+            vectorize_collection_name = val.get("vectorizeCollectionName", None)
             if vectorize_collection_name is not None:
-                out["moduleConfig"][module_name.value][
-                    "vectorizeClassName"
-                ] = vectorize_collection_name
+                out["moduleConfig"][module_name]["vectorizeClassName"] = vectorize_collection_name
 
         out["properties"] = [
             *[prop.to_dict() for prop in self.properties],
@@ -1900,26 +1889,6 @@ ShardStatus = _ShardStatus
 #     tokenization: Optional[Tokenization] = None
 #     description: Optional[str] = None
 #     moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
-
-
-@dataclass
-class _PropertyConfig:  # noqa
-    index_filterable: Optional[bool] = None
-    index_searchable: Optional[bool] = None
-    tokenization: Optional[Tokenization] = None
-    description: Optional[str] = None
-    vectorizer_config: Optional[_VectorizerConfigCreate] = None
-
-    # tmp solution. replace with a pydantic BaseModel, see bug report: https://github.com/pydantic/pydantic/issues/6948
-    # bug report was closed as not planned :( so dataclasses must stay
-    def _to_dict(self) -> Dict[str, Any]:
-        return {
-            "indexFilterable": self.index_filterable,
-            "indexSearchable": self.index_searchable,
-            "tokenization": self.tokenization,
-            "description": self.description,
-            "moduleConfig": self.vectorizer_config,
-        }
 
 
 class Property(_ConfigCreateModel):

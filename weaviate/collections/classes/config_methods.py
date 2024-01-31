@@ -172,7 +172,9 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
         replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
         reranker_config=__get_rerank_config(schema),
-        sharding_config=_ShardingConfig(
+        sharding_config=None
+        if schema["multiTenancyConfig"]["enabled"]
+        else _ShardingConfig(
             virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
             desired_count=schema["shardingConfig"]["desiredCount"],
             actual_count=schema["shardingConfig"]["actualCount"],
