@@ -247,6 +247,15 @@ def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) ->
     assert nodes[0].shards[0].collection == collection.name
 
 
+def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    client.collections.delete(request.node.name)
+    collection = client.collections.create(name=request.node.name)
+
+    nodes = client.cluster.nodes(collection.name, output="minimal")
+    assert len(nodes) == 1
+    assert nodes[0].shards is None
+
+
 def test_client_connect_and_close() -> None:
     client = weaviate.WeaviateClient(
         connection_params=weaviate.connect.ConnectionParams.from_url(
