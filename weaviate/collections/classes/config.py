@@ -1647,15 +1647,34 @@ NestedProperty = _NestedProperty
 
 @dataclass
 class _PropertyBase(_ConfigBase):
+    name: str
     description: Optional[str]
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = {"name": self.name}
+
+        if self.description is not None:
+            out["description"] = self.description
+        return out
+
+
+@dataclass
+class _Property(_PropertyBase):
+    data_type: DataType
     index_filterable: bool
     index_searchable: bool
-    name: str
+    nested_properties: Optional[List[NestedProperty]]
     tokenization: Optional[Tokenization]
     vectorizer_config: Optional[PropertyVectorizerConfig]
     vectorizer: Optional[str]
 
     def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["dataType"] = [self.data_type.value]
+        out["indexFilterable"] = self.index_filterable
+        out["indexVector"] = self.index_searchable
+        out["tokenizer"] = self.tokenization.value if self.tokenization else None
+
         module_config: Dict[str, Any] = {}
         if self.vectorizer is not None:
             module_config[self.vectorizer] = {}
@@ -1666,28 +1685,8 @@ class _PropertyBase(_ConfigBase):
                 "vectorizePropertyName": self.vectorizer_config.vectorize_property_name,
             }
 
-        ret_dict: Dict[str, Any] = {
-            "description": self.description,
-            "indexFilterable": self.index_filterable,
-            "indexVector": self.index_searchable,
-            "name": self.name,
-            "tokenizer": self.tokenization.value if self.tokenization else None,
-        }
-
         if len(module_config) > 0:
-            ret_dict["moduleConfig"] = module_config
-
-        return ret_dict
-
-
-@dataclass
-class _Property(_PropertyBase):
-    data_type: DataType
-    nested_properties: Optional[List[NestedProperty]]
-
-    def to_dict(self) -> Dict[str, Any]:
-        out = super().to_dict()
-        out["dataType"] = [self.data_type.value]
+            out["moduleConfig"] = module_config
         return out
 
 
