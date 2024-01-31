@@ -291,14 +291,16 @@ def test_mono_references_grpc_with_generics(
     class BRefs(TypedDict):
         a: Annotated[
             CrossReference[AProps, None],
-            CrossReferenceAnnotation(metadata=MetadataQuery(creation_time=True)),
+            CrossReferenceAnnotation(
+                metadata=MetadataQuery(creation_time=True), include_vector=True
+            ),
         ]
 
     class CProps(TypedDict):
         name: str
 
     class CRefs(TypedDict):
-        b: Annotated[CrossReference[BProps, BRefs], CrossReferenceAnnotation(include_vector=True)]
+        b: CrossReference[BProps, BRefs]
 
     dummy_a = collection_factory(
         name="a",
@@ -408,7 +410,7 @@ def test_mono_references_grpc_with_generics(
     assert c_objs[0].references["b"].objects[0].collection == B.name
     assert c_objs[0].references["b"].objects[0].properties["name"] == "B"
     assert c_objs[0].references["b"].objects[0].uuid == uuid_B
-    assert c_objs[0].references["b"].objects[0].vector is not None
+    assert "default" not in c_objs[0].references["b"].objects[0].vector
     assert c_objs[0].references["b"].objects[0].references["a"].objects[0].collection == A.name
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[0].properties["name"] == "A1"
@@ -418,6 +420,7 @@ def test_mono_references_grpc_with_generics(
         c_objs[0].references["b"].objects[0].references["a"].objects[0].metadata.creation_time
         is not None
     )
+    assert "default" in c_objs[0].references["b"].objects[0].references["a"].objects[0].vector
     assert c_objs[0].references["b"].objects[0].references["a"].objects[1].collection == A.name
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[1].properties["name"] == "A2"
@@ -427,6 +430,7 @@ def test_mono_references_grpc_with_generics(
         c_objs[0].references["b"].objects[0].references["a"].objects[1].metadata.creation_time
         is not None
     )
+    assert "default" in c_objs[0].references["b"].objects[0].references["a"].objects[1].vector
 
 
 def test_multi_references_grpc(collection_factory: CollectionFactory) -> None:
