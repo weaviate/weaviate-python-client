@@ -210,15 +210,24 @@ class _QueryGRPC(_BaseGRPC):
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
     ) -> None:
-        _validate_input(
-            [
-                _ValidateArgument([str], "query", query),
-                _ValidateArgument([float, int, None], "alpha", alpha),
-                _ValidateArgument([List[float], None], "vector", vector),
-                _ValidateArgument([List[str], None], "properties", properties),
-                _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
-            ]
-        )
+        if not isinstance(query, str):
+            raise WeaviateInvalidInputError(f"query must be of type str, but got {type(query)}")
+        if alpha is not None and not isinstance(alpha, float) and not isinstance(alpha, int):
+            raise WeaviateInvalidInputError(
+                f"alpha must be of type float or int, but got {type(alpha)}"
+            )
+        if vector is not None and not isinstance(vector, list):
+            raise WeaviateInvalidInputError(
+                f"vector must be of type List[float], but got {type(vector)}"
+            )
+        if properties is not None and not isinstance(properties, list):
+            raise WeaviateInvalidInputError(
+                f"properties must be of type List[str], but got {type(properties)}"
+            )
+        if fusion_type is not None and not isinstance(fusion_type, HybridFusion):
+            raise WeaviateInvalidInputError(
+                f"fusion_type must be of type weaviate.classes.query.HybridFusion, but got {type(fusion_type)}."
+            )
         self._hybrid_query = query
         self._hybrid_alpha = float(alpha) if alpha is not None else None
         self._hybrid_vector = vector
@@ -234,12 +243,12 @@ class _QueryGRPC(_BaseGRPC):
         query: str,
         properties: Optional[List[str]] = None,
     ) -> None:
-        _validate_input(
-            [
-                _ValidateArgument([str], "query", query),
-                _ValidateArgument([List[str], None], "properties", properties),
-            ]
-        )
+        if not isinstance(query, str):
+            raise WeaviateInvalidInputError(f"query must be of type str, but got {type(query)}")
+        if properties is not None and not isinstance(properties, list):
+            raise WeaviateInvalidInputError(
+                f"properties must be of type List[str], but got {type(properties)}"
+            )
         self._bm25_query = query
         self._bm25_properties = properties
 
@@ -248,12 +257,22 @@ class _QueryGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
     ) -> None:
-        _validate_input(
-            [
-                _ValidateArgument([int, float, None], "certainty", certainty),
-                _ValidateArgument([int, float, None], "distance", distance),
-            ]
-        )
+        if (
+            certainty is not None
+            and not isinstance(certainty, float)
+            and not isinstance(certainty, int)
+        ):
+            raise WeaviateInvalidInputError(
+                f"certainty must be of type float or int, but got {type(certainty)}"
+            )
+        if (
+            distance is not None
+            and not isinstance(distance, float)
+            and not isinstance(distance, int)
+        ):
+            raise WeaviateInvalidInputError(
+                f"distance must be of type float or int, but got {type(distance)}"
+            )
         self._near_certainty = float(certainty) if certainty is not None else None
         self._near_distance = float(distance) if distance is not None else None
 
@@ -395,11 +414,10 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
-        _validate_input(
-            [
-                _ValidateArgument([uuid_lib.UUID, str], "near_object", near_object),
-            ]
-        )
+        if not isinstance(near_object, str) and not isinstance(near_object, uuid_lib.UUID):
+            raise WeaviateInvalidInputError(
+                f"near_object must be of type str or uuid.UUID, but got {type(near_object)}"
+            )
         self._near_object_obj = near_object
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
@@ -434,13 +452,18 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
-        _validate_input(
-            [
-                _ValidateArgument([List[str], str], "near_text", near_text),
-                _ValidateArgument([Move, None], "move_to", move_to),
-                _ValidateArgument([Move, None], "move_away", move_away),
-            ]
-        )
+        if not isinstance(near_text, list) and not isinstance(near_text, str):
+            raise WeaviateInvalidInputError(
+                f"near_text must be of type List[str] or str, but got {type(near_text)}"
+            )
+        if move_away is not None and not isinstance(move_away, Move):
+            raise WeaviateInvalidInputError(
+                f"move_away must be of type Move, but got {type(move_away)}"
+            )
+        if move_to is not None and not isinstance(move_to, Move):
+            raise WeaviateInvalidInputError(
+                f"move_to must be of type Move, but got {type(move_to)}"
+            )
         if isinstance(near_text, str):
             near_text = [near_text]
         self._near_text = near_text
