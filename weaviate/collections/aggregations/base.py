@@ -171,11 +171,7 @@ class _Aggregate:
     def _add_groupby_to_builder(
         builder: AggregateBuilder, group_by: Optional[GroupByAggregate]
     ) -> AggregateBuilder:
-        _validate_input(
-            [
-                _ValidateArgument([GroupByAggregate, None], "group_by", group_by),
-            ]
-        )
+        _validate_input(_ValidateArgument([GroupByAggregate, None], "group_by", group_by))
         if group_by is None:
             return builder
         builder = builder.with_group_by_filter([group_by.prop])
@@ -249,9 +245,7 @@ class _Aggregate:
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
         _validate_input(
-            [
-                _ValidateArgument([str, pathlib.Path, io.BufferedReader], "near_image", near_image),
-            ]
+            _ValidateArgument([str, pathlib.Path, io.BufferedReader], "near_image", near_image)
         )
         _Aggregate._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
@@ -277,11 +271,7 @@ class _Aggregate:
             raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
-        _validate_input(
-            [
-                _ValidateArgument([UUID], "near_object", near_object),
-            ]
-        )
+        _validate_input(_ValidateArgument([UUID], "near_object", near_object))
         _Aggregate._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["id"] = str(near_object)
@@ -343,11 +333,7 @@ class _Aggregate:
             raise WeaviateInvalidInputError(
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
-        _validate_input(
-            [
-                _ValidateArgument([list], "near_vector", near_vector),
-            ]
-        )
+        _validate_input(_ValidateArgument([list], "near_vector", near_vector))
         _Aggregate._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["vector"] = near_vector
