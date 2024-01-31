@@ -150,9 +150,9 @@ class _BaseQuery(Generic[Properties, References]):
     def __extract_vector_for_object(
         self,
         add_props: "search_get_pb2.MetadataResult",
-    ) -> Optional[Dict[str, List[float]]]:
+    ) -> Dict[str, List[float]]:
         if len(add_props.vector_bytes) == 0 and len(add_props.vector) == 0:
-            return None
+            return {}
 
         vector_bytes = struct.unpack(f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes)
         return {"default": list(vector_bytes)}
@@ -247,7 +247,7 @@ class _BaseQuery(Generic[Properties, References]):
                 self.__parse_ref_properties_result(props) if options.include_references else None
             ),
             uuid=self.__extract_id_for_object(meta),
-            vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
+            vector=self.__extract_vector_for_object(meta) if options.include_vector else {},
         )
 
     def __result_to_generative_object(
@@ -272,7 +272,7 @@ class _BaseQuery(Generic[Properties, References]):
                 self.__parse_ref_properties_result(props) if options.include_references else None
             ),
             uuid=self.__extract_id_for_object(meta),
-            vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
+            vector=self.__extract_vector_for_object(meta) if options.include_vector else {},
             generated=self.__extract_generated_for_object(meta),
         )
 
@@ -333,7 +333,7 @@ class _BaseQuery(Generic[Properties, References]):
                 self.__parse_ref_properties_result(props) if options.include_references else None
             ),
             uuid=self.__extract_id_for_object(meta),
-            vector=self.__extract_vector_for_object(meta) if options.include_vector else None,
+            vector=self.__extract_vector_for_object(meta) if options.include_vector else {},
         )
 
     def _result_to_query_return(

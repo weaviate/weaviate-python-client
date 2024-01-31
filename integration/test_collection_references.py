@@ -401,14 +401,14 @@ def test_mono_references_grpc_typed_dicts(
         c_objs[0].properties["name"] == "find me"
     )  # happy path (in type and in return_properties)
     assert c_objs[0].uuid is not None
-    assert c_objs[0].vector is not None
+    assert "default" in c_objs[0].vector
     assert (
         c_objs[0].properties.get("not_specified") is None
     )  # type is str but instance is None (in type but not in return_properties)
     assert c_objs[0].references["b"].objects[0].collection == B.name
     assert c_objs[0].references["b"].objects[0].properties["name"] == "B"
     assert c_objs[0].references["b"].objects[0].uuid == uuid_B
-    assert c_objs[0].references["b"].objects[0].vector is not None
+    assert "default" in c_objs[0].references["b"].objects[0].vector
     assert c_objs[0].references["b"].objects[0].references["a"].objects[0].collection == A.name
     assert (
         c_objs[0].references["b"].objects[0].references["a"].objects[0].properties["name"] == "A1"
