@@ -1752,8 +1752,6 @@ class _VectorIndexConfig(_ConfigBase):
             out["pq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _BQConfig):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
-        else:
-            out.pop("quantizer", None)
         return out
 
 
