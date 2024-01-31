@@ -41,7 +41,7 @@ else:
 # -- Project information -----------------------------------------------------
 
 project = "Weaviate Python Client"
-copyright = "2021-2023, Weaviate"
+copyright = "2021-2024, Weaviate"
 author = "Weaviate"
 
 
@@ -52,9 +52,20 @@ author = "Weaviate"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
+    "sphinxcontrib.autodoc_pydantic",
 ]
+
+# Autodoc settings for pydantic
+autodoc_pydantic_model_show_json = False
+autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_validator_summary = False
+autodoc_pydantic_model_show_validator_members = False
+autodoc_pydantic_model_show_field_summary = False
+autodoc_pydantic_model_undoc_members = False
+autodoc_pydantic_model_members = False
+
 
 # Make sure the target is unique
 autosectionlabel_prefix_document = True
@@ -69,13 +80,12 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-# html_theme = 'classic'
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

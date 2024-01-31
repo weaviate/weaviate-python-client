@@ -1,6 +1,7 @@
 """
 Batch class definitions.
 """
+
 import datetime
 import sys
 import threading
@@ -65,7 +66,7 @@ class Shard:
 
 @dataclass()
 class WeaviateErrorRetryConf:
-    """Configures how often objects should be retried when Weavaite returns an error and which errors should be included
+    """Configures how often objects should be retried when Weaviate returns an error and which errors should be included
     or excluded.
     By default, all errors are retried.
 
@@ -486,13 +487,13 @@ class Batch:
                         if (
                             2.1 > ratio > 1.9
                         ):  # ideal, send exactly as many objects as weaviate can process
-                            self._recommended_num_objects = rate_per_worker
+                            self._recommended_num_objects = rate_per_worker  # type: ignore
                         elif ratio <= 1.9:  # we can send more
                             self._recommended_num_objects = min(
-                                self._recommended_num_objects * 1.5, rate_per_worker * 2 / ratio
+                                self._recommended_num_objects * 1.5, rate_per_worker * 2 / ratio  # type: ignore
                             )
                         elif ratio < 10:  # too high, scale down
-                            self._recommended_num_objects = rate_per_worker * 2 / ratio
+                            self._recommended_num_objects = rate_per_worker * 2 / ratio  # type: ignore
                         else:  # way too high, stop sending new batches
                             self._recommended_num_objects = 0
 
@@ -755,7 +756,7 @@ class Batch:
     def _run_callback(self, response: BatchResponse) -> None:
         if self._callback is None:
             return
-        # We don't know if user-supplied functions are threadsafe
+        # We don't know if user-supplied functions are thread-safe
         with self._callback_lock:
             self._callback(response)
 

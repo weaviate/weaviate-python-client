@@ -1,11 +1,13 @@
 """
 Cluster class definition.
 """
-from typing import Optional, cast
+
+from typing import List, Literal, Optional, Union, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.connect import Connection
+from weaviate.cluster.types import Node
+from weaviate.connect import Connection, ConnectionV4
 from weaviate.exceptions import (
     EmptyResponseException,
 )
@@ -17,7 +19,7 @@ class Cluster:
     Cluster class used for cluster information
     """
 
-    def __init__(self, connection: Connection):
+    def __init__(self, connection: Union[Connection, ConnectionV4]):
         """
         Initialize a Cluster class instance.
 
@@ -30,8 +32,10 @@ class Cluster:
         self._connection = connection
 
     def get_nodes_status(
-        self, class_name: Optional[str] = None, output: Optional[str] = None
-    ) -> list:
+        self,
+        class_name: Optional[str] = None,
+        output: Optional[Literal["minimal", "verbose"]] = None,
+    ) -> List[Node]:
         """
         Get the nodes status.
 
@@ -74,4 +78,4 @@ class Cluster:
         nodes = response_typed.get("nodes")
         if nodes is None or nodes == []:
             raise EmptyResponseException("Nodes status response returned empty")
-        return cast(list, nodes)
+        return cast(List[Node], nodes)

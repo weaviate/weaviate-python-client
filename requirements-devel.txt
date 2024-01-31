@@ -1,14 +1,19 @@
 requests>=2.30.0,<3.0.0
-validators>=0.21.2,<1.0.0
+httpx==0.26.0
+validators==0.22.0
 authlib>=1.2.1,<2.0.0
 grpcio>=1.57.0,<2.0.0
 grpcio-tools>=1.57.0,<2.0.0
+grpcio-health-checking>=1.57.0,<2.0.0
+pydantic>=2.5.0,<3.0.0
 
 build
 twine
 wheel
 setuptools_scm
 Sphinx>=7.0.0
+sphinx-rtd-theme==2.0.0
+autodoc-pydantic==2.0.1
 
 grpcio-tools
 
@@ -17,12 +22,14 @@ pytest-cov==4.1.0
 pytest-benchmark==4.0.0
 pytest-profiling==1.7.0
 coverage==7.4.1
+pytest-xdist==3.5.0
 werkzeug>=2.3.7
 pytest-httpserver>=1.0.8
 
 mypy>=1.5.1<2.0.0
 mypy-extensions==1.0.0
 tomli>=2.0.1<3.0.0
+types-Deprecated>=1.2.9.3<2.0.0
 types-protobuf>=4.24.0.1<5.0.0
 types-requests>=2.31.0.2<3.0.0
 types-urllib3>=1.26.25.14<2.0.0

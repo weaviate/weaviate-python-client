@@ -11,14 +11,11 @@ from mock_tests.conftest import MOCK_SERVER_URL
 )
 def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer, version: str, warning: bool):
     ready_mock.expect_request("/v1/meta").respond_with_json({"version": version})
-    client = weaviate.Client(url=MOCK_SERVER_URL)
+    client = weaviate.Client(MOCK_SERVER_URL)
 
     client.query.get("Class", ["Property"]).with_generate(single_prompt="something")
 
     if warning:
-        assert len(recwarn) == 1
-        w = recwarn.pop()
-        assert issubclass(w.category, DeprecationWarning)
-        assert str(w.message).startswith("Dep003")
+        assert any(str(w.message).startswith("Dep003") for w in recwarn)
     else:
-        assert len(recwarn) == 0
+        assert not any(str(w.message).startswith("Dep003") for w in recwarn)

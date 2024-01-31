@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Dict, List, Union
+from typing import Dict, Generic, List, Type, TypeVar, Union, cast
 from typing import TYPE_CHECKING
 
 import requests
+from authlib.integrations.httpx_client import OAuth2Client  # type: ignore
 from authlib.integrations.requests_client import OAuth2Session  # type: ignore
 
 from weaviate.auth import (
@@ -12,26 +13,31 @@ from weaviate.auth import (
     AuthBearerToken,
     AuthClientCredentials,
 )
-from weaviate.exceptions import MissingScopeException, AuthenticationFailedException
+from weaviate.exceptions import MissingScopeError, AuthenticationFailedError
 from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
 
 if TYPE_CHECKING:
-    from .connection import Connection
+    from .base import _ConnectionBase
 
 AUTH_DEFAULT_TIMEOUT = 5
 OIDC_CONFIG = Dict[str, Union[str, List[str]]]
 
 
-class _Auth:
+T = TypeVar("T", bound=Union[OAuth2Client, OAuth2Session])
+
+
+class _Auth(Generic[T]):
     def __init__(
         self,
+        session_type: Type[T],
         oidc_config: OIDC_CONFIG,
         credentials: AuthCredentials,
-        connection: Connection,
+        connection: _ConnectionBase,
     ) -> None:
         self._credentials: AuthCredentials = credentials
-        self._connection: Connection = connection
+        self._connection = connection
+        self.__session_type: Type[T] = session_type
         config_url = oidc_config["href"]
         client_id = oidc_config["clientId"]
         assert isinstance(config_url, str) and isinstance(client_id, str)
@@ -49,7 +55,7 @@ class _Auth:
     def _validate(self, oidc_config: OIDC_CONFIG) -> None:
         if isinstance(self._credentials, AuthClientPassword):
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):
-                raise AuthenticationFailedException(
+                raise AuthenticationFailedError(
                     """Microsoft/azure does not recommend to authenticate using username and password and this method is
                     not supported by the python client."""
                 )
@@ -59,20 +65,22 @@ class _Auth:
                 "grant_types_supported" in oidc_config
                 and "password" not in oidc_config["grant_types_supported"]
             ):
-                raise AuthenticationFailedException(
+                raise AuthenticationFailedError(
                     """The grant_types supported by the third-party authentication service are insufficient. Please add
                     the 'password' grant type."""
                 )
 
     def _get_token_endpoint(self) -> str:
-        response_auth = requests.get(self._open_id_config_url, proxies=self._connection.proxies)
+        response_auth = requests.get(
+            self._open_id_config_url, proxies=self._connection.get_proxies()
+        )
         response_auth_json = _decode_json_response_dict(response_auth, "Get token endpoint")
         assert response_auth_json is not None
         token_endpoint = response_auth_json["token_endpoint"]
         assert isinstance(token_endpoint, str)
         return token_endpoint
 
-    def get_auth_session(self) -> OAuth2Session:
+    def get_auth_session(self) -> T:
         if isinstance(self._credentials, AuthBearerToken):
             sessions = self._get_session_auth_bearer_token(self._credentials)
         elif isinstance(self._credentials, AuthClientCredentials):
@@ -83,7 +91,7 @@ class _Auth:
 
         return sessions
 
-    def _get_session_auth_bearer_token(self, config: AuthBearerToken) -> OAuth2Session:
+    def _get_session_auth_bearer_token(self, config: AuthBearerToken) -> T:
         token: Dict[str, Union[str, int]] = {"access_token": config.access_token}
         if config.expires_in is not None:
             token["expires_in"] = config.expires_in
@@ -93,18 +101,20 @@ class _Auth:
         if "refresh_token" not in token:
             _Warnings.auth_no_refresh_token(config.expires_in)
 
-        # token endpoint and clientId are needed for token refresh
-        return OAuth2Session(
-            token=token,
-            token_endpoint=self._token_endpoint,
-            client_id=self._client_id,
-            default_timeout=AUTH_DEFAULT_TIMEOUT,
+        return cast(
+            T,
+            self.__session_type(
+                token=token,
+                token_endpoint=self._token_endpoint,
+                client_id=self._client_id,
+                default_timeout=AUTH_DEFAULT_TIMEOUT,
+            ),
         )
 
-    def _get_session_user_pw(self, config: AuthClientPassword) -> OAuth2Session:
+    def _get_session_user_pw(self, config: AuthClientPassword) -> T:
         scope: List[str] = self._default_scopes.copy()
         scope.extend(config.scope_list)
-        session = OAuth2Session(
+        session = self.__session_type(
             client_id=self._client_id,
             token_endpoint=self._token_endpoint,
             grant_type="password",
@@ -115,9 +125,9 @@ class _Auth:
         if "refresh_token" not in token:
             _Warnings.auth_no_refresh_token(token["expires_in"])
 
-        return session
+        return cast(T, session)
 
-    def _get_session_client_credential(self, config: AuthClientCredentials) -> OAuth2Session:
+    def _get_session_client_credential(self, config: AuthClientCredentials) -> T:
         scope: List[str] = self._default_scopes.copy()
 
         if config.scope_list is not None:
@@ -127,9 +137,9 @@ class _Auth:
             if self._token_endpoint.startswith("https://login.microsoftonline.com"):
                 scope = [self._client_id + "/.default"]
             else:
-                raise MissingScopeException
+                raise MissingScopeError
 
-        session = OAuth2Session(
+        session = self.__session_type(
             client_id=self._client_id,
             client_secret=config.client_secret,
             token_endpoint_auth_method="client_secret_post",
@@ -141,4 +151,4 @@ class _Auth:
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
         session.fetch_token()
-        return session
+        return cast(T, session)

@@ -1,5 +1,10 @@
 [run]
-omit = *tests*/*,*__init__.py
+omit = *tests*/*,*__init__.py,weaviate/proto/**
+
 
 [report]
 omit = *tests*/*,*__init__.py
+exclude_lines =
+    pragma: not covered
+    @overload
+    @abstractmethod

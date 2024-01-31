@@ -2,10 +2,11 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    image: semitechnologies/weaviate:1.23.0-rc.0
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     restart: on-failure:0
     ports:
       - "8087:8080"
+      - "50058:50051"
     environment:
       CONTEXTIONARY_URL: contextionary:9999
       QUERY_DEFAULTS_LIMIT: 20
@@ -25,9 +26,10 @@ services:
       - '8080'
       - --scheme
       - http
-    image: semitechnologies/weaviate:1.23.0-rc.0
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
       - 8088:8080
+      - "50059:50051"
       - 6061:6060
     restart: on-failure:0
     environment:
