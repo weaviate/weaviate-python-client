@@ -403,7 +403,7 @@ def test_mono_references_grpc_with_generics(
         c_objs[0].properties["name"] == "find me"
     )  # happy path (in type and in return_properties)
     assert c_objs[0].uuid is not None
-    assert c_objs[0].vector is not None
+    assert "default" not in c_objs[0].vector
     assert (
         c_objs[0].properties.get("not_specified") is None
     )  # type is str but instance is None (in type but not in return_properties)

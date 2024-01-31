@@ -301,7 +301,7 @@ def test_near_vector_aggregation(
     text_2 = "nothing like the other one at all, not even a little bit"
     uuid = collection.data.insert({"text": text_1})
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
-    assert obj.vector is not None
+    assert "default" in obj.vector
     collection.data.insert({"text": text_2})
     res: AggregateReturn = collection.aggregate.near_vector(
         obj.vector["default"],
@@ -335,7 +335,7 @@ def test_near_vector_missing_param(collection_factory: CollectionFactory) -> Non
     )
     uuid_ = collection.data.insert({"text": "some text"})
     obj = collection.query.fetch_object_by_id(uuid_, include_vector=True)
-    assert obj.vector is not None
+    assert "default" not in obj.vector
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection.aggregate.near_vector(
             obj.vector["default"],

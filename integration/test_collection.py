@@ -497,18 +497,16 @@ def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> Non
     )
     uuid = collection.data.insert(properties={"name": "some name"}, vector=[1, 2, 3])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
-    assert obj.vector is not None
     assert obj.properties["name"] == "some name"
     assert obj.vector["default"] == [1, 2, 3]
 
     collection.data.replace(properties={"name": "other name"}, uuid=uuid)
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "other name"
-    assert obj.vector is None
+    assert "default" not in obj.vector
 
     collection.data.replace(properties={"name": "real name"}, uuid=uuid, vector=[2, 3, 4])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
-    assert obj.vector is not None
     assert obj.properties["name"] == "real name"
     assert obj.vector["default"] == [2, 3, 4]
 
@@ -538,7 +536,6 @@ def test_update(collection_factory: CollectionFactory) -> None:
     uuid = collection.data.insert(properties={"name": "some name"})
     collection.data.update(properties={"name": "other name"}, uuid=uuid, vector=[1, 2, 3])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
-    assert obj.vector is not None
     assert obj.properties["name"] == "other name"
     assert obj.vector["default"] == [1, 2, 3]
 
@@ -646,7 +643,6 @@ def test_search_hybrid(collection_factory: CollectionFactory, fusion_type: Hybri
     ).objects
     assert len(objs) == 1
 
-    assert objs[0].vector is not None
     objs = collection.query.hybrid(
         alpha=1, query="name", fusion_type=fusion_type, vector=objs[0].vector["default"]
     ).objects
@@ -861,7 +857,6 @@ def test_near_vector(collection_factory: CollectionFactory) -> None:
 
     banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
-    assert banana.vector is not None
     full_objects = collection.query.near_vector(
         banana.vector["default"], return_metadata=MetadataQuery(distance=True, certainty=True)
     ).objects
@@ -892,7 +887,6 @@ def test_near_vector_limit(collection_factory: CollectionFactory) -> None:
 
     banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
-    assert banana.vector is not None
     objs = collection.query.near_vector(banana.vector["default"], limit=2).objects
     assert len(objs) == 2
 
@@ -911,7 +905,6 @@ def test_near_vector_offset(collection_factory: CollectionFactory) -> None:
 
     banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
-    assert banana.vector is not None
     objs = collection.query.near_vector(banana.vector["default"], offset=1).objects
     assert len(objs) == 3
     assert objs[0].uuid == uuid_fruit
@@ -934,7 +927,6 @@ def test_near_vector_group_by_argument(collection_factory: CollectionFactory) ->
 
     banana1 = collection.query.fetch_object_by_id(uuid_banana1, include_vector=True)
 
-    assert banana1.vector is not None
     ret = collection.query.near_vector(
         banana1.vector["default"],
         group_by=GroupBy(
@@ -1325,10 +1317,9 @@ def test_return_properties_metadata_references_combos(
         assert obj.metadata.explain_score is not None
 
     if include_vector:
-        assert obj.vector is not None
         assert obj.vector["default"] == [1, 2, 3, 4]
     else:
-        assert obj.vector is None
+        assert "default" not in obj.vector
 
     if return_references is None or len(return_references) == 0:
         assert obj.references is None
@@ -1498,7 +1489,7 @@ def test_near_text(
     assert len(objs) == 4
 
     assert objs[0].uuid == batch_return.uuids[2]
-    assert objs[0].vector is not None
+    assert "default" in objs[0].vector
     if return_properties is not None:
         assert objs[0].properties["value"] == "apple cake"
 
@@ -1542,10 +1533,10 @@ def test_near_text_group_by_argument(collection_factory: CollectionFactory) -> N
 
     assert len(ret.objects) == 2
     assert ret.objects[0].uuid == batch_return.uuids[3]
-    assert ret.objects[0].vector is not None
+    assert "default" in ret.objects[0].vector
     assert ret.objects[0].belongs_to_group == "cake"
     assert ret.objects[1].uuid == batch_return.uuids[2]
-    assert ret.objects[1].vector is not None
+    assert "default" in ret.objects[1].vector
     assert ret.objects[1].belongs_to_group == "apple cake"
 
 
