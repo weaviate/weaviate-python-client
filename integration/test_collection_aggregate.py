@@ -14,7 +14,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateText,
     AggregateReturn,
     Metrics,
-    GroupBy,
+    GroupByAggregate,
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
 from weaviate.collections.classes.filters import Filter, _Filters
@@ -77,7 +77,8 @@ def test_aggregation_with_limit(collection_factory: CollectionFactory) -> None:
     collection.data.insert({"text": "two"})
     collection.data.insert({"text": "three"})
     res = collection.aggregate.over_all(
-        return_metrics=[Metrics("text").text(count=True)], group_by=GroupBy(prop="text", limit=2)
+        return_metrics=[Metrics("text").text(count=True)],
+        group_by=GroupByAggregate(prop="text", limit=2),
     )
     assert len(res.groups) == 2
     assert res.groups[0].properties["text"].count == 1
@@ -482,7 +483,7 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     collection.data.insert({"text": "some text", "int": 2})
 
     res = collection.aggregate.over_all(
-        group_by=GroupBy(prop="text"),
+        group_by=GroupByAggregate(prop="text"),
         return_metrics=[
             Metrics("text").text(count=True),
             Metrics("int").integer(count=True),
@@ -498,7 +499,7 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     assert groups[0].properties["int"].count == 2
 
     res = collection.aggregate.over_all(
-        group_by=GroupBy(prop="int"),
+        group_by=GroupByAggregate(prop="int"),
         return_metrics=[
             Metrics("text").text(count=True),
             Metrics("int").integer(count=True),
