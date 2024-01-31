@@ -87,7 +87,7 @@ def test_iterator_arguments(
         all_data = sorted([cast(int, obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
         assert all("text" in obj.properties for obj in iter_)
-        assert all(obj.vector is None for obj in iter_)
+        assert all("default" not in obj.vector for obj in iter_)
         assert all(obj.metadata.creation_time is not None for obj in iter_)
         assert all(obj.metadata.score is not None for obj in iter_)
     # Expect specified properties and vector
@@ -106,7 +106,7 @@ def test_iterator_arguments(
         all_data = sorted([cast(int, obj.properties["data"]) for obj in iter_])
         assert all_data == list(range(10))
         assert all("text" not in obj.properties for obj in iter_)
-        assert all(obj.vector is None for obj in iter_)
+        assert all("default" not in obj.vector for obj in iter_)
         if return_metadata is not None:
             assert all(obj.metadata.creation_time is not None for obj in iter_)
             assert all(obj.metadata.score is not None for obj in iter_)
