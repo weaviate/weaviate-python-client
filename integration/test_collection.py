@@ -467,7 +467,7 @@ def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> Non
     collection.data.replace(properties={"name": "other name"}, uuid=uuid)
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "other name"
-    assert obj.vector is None
+    assert "default" not in obj.vector
 
     collection.data.replace(properties={"name": "real name"}, uuid=uuid, vector=[2, 3, 4])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
