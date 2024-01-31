@@ -251,7 +251,7 @@ _Metrics = Union[
 PropertiesMetrics = Union[_Metrics, List[_Metrics]]
 
 
-class GroupBy(_WeaviateInput):
+class GroupByAggregate(_WeaviateInput):
     """Define how the aggregations's group-by operation should be performed."""
 
     prop: str

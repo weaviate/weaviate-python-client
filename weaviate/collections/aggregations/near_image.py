@@ -7,7 +7,7 @@ from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
     AggregateGroupByReturn,
-    GroupBy,
+    GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
 
@@ -37,7 +37,7 @@ class _NearImage(_Aggregate):
         distance: Optional[Union[float, int]] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: GroupBy,
+        group_by: GroupByAggregate,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn:
@@ -51,7 +51,7 @@ class _NearImage(_Aggregate):
         distance: Optional[Union[float, int]] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
-        group_by: Optional[GroupBy] = None,
+        group_by: Optional[GroupByAggregate] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:

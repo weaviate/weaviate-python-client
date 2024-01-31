@@ -17,7 +17,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateGroup,
     AggregateGroupByReturn,
     AggregateReturn,
-    GroupBy,
+    GroupByAggregate,
     _Metrics,
     _MetricsBoolean,
     _MetricsDate,
@@ -167,7 +167,7 @@ class _Aggregate:
 
     @staticmethod
     def _add_groupby_to_builder(
-        builder: AggregateBuilder, group_by: Optional[GroupBy]
+        builder: AggregateBuilder, group_by: Optional[GroupByAggregate]
     ) -> AggregateBuilder:
         if group_by is None:
             return builder
