@@ -181,7 +181,9 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             key=schema["shardingConfig"]["key"],
             strategy=schema["shardingConfig"]["strategy"],
             function=schema["shardingConfig"]["function"],
-        ),
+        )
+        if not schema["multiTenancyConfig"]["enabled"]
+        else None,
         vector_index_config=vector_index_config,
         vector_index_type=VectorIndexType(schema["vectorIndexType"]),
         vectorizer_config=__get_vectorizer_config(schema),

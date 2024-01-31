@@ -650,11 +650,23 @@ def test_config_export_and_recreate_from_config(collection_factory: CollectionFa
 
 def test_config_export_and_recreate_from_dict(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        ports=(8079, 50050),
+        generative_config=Configure.Generative.openai(model="gpt-4"),
+        vectorizer_config=Configure.Vectorizer.text2vec_openai(model="ada"),
+        reranker_config=Configure.Reranker.cohere(model="rerank-english-v2.0"),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
         ],
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+        replication_config=Configure.replication(factor=1),
+        vector_index_config=Configure.VectorIndex.hnsw(
+            quantizer=Configure.VectorIndex.Quantizer.pq(centroids=256)
+        ),
+        inverted_index_config=Configure.inverted_index(bm25_b=0.8, bm25_k1=1.3),
+    )
+    collection.config.add_reference(
+        ReferenceProperty(name="self", target_collection=collection.name)
     )
     conf = collection.config.get()
 
@@ -662,10 +674,17 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
     conf.name = name
     dconf = conf.to_dict()
 
-    client = weaviate.connect_to_local()
-    client.collections.create_from_dict(dconf)
-    assert conf == client.collections.get(name).config.get()
-    client.collections.delete(name)
+    try:
+        client = weaviate.connect_to_local(port=8079, grpc_port=50050)
+        client.collections.create_from_dict(dconf)
+        old = collection.config.get()
+        old.name = "dummy"
+        new = client.collections.get(name).config.get()
+        new.name = "dummy"
+        assert old == new
+    finally:
+        client.collections.delete(name)
+        client.close()
 
 
 def test_config_add_existing_property_and_reference(collection_factory: CollectionFactory) -> None:
