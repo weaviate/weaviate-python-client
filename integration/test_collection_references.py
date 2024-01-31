@@ -1046,12 +1046,24 @@ def test_bad_generic_return_references(collection_factory: CollectionFactory) ->
         properties=[Property(name="Name", data_type=DataType.TEXT)],
     )
 
-    class SomeGeneric:
+    class SomeGeneric(TypedDict):
         field: int
 
     uuid = collection.data.insert(properties={"Name": "A"})
     with pytest.raises(WeaviateInvalidInputError):
-        collection.query.fetch_object_by_id(  # type: ignore
+        collection.query.fetch_object_by_id(
+            uuid,
+            return_references=SomeGeneric,
+        )
+
+    class OtherGeneric(TypedDict):
+        field: Annotated[
+            int,
+            CrossReferenceAnnotation(metadata=MetadataQuery(creation_time=True)),
+        ]
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.fetch_object_by_id(
             uuid,
             return_references=SomeGeneric,
         )
