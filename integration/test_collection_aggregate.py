@@ -335,7 +335,7 @@ def test_near_vector_missing_param(collection_factory: CollectionFactory) -> Non
     )
     uuid_ = collection.data.insert({"text": "some text"})
     obj = collection.query.fetch_object_by_id(uuid_, include_vector=True)
-    assert "default" not in obj.vector
+    assert "default" in obj.vector
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection.aggregate.near_vector(
             obj.vector["default"],
