@@ -104,7 +104,6 @@ class _Connection(_ConnectionBase):
         self.__additional_headers = {}
         self.__auth = auth_client_secret
         self._connection_params = connection_params
-        self._grpc_available = False
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_channel: Optional[Channel] = None
@@ -294,6 +293,9 @@ class _Connection(_ConnectionBase):
             self.__make_clients()
 
     def get_current_bearer_token(self) -> str:
+        if not self.is_connected():
+            raise WeaviateClosedClientError()
+
         if "authorization" in self._headers:
             return self._headers["authorization"]
         elif isinstance(self._client, OAuth2Client):
@@ -621,7 +623,6 @@ class ConnectionV4(_Connection):
         self._grpc_channel = self._connection_params._grpc_channel(async_channel=False)
         assert self._grpc_channel is not None
         self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
-        self._grpc_available = True
         if not skip_init_checks:
             self._ping_grpc()
 

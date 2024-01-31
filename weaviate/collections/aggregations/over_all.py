@@ -70,10 +70,7 @@ class _OverAll(_Aggregate):
             else [return_metrics]
         )
         builder = self._base(return_metrics, filters, limit, total_count)
-        if group_by is not None:
-            builder = builder.with_group_by_filter([group_by]).with_fields(
-                " groupedBy { path value } "
-            )
+        builder = self._add_groupby_to_builder(builder, group_by)
         res = self._do(builder)
         return (
             self._to_aggregate_result(res, return_metrics)
