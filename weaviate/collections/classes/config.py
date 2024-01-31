@@ -1874,26 +1874,6 @@ ShardStatus = _ShardStatus
 #     moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
 
 
-@dataclass
-class _PropertyConfig:  # noqa
-    index_filterable: Optional[bool] = None
-    index_searchable: Optional[bool] = None
-    tokenization: Optional[Tokenization] = None
-    description: Optional[str] = None
-    vectorizer_config: Optional[_VectorizerConfigCreate] = None
-
-    # tmp solution. replace with a pydantic BaseModel, see bug report: https://github.com/pydantic/pydantic/issues/6948
-    # bug report was closed as not planned :( so dataclasses must stay
-    def _to_dict(self) -> Dict[str, Any]:
-        return {
-            "indexFilterable": self.index_filterable,
-            "indexSearchable": self.index_searchable,
-            "tokenization": self.tokenization,
-            "description": self.description,
-            "moduleConfig": self.vectorizer_config,
-        }
-
-
 class Property(_ConfigCreateModel):
     """This class defines the structure of a data property that a collection can have within Weaviate.
 
