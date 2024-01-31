@@ -1,6 +1,19 @@
 Changelog
 =========
 
+Version 4.4.0
+--------------
+
+This version is the first full release for the Python v4 client.
+
+Since the previous RC, there have been a number of improvements and final bug fixes.
+- The type of ``object.vector`` has changed from ``Optional[Dict[str, List[float]]]`` to ``Dict[str, List[float]]`` so that ``object.vector`` is never ``None``.
+- Exporting and importing of collections has been tidied up and improved.
+- A number of methods have had input validation added to them.
+- Most exceptions are now unified under a few common classes.
+
+For more information around the new client, see here: https://weaviate.io/developers/weaviate/client-libraries/python
+
 
 Version 4.4.rc1
 --------------
