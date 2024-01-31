@@ -57,8 +57,10 @@ class _OverAll(_Aggregate):
             Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateGQLQueryError`:
+            `weaviate.exceptions.WeaviateQueryError`:
                 If an error occurs while performing the query against Weaviate.
+            `weaviate.exceptions.WeaviateInvalidInputError`:
+                If any of the input arguments are of the wrong type.
         """
         return_metrics = (
             return_metrics

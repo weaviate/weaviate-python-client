@@ -10,6 +10,7 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
+from weaviate.types import NUMBER
 
 
 class _NearImage(_Aggregate):
@@ -18,8 +19,8 @@ class _NearImage(_Aggregate):
         self,
         near_image: Union[str, Path, BufferedReader],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
@@ -33,8 +34,8 @@ class _NearImage(_Aggregate):
         self,
         near_image: Union[str, Path, BufferedReader],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: GroupByAggregate,
@@ -47,8 +48,8 @@ class _NearImage(_Aggregate):
         self,
         near_image: Union[str, Path, BufferedReader],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupByAggregate] = None,
@@ -83,8 +84,10 @@ class _NearImage(_Aggregate):
             Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateGQLQueryError`:
+            `weaviate.exceptions.WeaviateQueryError`:
                 If an error occurs while performing the query against Weaviate.
+            `weaviate.exceptions.WeaviateInvalidInputError`:
+                If any of the input arguments are of the wrong type.
         """
         return_metrics = (
             return_metrics
