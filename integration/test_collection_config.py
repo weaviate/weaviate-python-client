@@ -107,7 +107,7 @@ def test_collection_generative_config(openai_collection: OpenAICollection) -> No
 
     assert config.properties[0].vectorizer == "none"
     assert config.generative_config is not None
-    assert config.generative_config.generator == GenerativeSearches.OPENAI
+    assert config.generative_config.generative == GenerativeSearches.OPENAI
     assert config.generative_config.model is not None
 
 

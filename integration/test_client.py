@@ -9,6 +9,7 @@ from weaviate.collections.classes.config import (
     Configure,
     _CollectionConfig,
     DataType,
+    GenerativeSearches,
     Property,
     ReferenceProperty,
     Vectorizers,
@@ -211,7 +212,7 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
-        generative_config=Configure.Generative.cohere(),
+        generative_config=Configure.Generative.cohere(model="something", k=10),
         properties=[
             Property(
                 name="name",
@@ -251,6 +252,12 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
     assert export.properties[0].index_searchable
     assert export.vectorizer_config is not None
     assert export.vectorizer_config.vectorizer == Vectorizers.TEXT2VEC_CONTEXTIONARY
+    assert not export.vectorizer_config.vectorize_collection_name
+
+    assert export.generative_config is not None
+    assert export.generative_config.generative == GenerativeSearches.COHERE
+    assert export.generative_config.model["model"] == "something"
+    assert export.generative_config.model["kProperty"] == 10
 
     client.collections.delete([name1, name2])
     assert not client.collections.exists(name1)
