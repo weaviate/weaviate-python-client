@@ -627,9 +627,9 @@ class ConnectionV4(_Connection):
             self._ping_grpc()
 
         # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 23, 5):
+        if self._weaviate_version.is_lower_than(1, 23, 7):
             raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.5 or higher."
+                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
             )
 
     @property

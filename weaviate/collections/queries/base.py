@@ -51,11 +51,9 @@ from weaviate.collections.classes.types import (
     TReferences,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
-from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateClosedClientError,
-    WeaviateQueryError,
     WeaviateInvalidInputError,
 )
 from weaviate.proto.v1 import search_get_pb2, properties_pb2
@@ -63,6 +61,7 @@ from weaviate.util import (
     file_encoder_b64,
     _datetime_from_weaviate_str,
 )
+from weaviate.validator import _validate_input, _ValidateArgument
 
 
 class _WeaviateUUIDInt(uuid_lib.UUID):
@@ -138,14 +137,7 @@ class _BaseQuery(Generic[Properties, References]):
         self,
         add_props: "search_get_pb2.MetadataResult",
     ) -> uuid_lib.UUID:
-        if len(add_props.id_as_bytes) > 0:
-            return _WeaviateUUIDInt(int.from_bytes(add_props.id_as_bytes, byteorder="big"))
-
-        if len(add_props.id) == 0:
-            raise WeaviateQueryError(
-                "The query returned an object with an empty ID string", "GRPC search"
-            )
-        return uuid_lib.UUID(add_props.id)
+        return _WeaviateUUIDInt(int.from_bytes(add_props.id_as_bytes, byteorder="big"))
 
     def __extract_vector_for_object(
         self,
