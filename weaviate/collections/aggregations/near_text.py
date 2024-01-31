@@ -9,6 +9,7 @@ from weaviate.collections.classes.aggregate import (
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
+from weaviate.types import NUMBER
 
 
 class _NearText(_Aggregate):
@@ -17,8 +18,8 @@ class _NearText(_Aggregate):
         self,
         query: Union[List[str], str],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
@@ -34,8 +35,8 @@ class _NearText(_Aggregate):
         self,
         query: Union[List[str], str],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
@@ -50,8 +51,8 @@ class _NearText(_Aggregate):
         self,
         query: Union[List[str], str],
         *,
-        certainty: Optional[Union[float, int]] = None,
-        distance: Optional[Union[float, int]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
         object_limit: Optional[int] = None,
@@ -92,8 +93,10 @@ class _NearText(_Aggregate):
             Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateGQLQueryError`:
+            `weaviate.exceptions.WeaviateQueryError`:
                 If an error occurs while performing the query against Weaviate.
+            `weaviate.exceptions.WeaviateInvalidInputError`:
+                If any of the input arguments are of the wrong type.
         """
         return_metrics = (
             return_metrics
