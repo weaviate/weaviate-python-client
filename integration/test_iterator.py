@@ -69,7 +69,9 @@ def test_iterator_arguments(
     )
 
     iter_ = collection.iterator(
-        include_vector, return_metadata=return_metadata, return_properties=return_properties
+        include_vector=include_vector,
+        return_metadata=return_metadata,
+        return_properties=return_properties,
     )
 
     # Expect everything back

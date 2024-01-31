@@ -25,8 +25,8 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
     def fetch_object_by_id(
         self,
         uuid: UUID,
-        include_vector: bool = False,
         *,
+        include_vector: bool = False,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> Optional[QuerySingleReturn[Properties, References, TProperties, TReferences]]:
