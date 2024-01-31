@@ -1528,8 +1528,6 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
             val = getattr(self, cls_field)
             if cls_field in ["name", "model", "properties", "references"] or val is None:
                 continue
-            if isinstance(val, Enum):
-                ret_dict[cls_field] = str(val.value)
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
             elif isinstance(val, _GenerativeConfigCreate):
@@ -1546,8 +1544,6 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
             else:
                 assert isinstance(val, _ConfigCreateModel)
                 ret_dict[cls_field] = val._to_dict()
-        if self.moduleConfig is None:
-            ret_dict["vectorizer"] = Vectorizers.NONE.value
         if self.vectorIndexConfig is None:
             ret_dict["vectorIndexType"] = VectorIndexType.HNSW
         return ret_dict
