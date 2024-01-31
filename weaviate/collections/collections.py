@@ -110,10 +110,9 @@ class _Collections(_CollectionsBase):
             vector_index_config=vector_index_config,
         )
         name = super()._create(config._to_dict())
-        if config.name != name:
-            raise ValueError(
-                f"Name of created collection ({name}) does not match given name ({config.name})"
-            )
+        assert (
+            config.name == name
+        ), "Name of created collection ({name}) does not match given name ({config.name})"
         return self.get(name, data_model_properties, data_model_references)
 
     def get(
