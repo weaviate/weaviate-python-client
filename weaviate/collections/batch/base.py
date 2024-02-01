@@ -201,7 +201,7 @@ class _BatchBase:
         # fixed rate batching
         self.__time_stamp_last_request: float = 0
         # do 62 secs to give us some buffer to the "per-minute" calculation
-        self.__fix_rate_batching_base_time = 62 // self.__concurrent_requests
+        self.__fix_rate_batching_base_time = 62
 
         self.__bg_thread = self.__start_bg_thread()
         self.__bg_thread_exception: Optional[Exception] = None
