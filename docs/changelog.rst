@@ -1,6 +1,15 @@
 Changelog
 =========
 
+
+Version 4.4.1
+--------------
+This patch version includes
+
+- Allows strings as input for ``groupBy`` arguments for aggregation.
+- Fixes for rate limit batching.
+
+
 Version 4.4.0
 --------------
 
