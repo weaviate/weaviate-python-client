@@ -412,7 +412,14 @@ class _BatchBase:
                 highest_retry_count = 0
                 for i, err in response_obj.errors.items():
                     if ("support@cohere.com" in err.message and "rate limit" in err.message) or (
-                        "rate_limit_exceeded" in err.message
+                        "OpenAI" in err.message
+                        and (
+                            "Rate limit reached" in err.message
+                            or "on tokens per min (TPM)" in err.message
+                            or "503 error: Service Unavailable." in err.message
+                            or "500 error: The server had an error while processing your request."
+                            in err.message
+                        )
                     ):
                         if err.object_.retry_count > highest_retry_count:
                             highest_retry_count = err.object_.retry_count
