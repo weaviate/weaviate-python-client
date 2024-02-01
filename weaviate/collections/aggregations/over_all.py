@@ -27,7 +27,7 @@ class _OverAll(_Aggregate):
         self,
         *,
         filters: Optional[_Filters] = None,
-        group_by: GroupByAggregate,
+        group_by: Union[str, GroupByAggregate],
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn:
@@ -37,7 +37,7 @@ class _OverAll(_Aggregate):
         self,
         *,
         filters: Optional[_Filters] = None,
-        group_by: Optional[GroupByAggregate] = None,
+        group_by: Optional[Union[str, GroupByAggregate]] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:

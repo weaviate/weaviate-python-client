@@ -14,7 +14,7 @@ def test_bad_aggregate_inputs(connection: ConnectionV4) -> None:
     aggregate = _AggregateCollection(connection, "dummy", None, None)
     # over_all
     _test_aggregate(lambda: aggregate.over_all(filters="wrong"))
-    _test_aggregate(lambda: aggregate.over_all(group_by="wrong"))
+    _test_aggregate(lambda: aggregate.over_all(group_by=42))
     _test_aggregate(lambda: aggregate.over_all(total_count="wrong"))
     _test_aggregate(lambda: aggregate.over_all(return_metrics="wrong"))
 
