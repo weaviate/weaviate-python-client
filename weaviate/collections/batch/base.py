@@ -19,8 +19,6 @@ from typing import (
 )
 
 from pydantic import ValidationError
-from requests import ReadTimeout
-from requests.exceptions import HTTPError as RequestsHTTPError
 from typing_extensions import TypeAlias
 
 from weaviate.cluster import Cluster
@@ -201,9 +199,9 @@ class _BatchBase:
         # fixed rate batching
         self.__time_stamp_last_request: float = 0
         # do 62 secs to give us some buffer to the "per-minute" calculation
-        self.__fix_rate_batching_base_time = 62 // self.__concurrent_requests
+        self.__fix_rate_batching_base_time = 62
 
-        self.__bg_thread = self.__start_bg_thread()
+        self.__bg_thread = self.__start_bg_threads()
         self.__bg_thread_exception: Optional[Exception] = None
 
     @property
@@ -256,37 +254,24 @@ class _BatchBase:
             self.__results_for_wrapper.imported_shards
         )
 
-    def __periodic_check(self) -> None:
+    def __batch_send(self) -> None:
         loop = self.__start_new_event_loop()
         future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
         future.result()  # Wait for self._connection.aopen() to finish
-
+        refresh_time: float = 0.01
         while (
             self.__shut_background_thread_down is not None
             and not self.__shut_background_thread_down.is_set()
         ):
-            if isinstance(self.__batching_mode, _FixedSizeBatching):
-                refresh_time: float = 0.01
-            elif isinstance(self.__batching_mode, _RateLimitedBatching):
+            if isinstance(self.__batching_mode, _RateLimitedBatching):
                 if (
                     time.time() - self.__time_stamp_last_request
                     < self.__fix_rate_batching_base_time // self.__concurrent_requests
                 ):
                     time.sleep(1)
                     continue
-
                 self.__time_stamp_last_request = time.time()
                 refresh_time = 0
-            else:
-                assert isinstance(self.__batching_mode, _DynamicBatching)
-                try:
-                    self.__dynamic_batching()
-                    refresh_time = 0.001
-                except (RequestsHTTPError, ReadTimeout):
-                    refresh_time = 0.1
-                except Exception as e:
-                    _Warnings.batch_refresh_failed(repr(e))
-                    refresh_time = 10
 
             if self.__active_requests < self.__concurrent_requests and (
                 len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
@@ -295,10 +280,11 @@ class _BatchBase:
                 self.__active_requests += 1
                 self.__active_requests_lock.release()
 
+                objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
                 # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                 asyncio.run_coroutine_threadsafe(
                     self.__send_batch_async(
-                        self.__batch_objects.pop_items(self.__recommended_num_objects),
+                        objs,
                         self.__batch_references.pop_items(self.__recommended_num_refs),
                         readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
                     ),
@@ -311,23 +297,52 @@ class _BatchBase:
         future.result()  # Wait for self._connection.aclose() to finish
         loop.call_soon_threadsafe(loop.stop)
 
-    def __start_bg_thread(self) -> threading.Thread:
+    def dynamic_batch_rate_loop(self) -> None:
+        refresh_time = 0.1
+        while (
+            self.__shut_background_thread_down is not None
+            and not self.__shut_background_thread_down.is_set()
+        ):
+            if not isinstance(self.__batching_mode, _DynamicBatching):
+                return
+
+            try:
+                self.__dynamic_batching()
+            except Exception as e:
+                _Warnings.batch_refresh_failed(repr(e))
+
+            time.sleep(refresh_time)
+
+    def __start_bg_threads(self) -> threading.Thread:
         """Create a background thread that periodically checks how congested the batch queue is."""
         self.__shut_background_thread_down = threading.Event()
 
-        def periodic_check_wrapper() -> None:
+        def dynamic_batch_rate_wrapper() -> None:
             try:
-                self.__periodic_check()
+                self.dynamic_batch_rate_loop()
             except Exception as e:
                 self.__bg_thread_exception = e
 
-        demon = threading.Thread(
-            target=periodic_check_wrapper,
+        demonDynamic = threading.Thread(
+            target=dynamic_batch_rate_wrapper,
             daemon=True,
             name="BgBatchScheduler",
         )
-        demon.start()
-        return demon
+        demonDynamic.start()
+
+        def batch_send_wrapper() -> None:
+            try:
+                self.__batch_send()
+            except Exception as e:
+                self.__bg_thread_exception = e
+
+        demonBatchSend = threading.Thread(
+            target=batch_send_wrapper,
+            daemon=True,
+            name="BgBatchScheduler",
+        )
+        demonBatchSend.start()
+        return demonBatchSend
 
     def __dynamic_batching(self) -> None:
         status = self.__cluster.get_nodes_status()
@@ -412,7 +427,14 @@ class _BatchBase:
                 highest_retry_count = 0
                 for i, err in response_obj.errors.items():
                     if ("support@cohere.com" in err.message and "rate limit" in err.message) or (
-                        "rate_limit_exceeded" in err.message
+                        "OpenAI" in err.message
+                        and (
+                            "Rate limit reached" in err.message
+                            or "on tokens per min (TPM)" in err.message
+                            or "503 error: Service Unavailable." in err.message
+                            or "500 error: The server had an error while processing your request."
+                            in err.message
+                        )
                     ):
                         if err.object_.retry_count > highest_retry_count:
                             highest_retry_count = err.object_.retry_count
