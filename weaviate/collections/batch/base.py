@@ -11,6 +11,7 @@ from typing import (
     Dict,
     Generic,
     List,
+    Literal,
     Optional,
     Sequence,
     Set,
@@ -164,6 +165,9 @@ class _BatchBase:
         self.__results_lock = threading.Lock()
 
         self.__cluster = Cluster(self.__connection)
+        self.__cluster_output: Literal["minimal", "batchStatus"] = (
+            "minimal" if connection._weaviate_version.is_lower_than(1, 23, 8) else "batchStatus"
+        )
 
         self.__batching_mode: _BatchMode = batch_mode
         self.__max_batch_size: int = 1000
@@ -330,7 +334,7 @@ class _BatchBase:
         return demon
 
     def __dynamic_batching(self) -> None:
-        status = self.__cluster.get_nodes_status()
+        status = self.__cluster.get_nodes_status(output=self.__cluster_output)
         if "batchStats" not in status[0] or "queueLength" not in status[0]["batchStats"]:
             # async indexing - just send a lot
             self.__batching_mode = _FixedSizeBatching(1000, 10)

@@ -34,7 +34,7 @@ class Cluster:
     def get_nodes_status(
         self,
         class_name: Optional[str] = None,
-        output: Optional[Literal["minimal", "verbose"]] = None,
+        output: Optional[Literal["minimal", "verbose", "batchStatus"]] = None,
     ) -> List[Node]:
         """
         Get the nodes status.
