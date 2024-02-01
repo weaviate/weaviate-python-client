@@ -23,8 +23,6 @@ Welcome to Weaviate Python Client's documentation!
 
 The Python client makes it easy to work with `Weaviate <https://weaviate.io/>`_. The client is tested for python 3.8 and higher.
 
-The client is tested for python 3.8 and higher.
-
 There are two versions of the Weaviate Python client. The latest version, v4, is redesigned to take advantage of a faster query interface and offers improved programming features. For more information, see:
 
 - `Python Client v4 overview <https://weaviate.io/developers/weaviate/client-libraries/python>`_

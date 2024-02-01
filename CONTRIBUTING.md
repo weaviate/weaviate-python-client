@@ -1,6 +1,6 @@
 ### Setup
 
-We recommend to create a virtual environment to contribute to the client.
+We recommend that you use a virtual environment to contribute to the client.
 
 To create a virtual environment, activate it, and install dependencies, run the following shell code:
 
