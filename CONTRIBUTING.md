@@ -2,20 +2,21 @@
 
 We recommend to create a virtual environment to contribute to the client.
 
-Run the following to create a virtual environment, activate it and install dependencies:
+To create a virtual environment, activate it, and install dependencies, run the following shell code:
+
 ```shell
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-devel.txt
 ```
 
-The next time you open your shell, you can activate your virtual environment using `source .venv/bin/activate`
+To activate your virtual environment, run `source .venv/bin/activate`.
 
 The newest client versions sometimes require upcoming Weaviate core features. We recommend using Docker (see https://weaviate.io/developers/weaviate/installation/docker-compose) to run a local instance of the `latest Weaviate core <https://hub.docker.com/r/semitechnologies/weaviate/tags>`_ for client development. 
 
 #### Installation
 
-To install the library into your virtual environment while in development, we recommend installing it in “edit mode”:
+To install a development version of the Python client library in your virtual environment, use “edit mode”:
 
 ```shell
 pip install -e /PATH/TO/WEAVIATE-PYTHON-CLIENT
@@ -36,23 +37,24 @@ pip install git+https://github.com/weaviate/weaviate-python-client.git@BRANCH_NA
 
 ### Testing
 
-> Note: We use [pytest](https://docs.pytest.org) to write tests, however many older tests use [unittest](https://docs.python.org/3/library/unittest.html). Regardless, the below commands will run all tests.
+> Note: We use [pytest](https://docs.pytest.org) to write tests for new client code. However, many older tests use [unittest](https://docs.python.org/3/library/unittest.html). These commands run the `pytest` and `unittest` tests.
 
 There are three kinds of tests:
-- Unit tests, that test individual components of the client
-- Integration tests, that test the client with a running weaviate instance
-- Mock tests, where a weaviate instance is mocked to return specific replies
+- Unit tests test individual client components.
+- Integration tests use a running weaviate instance to test the client.
+- Mock tests simulate a weaviate instance to return specific values.
 
 To run the integration tests,
 
-1. Ensure that you have Docker installed, and then
-2. Start the weaviate instances with:
+1. Ensure that you have Docker installed.
+2. Start the weaviate instances.
 
 ```shell
 ./ci/start_weaviate.sh
 ```
 
-Then run all tests with
+3. Run the tests.
+
 ```
 pytest integration
 pytest mock_tests
@@ -62,7 +64,7 @@ pytest test
 ### Linting
 
 > **Note**
-> We strongly recommend to use [pre-commit](https://pre-commit.com/) to automatically run all linters locally on each commit. Install on your system and then enable it using `pre-commit install`.
+> We strongly recommend using [pre-commit](https://pre-commit.com/) to automatically run all linters locally on each commit. Install `pre-commit` on your system, and then enable it with `pre-commit install`.
 
 We use the following tools to ensure a high code quality:
 - black (formatter), run with `black $FOLDER_WITH_CHANGES`
