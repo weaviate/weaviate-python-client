@@ -483,7 +483,7 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     collection.data.insert({"text": "some text", "int": 2})
 
     res = collection.aggregate.over_all(
-        group_by=GroupByAggregate(prop="text"),
+        group_by="text",
         return_metrics=[
             Metrics("text").text(count=True),
             Metrics("int").integer(count=True),
@@ -499,7 +499,7 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     assert groups[0].properties["int"].count == 2
 
     res = collection.aggregate.over_all(
-        group_by=GroupByAggregate(prop="int"),
+        group_by="int",
         return_metrics=[
             Metrics("text").text(count=True),
             Metrics("int").integer(count=True),

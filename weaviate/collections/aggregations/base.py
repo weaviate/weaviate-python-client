@@ -169,11 +169,13 @@ class _Aggregate:
 
     @staticmethod
     def _add_groupby_to_builder(
-        builder: AggregateBuilder, group_by: Optional[GroupByAggregate]
+        builder: AggregateBuilder, group_by: Union[str, GroupByAggregate, None]
     ) -> AggregateBuilder:
-        _validate_input(_ValidateArgument([GroupByAggregate, None], "group_by", group_by))
+        _validate_input(_ValidateArgument([str, GroupByAggregate, None], "group_by", group_by))
         if group_by is None:
             return builder
+        if isinstance(group_by, str):
+            group_by = GroupByAggregate(prop=group_by)
         builder = builder.with_group_by_filter([group_by.prop])
         if group_by.limit is not None:
             builder = builder.with_limit(group_by.limit)
