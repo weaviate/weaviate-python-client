@@ -19,8 +19,8 @@ from weaviate.types import NUMBER
 class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
     def hybrid(
         self,
-        *,
         query: Optional[str],
+        *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
