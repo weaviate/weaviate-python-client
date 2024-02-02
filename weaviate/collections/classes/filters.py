@@ -559,4 +559,4 @@ FilterById: TypeAlias = _FilterById
 FilterByCreationTime: TypeAlias = _FilterByCreationTime
 FilterByUpdateTime: TypeAlias = _FilterByUpdateTime
 FilterByRef: TypeAlias = _FilterByRef
-FilterValue: TypeAlias = _FilterValue
+FilterReturn: TypeAlias = _Filters
