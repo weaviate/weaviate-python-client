@@ -528,7 +528,7 @@ class _BatchBase:
             or len(self.__batch_references) > 0
         ):
             time.sleep(0.01)
-            self.__check_bg_thread_alive()
+            self.__check_bg_threads_alive()
 
     def _add_object(
         self,
@@ -539,7 +539,7 @@ class _BatchBase:
         vector: Optional[Sequence] = None,
         tenant: Optional[str] = None,
     ) -> UUID:
-        self.__check_bg_thread_alive()
+        self.__check_bg_threads_alive()
         try:
             batch_object = BatchObject(
                 collection=collection,
@@ -562,7 +562,7 @@ class _BatchBase:
             self.__recommended_num_objects == 0
             or len(self.__batch_objects) >= self.__recommended_num_objects * 10
         ):
-            self.__check_bg_thread_alive()
+            self.__check_bg_threads_alive()
             time.sleep(0.01)
 
         assert batch_object.uuid is not None
@@ -576,7 +576,7 @@ class _BatchBase:
         to: ReferenceInput,
         tenant: Optional[str] = None,
     ) -> None:
-        self.__check_bg_thread_alive()
+        self.__check_bg_threads_alive()
         if isinstance(to, ReferenceToMulti):
             to_strs: Union[List[str], List[UUID]] = to.uuids_str
         elif isinstance(to, str) or isinstance(to, uuid_package.UUID):
@@ -603,10 +603,10 @@ class _BatchBase:
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
             time.sleep(0.01)  # block if weaviate is overloaded, also do not send any refs
-            self.__check_bg_thread_alive()
+            self.__check_bg_threads_alive()
 
-    def __check_bg_thread_alive(self) -> None:
-        if self.__bg_threads[0].is_alive() and self.__bg_threads[1].is_alive():
+    def __check_bg_threads_alive(self) -> None:
+        if self.__bg_threads[0].is_alive() or self.__bg_threads[1].is_alive():
             return
 
-        raise self.__bg_thread_exception or Exception("Batch thread died unexpectedly")
+        raise self.__bg_thread_exception or Exception("Batch threads died unexpectedly")
