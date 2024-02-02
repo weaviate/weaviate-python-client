@@ -16,8 +16,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
@@ -35,8 +35,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
@@ -54,8 +54,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
@@ -73,8 +73,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
@@ -92,8 +92,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
@@ -111,8 +111,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,

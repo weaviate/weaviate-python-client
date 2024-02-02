@@ -18,8 +18,8 @@ from weaviate.types import NUMBER
 class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str],
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
         query_properties: Optional[List[str]] = None,
@@ -81,7 +81,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
                 If the network connection to Weaviate fails.
         """
         res = self._query().hybrid(
-            query=query,
+            query=query or "",
             alpha=alpha,
             vector=vector,
             properties=query_properties,

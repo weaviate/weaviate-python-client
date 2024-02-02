@@ -16,8 +16,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -38,8 +38,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -60,8 +60,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -82,8 +82,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -104,8 +104,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -126,8 +126,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
         *,
+        query: Optional[str] = None,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
