@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Generator, List, Optional, Sequence, Protocol, Tuple, Callable
+from typing import Dict, Generator, List, Optional, Sequence, Protocol, Tuple, Callable
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -59,23 +59,30 @@ class ClientFactory(Protocol):
         ...
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def client_factory(
     request: SubRequest,
 ) -> Generator[
     Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
 ]:
-    name_fixture: Optional[str] = None
-    client_fixture: Optional[weaviate.WeaviateClient] = None
+    names: List[str] = []
+    clients: Dict[str, weaviate.WeaviateClient] = {}
 
     def _factory(
         name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
-        nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(request.node.name) + name
-        client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
-        client_fixture.collections.delete(name_fixture)
+        if name_fixture not in names:
+            names.append(name_fixture)
 
+        tag = f"{ports[0]}:{ports[1]}"
+        if tag not in clients:
+            client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
+            clients[tag] = client_fixture
+        else:
+            client_fixture = clients[tag]
+
+        client_fixture.collections.delete(name_fixture)
         client_fixture.collections.create(
             name=name_fixture,
             properties=[
@@ -88,8 +95,8 @@ def client_factory(
         return client_fixture, name_fixture
 
     yield _factory
-    if client_fixture is not None and name_fixture is not None:
-        client_fixture.collections.delete(name_fixture)
+    for client in clients.values():
+        client.collections.delete(names)
 
 
 def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:

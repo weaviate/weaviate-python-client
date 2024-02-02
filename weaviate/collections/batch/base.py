@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 import math
 import threading
 import time
@@ -14,6 +15,7 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    Tuple,
     TypeVar,
     Union,
 )
@@ -201,7 +203,7 @@ class _BatchBase:
         # do 62 secs to give us some buffer to the "per-minute" calculation
         self.__fix_rate_batching_base_time = 62
 
-        self.__bg_thread = self.__start_bg_threads()
+        self.__bg_threads = self.__start_bg_threads()
         self.__bg_thread_exception: Optional[Exception] = None
 
     @property
@@ -240,8 +242,8 @@ class _BatchBase:
         self.flush()
 
         # we are done, shut bg threads down and end the event loop
-        self.__shut_background_thread_down.set()
-        while self.__bg_thread.is_alive():
+        self.__shut_background_threads_down.set()
+        while self.__bg_threads[0].is_alive() or self.__bg_threads[1].is_alive():
             time.sleep(0.01)
 
         # copy the results to the public results
@@ -258,10 +260,12 @@ class _BatchBase:
         loop = self.__start_new_event_loop()
         future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
         future.result()  # Wait for self._connection.aopen() to finish
+
+        requests: List[concurrent.futures.Future] = []
         refresh_time: float = 0.01
         while (
-            self.__shut_background_thread_down is not None
-            and not self.__shut_background_thread_down.is_set()
+            self.__shut_background_threads_down is not None
+            and not self.__shut_background_threads_down.is_set()
         ):
             if isinstance(self.__batching_mode, _RateLimitedBatching):
                 if (
@@ -282,7 +286,7 @@ class _BatchBase:
 
                 objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
                 # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
-                asyncio.run_coroutine_threadsafe(
+                request = asyncio.run_coroutine_threadsafe(
                     self.__send_batch_async(
                         objs,
                         self.__batch_references.pop_items(self.__recommended_num_refs),
@@ -290,18 +294,21 @@ class _BatchBase:
                     ),
                     loop,
                 )
+                requests.append(request)
 
             time.sleep(refresh_time)
 
         future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
         future.result()  # Wait for self._connection.aclose() to finish
+        while not all(r.done() for r in requests):
+            time.sleep(0.01)
         loop.call_soon_threadsafe(loop.stop)
 
-    def dynamic_batch_rate_loop(self) -> None:
+    def __dynamic_batch_rate_loop(self) -> None:
         refresh_time = 0.1
         while (
-            self.__shut_background_thread_down is not None
-            and not self.__shut_background_thread_down.is_set()
+            self.__shut_background_threads_down is not None
+            and not self.__shut_background_threads_down.is_set()
         ):
             if not isinstance(self.__batching_mode, _DynamicBatching):
                 return
@@ -313,13 +320,13 @@ class _BatchBase:
 
             time.sleep(refresh_time)
 
-    def __start_bg_threads(self) -> threading.Thread:
+    def __start_bg_threads(self) -> Tuple[threading.Thread, threading.Thread]:
         """Create a background thread that periodically checks how congested the batch queue is."""
-        self.__shut_background_thread_down = threading.Event()
+        self.__shut_background_threads_down = threading.Event()
 
         def dynamic_batch_rate_wrapper() -> None:
             try:
-                self.dynamic_batch_rate_loop()
+                self.__dynamic_batch_rate_loop()
             except Exception as e:
                 self.__bg_thread_exception = e
 
@@ -342,7 +349,7 @@ class _BatchBase:
             name="BgBatchScheduler",
         )
         demonBatchSend.start()
-        return demonBatchSend
+        return demonBatchSend, demonDynamic
 
     def __dynamic_batching(self) -> None:
         status = self.__cluster.get_nodes_status()
@@ -599,7 +606,7 @@ class _BatchBase:
             self.__check_bg_thread_alive()
 
     def __check_bg_thread_alive(self) -> None:
-        if self.__bg_thread.is_alive():
+        if self.__bg_threads[0].is_alive() and self.__bg_threads[1].is_alive():
             return
 
         raise self.__bg_thread_exception or Exception("Batch thread died unexpectedly")
