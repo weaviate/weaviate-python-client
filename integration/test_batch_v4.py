@@ -49,6 +49,14 @@ class MockTensorFlow:
         return MockNumpyTorch(self.array)
 
 
+class _ClientFactory(Protocol):
+    """Typing for fixture."""
+
+    def __call__(self, ports: Tuple[int, int] = (8080, 50051)) -> weaviate.WeaviateClient:
+        """Typing for fixture."""
+        ...
+
+
 class ClientFactory(Protocol):
     """Typing for fixture."""
 
@@ -59,28 +67,43 @@ class ClientFactory(Protocol):
         ...
 
 
-@pytest.fixture(scope="session")
-def client_factory(
-    request: SubRequest,
-) -> Generator[
-    Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
-]:
-    names: List[str] = []
+@pytest.fixture(scope="session", autouse=True)
+def _client_factory() -> (
+    Generator[Callable[[Tuple[int, int]], weaviate.WeaviateClient], None, None]
+):
     clients: Dict[str, weaviate.WeaviateClient] = {}
 
-    def _factory(
-        name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
-    ) -> Tuple[weaviate.WeaviateClient, str]:
-        name_fixture = _sanitize_collection_name(request.node.name) + name
-        if name_fixture not in names:
-            names.append(name_fixture)
-
+    def _factory(ports: Tuple[int, int] = (8080, 50051)) -> weaviate.WeaviateClient:
         tag = f"{ports[0]}:{ports[1]}"
         if tag not in clients:
             client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
             clients[tag] = client_fixture
         else:
             client_fixture = clients[tag]
+
+        return client_fixture
+
+    yield _factory
+    for client in clients.values():
+        client.close()
+
+
+@pytest.fixture
+def client_factory(
+    request: SubRequest, _client_factory: _ClientFactory
+) -> Generator[
+    Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
+]:
+    name_fixture: Optional[str] = None
+    client_fixture: Optional[weaviate.WeaviateClient] = None
+
+    def _factory(
+        name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
+    ) -> Tuple[weaviate.WeaviateClient, str]:
+        nonlocal client_fixture, name_fixture
+        name_fixture = _sanitize_collection_name(request.node.name) + name
+
+        client_fixture = _client_factory(ports)
 
         client_fixture.collections.delete(name_fixture)
         client_fixture.collections.create(
@@ -95,8 +118,9 @@ def client_factory(
         return client_fixture, name_fixture
 
     yield _factory
-    for client in clients.values():
-        client.collections.delete(names)
+    assert client_fixture is not None
+    assert name_fixture is not None
+    client_fixture.collections.delete(name_fixture)
 
 
 def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
