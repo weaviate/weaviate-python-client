@@ -469,7 +469,7 @@ class Batch:
                 and not self._shutdown_background_event.is_set()
             ):
                 try:
-                    status = cluster.get_nodes_status()
+                    status = cluster.get_nodes_status(output="minimal")
                     if "stats" not in status[0] or "ratePerSecond" not in status[0]["stats"]:
                         self._new_dynamic_batching = False
                         return
