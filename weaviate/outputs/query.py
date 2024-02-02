@@ -4,6 +4,7 @@ from weaviate.collections.classes.filters import (
     FilterById,
     FilterByUpdateTime,
     FilterByRef,
+    FilterValue,
 )
 from weaviate.collections.classes.grpc import Sorting
 from weaviate.collections.classes.internal import (
@@ -30,6 +31,7 @@ __all__ = [
     "FilterByProperty",
     "FilterByRef",
     "FilterByUpdateTime",
+    "FilterValue",
     "GenerativeNearMediaReturnType",
     "GenerativeReturnType",
     "GeoCoordinate",
