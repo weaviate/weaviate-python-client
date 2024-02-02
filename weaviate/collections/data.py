@@ -459,7 +459,7 @@ class _DataCollection(Generic[Properties], _Data):
             "properties": {**props, **refs},
         }
         if vector is not None:
-            weaviate_obj["vector"] = vector
+            weaviate_obj["vector"] = get_vector(vector)
 
         self._replace(weaviate_obj, uuid=uuid)
 
@@ -498,7 +498,7 @@ class _DataCollection(Generic[Properties], _Data):
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
         if vector is not None:
-            weaviate_obj["vector"] = vector
+            weaviate_obj["vector"] = get_vector(vector)
 
         self._update(weaviate_obj, uuid=uuid)
 

@@ -22,6 +22,7 @@ from weaviate.exceptions import (
     SchemaValidationError,
     UnexpectedStatusCodeError,
     ResponseCannotBeDecodedError,
+    WeaviateInvalidInputError,
 )
 from weaviate.warnings import _Warnings
 from weaviate.types import NUMBER, UUIDS, TIME
@@ -439,7 +440,7 @@ def get_vector(vector: Sequence) -> List[float]:
             # if vector is tf.Tensor
             return vector.numpy().squeeze().tolist()  # type: ignore
         except AttributeError:
-            raise TypeError(
+            raise WeaviateInvalidInputError(
                 "The type of the 'vector' argument is not supported!\n"
                 "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`"
             ) from None

@@ -44,6 +44,7 @@ from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateQueryError, WeaviateInvalidInputError
 from weaviate.types import NUMBER, UUID
+from weaviate.util import get_vector
 
 from weaviate.proto.v1 import search_get_pb2
 
@@ -378,11 +379,7 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
-        if not isinstance(near_vector, list):
-            raise WeaviateInvalidInputError(
-                f"near_vector must be of type List[float], but got {type(near_vector)}"
-            )
-        self._near_vector_vec = near_vector
+        self._near_vector_vec = get_vector(near_vector)
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
             limit=limit,
