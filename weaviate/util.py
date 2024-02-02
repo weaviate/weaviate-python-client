@@ -416,7 +416,7 @@ def get_vector(vector: Sequence) -> List[float]:
     ----------
     vector: Sequence
         The embedding of an object. Used only for class objects that do not have a vectorization
-        module. Supported types are `list`, `numpy.ndarray`, `torch.Tensor` and `tf.Tensor`.
+        module. Supported types are `list`, `numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`.
 
     Returns
     -------
@@ -436,14 +436,28 @@ def get_vector(vector: Sequence) -> List[float]:
         # if vector is numpy.ndarray or torch.Tensor
         return vector.squeeze().tolist()  # type: ignore
     except AttributeError:
-        try:
-            # if vector is tf.Tensor
-            return vector.numpy().squeeze().tolist()  # type: ignore
-        except AttributeError:
-            raise WeaviateInvalidInputError(
-                "The type of the 'vector' argument is not supported!\n"
-                "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`"
-            ) from None
+        pass
+    try:
+        # if vector is tf.Tensor or torch.Tensor
+        return vector.numpy().squeeze().tolist()  # type: ignore
+    except AttributeError:
+        pass
+    try:
+        # if vector is pd.Series or pl.Series
+        return vector.to_list()  # type: ignore
+    except AttributeError:
+        pass
+    raise TypeError(
+        "The type of the 'vector' argument is not supported!\n"
+        "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series`, and `pl.Series`"
+    ) from None
+
+
+def _get_vector_v4(vector: Sequence) -> List[float]:
+    try:
+        return get_vector(vector)
+    except TypeError as e:
+        raise WeaviateInvalidInputError("") from e
 
 
 def get_domain_from_weaviate_url(url: str) -> str:

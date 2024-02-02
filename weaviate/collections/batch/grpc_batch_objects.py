@@ -24,7 +24,7 @@ from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
-from weaviate.util import _datetime_to_string, get_vector
+from weaviate.util import _datetime_to_string, _get_vector_v4
 
 
 class _BatchGRPC(_BaseGRPC):
@@ -51,7 +51,7 @@ class _BatchGRPC(_BaseGRPC):
         """
 
         def pack_vector(vector: Any) -> bytes:
-            vector_list = get_vector(vector)
+            vector_list = _get_vector_v4(vector)
             return struct.pack("{}f".format(len(vector_list)), *vector_list)
 
         weaviate_objs: List[batch_pb2.BatchObject] = [
@@ -143,7 +143,7 @@ class _BatchGRPC(_BaseGRPC):
         """
 
         def pack_vector(vector: Any) -> bytes:
-            vector_list = get_vector(vector)
+            vector_list = _get_vector_v4(vector)
             return struct.pack("{}f".format(len(vector_list)), *vector_list)
 
         weaviate_objs: List[batch_pb2.BatchObject] = [

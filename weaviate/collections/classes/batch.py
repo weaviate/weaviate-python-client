@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.types import WeaviateField
 from weaviate.types import BEACON, UUID
-from weaviate.util import _capitalize_first_letter, get_valid_uuid, get_vector
+from weaviate.util import _capitalize_first_letter, get_valid_uuid, _get_vector_v4
 
 
 @dataclass
@@ -44,7 +44,7 @@ class BatchObject(BaseModel):
     tenant: Optional[str] = Field(default=None)
 
     def __init__(self, **data: Any) -> None:
-        data["vector"] = get_vector(v) if (v := data.get("vector")) is not None else None
+        data["vector"] = _get_vector_v4(v) if (v := data.get("vector")) is not None else None
         data["uuid"] = (
             get_valid_uuid(u) if (u := data.get("uuid")) is not None else uuid_package.uuid4()
         )
