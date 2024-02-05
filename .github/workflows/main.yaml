@@ -260,6 +260,8 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: free space
+        run: sudo rm -rf /usr/local/lib/android
       - run: rm -r weaviate
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
