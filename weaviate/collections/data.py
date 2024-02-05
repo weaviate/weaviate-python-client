@@ -52,7 +52,7 @@ from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import BEACON, UUID
 from weaviate.util import (
     _datetime_to_string,
-    get_vector,
+    _get_vector_v4,
 )
 from weaviate.validator import _validate_input, _ValidateArgument
 
@@ -374,7 +374,7 @@ class _DataCollection(Generic[Properties], _Data):
         }
 
         if vector is not None:
-            weaviate_obj["vector"] = get_vector(vector)
+            weaviate_obj["vector"] = _get_vector_v4(vector)
 
         return self._insert(weaviate_obj)
 
@@ -473,7 +473,7 @@ class _DataCollection(Generic[Properties], _Data):
             "properties": {**props, **refs},
         }
         if vector is not None:
-            weaviate_obj["vector"] = vector
+            weaviate_obj["vector"] = _get_vector_v4(vector)
 
         self._replace(weaviate_obj, uuid=uuid)
 
@@ -517,7 +517,7 @@ class _DataCollection(Generic[Properties], _Data):
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
         if vector is not None:
-            weaviate_obj["vector"] = vector
+            weaviate_obj["vector"] = _get_vector_v4(vector)
 
         self._update(weaviate_obj, uuid=uuid)
 

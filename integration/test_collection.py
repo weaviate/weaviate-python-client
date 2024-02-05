@@ -649,8 +649,10 @@ def test_search_hybrid(collection_factory: CollectionFactory, fusion_type: Hybri
     assert len(objs) == 2
 
 
-@pytest.mark.skip(reason="currently bugged in weaviate")
-def test_search_hybrid_only_vector(collection_factory: CollectionFactory) -> None:
+@pytest.mark.parametrize("query", [None, ""])
+def test_search_hybrid_only_vector(
+    collection_factory: CollectionFactory, query: Optional[str]
+) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
@@ -663,7 +665,7 @@ def test_search_hybrid_only_vector(collection_factory: CollectionFactory) -> Non
 
     collection.data.insert({"Name": "other word"}, uuid=uuid.uuid4())
 
-    objs = collection.query.hybrid(alpha=1, query="", vector=vec["default"]).objects
+    objs = collection.query.hybrid(alpha=1, query=query, vector=vec["default"]).objects
     assert len(objs) == 2
 
 
