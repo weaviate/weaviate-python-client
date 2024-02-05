@@ -63,6 +63,8 @@ from weaviate.util import (
 )
 from weaviate.validator import _validate_input, _ValidateArgument
 
+from weaviate.warnings import _Warnings
+
 
 class _WeaviateUUIDInt(uuid_lib.UUID):
     def __init__(self, hex_: int) -> None:
@@ -191,7 +193,10 @@ class _BaseQuery(Generic[Properties, References]):
                 number=value.phone_value.input,
                 valid=value.phone_value.valid,
             )
-        assert value.HasField("null_value")
+        if value.HasField("null_value"):
+            return None
+
+        _Warnings.unkown_type_encountered(value.WhichOneof("Value"))
         return None
 
     def __parse_nonref_properties_result(

@@ -2040,8 +2040,8 @@ def test_nil_return(collection_factory: CollectionFactory) -> None:
         ]
     )
 
-    if collection._connection._weaviate_version.is_lower_than(1, 23, 8):
-        pytest.skip("This test requires weaviate version 1.23.8 or higher")
+    if collection._connection._weaviate_version.is_at_least(1, 24, 0):
+        pytest.skip("This test requires weaviate version 1.24.0 or higher")
 
     collection.data.insert({"a": "a1"})
     objs = collection.query.fetch_objects(return_properties=["a", "b"]).objects
