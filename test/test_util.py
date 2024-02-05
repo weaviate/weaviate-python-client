@@ -376,8 +376,7 @@ class TestUtil(unittest.TestCase):
         # invalid call
         type_error_message = (
             "The type of the 'vector' argument is not supported!\n"
-            "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
-            "and `tf.Tensor`"
+            "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series`, and `pl.Series`"
         )
         with self.assertRaises(TypeError) as error:
             get_vector("[1., 2., 3.]")

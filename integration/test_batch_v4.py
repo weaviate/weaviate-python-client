@@ -32,6 +32,8 @@ UUID6 = uuid.UUID("c8a201b6-fdd2-48d1-a8ee-289a540b1b4b")
 
 @dataclass
 class MockNumpyTorch:
+    """Handles numpy and pytorch vectors."""
+
     array: list
 
     def squeeze(self) -> "MockNumpyTorch":
@@ -43,10 +45,22 @@ class MockNumpyTorch:
 
 @dataclass
 class MockTensorFlow:
+    """Handles tensorflow vectors."""
+
     array: list
 
     def numpy(self) -> "MockNumpyTorch":
         return MockNumpyTorch(self.array)
+
+
+@dataclass
+class MockDFSeries:
+    """Handles pandas and polars series."""
+
+    array: list
+
+    def to_list(self) -> list:
+        return self.array
 
 
 class ClientFactory(Protocol):
@@ -120,7 +134,13 @@ def test_flushing(client_factory: ClientFactory) -> None:
 
 @pytest.mark.parametrize(
     "vector",
-    [None, [1, 2, 3], MockNumpyTorch([1, 2, 3]), MockTensorFlow([1, 2, 3])],
+    [
+        None,
+        [1, 2, 3],
+        MockNumpyTorch([1, 2, 3]),
+        MockTensorFlow([1, 2, 3]),
+        MockDFSeries([1, 2, 3]),
+    ],
 )
 @pytest.mark.parametrize("uid", [None, UUID1, str(UUID2), UUID3.hex])
 def test_add_object(
