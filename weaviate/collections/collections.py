@@ -46,6 +46,7 @@ class _Collections(_CollectionsBase):
         vectorizer_config: Optional[_VectorizerConfigCreate] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
+        skip_argument_validation: bool = False,
     ) -> Collection[Properties, References]:
         """Use this method to create a collection in Weaviate and immediately return a collection object.
 
@@ -86,6 +87,8 @@ class _Collections(_CollectionsBase):
                 The generic class that you want to use to represent the properties of objects in this collection. See the `get` method for more information.
             `data_model_references`
                 The generic class that you want to use to represent the references of objects in this collection. See the `get` method for more information.
+            `skip_argument_validation`
+                If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
 
         Raises:
             `weaviate.WeaviateConnectionError`
@@ -113,13 +116,19 @@ class _Collections(_CollectionsBase):
         assert (
             config.name == name
         ), f"Name of created collection ({name}) does not match given name ({config.name})"
-        return self.get(name, data_model_properties, data_model_references)
+        return self.get(
+            name,
+            data_model_properties,
+            data_model_references,
+            skip_argument_validation=skip_argument_validation,
+        )
 
     def get(
         self,
         name: str,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
+        skip_argument_validation: bool = False,
     ) -> Collection[Properties, References]:
         """Use this method to return a collection object to be used when interacting with your Weaviate collection.
 
@@ -136,22 +145,23 @@ class _Collections(_CollectionsBase):
                 The generic class that you want to use to represent the objects of references in this collection when mutating objects through the `.query` namespace.
                 The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
                 If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
-
+            `skip_argument_validation`
+                If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
         Raises:
             `weaviate.exceptions.InvalidDataModelException`
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
-        _validate_input(
-            [_ValidateArgument(expected=[str], name="name", value=name)],
-        )
-        _check_properties_generic(data_model_properties)
-        _check_references_generic(data_model_references)
+        if not skip_argument_validation:
+            _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
+            _check_properties_generic(data_model_properties)
+            _check_references_generic(data_model_references)
         name = _capitalize_first_letter(name)
         return Collection[Properties, References](
             self._connection,
             name,
             properties=data_model_properties,
             references=data_model_references,
+            validate_arguments=not skip_argument_validation,
         )
 
     def delete(self, name: Union[str, List[str]]) -> None:

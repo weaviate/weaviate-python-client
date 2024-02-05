@@ -6,7 +6,7 @@ from _pytest.fixtures import SubRequest
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-from integration.conftest import CollectionFactoryGet
+from integration.conftest import CollectionFactoryGet, CollectionFactory
 from weaviate.collections import Collection
 from weaviate.collections.data import _Data
 from weaviate.exceptions import InvalidDataModelException
@@ -80,3 +80,17 @@ def test_get_with_wrong_generics(
         assert error.value.args[0] == WRONG_PROPERTIES_ERROR_MSG
     else:
         assert error.value.args[0] == WRONG_REFERENCES_ERROR_MSG
+
+
+def test_get_with_skip_validation(
+    collection_factory_get: CollectionFactoryGet, collection_factory: CollectionFactory
+) -> None:
+    collection_dummy = collection_factory()
+
+    collection = collection_factory_get(collection_dummy.name, skip_argument_validation=True)
+    with pytest.raises(AttributeError):
+        collection.data.insert(properties=[])
+    with pytest.raises(TypeError):
+        collection.query.bm25(query=5)  # type: ignore
+    with pytest.raises(TypeError):
+        collection.query.near_vector(vector="test")  # type: ignore

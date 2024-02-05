@@ -155,6 +155,7 @@ class CollectionFactoryGet(Protocol):
         name: str,
         data_model_props: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
+        skip_argument_validation: bool = False,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -169,6 +170,7 @@ def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
         name: str,
         data_model_props: Optional[Type[Properties]] = None,
         data_model_refs: Optional[Type[Properties]] = None,
+        skip_argument_validation: bool = False,
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(name)
@@ -178,6 +180,7 @@ def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
             name=name_fixture,
             data_model_properties=data_model_props,
             data_model_references=data_model_refs,
+            skip_argument_validation=skip_argument_validation,
         )
         return collection
 

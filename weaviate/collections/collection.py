@@ -24,8 +24,8 @@ from weaviate.collections.data import _DataCollection
 from weaviate.collections.iterator import _ObjectIterator
 from weaviate.collections.query import _GenerateCollection, _QueryCollection
 from weaviate.collections.tenants import _Tenants
-from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
+from weaviate.validator import _validate_input, _ValidateArgument
 
 
 class Collection(_CollectionBase, Generic[Properties, References]):
@@ -60,12 +60,13 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         self,
         connection: ConnectionV4,
         name: str,
+        validate_arguments: bool,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
         properties: Optional[Type[Properties]] = None,
         references: Optional[Type[References]] = None,
     ) -> None:
-        super().__init__(connection, name)
+        super().__init__(connection, name, validate_arguments)
 
         self.aggregate = _AggregateCollection(
             self._connection, self.name, consistency_level, tenant
@@ -78,15 +79,27 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         self.config = _ConfigCollection(self._connection, self.name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollection[Properties](
-            connection, self.name, consistency_level, tenant, properties
+            connection, self.name, consistency_level, tenant, validate_arguments, properties
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
         self.generate = _GenerateCollection(
-            connection, self.name, consistency_level, tenant, properties, references
+            connection,
+            self.name,
+            consistency_level,
+            tenant,
+            properties,
+            references,
+            validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
         self.query = _QueryCollection[Properties, References](
-            connection, self.name, consistency_level, tenant, properties, references
+            connection,
+            self.name,
+            consistency_level,
+            tenant,
+            properties,
+            references,
+            validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
         self.tenants = _Tenants(connection, self.name)
@@ -120,6 +133,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return Collection[Properties, References](
             self._connection,
             self.name,
+            self._validate_arguments,
             self.__consistency_level,
             tenant.name if isinstance(tenant, Tenant) else tenant,
             self.__properties,
@@ -140,18 +154,20 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             `consistency_level`
                 The consistency level to use.
         """
-        _validate_input(
-            [
-                _ValidateArgument(
-                    expected=[ConsistencyLevel, None],
-                    name="consistency_level",
-                    value=consistency_level,
-                )
-            ]
-        )
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument(
+                        expected=[ConsistencyLevel, None],
+                        name="consistency_level",
+                        value=consistency_level,
+                    )
+                ]
+            )
         return Collection[Properties, References](
             self._connection,
             self.name,
+            self._validate_arguments,
             consistency_level,
             self.__tenant,
             self.__properties,
