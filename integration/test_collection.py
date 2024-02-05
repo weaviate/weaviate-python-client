@@ -2030,3 +2030,21 @@ def test_double_insert_with_same_uuid(collection_factory: CollectionFactory) -> 
     uuid1 = collection.data.insert({})
     with pytest.raises(UnexpectedStatusCodeError):
         collection.data.insert({}, uuid=uuid1)
+
+
+def test_nil_return(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="a", data_type=DataType.TEXT),
+            Property(name="b", data_type=DataType.TEXT),
+        ]
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 23, 8):
+        pytest.skip("This test requires weaviate version 1.23.8 or higher")
+
+    collection.data.insert({"a": "a1"})
+    objs = collection.query.fetch_objects(return_properties=["a", "b"]).objects
+    assert len(objs) == 1
+    assert objs[0].properties["a"] == "a1"
+    assert objs[0].properties["b"] is None
