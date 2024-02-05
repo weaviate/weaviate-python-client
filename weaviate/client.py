@@ -4,13 +4,12 @@ Client class definition.
 
 from typing import Generic, Optional, Tuple, TypeVar, Union, Dict, Any
 
-from httpx import HTTPError as HttpxError, ConnectError as HttpxConnectError
+from httpx import HTTPError as HttpxError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.backup.backup import _Backup
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 
-from weaviate.validator import _ValidateArgument, _validate_input
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
@@ -26,6 +25,7 @@ from .connect.base import (
     ProtocolParams,
     TIMEOUT_TYPE_RETURN,
 )
+from .connect.v4 import _ExpectedStatusCodes
 from .contextionary import Contextionary
 from .data import DataObject
 from .embedded import EmbeddedV3, EmbeddedV4, EmbeddedOptions
@@ -38,6 +38,7 @@ from .gql import Query
 from .schema import Schema
 from .types import NUMBER
 from .util import _decode_json_response_dict, _get_valid_timeout_config, _type_request_response
+from .validator import _validate_input, _ValidateArgument
 from .warnings import _Warnings
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
@@ -316,16 +317,16 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             `weaviate.UnexpectedStatusCodeError`
                 If weaviate reports a none OK status.
         """
-
-        if not isinstance(gql_query, str):
-            raise TypeError("Query is expected to be a string")
+        _validate_input(_ValidateArgument([str], "gql_query", gql_query))
 
         json_query = {"query": gql_query}
 
-        try:
-            response = self._connection.post(path="/graphql", weaviate_object=json_query)
-        except HttpxConnectError as conn_err:
-            raise HttpxConnectError("Query not executed.") from conn_err
+        response = self._connection.post(
+            path="/graphql",
+            weaviate_object=json_query,
+            error_msg="Raw GQL query failed",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="GQL query"),
+        )
 
         res = _decode_json_response_dict(response, "GQL query")
         assert res is not None
