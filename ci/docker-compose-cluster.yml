@@ -13,6 +13,9 @@ services:
       PERSISTENCE_DATA_PATH: "./weaviate-node-1"
       CLUSTER_GOSSIP_BIND_PORT: "7110"
       CLUSTER_DATA_BIND_PORT: "7111"
+      CONTEXTIONARY_URL: contextionary:9999
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
 
   weaviate-node-2:
     init: true
@@ -38,4 +41,7 @@ services:
       CLUSTER_GOSSIP_BIND_PORT: '7112'
       CLUSTER_DATA_BIND_PORT: '7113'
       CLUSTER_JOIN: 'weaviate-node-1:7110'
+      CONTEXTIONARY_URL: contextionary:9999
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
 ...
