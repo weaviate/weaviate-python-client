@@ -4,7 +4,7 @@ Client class definition.
 
 from typing import Generic, Optional, Tuple, TypeVar, Union, Dict, Any
 
-from httpx import HTTPError as HTTPXError, ConnectError as HTTPXConnectError
+from httpx import HTTPError as HttpxError, ConnectError as HttpxConnectError
 from requests.exceptions import HTTPError as RequestsError
 
 from weaviate.backup.backup import _Backup
@@ -59,7 +59,7 @@ class _ClientBase(Generic[C]):
             if response.status_code == 200:
                 return True
             return False
-        except (HTTPXError, RequestsError):
+        except (HttpxError, RequestsError):
             return False
 
     def is_live(self) -> bool:
@@ -314,8 +314,8 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
 
         try:
             response = self._connection.post(path="/graphql", weaviate_object=json_query)
-        except HTTPXConnectError as conn_err:
-            raise HTTPXConnectError("Query not executed.") from conn_err
+        except HttpxConnectError as conn_err:
+            raise HttpxConnectError("Query not executed.") from conn_err
 
         res = _decode_json_response_dict(response, "GQL query")
         assert res is not None
