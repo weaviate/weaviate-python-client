@@ -16,7 +16,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
@@ -35,7 +35,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
@@ -54,7 +54,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
@@ -73,7 +73,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
@@ -92,7 +92,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,
@@ -111,7 +111,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         alpha: NUMBER = 0.5,
         vector: Optional[List[float]] = None,

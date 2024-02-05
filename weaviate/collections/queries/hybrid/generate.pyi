@@ -16,7 +16,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -38,7 +38,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -60,7 +60,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -82,7 +82,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -104,7 +104,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -126,7 +126,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
     @overload
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
