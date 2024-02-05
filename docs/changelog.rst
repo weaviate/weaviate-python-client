@@ -1,6 +1,17 @@
 Changelog
 =========
 
+Version 4.4.2
+--------------
+This patch version includes
+
+- Fixes client.is_ready().
+- Adds option to skip input parameter validation if you need to squeeze out some extra performance.
+- All functions that accept vectors now also accept numpy arrays, tensorflow arrays and pandas/polars dataframes as input.
+- Hybrid search accepts `None` as query for a pure vector search.
+- Adds ``FilterValue`` to ``weaviate.outputs``.
+- Allows ``group_by: str`` in aggregation queries.
+
 
 Version 4.4.1
 --------------
