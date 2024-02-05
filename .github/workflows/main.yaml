@@ -109,6 +109,8 @@ jobs:
       - run: |
           pip install -r requirements-devel.txt
           pip install .
+      - name: free space
+        run: sudo rm -rf /usr/local/lib/android
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
       - name: Run integration tests with auth secrets
@@ -158,6 +160,8 @@ jobs:
       - run: |
           pip install -r requirements-devel.txt
           pip install .
+      - name: free space
+        run: sudo rm -rf /usr/local/lib/android
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
       - name: Run integration tests with auth secrets
