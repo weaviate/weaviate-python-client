@@ -249,7 +249,7 @@ def test_insert_many(
             obj1 = collection.query.fetch_object_by_id(uuid_)
             inserted = objects[idx]
             if isinstance(inserted, DataObject) and len(inserted.properties) == 0:
-                assert obj1.properties == {}
+                assert obj1.properties["name"] is None
             elif isinstance(inserted, DataObject) and inserted.properties is not None:
                 a = inserted.properties["name"]
                 b = obj1.properties["name"]
