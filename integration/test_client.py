@@ -483,3 +483,18 @@ def test_client_error_for_wcs_without_auth() -> None:
     with pytest.raises(weaviate.exceptions.AuthenticationFailedError) as e:
         weaviate.connect_to_wcs(cluster_url=WCS_URL, auth_credentials=None)
         assert "wvc.init.Auth.api_key" in e.value.message
+
+
+def test_client_is_not_ready() -> None:
+    assert not weaviate.WeaviateClient(
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
+        skip_init_checks=True,
+    ).is_ready()
+
+
+def test_client_is_ready() -> None:
+    assert weaviate.connect_to_wcs(
+        cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
+    ).is_ready()
