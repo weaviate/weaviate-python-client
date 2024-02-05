@@ -5,7 +5,7 @@ Client class definition.
 from typing import Generic, Optional, Tuple, TypeVar, Union, Dict, Any
 
 from httpx import HTTPError as HttpxError, ConnectError as HttpxConnectError
-from requests.exceptions import HTTPError as RequestsError
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.backup.backup import _Backup
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
@@ -65,7 +65,7 @@ class _ClientBase(Generic[C]):
             return False
         except (
             HttpxError,
-            RequestsError,
+            RequestsConnectionError,
             UnexpectedStatusCodeError,
             WeaviateClosedClientError,
             WeaviateConnectionError,
