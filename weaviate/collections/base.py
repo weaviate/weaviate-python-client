@@ -20,10 +20,11 @@ from weaviate.connect.v4 import _ExpectedStatusCodes
 
 
 class _CollectionBase:
-    def __init__(self, connection: ConnectionV4, name: str) -> None:
+    def __init__(self, connection: ConnectionV4, name: str, validate_arguments: bool) -> None:
         self._connection = connection
         self.name = _capitalize_first_letter(name)
         self.__cluster = _Cluster(connection)
+        self._validate_arguments = validate_arguments
 
     def shards(self) -> List[Shard]:
         """

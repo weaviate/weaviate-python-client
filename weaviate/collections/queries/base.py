@@ -78,6 +78,7 @@ class _BaseQuery(Generic[Properties, References]):
         tenant: Optional[str],
         properties: Optional[Type[Properties]],
         references: Optional[Type[References]],
+        validate_arguments: bool,
     ):
         self.__connection = connection
         self._name = name
@@ -85,6 +86,7 @@ class _BaseQuery(Generic[Properties, References]):
         self.__consistency_level = consistency_level
         self._properties = properties
         self._references = references
+        self._validate_arguments = validate_arguments
 
     def _query(self) -> _QueryGRPC:
         if not self.__connection.is_connected():
@@ -94,6 +96,7 @@ class _BaseQuery(Generic[Properties, References]):
             self._name,
             self.__tenant,
             self.__consistency_level,
+            validate_arguments=self._validate_arguments,
         )
 
     def __extract_metadata_for_object(
@@ -518,14 +521,15 @@ class _BaseQuery(Generic[Properties, References]):
     def _parse_return_metadata(
         self, return_metadata: Optional[METADATA], include_vector: bool
     ) -> Optional[_MetadataQuery]:
-        _validate_input(
-            [
-                _ValidateArgument(
-                    [Sequence[str], MetadataQuery, None], "return_metadata", return_metadata
-                ),
-                _ValidateArgument([bool], "include_vector", include_vector),
-            ]
-        )
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument(
+                        [Sequence[str], MetadataQuery, None], "return_metadata", return_metadata
+                    ),
+                    _ValidateArgument([bool], "include_vector", include_vector),
+                ]
+            )
         if return_metadata is None:
             ret_md = None
         elif isinstance(return_metadata, Sequence):
