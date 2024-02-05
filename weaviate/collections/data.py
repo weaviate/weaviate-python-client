@@ -46,7 +46,6 @@ from weaviate.collections.classes.types import (
     WeaviateField,
     _check_properties_generic,
 )
-from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -55,6 +54,7 @@ from weaviate.util import (
     _datetime_to_string,
     _get_vector_v4,
 )
+from weaviate.validator import _validate_input, _ValidateArgument
 
 
 class _Data:
@@ -64,11 +64,13 @@ class _Data:
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
+        validate_arguments: bool,
     ) -> None:
         self._connection = connection
         self.name = name
         self._consistency_level = consistency_level
         self._tenant = tenant
+        self._validate_arguments = validate_arguments
         self._batch_grpc = _BatchGRPC(connection, consistency_level)
         self._batch_delete_grpc = _BatchDeleteGRPC(connection, consistency_level)
         self._batch_rest = _BatchREST(connection, consistency_level)
@@ -309,15 +311,21 @@ class _DataCollection(Generic[Properties], _Data):
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
+        validate_arguments: bool,
         type_: Optional[Type[Properties]] = None,
     ):
-        super().__init__(connection, name, consistency_level, tenant)
+        super().__init__(connection, name, consistency_level, tenant, validate_arguments)
         self.__type = type_
 
     def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
         _check_properties_generic(data_model)
         return _DataCollection[TProperties](
-            self._connection, self.name, self._consistency_level, self._tenant, data_model
+            self._connection,
+            self.name,
+            self._consistency_level,
+            self._tenant,
+            self._validate_arguments,
+            data_model,
         )
 
     def insert(
@@ -346,14 +354,17 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.exceptions.UnexpectedStatusCodeError`:
                 If any unexpected error occurs during the insert operation, for example the given UUID already exists.
         """
-        _validate_input(
-            [
-                _ValidateArgument(expected=[UUID, None], name="uuid", value=uuid),
-                _ValidateArgument(expected=[Mapping], name="properties", value=properties),
-                _ValidateArgument(expected=[Mapping, None], name="references", value=references),
-                _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
-            ]
-        )
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument(expected=[UUID, None], name="uuid", value=uuid),
+                    _ValidateArgument(expected=[Mapping], name="properties", value=properties),
+                    _ValidateArgument(
+                        expected=[Mapping, None], name="references", value=references
+                    ),
+                    _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+                ],
+            )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
@@ -444,14 +455,17 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
-        _validate_input(
-            [
-                _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
-                _ValidateArgument(expected=[Mapping], name="properties", value=properties),
-                _ValidateArgument(expected=[Mapping, None], name="references", value=references),
-                _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
-            ]
-        )
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
+                    _ValidateArgument(expected=[Mapping], name="properties", value=properties),
+                    _ValidateArgument(
+                        expected=[Mapping, None], name="references", value=references
+                    ),
+                    _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+                ]
+            )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
@@ -486,14 +500,19 @@ class _DataCollection(Generic[Properties], _Data):
             `vector`
                 The vector of the object.
         """
-        _validate_input(
-            [
-                _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
-                _ValidateArgument(expected=[Mapping, None], name="properties", value=properties),
-                _ValidateArgument(expected=[Mapping, None], name="references", value=references),
-                _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
-            ]
-        )
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
+                    _ValidateArgument(
+                        expected=[Mapping, None], name="properties", value=properties
+                    ),
+                    _ValidateArgument(
+                        expected=[Mapping, None], name="references", value=references
+                    ),
+                    _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+                ],
+            )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
@@ -519,13 +538,16 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        _validate_input(
-            [
-                _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
-                _ValidateArgument(expected=[str], name="from_property", value=from_property),
-                _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
-            ]
-        )
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
+                    _ValidateArgument(expected=[str], name="from_property", value=from_property),
+                    _ValidateArgument(
+                        expected=[UUID, ReferenceToMulti], name="references", value=to
+                    ),
+                ],
+            )
         if isinstance(to, ReferenceToMulti):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
@@ -564,13 +586,16 @@ class _DataCollection(Generic[Properties], _Data):
             `to`
                 The reference to delete, REQUIRED.
         """
-        _validate_input(
-            [
-                _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
-                _ValidateArgument(expected=[str], name="from_property", value=from_property),
-                _ValidateArgument(expected=[UUID, ReferenceToMulti], name="references", value=to),
-            ]
-        )
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
+                    _ValidateArgument(expected=[str], name="from_property", value=from_property),
+                    _ValidateArgument(
+                        expected=[UUID, ReferenceToMulti], name="references", value=to
+                    ),
+                ]
+            )
         if isinstance(to, ReferenceToMulti):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
@@ -588,23 +613,24 @@ class _DataCollection(Generic[Properties], _Data):
             `to`
                 The reference to replace, REQUIRED.
         """
-        _validate_input(
-            [
-                _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
-                _ValidateArgument(expected=[str], name="from_property", value=from_property),
-                _ValidateArgument(
-                    expected=[
-                        UUID,
-                        ReferenceToMulti,
-                        List[str],
-                        List[uuid_package.UUID],
-                        List[UUID],
-                    ],
-                    name="references",
-                    value=to,
-                ),
-            ]
-        )
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
+                    _ValidateArgument(expected=[str], name="from_property", value=from_property),
+                    _ValidateArgument(
+                        expected=[
+                            UUID,
+                            ReferenceToMulti,
+                            List[str],
+                            List[uuid_package.UUID],
+                            List[UUID],
+                        ],
+                        name="references",
+                        value=to,
+                    ),
+                ]
+            )
         if isinstance(to, ReferenceToMulti):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:

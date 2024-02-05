@@ -84,10 +84,12 @@ class _QueryGRPC(_BaseGRPC):
         name: str,
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
+        validate_arguments: bool,
     ):
         super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
+        self._validate_arguments = validate_arguments
 
         self._return_props: Optional[Set[PROPERTY]] = None
         self._metadata: Optional[_MetadataQuery] = None
@@ -132,7 +134,8 @@ class _QueryGRPC(_BaseGRPC):
         self._filters: Optional[_Filters] = None
 
     def __parse_sort(self, sort: Optional[_Sorting]) -> None:
-        _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
+        if self._validate_arguments:
+            _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
 
         if sort is None:
             self._sort = None
@@ -153,40 +156,41 @@ class _QueryGRPC(_BaseGRPC):
         autocut: Optional[int] = None,
         group_by: Optional[_GroupBy] = None,
     ) -> None:
-        _validate_input(
-            [
-                _ValidateArgument([int, None], "limit", limit),
-                _ValidateArgument([int, None], "offset", offset),
-                _ValidateArgument([uuid_lib.UUID, str, None], "after", after),
-                _ValidateArgument([_Filters, None], "filters", filters),
-                _ValidateArgument([_MetadataQuery, None], "metadata", metadata),
-                _ValidateArgument([_Generative, None], "generative", generative),
-                _ValidateArgument([Rerank, None], "rerank", rerank),
-                _ValidateArgument([int, None], "autocut", autocut),
-                _ValidateArgument([_GroupBy, None], "group_by", group_by),
-                _ValidateArgument(
-                    [str, QueryNested, Sequence, None], "return_properties", return_properties
-                ),
-                _ValidateArgument(
-                    [_QueryReference, Sequence, None], "return_references", return_references
-                ),
-            ]
-        )
-        if isinstance(return_properties, Sequence):
-            for prop in return_properties:
-                _validate_input(
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([int, None], "limit", limit),
+                    _ValidateArgument([int, None], "offset", offset),
+                    _ValidateArgument([uuid_lib.UUID, str, None], "after", after),
+                    _ValidateArgument([_Filters, None], "filters", filters),
+                    _ValidateArgument([_MetadataQuery, None], "metadata", metadata),
+                    _ValidateArgument([_Generative, None], "generative", generative),
+                    _ValidateArgument([Rerank, None], "rerank", rerank),
+                    _ValidateArgument([int, None], "autocut", autocut),
+                    _ValidateArgument([_GroupBy, None], "group_by", group_by),
                     _ValidateArgument(
-                        expected=[str, QueryNested], name="return_properties", value=prop
+                        [str, QueryNested, Sequence, None], "return_properties", return_properties
+                    ),
+                    _ValidateArgument(
+                        [_QueryReference, Sequence, None], "return_references", return_references
+                    ),
+                ]
+            )
+            if isinstance(return_properties, Sequence):
+                for prop in return_properties:
+                    _validate_input(
+                        _ValidateArgument(
+                            expected=[str, QueryNested], name="return_properties", value=prop
+                        )
                     )
-                )
 
-        if isinstance(return_references, Sequence):
-            for ref in return_references:
-                _validate_input(
-                    _ValidateArgument(
-                        expected=[_QueryReference], name="return_references", value=ref
+            if isinstance(return_references, Sequence):
+                for ref in return_references:
+                    _validate_input(
+                        _ValidateArgument(
+                            expected=[_QueryReference], name="return_references", value=ref
+                        )
                     )
-                )
 
         self._limit = limit
         self._offset = offset
@@ -211,24 +215,17 @@ class _QueryGRPC(_BaseGRPC):
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
     ) -> None:
-        if not isinstance(query, str):
-            raise WeaviateInvalidInputError(f"query must be of type str, but got {type(query)}")
-        if alpha is not None and not isinstance(alpha, float) and not isinstance(alpha, int):
-            raise WeaviateInvalidInputError(
-                f"alpha must be of type float or int, but got {type(alpha)}"
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([str], "query", query),
+                    _ValidateArgument([float, int, None], "alpha", alpha),
+                    _ValidateArgument([List, None], "vector", vector),
+                    _ValidateArgument([List, None], "properties", properties),
+                    _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
+                ]
             )
-        if vector is not None and not isinstance(vector, list):
-            raise WeaviateInvalidInputError(
-                f"vector must be of type List[float], but got {type(vector)}"
-            )
-        if properties is not None and not isinstance(properties, list):
-            raise WeaviateInvalidInputError(
-                f"properties must be of type List[str], but got {type(properties)}"
-            )
-        if fusion_type is not None and not isinstance(fusion_type, HybridFusion):
-            raise WeaviateInvalidInputError(
-                f"fusion_type must be of type weaviate.classes.query.HybridFusion, but got {type(fusion_type)}."
-            )
+
         self._hybrid_query = query
         self._hybrid_alpha = float(alpha) if alpha is not None else None
         self._hybrid_vector = vector
@@ -244,11 +241,12 @@ class _QueryGRPC(_BaseGRPC):
         query: str,
         properties: Optional[List[str]] = None,
     ) -> None:
-        if not isinstance(query, str):
-            raise WeaviateInvalidInputError(f"query must be of type str, but got {type(query)}")
-        if properties is not None and not isinstance(properties, list):
-            raise WeaviateInvalidInputError(
-                f"properties must be of type List[str], but got {type(properties)}"
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([str], "query", query),
+                    _ValidateArgument([List, None], "properties", properties),
+                ]
             )
         self._bm25_query = query
         self._bm25_properties = properties
@@ -258,22 +256,14 @@ class _QueryGRPC(_BaseGRPC):
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
     ) -> None:
-        if (
-            certainty is not None
-            and not isinstance(certainty, float)
-            and not isinstance(certainty, int)
-        ):
-            raise WeaviateInvalidInputError(
-                f"certainty must be of type float or int, but got {type(certainty)}"
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([float, int, None], "certainty", certainty),
+                    _ValidateArgument([float, int, None], "distance", distance),
+                ]
             )
-        if (
-            distance is not None
-            and not isinstance(distance, float)
-            and not isinstance(distance, int)
-        ):
-            raise WeaviateInvalidInputError(
-                f"distance must be of type float or int, but got {type(distance)}"
-            )
+
         self._near_certainty = float(certainty) if certainty is not None else None
         self._near_distance = float(distance) if distance is not None else None
 
@@ -379,6 +369,9 @@ class _QueryGRPC(_BaseGRPC):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
+        if self._validate_arguments:
+            _validate_input(_ValidateArgument([List], "near_vector", near_vector))
+
         self._near_vector_vec = _get_vector_v4(near_vector)
         self.__parse_near_options(certainty, distance)
         self.__parse_common(
