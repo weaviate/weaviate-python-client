@@ -249,7 +249,10 @@ def test_insert_many(
             obj1 = collection.query.fetch_object_by_id(uuid_)
             inserted = objects[idx]
             if isinstance(inserted, DataObject) and len(inserted.properties) == 0:
-                assert obj1.properties["name"] is None
+                if "name" in obj1.properties:  # change this when server version bumps to 1.24.0
+                    assert obj1.properties["name"] is None
+                else:
+                    assert obj1.properties == {}
             elif isinstance(inserted, DataObject) and inserted.properties is not None:
                 a = inserted.properties["name"]
                 b = obj1.properties["name"]
@@ -2040,11 +2043,9 @@ def test_nil_return(collection_factory: CollectionFactory) -> None:
         ]
     )
 
-    if collection._connection._weaviate_version.is_at_least(1, 24, 0):
-        pytest.skip("This test requires weaviate version 1.24.0 or higher")
-
     collection.data.insert({"a": "a1"})
     objs = collection.query.fetch_objects(return_properties=["a", "b"]).objects
     assert len(objs) == 1
     assert objs[0].properties["a"] == "a1"
-    assert objs[0].properties["b"] is None
+    if "b" in objs[0].properties:  # change this when server version bumps to 1.24.0
+        assert objs[0].properties["b"] is None
