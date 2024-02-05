@@ -29,7 +29,11 @@ from .connect.base import (
 from .contextionary import Contextionary
 from .data import DataObject
 from .embedded import EmbeddedV3, EmbeddedV4, EmbeddedOptions
-from .exceptions import UnexpectedStatusCodeError
+from .exceptions import (
+    UnexpectedStatusCodeError,
+    WeaviateClosedClientError,
+    WeaviateConnectionError,
+)
 from .gql import Query
 from .schema import Schema
 from .types import NUMBER
@@ -59,7 +63,13 @@ class _ClientBase(Generic[C]):
             if response.status_code == 200:
                 return True
             return False
-        except (HttpxError, RequestsError):
+        except (
+            HttpxError,
+            RequestsError,
+            UnexpectedStatusCodeError,
+            WeaviateClosedClientError,
+            WeaviateConnectionError,
+        ):
             return False
 
     def is_live(self) -> bool:
