@@ -4,8 +4,8 @@ Client class definition.
 
 from typing import Generic, Optional, Tuple, TypeVar, Union, Dict, Any
 
-from httpx import ConnectError as HTTPXConnectError
-from requests.exceptions import ConnectionError as RequestsConnectionError
+from httpx import HTTPError as HTTPXError, ConnectError as HTTPXConnectError
+from requests.exceptions import HTTPError as RequestsError
 
 from weaviate.backup.backup import _Backup
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
@@ -59,7 +59,7 @@ class _ClientBase(Generic[C]):
             if response.status_code == 200:
                 return True
             return False
-        except RequestsConnectionError:
+        except (HTTPXError, RequestsError):
             return False
 
     def is_live(self) -> bool:
