@@ -16,7 +16,6 @@ BATCH_MANUAL_USE_W = (
     "multi-threading. To enable built-in multi-threading, set `batch_size` in "
     " `client.batch.configure()` to an integer value . See also:"
     "https://weaviate.io/developers/weaviate/current/restful-api-references/"
-    "batch.html#example-request-1"
 )
 
 

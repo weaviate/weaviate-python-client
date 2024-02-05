@@ -87,7 +87,7 @@ def _test_query(query: Callable) -> None:
 
 
 def test_bad_query_inputs(connection: ConnectionV4) -> None:
-    query = _QueryCollection(connection, "dummy", None, None, None, None)
+    query = _QueryCollection(connection, "dummy", None, None, None, None, True)
     # fetch_objects
     _test_query(lambda: query.fetch_objects(limit="thing"))
     _test_query(lambda: query.fetch_objects(offset="wrong"))

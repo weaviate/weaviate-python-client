@@ -38,8 +38,9 @@ Here are some articles on Weaviate:
 Documentation
 -------------
 
-- `Documentation <https://weaviate-python-client.readthedocs.io>`_
-- More examples can be found at `weaviate.io <https://weaviate.io/developers/weaviate/client-libraries/python>`_.
+- `Weaviate Python client overview <https://weaviate.io/developers/weaviate/client-libraries/python>`_.
+- `Weaviate documentation <https://weaviate.io/developers/weaviate>`_.
+- `Additional reference documentation <https://weaviate-python-client.readthedocs.io>`_
 
 Support
 -------
@@ -47,8 +48,8 @@ Support
 - Use our `Forum <https://forum.weaviate.io>`_ for support or any other question.
 - Use our `Slack Channel <https://weaviate.io/slack>`_ for discussions or any other question.
 - Use the ``weaviate`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
-- For bugs and/or problems with the package, submit a GitHub `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
+- For bugs or problems, submit a GitHub `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
 
 Contributing
 ------------
-To contribute read `How to Contribute <https://github.com/weaviate/weaviate-python-client/blob/main/CONTRIBUTING.md>`_.
+To contribute, read `How to Contribute <https://github.com/weaviate/weaviate-python-client/blob/main/CONTRIBUTING.md>`_.
