@@ -63,6 +63,8 @@ from weaviate.util import (
 )
 from weaviate.validator import _validate_input, _ValidateArgument
 
+from weaviate.warnings import _Warnings
+
 
 class _WeaviateUUIDInt(uuid_lib.UUID):
     def __init__(self, hex_: int) -> None:
@@ -181,16 +183,21 @@ class _BaseQuery(Generic[Properties, References]):
             )
         if value.HasField("blob_value"):
             return value.blob_value
-        assert value.HasField("phone_value")
-        return _PhoneNumber(
-            country_code=value.phone_value.country_code,
-            default_country=value.phone_value.default_country,
-            international_formatted=value.phone_value.international_formatted,
-            national=value.phone_value.national,
-            national_formatted=value.phone_value.national_formatted,
-            number=value.phone_value.input,
-            valid=value.phone_value.valid,
-        )
+        if value.HasField("phone_value"):
+            return _PhoneNumber(
+                country_code=value.phone_value.country_code,
+                default_country=value.phone_value.default_country,
+                international_formatted=value.phone_value.international_formatted,
+                national=value.phone_value.national,
+                national_formatted=value.phone_value.national_formatted,
+                number=value.phone_value.input,
+                valid=value.phone_value.valid,
+            )
+        if value.HasField("null_value"):
+            return None
+
+        _Warnings.unkown_type_encountered(value.WhichOneof("Value"))
+        return None
 
     def __parse_nonref_properties_result(
         self,

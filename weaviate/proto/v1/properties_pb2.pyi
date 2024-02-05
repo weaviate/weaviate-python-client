@@ -1,3 +1,4 @@
+from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -40,6 +41,7 @@ class Value(_message.Message):
         "geo_value",
         "blob_value",
         "phone_value",
+        "null_value",
     ]
     NUMBER_VALUE_FIELD_NUMBER: _ClassVar[int]
     STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -52,6 +54,7 @@ class Value(_message.Message):
     GEO_VALUE_FIELD_NUMBER: _ClassVar[int]
     BLOB_VALUE_FIELD_NUMBER: _ClassVar[int]
     PHONE_VALUE_FIELD_NUMBER: _ClassVar[int]
+    NULL_VALUE_FIELD_NUMBER: _ClassVar[int]
     number_value: float
     string_value: str
     bool_value: bool
@@ -63,6 +66,7 @@ class Value(_message.Message):
     geo_value: GeoCoordinate
     blob_value: str
     phone_value: PhoneNumber
+    null_value: _struct_pb2.NullValue
     def __init__(
         self,
         number_value: _Optional[float] = ...,
@@ -76,6 +80,7 @@ class Value(_message.Message):
         geo_value: _Optional[_Union[GeoCoordinate, _Mapping]] = ...,
         blob_value: _Optional[str] = ...,
         phone_value: _Optional[_Union[PhoneNumber, _Mapping]] = ...,
+        null_value: _Optional[_Union[_struct_pb2.NullValue, str]] = ...,
     ) -> None: ...
 
 class ListValue(_message.Message):

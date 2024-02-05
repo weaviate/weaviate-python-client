@@ -249,7 +249,10 @@ def test_insert_many(
             obj1 = collection.query.fetch_object_by_id(uuid_)
             inserted = objects[idx]
             if isinstance(inserted, DataObject) and len(inserted.properties) == 0:
-                assert obj1.properties == {}
+                if "name" in obj1.properties:  # change this when server version bumps to 1.24.0
+                    assert obj1.properties["name"] is None
+                else:
+                    assert obj1.properties == {}
             elif isinstance(inserted, DataObject) and inserted.properties is not None:
                 a = inserted.properties["name"]
                 b = obj1.properties["name"]
@@ -2030,3 +2033,19 @@ def test_double_insert_with_same_uuid(collection_factory: CollectionFactory) -> 
     uuid1 = collection.data.insert({})
     with pytest.raises(UnexpectedStatusCodeError):
         collection.data.insert({}, uuid=uuid1)
+
+
+def test_nil_return(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="a", data_type=DataType.TEXT),
+            Property(name="b", data_type=DataType.TEXT),
+        ]
+    )
+
+    collection.data.insert({"a": "a1"})
+    objs = collection.query.fetch_objects(return_properties=["a", "b"]).objects
+    assert len(objs) == 1
+    assert objs[0].properties["a"] == "a1"
+    if "b" in objs[0].properties:  # change this when server version bumps to 1.24.0
+        assert objs[0].properties["b"] is None

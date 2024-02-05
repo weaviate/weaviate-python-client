@@ -231,10 +231,9 @@ class _Warnings:
         )
 
     @staticmethod
-    def reranking_not_enabled() -> None:
+    def unkown_type_encountered(field: str) -> None:
         warnings.warn(
-            message="""Grpc001: Reranking is not in the gRPC API for this Weaviate version. You must update to the latest Weaviate server version to use this new functionality.
-            This query will execute without reranking.""",
+            message=f"""Grpc002: Unkown return type {field} recieved, skipping value and returning None.""",
             category=UserWarning,
             stacklevel=1,
         )
