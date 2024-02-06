@@ -46,6 +46,9 @@ Support
 
 .. COMMENT: Generates index page
 
+Method Index
+------------
+
 * :ref:`genindex`
 
 .. COMMENT: Creates left hand Table of contents
