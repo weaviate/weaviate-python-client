@@ -3,9 +3,6 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. toctree::
-   :maxdepth: 2
-
 Welcome to Weaviate Python Client's documentation!
 ==================================================
 
@@ -38,13 +35,15 @@ Here are some articles on Weaviate:
 - `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_
 - `A sub-50ms neural search with DistilBERT and Weaviate <https://towardsdatascience.com/a-sub-50ms-neural-search-with-distilbert-and-weaviate-4857ae390154>`_
 
-Support
--------
+Weaviate Python Library
+------------------------
 
-- Use our `Forum <https://forum.weaviate.io>`_ for support or any other question.
-- Use our `Slack Channel <https://weaviate.io/slack>`_ for discussions or any other question.
-- Use the ``weaviate`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
-- For bugs or problems, submit a GitHub `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   weaviate
+
  
 Changelog
 ---------
@@ -58,4 +57,12 @@ Function Index
 --------------
 
 * :ref:`genindex`
+
+Support
+-------
+
+- Use our `Forum <https://forum.weaviate.io>`_ for support or any other question.
+- Use our `Slack Channel <https://weaviate.io/slack>`_ for discussions or any other question.
+- Use the ``weaviate`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
+- For bugs or problems, submit a GitHub `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
  
