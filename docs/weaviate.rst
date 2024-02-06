@@ -1,4 +1,4 @@
-weaviate package
+Weaviate Package
 ================
 
 .. automodule:: weaviate

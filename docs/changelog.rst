@@ -99,7 +99,7 @@ Improvements include:
 Fixes include:
 - The potential for deadlocks and data races when batching has been reduced.
 - Fixes a number of missing properties and poor docstrings in ``weaviate.connect_to_x`` methods.
-- Adds the missing ``offset`` paramater to all queries.
+- Adds the missing ``offset`` parameter to all queries.
 
 Version 4.4.b8
 --------------
@@ -117,14 +117,14 @@ This beta version has breaking changes, a migration guide is available at https:
 Bugfixes include:
 - Error message when creating the client directly without calling ``connect_to_XXX``.
 - Fix deadlock in new batching algorithm.
-- Fix ``skip_init_checks=True`` resulting in compatibility with weavaite 1.22 only.
+- Fix ``skip_init_checks=True`` resulting in compatibility with Weaviate 1.22 only.
 
 Version 4.4.b7
 --------------
 
 This beta version has breaking changes, a migration guide is available at https://www.weaviate.io/developers/weaviate/client-libraries/python#migration-guides:
 
-- For ``client.batch`` the ``add_reference`` method was revised. The ``to_object_collection`` parameter was removed and the other parameters were harmonised with ``collection.batch``. Available parameters are now: ``from_uuid``, ``from_collection``, ``from_property``, ``to`` and ``tenant``.
+- For ``client.batch`` the ``add_reference`` method was revised. The ``to_object_collection`` parameter was removed and the other parameters were harmonized with ``collection.batch``. Available parameters are now: ``from_uuid``, ``from_collection``, ``from_property``, ``to`` and ``tenant``.
 - It is no longer possible to use ``client.batch`` directly, you must use it as a context manager (``with client.batch as batch``)
 - Manual batch mode has been removed.
 - Dynamic batching (for batch_size and number of concurrent requests) is now default. Fixed-size batching can be configured with ``batch.configure_fixed_size(..)``.
@@ -176,7 +176,7 @@ Version 4.4.b6
 
 This beta version includes:
 
-- A fix to the ``_Property`` dataclass returned within ``collection.config.get()`` to include any ``nested_properties`` of ``object`` and ``object[]`` type properties
+- A fix to the ``_Property`` data class returned within ``collection.config.get()`` to include any ``nested_properties`` of ``object`` and ``object[]`` type properties
 - Fix batch inserts with empty lists
 
 Version 4.4.b5
@@ -314,20 +314,20 @@ Version 4.2.b0
 --------------
 This minor beta version includes:
 
-- A refactoring of the ``collection.aggregate`` namepsace methods
+- A refactoring of the ``collection.aggregate`` namespace methods
 - Change ``Metrics`` to no longer accept the ``type_`` argument
 - Instead, ``Metrics`` has multiple methods, e.g. ``.text()``, for each type of metric
 - Allow ``return_metrics`` to be a single metric object or a list of metric objects in each aggregate query
 
 Version 4.1.b2
 --------------
-This patch beta version incldues:
+This patch beta version includes:
 
 - Correctly exporting ``weaviate.collections.classes.aggregate.Metrics`` from ``weaviate.classes``
 
 Version 4.1.b1
 --------------
-This patch beta version incldues:
+This patch beta version includes:
 
 - Bumping the default embedded version to Weaviate latest
 - Adding the ``version`` argument to ``weaviate.connect_to_embedded`` to allow users to specify the embedded version
@@ -486,7 +486,7 @@ This minor version updates the client to work with Weaviate's 1.21 version and i
     - ``with client.batch as batch`` should be the standard way to initiate a batch
 - Adds support for new ``ContainsAny`` and ``ContainsAll`` filters when using ``.with_where``
 - Adds support for updating individual tenants within a multi-tenancy class configuration: ``client.schema.update_class_tenants``
-- Improves ``client.batch`` algorithm to choose batch size dynamically maximising throughput
+- Improves ``client.batch`` algorithm to choose batch size dynamically maximizing throughput
 - Provides sensible defaults to ``client.batch`` that do not cause unexpected damaging consequences like infinite batch sizes
 - Fixes bugs when using ``.with_where`` with ``valueText``, ``valueString``, and ``valueGeoRange`` types
 
