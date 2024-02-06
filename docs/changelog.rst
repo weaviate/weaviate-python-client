@@ -176,7 +176,7 @@ Version 4.4.b6
 
 This beta version includes:
 
-- A fix to the ``_Property`` data class returned within ``collection.config.get()`` to include any ``nested_properties`` of ``object`` and ``object[]`` type properties
+- A fix to the ``_Property`` dataclass returned within ``collection.config.get()`` to include any ``nested_properties`` of ``object`` and ``object[]`` type properties
 - Fix batch inserts with empty lists
 
 Version 4.4.b5
