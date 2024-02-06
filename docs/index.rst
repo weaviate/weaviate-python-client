@@ -34,7 +34,7 @@ Here are some articles on Weaviate:
 - `Semantic Search Queries Return More Informed Results <https://hackernoon.com/semantic-search-queries-return-more-informed-results-nr5335nw>`_
 - `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_
 - `A sub-50ms neural search with DistilBERT and Weaviate <https://towardsdatascience.com/a-sub-50ms-neural-search-with-distilbert-and-weaviate-4857ae390154>`_
-   
+
 Support
 -------
 
@@ -60,5 +60,3 @@ Method Index
    weaviate
    changelog
    genindex
-
-   
