@@ -43,7 +43,6 @@ Weaviate Python Library
    :caption: Contents:
 
    weaviate
-
  
 Changelog
 ---------
@@ -57,6 +56,7 @@ Function Index
 --------------
 
 * :ref:`genindex`
+* :ref:`search`
 
 Support
 -------
