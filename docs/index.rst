@@ -45,8 +45,17 @@ Support
 - Use our `Slack Channel <https://weaviate.io/slack>`_ for discussions or any other question.
 - Use the ``weaviate`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
 - For bugs or problems, submit a GitHub `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
-
+ 
 Changelog
 ---------
 
-`Python client releases <https://github.com/weaviate/weaviate-python-client/releases>`_
+.. toctree::
+   :maxdepth: 2
+
+   changelog
+
+Function Index
+--------------
+
+* :ref:`genindex`
+ 

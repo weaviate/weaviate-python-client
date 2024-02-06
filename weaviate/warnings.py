@@ -231,9 +231,9 @@ class _Warnings:
         )
 
     @staticmethod
-    def unkown_type_encountered(field: str) -> None:
+    def unknown_type_encountered(field: str) -> None:
         warnings.warn(
-            message=f"""Grpc002: Unkown return type {field} recieved, skipping value and returning None.""",
+            message=f"""Grpc002: Unknown return type {field} received, skipping value and returning None.""",
             category=UserWarning,
             stacklevel=1,
         )
