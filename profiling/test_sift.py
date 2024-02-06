@@ -14,9 +14,9 @@ from .conftest import get_file_path
 
 def reset_schema(
     client: weaviate.WeaviateClient, name: str, efC: int, m: int, shards: int, distance: str
-):
+) -> None:
     client.collections.delete(name)
-    vi = wvc.config.Configure.VectorIndex().hnsw(
+    vi = wvc.config.Configure.VectorIndex.hnsw(
         ef_construction=efC,
         max_connections=m,
         ef=-1,
@@ -38,7 +38,7 @@ def reset_schema(
     )
 
 
-def load_records(client: weaviate.WeaviateClient, vectors: List[float], name: str):
+def load_records(client: weaviate.WeaviateClient, vectors: List[float], name: str) -> None:
     start = time.time()
     with client.batch.fixed_size(1000) as batch:
         for i, vector in enumerate(vectors):
