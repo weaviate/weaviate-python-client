@@ -56,6 +56,8 @@ jobs:
       - name: Run mypy
         run: mypy --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
       - uses: jakebailey/pyright-action@v2
+        with:
+          version: 1.1.347
 
   unit-tests:
     name: Run Unit Tests

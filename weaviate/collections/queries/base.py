@@ -52,10 +52,7 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import (
-    WeaviateClosedClientError,
-    WeaviateInvalidInputError,
-)
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import search_get_pb2, properties_pb2
 from weaviate.util import (
     file_encoder_b64,
@@ -91,8 +88,6 @@ class _BaseQuery(Generic[Properties, References]):
         self._validate_arguments = validate_arguments
 
     def _query(self) -> _QueryGRPC:
-        if not self.__connection.is_connected():
-            raise WeaviateClosedClientError()
         return _QueryGRPC(
             self.__connection,
             self._name,
