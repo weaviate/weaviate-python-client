@@ -1,5 +1,5 @@
-weaviate package
-================
+Weaviate Packages
+=================
 
 .. automodule:: weaviate
    :members:

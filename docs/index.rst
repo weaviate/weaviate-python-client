@@ -3,9 +3,6 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. toctree::
-   :maxdepth: 2
-
 Welcome to Weaviate Python Client's documentation!
 ==================================================
 
@@ -46,7 +43,20 @@ Support
 - Use the ``weaviate`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/weaviate>`_  for questions.
 - For bugs or problems, submit a GitHub `issue <https://github.com/weaviate/weaviate-python-client/issues>`_.
 
-Changelog
----------
 
-`Python client releases <https://github.com/weaviate/weaviate-python-client/releases>`_
+.. COMMENT: Generates index page
+
+Method Index
+------------
+
+* :ref:`genindex`
+
+.. COMMENT: Creates left hand Table of contents
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+
+   weaviate
+   changelog
+   genindex

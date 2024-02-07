@@ -191,7 +191,7 @@ class _BaseQuery(Generic[Properties, References]):
         if value.HasField("null_value"):
             return None
 
-        _Warnings.unkown_type_encountered(value.WhichOneof("Value"))
+        _Warnings.unknown_type_encountered(value.WhichOneof("Value"))
         return None
 
     def __parse_nonref_properties_result(
