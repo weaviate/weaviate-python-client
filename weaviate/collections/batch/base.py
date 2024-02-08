@@ -1,4 +1,5 @@
 import asyncio
+from collections import deque
 import math
 import threading
 import time
@@ -194,7 +195,7 @@ class _BatchBase:
 
         # dynamic batching
         self.__time_last_scale_up: float = 0
-        self.__max_observed_rate: int = 0
+        self.__rate_queue: deque = deque(maxlen=50)  # 5s with 0.1s refresh rate
 
         # fixed rate batching
         self.__time_stamp_last_request: float = 0
@@ -357,27 +358,47 @@ class _BatchBase:
         rate_per_worker = rate / self.__concurrent_requests
 
         batch_length = status[0]["batchStats"]["queueLength"]
+        processedObjects = (
+            status[0]["batchStats"]["currentlyProcessedObjects"]
+            if "currentlyProcessedObjects" in status[0]["batchStats"]
+            else 0
+        )
+        self.__rate_queue.append(rate)
 
-        if rate > self.__max_observed_rate:
-            self.__max_observed_rate = rate
-
-        if batch_length == 0:  # scale up if queue is empty
-            self.__recommended_num_objects = min(
-                self.__recommended_num_objects + 50,
-                self.__max_batch_size,
-            )
-
+        if batch_length == 0 and processedObjects == 0:  # scale up if queue is empty
+            theoretical_rate = (
+                self.__recommended_num_objects * self.__concurrent_requests * 2
+            )  # we aim for 2s per batch
             if (
                 self.__max_batch_size == self.__recommended_num_objects
                 and len(self.__batch_objects) > self.__recommended_num_objects
                 and time.time() - self.__time_last_scale_up > 1
                 and self.__concurrent_requests < MAX_CONCURRENT_REQUESTS
             ):
+                # reduce the batch size after scaling up to match the old rate
                 self.__concurrent_requests += 1
+                self.__recommended_num_objects = int(
+                    theoretical_rate / (self.__concurrent_requests * 2)
+                )
                 self.__time_last_scale_up = time.time()
 
+            # dont increase rate when also scaling up - we only scale up if we're already at __max_batch_size so both things cannot happen at once
+            self.__recommended_num_objects = min(
+                self.__recommended_num_objects + 50,
+                self.__max_batch_size,
+                # max(int(1.5*rate/(self.__concurrent_requests *2)), self.__recommended_num_objects)
+            )
+        elif batch_length == 0 and processedObjects > 0:
+            # slow vectorizer, we want to send larger batches that can take a bit longer, but fewer of them
+            self.__concurrent_requests = 3
+            mean_rate = sum(self.__rate_queue) / len(self.__rate_queue)
+            rate_to_use = int(max(self.__rate_queue) + mean_rate) // 2
+            self.__recommended_num_objects = max(
+                int(rate_to_use * 3 / self.__concurrent_requests), 1
+            )
+
         else:
-            ratio = batch_length / rate
+            ratio = (batch_length + processedObjects) / max(rate, 1)
             if 2.1 > ratio > 1.9:  # ideal, send exactly as many objects as weaviate can process
                 self.__recommended_num_objects = math.floor(rate_per_worker)
             elif ratio <= 1.9:  # we can send more

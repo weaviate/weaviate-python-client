@@ -4,6 +4,7 @@ from typing import List, Optional, TypedDict
 class BatchStats(TypedDict):
     queueLength: int
     ratePerSecond: int
+    currentlyProcessedObjects: int
 
 
 # must use functional syntax because class is a keyword
