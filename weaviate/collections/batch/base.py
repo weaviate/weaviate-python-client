@@ -443,60 +443,54 @@ class _BatchBase:
                     uuids={},
                 )
 
-            if readd_rate_limit:
-                readded_objects = []
-                highest_retry_count = 0
-                for i, err in response_obj.errors.items():
-                    if ("support@cohere.com" in err.message and "rate limit" in err.message) or (
-                        "OpenAI" in err.message
-                        and (
-                            "Rate limit reached" in err.message
-                            or "on tokens per min (TPM)" in err.message
-                            or "503 error: Service Unavailable." in err.message
-                            or "500 error: The server had an error while processing your request."
-                            in err.message
-                        )
-                    ):
-                        if err.object_.retry_count > highest_retry_count:
-                            highest_retry_count = err.object_.retry_count
-
-                        if err.object_.retry_count > 5:
-                            continue  # too many retries, give up
-                        err.object_.retry_count += 1
-                        readded_objects.append(i)
-
-                if len(readded_objects) > 0:
-                    _Warnings.batch_rate_limit_reached(
-                        response_obj.errors[readded_objects[0]].message,
-                        self.__fix_rate_batching_base_time * (highest_retry_count + 1),
+            readded_objects = []
+            highest_retry_count = 0
+            for i, err in response_obj.errors.items():
+                if ("support@cohere.com" in err.message and "rate limit" in err.message) or (
+                    "OpenAI" in err.message
+                    and (
+                        "Rate limit reached" in err.message
+                        or "on tokens per min (TPM)" in err.message
+                        or "503 error: Service Unavailable." in err.message
+                        or "500 error: The server had an error while processing your request."
+                        in err.message
                     )
+                ):
+                    if err.object_.retry_count > highest_retry_count:
+                        highest_retry_count = err.object_.retry_count
 
-                    self.__batch_objects.prepend(
-                        [
-                            err.object_
-                            for i, err in response_obj.errors.items()
-                            if i in readded_objects
-                        ]
-                    )
+                    if err.object_.retry_count > 5:
+                        continue  # too many retries, give up
+                    err.object_.retry_count += 1
+                    readded_objects.append(i)
 
-                    new_errors = {
-                        i: err for i, err in response_obj.errors.items() if i not in readded_objects
-                    }
-                    response_obj = BatchObjectReturn(
-                        uuids={
-                            i: uid
-                            for i, uid in response_obj.uuids.items()
-                            if i not in readded_objects
-                        },
-                        errors=new_errors,
-                        has_errors=len(new_errors) > 0,
-                        all_responses=[
-                            err
-                            for i, err in enumerate(response_obj.all_responses)
-                            if i not in readded_objects
-                        ],
-                        elapsed_seconds=response_obj.elapsed_seconds,
-                    )
+            if len(readded_objects) > 0:
+                _Warnings.batch_rate_limit_reached(
+                    response_obj.errors[readded_objects[0]].message,
+                    self.__fix_rate_batching_base_time * (highest_retry_count + 1),
+                )
+
+                self.__batch_objects.prepend(
+                    [err.object_ for i, err in response_obj.errors.items() if i in readded_objects]
+                )
+
+                new_errors = {
+                    i: err for i, err in response_obj.errors.items() if i not in readded_objects
+                }
+                response_obj = BatchObjectReturn(
+                    uuids={
+                        i: uid for i, uid in response_obj.uuids.items() if i not in readded_objects
+                    },
+                    errors=new_errors,
+                    has_errors=len(new_errors) > 0,
+                    all_responses=[
+                        err
+                        for i, err in enumerate(response_obj.all_responses)
+                        if i not in readded_objects
+                    ],
+                    elapsed_seconds=response_obj.elapsed_seconds,
+                )
+                if readd_rate_limit:
                     self.__time_stamp_last_request = (
                         time.time() + self.__fix_rate_batching_base_time * (highest_retry_count + 1)
                     )  # skip a full minute to recover from the rate limit
