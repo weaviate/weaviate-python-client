@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.4.4
+--------------
+This patch version includes:
+
+- A fix to the validation logic of the ``apiEndpoint`` field of ``GenerativePaLMConfig`` object.
+
 Version 4.4.3
 --------------
 This patch version includes
