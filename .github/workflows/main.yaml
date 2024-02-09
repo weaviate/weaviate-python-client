@@ -22,11 +22,11 @@ jobs:
     name: Run Linter and Formatter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: psf/black@stable
         with:
             version: "23.9.1"
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -47,8 +47,8 @@ jobs:
         version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         folder: ["weaviate"]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -68,8 +68,8 @@ jobs:
         version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         folder: ["test", "mock_tests"]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
@@ -100,11 +100,11 @@ jobs:
 
         optional_dependencies: [false]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
@@ -151,11 +151,11 @@ jobs:
 
         optional_dependencies: [false]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
@@ -190,7 +190,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref_name != 'main'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download coverage artifacts mock
         uses: actions/download-artifact@v3
         with:
@@ -221,11 +221,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -259,7 +259,7 @@ jobs:
           pip install weaviate_client-*.whl
           pip install pytest pytest-benchmark pytest-profiling grpcio grpcio-tools pytest-xdist
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: free space
@@ -286,11 +286,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
