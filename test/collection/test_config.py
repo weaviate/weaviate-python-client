@@ -564,7 +564,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {
             "generative-palm": {
                 "projectId": "project",
-                "apiEndpoint": "https://api.google.com/",
+                "apiEndpoint": "https://api.google.com",
                 "maxOutputTokens": 100,
                 "modelId": "model",
                 "temperature": 0.5,
