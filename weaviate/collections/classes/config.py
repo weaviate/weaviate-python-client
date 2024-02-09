@@ -569,19 +569,13 @@ class _GenerativePaLMConfig(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
-    apiEndpoint: Optional[AnyHttpUrl]
+    apiEndpoint: Optional[str]
     maxOutputTokens: Optional[int]
     modelId: Optional[str]
     projectId: str
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        if self.apiEndpoint is not None:
-            ret_dict["apiEndpoint"] = self.apiEndpoint.unicode_string()
-        return ret_dict
 
 
 class _GenerativeAWSConfig(_GenerativeConfigCreate):
@@ -779,7 +773,7 @@ class _Generative:
     @staticmethod
     def palm(
         project_id: str,
-        api_endpoint: Optional[AnyHttpUrl] = None,
+        api_endpoint: Optional[str] = None,
         max_output_tokens: Optional[int] = None,
         model_id: Optional[str] = None,
         temperature: Optional[float] = None,
@@ -795,7 +789,7 @@ class _Generative:
             `project_id`
                 The PalM project ID to use.
             `api_endpoint`
-                The API endpoint to use. Defaults to `None`, which uses the server-defined default
+                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
             `max_output_tokens`
                 The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
             `model_id`
