@@ -213,6 +213,7 @@ class _Data:
                 from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
                 to=beacon,
                 tenant=self._tenant,
+                from_uuid=str(ref.from_uuid),
             )
             for ref in refs
             for beacon in ref._to_beacons()
@@ -404,7 +405,7 @@ class _DataCollection(Generic[Properties], _Data):
                     _BatchObject(
                         collection=self.name,
                         vector=obj.vector,
-                        uuid=obj.uuid,
+                        uuid=str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
                         properties=cast(dict, obj.properties),
                         tenant=self._tenant,
                         references=obj.references,
@@ -413,7 +414,7 @@ class _DataCollection(Generic[Properties], _Data):
                     else _BatchObject(
                         collection=self.name,
                         vector=None,
-                        uuid=None,
+                        uuid=str(uuid_package.uuid4()),
                         properties=cast(dict, obj),
                         tenant=self._tenant,
                         references=None,

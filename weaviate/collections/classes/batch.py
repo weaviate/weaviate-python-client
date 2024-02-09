@@ -14,7 +14,7 @@ from weaviate.util import _capitalize_first_letter, get_valid_uuid, _get_vector_
 class _BatchObject:
     collection: str
     vector: Optional[List[float]]
-    uuid: Optional[UUID]
+    uuid: str
     properties: Optional[Dict[str, WeaviateField]]
     tenant: Optional[str]
     references: Optional[ReferenceInputs]
@@ -26,6 +26,7 @@ class _BatchReference:
     from_: str
     to: str
     tenant: Optional[str]
+    from_uuid: str
 
 
 class BatchObject(BaseModel):
@@ -54,7 +55,7 @@ class BatchObject(BaseModel):
         return _BatchObject(
             collection=self.collection,
             vector=cast(list, self.vector),
-            uuid=self.uuid,
+            uuid=str(self.uuid),
             properties=self.properties,
             tenant=self.tenant,
             references=self.references,
@@ -113,6 +114,7 @@ class BatchReference(BaseModel):
         else:
             self.to_object_collection = self.to_object_collection + "/"
         return _BatchReference(
+            from_uuid=str(self.from_object_uuid),
             from_=f"{BEACON}{self.from_object_collection}/{self.from_object_uuid}/{self.from_property_name}",
             to=f"{BEACON}{self.to_object_collection}{str(self.to_object_uuid)}",
             tenant=self.tenant,
