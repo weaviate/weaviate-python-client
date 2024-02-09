@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 4.4.3
+--------------
+This patch version includes
+
+- Fixes batching with references. Under some circumstances a reference could be added before its `from` object and the reference would be los.
+- Fixes readthedocs page
+- Small performance improvements for queries
+
 Version 4.4.2
 --------------
 This patch version includes
