@@ -586,7 +586,7 @@ class _BatchBase:
         # not need a long queue
         while (
             self.__recommended_num_objects == 0
-            or len(self.__batch_objects) >= self.__recommended_num_objects * 10
+            or len(self.__batch_objects) >= self.__recommended_num_objects * 2
         ):
             self.__check_bg_thread_alive()
             time.sleep(0.01)
