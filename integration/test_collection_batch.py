@@ -202,3 +202,24 @@ def test_error_reset(batch_collection: BatchCollection) -> None:
     assert len(errs) == 1
     assert errs[0].object_.properties is not None
     assert errs[0].object_.properties["name"] == 1
+
+
+def test_refs_and_objects(batch_collection: BatchCollection) -> None:
+    """Test that references are not added before the source object is added."""
+    col = batch_collection()
+    uuids = [uuid.uuid4() for _ in range(10)]
+    with col.batch.fixed_size(1, concurrent_requests=1) as batch:
+        for uid in uuids:
+            batch.add_object(properties={}, uuid=uid)
+        batch.add_reference(
+            from_uuid=uuids[-1],
+            from_property="test",
+            to=uuids[-1],
+        )
+
+    assert len(col.batch.failed_objects) == 0
+    assert len(col.batch.failed_references) == 0
+
+    obj = col.query.fetch_object_by_id(uuids[-1], return_references=QueryReference(link_on="test"))
+    assert "test" in obj.references
+    assert obj.references["test"].objects[0].uuid == uuids[-1]
