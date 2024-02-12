@@ -78,7 +78,7 @@ jobs:
         run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
       - name: Archive code coverage results
         if: matrix.version == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ matrix.folder }}
           path: coverage-${{ matrix.folder }}.xml
@@ -129,7 +129,7 @@ jobs:
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-v3.xml integration_v3
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-integration-v3
           path: coverage-integration-v3.xml
@@ -180,7 +180,7 @@ jobs:
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-integration
           path: coverage-integration.xml
@@ -192,19 +192,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Download coverage artifacts mock
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-mock_tests
       - name: Download coverage artifacts unit
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-test
       - name: Download coverage integration
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-integration
       - name: Download coverage integration v3
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-integration-v3
       - name: Codecov
@@ -234,7 +234,7 @@ jobs:
       - name: Build a binary wheel
         run: python -m build
       - name: Create Wheel Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: "dist/*.whl"
           name: weaviate-python-client-wheel
@@ -252,7 +252,7 @@ jobs:
         ]
     steps:
       - name: Download build artifact to append to release
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: weaviate-python-client-wheel
       - run: |
@@ -312,7 +312,7 @@ jobs:
     needs: [build-and-publish]
     steps:
       - name: Download build artifact to append to release
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: weaviate-python-client-wheel
           path: dist
