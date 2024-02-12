@@ -496,7 +496,8 @@ class _BaseQuery(Generic[Properties, References]):
         return_properties: Optional[ReturnProperties[TProperties]],
     ) -> Optional[PROPERTIES]:
         if (
-            isinstance(return_properties, Sequence)
+            not return_properties  # fast way to check if it is an empty list
+            or isinstance(return_properties, Sequence)
             or isinstance(return_properties, str)
             or isinstance(return_properties, QueryNested)
             or (return_properties is None and self._properties is None)
@@ -544,9 +545,9 @@ class _BaseQuery(Generic[Properties, References]):
         self, return_references: Optional[ReturnReferences[TReferences]]
     ) -> Optional[REFERENCES]:
         if (
-            isinstance(return_references, Sequence)
+            (return_references is None and self._references is None)
+            or isinstance(return_references, Sequence)
             or isinstance(return_references, _QueryReference)
-            or (return_references is None and self._references is None)
         ):
             return return_references
         elif return_references is None and self._references is not None:
