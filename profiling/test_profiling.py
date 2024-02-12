@@ -44,6 +44,7 @@ def client() -> weaviate.WeaviateClient:
         ),
         skip_init_checks=True,
     )
+    client.connect()
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
@@ -72,7 +73,7 @@ def test_get_vector(client: weaviate.WeaviateClient) -> None:
         )
         assert len(objs.objects) == 1000
         assert "default" in objs.objects[0].vector
-        assert compare_float_lists(objs.objects[0].vector, obj.vector)
+        assert compare_float_lists(objs.objects[0].vector["default"], obj.vector["default"])
 
     client.collections.delete(name)
 
@@ -145,6 +146,7 @@ def test_vector_search(client: weaviate.WeaviateClient) -> None:
     col = client.collections.create(
         name=name,
         vectorizer_config=Configure.Vectorizer.none(),
+        skip_argument_validation=True,
     )
 
     def shift_vector(i: int) -> List[float]:
