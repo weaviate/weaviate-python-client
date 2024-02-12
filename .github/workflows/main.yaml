@@ -213,7 +213,7 @@ jobs:
           fail_ci_if_error: true
           files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
           verbose: true
-
+          token: ${{ secrets.CODECOV_TOKEN }}
 
 
   build-package:
