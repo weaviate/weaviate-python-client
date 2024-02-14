@@ -20,3 +20,4 @@ services:
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       CLUSTER_HOSTNAME: 'node1'
       ASYNC_INDEXING: 'true'
+      DISABLE_TELEMETRY: 'true'
