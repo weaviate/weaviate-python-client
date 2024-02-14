@@ -179,7 +179,7 @@ def test_sift_v3(request: SubRequest) -> None:
 
 
 def test_dbpedia_v3(request: SubRequest) -> None:
-    run_v3(file="dbpedia-openai-1000k-angular.hdf5", name=request.node.name, efc=128, m=32)
+    run_v3(file="dbpedia-openai-1000k-angular.hdf5", name=request.node.name, efc=384, m=20)
 
 
 def test_sift_v4(request: SubRequest) -> None:
@@ -187,4 +187,4 @@ def test_sift_v4(request: SubRequest) -> None:
 
 
 def test_dbpedia_v4(request: SubRequest) -> None:
-    run_v4(file="dbpedia-openai-1000k-angular.hdf5", name=request.node.name, efc=128, m=32)
+    run_v4(file="dbpedia-openai-1000k-angular.hdf5", name=request.node.name, efc=384, m=20)
