@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Generator, List, Optional, Sequence, Protocol, Tuple, Callable
+from typing import Generator, List, Optional, Protocol, Tuple, Callable
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -20,7 +20,7 @@ from weaviate.collections.classes.internal import (
     ReferenceToMulti,
 )
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.types import UUID
+from weaviate.types import UUID, VECTORS
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
@@ -146,7 +146,7 @@ def test_flushing(client_factory: ClientFactory) -> None:
 def test_add_object(
     client_factory: ClientFactory,
     uid: Optional[UUID],
-    vector: Optional[Sequence],
+    vector: Optional[VECTORS],
 ) -> None:
     client, name = client_factory()
     with client.batch.fixed_size() as batch:

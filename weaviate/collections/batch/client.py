@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -16,7 +16,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInput
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.types import UUID
+from weaviate.types import UUID, VECTORS
 
 
 class _BatchClient(_BatchBase):
@@ -25,7 +25,7 @@ class _BatchClient(_BatchBase):
         collection: str,
         properties: Optional[WeaviateProperties] = None,
         uuid: Optional[UUID] = None,
-        vector: Optional[Sequence] = None,
+        vector: Optional[VECTORS] = None,
         tenant: Optional[Union[str, Tenant]] = None,
     ) -> UUID:
         """

@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Sequence, Union
+from typing import Generic, List, Optional, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -13,7 +13,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
 from weaviate.connect import ConnectionV4
-from weaviate.types import UUID
+from weaviate.types import UUID, VECTORS
 
 
 class _BatchCollection(Generic[Properties], _BatchBase):
@@ -40,7 +40,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         properties: Optional[Properties] = None,
         references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
-        vector: Optional[Sequence] = None,
+        vector: Optional[VECTORS] = None,
     ) -> UUID:
         """Add one object to this batch.
 

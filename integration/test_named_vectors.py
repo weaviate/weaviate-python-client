@@ -1,10 +1,22 @@
+from typing import List, Union
+import uuid
 from integration.conftest import CollectionFactory, OpenAICollection
+import pytest
 import weaviate.classes as wvc
 
 from weaviate.collections.classes.data import DataObject
 
 
-def test_create_named_vectors(collection_factory: CollectionFactory) -> None:
+@pytest.mark.parametrize(
+    "include_vector",
+    [
+        ["title", "content", "All", "AllExplizit", "bringYourOwn", "bringYourOwn2"],
+        # True
+    ],
+)
+def test_create_named_vectors(
+    collection_factory: CollectionFactory, include_vector: Union[List[str], bool]
+) -> None:
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -38,7 +50,7 @@ def test_create_named_vectors(collection_factory: CollectionFactory) -> None:
 
     obj = collection.query.fetch_object_by_id(
         uuid,
-        include_vector=["title", "content", "All", "AllExplizit", "bringYourOwn", "bringYourOwn2"],
+        include_vector=include_vector,
     )
     assert obj.vector["title"] is not None
     assert obj.vector["content"] is not None
@@ -54,7 +66,7 @@ def test_create_named_vectors(collection_factory: CollectionFactory) -> None:
     assert obj.vector["AllExplizit"] == obj.vector["All"]
 
 
-def test_batch_add(collection_factory: CollectionFactory) -> None:
+def test_insert_many_add(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -153,3 +165,30 @@ def test_generate(openai_collection: OpenAICollection) -> None:
     ).objects
     assert objs[0].uuid == uuid2
     assert objs[0].generated == "Hello World"
+
+
+def test_batch_add(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
+        ],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.text2vec_contectionary(
+                "title", properties=["title"], vectorize_collection_name=False
+            ),
+            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+        ],
+    )
+    uuid1 = uuid.uuid4()
+
+    with collection.batch.dynamic() as batch:
+        batch.add_object(
+            properties={"title": "Hello", "content": "World"},
+            vector={"bringYourOwn": [0.5, 0.25, 0.75]},
+            uuid=uuid1,
+        )
+
+    obj = collection.query.fetch_object_by_id(uuid1, include_vector=["title", "bringYourOwn"])
+    assert obj.vector["title"] is not None
+    # assert obj.vector["bringYourOwn"] == [0.5, 0.25, 0.75]
