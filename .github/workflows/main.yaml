@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.7
-  NEW_WEAVIATE_VERSION: preview-add-nil-props-to-grpc-map-625f009
+  NEW_WEAVIATE_VERSION: 1.23.9-61c4f2f
 
 jobs:
   lint-and-format:

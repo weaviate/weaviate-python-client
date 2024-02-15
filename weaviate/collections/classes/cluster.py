@@ -24,23 +24,24 @@ class Stats:
 
 Shards = List[Shard]
 S = TypeVar("S")
+S2 = TypeVar("S2")
 
 
 @dataclass
-class Node(Generic[S]):
+class Node(Generic[S, S2]):
     """The properties of a single node in the cluster."""
 
     git_hash: str
     name: str
     shards: S
-    stats: Stats
+    stats: S2
     status: str
     version: str
 
 
 class _ConvertFromREST:
     @staticmethod
-    def nodes_verbose(nodes: List[NodeREST]) -> List[Node[Shards]]:
+    def nodes_verbose(nodes: List[NodeREST]) -> List[Node[Shards, Stats]]:
         return [
             Node(
                 git_hash=node["gitHash"],
@@ -65,16 +66,13 @@ class _ConvertFromREST:
         ]
 
     @staticmethod
-    def nodes_minimal(nodes: List[NodeREST]) -> List[Node[None]]:
+    def nodes_minimal(nodes: List[NodeREST]) -> List[Node[None, None]]:
         return [
             Node(
                 git_hash=node["gitHash"],
                 name=node["name"],
                 shards=None,
-                stats=Stats(
-                    object_count=node["stats"]["objectCount"],
-                    shard_count=node["stats"]["shardCount"],
-                ),
+                stats=None,
                 status=node["status"],
                 version=node["version"],
             )
