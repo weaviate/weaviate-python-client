@@ -23,18 +23,18 @@ class Stats:
 
 
 Shards = List[Shard]
-S = TypeVar("S")
-S2 = TypeVar("S2")
+Sh = TypeVar("Sh")
+St = TypeVar("St")
 
 
 @dataclass
-class Node(Generic[S, S2]):
+class Node(Generic[Sh, St]):
     """The properties of a single node in the cluster."""
 
     git_hash: str
     name: str
-    shards: S
-    stats: S2
+    shards: Sh
+    stats: St
     status: str
     version: str
 
