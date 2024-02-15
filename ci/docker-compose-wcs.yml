@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.23.0-rc.0
+    image: semitechnologies/weaviate:preview-introduce-named-vectors-89777d6
     ports:
       - 8085:8085
     restart: on-failure:0

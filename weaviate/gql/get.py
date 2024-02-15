@@ -343,7 +343,8 @@ class GetBuilder(GraphQL):
         ...         'concepts': <list of str or str>,
         ...         'force': <float>
         ...     },
-        ...     'autocorrect': <bool>, # Optional
+        ...     'autocorrect': <bool>, # Optional,
+        ...     'targetVectors': <list of str> # Optional
         ... }
 
         Full content:
@@ -359,7 +360,8 @@ class GetBuilder(GraphQL):
         ...         'concepts': ["haute couture"],
         ...         'force': 0.85
         ...     },
-        ...     'autocorrect': True
+        ...     'autocorrect': True,
+        ...     'targetVectors': ['article']
         ... }
 
         Partial content:
@@ -416,7 +418,8 @@ class GetBuilder(GraphQL):
         ...     'vector' : <list of float>,
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
-        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'distance': <float>, # Optional, either 'certainty' OR 'distance',
+        ...     'targetVectors': <list of str> # Optional
         ... }
 
         NOTE: Supported types for 'vector' are `list`, 'numpy.ndarray`, `torch.Tensor`
@@ -426,7 +429,8 @@ class GetBuilder(GraphQL):
 
         >>> content = {
         ...     'vector' : [.1, .2, .3, .5],
-        ...     'certainty': 0.75, # or 'distance'
+        ...     'certainty': 0.75, # or 'distance',
+        ...     'targetVectors': ['title']
         ... }
 
         Minimal content:
@@ -485,6 +489,7 @@ class GetBuilder(GraphQL):
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'targetVectors': <list of str> # Optional
         ... }
         >>> # alternatively
         >>> {
@@ -492,6 +497,7 @@ class GetBuilder(GraphQL):
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'targetVectors': <list of str> # Optional
         ... }
 
         Returns
@@ -540,6 +546,7 @@ class GetBuilder(GraphQL):
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'targetVectors': <list of str> # Optional
         ... }
 
         >>> {
@@ -648,6 +655,7 @@ class GetBuilder(GraphQL):
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'targetVectors': <list of str> # Optional
         ... }
 
         >>> {
@@ -757,6 +765,7 @@ class GetBuilder(GraphQL):
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'targetVectors': <list of str> # Optional
         ... }
 
         >>> {
@@ -866,6 +875,7 @@ class GetBuilder(GraphQL):
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'targetVectors': <list of str> # Optional
         ... }
 
         >>> {
@@ -975,6 +985,7 @@ class GetBuilder(GraphQL):
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'targetVectors': <list of str> # Optional
         ... }
 
         >>> {
@@ -1084,6 +1095,7 @@ class GetBuilder(GraphQL):
         ...     # certainty ONLY with `cosine` distance specified in the schema
         ...     'certainty': <float>, # Optional, either 'certainty' OR 'distance'
         ...     'distance': <float>, # Optional, either 'certainty' OR 'distance'
+        ...     'targetVectors': <list of str> # Optional
         ... }
 
         >>> {

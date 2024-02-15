@@ -9,7 +9,7 @@ services:
       - '8090'
       - --scheme
       - http
-    image: semitechnologies/weaviate:1.23.0-rc.0
+    image: semitechnologies/weaviate:preview-introduce-named-vectors-89777d6
     ports:
       - "8090:8090"
     restart: on-failure:0

@@ -714,6 +714,58 @@ def test_graphql_with_nested_object():
             "nested { name names age ages weight weights isAlive areAlive date dates uuid uuids } _additional { id }"
         ],
     ).do()
-    print(results)
     assert results["data"]["Get"]["NestedObjectClass"][0]["nested"] == data
     assert results["data"]["Get"]["NestedObjectClass"][0]["_additional"]["id"] == uuid_
+
+
+def test_graphql_with_named_vectors():
+    client = weaviate.Client("http://localhost:8080")
+    client.schema.delete_all()
+    client.schema.create_class(
+        {
+            "class": "NamedVectorClass",
+            "properties": [
+                {
+                    "name": "title",
+                    "dataType": ["text"],
+                }
+            ],
+            "vectorConfig": {
+                "title": {
+                    "vectorIndexType": "hnsw",
+                    "vectorizer": {
+                        "text2vec-contextionary": {
+                            "vectorizeClassName": False,
+                            "properties": ["title"],
+                        }
+                    },
+                }
+            },
+        }
+    )
+    uuid_ = client.data_object.create(
+        {"title": "The quick brown fox jumps over the lazy dog"}, "NamedVectorClass"
+    )
+    obj = client.data_object.get_by_id(uuid_, with_vector=True)
+
+    responses: List[dict] = []
+    responses.append(
+        client.query.get("NamedVectorClass", ["title"])
+        .with_near_text({"concepts": ["fox"], "targetVectors": ["title"]})
+        .do()
+    )
+    responses.append(
+        client.query.get("NamedVectorClass", ["title"])
+        .with_near_object({"id": uuid_, "targetVectors": ["title"]})
+        .do()
+    )
+    responses.append(
+        client.query.get("NamedVectorClass", ["title"])
+        .with_near_vector({"vector": obj["vectors"]["title"], "targetVectors": ["title"]})
+        .do()
+    )
+    for res in responses:
+        assert (
+            res["data"]["Get"]["NamedVectorClass"][0]["title"]
+            == "The quick brown fox jumps over the lazy dog"
+        )

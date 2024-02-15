@@ -56,6 +56,7 @@ class DataObject:
         vector: Optional[Sequence] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
+        vectors: Optional[Dict[str, Sequence]] = None,
     ) -> str:
         """
         Takes a dict describing the object and adds it to Weaviate.
@@ -78,12 +79,17 @@ class DataObject:
              - The given vector was generated using the _identical_ vectorization module that is configured for the
              class. In this case this vector takes precedence.
 
-            Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
+            Supported types are `list`, `numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
         tenant: Optional[str], optional
             The name of the tenant for which this operation is being performed.
+        vectors: Dict[str, Sequence] or None, optional
+            A dictionary of vectors for the object.
+            The dictionary should contain the vector names as keys and the vectors as values.
+            The vectors should be of type `list`, `numpy.ndarray`, `torch.Tensor` or `tf.Tensor`.
+            by default None.
 
         Examples
         --------
@@ -135,6 +141,9 @@ class DataObject:
         if vector is not None:
             weaviate_obj["vector"] = get_vector(vector)
 
+        if vectors is not None:
+            weaviate_obj["vectors"] = {k: get_vector(v) for k, v in vectors.items()}
+
         path = "/objects"
         params = {}
         if consistency_level is not None:
@@ -166,6 +175,7 @@ class DataObject:
         vector: Optional[Sequence] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
+        vectors: Optional[Dict[str, Sequence]] = None,
     ) -> None:
         """
         Update an already existing object in Weaviate with the given data object.
@@ -189,12 +199,17 @@ class DataObject:
              - The given vector was generated using the _identical_ vectorization module that is configured for the
              class. In this case this vector takes precedence.
 
-            Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
+            Supported types are `list`, `numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
         tenant: Optional[str], optional
             The name of the tenant for which this operation is being performed.
+        vectors: Dict[str, Sequence] or None, optional
+            A dictionary of vectors for the object.
+            The dictionary should contain the vector names as keys and the vectors as values.
+            The vectors should be of type `list`, `numpy.ndarray`, `torch.Tensor` or `tf.Tensor`.
+            by default None.
 
         Examples
         --------
@@ -273,6 +288,7 @@ class DataObject:
         vector: Optional[Sequence] = None,
         consistency_level: Optional[ConsistencyLevel] = None,
         tenant: Optional[str] = None,
+        vectors: Optional[Dict[str, Sequence]] = None,
     ) -> None:
         """
         Replace an already existing object with the given data object.
@@ -294,12 +310,17 @@ class DataObject:
              - The given vector was generated using the _identical_ vectorization module that is configured for the
              class. In this case this vector takes precedence.
 
-            Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
+            Supported types are `list`, `numpy.ndarray`, `torch.Tensor` and `tf.Tensor`,
             by default None.
         consistency_level : Optional[ConsistencyLevel], optional
             Can be one of 'ALL', 'ONE', or 'QUORUM'. Determines how many replicas must acknowledge
         tenant: Optional[str], optional
             The name of the tenant for which this operation is being performed.
+        vectors: Dict[str, Sequence] or None, optional
+            A dictionary of vectors for the object.
+            The dictionary should contain the vector names as keys and the vectors as values.
+            The vectors should be of type `list`, `numpy.ndarray`, `torch.Tensor` or `tf.Tensor`.
+            by default None.
 
         Examples
         --------
@@ -351,7 +372,9 @@ class DataObject:
         params = {}
         if consistency_level is not None:
             params["consistency_level"] = ConsistencyLevel(consistency_level).value
-        weaviate_obj, path = self._create_object_for_update(data_object, class_name, uuid, vector)
+        weaviate_obj, path = self._create_object_for_update(
+            data_object, class_name, uuid, vector, vectors
+        )
         if tenant is not None:
             weaviate_obj["tenant"] = tenant
         try:
@@ -369,6 +392,7 @@ class DataObject:
         class_name: str,
         uuid: Union[str, uuid_lib.UUID],
         vector: Optional[Sequence] = None,
+        vectors: Optional[Dict[str, Sequence]] = None,
     ) -> Tuple[Dict[str, Any], str]:
         if not isinstance(class_name, str):
             raise TypeError("Class must be type str")
@@ -385,6 +409,9 @@ class DataObject:
 
         if vector is not None:
             weaviate_obj["vector"] = get_vector(vector)
+
+        if vectors is not None:
+            weaviate_obj["vectors"] = {k: get_vector(v) for k, v in vectors.items()}
 
         is_server_version_14 = self._connection.server_version >= "1.14"
 

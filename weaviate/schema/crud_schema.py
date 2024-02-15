@@ -30,6 +30,7 @@ CLASS_KEYS = {
     "shardingConfig",
     "replicationConfig",
     "multiTenancyConfig",
+    "vectorConfig",
 }
 
 PROPERTY_KEYS = {
