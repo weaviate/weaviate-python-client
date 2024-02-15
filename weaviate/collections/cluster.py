@@ -1,10 +1,11 @@
 from typing import List, Literal, Optional, Union, overload
 
-from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST
+from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST, Stats
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     EmptyResponseError,
 )
+
 from ..util import _capitalize_first_letter, _decode_json_response_dict
 
 
@@ -18,7 +19,7 @@ class _Cluster:
         collection: Optional[str] = None,
         *,
         output: Literal[None] = None,
-    ) -> List[Node[None]]:
+    ) -> List[Node[None, None]]:
         ...
 
     @overload
@@ -27,7 +28,7 @@ class _Cluster:
         collection: Optional[str] = None,
         *,
         output: Literal["minimal"],
-    ) -> List[Node[None]]:
+    ) -> List[Node[None, None]]:
         ...
 
     @overload
@@ -36,14 +37,14 @@ class _Cluster:
         collection: Optional[str] = None,
         *,
         output: Literal["verbose"],
-    ) -> List[Node[Shards]]:
+    ) -> List[Node[Shards, Stats]]:
         ...
 
     def nodes(
         self,
         collection: Optional[str] = None,
         output: Optional[Literal["minimal", "verbose"]] = None,
-    ) -> Union[List[Node[None]], List[Node[Shards]]]:
+    ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]:
         """
         Get the status of all nodes in the cluster.
 
@@ -78,8 +79,7 @@ class _Cluster:
         if nodes is None or nodes == []:
             raise EmptyResponseError("Nodes status response returned empty")
 
-        return (
-            _ConvertFromREST.nodes_verbose(nodes)
-            if output == "verbose"
-            else _ConvertFromREST.nodes_minimal(nodes)
-        )
+        if output == "verbose":
+            return _ConvertFromREST.nodes_verbose(nodes)
+        else:
+            return _ConvertFromREST.nodes_minimal(nodes)
