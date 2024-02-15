@@ -168,7 +168,7 @@ def run_v3(file: str, name: str, efc: int, m: int) -> None:
 
     # use v4 client to create schema to avoid duplicate code
     clientv4 = weaviate.connect_to_local()
-    collection = create_schema(clientv4, name, 128, 32, 1, "l2-squared")
+    collection = create_schema(clientv4, name, efc, m, 1, "l2-squared")
     load_records_v3(client, vectors_import, name)
     for ef in EF_VALUES:
         query_v3(collection, client, vectors_test, ideal_neighbors, ef)
