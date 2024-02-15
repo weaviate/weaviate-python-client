@@ -2,6 +2,7 @@ from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overloa
 
 from weaviate.collections.base import _CollectionsBase
 from weaviate.collections.classes.config import (
+    _NamedVectorConfigCreate,
     CollectionConfig,
     CollectionConfigSimple,
     _CollectionConfigCreate,
@@ -43,7 +44,9 @@ class _Collections(_CollectionsBase):
         reranker_config: Optional[_RerankerConfigCreate] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorizer_config: Optional[_VectorizerConfigCreate] = None,
+        vectorizer_config: Optional[
+            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+        ] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,

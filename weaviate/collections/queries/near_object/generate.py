@@ -14,7 +14,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.types import NUMBER, UUID
+from weaviate.types import NUMBER, INCLUDE_VECTOR, UUID
 
 
 class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -33,7 +33,8 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        include_vector: bool = False,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
@@ -90,6 +91,7 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
             filters=filters,
             group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
+            target_vector=target_vector,
             generative=_Generative(
                 single=single_prompt,
                 grouped=grouped_task,

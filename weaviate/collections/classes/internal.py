@@ -48,7 +48,7 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _to_beacons
-from weaviate.types import UUID, UUIDS
+from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
 
 from weaviate.proto.v1 import search_get_pb2
 
@@ -514,7 +514,7 @@ class _QueryOptions:
         cls,
         return_metadata: Optional[METADATA],
         return_properties: Optional[ReturnProperties[Any]],
-        include_vector: bool,
+        include_vector: INCLUDE_VECTOR,
         collection_references: Optional[Type[Any]],
         query_references: Optional[ReturnReferences[Any]],
         rerank: Optional[Rerank] = None,
@@ -526,7 +526,7 @@ class _QueryOptions:
                 isinstance(return_properties, list) and len(return_properties) == 0
             ),
             include_references=collection_references is not None or query_references is not None,
-            include_vector=include_vector,
+            include_vector=include_vector if isinstance(include_vector, bool) else True,
             is_group_by=group_by is not None,
         )
 

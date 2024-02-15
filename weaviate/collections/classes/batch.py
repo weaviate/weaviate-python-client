@@ -6,14 +6,14 @@ from pydantic import BaseModel, Field, field_validator
 
 from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.types import WeaviateField
-from weaviate.types import BEACON, UUID
+from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _capitalize_first_letter, get_valid_uuid, _get_vector_v4
 
 
 @dataclass
 class _BatchObject:
     collection: str
-    vector: Optional[List[float]]
+    vector: Optional[VECTORS]
     uuid: str
     properties: Optional[Dict[str, WeaviateField]]
     tenant: Optional[str]

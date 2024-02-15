@@ -99,6 +99,7 @@ class _QueryGRPC(_BaseGRPC):
         self._offset: Optional[int] = None
         self._autocut: Optional[int] = None
         self._after: Optional[UUID] = None
+        self._target_vector: Optional[List[str]] = None
 
         self._hybrid_query: Optional[str] = None
         self._hybrid_alpha: Optional[float] = None
@@ -155,6 +156,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         autocut: Optional[int] = None,
         group_by: Optional[_GroupBy] = None,
+        target_vector: Optional[str] = None,
     ) -> None:
         if self._validate_arguments:
             _validate_input(
@@ -167,6 +169,7 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([_Generative, None], "generative", generative),
                     _ValidateArgument([Rerank, None], "rerank", rerank),
                     _ValidateArgument([int, None], "autocut", autocut),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
                     _ValidateArgument([_GroupBy, None], "group_by", group_by),
                     _ValidateArgument(
                         [str, QueryNested, Sequence, None], "return_properties", return_properties
@@ -201,6 +204,7 @@ class _QueryGRPC(_BaseGRPC):
         self._rerank = rerank
         self._autocut = autocut
         self._group_by = group_by
+        self._target_vector = [target_vector] if target_vector is not None else None
 
         if return_references is not None:
             self._return_refs = self.__convert_to_set(return_references)
@@ -279,6 +283,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
     ) -> search_get_pb2.SearchReply:
         self.__parse_common(
             limit=limit,
@@ -290,6 +295,7 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
+            target_vector=target_vector,
         )
         self.__parse_sort(sort)
         return self.__call()
@@ -310,6 +316,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
     ) -> search_get_pb2.SearchReply:
         self.__parse_hybrid(query, alpha, vector, properties, fusion_type)
         self.__parse_common(
@@ -322,6 +329,7 @@ class _QueryGRPC(_BaseGRPC):
             generative=generative,
             rerank=rerank,
             autocut=autocut,
+            target_vector=target_vector,
         )
         return self.__call()
 
@@ -338,6 +346,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
     ) -> search_get_pb2.SearchReply:
         self.__parse_bm25(query, properties)
         self.__parse_common(
@@ -350,6 +359,7 @@ class _QueryGRPC(_BaseGRPC):
             generative=generative,
             rerank=rerank,
             autocut=autocut,
+            target_vector=target_vector,
         )
         return self.__call()
 
@@ -364,6 +374,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
+        target_vector: Optional[str] = None,
         rerank: Optional[Rerank] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -385,6 +396,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
+            target_vector=target_vector,
         )
         return self.__call()
 
@@ -400,6 +412,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -421,6 +434,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
+            target_vector=target_vector,
         )
         return self.__call()
 
@@ -438,6 +452,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -469,6 +484,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
+            target_vector=target_vector,
         )
         if move_away is not None:
             self._near_text_move_away = search_get_pb2.NearTextSearch.Move(
@@ -495,6 +511,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -527,6 +544,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
+            target_vector=target_vector,
         )
 
         return self.__call()
@@ -565,6 +583,7 @@ class _QueryGRPC(_BaseGRPC):
                             vector_bytes=struct.pack(
                                 "{}f".format(len(self._near_vector_vec)), *self._near_vector_vec
                             ),
+                            target_vectors=self._target_vector,
                         )
                         if self._near_vector_vec is not None
                         else None
@@ -574,6 +593,7 @@ class _QueryGRPC(_BaseGRPC):
                             id=str(self._near_object_obj),
                             certainty=self._near_certainty,
                             distance=self._near_distance,
+                            target_vectors=self._target_vector,
                         )
                         if self._near_object_obj is not None
                         else None
@@ -608,6 +628,7 @@ class _QueryGRPC(_BaseGRPC):
                                 if self._hybrid_vector is not None
                                 else None
                             ),
+                            target_vectors=self._target_vector,
                         )
                         if self._hybrid_query is not None
                         else None
@@ -619,6 +640,7 @@ class _QueryGRPC(_BaseGRPC):
                             audio=self._near_audio,
                             distance=self._near_distance,
                             certainty=self._near_certainty,
+                            target_vectors=self._target_vector,
                         )
                         if self._near_audio is not None
                         else None
@@ -628,6 +650,7 @@ class _QueryGRPC(_BaseGRPC):
                             depth=self._near_depth,
                             distance=self._near_distance,
                             certainty=self._near_certainty,
+                            target_vectors=self._target_vector,
                         )
                         if self._near_depth is not None
                         else None
@@ -637,6 +660,7 @@ class _QueryGRPC(_BaseGRPC):
                             image=self._near_image,
                             distance=self._near_distance,
                             certainty=self._near_certainty,
+                            target_vectors=self._target_vector,
                         )
                         if self._near_image is not None
                         else None
@@ -646,6 +670,7 @@ class _QueryGRPC(_BaseGRPC):
                             imu=self._near_imu,
                             distance=self._near_distance,
                             certainty=self._near_certainty,
+                            target_vectors=self._target_vector,
                         )
                         if self._near_imu is not None
                         else None
@@ -657,6 +682,7 @@ class _QueryGRPC(_BaseGRPC):
                             distance=self._near_distance,
                             move_to=self._near_text_move_to,
                             move_away=self._near_text_move_away,
+                            target_vectors=self._target_vector,
                         )
                         if self._near_text is not None
                         else None
@@ -666,6 +692,7 @@ class _QueryGRPC(_BaseGRPC):
                             thermal=self._near_thermal,
                             distance=self._near_distance,
                             certainty=self._near_certainty,
+                            target_vectors=self._target_vector,
                         )
                         if self._near_thermal is not None
                         else None
@@ -675,6 +702,7 @@ class _QueryGRPC(_BaseGRPC):
                             video=self._near_video,
                             distance=self._near_distance,
                             certainty=self._near_certainty,
+                            target_vectors=self._target_vector,
                         )
                         if self._near_video is not None
                         else None
@@ -716,6 +744,7 @@ class _QueryGRPC(_BaseGRPC):
             explain_score=metadata.explain_score,
             score=metadata.score,
             is_consistent=metadata.is_consistent,
+            vectors=metadata.vectors,
         )
 
     def __resolve_property(self, prop: QueryNested) -> search_get_pb2.ObjectPropertiesRequest:

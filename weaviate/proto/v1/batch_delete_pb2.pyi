@@ -13,7 +13,7 @@ from typing import (
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class BatchDeleteRequest(_message.Message):
-    __slots__ = ["collection", "filters", "verbose", "dry_run", "consistency_level", "tenant"]
+    __slots__ = ("collection", "filters", "verbose", "dry_run", "consistency_level", "tenant")
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     FILTERS_FIELD_NUMBER: _ClassVar[int]
     VERBOSE_FIELD_NUMBER: _ClassVar[int]
@@ -37,7 +37,7 @@ class BatchDeleteRequest(_message.Message):
     ) -> None: ...
 
 class BatchDeleteReply(_message.Message):
-    __slots__ = ["took", "failed", "matches", "successful", "objects"]
+    __slots__ = ("took", "failed", "matches", "successful", "objects")
     TOOK_FIELD_NUMBER: _ClassVar[int]
     FAILED_FIELD_NUMBER: _ClassVar[int]
     MATCHES_FIELD_NUMBER: _ClassVar[int]
@@ -58,7 +58,7 @@ class BatchDeleteReply(_message.Message):
     ) -> None: ...
 
 class BatchDeleteObject(_message.Message):
-    __slots__ = ["uuid", "successful", "error"]
+    __slots__ = ("uuid", "successful", "error")
     UUID_FIELD_NUMBER: _ClassVar[int]
     SUCCESSFUL_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]

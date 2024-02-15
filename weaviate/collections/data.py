@@ -49,7 +49,7 @@ from weaviate.collections.classes.types import (
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.types import BEACON, UUID
+from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import (
     _datetime_to_string,
     _get_vector_v4,
@@ -334,7 +334,7 @@ class _DataCollection(Generic[Properties], _Data):
         properties: Properties,
         references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
-        vector: Optional[List[float]] = None,
+        vector: Optional[VECTORS] = None,
     ) -> uuid_package.UUID:
         """Insert a single object into the collection.
 
@@ -363,7 +363,9 @@ class _DataCollection(Generic[Properties], _Data):
                     _ValidateArgument(
                         expected=[Mapping, None], name="references", value=references
                     ),
-                    _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+                    _ValidateArgument(
+                        expected=[Sequence, None, Mapping], name="vector", value=vector
+                    ),
                 ],
             )
         props = self._serialize_props(properties) if properties is not None else {}
@@ -375,7 +377,12 @@ class _DataCollection(Generic[Properties], _Data):
         }
 
         if vector is not None:
-            weaviate_obj["vector"] = _get_vector_v4(vector)
+            if isinstance(vector, dict):
+                for key, val in vector.items():
+                    vector[key] = _get_vector_v4(val)
+                weaviate_obj["vectors"] = vector
+            else:
+                weaviate_obj["vector"] = _get_vector_v4(vector)
 
         return self._insert(weaviate_obj)
 

@@ -14,7 +14,7 @@ from typing import (
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ConsistencyLevel(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-    __slots__ = []
+    __slots__ = ()
     CONSISTENCY_LEVEL_UNSPECIFIED: _ClassVar[ConsistencyLevel]
     CONSISTENCY_LEVEL_ONE: _ClassVar[ConsistencyLevel]
     CONSISTENCY_LEVEL_QUORUM: _ClassVar[ConsistencyLevel]
@@ -26,7 +26,7 @@ CONSISTENCY_LEVEL_QUORUM: ConsistencyLevel
 CONSISTENCY_LEVEL_ALL: ConsistencyLevel
 
 class NumberArrayProperties(_message.Message):
-    __slots__ = ["values", "prop_name", "values_bytes"]
+    __slots__ = ("values", "prop_name", "values_bytes")
     VALUES_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     VALUES_BYTES_FIELD_NUMBER: _ClassVar[int]
@@ -41,7 +41,7 @@ class NumberArrayProperties(_message.Message):
     ) -> None: ...
 
 class IntArrayProperties(_message.Message):
-    __slots__ = ["values", "prop_name"]
+    __slots__ = ("values", "prop_name")
     VALUES_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedScalarFieldContainer[int]
@@ -51,7 +51,7 @@ class IntArrayProperties(_message.Message):
     ) -> None: ...
 
 class TextArrayProperties(_message.Message):
-    __slots__ = ["values", "prop_name"]
+    __slots__ = ("values", "prop_name")
     VALUES_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedScalarFieldContainer[str]
@@ -61,7 +61,7 @@ class TextArrayProperties(_message.Message):
     ) -> None: ...
 
 class BooleanArrayProperties(_message.Message):
-    __slots__ = ["values", "prop_name"]
+    __slots__ = ("values", "prop_name")
     VALUES_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedScalarFieldContainer[bool]
@@ -71,7 +71,7 @@ class BooleanArrayProperties(_message.Message):
     ) -> None: ...
 
 class ObjectPropertiesValue(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "non_ref_properties",
         "number_array_properties",
         "int_array_properties",
@@ -80,7 +80,7 @@ class ObjectPropertiesValue(_message.Message):
         "object_properties",
         "object_array_properties",
         "empty_list_props",
-    ]
+    )
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     NUMBER_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     INT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -116,7 +116,7 @@ class ObjectPropertiesValue(_message.Message):
     ) -> None: ...
 
 class ObjectArrayProperties(_message.Message):
-    __slots__ = ["values", "prop_name"]
+    __slots__ = ("values", "prop_name")
     VALUES_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedCompositeFieldContainer[ObjectPropertiesValue]
@@ -128,7 +128,7 @@ class ObjectArrayProperties(_message.Message):
     ) -> None: ...
 
 class ObjectProperties(_message.Message):
-    __slots__ = ["value", "prop_name"]
+    __slots__ = ("value", "prop_name")
     VALUE_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     value: ObjectPropertiesValue
@@ -140,31 +140,31 @@ class ObjectProperties(_message.Message):
     ) -> None: ...
 
 class TextArray(_message.Message):
-    __slots__ = ["values"]
+    __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, values: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class IntArray(_message.Message):
-    __slots__ = ["values"]
+    __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedScalarFieldContainer[int]
     def __init__(self, values: _Optional[_Iterable[int]] = ...) -> None: ...
 
 class NumberArray(_message.Message):
-    __slots__ = ["values"]
+    __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedScalarFieldContainer[float]
     def __init__(self, values: _Optional[_Iterable[float]] = ...) -> None: ...
 
 class BooleanArray(_message.Message):
-    __slots__ = ["values"]
+    __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedScalarFieldContainer[bool]
     def __init__(self, values: _Optional[_Iterable[bool]] = ...) -> None: ...
 
 class Filters(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "operator",
         "on",
         "filters",
@@ -178,10 +178,10 @@ class Filters(_message.Message):
         "value_number_array",
         "value_geo",
         "target",
-    ]
+    )
 
     class Operator(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-        __slots__ = []
+        __slots__ = ()
         OPERATOR_UNSPECIFIED: _ClassVar[Filters.Operator]
         OPERATOR_EQUAL: _ClassVar[Filters.Operator]
         OPERATOR_NOT_EQUAL: _ClassVar[Filters.Operator]
@@ -254,7 +254,7 @@ class Filters(_message.Message):
     ) -> None: ...
 
 class FilterReferenceSingleTarget(_message.Message):
-    __slots__ = ["on", "target"]
+    __slots__ = ("on", "target")
     ON_FIELD_NUMBER: _ClassVar[int]
     TARGET_FIELD_NUMBER: _ClassVar[int]
     on: str
@@ -264,7 +264,7 @@ class FilterReferenceSingleTarget(_message.Message):
     ) -> None: ...
 
 class FilterReferenceMultiTarget(_message.Message):
-    __slots__ = ["on", "target", "target_collection"]
+    __slots__ = ("on", "target", "target_collection")
     ON_FIELD_NUMBER: _ClassVar[int]
     TARGET_FIELD_NUMBER: _ClassVar[int]
     TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
@@ -279,13 +279,13 @@ class FilterReferenceMultiTarget(_message.Message):
     ) -> None: ...
 
 class FilterReferenceCount(_message.Message):
-    __slots__ = ["on"]
+    __slots__ = ("on",)
     ON_FIELD_NUMBER: _ClassVar[int]
     on: str
     def __init__(self, on: _Optional[str] = ...) -> None: ...
 
 class FilterTarget(_message.Message):
-    __slots__ = ["property", "single_target", "multi_target", "count"]
+    __slots__ = ("property", "single_target", "multi_target", "count")
     PROPERTY_FIELD_NUMBER: _ClassVar[int]
     SINGLE_TARGET_FIELD_NUMBER: _ClassVar[int]
     MULTI_TARGET_FIELD_NUMBER: _ClassVar[int]
@@ -303,7 +303,7 @@ class FilterTarget(_message.Message):
     ) -> None: ...
 
 class GeoCoordinatesFilter(_message.Message):
-    __slots__ = ["latitude", "longitude", "distance"]
+    __slots__ = ("latitude", "longitude", "distance")
     LATITUDE_FIELD_NUMBER: _ClassVar[int]
     LONGITUDE_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
@@ -315,4 +315,19 @@ class GeoCoordinatesFilter(_message.Message):
         latitude: _Optional[float] = ...,
         longitude: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+    ) -> None: ...
+
+class Vectors(_message.Message):
+    __slots__ = ("name", "index", "vector_bytes")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    INDEX_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    index: int
+    vector_bytes: bytes
+    def __init__(
+        self,
+        name: _Optional[str] = ...,
+        index: _Optional[int] = ...,
+        vector_bytes: _Optional[bytes] = ...,
     ) -> None: ...

@@ -16,7 +16,7 @@ from typing import (
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class SearchRequest(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "collection",
         "tenant",
         "consistency_level",
@@ -43,7 +43,7 @@ class SearchRequest(_message.Message):
         "generative",
         "rerank",
         "uses_123_api",
-    ]
+    )
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
@@ -127,7 +127,7 @@ class SearchRequest(_message.Message):
     ) -> None: ...
 
 class GroupBy(_message.Message):
-    __slots__ = ["path", "number_of_groups", "objects_per_group"]
+    __slots__ = ("path", "number_of_groups", "objects_per_group")
     PATH_FIELD_NUMBER: _ClassVar[int]
     NUMBER_OF_GROUPS_FIELD_NUMBER: _ClassVar[int]
     OBJECTS_PER_GROUP_FIELD_NUMBER: _ClassVar[int]
@@ -142,7 +142,7 @@ class GroupBy(_message.Message):
     ) -> None: ...
 
 class SortBy(_message.Message):
-    __slots__ = ["ascending", "path"]
+    __slots__ = ("ascending", "path")
     ASCENDING_FIELD_NUMBER: _ClassVar[int]
     PATH_FIELD_NUMBER: _ClassVar[int]
     ascending: bool
@@ -150,7 +150,7 @@ class SortBy(_message.Message):
     def __init__(self, ascending: bool = ..., path: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class GenerativeSearch(_message.Message):
-    __slots__ = ["single_response_prompt", "grouped_response_task", "grouped_properties"]
+    __slots__ = ("single_response_prompt", "grouped_response_task", "grouped_properties")
     SINGLE_RESPONSE_PROMPT_FIELD_NUMBER: _ClassVar[int]
     GROUPED_RESPONSE_TASK_FIELD_NUMBER: _ClassVar[int]
     GROUPED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -165,7 +165,7 @@ class GenerativeSearch(_message.Message):
     ) -> None: ...
 
 class MetadataRequest(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "uuid",
         "vector",
         "creation_time_unix",
@@ -175,7 +175,8 @@ class MetadataRequest(_message.Message):
         "score",
         "explain_score",
         "is_consistent",
-    ]
+        "vectors",
+    )
     UUID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CREATION_TIME_UNIX_FIELD_NUMBER: _ClassVar[int]
@@ -185,6 +186,7 @@ class MetadataRequest(_message.Message):
     SCORE_FIELD_NUMBER: _ClassVar[int]
     EXPLAIN_SCORE_FIELD_NUMBER: _ClassVar[int]
     IS_CONSISTENT_FIELD_NUMBER: _ClassVar[int]
+    VECTORS_FIELD_NUMBER: _ClassVar[int]
     uuid: bool
     vector: bool
     creation_time_unix: bool
@@ -194,6 +196,7 @@ class MetadataRequest(_message.Message):
     score: bool
     explain_score: bool
     is_consistent: bool
+    vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         uuid: bool = ...,
@@ -205,15 +208,16 @@ class MetadataRequest(_message.Message):
         score: bool = ...,
         explain_score: bool = ...,
         is_consistent: bool = ...,
+        vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class PropertiesRequest(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "non_ref_properties",
         "ref_properties",
         "object_properties",
         "return_all_nonref_properties",
-    ]
+    )
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -231,7 +235,7 @@ class PropertiesRequest(_message.Message):
     ) -> None: ...
 
 class ObjectPropertiesRequest(_message.Message):
-    __slots__ = ["prop_name", "primitive_properties", "object_properties"]
+    __slots__ = ("prop_name", "primitive_properties", "object_properties")
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     PRIMITIVE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -246,10 +250,18 @@ class ObjectPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class Hybrid(_message.Message):
-    __slots__ = ["query", "properties", "vector", "alpha", "fusion_type", "vector_bytes"]
+    __slots__ = (
+        "query",
+        "properties",
+        "vector",
+        "alpha",
+        "fusion_type",
+        "vector_bytes",
+        "target_vectors",
+    )
 
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
-        __slots__ = []
+        __slots__ = ()
         FUSION_TYPE_UNSPECIFIED: _ClassVar[Hybrid.FusionType]
         FUSION_TYPE_RANKED: _ClassVar[Hybrid.FusionType]
         FUSION_TYPE_RELATIVE_SCORE: _ClassVar[Hybrid.FusionType]
@@ -262,12 +274,14 @@ class Hybrid(_message.Message):
     ALPHA_FIELD_NUMBER: _ClassVar[int]
     FUSION_TYPE_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     query: str
     properties: _containers.RepeatedScalarFieldContainer[str]
     vector: _containers.RepeatedScalarFieldContainer[float]
     alpha: float
     fusion_type: Hybrid.FusionType
     vector_bytes: bytes
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         query: _Optional[str] = ...,
@@ -276,13 +290,14 @@ class Hybrid(_message.Message):
         alpha: _Optional[float] = ...,
         fusion_type: _Optional[_Union[Hybrid.FusionType, str]] = ...,
         vector_bytes: _Optional[bytes] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class NearTextSearch(_message.Message):
-    __slots__ = ["query", "certainty", "distance", "move_to", "move_away"]
+    __slots__ = ("query", "certainty", "distance", "move_to", "move_away", "target_vectors")
 
     class Move(_message.Message):
-        __slots__ = ["force", "concepts", "uuids"]
+        __slots__ = ("force", "concepts", "uuids")
         FORCE_FIELD_NUMBER: _ClassVar[int]
         CONCEPTS_FIELD_NUMBER: _ClassVar[int]
         UUIDS_FIELD_NUMBER: _ClassVar[int]
@@ -300,11 +315,13 @@ class NearTextSearch(_message.Message):
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     MOVE_TO_FIELD_NUMBER: _ClassVar[int]
     MOVE_AWAY_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     query: _containers.RepeatedScalarFieldContainer[str]
     certainty: float
     distance: float
     move_to: NearTextSearch.Move
     move_away: NearTextSearch.Move
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         query: _Optional[_Iterable[str]] = ...,
@@ -312,100 +329,119 @@ class NearTextSearch(_message.Message):
         distance: _Optional[float] = ...,
         move_to: _Optional[_Union[NearTextSearch.Move, _Mapping]] = ...,
         move_away: _Optional[_Union[NearTextSearch.Move, _Mapping]] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class NearImageSearch(_message.Message):
-    __slots__ = ["image", "certainty", "distance"]
+    __slots__ = ("image", "certainty", "distance", "target_vectors")
     IMAGE_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     image: str
     certainty: float
     distance: float
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         image: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class NearAudioSearch(_message.Message):
-    __slots__ = ["audio", "certainty", "distance"]
+    __slots__ = ("audio", "certainty", "distance", "target_vectors")
     AUDIO_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     audio: str
     certainty: float
     distance: float
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         audio: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class NearVideoSearch(_message.Message):
-    __slots__ = ["video", "certainty", "distance"]
+    __slots__ = ("video", "certainty", "distance", "target_vectors")
     VIDEO_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     video: str
     certainty: float
     distance: float
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         video: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class NearDepthSearch(_message.Message):
-    __slots__ = ["depth", "certainty", "distance"]
+    __slots__ = ("depth", "certainty", "distance", "target_vectors")
     DEPTH_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     depth: str
     certainty: float
     distance: float
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         depth: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class NearThermalSearch(_message.Message):
-    __slots__ = ["thermal", "certainty", "distance"]
+    __slots__ = ("thermal", "certainty", "distance", "target_vectors")
     THERMAL_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     thermal: str
     certainty: float
     distance: float
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         thermal: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class NearIMUSearch(_message.Message):
-    __slots__ = ["imu", "certainty", "distance"]
+    __slots__ = ("imu", "certainty", "distance", "target_vectors")
     IMU_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     imu: str
     certainty: float
     distance: float
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         imu: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class BM25(_message.Message):
-    __slots__ = ["query", "properties"]
+    __slots__ = ("query", "properties")
     QUERY_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     query: str
@@ -415,7 +451,7 @@ class BM25(_message.Message):
     ) -> None: ...
 
 class RefPropertiesRequest(_message.Message):
-    __slots__ = ["reference_property", "properties", "metadata", "target_collection"]
+    __slots__ = ("reference_property", "properties", "metadata", "target_collection")
     REFERENCE_PROPERTY_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
@@ -433,40 +469,46 @@ class RefPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class NearVector(_message.Message):
-    __slots__ = ["vector", "certainty", "distance", "vector_bytes"]
+    __slots__ = ("vector", "certainty", "distance", "vector_bytes", "target_vectors")
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     vector: _containers.RepeatedScalarFieldContainer[float]
     certainty: float
     distance: float
     vector_bytes: bytes
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         vector: _Optional[_Iterable[float]] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
         vector_bytes: _Optional[bytes] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class NearObject(_message.Message):
-    __slots__ = ["id", "certainty", "distance"]
+    __slots__ = ("id", "certainty", "distance", "target_vectors")
     ID_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     id: str
     certainty: float
     distance: float
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
     def __init__(
         self,
         id: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
+        target_vectors: _Optional[_Iterable[str]] = ...,
     ) -> None: ...
 
 class Rerank(_message.Message):
-    __slots__ = ["property", "query"]
+    __slots__ = ("property", "query")
     PROPERTY_FIELD_NUMBER: _ClassVar[int]
     QUERY_FIELD_NUMBER: _ClassVar[int]
     property: str
@@ -474,7 +516,7 @@ class Rerank(_message.Message):
     def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
 
 class SearchReply(_message.Message):
-    __slots__ = ["took", "results", "generative_grouped_result", "group_by_results"]
+    __slots__ = ("took", "results", "generative_grouped_result", "group_by_results")
     TOOK_FIELD_NUMBER: _ClassVar[int]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_GROUPED_RESULT_FIELD_NUMBER: _ClassVar[int]
@@ -492,19 +534,19 @@ class SearchReply(_message.Message):
     ) -> None: ...
 
 class RerankReply(_message.Message):
-    __slots__ = ["score"]
+    __slots__ = ("score",)
     SCORE_FIELD_NUMBER: _ClassVar[int]
     score: float
     def __init__(self, score: _Optional[float] = ...) -> None: ...
 
 class GenerativeReply(_message.Message):
-    __slots__ = ["result"]
+    __slots__ = ("result",)
     RESULT_FIELD_NUMBER: _ClassVar[int]
     result: str
     def __init__(self, result: _Optional[str] = ...) -> None: ...
 
 class GroupByResult(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "name",
         "min_distance",
         "max_distance",
@@ -512,7 +554,7 @@ class GroupByResult(_message.Message):
         "objects",
         "rerank",
         "generative",
-    ]
+    )
     NAME_FIELD_NUMBER: _ClassVar[int]
     MIN_DISTANCE_FIELD_NUMBER: _ClassVar[int]
     MAX_DISTANCE_FIELD_NUMBER: _ClassVar[int]
@@ -539,7 +581,7 @@ class GroupByResult(_message.Message):
     ) -> None: ...
 
 class SearchResult(_message.Message):
-    __slots__ = ["properties", "metadata"]
+    __slots__ = ("properties", "metadata")
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
     properties: PropertiesResult
@@ -551,7 +593,7 @@ class SearchResult(_message.Message):
     ) -> None: ...
 
 class MetadataResult(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "id",
         "vector",
         "creation_time_unix",
@@ -574,7 +616,8 @@ class MetadataResult(_message.Message):
         "id_as_bytes",
         "rerank_score",
         "rerank_score_present",
-    ]
+        "vectors",
+    )
     ID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CREATION_TIME_UNIX_FIELD_NUMBER: _ClassVar[int]
@@ -597,6 +640,7 @@ class MetadataResult(_message.Message):
     ID_AS_BYTES_FIELD_NUMBER: _ClassVar[int]
     RERANK_SCORE_FIELD_NUMBER: _ClassVar[int]
     RERANK_SCORE_PRESENT_FIELD_NUMBER: _ClassVar[int]
+    VECTORS_FIELD_NUMBER: _ClassVar[int]
     id: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     creation_time_unix: int
@@ -619,6 +663,7 @@ class MetadataResult(_message.Message):
     id_as_bytes: bytes
     rerank_score: float
     rerank_score_present: bool
+    vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
     def __init__(
         self,
         id: _Optional[str] = ...,
@@ -643,10 +688,11 @@ class MetadataResult(_message.Message):
         id_as_bytes: _Optional[bytes] = ...,
         rerank_score: _Optional[float] = ...,
         rerank_score_present: bool = ...,
+        vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...,
     ) -> None: ...
 
 class PropertiesResult(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "non_ref_properties",
         "ref_props",
         "target_collection",
@@ -659,7 +705,7 @@ class PropertiesResult(_message.Message):
         "object_array_properties",
         "non_ref_props",
         "ref_props_requested",
-    ]
+    )
     NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     REF_PROPS_FIELD_NUMBER: _ClassVar[int]
     TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
@@ -719,7 +765,7 @@ class PropertiesResult(_message.Message):
     ) -> None: ...
 
 class RefPropertiesResult(_message.Message):
-    __slots__ = ["properties", "prop_name"]
+    __slots__ = ("properties", "prop_name")
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     PROP_NAME_FIELD_NUMBER: _ClassVar[int]
     properties: _containers.RepeatedCompositeFieldContainer[PropertiesResult]

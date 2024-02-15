@@ -27,8 +27,16 @@ from weaviate.collections.classes.config_vectorizers import (
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel
 
+from weaviate.collections.classes.config_vector_index import VectorIndexType as VectorIndexTypeAlias
+
+from weaviate.collections.classes.config_named_vectors import (
+    _NamedVectorConfigCreate,
+    _NamedVectors,
+)
+
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
+VectorIndexType: TypeAlias = VectorIndexTypeAlias
 
 
 class ConsistencyLevel(str, Enum):
@@ -85,18 +93,6 @@ class DataType(str, Enum):
     PHONE_NUMBER = "phoneNumber"
     OBJECT = "object"
     OBJECT_ARRAY = "object[]"
-
-
-class VectorIndexType(str, Enum):
-    """The available vector index types in Weaviate.
-
-    Attributes:
-        HNSW: Hierarchical Navigable Small World (HNSW) index.
-        FLAT: Flat index.
-    """
-
-    HNSW = "hnsw"
-    FLAT = "flat"
 
 
 class Tokenization(str, Enum):
@@ -1340,16 +1336,76 @@ PropertyType = Union[Property, ReferenceProperty, _ReferencePropertyMultiTarget]
 T = TypeVar("T", bound="_CollectionConfigCreate")
 
 
-class _CollectionConfigCreate(_CollectionConfigCreateBase):
+class _CollectionConfigCreate(_ConfigCreateModel):
     name: str
     properties: Optional[Sequence[Property]] = Field(default=None)
     references: Optional[List[_ReferencePropertyBase]] = Field(default=None)
+    description: Optional[str] = Field(default=None)
+    invertedIndexConfig: Optional[_InvertedIndexConfigCreate] = Field(
+        default=None, alias="inverted_index_config"
+    )
+    multiTenancyConfig: Optional[_MultiTenancyConfigCreate] = Field(
+        default=None, alias="multi_tenancy_config"
+    )
+    replicationConfig: Optional[_ReplicationConfigCreate] = Field(
+        default=None, alias="replication_config"
+    )
+    shardingConfig: Optional[_ShardingConfigCreate] = Field(default=None, alias="sharding_config")
+    vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
+        default=None, alias="vector_index_config"
+    )
+    vectorizerConfig: Optional[
+        Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+    ] = Field(default=_Vectorizer.none(), alias="vectorizer_config")
+    generativeSearch: Optional[_GenerativeConfigCreate] = Field(
+        default=None, alias="generative_config"
+    )
+    rerankerConfig: Optional[_RerankerConfigCreate] = Field(default=None, alias="reranker_config")
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
 
+    @staticmethod
+    def __add_to_module_config(
+        return_dict: Dict[str, Any], addition_key: str, addition_val: Dict[str, Any]
+    ) -> None:
+        if "moduleConfig" not in return_dict:
+            return_dict["moduleConfig"] = {addition_key: addition_val}
+        else:
+            return_dict["moduleConfig"][addition_key] = addition_val
+
     def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
+        ret_dict: Dict[str, Any] = {}
+
+        for cls_field in self.model_fields:
+            val = getattr(self, cls_field)
+            if cls_field in ["name", "model", "properties", "references"] or val is None:
+                continue
+            elif isinstance(val, (bool, float, str, int)):
+                ret_dict[cls_field] = str(val)
+            elif isinstance(val, _GenerativeConfigCreate):
+                self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
+            elif isinstance(val, _RerankerConfigCreate):
+                self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
+            elif isinstance(val, _VectorizerConfigCreate):
+                ret_dict["vectorizer"] = val.vectorizer.value
+                if val.vectorizer != Vectorizers.NONE:
+                    self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
+            elif isinstance(val, _VectorIndexConfigCreate):
+                ret_dict["vectorIndexType"] = val.vector_index_type()
+                ret_dict[cls_field] = val._to_dict()
+            elif (
+                isinstance(val, list)
+                and len(val) > 0
+                and all(isinstance(item, _NamedVectorConfigCreate) for item in val)
+            ):
+                ret_dict["vectorConfig"] = {item.name: item._to_dict() for item in val}
+
+            else:
+                assert isinstance(val, _ConfigCreateModel)
+                ret_dict[cls_field] = val._to_dict()
+        if self.vectorIndexConfig is None:
+            ret_dict["vectorIndexType"] = VectorIndexType.HNSW
 
         ret_dict["class"] = self.name
         self.__add_props(self.properties, ret_dict)
@@ -1370,7 +1426,11 @@ class _CollectionConfigCreate(_CollectionConfigCreateBase):
         existing_props.extend(
             [
                 (
-                    prop._to_dict(self.moduleConfig.vectorizer)
+                    prop._to_dict(
+                        self.vectorizerConfig.vectorizer
+                        if isinstance(self.vectorizerConfig, _VectorizerConfigCreate)
+                        else None
+                    )
                     if isinstance(prop, Property)
                     else prop._to_dict()
                 )
@@ -1504,6 +1564,7 @@ class Configure:
     Reranker = _Reranker
     Vectorizer = _Vectorizer
     VectorIndex = _VectorIndex
+    NamedVectors = _NamedVectors
 
     @staticmethod
     def inverted_index(

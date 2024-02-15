@@ -14,7 +14,7 @@ from typing import (
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class BatchObjectsRequest(_message.Message):
-    __slots__ = ["objects", "consistency_level"]
+    __slots__ = ("objects", "consistency_level")
     OBJECTS_FIELD_NUMBER: _ClassVar[int]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
     objects: _containers.RepeatedCompositeFieldContainer[BatchObject]
@@ -26,10 +26,10 @@ class BatchObjectsRequest(_message.Message):
     ) -> None: ...
 
 class BatchObject(_message.Message):
-    __slots__ = ["uuid", "vector", "properties", "collection", "tenant", "vector_bytes"]
+    __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")
 
     class Properties(_message.Message):
-        __slots__ = [
+        __slots__ = (
             "non_ref_properties",
             "single_target_ref_props",
             "multi_target_ref_props",
@@ -40,7 +40,7 @@ class BatchObject(_message.Message):
             "object_properties",
             "object_array_properties",
             "empty_list_props",
-        ]
+        )
         NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         SINGLE_TARGET_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
         MULTI_TARGET_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
@@ -106,7 +106,7 @@ class BatchObject(_message.Message):
         ) -> None: ...
 
     class SingleTargetRefProps(_message.Message):
-        __slots__ = ["uuids", "prop_name"]
+        __slots__ = ("uuids", "prop_name")
         UUIDS_FIELD_NUMBER: _ClassVar[int]
         PROP_NAME_FIELD_NUMBER: _ClassVar[int]
         uuids: _containers.RepeatedScalarFieldContainer[str]
@@ -116,7 +116,7 @@ class BatchObject(_message.Message):
         ) -> None: ...
 
     class MultiTargetRefProps(_message.Message):
-        __slots__ = ["uuids", "prop_name", "target_collection"]
+        __slots__ = ("uuids", "prop_name", "target_collection")
         UUIDS_FIELD_NUMBER: _ClassVar[int]
         PROP_NAME_FIELD_NUMBER: _ClassVar[int]
         TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
@@ -135,12 +135,14 @@ class BatchObject(_message.Message):
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    VECTORS_FIELD_NUMBER: _ClassVar[int]
     uuid: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     properties: BatchObject.Properties
     collection: str
     tenant: str
     vector_bytes: bytes
+    vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
     def __init__(
         self,
         uuid: _Optional[str] = ...,
@@ -149,13 +151,14 @@ class BatchObject(_message.Message):
         collection: _Optional[str] = ...,
         tenant: _Optional[str] = ...,
         vector_bytes: _Optional[bytes] = ...,
+        vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...,
     ) -> None: ...
 
 class BatchObjectsReply(_message.Message):
-    __slots__ = ["took", "errors"]
+    __slots__ = ("took", "errors")
 
     class BatchError(_message.Message):
-        __slots__ = ["index", "error"]
+        __slots__ = ("index", "error")
         INDEX_FIELD_NUMBER: _ClassVar[int]
         ERROR_FIELD_NUMBER: _ClassVar[int]
         index: int

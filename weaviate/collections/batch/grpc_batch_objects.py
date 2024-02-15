@@ -2,7 +2,7 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Sequence, Union, cast
 
 import grpc  # type: ignore
 from google.protobuf.struct_pb2 import Struct
@@ -25,6 +25,16 @@ from weaviate.exceptions import (
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.util import _datetime_to_string, _get_vector_v4
+
+
+def _pack_named_vectors(vectors: Dict[str, List[float]]) -> List[base_pb2.Vectors]:
+    return [
+        base_pb2.Vectors(
+            name=name,
+            vector_bytes=struct.pack("{}f".format(len(vector)), *vector),
+        )
+        for name, vector in vectors.items()
+    ]
 
 
 class _BatchGRPC(_BaseGRPC):
@@ -57,7 +67,9 @@ class _BatchGRPC(_BaseGRPC):
         weaviate_objs: List[batch_pb2.BatchObject] = [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector_bytes=pack_vector(obj.vector) if obj.vector is not None else None,
+                vector_bytes=pack_vector(obj.vector)
+                if obj.vector is not None and isinstance(obj.vector, list)
+                else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=(
                     self.__translate_properties_from_python_to_grpc(
@@ -68,6 +80,9 @@ class _BatchGRPC(_BaseGRPC):
                     else None
                 ),
                 tenant=obj.tenant,
+                vectors=_pack_named_vectors(obj.vector)
+                if obj.vector is not None and isinstance(obj.vector, dict)
+                else None,
             )
             for obj in objects
         ]
@@ -149,7 +164,9 @@ class _BatchGRPC(_BaseGRPC):
         weaviate_objs: List[batch_pb2.BatchObject] = [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector_bytes=pack_vector(obj.vector) if obj.vector is not None else None,
+                vector_bytes=pack_vector(obj.vector)
+                if obj.vector is not None and isinstance(obj.vector, Sequence)
+                else None,
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=(
                     self.__translate_properties_from_python_to_grpc(

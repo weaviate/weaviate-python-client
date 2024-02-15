@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Generic, List, Optional, Union
 from typing_extensions import TypeVar, TypeAlias
-from weaviate.types import BEACON, UUID
+from weaviate.types import BEACON, UUID, VECTORS
 
 import uuid as uuid_package
 
@@ -32,7 +32,7 @@ class DataObject(Generic[P, R]):
 
     properties: P = None  # type: ignore
     uuid: Optional[UUID] = None
-    vector: Optional[List[float]] = None
+    vector: Optional[VECTORS] = None
     references: R = None  # type: ignore
     # R is clearly bounded to Optional[Any] and defaults to None but mypy doesn't seem to understand that
     # throws error: Incompatible types in assignment (expression has type "None", variable has type "R")  [assignment]

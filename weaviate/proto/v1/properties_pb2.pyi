@@ -13,10 +13,10 @@ from typing import (
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class Properties(_message.Message):
-    __slots__ = ["fields"]
+    __slots__ = ("fields",)
 
     class FieldsEntry(_message.Message):
-        __slots__ = ["key", "value"]
+        __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
@@ -29,7 +29,7 @@ class Properties(_message.Message):
     def __init__(self, fields: _Optional[_Mapping[str, Value]] = ...) -> None: ...
 
 class Value(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "number_value",
         "string_value",
         "bool_value",
@@ -42,7 +42,7 @@ class Value(_message.Message):
         "blob_value",
         "phone_value",
         "null_value",
-    ]
+    )
     NUMBER_VALUE_FIELD_NUMBER: _ClassVar[int]
     STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
     BOOL_VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -84,13 +84,13 @@ class Value(_message.Message):
     ) -> None: ...
 
 class ListValue(_message.Message):
-    __slots__ = ["values"]
+    __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedCompositeFieldContainer[Value]
     def __init__(self, values: _Optional[_Iterable[_Union[Value, _Mapping]]] = ...) -> None: ...
 
 class GeoCoordinate(_message.Message):
-    __slots__ = ["longitude", "latitude"]
+    __slots__ = ("longitude", "latitude")
     LONGITUDE_FIELD_NUMBER: _ClassVar[int]
     LATITUDE_FIELD_NUMBER: _ClassVar[int]
     longitude: float
@@ -100,7 +100,7 @@ class GeoCoordinate(_message.Message):
     ) -> None: ...
 
 class PhoneNumber(_message.Message):
-    __slots__ = [
+    __slots__ = (
         "country_code",
         "default_country",
         "input",
@@ -108,7 +108,7 @@ class PhoneNumber(_message.Message):
         "national",
         "national_formatted",
         "valid",
-    ]
+    )
     COUNTRY_CODE_FIELD_NUMBER: _ClassVar[int]
     DEFAULT_COUNTRY_FIELD_NUMBER: _ClassVar[int]
     INPUT_FIELD_NUMBER: _ClassVar[int]
