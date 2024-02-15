@@ -463,7 +463,9 @@ def test_group_by(client: weaviate.Client, people_schema):
         client.data_object.create({"name": "randomName" + str(i)}, "Person", persons[-1])
 
     client.data_object.create({}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9623")
-    client.data_object.create({}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9622")
+    client.data_object.create(
+        {"start": "2024-02-15T00:00:00Z"}, "Call", "3ab05e06-2bb2-41d1-b5c5-e044f3aa9622"
+    )
 
     # create refs
     for i in range(5):
@@ -487,7 +489,7 @@ def test_group_by(client: weaviate.Client, people_schema):
 
     # will find more results. "The Crusty Crab" is still first, because it matches with the BM25 search
     assert len(result["data"]["Get"]["Call"]) >= 1
-    assert result["data"]["Get"]["Call"][0]["caller"][0]["name"] == "randomName0"
+    assert result["data"]["Get"]["Call"][0]["caller"][0]["name"] == "randomName1"
 
 
 @pytest.mark.parametrize(
