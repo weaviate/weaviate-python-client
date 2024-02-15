@@ -18,7 +18,6 @@ from requests.exceptions import ConnectionError as RequestsConnectionError, Read
 from requests.exceptions import HTTPError as RequestsHTTPError
 from requests.exceptions import JSONDecodeError
 
-from weaviate import __version__ as client_version
 from weaviate.auth import AuthCredentials, AuthClientCredentials, AuthApiKey
 from weaviate.config import ConnectionConfig
 from weaviate.connect.authentication import _Auth
@@ -32,8 +31,6 @@ from weaviate.util import (
     _check_positive_num,
     is_weaviate_domain,
     is_weaviate_too_old,
-    is_weaviate_client_too_old,
-    PYPI_PACKAGE_URL,
     _decode_json_response_dict,
 )
 from weaviate.warnings import _Warnings
@@ -173,15 +170,6 @@ class Connection:
             _Warnings.weaviate_server_older_than_1_14(self._server_version)
         if is_weaviate_too_old(self._server_version):
             _Warnings.weaviate_too_old_vs_latest(self._server_version)
-
-        try:
-            pkg_info = requests.get(PYPI_PACKAGE_URL, timeout=INIT_CHECK_TIMEOUT).json()
-            pkg_info = pkg_info.get("info", {})
-            latest_version = pkg_info.get("version", "unknown version")
-            if is_weaviate_client_too_old(client_version, latest_version):
-                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except requests.exceptions.RequestException:
-            pass  # ignore any errors related to requests, it is a best-effort warning
 
     def _create_sessions(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a async httpx session and a sync request session.
