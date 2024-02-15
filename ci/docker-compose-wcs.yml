@@ -29,4 +29,5 @@ services:
       AUTHENTICATION_APIKEY_ENABLED: 'true'
       AUTHENTICATION_APIKEY_ALLOWED_KEYS: 'my-secret-key'
       AUTHENTICATION_APIKEY_USERS: 'ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net'
+      DISABLE_TELEMETRY: 'true'
 ...

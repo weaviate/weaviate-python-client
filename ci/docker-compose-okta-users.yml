@@ -25,4 +25,5 @@ services:
       AUTHORIZATION_ADMINLIST_ENABLED: 'true'
       AUTHORIZATION_ADMINLIST_USERS: 'test@test.de'
       AUTHENTICATION_OIDC_SCOPES: 'openid,email'
+      DISABLE_TELEMETRY: 'true'
 ...
