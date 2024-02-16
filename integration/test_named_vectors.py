@@ -231,7 +231,7 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
     assert config.vector_config is not None
     assert "title" in config.vector_config
     assert config.vector_config["title"].vectorizer.vectorizer == Vectorizers.TEXT2VEC_CONTEXTIONARY
-    assert config.vector_config["title"].vectorizer.properties == ["title"]
+    assert config.vector_config["title"].vectorizer.source_properties == ["title"]
     assert config.vector_config["title"].vectorizer.model == {"vectorizeClassName": False}
     assert config.vector_config["title"].vector_index_config is not None and isinstance(
         config.vector_config["title"].vector_index_config, _VectorIndexConfigFlat
@@ -242,11 +242,11 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
     )
     assert "custom" in config.vector_config
     assert config.vector_config["custom"].vectorizer.vectorizer == Vectorizers.NONE
-    assert config.vector_config["custom"].vectorizer.properties is None
+    assert config.vector_config["custom"].vectorizer.source_properties is None
     assert config.vector_config["custom"].vectorizer.model == {}
     assert "default" in config.vector_config
     assert (
         config.vector_config["default"].vectorizer.vectorizer == Vectorizers.TEXT2VEC_CONTEXTIONARY
     )
-    assert config.vector_config["default"].vectorizer.properties is None
+    assert config.vector_config["default"].vectorizer.source_properties is None
     assert config.vector_config["default"].vectorizer.model == {"vectorizeClassName": False}

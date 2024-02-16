@@ -1073,7 +1073,7 @@ RerankerConfig = _RerankerConfig
 class _NamedVectorizerConfig(_ConfigBase):
     vectorizer: Vectorizers
     model: Dict[str, Any]
-    properties: Optional[List[str]] = Field(default=None, min_length=1)
+    source_properties: Optional[List[str]] = Field(default=None, min_length=1)
 
 
 @dataclass

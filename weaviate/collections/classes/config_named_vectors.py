@@ -34,7 +34,7 @@ from weaviate.collections.classes.config_vector_index import (
 
 class _NamedVectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Vectorizers
-    source_properties: Optional[List[str]] = Field(default=None, min_length=1)
+    properties: Optional[List[str]] = Field(default=None, min_length=1, alias="source_properties")
 
     def _to_dict(self) -> Dict[str, Any]:
         return self._to_vectorizer_dict(self.vectorizer, super()._to_dict())

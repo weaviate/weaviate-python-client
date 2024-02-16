@@ -156,7 +156,7 @@ def __get_vector_config(
                 vectorizer=_NamedVectorizerConfig(
                     vectorizer=Vectorizers(vectorizer_str),
                     model=vec_config,
-                    properties=props,
+                    source_properties=props,
                 ),
                 vector_index_config=__get_vector_index_config(named_vector),
             )
