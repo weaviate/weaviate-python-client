@@ -4,6 +4,8 @@ from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
+    _NamedVectorConfig,
+    _NamedVectorizerConfig,
     _PQConfig,
     _VectorIndexConfigFlat,
     _InvertedIndexConfig,
@@ -71,16 +73,45 @@ def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfi
 
 
 def __get_vectorizer_config(schema: Dict[str, Any]) -> Optional[_VectorizerConfig]:
-    if schema["vectorizer"] != "none":
-        vec_config: Optional[Dict[str, Any]] = schema["moduleConfig"].pop(
-            schema["vectorizer"], None
-        )
-        assert vec_config is not None
+    if __get_vectorizer(schema) is not None and schema["vectorizer"] != "none":
+        vec_config: Dict[str, Any] = schema["moduleConfig"].pop(schema["vectorizer"])
         return _VectorizerConfig(
             vectorize_collection_name=vec_config.pop("vectorizeClassName", False),
             model=vec_config,
             vectorizer=Vectorizers(schema["vectorizer"]),
         )
+    else:
+        return None
+
+
+def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Vectorizers]:
+    # ignore single vectorizer config if named vectors are present
+    if "vectorConfig" in schema:
+        return None
+    return Vectorizers(schema.get("vectorizer"))
+
+
+def __get_vector_config(schema: Dict[str, Any]) -> Optional[Dict[str, _NamedVectorConfig]]:
+    if "vectorConfig" in schema:
+        named_vectors: Dict[str, _NamedVectorConfig] = {}
+        for name in schema["vectorConfig"]:
+            named_vector = schema["vectorConfig"][name]
+
+            vectorizer = named_vector["vectorizer"].keys()
+            assert len(vectorizer) == 1
+
+            vectorizer_str: str = str(list(vectorizer)[0])
+            vec_config: Dict[str, Any] = named_vector["vectorizer"][vectorizer_str]
+            props = vec_config.pop("properties", None)
+            named_vectors[name] = _NamedVectorConfig(
+                vectorizer_config=_NamedVectorizerConfig(
+                    vectorizer=Vectorizers(vectorizer_str),
+                    model=vec_config,
+                    properties=props,
+                ),
+                vectorIndexConfig=None,
+            )
+        return named_vectors
     else:
         return None
 
@@ -94,7 +125,8 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
         reranker_config=__get_rerank_config(schema),
         vectorizer_config=__get_vectorizer_config(schema),
-        vectorizer=Vectorizers(schema["vectorizer"]),
+        vectorizer=__get_vectorizer(schema),
+        vector_config=__get_vector_config(schema),
     )
 
 
@@ -172,22 +204,25 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
         replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
         reranker_config=__get_rerank_config(schema),
-        sharding_config=None
-        if schema["multiTenancyConfig"]["enabled"]
-        else _ShardingConfig(
-            virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
-            desired_count=schema["shardingConfig"]["desiredCount"],
-            actual_count=schema["shardingConfig"]["actualCount"],
-            desired_virtual_count=schema["shardingConfig"]["desiredVirtualCount"],
-            actual_virtual_count=schema["shardingConfig"]["actualVirtualCount"],
-            key=schema["shardingConfig"]["key"],
-            strategy=schema["shardingConfig"]["strategy"],
-            function=schema["shardingConfig"]["function"],
+        sharding_config=(
+            None
+            if schema["multiTenancyConfig"]["enabled"]
+            else _ShardingConfig(
+                virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
+                desired_count=schema["shardingConfig"]["desiredCount"],
+                actual_count=schema["shardingConfig"]["actualCount"],
+                desired_virtual_count=schema["shardingConfig"]["desiredVirtualCount"],
+                actual_virtual_count=schema["shardingConfig"]["actualVirtualCount"],
+                key=schema["shardingConfig"]["key"],
+                strategy=schema["shardingConfig"]["strategy"],
+                function=schema["shardingConfig"]["function"],
+            )
         ),
         vector_index_config=vector_index_config,
         vector_index_type=VectorIndexType(schema["vectorIndexType"]),
         vectorizer_config=__get_vectorizer_config(schema),
-        vectorizer=Vectorizers(schema["vectorizer"]),
+        vectorizer=__get_vectorizer(schema),
+        vector_config=__get_vector_config(schema),
     )
 
 

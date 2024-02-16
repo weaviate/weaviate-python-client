@@ -23,11 +23,16 @@ from weaviate.collections.classes.config_vectorizers import (
     _VectorizerConfigCreate,
     CohereModel,
     Vectorizers as VectorizersAlias,
+    VectorDistances as VectorDistancesAlias,
 )
 
-from weaviate.collections.classes.config_base import _ConfigCreateModel
+from weaviate.collections.classes.config_base import _ConfigBase, _ConfigCreateModel
 
-from weaviate.collections.classes.config_vector_index import VectorIndexType as VectorIndexTypeAlias
+from weaviate.collections.classes.config_vector_index import (
+    _QuantizerConfigCreate,
+    _VectorIndexConfigCreate,
+    VectorIndexType as VectorIndexTypeAlias,
+)
 
 from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorConfigCreate,
@@ -37,6 +42,7 @@ from weaviate.collections.classes.config_named_vectors import (
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
 VectorIndexType: TypeAlias = VectorIndexTypeAlias
+VectorDistances: TypeAlias = VectorDistancesAlias
 
 
 class ConsistencyLevel(str, Enum):
@@ -159,32 +165,6 @@ class Rerankers(str, Enum):
     TRANSFORMERS = "reranker-transformers"
 
 
-class VectorDistances(str, Enum):
-    """Vector similarity distance metric to be used in the `VectorIndexConfig` class.
-
-    To ensure optimal search results, we recommend reviewing whether your model provider advises a
-    specific distance metric and following their advice.
-
-    Attributes:
-        `COSINE`
-            Cosine distance: [reference](https://en.wikipedia.org/wiki/Cosine_similarity)
-        `DOT`
-            Dot distance: [reference](https://en.wikipedia.org/wiki/Dot_product)
-        `L2_SQUARED`
-            L2 squared distance: [reference](https://en.wikipedia.org/wiki/Euclidean_distance)
-        `HAMMING`
-            Hamming distance: [reference](https://en.wikipedia.org/wiki/Hamming_distance)
-        `MANHATTAN`
-            Manhattan distance: [reference](https://en.wikipedia.org/wiki/Taxicab_geometry)
-    """
-
-    COSINE = "cosine"
-    DOT = "dot"
-    L2_SQUARED = "l2-squared"
-    HAMMING = "hamming"
-    MANHATTAN = "manhattan"
-
-
 class StopwordsPreset(str, Enum):
     """Preset stopwords to use in the `Stopwords` class.
 
@@ -268,15 +248,6 @@ class _PQEncoderConfigUpdate(_ConfigUpdateModel):
         return schema
 
 
-class _QuantizerConfigCreate(_ConfigCreateModel):
-    enabled: bool = Field(default=True)
-
-    @staticmethod
-    @abstractmethod
-    def quantizer_name() -> str:
-        ...
-
-
 class _PQConfigCreate(_QuantizerConfigCreate):
     bitCompression: Optional[bool]
     centroids: Optional[int]
@@ -324,26 +295,6 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
     @staticmethod
     def quantizer_name() -> str:
         return "bq"
-
-
-class _VectorIndexConfigCreate(_ConfigCreateModel):
-    distance: Optional[VectorDistances]
-    vectorCacheMaxObjects: Optional[int]
-    quantizer: Optional[_QuantizerConfigCreate] = Field(exclude=True)
-
-    @staticmethod
-    @abstractmethod
-    def vector_index_type() -> VectorIndexType:
-        ...
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        if self.quantizer is not None:
-            ret_dict[self.quantizer.quantizer_name()] = self.quantizer._to_dict()
-        if self.distance is not None:
-            ret_dict["distance"] = str(self.distance.value)
-
-        return ret_dict
 
 
 class _VectorIndexSkipConfigCreate(_VectorIndexConfigCreate):
@@ -859,22 +810,6 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
 
 
 @dataclass
-class _ConfigBase:
-    def to_dict(self) -> dict:
-        out = {}
-        for k, v in self.__dict__.items():
-            words = k.split("_")
-            key = words[0].lower() + "".join(word.title() for word in words[1:])
-            if v is None:
-                continue
-            if isinstance(v, Enum):
-                out[key] = v.value
-                continue
-            out[key] = v.to_dict() if isinstance(v, _ConfigBase) else v
-        return out
-
-
-@dataclass
 class _BM25Config(_ConfigBase):
     b: float
     k1: float
@@ -1126,6 +1061,22 @@ RerankerConfig = _RerankerConfig
 
 
 @dataclass
+class _NamedVectorizerConfig(_ConfigBase):
+    vectorizer: Vectorizers
+    model: Dict[str, Any]
+    properties: Optional[List[str]] = Field(default=None, min_length=1)
+
+
+@dataclass
+class _NamedVectorConfig(_ConfigBase):
+    vectorizer_config: _NamedVectorizerConfig
+    vectorIndexConfig: Optional[Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]]
+
+
+NamedVectorConfig = _NamedVectorConfig
+
+
+@dataclass
 class _CollectionConfig(_ConfigBase):
     name: str
     description: Optional[str]
@@ -1140,7 +1091,8 @@ class _CollectionConfig(_ConfigBase):
     vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]
     vector_index_type: VectorIndexType
     vectorizer_config: Optional[VectorizerConfig]
-    vectorizer: Vectorizers
+    vectorizer: Optional[Vectorizers]
+    vector_config: Optional[Dict[str, _NamedVectorConfig]]
 
     def to_dict(self) -> dict:
         out = super().to_dict()
@@ -1181,7 +1133,8 @@ class _CollectionConfigSimple(_ConfigBase):
     references: List[ReferencePropertyConfig]
     reranker_config: Optional[RerankerConfig]
     vectorizer_config: Optional[VectorizerConfig]
-    vectorizer: Vectorizers
+    vectorizer: Optional[Vectorizers]
+    vector_config: Optional[Dict[str, _NamedVectorConfig]]
 
 
 CollectionConfigSimple = _CollectionConfigSimple

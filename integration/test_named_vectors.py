@@ -6,6 +6,8 @@ import weaviate.classes as wvc
 
 from weaviate.collections.classes.data import DataObject
 
+from weaviate.collections.classes.config import Vectorizers
+
 
 @pytest.mark.parametrize(
     "include_vector",
@@ -192,3 +194,54 @@ def test_batch_add(collection_factory: CollectionFactory) -> None:
     obj = collection.query.fetch_object_by_id(uuid1, include_vector=["title", "bringYourOwn"])
     assert obj.vector["title"] is not None
     # assert obj.vector["bringYourOwn"] == [0.5, 0.25, 0.75]
+
+
+def test_named_vector_with_index_config(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="second", data_type=wvc.config.DataType.TEXT),
+        ],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                "title",
+                properties=["title"],
+                vectorize_collection_name=False,
+                vector_index_config=wvc.config.Configure.VectorIndex.flat(
+                    distance_metric=wvc.config.VectorDistances.DOT,
+                    quantizer=wvc.config.Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
+                ),
+            ),
+            wvc.config.Configure.NamedVectors.none(
+                "custom",
+            ),
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                "default",
+                vectorize_collection_name=False,  # needed as contextionary cant handle "_"
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+
+    assert config.vectorizer_config is None
+    assert config.vectorizer is None
+    assert config.vector_config is not None
+    assert "title" in config.vector_config
+    assert (
+        config.vector_config["title"].vectorizer_config.vectorizer
+        == Vectorizers.TEXT2VEC_CONTEXTIONARY
+    )
+    assert config.vector_config["title"].vectorizer_config.properties == ["title"]
+    assert config.vector_config["title"].vectorizer_config.model == {"vectorizeClassName": False}
+    assert "custom" in config.vector_config
+    assert config.vector_config["custom"].vectorizer_config.vectorizer == Vectorizers.NONE
+    assert config.vector_config["custom"].vectorizer_config.properties is None
+    assert config.vector_config["custom"].vectorizer_config.model == {}
+    assert "default" in config.vector_config
+    assert (
+        config.vector_config["default"].vectorizer_config.vectorizer
+        == Vectorizers.TEXT2VEC_CONTEXTIONARY
+    )
+    assert config.vector_config["default"].vectorizer_config.properties is None
+    assert config.vector_config["default"].vectorizer_config.model == {"vectorizeClassName": False}

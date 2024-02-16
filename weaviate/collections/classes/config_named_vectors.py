@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import AnyHttpUrl, Field
 from weaviate.collections.classes.config_vectorizers import (
@@ -27,9 +26,10 @@ from weaviate.collections.classes.config_vectorizers import (
     Vectorizers,
     _map_multi2vec_fields,
 )
-from weaviate.collections.classes.config_vector_index import VectorIndexType
-
-from weaviate.collections.classes.config import _VectorIndexConfigCreate
+from weaviate.collections.classes.config_vector_index import (
+    _VectorIndexConfigCreate,
+    VectorIndexType,
+)
 
 
 class _NamedVectorizerConfigCreate(_ConfigCreateModel):
@@ -115,14 +115,11 @@ class _NamedVectorConfigCreate(_ConfigCreateModel):
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {"vectorizer": self.vectorizer._to_dict()}
 
-        for cls_field in self.model_fields:
-            val = getattr(self, cls_field)
-            if cls_field in ["name", "vectorizer"] or val is None:  # name is key of the dictionary
-                continue
-
-            if isinstance(val, Enum):
-                ret_dict[cls_field] = str(val.value)
-            ret_dict[cls_field] = val
+        if self.vectorIndexConfig is not None:
+            ret_dict["vectorIndexType"] = self.vectorIndexConfig.vector_index_type().value
+            ret_dict["vectorIndexConfig"] = self.vectorIndexConfig._to_dict()
+        else:
+            ret_dict["vectorIndexType"] = self.vectorIndexType.value
 
         return ret_dict
 
@@ -159,7 +156,10 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_contextionary(
-        name: str, properties: Optional[List[str]] = None, vectorize_collection_name: bool = True
+        name: str,
+        properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
         """Create a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`."""
         return _NamedVectorConfigCreate(
@@ -168,6 +168,7 @@ class _NamedVectors:
                 properties=properties,
                 vectorizeClassName=vectorize_collection_name,
             ),
+            vector_index_config=vector_index_config,
         )
 
     @staticmethod

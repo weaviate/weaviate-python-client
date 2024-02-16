@@ -82,6 +82,32 @@ class Vectorizers(str, Enum):
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
+class VectorDistances(str, Enum):
+    """Vector similarity distance metric to be used in the `VectorIndexConfig` class.
+
+    To ensure optimal search results, we recommend reviewing whether your model provider advises a
+    specific distance metric and following their advice.
+
+    Attributes:
+        `COSINE`
+            Cosine distance: [reference](https://en.wikipedia.org/wiki/Cosine_similarity)
+        `DOT`
+            Dot distance: [reference](https://en.wikipedia.org/wiki/Dot_product)
+        `L2_SQUARED`
+            L2 squared distance: [reference](https://en.wikipedia.org/wiki/Euclidean_distance)
+        `HAMMING`
+            Hamming distance: [reference](https://en.wikipedia.org/wiki/Hamming_distance)
+        `MANHATTAN`
+            Manhattan distance: [reference](https://en.wikipedia.org/wiki/Taxicab_geometry)
+    """
+
+    COSINE = "cosine"
+    DOT = "dot"
+    L2_SQUARED = "l2-squared"
+    HAMMING = "hamming"
+    MANHATTAN = "manhattan"
+
+
 class _VectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Vectorizers
 
