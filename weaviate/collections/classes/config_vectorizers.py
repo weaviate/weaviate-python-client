@@ -310,7 +310,7 @@ class _Multi2VecBindConfig(_Multi2VecBase):
     videoFields: Optional[List[Multi2VecField]]
 
 
-class _Multi2VecBindConfigCreate(_Multi2VecClipConfigCreate, _Multi2VecBindConfig):
+class _Multi2VecBindConfigCreate(_Multi2VecBindConfig, _VectorizerConfigCreate):
     pass
 
 

@@ -369,7 +369,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
 
 
 @pytest.mark.parametrize("vectorizer_config,expected", TEST_CONFIG_WITH_VECTORIZER_PARAMETERS)
-def test_config_with_module(vectorizer_config: _VectorizerConfigCreate, expected: dict):
+def test_config_with_module(vectorizer_config: _VectorizerConfigCreate, expected: dict) -> None:
     config = _CollectionConfigCreate(name="test", vectorizer_config=vectorizer_config)
     assert config._to_dict() == {
         **DEFAULTS,
