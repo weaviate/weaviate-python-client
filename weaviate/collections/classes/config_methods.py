@@ -153,12 +153,12 @@ def __get_vector_config(
             vec_config: Dict[str, Any] = named_vector["vectorizer"][vectorizer_str]
             props = vec_config.pop("properties", None)
             named_vectors[name] = _NamedVectorConfig(
-                vectorizer_config=_NamedVectorizerConfig(
+                vectorizer=_NamedVectorizerConfig(
                     vectorizer=Vectorizers(vectorizer_str),
                     model=vec_config,
                     properties=props,
                 ),
-                vector_index_config=__get_vector_index_config(named_vector) if not simple else None,
+                vector_index_config=__get_vector_index_config(named_vector),
             )
         return named_vectors
     else:

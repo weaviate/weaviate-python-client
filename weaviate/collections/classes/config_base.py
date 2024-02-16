@@ -23,5 +23,10 @@ class _ConfigBase:
             if isinstance(v, Enum):
                 out[key] = v.value
                 continue
+            if isinstance(v, dict):
+                out[key] = {
+                    k: v.to_dict() if isinstance(v, _ConfigBase) else v for k, v in v.items()
+                }
+                continue
             out[key] = v.to_dict() if isinstance(v, _ConfigBase) else v
         return out

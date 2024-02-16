@@ -219,7 +219,7 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
             ),
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 "default",
-                vectorize_collection_name=False,  # needed as contextionary cant handle "_"
+                vectorize_collection_name=False,  # needed as contextionary cant handle "_" in collection names
             ),
         ],
     )
@@ -230,12 +230,9 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
     assert config.vectorizer is None
     assert config.vector_config is not None
     assert "title" in config.vector_config
-    assert (
-        config.vector_config["title"].vectorizer_config.vectorizer
-        == Vectorizers.TEXT2VEC_CONTEXTIONARY
-    )
-    assert config.vector_config["title"].vectorizer_config.properties == ["title"]
-    assert config.vector_config["title"].vectorizer_config.model == {"vectorizeClassName": False}
+    assert config.vector_config["title"].vectorizer.vectorizer == Vectorizers.TEXT2VEC_CONTEXTIONARY
+    assert config.vector_config["title"].vectorizer.properties == ["title"]
+    assert config.vector_config["title"].vectorizer.model == {"vectorizeClassName": False}
     assert config.vector_config["title"].vector_index_config is not None and isinstance(
         config.vector_config["title"].vector_index_config, _VectorIndexConfigFlat
     )
@@ -244,13 +241,12 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
         == wvc.config.VectorDistances.HAMMING
     )
     assert "custom" in config.vector_config
-    assert config.vector_config["custom"].vectorizer_config.vectorizer == Vectorizers.NONE
-    assert config.vector_config["custom"].vectorizer_config.properties is None
-    assert config.vector_config["custom"].vectorizer_config.model == {}
+    assert config.vector_config["custom"].vectorizer.vectorizer == Vectorizers.NONE
+    assert config.vector_config["custom"].vectorizer.properties is None
+    assert config.vector_config["custom"].vectorizer.model == {}
     assert "default" in config.vector_config
     assert (
-        config.vector_config["default"].vectorizer_config.vectorizer
-        == Vectorizers.TEXT2VEC_CONTEXTIONARY
+        config.vector_config["default"].vectorizer.vectorizer == Vectorizers.TEXT2VEC_CONTEXTIONARY
     )
-    assert config.vector_config["default"].vectorizer_config.properties is None
-    assert config.vector_config["default"].vectorizer_config.model == {"vectorizeClassName": False}
+    assert config.vector_config["default"].vectorizer.properties is None
+    assert config.vector_config["default"].vectorizer.model == {"vectorizeClassName": False}

@@ -264,6 +264,42 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
     assert not client.collections.exists(name2)
 
 
+def test_create_export_and_recreate_named_vectors(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
+    name1 = request.node.name
+    name2 = request.node.name + "2"
+    client.collections.delete([name1, name2])
+
+    col = client.collections.create(
+        name=name1,
+        properties=[
+            Property(
+                name="name",
+                data_type=DataType.TEXT,
+                vectorize_property_name=True,
+            ),
+        ],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary(
+                "name",
+                source_properties=["name"],
+                vectorize_collection_name=False,
+            ),
+            Configure.NamedVectors.none("custom", vector_index_config=Configure.VectorIndex.flat()),
+        ],
+    )
+    conf = col.config.get()
+    conf.name = name2
+
+    col2 = client.collections.create_from_config(conf)
+
+    conf2 = col2.config.get()
+    assert conf2.vector_config == conf.vector_config
+
+    client.collections.delete([name1, name2])
+
+
 def test_collection_name_capitalization(
     client: weaviate.WeaviateClient, request: SubRequest
 ) -> None:

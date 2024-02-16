@@ -1019,6 +1019,10 @@ class _VectorIndexConfigHNSW(_VectorIndexConfig):
     skip: bool
     vector_cache_max_objects: int
 
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.HNSW.value
+
 
 VectorIndexConfigHNSW = _VectorIndexConfigHNSW
 
@@ -1027,6 +1031,10 @@ VectorIndexConfigHNSW = _VectorIndexConfigHNSW
 class _VectorIndexConfigFlat(_VectorIndexConfig):
     distance_metric: VectorDistances
     vector_cache_max_objects: int
+
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.FLAT.value
 
 
 VectorIndexConfigFlat = _VectorIndexConfigFlat
@@ -1069,8 +1077,13 @@ class _NamedVectorizerConfig(_ConfigBase):
 
 @dataclass
 class _NamedVectorConfig(_ConfigBase):
-    vectorizer_config: _NamedVectorizerConfig
-    vector_index_config: Optional[Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]]
+    vectorizer: _NamedVectorizerConfig
+    vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]
+
+    def to_dict(self) -> Dict:
+        ret_dict = super().to_dict()
+        ret_dict["vectorIndexType"] = self.vector_index_config.vector_index_type()
+        return ret_dict
 
 
 NamedVectorConfig = _NamedVectorConfig
@@ -1112,6 +1125,16 @@ class _CollectionConfig(_ConfigBase):
             vectorize_collection_name = val.get("vectorizeCollectionName", None)
             if vectorize_collection_name is not None:
                 out["moduleConfig"][module_name]["vectorizeClassName"] = vectorize_collection_name
+
+        if "vectorConfig" in out:
+            for k, v in out["vectorConfig"].items():
+                extra_values = v["vectorizer"].pop("model", {})
+                vectorizer = v["vectorizer"].pop("vectorizer")
+                out["vectorConfig"][k]["vectorizer"] = {vectorizer: extra_values}
+
+            # remove default values for single vector setup
+            out.pop("vectorIndexType")
+            out.pop("vectorIndexConfig")
 
         out["properties"] = [
             *[prop.to_dict() for prop in self.properties],
