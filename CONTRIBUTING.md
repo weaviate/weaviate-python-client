@@ -47,10 +47,10 @@ There are three kinds of tests:
 To run the integration tests,
 
 1. Ensure that you have Docker installed.
-2. Start the weaviate instances.
+2. Start the weaviate instances, changing `WEAVIATE_VERSION` to your weaviate docker image target
 
 ```shell
-./ci/start_weaviate.sh
+./ci/start_weaviate.sh WEAVIATE_VERSION
 ```
 
 3. Run the tests.
