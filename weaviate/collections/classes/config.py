@@ -10,10 +10,11 @@ from typing import (
     Optional,
     Sequence,
     Type,
-    TypeAlias,
     TypeVar,
     Union,
 )
+
+from typing_extensions import TypeAlias
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 

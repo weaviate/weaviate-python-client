@@ -6,15 +6,15 @@ from pydantic import ValidationError
 from weaviate.collections.classes.config import (
     _CollectionConfigCreate,
     DataType,
-    Multi2VecField,
     _GenerativeConfigCreate,
     _RerankerConfigCreate,
     _VectorizerConfigCreate,
     Configure,
     Property,
     ReferenceProperty,
-    VectorDistances,
 )
+
+from weaviate.collections.classes.config_vectorizers import Multi2VecField, VectorDistances
 
 DEFAULTS = {
     "vectorizer": "none",
