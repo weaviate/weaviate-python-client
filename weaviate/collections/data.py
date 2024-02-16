@@ -347,6 +347,9 @@ class _DataCollection(Generic[Properties], _Data):
                 The UUID of the object. If not provided, a random UUID will be generated.
             `vector`
                 The vector of the object.
+                Supported types are
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
 
         Returns:
             `uuid.UUID`, the UUID of the inserted object.

@@ -26,16 +26,18 @@ def test_create_named_vectors(
         ],
         vectorizer_config=[
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "title", properties=["title"], vectorize_collection_name=False
+                "title", source_properties=["title"], vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                name="content", properties=["content"], vectorize_collection_name=False
+                name="content", source_properties=["content"], vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 name="All", vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                name="AllExplizit", properties=["title", "content"], vectorize_collection_name=False
+                name="AllExplizit",
+                source_properties=["title", "content"],
+                vectorize_collection_name=False,
             ),
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn2"),
@@ -76,7 +78,7 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=[
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "title", properties=["title"], vectorize_collection_name=False
+                "title", source_properties=["title"], vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
         ],
@@ -105,10 +107,10 @@ def test_query(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=[
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "title", properties=["title"], vectorize_collection_name=False
+                "title", source_properties=["title"], vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                name="content", properties=["content"], vectorize_collection_name=False
+                name="content", source_properties=["content"], vectorize_collection_name=False
             ),
         ],
     )
@@ -132,10 +134,10 @@ def test_generate(openai_collection: OpenAICollection) -> None:
     collection = openai_collection(
         vectorizer_config=[
             wvc.config.Configure.NamedVectors.text2vec_openai(
-                "text", properties=["text"], vectorize_collection_name=False
+                "text", source_properties=["text"], vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.text2vec_openai(
-                name="content", properties=["content"], vectorize_collection_name=False
+                name="content", source_properties=["content"], vectorize_collection_name=False
             ),
         ],
     )
@@ -177,7 +179,7 @@ def test_batch_add(collection_factory: CollectionFactory) -> None:
         ],
         vectorizer_config=[
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                "title", properties=["title"], vectorize_collection_name=False
+                "title", source_properties=["title"], vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
         ],
@@ -205,7 +207,7 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
         vectorizer_config=[
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 "title",
-                properties=["title"],
+                source_properties=["title"],
                 vectorize_collection_name=False,
                 vector_index_config=wvc.config.Configure.VectorIndex.flat(
                     distance_metric=wvc.config.VectorDistances.HAMMING,
