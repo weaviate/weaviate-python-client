@@ -97,11 +97,15 @@ class _Text2VecContextionaryCreate(_Text2VecContextionaryConfig, _VectorizerConf
     pass
 
 
-class _Text2VecAWSConfig(_VectorizerConfigCreate):
+class _Text2VecAWSConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_AWS, frozen=True, exclude=True)
     model: str
     region: str
     vectorizeClassName: bool
+
+
+class _Text2VecAWSConfigCreate(_Text2VecAWSConfig, _VectorizerConfigCreate):
+    pass
 
 
 class _Text2VecAzureOpenAIConfig(_ConfigCreateModel):
@@ -226,9 +230,13 @@ class _Text2VecJinaConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-class _Img2VecNeuralConfig(_VectorizerConfigCreate):
+class _Img2VecNeuralConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(default=Vectorizers.IMG2VEC_NEURAL, frozen=True, exclude=True)
     imageFields: List[str]
+
+
+class _Img2VecNeuralConfigCreate(_Img2VecNeuralConfig, _VectorizerConfigCreate):
+    pass
 
 
 class Multi2VecField(BaseModel):
@@ -238,7 +246,7 @@ class Multi2VecField(BaseModel):
     weight: Optional[float] = Field(default=None, exclude=True)
 
 
-class _Multi2VecBase(_VectorizerConfigCreate):
+class _Multi2VecBase(_ConfigCreateModel):
     imageFields: Optional[List[Multi2VecField]]
     textFields: Optional[List[Multi2VecField]]
     vectorizeClassName: bool
@@ -263,6 +271,10 @@ class _Multi2VecClipConfig(_Multi2VecBase):
     vectorizer: Vectorizers = Field(default=Vectorizers.MULTI2VEC_CLIP, frozen=True, exclude=True)
 
 
+class _Multi2VecClipConfigCreate(_Multi2VecClipConfig, _VectorizerConfigCreate):
+    pass
+
+
 class _Multi2VecBindConfig(_Multi2VecBase):
     vectorizer: Vectorizers = Field(default=Vectorizers.MULTI2VEC_BIND, frozen=True, exclude=True)
     audioFields: Optional[List[Multi2VecField]]
@@ -272,10 +284,18 @@ class _Multi2VecBindConfig(_Multi2VecBase):
     videoFields: Optional[List[Multi2VecField]]
 
 
-class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
+class _Multi2VecBindConfigCreate(_Multi2VecClipConfigCreate, _Multi2VecBindConfig):
+    pass
+
+
+class _Ref2VecCentroidConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(default=Vectorizers.REF2VEC_CENTROID, frozen=True, exclude=True)
     referenceProperties: List[str]
     method: Literal["mean"]
+
+
+class _Ref2VecCentroidConfigCreate(_Ref2VecCentroidConfig, _VectorizerConfigCreate):
+    pass
 
 
 def _map_multi2vec_fields(
@@ -315,7 +335,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `image_fields` is not a `list`.
         """
-        return _Img2VecNeuralConfig(imageFields=image_fields)
+        return _Img2VecNeuralConfigCreate(imageFields=image_fields)
 
     @staticmethod
     def multi2vec_clip(
@@ -339,7 +359,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `image_fields` or `text_fields` are not `None` or a `list`.
         """
-        return _Multi2VecClipConfig(
+        return _Multi2VecClipConfigCreate(
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             vectorizeClassName=vectorize_collection_name,
@@ -382,7 +402,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if any of the `*_fields` are not `None` or a `list`.
         """
-        return _Multi2VecBindConfig(
+        return _Multi2VecBindConfigCreate(
             audioFields=_map_multi2vec_fields(audio_fields),
             depthFields=_map_multi2vec_fields(depth_fields),
             imageFields=_map_multi2vec_fields(image_fields),
@@ -412,7 +432,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `reference_properties` is not a `list`.
         """
-        return _Ref2VecCentroidConfig(
+        return _Ref2VecCentroidConfigCreate(
             referenceProperties=reference_properties,
             method=method,
         )
@@ -436,7 +456,7 @@ class _Vectorizer:
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _Text2VecAWSConfig(
+        return _Text2VecAWSConfigCreate(
             model=model, region=region, vectorizeClassName=vectorize_collection_name
         )
 

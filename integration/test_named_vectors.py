@@ -23,16 +23,16 @@ def test_create_named_vectors(
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contectionary(
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 "title", properties=["title"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contectionary(
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 name="content", properties=["content"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contectionary(
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 name="All", vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contectionary(
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 name="AllExplizit", properties=["title", "content"], vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
@@ -73,7 +73,7 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contectionary(
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 "title", properties=["title"], vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
@@ -102,10 +102,10 @@ def test_query(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contectionary(
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 "title", properties=["title"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.text2vec_contectionary(
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 name="content", properties=["content"], vectorize_collection_name=False
             ),
         ],
@@ -174,7 +174,7 @@ def test_batch_add(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.text2vec_contectionary(
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 "title", properties=["title"], vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
