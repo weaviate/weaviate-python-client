@@ -6,7 +6,7 @@ import weaviate.classes as wvc
 
 from weaviate.collections.classes.data import DataObject
 
-from weaviate.collections.classes.config import Vectorizers
+from weaviate.collections.classes.config import _VectorIndexConfigFlat, Vectorizers
 
 
 @pytest.mark.parametrize(
@@ -208,7 +208,7 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
                 properties=["title"],
                 vectorize_collection_name=False,
                 vector_index_config=wvc.config.Configure.VectorIndex.flat(
-                    distance_metric=wvc.config.VectorDistances.DOT,
+                    distance_metric=wvc.config.VectorDistances.HAMMING,
                     quantizer=wvc.config.Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
                 ),
             ),
@@ -234,6 +234,13 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
     )
     assert config.vector_config["title"].vectorizer_config.properties == ["title"]
     assert config.vector_config["title"].vectorizer_config.model == {"vectorizeClassName": False}
+    assert config.vector_config["title"].vector_index_config is not None and isinstance(
+        config.vector_config["title"].vector_index_config, _VectorIndexConfigFlat
+    )
+    assert (
+        config.vector_config["title"].vector_index_config.distance_metric
+        == wvc.config.VectorDistances.HAMMING
+    )
     assert "custom" in config.vector_config
     assert config.vector_config["custom"].vectorizer_config.vectorizer == Vectorizers.NONE
     assert config.vector_config["custom"].vectorizer_config.properties is None

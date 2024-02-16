@@ -1070,7 +1070,7 @@ class _NamedVectorizerConfig(_ConfigBase):
 @dataclass
 class _NamedVectorConfig(_ConfigBase):
     vectorizer_config: _NamedVectorizerConfig
-    vectorIndexConfig: Optional[Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]]
+    vector_index_config: Optional[Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]]
 
 
 NamedVectorConfig = _NamedVectorConfig
