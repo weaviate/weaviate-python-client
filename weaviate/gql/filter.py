@@ -232,6 +232,8 @@ class NearText(Filter):
             near_text += "}"
         if "autocorrect" in self._content:
             near_text += f' autocorrect: {_bool_to_str(self._content["autocorrect"])}'
+        if "targetVector" in self._content:
+            near_text += f' targetVectors: "{self._content["targetVector"]}"'
         return near_text + "} "
 
 
@@ -287,6 +289,8 @@ class NearVector(Filter):
             near_vector += f' certainty: {self._content["certainty"]}'
         if "distance" in self._content:
             near_vector += f' distance: {self._content["distance"]}'
+        if "targetVector" in self._content:
+            near_vector += f' targetVectors: "{self._content["targetVector"]}"'
         return near_vector + "} "
 
 
@@ -350,6 +354,8 @@ class NearObject(Filter):
             near_object += f' certainty: {self._content["certainty"]}'
         if "distance" in self._content:
             near_object += f' distance: {self._content["distance"]}'
+        if "targetVector" in self._content:
+            near_object += f' targetVectors: "{self._content["targetVector"]}"'
         return near_object + "} "
 
 
@@ -474,6 +480,8 @@ class NearMedia(Filter):
             near_media += f' certainty: {self._content["certainty"]}'
         if "distance" in self._content:
             near_media += f' distance: {self._content["distance"]}'
+        if "targetVector" in self._content:
+            near_media += f' targetVectors: "{self._content["targetVector"]}"'
         return near_media + "} "
 
 

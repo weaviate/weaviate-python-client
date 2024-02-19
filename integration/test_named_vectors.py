@@ -8,13 +8,12 @@ from weaviate.collections.classes.data import DataObject
 
 from weaviate.collections.classes.config import _VectorIndexConfigFlat, Vectorizers
 
+from weaviate.collections.classes.aggregate import AggregateInteger
+
 
 @pytest.mark.parametrize(
     "include_vector",
-    [
-        ["title", "content", "All", "AllExplizit", "bringYourOwn", "bringYourOwn2"],
-        # True
-    ],
+    [["title", "content", "All", "AllExplizit", "bringYourOwn", "bringYourOwn2"], True],
 )
 def test_create_named_vectors(
     collection_factory: CollectionFactory, include_vector: Union[List[str], bool]
@@ -250,3 +249,76 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
     )
     assert config.vector_config["default"].vectorizer.source_properties is None
     assert config.vector_config["default"].vectorizer.model == {"vectorizeClassName": False}
+
+
+def test_aggregation(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="second", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="number", data_type=wvc.config.DataType.INT),
+        ],
+        # vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_contextionary(vectorize_collection_name=False),
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                "first",
+                source_properties=["first"],
+                vectorize_collection_name=False,
+            ),
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                "second",
+                source_properties=["second"],
+                vectorize_collection_name=False,
+            ),
+        ],
+    )
+
+    collection.data.insert(
+        properties={"first": "Hello", "second": "World", "number": 1},
+    )
+
+    uuid2 = collection.data.insert(
+        properties={"first": "World", "second": "Hello", "number": 2},
+    )
+    obj2 = collection.query.fetch_object_by_id(uuid2, include_vector=["second"])
+
+    agg = collection.aggregate.near_text(
+        "Hello",
+        target_vector="first",
+        object_limit=1,
+        return_metrics=wvc.aggregate.Metrics("number").integer(),
+    )
+    assert isinstance(agg.properties["number"], AggregateInteger)
+    assert agg.properties["number"].sum_ == 1
+    assert agg.properties["number"].minimum == 1
+
+    agg = collection.aggregate.near_vector(
+        obj2.vector["second"],
+        target_vector="second",
+        object_limit=1,
+        return_metrics=wvc.aggregate.Metrics("number").integer(),
+    )
+    assert isinstance(agg.properties["number"], AggregateInteger)
+    assert agg.properties["number"].sum_ == 2
+    assert agg.properties["number"].minimum == 2
+
+    agg = collection.aggregate.near_object(
+        obj2.uuid,
+        target_vector="second",
+        object_limit=1,
+        return_metrics=wvc.aggregate.Metrics("number").integer(),
+    )
+    assert isinstance(agg.properties["number"], AggregateInteger)
+    assert agg.properties["number"].sum_ == 2
+    assert agg.properties["number"].minimum == 2
+
+    agg = collection.aggregate.near_object(
+        obj2.uuid,
+        filters=wvc.query.Filter.by_property("number").equal(1),
+        target_vector="second",
+        object_limit=1,
+        return_metrics=wvc.aggregate.Metrics("number").integer(),
+    )
+    assert isinstance(agg.properties["number"], AggregateInteger)
+    assert agg.properties["number"].sum_ == 1
+    assert agg.properties["number"].minimum == 1
