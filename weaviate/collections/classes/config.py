@@ -627,6 +627,10 @@ AWSModel = Literal[
     "cohere.embed-english-v3",
     "cohere.embed-multilingual-v3",
 ]
+AWSService = Literal[
+    "bedrock",
+    "sagemaker",
+]
 
 
 class _Generative:
@@ -856,9 +860,17 @@ class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
 
 class _Text2VecAWSConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_AWS, frozen=True, exclude=True)
-    model: str
+    model: Optional[str]
+    endpoint: Optional[str]
     region: str
+    service: str
     vectorizeClassName: bool
+
+    @field_validator("region")
+    def _check_name(cls, r: str) -> str:
+        if r == "":
+            raise ValueError("region is a required argument and must be given")
+        return r
 
 
 class _Text2VecCohereConfig(_VectorizerConfigCreate):
@@ -1182,8 +1194,10 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_aws(
-        model: Union[AWSModel, str],
-        region: str,
+        model: Optional[Union[AWSModel, str]] = None,
+        region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC - will be validated in the model
+        endpoint: Optional[str] = None,
+        service: Union[AWSService, str] = "bedrock",
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecAWSConfig` object for use when vectorizing using the `text2vec-aws` model.
@@ -1193,14 +1207,22 @@ class _Vectorizer:
 
         Arguments:
             `model`
-                The model to use, REQUIRED.
+                The model to use, REQUIRED for service "bedrock".
             `region`
                 The AWS region to run the model from, REQUIRED.
+            `endpoint`
+                The model to use, REQUIRED for service "sagemaker".
+            `service`
+                The AWS service to use, options are "bedrock" and "sagemaker".
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecAWSConfig(
-            model=model, region=region, vectorizeClassName=vectorize_collection_name
+            model=model,
+            region=region,
+            vectorizeClassName=vectorize_collection_name,
+            service=service,
+            endpoint=endpoint,
         )
 
     @staticmethod
@@ -1511,7 +1533,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
                 assert isinstance(val, _ConfigCreateModel)
                 ret_dict[cls_field] = val._to_dict()
         if self.vectorIndexConfig is None:
-            ret_dict["vectorIndexType"] = VectorIndexType.HNSW
+            ret_dict["vectorIndexType"] = VectorIndexType.HNSW.value
         return ret_dict
 
     @staticmethod

@@ -158,6 +158,39 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "vectorizeClassName": False,
                 "model": "cohere.embed-english-v3",
                 "region": "us-east-1",
+                "service": "bedrock",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_aws(
+            vectorize_collection_name=False,
+            model="cohere.embed-english-v3",
+            region="us-east-1",
+            service="bedrock",
+        ),
+        {
+            "text2vec-aws": {
+                "vectorizeClassName": False,
+                "model": "cohere.embed-english-v3",
+                "region": "us-east-1",
+                "service": "bedrock",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_aws(
+            vectorize_collection_name=False,
+            endpoint="something",
+            region="us-east-1",
+            service="sagemaker",
+        ),
+        {
+            "text2vec-aws": {
+                "vectorizeClassName": False,
+                "endpoint": "something",
+                "region": "us-east-1",
+                "service": "sagemaker",
             }
         },
     ),
