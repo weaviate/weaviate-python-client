@@ -10,6 +10,32 @@ from weaviate.collections.classes.config import _VectorIndexConfigFlat, Vectoriz
 
 from weaviate.collections.classes.aggregate import AggregateInteger
 
+from weaviate.exceptions import WeaviateInvalidInputError
+
+
+def test_create_named_vectors_throws_error_in_old_version(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory("dummy")
+    if not collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are supported in versions higher than 1.24.0")
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection_factory(
+            properties=[
+                wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
+                wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
+            ],
+            vectorizer_config=[
+                wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                    "title", source_properties=["title"], vectorize_collection_name=False
+                ),
+                wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                    name="content", source_properties=["content"], vectorize_collection_name=False
+                ),
+            ],
+        )
+
 
 @pytest.mark.parametrize(
     "include_vector",
@@ -18,6 +44,9 @@ from weaviate.collections.classes.aggregate import AggregateInteger
 def test_create_named_vectors(
     collection_factory: CollectionFactory, include_vector: Union[List[str], bool]
 ) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -70,6 +99,9 @@ def test_create_named_vectors(
 
 
 def test_insert_many_add(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -99,6 +131,9 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
 
 
 def test_query(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -130,6 +165,9 @@ def test_query(collection_factory: CollectionFactory) -> None:
 
 
 def test_generate(openai_collection: OpenAICollection) -> None:
+    collection = openai_collection("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = openai_collection(
         vectorizer_config=[
             wvc.config.Configure.NamedVectors.text2vec_openai(
@@ -171,6 +209,9 @@ def test_generate(openai_collection: OpenAICollection) -> None:
 
 
 def test_batch_add(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -198,6 +239,9 @@ def test_batch_add(collection_factory: CollectionFactory) -> None:
 
 
 def test_named_vector_with_index_config(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -252,6 +296,9 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
 
 
 def test_aggregation(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),

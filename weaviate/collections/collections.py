@@ -25,6 +25,7 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import Collection
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.util import _capitalize_first_letter
 
@@ -101,6 +102,12 @@ class _Collections(_CollectionsBase):
             `pydantic.ValidationError`
                 If the configuration object is invalid.
         """
+        if isinstance(vectorizer_config, list) and self._connection._weaviate_version.is_lower_than(
+            1, 24, 0
+        ):
+            raise WeaviateInvalidInputError(
+                "Named vectorizers are only supported in Weaviate v1.24.0 and higher"
+            )
         config = _CollectionConfigCreate(
             description=description,
             generative_config=generative_config,

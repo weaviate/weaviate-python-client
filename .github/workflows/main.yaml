@@ -14,7 +14,7 @@ on:
   pull_request:
 
 env:
-  OLD_WEAVIATE_VERSION: 1.23.7
+  OLD_WEAVIATE_VERSION: 1.23.10
   NEW_WEAVIATE_VERSION: preview--629d0f1
 
 jobs:
