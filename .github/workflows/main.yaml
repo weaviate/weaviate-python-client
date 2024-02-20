@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.10
-  NEW_WEAVIATE_VERSION: preview--629d0f1
+  NEW_WEAVIATE_VERSION: preview--6074c62
 
 jobs:
   lint-and-format:
