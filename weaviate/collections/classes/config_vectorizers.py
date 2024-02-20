@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, TypeAlias, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing_extensions import TypeAlias
 
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
