@@ -862,9 +862,15 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_AWS, frozen=True, exclude=True)
     model: Optional[str]
     endpoint: Optional[str]
-    region: str = Field(min_length=1)
+    region: str
     service: str
     vectorizeClassName: bool
+
+    @field_validator("region")
+    def _check_name(cls, r: str) -> str:
+        if r == "":
+            raise ValueError("region is a required argument and must be given")
+        return r
 
 
 class _Text2VecCohereConfig(_VectorizerConfigCreate):
