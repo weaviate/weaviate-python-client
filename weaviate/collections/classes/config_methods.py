@@ -204,24 +204,24 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 removals=schema["invertedIndexConfig"]["stopwords"]["removals"],
             ),
         ),
-        multi_tenancy_config=_MultiTenancyConfig(enabled=schema["multiTenancyConfig"]["enabled"]),
+        multi_tenancy_config=_MultiTenancyConfig(
+            enabled=schema.get("multiTenancyConfig", {}).get("enabled", False)
+        ),
         properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
         replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
         reranker_config=__get_rerank_config(schema),
-        sharding_config=(
-            None
-            if schema["multiTenancyConfig"]["enabled"]
-            else _ShardingConfig(
-                virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
-                desired_count=schema["shardingConfig"]["desiredCount"],
-                actual_count=schema["shardingConfig"]["actualCount"],
-                desired_virtual_count=schema["shardingConfig"]["desiredVirtualCount"],
-                actual_virtual_count=schema["shardingConfig"]["actualVirtualCount"],
-                key=schema["shardingConfig"]["key"],
-                strategy=schema["shardingConfig"]["strategy"],
-                function=schema["shardingConfig"]["function"],
-            )
+        sharding_config=None
+        if schema.get("multiTenancyConfig", {}).get("enabled", False)
+        else _ShardingConfig(
+            virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
+            desired_count=schema["shardingConfig"]["desiredCount"],
+            actual_count=schema["shardingConfig"]["actualCount"],
+            desired_virtual_count=schema["shardingConfig"]["desiredVirtualCount"],
+            actual_virtual_count=schema["shardingConfig"]["actualVirtualCount"],
+            key=schema["shardingConfig"]["key"],
+            strategy=schema["shardingConfig"]["strategy"],
+            function=schema["shardingConfig"]["function"],
         ),
         vector_index_config=__get_vector_index_config(schema),
         vector_index_type=VectorIndexType(schema["vectorIndexType"]),
