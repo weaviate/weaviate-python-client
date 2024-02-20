@@ -127,7 +127,7 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
         batch_return.uuids[0], include_vector=["title", "bringYourOwn"]
     )
     assert obj.vector["title"] is not None
-    # assert obj.vector["bringYourOwn"] == [0.5, 0.25, 0.75]
+    assert obj.vector["bringYourOwn"] == [0.5, 0.25, 0.75]
 
 
 def test_query(collection_factory: CollectionFactory) -> None:
