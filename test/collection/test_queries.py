@@ -94,7 +94,7 @@ def test_bad_query_inputs(connection: ConnectionV4) -> None:
     _test_query(lambda: query.fetch_objects(after=42))
     _test_query(lambda: query.fetch_objects(filters="wrong"))
     _test_query(lambda: query.fetch_objects(sort="wrong"))
-    _test_query(lambda: query.fetch_objects(include_vector="wrong"))
+    _test_query(lambda: query.fetch_objects(include_vector=42))
     _test_query(lambda: query.fetch_objects(return_metadata=42))
     _test_query(lambda: query.fetch_objects(return_properties=42))
     _test_query(lambda: query.fetch_objects(return_references="wrong"))
