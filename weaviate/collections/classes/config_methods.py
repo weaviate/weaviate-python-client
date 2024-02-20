@@ -151,7 +151,7 @@ def __get_vector_config(
 
             vectorizer_str: str = str(list(vectorizer)[0])
             vec_config: Dict[str, Any] = named_vector["vectorizer"][vectorizer_str]
-            props = vec_config.pop("properties", None)
+            props = vec_config.pop("sourceProperties", None)
             named_vectors[name] = _NamedVectorConfig(
                 vectorizer=_NamedVectorizerConfig(
                     vectorizer=Vectorizers(vectorizer_str),
