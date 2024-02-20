@@ -267,6 +267,9 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
 def test_create_export_and_recreate_named_vectors(
     client: weaviate.WeaviateClient, request: SubRequest
 ) -> None:
+    if client._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
+
     name1 = request.node.name
     name2 = request.node.name + "2"
     client.collections.delete([name1, name2])
