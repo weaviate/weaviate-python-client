@@ -158,6 +158,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "vectorizeClassName": False,
                 "model": "cohere.embed-english-v3",
                 "region": "us-east-1",
+                "service": "bedrock",
             }
         },
     ),

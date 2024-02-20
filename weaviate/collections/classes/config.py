@@ -1527,7 +1527,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
                 assert isinstance(val, _ConfigCreateModel)
                 ret_dict[cls_field] = val._to_dict()
         if self.vectorIndexConfig is None:
-            ret_dict["vectorIndexType"] = VectorIndexType.HNSW
+            ret_dict["vectorIndexType"] = VectorIndexType.HNSW.value
         return ret_dict
 
     @staticmethod
