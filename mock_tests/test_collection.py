@@ -9,6 +9,20 @@ from pytest_httpserver import HTTPServer
 
 import weaviate
 from mock_tests.conftest import MOCK_SERVER_URL, MOCK_PORT, MOCK_IP, MOCK_PORT_GRPC, CLIENT_ID
+from weaviate.collections.classes.config import (
+    CollectionConfig,
+    VectorIndexConfigFlat,
+    VectorDistances,
+    InvertedIndexConfig,
+    MultiTenancyConfig,
+    BM25Config,
+    StopwordsConfig,
+    StopwordsPreset,
+    ReplicationConfig,
+    Vectorizers,
+    VectorIndexType,
+    ShardingConfig,
+)
 
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
 import weaviate.classes as wvc
@@ -145,3 +159,70 @@ def test_closed_connection(weaviate_auth_mock: HTTPServer, start_grpc_server: gr
     with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
         collection = client.collections.get("Test")
         collection.data.insert_many([{}])
+
+
+def test_missing_multi_tenancy_config(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    vic = VectorIndexConfigFlat(
+        quantizer=None,
+        distance_metric=VectorDistances.COSINE,
+        vector_cache_max_objects=10,
+    )
+    vic.distance = vic.distance_metric
+    response_json = CollectionConfig(
+        name="Test",
+        description="",
+        generative_config=None,
+        reranker_config=None,
+        vectorizer_config=None,
+        inverted_index_config=InvertedIndexConfig(
+            bm25=BM25Config(b=0, k1=0),
+            cleanup_interval_seconds=0,
+            index_null_state=False,
+            index_property_length=False,
+            index_timestamps=False,
+            stopwords=StopwordsConfig(preset=StopwordsPreset.NONE, additions=[], removals=[]),
+        ),
+        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        sharding_config=ShardingConfig(
+            virtual_per_physical=0,
+            desired_count=0,
+            actual_count=0,
+            desired_virtual_count=0,
+            actual_virtual_count=0,
+            key="",
+            strategy="",
+            function="",
+        ),
+        properties=[],
+        references=[],
+        replication_config=ReplicationConfig(factor=0),
+        vector_index_config=vic,
+        vector_index_type=VectorIndexType.FLAT,
+        vectorizer=Vectorizers.NONE,
+    ).to_dict()
+
+    weaviate_mock.expect_request("/v1/schema/TestTrue").respond_with_json(
+        response_json=response_json, status=200
+    )
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    )
+    collection = client.collections.get("TestTrue")
+    conf = collection.config.get()
+    assert conf.multi_tenancy_config.enabled is True
+
+    # Delete the missing configuration for multy tenancy
+    response_json["name"] = "TestFalse"
+    del response_json["multiTenancyConfig"]
+    weaviate_mock.expect_request("/v1/schema/TestFalse").respond_with_json(
+        response_json=response_json, status=200
+    )
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    )
+    collection = client.collections.get("TestFalse")
+
+    conf = collection.config.get()
+    assert conf.multi_tenancy_config.enabled is False
