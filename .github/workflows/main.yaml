@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.7
-  NEW_WEAVIATE_VERSION: preview-introduce-multi-vector-per-class-support-d8abcbd
+  NEW_WEAVIATE_VERSION: preview--629d0f1
 
 jobs:
   lint-and-format:
