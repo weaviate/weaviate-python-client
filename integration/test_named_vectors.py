@@ -13,7 +13,7 @@ from weaviate.collections.classes.aggregate import AggregateInteger
 
 @pytest.mark.parametrize(
     "include_vector",
-    [["title", "content", "All", "AllExplizit", "bringYourOwn", "bringYourOwn2"], True],
+    [["title", "content", "All", "AllExplicit", "bringYourOwn", "bringYourOwn2"], True],
 )
 def test_create_named_vectors(
     collection_factory: CollectionFactory, include_vector: Union[List[str], bool]
@@ -34,7 +34,7 @@ def test_create_named_vectors(
                 name="All", vectorize_collection_name=False
             ),
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-                name="AllExplizit",
+                name="AllExplicit",
                 source_properties=["title", "content"],
                 vectorize_collection_name=False,
             ),
@@ -66,7 +66,7 @@ def test_create_named_vectors(
     assert obj.vector["title"] != obj.vector["All"]
 
     # vectorize same data so they must be the same
-    assert obj.vector["AllExplizit"] == obj.vector["All"]
+    assert obj.vector["AllExplicit"] == obj.vector["All"]
 
 
 def test_insert_many_add(collection_factory: CollectionFactory) -> None:
@@ -153,7 +153,7 @@ def test_generate(openai_collection: OpenAICollection) -> None:
         query="Hello",
         target_vector="text",
         return_metadata=["distance"],
-        single_prompt="use {text} and {content} and combine them in the better order without punctuation except whitespace",
+        single_prompt="use {text} and {content} and combine them in a better order separated by whitespace",
         include_vector=["text", "content"],
     ).objects
 
@@ -164,7 +164,7 @@ def test_generate(openai_collection: OpenAICollection) -> None:
         query="Hello",
         target_vector="content",
         distance=0.1,
-        single_prompt="use {text} and {content} and combine them in the better order without punctuation except whitespace",
+        single_prompt="use {text} and {content} and combine them in a better order separated by whitespace",
     ).objects
     assert objs[0].uuid == uuid2
     assert objs[0].generated == "Hello World"
