@@ -1,12 +1,12 @@
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing import Any, Dict, List, Literal, Optional, TypeAlias, Union, cast
 
-from pydantic import AnyHttpUrl, BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel
 
 
-CohereModel = Literal[
+CohereModel: TypeAlias = Literal[
     "embed-multilingual-v2.0",
     "embed-multilingual-v3.0",
     "embed-multilingual-light-v3.0",
@@ -19,13 +19,19 @@ CohereModel = Literal[
     "embed-english-v3.0",
     "embed-english-light-v3.0",
 ]
-CohereTruncation = Literal["NONE", "START", "END", "LEFT", "RIGHT"]
-OpenAIModel = Literal["text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"]
-JinaModels = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
-AWSModel = Literal[
+CohereTruncation: TypeAlias = Literal["NONE", "START", "END", "LEFT", "RIGHT"]
+OpenAIModel: TypeAlias = Literal[
+    "text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"
+]
+JinaModel: TypeAlias = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
+AWSModel: TypeAlias = Literal[
     "amazon.titan-embed-text-v1",
     "cohere.embed-english-v3",
     "cohere.embed-multilingual-v3",
+]
+AWSService: TypeAlias = Literal[
+    "bedrock",
+    "sagemaker",
 ]
 
 
@@ -123,11 +129,19 @@ class _Text2VecContextionaryCreate(_Text2VecContextionaryConfig, _VectorizerConf
     pass
 
 
-class _Text2VecAWSConfig(_ConfigCreateModel):
+class _Text2VecAWSConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_AWS, frozen=True, exclude=True)
-    model: str
+    model: Optional[str]
+    endpoint: Optional[str]
     region: str
+    service: str
     vectorizeClassName: bool
+
+    @field_validator("region")
+    def _check_name(cls, r: str) -> str:
+        if r == "":
+            raise ValueError("region is a required argument and must be given")
+        return r
 
 
 class _Text2VecAWSConfigCreate(_Text2VecAWSConfig, _VectorizerConfigCreate):
@@ -465,8 +479,10 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_aws(
-        model: Union[AWSModel, str],
-        region: str,
+        model: Optional[Union[AWSModel, str]] = None,
+        region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC - will be validated in the model
+        endpoint: Optional[str] = None,
+        service: Union[AWSService, str] = "bedrock",
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecAWSConfig` object for use when vectorizing using the `text2vec-aws` model.
@@ -476,14 +492,22 @@ class _Vectorizer:
 
         Arguments:
             `model`
-                The model to use, REQUIRED.
+                The model to use, REQUIRED for service "bedrock".
             `region`
                 The AWS region to run the model from, REQUIRED.
+            `endpoint`
+                The model to use, REQUIRED for service "sagemaker".
+            `service`
+                The AWS service to use, options are "bedrock" and "sagemaker".
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _Text2VecAWSConfigCreate(
-            model=model, region=region, vectorizeClassName=vectorize_collection_name
+        return _Text2VecAWSConfig(
+            model=model,
+            region=region,
+            vectorizeClassName=vectorize_collection_name,
+            service=service,
+            endpoint=endpoint,
         )
 
     @staticmethod
@@ -728,7 +752,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_jinaai(
-        model: Optional[Union[JinaModels, str]] = None,
+        model: Optional[Union[JinaModel, str]] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecJinaConfig` object for use when vectorizing using the `text2vec-jinaai` model.
