@@ -1073,7 +1073,12 @@ RerankerConfig = _RerankerConfig
 class _NamedVectorizerConfig(_ConfigBase):
     vectorizer: Vectorizers
     model: Dict[str, Any]
-    source_properties: Optional[List[str]] = Field(default=None, min_length=1)
+    source_properties: Optional[List[str]]
+
+    def to_dict(self) -> Dict[str, Any]:
+        ret_dict = super().to_dict()
+        ret_dict["properties"] = ret_dict.pop("sourceProperties", None)
+        return ret_dict
 
 
 @dataclass
@@ -1131,7 +1136,9 @@ class _CollectionConfig(_ConfigBase):
             for k, v in out["vectorConfig"].items():
                 extra_values = v["vectorizer"].pop("model", {})
                 vectorizer = v["vectorizer"].pop("vectorizer")
-                out["vectorConfig"][k]["vectorizer"] = {vectorizer: extra_values}
+                out["vectorConfig"][k]["vectorizer"] = {
+                    vectorizer: {**extra_values, **v["vectorizer"]}
+                }
 
             # remove default values for single vector setup
             out.pop("vectorIndexType")
