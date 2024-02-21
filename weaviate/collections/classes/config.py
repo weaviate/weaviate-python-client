@@ -15,7 +15,7 @@ from typing import (
 
 from typing_extensions import TypeAlias
 
-from pydantic import AnyHttpUrl, ValidationError, Field, field_validator
+from pydantic import AnyHttpUrl, Field, field_validator
 
 from weaviate.util import _capitalize_first_letter
 from weaviate.collections.classes.config_vectorizers import (
@@ -46,6 +46,7 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectors,
     _NamedVectorsUpdate,
 )
+from weaviate.exceptions import WeaviateInvalidInputError
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
@@ -796,6 +797,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     )
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        import json
+
+        print(json.dumps(schema, indent=2))
         if self.description is not None:
             schema["description"] = self.description
         if self.invertedIndexConfig is not None:
@@ -813,8 +817,20 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
         if self.vectorConfig is not None:
             for vc in self.vectorConfig:
                 if vc.name not in schema["vectorConfig"]:
-                    raise ValidationError(
+                    raise WeaviateInvalidInputError(
                         f"Vector config with name {vc.name} does not exist in the existing vector config"
+                    )
+                if (
+                    isinstance(vc.vectorIndexConfig.quantizer, _PQConfigUpdate)
+                    and schema["vectorConfig"][vc.name]["vectorIndexConfig"]["bq"]["enabled"]
+                    is True
+                ) or (
+                    isinstance(vc.vectorIndexConfig.quantizer, _BQConfigUpdate)
+                    and schema["vectorConfig"][vc.name]["vectorIndexConfig"]["pq"]["enabled"]
+                    is True
+                ):
+                    raise WeaviateInvalidInputError(
+                        f"Cannot update vector index config with name {vc.name} to change its quantizer"
                     )
                 schema["vectorConfig"][vc.name][
                     "vectorIndexConfig"
@@ -824,10 +840,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 schema["vectorConfig"][vc.name][
                     "vectorIndexType"
                 ] = vc.vectorIndexConfig.vector_index_type()
-                if isinstance(vc.vectorIndexConfig.quantizer, _PQConfigUpdate):
-                    schema["vectorConfig"][vc.name]["vectorIndexConfig"]["bq"]["enabled"] = False
-                if isinstance(vc.vectorIndexConfig.quantizer, _BQConfigUpdate):
-                    schema["vectorConfig"][vc.name]["vectorIndexConfig"]["pq"]["enabled"] = False
+        print(json.dumps(schema, indent=2))
         return schema
 
 

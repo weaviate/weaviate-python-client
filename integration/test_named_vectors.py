@@ -1,4 +1,3 @@
-import time
 from typing import List, Union
 import uuid
 from integration.conftest import CollectionFactory, OpenAICollection
@@ -11,7 +10,6 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigFlat,
     Vectorizers,
     PQConfig,
-    BQConfig,
 )
 
 from weaviate.collections.classes.aggregate import AggregateInteger
@@ -408,7 +406,6 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
     assert config.vector_config["second"].vector_index_config is not None
     assert config.vector_config["second"].vector_index_config.quantizer is None
 
-    time.sleep(2)  # add sleep to avoid updating a read-only index
     collection.config.update(
         vector_config=[
             wvc.config.Reconfigure.NamedVectors.update(
@@ -461,19 +458,14 @@ def test_update_to_change_quantizer_from_pq_to_bq_on_specific_named_vector(
     assert config.vector_config["second"].vector_index_config is not None
     assert isinstance(config.vector_config["second"].vector_index_config.quantizer, PQConfig)
 
-    time.sleep(2)  # add sleep to avoid updating a read-only index
-    collection.config.update(
-        vector_config=[
-            wvc.config.Reconfigure.NamedVectors.update(
-                name="second",
-                vector_index_config=wvc.config.Reconfigure.VectorIndex.hnsw(
-                    quantizer=wvc.config.Reconfigure.VectorIndex.Quantizer.bq()
-                ),
-            )
-        ]
-    )
-    config = collection.config.get()
-    assert config.vector_config is not None
-    assert config.vector_config["first"].vector_index_config is not None
-    assert config.vector_config["second"].vector_index_config is not None
-    assert isinstance(config.vector_config["second"].vector_index_config.quantizer, BQConfig)
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.config.update(
+            vector_config=[
+                wvc.config.Reconfigure.NamedVectors.update(
+                    name="second",
+                    vector_index_config=wvc.config.Reconfigure.VectorIndex.hnsw(
+                        quantizer=wvc.config.Reconfigure.VectorIndex.Quantizer.bq()
+                    ),
+                )
+            ]
+        )

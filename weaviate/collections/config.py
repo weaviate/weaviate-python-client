@@ -1,5 +1,7 @@
 from typing import Dict, Any, List, Literal, Optional, Union, cast, overload
 
+from pydantic import ValidationError
+
 from weaviate.collections.classes.config import (
     _CollectionConfigUpdate,
     _InvertedIndexConfigUpdate,
@@ -99,6 +101,8 @@ class _ConfigBase:
             vector_index_config: Configuration for the vector index. Use `Reconfigure.vector_index` to generate one.
 
         Raises:
+            `weaviate.WeaviateInvalidInputError`:
+                If the input parameters are invalid.
             `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`:
@@ -109,13 +113,16 @@ class _ConfigBase:
             - To change it, you will have to delete the collection and recreate it with the desired options.
             - This is not the case of adding properties, which can be done with `collection.config.add_property()`.
         """
-        config = _CollectionConfigUpdate(
-            description=description,
-            inverted_index_config=inverted_index_config,
-            replication_config=replication_config,
-            vector_index_config=vector_index_config,
-            vector_config=vector_config,
-        )
+        try:
+            config = _CollectionConfigUpdate(
+                description=description,
+                inverted_index_config=inverted_index_config,
+                replication_config=replication_config,
+                vector_index_config=vector_index_config,
+                vector_config=vector_config,
+            )
+        except ValidationError as e:
+            raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e
         schema = self.__get()
         schema = config.merge_with_existing(schema)
         self.__connection.put(
