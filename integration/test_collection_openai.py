@@ -17,7 +17,7 @@ from weaviate.exceptions import WeaviateQueryError
 from weaviate.util import _ServerVersion
 
 
-@pytest.mark.parametrize("parameter,answer", [("text", "Yes"), ("content", "No")])
+@pytest.mark.parametrize("parameter,answer", [("text", "yes"), ("content", "no")])
 def test_generative_search_single(
     openai_collection: OpenAICollection, parameter: str, answer: str
 ) -> None:
@@ -34,7 +34,8 @@ def test_generative_search_single(
         single_prompt=f"is it good or bad based on {{{parameter}}}? Just answer with yes or no without punctuation",
     )
     for obj in res.objects:
-        assert obj.generated == answer
+        assert obj.generated is not None
+        assert obj.generated.lower() == answer
     assert res.generated is None
 
 
@@ -54,7 +55,7 @@ def test_fetch_objects_generate_search_grouped(
     )
 
     res = collection.generate.fetch_objects(
-        grouped_task="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space.",
+        grouped_task="What is big and what is small? write the name of the big thing first and then the name of the small thing after a space. Dont write anything else",
         grouped_properties=prop,
     )
     assert res.generated == answer
@@ -69,21 +70,21 @@ def test_fetch_objects_generate_search_grouped_all_props(
         [
             DataObject(
                 properties={
-                    "text": "apples are big",
-                    "content": "Teddy is the biggest and bigger than everything else",
+                    "text": "apples are big. Apples are smaller than Teddy and bigger than bananas",
+                    "content": "Teddy is the biggest and bigger than everything else. Teddy is bigger than apples.",
                 }
             ),
             DataObject(
                 properties={
-                    "text": "bananas are small",
-                    "content": "cats are the smallest and smaller than everything else",
+                    "text": "bananas are small. Bananas are smaller than apples and bigger than cats",
+                    "content": "cats are the smallest and smaller than everything else. Cats are smaller than bananas",
                 }
             ),
         ]
     )
 
     res = collection.generate.fetch_objects(
-        grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space"
+        grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space. Dont write anything else"
     )
     assert res.generated == "Teddy cats"
 
@@ -117,22 +118,20 @@ def test_fetch_objects_generate_search_grouped_specified_prop(
     assert res.generated == "apples bananas"
 
 
-def test_fetch_objects_generate_with_everything(
-    openai_collection: OpenAICollection, request: SubRequest
-) -> None:
+def test_fetch_objects_generate_with_everything(openai_collection: OpenAICollection) -> None:
     collection = openai_collection()
 
     collection.data.insert_many(
         [
             DataObject(
                 properties={
-                    "text": "apples are big",
+                    "text": "apples are big. Apples are smaller than Teddy and bigger than bananas",
                     "content": "Teddy is the biggest and bigger than everything else",
                 }
             ),
             DataObject(
                 properties={
-                    "text": "bananas are small",
+                    "text": "bananas are small. Bananas are smaller than apples and bigger than cats.",
                     "content": "cats are the smallest and smaller than everything else",
                 }
             ),
@@ -190,13 +189,13 @@ def test_hybrid_generate_with_everything(
         [
             DataObject(
                 properties={
-                    "text": "apples are big",
+                    "text": "apples are big. You can eat apples",
                     "content": "Teddy is the biggest and bigger than everything else",
                 }
             ),
             DataObject(
                 properties={
-                    "text": "cats are small",
+                    "text": "cats are small. You cannot eat cats",
                     "content": "bananas are the smallest and smaller than everything else",
                 }
             ),
@@ -207,17 +206,16 @@ def test_hybrid_generate_with_everything(
         query="cats",
         alpha=0,
         query_properties=["text"],
-        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+        single_prompt="Does {text} mention cats? Only answer yes if there is the word cat or cats in the text and no if not. Dont use punctuation",
         grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
     )
     assert res.generated == "cats bananas"
     for obj in res.objects:
-        assert obj.generated == "No"
+        assert obj.generated is not None
+        assert obj.generated.lower() == "yes"
 
 
-def test_near_object_generate_with_everything(
-    openai_collection: OpenAICollection, request: SubRequest
-) -> None:
+def test_near_object_generate_with_everything(openai_collection: OpenAICollection) -> None:
     collection = openai_collection(
         vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
     )
@@ -232,7 +230,7 @@ def test_near_object_generate_with_everything(
             ),
             DataObject(
                 properties={
-                    "text": "cats are small",
+                    "text": "cats are small. you cannot eat cats.",
                     "content": "bananas are the smallest and smaller than everything else",
                 }
             ),
@@ -241,17 +239,19 @@ def test_near_object_generate_with_everything(
 
     res = collection.generate.near_object(
         ret.uuids[1],
-        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+        single_prompt="Are cats mentioned in {text} of the given object? Only answer yes if there is the word cat or cats and no if not. Dont use punctuation",
         grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
         grouped_properties=["text"],
     )
     assert res.generated == "apples cats"
-    assert res.objects[0].generated == "No"
-    assert res.objects[1].generated == "Yes"
+    assert res.objects[0].generated is not None
+    assert res.objects[1].generated is not None
+    assert res.objects[0].generated.lower() == "yes"
+    assert res.objects[1].generated.lower() == "no"
 
 
 def test_near_object_generate_and_group_by_with_everything(
-    openai_collection: OpenAICollection, request: SubRequest
+    openai_collection: OpenAICollection,
 ) -> None:
     collection = openai_collection(
         vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
@@ -261,13 +261,13 @@ def test_near_object_generate_and_group_by_with_everything(
         [
             DataObject(
                 properties={
-                    "text": "apples are big",
+                    "text": "apples are big. you cna eat apples",
                     "content": "Teddy is the biggest and bigger than everything else",
                 }
             ),
             DataObject(
                 properties={
-                    "text": "cats are small",
+                    "text": "cats are small. you cannot eat cats",
                     "content": "bananas are the smallest and smaller than everything else",
                 }
             ),
@@ -276,20 +276,21 @@ def test_near_object_generate_and_group_by_with_everything(
 
     res = collection.generate.near_object(
         ret.uuids[1],
-        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+        single_prompt="Is there something to eat in {text} in the given object? Only answer yes if there is something to eat or no if not without punctuation",
         grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space from biggest to smallest",
         grouped_properties=["text"],
         group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
     )
     assert res.generated == "apples cats"
     assert len(res.groups) == 2
-    assert list(res.groups.values())[0].generated == "No"
-    assert list(res.groups.values())[1].generated == "Yes"
+    groups = list(res.groups.values())
+    assert groups[0].generated is not None
+    assert groups[1].generated is not None
+    assert groups[0].generated.lower() == "no"
+    assert groups[1].generated.lower() == "yes"
 
 
-def test_near_text_generate_with_everything(
-    openai_collection: OpenAICollection, request: SubRequest
-) -> None:
+def test_near_text_generate_with_everything(openai_collection: OpenAICollection) -> None:
     collection = openai_collection(
         vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
     )
@@ -298,13 +299,13 @@ def test_near_text_generate_with_everything(
         [
             DataObject(
                 properties={
-                    "text": "apples are big",
-                    "content": "Teddy is the biggest and bigger than everything else",
+                    "text": "melons are big",
+                    "content": "Teddy is the biggest and bigger than everything else. Teddy is not a fruit",
                 }
             ),
             DataObject(
                 properties={
-                    "text": "cats are small",
+                    "text": "cats are small. You cannot eat cats. Cats are not fruit",
                     "content": "bananas are the smallest and smaller than everything else",
                 }
             ),
@@ -313,16 +314,18 @@ def test_near_text_generate_with_everything(
 
     res = collection.generate.near_text(
         query="small fruit",
-        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-        grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
+        single_prompt="Is there something to eat in {text} of the given object? Only answer yes if there is something to eat and no if not. Dont use punctuation",
+        grouped_task="Write out the fruit in alphabetical order. Only write the names separated by a space",
     )
-    assert res.generated == "bananas apples"
-    assert res.objects[0].generated == "No"
-    assert res.objects[1].generated == "Yes"
+    assert res.generated == "bananas melons"
+    assert res.objects[0].generated is not None
+    assert res.objects[1].generated is not None
+    assert res.objects[0].generated.lower() == "no"
+    assert res.objects[1].generated.lower() == "yes"
 
 
 def test_near_text_generate_and_group_by_with_everything(
-    openai_collection: OpenAICollection, request: SubRequest
+    openai_collection: OpenAICollection,
 ) -> None:
     collection = openai_collection(
         vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
@@ -333,12 +336,12 @@ def test_near_text_generate_and_group_by_with_everything(
             DataObject(
                 properties={
                     "text": "apples are big",
-                    "content": "Teddy is the biggest and bigger than everything else",
+                    "content": "Teddy is the biggest and bigger than everything else. Teddy is not a fruit",
                 },
             ),
             DataObject(
                 properties={
-                    "text": "cats are small",
+                    "text": "cats are small. you cannot eat cats. Cats are not fruit",
                     "content": "bananas are the smallest and smaller than everything else",
                 },
             ),
@@ -347,19 +350,20 @@ def test_near_text_generate_and_group_by_with_everything(
 
     res = collection.generate.near_text(
         query="small fruit",
-        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-        grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
+        single_prompt="Is there something to eat in {text} of the given object? Only answer yes if there is something to eat and no if not. Dont use punctuation",
+        grouped_task="Write out the fruit in alphabetical order. Only write the names separated by a space",
         group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
     )
-    assert res.generated == "bananas apples"
+    assert res.generated == "apples bananas"
     assert len(res.groups) == 2
-    assert list(res.groups.values())[0].generated == "No"
-    assert list(res.groups.values())[1].generated == "Yes"
+    groups = list(res.groups.values())
+    assert groups[0].generated is not None
+    assert groups[1].generated is not None
+    assert groups[0].generated.lower() == "no"
+    assert groups[1].generated.lower() == "yes"
 
 
-def test_near_vector_generate_with_everything(
-    openai_collection: OpenAICollection, request: SubRequest
-) -> None:
+def test_near_vector_generate_with_everything(openai_collection: OpenAICollection) -> None:
     collection = openai_collection()
 
     collection.data.insert_many(
@@ -369,20 +373,20 @@ def test_near_vector_generate_with_everything(
                     "text": "apples are big",
                     "content": "Teddy is the biggest and bigger than everything else",
                 },
-                vector=[1, 2, 3, 4, 5],
+                vector=[0.1, 0.2, 0.3, 0.4, 0.5],
             ),
             DataObject(
                 properties={
-                    "text": "cats are small",
+                    "text": "cats are small. Cats are not fruit. You cannot eat cats",
                     "content": "bananas are the smallest and smaller than everything else",
                 },
-                vector=[6, 7, 8, 9, 10],
+                vector=[0.6, 0.7, 0.8, 0.9, 0.99],
             ),
         ]
     )
 
     res = collection.generate.near_vector(
-        near_vector=[1, 2, 3, 4, 6],
+        near_vector=[0.1, 0.2, 0.3, 0.4, 0.6],
         single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
         grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
     )
@@ -403,20 +407,20 @@ def test_near_vector_generate_and_group_by_with_everything(
                     "text": "apples are big",
                     "content": "Teddy is the biggest and bigger than everything else",
                 },
-                vector=[1, 2, 3, 4, 5],
+                vector=[0.1, 0.2, 0.3, 0.4, 0.5],
             ),
             DataObject(
                 properties={
-                    "text": "cats are small",
+                    "text": "cats are small. Cats are not a fruit, you cannot eat cats.",
                     "content": "bananas are the smallest and smaller than everything else",
                 },
-                vector=[6, 7, 8, 9, 10],
+                vector=[0.6, 0.7, 0.8, 0.9, 0.99],
             ),
         ]
     )
 
     res = collection.generate.near_vector(
-        near_vector=[1, 2, 3, 4, 6],
+        near_vector=[0.1, 0.2, 0.3, 0.4, 0.6],
         single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
         grouped_task="Write out the fruit in the order in which they appear in the provided list. Only write the names separated by a space",
         group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),

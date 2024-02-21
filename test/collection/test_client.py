@@ -27,3 +27,8 @@ def test_client_bad_connection_params() -> None:
 def test_client_bad_embedded_options() -> None:
     with pytest.raises(WeaviateInvalidInputError):
         weaviate.client.WeaviateClient(embedded_options="bad")
+
+
+def test_connect_to_wcs_failes_with_null_cluster_url() -> None:
+    with pytest.raises(WeaviateInvalidInputError):
+        weaviate.connect_to_wcs(None, None)  # type: ignore

@@ -8,6 +8,7 @@ from weaviate.client import WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions
+from weaviate.validator import _validate_input, _ValidateArgument
 
 
 def connect_to_wcs(
@@ -61,6 +62,7 @@ def connect_to_wcs(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
+    _validate_input(_ValidateArgument([str], "cluster_url", cluster_url))
     if cluster_url.startswith("http"):
         # Handle the common case of copy/pasting a URL instead of the hostname.
         cluster_url = urlparse(cluster_url).netloc
