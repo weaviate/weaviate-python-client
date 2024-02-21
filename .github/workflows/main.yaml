@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.10
-  NEW_WEAVIATE_VERSION: preview-handle-named-vectors-when-checking-certainy-distance-in-queries-9f3fcff
+  NEW_WEAVIATE_VERSION: preview-handle-named-vectors-when-checking-certainy-distance-in-queries-1f6dfd1
 
 jobs:
   lint-and-format:
