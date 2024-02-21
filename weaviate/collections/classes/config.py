@@ -1204,6 +1204,8 @@ class Property(_ConfigCreateModel):
             Whether the property should be filterable in the inverted index.
         `index_searchable`
             Whether the property should be searchable in the inverted index.
+        `nested_properties`
+            nested properties for data type OBJECT and OBJECT_ARRAY`.
         `skip_vectorization`
             Whether to skip vectorization of the property. Defaults to `False`.
         `tokenization`

@@ -129,13 +129,6 @@ class GroupByObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
 
 
 @dataclass
-class GroupedObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
-    """A single Weaviate object returned by a query with the `group_by` argument specified."""
-
-    pass
-
-
-@dataclass
 class GenerativeObject(Generic[P, R], Object[P, R]):
     """A single Weaviate object returned by a query within the `generate` namespace of a collection."""
 
@@ -158,7 +151,7 @@ class Group(Generic[P, R]):
     min_distance: float
     max_distance: float
     number_of_objects: int
-    objects: List[GroupedObject[P, R]]
+    objects: List[GroupByObject[P, R]]
     rerank_score: Optional[float]
 
 
