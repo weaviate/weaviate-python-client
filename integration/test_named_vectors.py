@@ -239,7 +239,7 @@ def test_batch_add(collection_factory: CollectionFactory) -> None:
 
     obj = collection.query.fetch_object_by_id(uuid1, include_vector=["title", "bringYourOwn"])
     assert obj.vector["title"] is not None
-    # assert obj.vector["bringYourOwn"] == [0.5, 0.25, 0.75]
+    assert obj.vector["bringYourOwn"] == [0.5, 0.25, 0.75]
 
 
 def test_named_vector_with_index_config(collection_factory: CollectionFactory) -> None:
