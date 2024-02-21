@@ -444,6 +444,8 @@ def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
         ),
     )
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
 
     config = collection.config.get()
     assert config.vector_index_type == VectorIndexType.HNSW
