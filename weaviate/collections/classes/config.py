@@ -797,9 +797,6 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     )
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
-        import json
-
-        print(json.dumps(schema, indent=2))
         if self.description is not None:
             schema["description"] = self.description
         if self.invertedIndexConfig is not None:
@@ -840,7 +837,6 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 schema["vectorConfig"][vc.name][
                     "vectorIndexType"
                 ] = vc.vectorIndexConfig.vector_index_type()
-        print(json.dumps(schema, indent=2))
         return schema
 
 
@@ -1141,8 +1137,8 @@ class _CollectionConfig(_ConfigBase):
     replication_config: ReplicationConfig
     reranker_config: Optional[RerankerConfig]
     sharding_config: Optional[ShardingConfig]
-    vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]
-    vector_index_type: VectorIndexType
+    vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat, None]
+    vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
     vectorizer: Optional[Vectorizers]
     vector_config: Optional[Dict[str, _NamedVectorConfig]]
@@ -1176,7 +1172,9 @@ class _CollectionConfig(_ConfigBase):
 
             # remove default values for single vector setup
             out.pop("vectorIndexType")
-            out.pop("vectorIndexConfig")
+            out.pop(
+                "vectorIndexConfig", None
+            )  # if doesn't exist (in the case of named vectors) then do nothing
 
         out["properties"] = [
             *[prop.to_dict() for prop in self.properties],
