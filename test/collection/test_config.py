@@ -209,6 +209,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             model_version="002",
             type_="text",
             base_url="https://api.openai.com",
+            dimensions=100,
         ),
         {
             "text2vec-openai": {
@@ -217,6 +218,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "modelVersion": "002",
                 "type": "text",
                 "baseURL": "https://api.openai.com/",
+                "dimensions": 100,
             }
         },
     ),
