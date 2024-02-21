@@ -96,9 +96,10 @@ def __get_vector_index_config(
 ) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat]:
     quantizer: Optional[Union[_PQConfig, _BQConfig]] = None
     if "bq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["bq"]["enabled"]:
+        # values are not present for bq+hnsw
         quantizer = _BQConfig(
-            cache=schema["vectorIndexConfig"]["bq"]["cache"],
-            rescore_limit=schema["vectorIndexConfig"]["bq"]["rescoreLimit"],
+            cache=schema["vectorIndexConfig"]["bq"].get("cache"),
+            rescore_limit=schema["vectorIndexConfig"]["bq"].get("rescoreLimit"),
         )
     elif "pq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["pq"]["enabled"]:
         quantizer = _PQConfig(
