@@ -24,7 +24,6 @@ from weaviate.collections.classes.internal import (
     GroupByMetadataReturn,
     GenerativeObject,
     Object,
-    GroupedObject,
     _extract_properties_from_data_model,
     _extract_references_from_data_model,
     GenerativeNearMediaReturnType,
@@ -279,7 +278,7 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> Group[Any, Any]:
         return Group(
             objects=[
-                self.__result_to_group_by_object(obj.properties, obj.metadata, options)
+                self.__result_to_group_by_object(obj.properties, obj.metadata, options, res.name)
                 for obj in res.objects
             ],
             name=res.name,
@@ -296,7 +295,7 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> GenerativeGroup[Any, Any]:
         return GenerativeGroup(
             objects=[
-                self.__result_to_group_by_object(obj.properties, obj.metadata, options)
+                self.__result_to_group_by_object(obj.properties, obj.metadata, options, res.name)
                 for obj in res.objects
             ],
             name=res.name,
@@ -312,8 +311,9 @@ class _BaseQuery(Generic[Properties, References]):
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
         options: _QueryOptions,
-    ) -> GroupedObject[Any, Any]:
-        return GroupedObject(
+        group_name: str,
+    ) -> GroupByObject[Any, Any]:
+        return GroupByObject(
             collection=props.target_collection,
             properties=(
                 self.__parse_nonref_properties_result(props.non_ref_props)
@@ -330,6 +330,7 @@ class _BaseQuery(Generic[Properties, References]):
             ),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else {},
+            belongs_to_group=group_name,
         )
 
     def _result_to_query_return(
@@ -417,17 +418,7 @@ class _BaseQuery(Generic[Properties, References]):
             group.name: self.__result_to_group(group, options) for group in res.group_by_results
         }
         objects_group_by: List[GroupByObject] = [
-            GroupByObject(
-                collection=obj.collection,
-                properties=obj.properties,
-                references=obj.references,
-                metadata=obj.metadata,
-                belongs_to_group=group.name,
-                uuid=obj.uuid,
-                vector=obj.vector,
-            )
-            for group in groups.values()
-            for obj in group.objects
+            obj for group in groups.values() for obj in group.objects
         ]
         return GroupByReturn(objects=objects_group_by, groups=groups)
 
