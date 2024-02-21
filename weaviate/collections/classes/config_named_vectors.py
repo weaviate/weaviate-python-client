@@ -236,6 +236,7 @@ class _NamedVectors:
         model_version: Optional[str] = None,
         type_: Optional[OpenAIType] = None,
         base_url: Optional[AnyHttpUrl] = None,
+        dimensions: Optional[int] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_openai` model.
 
@@ -261,6 +262,8 @@ class _NamedVectors:
                 Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `type_` is not a valid value from the `OpenAIType` type.
@@ -274,6 +277,7 @@ class _NamedVectors:
                 modelVersion=model_version,
                 type_=type_,
                 vectorizeClassName=vectorize_collection_name,
+                dimensions=dimensions,
             ),
             vector_index_config=vector_index_config,
         )

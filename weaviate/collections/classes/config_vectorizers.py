@@ -202,6 +202,7 @@ OpenAIType = Literal["text", "code"]
 class _Text2VecOpenAIConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_OPENAI, frozen=True, exclude=True)
     baseURL: Optional[AnyHttpUrl]
+    dimensions: Optional[int]
     model: Optional[str]
     modelVersion: Optional[str]
     type_: Optional[OpenAIType]
@@ -666,6 +667,7 @@ class _Vectorizer:
         type_: Optional[OpenAIType] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
+        dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `Text2VecOpenAIConfig` object for use when vectorizing using the `text2vec-openai` model.
 
@@ -683,6 +685,8 @@ class _Vectorizer:
                 Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `type_` is not a valid value from the `OpenAIType` type.
@@ -693,6 +697,7 @@ class _Vectorizer:
             modelVersion=model_version,
             type_=type_,
             vectorizeClassName=vectorize_collection_name,
+            dimensions=dimensions,
         )
 
     @staticmethod
