@@ -245,9 +245,9 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
             ),
             vectorizer_config=(
                 _PropertyVectorizerConfig(
-                    skip=prop["moduleConfig"][schema["vectorizer"]].get("skip"),
+                    skip=prop["moduleConfig"][schema["vectorizer"]].get("skip", False),
                     vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]].get(
-                        "vectorizePropertyName"
+                        "vectorizePropertyName", False
                     ),
                 )
                 if schema["vectorizer"] != "none"
