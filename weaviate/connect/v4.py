@@ -613,9 +613,9 @@ class ConnectionV4(_Connection):
                 response_deserializer=health_pb2.HealthCheckResponse.FromString,
             )(health_pb2.HealthCheckRequest(), timeout=1)
             if res.status != health_pb2.HealthCheckResponse.SERVING:
-                raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}")
+                raise WeaviateGRPCUnavailableError(f"v{self.server_version}")
         except _channel._InactiveRpcError as e:
-            raise WeaviateGRPCUnavailableError(f"Weaviate v{self.server_version}") from e
+            raise WeaviateGRPCUnavailableError(f"v{self.server_version}") from e
 
     def connect(self, skip_init_checks: bool) -> None:
         super().connect(skip_init_checks)
