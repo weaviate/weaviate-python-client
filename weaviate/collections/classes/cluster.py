@@ -54,11 +54,11 @@ class _ConvertFromREST:
                         object_count=shard["objectCount"],
                     )
                     for shard in cast(List[ShardREST], node["shards"])
-                ] if node.get("shards") else None,
+                ] if "shards" in nodes else None,
                 stats=Stats(
                     object_count=node["stats"]["objectCount"],
                     shard_count=node["stats"]["shardCount"],
-                ) if node.get("stats") else None,
+                ) if "stats" in node else None,
                 status=node["status"],
                 version=node["version"],
             )
