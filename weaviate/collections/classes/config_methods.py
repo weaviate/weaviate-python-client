@@ -101,9 +101,10 @@ def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionCo
 def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     quantizer: Optional[Union[_PQConfig, _BQConfig]] = None
     if "bq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["bq"]["enabled"]:
+        # values are not present for bq+hnsw
         quantizer = _BQConfig(
-            cache=schema["vectorIndexConfig"]["bq"]["cache"],
-            rescore_limit=schema["vectorIndexConfig"]["bq"]["rescoreLimit"],
+            cache=schema["vectorIndexConfig"]["bq"].get("cache"),
+            rescore_limit=schema["vectorIndexConfig"]["bq"].get("rescoreLimit"),
         )
     elif "pq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["pq"]["enabled"]:
         quantizer = _PQConfig(
