@@ -18,6 +18,7 @@ from weaviate.collections.classes.config import (
     _ShardStatus,
     ShardTypes,
 )
+from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigUpdate
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
@@ -85,6 +86,7 @@ class _ConfigBase:
         vector_index_config: Optional[
             Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
         ] = None,
+        vector_config: Optional[List[_NamedVectorConfigUpdate]] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
@@ -112,6 +114,7 @@ class _ConfigBase:
             inverted_index_config=inverted_index_config,
             replication_config=replication_config,
             vector_index_config=vector_index_config,
+            vector_config=vector_config,
         )
         schema = self.__get()
         schema = config.merge_with_existing(schema)

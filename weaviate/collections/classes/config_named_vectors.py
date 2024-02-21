@@ -1,7 +1,10 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import AnyHttpUrl, Field
-from weaviate.collections.classes.config_vectorizers import (
+from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
+    _ConfigUpdateModel,
+)
+from weaviate.collections.classes.config_vectorizers import (
     _Img2VecNeuralConfig,
     _Multi2VecBindConfig,
     _Multi2VecClipConfig,
@@ -29,6 +32,7 @@ from weaviate.collections.classes.config_vectorizers import (
 )
 from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigCreate,
+    _VectorIndexConfigUpdate,
     VectorIndexType,
 )
 
@@ -123,6 +127,11 @@ class _NamedVectorConfigCreate(_ConfigCreateModel):
             ret_dict["vectorIndexType"] = self.vectorIndexType.value
 
         return ret_dict
+
+
+class _NamedVectorConfigUpdate(_ConfigUpdateModel):
+    name: str
+    vectorIndexConfig: _VectorIndexConfigUpdate = Field(..., alias="vector_index_config")
 
 
 class _NamedVectors:
@@ -721,5 +730,27 @@ class _NamedVectors:
                 model=model,
                 vectorizeClassName=vectorize_collection_name,
             ),
+            vector_index_config=vector_index_config,
+        )
+
+
+class _NamedVectorsUpdate:
+    @staticmethod
+    def update(
+        name: str, *, vector_index_config: _VectorIndexConfigUpdate
+    ) -> _NamedVectorConfigUpdate:
+        """Update the vector index configuration of a named vector.
+
+        This is the only update operation allowed currently. If you wish to change the vectorization configuration itself, you will have to
+        recreate the collection with the new configuration.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Reconfigure.VectorIndex to create a vector index configuration. None by default
+        """
+        return _NamedVectorConfigUpdate(
+            name=name,
             vector_index_config=vector_index_config,
         )

@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import (
@@ -16,7 +15,7 @@ from typing import (
 
 from typing_extensions import TypeAlias
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AnyHttpUrl, ValidationError, Field, field_validator
 
 from weaviate.util import _capitalize_first_letter
 from weaviate.collections.classes.config_vectorizers import (
@@ -27,17 +26,25 @@ from weaviate.collections.classes.config_vectorizers import (
     VectorDistances as VectorDistancesAlias,
 )
 
-from weaviate.collections.classes.config_base import _ConfigBase, _ConfigCreateModel
+from weaviate.collections.classes.config_base import (
+    _ConfigBase,
+    _ConfigCreateModel,
+    _ConfigUpdateModel,
+    _QuantizerConfigUpdate,
+)
 
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
+    _VectorIndexConfigUpdate,
     VectorIndexType as VectorIndexTypeAlias,
 )
 
 from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorConfigCreate,
+    _NamedVectorConfigUpdate,
     _NamedVectors,
+    _NamedVectorsUpdate,
 )
 
 # BC for direct imports
@@ -208,26 +215,6 @@ class PQEncoderDistribution(str, Enum):
     NORMAL = "normal"
 
 
-class _ConfigUpdateModel(BaseModel):
-    model_config = ConfigDict(strict=True)
-
-    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
-        for cls_field in self.model_fields:
-            val = getattr(self, cls_field)
-            if val is None:
-                continue
-            if isinstance(val, Enum):
-                schema[cls_field] = str(val.value)
-            elif isinstance(val, (int, float, bool, str, list)):
-                schema[cls_field] = val
-            elif isinstance(val, _QuantizerConfigUpdate):
-                schema[val.quantizer_name()] = val.merge_with_existing(schema[val.quantizer_name()])
-            else:
-                assert isinstance(val, _ConfigUpdateModel)
-                schema[cls_field] = val.merge_with_existing(schema[cls_field])
-        return schema
-
-
 class _PQEncoderConfigCreate(_ConfigCreateModel):
     type_: Optional[PQEncoderType] = Field(serialization_alias="type")
     distribution: Optional[PQEncoderDistribution]
@@ -270,17 +257,9 @@ class _BQConfigCreate(_QuantizerConfigCreate):
         return "bq"
 
 
-class _QuantizerConfigUpdate(_ConfigUpdateModel):
-    @staticmethod
-    @abstractmethod
-    def quantizer_name() -> str:
-        ...
-
-
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool]
     centroids: Optional[int]
-    enabled: Optional[bool]
     segments: Optional[int]
     trainingLimit: Optional[int]
     encoder: Optional[_PQEncoderConfigUpdate]
@@ -327,19 +306,23 @@ class _VectorIndexFlatConfigCreate(_VectorIndexConfigCreate):
         return VectorIndexType.FLAT
 
 
-class _VectorIndexConfigHNSWUpdate(_ConfigUpdateModel):
-    dynamicEfFactor: Optional[int]
+class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
     dynamicEfMin: Optional[int]
     dynamicEfMax: Optional[int]
+    dynamicEfFactor: Optional[int]
     ef: Optional[int]
     flatSearchCutoff: Optional[int]
     vectorCacheMaxObjects: Optional[int]
-    quantizer: Optional[_PQConfigUpdate]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.HNSW
 
 
-class _VectorIndexConfigFlatUpdate(_ConfigUpdateModel):
-    vectorCacheMaxObjects: Optional[int]
-    quantizer: Optional[_BQConfigUpdate]
+class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.FLAT
 
 
 class _ShardingConfigCreate(_ConfigCreateModel):
@@ -808,6 +791,44 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     vectorIndexConfig: Optional[
         Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
     ] = Field(default=None, alias="vector_index_config")
+    vectorConfig: Optional[List[_NamedVectorConfigUpdate]] = Field(
+        default=None, alias="vector_config"
+    )
+
+    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        if self.description is not None:
+            schema["description"] = self.description
+        if self.invertedIndexConfig is not None:
+            schema["invertedIndexConfig"] = self.invertedIndexConfig.merge_with_existing(
+                schema["invertedIndexConfig"]
+            )
+        if self.replicationConfig is not None:
+            schema["replicationConfig"] = self.replicationConfig.merge_with_existing(
+                schema["replicationConfig"]
+            )
+        if self.vectorIndexConfig is not None:
+            schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
+                schema["vectorIndexConfig"]
+            )
+        if self.vectorConfig is not None:
+            for vc in self.vectorConfig:
+                if vc.name not in schema["vectorConfig"]:
+                    raise ValidationError(
+                        f"Vector config with name {vc.name} does not exist in the existing vector config"
+                    )
+                schema["vectorConfig"][vc.name][
+                    "vectorIndexConfig"
+                ] = vc.vectorIndexConfig.merge_with_existing(
+                    schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+                )
+                schema["vectorConfig"][vc.name][
+                    "vectorIndexType"
+                ] = vc.vectorIndexConfig.vector_index_type()
+                if isinstance(vc.vectorIndexConfig.quantizer, _PQConfigUpdate):
+                    schema["vectorConfig"][vc.name]["vectorIndexConfig"]["bq"]["enabled"] = False
+                if isinstance(vc.vectorIndexConfig.quantizer, _BQConfigUpdate):
+                    schema["vectorConfig"][vc.name]["vectorIndexConfig"]["pq"]["enabled"] = False
+        return schema
 
 
 @dataclass
@@ -1676,7 +1697,7 @@ class _VectorIndexQuantizerUpdate:
         )
 
     @staticmethod
-    def bq(rescore_limit: Optional[int] = None) -> _BQConfigUpdate:
+    def bq(rescore_limit: Optional[int] = None, enabled: bool = True) -> _BQConfigUpdate:
         """Create a `_BQConfigUpdate` object to be used when updating the binary quantization (BQ) configuration of Weaviate.
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
@@ -1684,7 +1705,7 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _BQConfigUpdate(rescoreLimit=rescore_limit)
+        return _BQConfigUpdate(enabled=enabled, rescoreLimit=rescore_limit)
 
 
 class _VectorIndexUpdate:
@@ -1698,7 +1719,7 @@ class _VectorIndexUpdate:
         ef: Optional[int] = None,
         flat_search_cutoff: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[_PQConfigUpdate] = None,
+        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate]] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
@@ -1744,6 +1765,7 @@ class Reconfigure:
     the collection and re-create it with the new configuration.
     """
 
+    NamedVectors = _NamedVectorsUpdate
     VectorIndex = _VectorIndexUpdate
 
     @staticmethod
