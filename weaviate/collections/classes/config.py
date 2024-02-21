@@ -1751,7 +1751,7 @@ PQConfig = _PQConfig
 
 @dataclass
 class _BQConfig(_ConfigBase):
-    cache: bool
+    cache: Optional[bool]
     rescore_limit: int
 
 
@@ -2111,10 +2111,10 @@ class _VectorIndexQuantizer:
     ) -> _BQConfigCreate:
         """Create a `_BQConfigCreate` object to be used when defining the binary quantization (BQ) configuration of Weaviate.
 
-        Use this method when defining the `quantizer` argument in the `vector_index` configuration.
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
 
         Arguments:
-            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _BQConfigCreate(
             cache=cache,
@@ -2149,7 +2149,7 @@ class _VectorIndex:
         flat_search_cutoff: Optional[int] = None,
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[_PQConfigCreate] = None,
+        quantizer: Optional[_QuantizerConfigCreate] = None,
     ) -> _VectorIndexHNSWConfigCreate:
         """Create a `_VectorIndexHNSWConfigCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 

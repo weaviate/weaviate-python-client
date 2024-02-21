@@ -437,6 +437,21 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_type == VectorIndexType.HNSW
 
 
+def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
+        ),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert isinstance(config.vector_index_config.quantizer, _BQConfig)
+
+
 def test_update_flat(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
