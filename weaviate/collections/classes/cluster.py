@@ -56,7 +56,7 @@ class _ConvertFromREST:
                         )
                         for shard in cast(List[ShardREST], node["shards"])
                     ]
-                    if "shards" in nodes
+                    if "shards" in node
                     else []
                 ),
                 stats=(
