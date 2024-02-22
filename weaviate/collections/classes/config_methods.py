@@ -245,10 +245,10 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
             ),
             vectorizer_config=(
                 _PropertyVectorizerConfig(
-                    skip=prop["moduleConfig"][schema["vectorizer"]]["skip"],
-                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]][
-                        "vectorizePropertyName"
-                    ],
+                    skip=prop["moduleConfig"][schema["vectorizer"]].get("skip", False),
+                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]].get(
+                        "vectorizePropertyName", False
+                    ),
                 )
                 if schema["vectorizer"] != "none"
                 else None
