@@ -487,8 +487,12 @@ class _BaseQuery(Generic[Properties, References]):
         return_properties: Optional[ReturnProperties[TProperties]],
     ) -> Optional[PROPERTIES]:
         if (
-            not return_properties  # fast way to check if it is an empty list
-            or isinstance(return_properties, Sequence)
+            return_properties is not None and not return_properties
+        ):  # fast way to check if it is an empty list
+            return []
+
+        if (
+            isinstance(return_properties, Sequence)
             or isinstance(return_properties, str)
             or isinstance(return_properties, QueryNested)
             or (return_properties is None and self._properties is None)
