@@ -793,7 +793,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
         Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
     ] = Field(default=None, alias="vector_index_config")
     vectorConfig: Optional[List[_NamedVectorConfigUpdate]] = Field(
-        default=None, alias="vector_config"
+        default=None, alias="vectorizer_config"
     )
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:

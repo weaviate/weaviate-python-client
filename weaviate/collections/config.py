@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Literal, Optional, Union, cast, overload
 
-from pydantic import ValidationError
+from pydantic_core import ValidationError
 
 from weaviate.collections.classes.config import (
     _CollectionConfigUpdate,
@@ -88,17 +88,28 @@ class _ConfigBase:
         vector_index_config: Optional[
             Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
         ] = None,
-        vector_config: Optional[List[_NamedVectorConfigUpdate]] = None,
+        vectorizer_config: Optional[List[_NamedVectorConfigUpdate]] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
         Use the `weaviate.classes.Reconfigure` class to generate the necessary configuration objects for this method.
 
+        If you are updating the vector index configuration of a collection without named vectors, use `vector_index_config` and leave
+        `vectorizer_config` as None. If you are updating the vector index configuration of a collection with named vectors, use
+        `vectorizer_config` to specify the indices of each named vector individually and leave `vector_index_config` as None.
+
         Arguments:
-            description: A description of the collection.
-            inverted_index_config: Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
-            replication_config: Configuration for the replication. Use `Reconfigure.replication` to generate one.
-            vector_index_config: Configuration for the vector index. Use `Reconfigure.vector_index` to generate one.
+            `description`
+                A description of the collection.
+            `inverted_index_config`
+                Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
+            `replication_config`
+                Configuration for the replication. Use `Reconfigure.replication` to generate one.
+            `vector_index_config`
+                Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
+            `vectorizer_config`
+                Configurations for the vector indices of your named vectors. Use `Reconfigure.NamedVectors` to generate them.
+
 
         Raises:
             `weaviate.WeaviateInvalidInputError`:
@@ -119,7 +130,7 @@ class _ConfigBase:
                 inverted_index_config=inverted_index_config,
                 replication_config=replication_config,
                 vector_index_config=vector_index_config,
-                vector_config=vector_config,
+                vectorizer_config=vectorizer_config,
             )
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e

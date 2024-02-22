@@ -407,7 +407,7 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
     assert config.vector_config["second"].vector_index_config.quantizer is None
 
     collection.config.update(
-        vector_config=[
+        vectorizer_config=[
             wvc.config.Reconfigure.NamedVectors.update(
                 name="second",
                 vector_index_config=wvc.config.Reconfigure.VectorIndex.hnsw(
@@ -460,7 +460,7 @@ def test_update_to_change_quantizer_from_pq_to_bq_on_specific_named_vector(
 
     with pytest.raises(WeaviateInvalidInputError):
         collection.config.update(
-            vector_config=[
+            vectorizer_config=[
                 wvc.config.Reconfigure.NamedVectors.update(
                     name="second",
                     vector_index_config=wvc.config.Reconfigure.VectorIndex.hnsw(

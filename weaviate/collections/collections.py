@@ -1,5 +1,7 @@
 from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
 
+from pydantic_core import ValidationError
+
 from weaviate.collections.base import _CollectionsBase
 from weaviate.collections.classes.config import (
     _NamedVectorConfigCreate,
@@ -84,9 +86,9 @@ class _Collections(_CollectionsBase):
             `sharding_config`
                 The configuration for Weaviate's sharding strategy.
             `vector_index_config`
-                The configuration for Weaviate's vector index.
+                The configuration for Weaviate's default vector index.
             `vectorizer_config`
-                The configuration for Weaviate's vectorizer.
+                The configuration for Weaviate's default vectorizer or a list of named vectorizers.
             `data_model_properties`
                 The generic class that you want to use to represent the properties of objects in this collection. See the `get` method for more information.
             `data_model_references`
@@ -95,12 +97,12 @@ class _Collections(_CollectionsBase):
                 If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
 
         Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
             `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
-            `pydantic.ValidationError`
-                If the configuration object is invalid.
         """
         if isinstance(vectorizer_config, list) and self._connection._weaviate_version.is_lower_than(
             1, 24, 0
@@ -108,20 +110,23 @@ class _Collections(_CollectionsBase):
             raise WeaviateInvalidInputError(
                 "Named vectorizers are only supported in Weaviate v1.24.0 and higher"
             )
-        config = _CollectionConfigCreate(
-            description=description,
-            generative_config=generative_config,
-            inverted_index_config=inverted_index_config,
-            multi_tenancy_config=multi_tenancy_config,
-            name=name,
-            properties=properties,
-            references=references,
-            replication_config=replication_config,
-            reranker_config=reranker_config,
-            sharding_config=sharding_config,
-            vectorizer_config=vectorizer_config or _Vectorizer.none(),
-            vector_index_config=vector_index_config,
-        )
+        try:
+            config = _CollectionConfigCreate(
+                description=description,
+                generative_config=generative_config,
+                inverted_index_config=inverted_index_config,
+                multi_tenancy_config=multi_tenancy_config,
+                name=name,
+                properties=properties,
+                references=references,
+                replication_config=replication_config,
+                reranker_config=reranker_config,
+                sharding_config=sharding_config,
+                vectorizer_config=vectorizer_config or _Vectorizer.none(),
+                vector_index_config=vector_index_config,
+            )
+        except ValidationError as e:
+            raise WeaviateInvalidInputError("Invalid collection config create parameters.") from e
         name = super()._create(config._to_dict())
         assert (
             config.name == name
@@ -158,6 +163,8 @@ class _Collections(_CollectionsBase):
             `skip_argument_validation`
                 If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
         Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
             `weaviate.exceptions.InvalidDataModelException`
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
@@ -185,6 +192,8 @@ class _Collections(_CollectionsBase):
                 The name(s) of the collection(s) to delete.
 
         Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
             `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
@@ -205,6 +214,8 @@ class _Collections(_CollectionsBase):
         for these collections within your code, they will cease to function correctly after this operation.
 
         Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
             `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
@@ -224,6 +235,8 @@ class _Collections(_CollectionsBase):
             `True` if the collection exists, `False` otherwise.
 
         Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
             `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
@@ -243,6 +256,8 @@ class _Collections(_CollectionsBase):
             The configuration of the collection as a `CollectionConfig` object.
 
         Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
             `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
@@ -278,6 +293,8 @@ class _Collections(_CollectionsBase):
             collection name to collection configuration.
 
         Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
             `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
