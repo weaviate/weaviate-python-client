@@ -137,7 +137,7 @@ class _NamedVectorConfigUpdate(_ConfigUpdateModel):
 class _NamedVectors:
     @staticmethod
     def none(
-        name: str, vector_index_config: Optional[_VectorIndexConfigCreate] = None
+        *, name: str, vector_index_config: Optional[_VectorIndexConfigCreate] = None
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using no vectorizer. You will need to provide the vectors yourself.
 
@@ -155,8 +155,8 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_cohere(
-        name: str,
         *,
+        name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -204,8 +204,8 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_contextionary(
-        name: str,
         *,
+        name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -236,8 +236,8 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_openai(
-        name: str,
         *,
+        name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -293,8 +293,8 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_aws(
-        name: str,
         *,
+        name: str,
         model: Optional[Union[AWSModel, str]] = None,
         region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC - will be validated in the model
         endpoint: Optional[str] = None,
@@ -337,9 +337,9 @@ class _NamedVectors:
 
     @staticmethod
     def img2vec_neural(
+        *,
         name: str,
         image_fields: List[str],
-        *,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model.
@@ -367,8 +367,8 @@ class _NamedVectors:
 
     @staticmethod
     def multi2vec_clip(
-        name: str,
         *,
+        name: str,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
@@ -401,8 +401,8 @@ class _NamedVectors:
 
     @staticmethod
     def multi2vec_bind(
-        name: str,
         *,
+        name: str,
         audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         depth_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -445,9 +445,9 @@ class _NamedVectors:
 
     @staticmethod
     def ref2vec_centroid(
+        *,
         name: str,
         reference_properties: List[str],
-        *,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         method: Literal["mean"] = "mean",
     ) -> _NamedVectorConfigCreate:
@@ -477,10 +477,10 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_azure_openai(
+        *,
         name: str,
         resource_name: str,
         deployment_id: str,
-        *,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         source_properties: Optional[List[str]] = None,
         vectorize_collection_name: bool = True,
@@ -515,8 +515,8 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_gpt4all(
-        name: str,
         *,
+        name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -547,8 +547,8 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_huggingface(
-        name: str,
         *,
+        name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -612,9 +612,9 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_palm(
+        *,
         name: str,
         project_id: str,
-        *,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -661,8 +661,8 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_transformers(
-        name: str,
         *,
+        name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -697,8 +697,8 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_jinaai(
-        name: str,
         *,
+        name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
@@ -737,7 +737,7 @@ class _NamedVectors:
 class _NamedVectorsUpdate:
     @staticmethod
     def update(
-        name: str, *, vector_index_config: _VectorIndexConfigUpdate
+        *, name: str, vector_index_config: _VectorIndexConfigUpdate
     ) -> _NamedVectorConfigUpdate:
         """Update the vector index configuration of a named vector.
 
