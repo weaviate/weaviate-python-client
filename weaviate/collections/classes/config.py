@@ -36,6 +36,11 @@ from weaviate.collections.classes.config_base import (
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
+    _VectorIndexConfigHNSWCreate,
+    _VectorIndexConfigFlatCreate,
+    _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
     VectorIndexType as VectorIndexTypeAlias,
 )
@@ -276,54 +281,6 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
     @staticmethod
     def quantizer_name() -> str:
         return "bq"
-
-
-class _VectorIndexSkipConfigCreate(_VectorIndexConfigCreate):
-    skip: bool = True
-
-    @staticmethod
-    def vector_index_type() -> VectorIndexType:
-        return VectorIndexType.HNSW
-
-
-class _VectorIndexHNSWConfigCreate(_VectorIndexConfigCreate):
-    cleanupIntervalSeconds: Optional[int]
-    dynamicEfMin: Optional[int]
-    dynamicEfMax: Optional[int]
-    dynamicEfFactor: Optional[int]
-    efConstruction: Optional[int]
-    ef: Optional[int]
-    flatSearchCutoff: Optional[int]
-    maxConnections: Optional[int]
-
-    @staticmethod
-    def vector_index_type() -> VectorIndexType:
-        return VectorIndexType.HNSW
-
-
-class _VectorIndexFlatConfigCreate(_VectorIndexConfigCreate):
-    @staticmethod
-    def vector_index_type() -> VectorIndexType:
-        return VectorIndexType.FLAT
-
-
-class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
-    dynamicEfMin: Optional[int]
-    dynamicEfMax: Optional[int]
-    dynamicEfFactor: Optional[int]
-    ef: Optional[int]
-    flatSearchCutoff: Optional[int]
-    vectorCacheMaxObjects: Optional[int]
-
-    @staticmethod
-    def vector_index_type() -> VectorIndexType:
-        return VectorIndexType.HNSW
-
-
-class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
-    @staticmethod
-    def vector_index_type() -> VectorIndexType:
-        return VectorIndexType.FLAT
 
 
 class _ShardingConfigCreate(_ConfigCreateModel):
@@ -789,12 +746,12 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     replicationConfig: Optional[_ReplicationConfigUpdate] = Field(
         default=None, alias="replication_config"
     )
-    vectorIndexConfig: Optional[
-        Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
-    ] = Field(default=None, alias="vector_index_config")
-    vectorConfig: Optional[List[_NamedVectorConfigUpdate]] = Field(
-        default=None, alias="vectorizer_config"
+    vectorIndexConfig: Optional[_VectorIndexConfigUpdate] = Field(
+        default=None, alias="vector_index_config"
     )
+    vectorizerConfig: Optional[
+        Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]
+    ] = Field(default=None, alias="vectorizer_config")
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         if self.description is not None:
@@ -811,32 +768,37 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
                 schema["vectorIndexConfig"]
             )
-        if self.vectorConfig is not None:
-            for vc in self.vectorConfig:
-                if vc.name not in schema["vectorConfig"]:
-                    raise WeaviateInvalidInputError(
-                        f"Vector config with name {vc.name} does not exist in the existing vector config"
-                    )
-                if (
-                    isinstance(vc.vectorIndexConfig.quantizer, _PQConfigUpdate)
-                    and schema["vectorConfig"][vc.name]["vectorIndexConfig"]["bq"]["enabled"]
-                    is True
-                ) or (
-                    isinstance(vc.vectorIndexConfig.quantizer, _BQConfigUpdate)
-                    and schema["vectorConfig"][vc.name]["vectorIndexConfig"]["pq"]["enabled"]
-                    is True
-                ):
-                    raise WeaviateInvalidInputError(
-                        f"Cannot update vector index config with name {vc.name} to change its quantizer"
-                    )
-                schema["vectorConfig"][vc.name][
-                    "vectorIndexConfig"
-                ] = vc.vectorIndexConfig.merge_with_existing(
-                    schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+        if self.vectorizerConfig is not None:
+            if isinstance(self.vectorizerConfig, _VectorIndexConfigUpdate):
+                schema["vectorIndexConfig"] = self.vectorizerConfig.merge_with_existing(
+                    schema["vectorIndexConfig"]
                 )
-                schema["vectorConfig"][vc.name][
-                    "vectorIndexType"
-                ] = vc.vectorIndexConfig.vector_index_type()
+            else:
+                for vc in self.vectorizerConfig:
+                    if vc.name not in schema["vectorConfig"]:
+                        raise WeaviateInvalidInputError(
+                            f"Vector config with name {vc.name} does not exist in the existing vector config"
+                        )
+                    if (
+                        isinstance(vc.vectorIndexConfig.quantizer, _PQConfigUpdate)
+                        and schema["vectorConfig"][vc.name]["vectorIndexConfig"]["bq"]["enabled"]
+                        is True
+                    ) or (
+                        isinstance(vc.vectorIndexConfig.quantizer, _BQConfigUpdate)
+                        and schema["vectorConfig"][vc.name]["vectorIndexConfig"]["pq"]["enabled"]
+                        is True
+                    ):
+                        raise WeaviateInvalidInputError(
+                            f"Cannot update vector index config with name {vc.name} to change its quantizer"
+                        )
+                    schema["vectorConfig"][vc.name][
+                        "vectorIndexConfig"
+                    ] = vc.vectorIndexConfig.merge_with_existing(
+                        schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+                    )
+                    schema["vectorConfig"][vc.name][
+                        "vectorIndexType"
+                    ] = vc.vectorIndexConfig.vector_index_type()
         return schema
 
 
@@ -1505,12 +1467,12 @@ class _VectorIndex:
     Quantizer = _VectorIndexQuantizer
 
     @staticmethod
-    def none() -> _VectorIndexSkipConfigCreate:
-        """Create a `_VectorIndexSkipConfigCreate` object to be used when configuring Weaviate to not index your vectors.
+    def none() -> _VectorIndexConfigSkipCreate:
+        """Create a `_VectorIndexConfigSkipCreate` object to be used when configuring Weaviate to not index your vectors.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
         """
-        return _VectorIndexSkipConfigCreate(
+        return _VectorIndexConfigSkipCreate(
             distance=None,
             vectorCacheMaxObjects=None,
             quantizer=None,
@@ -1529,15 +1491,15 @@ class _VectorIndex:
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
-    ) -> _VectorIndexHNSWConfigCreate:
-        """Create a `_VectorIndexHNSWConfigCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
+    ) -> _VectorIndexConfigHNSWCreate:
+        """Create a `_VectorIndexConfigHNSWCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexHNSWConfigCreate(
+        return _VectorIndexConfigHNSWCreate(
             cleanupIntervalSeconds=cleanup_interval_seconds,
             distance=distance_metric,
             dynamicEfMin=dynamic_ef_min,
@@ -1556,15 +1518,15 @@ class _VectorIndex:
         distance_metric: Optional[VectorDistances] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_BQConfigCreate] = None,
-    ) -> _VectorIndexFlatConfigCreate:
-        """Create a `_VectorIndexFlatConfigCreate` object to be used when defining the FLAT vector index configuration of Weaviate.
+    ) -> _VectorIndexConfigFlatCreate:
+        """Create a `_VectorIndexConfigFlatCreate` object to be used when defining the FLAT vector index configuration of Weaviate.
 
         Use this method when defining the `vector_index_config` argument in `collections.create()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _VectorIndexFlatConfigCreate(
+        return _VectorIndexConfigFlatCreate(
             distance=distance_metric,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,

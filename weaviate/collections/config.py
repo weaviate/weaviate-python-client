@@ -88,15 +88,17 @@ class _ConfigBase:
         vector_index_config: Optional[
             Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
         ] = None,
-        vectorizer_config: Optional[List[_NamedVectorConfigUpdate]] = None,
+        vectorizer_config: Optional[
+            Union[
+                _VectorIndexConfigHNSWUpdate,
+                _VectorIndexConfigFlatUpdate,
+                List[_NamedVectorConfigUpdate],
+            ]
+        ] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
         Use the `weaviate.classes.Reconfigure` class to generate the necessary configuration objects for this method.
-
-        If you are updating the vector index configuration of a collection without named vectors, use `vector_index_config` and leave
-        `vectorizer_config` as None. If you are updating the vector index configuration of a collection with named vectors, use
-        `vectorizer_config` to specify the indices of each named vector individually and leave `vector_index_config` as None.
 
         Arguments:
             `description`
@@ -105,11 +107,11 @@ class _ConfigBase:
                 Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
             `replication_config`
                 Configuration for the replication. Use `Reconfigure.replication` to generate one.
-            `vector_index_config`
+            `vector_index_config` DEPRECATED USE `vectorizer_config` INSTEAD
                 Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
             `vectorizer_config`
-                Configurations for the vector indices of your named vectors. Use `Reconfigure.NamedVectors` to generate them.
-
+                Configurations for the vector index (or indices) of your collection.
+                Use `Reconfigure.vector_index` if there is only one vectorizer and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
 
         Raises:
             `weaviate.WeaviateInvalidInputError`:

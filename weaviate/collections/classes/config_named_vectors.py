@@ -32,6 +32,8 @@ from weaviate.collections.classes.config_vectorizers import (
 )
 from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigCreate,
+    _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigUpdate,
     VectorIndexType,
 )
@@ -737,7 +739,9 @@ class _NamedVectors:
 class _NamedVectorsUpdate:
     @staticmethod
     def update(
-        name: str, *, vector_index_config: _VectorIndexConfigUpdate
+        name: str,
+        *,
+        vector_index_config: Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate],
     ) -> _NamedVectorConfigUpdate:
         """Update the vector index configuration of a named vector.
 
@@ -748,7 +752,7 @@ class _NamedVectorsUpdate:
             `name`
                 The name of the named vector.
             `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Reconfigure.VectorIndex to create a vector index configuration. None by default
+                The configuration for Weaviate's vector index. Use `wvc.config.Reconfigure.VectorIndex` to create a vector index configuration. `None` by default
         """
         return _NamedVectorConfigUpdate(
             name=name,

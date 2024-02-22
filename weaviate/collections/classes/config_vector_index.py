@@ -53,3 +53,51 @@ class _VectorIndexConfigUpdate(_ConfigUpdateModel):
     @abstractmethod
     def vector_index_type() -> VectorIndexType:
         ...
+
+
+class _VectorIndexConfigSkipCreate(_VectorIndexConfigCreate):
+    skip: bool = True
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.HNSW
+
+
+class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
+    cleanupIntervalSeconds: Optional[int]
+    dynamicEfMin: Optional[int]
+    dynamicEfMax: Optional[int]
+    dynamicEfFactor: Optional[int]
+    efConstruction: Optional[int]
+    ef: Optional[int]
+    flatSearchCutoff: Optional[int]
+    maxConnections: Optional[int]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.HNSW
+
+
+class _VectorIndexConfigFlatCreate(_VectorIndexConfigCreate):
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.FLAT
+
+
+class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
+    dynamicEfMin: Optional[int]
+    dynamicEfMax: Optional[int]
+    dynamicEfFactor: Optional[int]
+    ef: Optional[int]
+    flatSearchCutoff: Optional[int]
+    vectorCacheMaxObjects: Optional[int]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.HNSW
+
+
+class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.FLAT
