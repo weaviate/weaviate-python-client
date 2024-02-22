@@ -22,11 +22,11 @@ jobs:
     name: Run Linter and Formatter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: psf/black@stable
         with:
             version: "23.9.1"
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -47,8 +47,8 @@ jobs:
         version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         folder: ["weaviate"]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -68,8 +68,8 @@ jobs:
         version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         folder: ["test", "mock_tests"]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
@@ -78,7 +78,7 @@ jobs:
         run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
       - name: Archive code coverage results
         if: matrix.version == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ matrix.folder }}
           path: coverage-${{ matrix.folder }}.xml
@@ -100,11 +100,11 @@ jobs:
 
         optional_dependencies: [false]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
@@ -129,7 +129,7 @@ jobs:
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-v3.xml integration_v3
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-integration-v3
           path: coverage-integration-v3.xml
@@ -151,11 +151,11 @@ jobs:
 
         optional_dependencies: [false]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
@@ -180,7 +180,7 @@ jobs:
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-integration
           path: coverage-integration.xml
@@ -190,30 +190,30 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref_name != 'main'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download coverage artifacts mock
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-mock_tests
       - name: Download coverage artifacts unit
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-test
       - name: Download coverage integration
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-integration
       - name: Download coverage integration v3
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-integration-v3
       - name: Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
           files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
           verbose: true
-
+          token: ${{ secrets.CODECOV_TOKEN }}
 
 
   build-package:
@@ -221,11 +221,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -234,7 +234,7 @@ jobs:
       - name: Build a binary wheel
         run: python -m build
       - name: Create Wheel Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: "dist/*.whl"
           name: weaviate-python-client-wheel
@@ -252,14 +252,14 @@ jobs:
         ]
     steps:
       - name: Download build artifact to append to release
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: weaviate-python-client-wheel
       - run: |
           pip install weaviate_client-*.whl
           pip install pytest pytest-benchmark pytest-profiling grpcio grpcio-tools pytest-xdist
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: free space
@@ -286,11 +286,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -312,7 +312,7 @@ jobs:
     needs: [build-and-publish]
     steps:
       - name: Download build artifact to append to release
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: weaviate-python-client-wheel
           path: dist
