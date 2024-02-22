@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import time
+from typing import Any, Dict
 import grpc
 from werkzeug import Request, Response
 
@@ -226,3 +227,51 @@ def test_missing_multi_tenancy_config(
 
     conf = collection.config.get()
     assert conf.multi_tenancy_config.enabled is False
+
+
+def test_return_from_bind_module(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    config = wvc.config.Configure
+
+    # point of this test is to check if the return from the bind module is correctly parsed. There is no skip and vectorizePropertyName present
+    prop_modconf: Dict[str, Any] = {"multi2vec-bind": {}}
+
+    hnsw_config = config.VectorIndex.hnsw(
+        1, VectorDistances.COSINE, 1, 1, 1, 1, 1, 1, 1, 1
+    )._to_dict()
+    hnsw_config["skip"] = True
+    ii_config = config.inverted_index(
+        1, 1, 1, True, True, True, StopwordsPreset.EN, [], []
+    )._to_dict()
+    schema = {
+        "class": "TestBindCollection",
+        "properties": [
+            {
+                "dataType": ["text"],
+                "name": "name",
+                "indexFilterable": False,
+                "indexSearchable": False,
+                "moduleConfig": prop_modconf,
+            },
+        ],
+        "vectorIndexConfig": hnsw_config,
+        "vectorIndexType": "hnsw",
+        "invertedIndexConfig": ii_config,
+        "multiTenancyConfig": config.multi_tenancy()._to_dict(),
+        "vectorizer": "multi2vec-bind",
+        "replicationConfig": {"factor": 2},
+        "moduleConfig": {"multi2vec-bind": {}},
+    }
+    weaviate_auth_mock.expect_request("/v1/schema/TestBindCollection").respond_with_json(
+        response_json=schema, status=200
+    )
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
+    )
+    collection = client.collections.get("TestBindCollection")
+    conf = collection.config.get()
+
+    assert conf.properties[0].vectorizer_config is not None
+    assert not conf.properties[0].vectorizer_config.skip
+    assert not conf.properties[0].vectorizer_config.vectorize_property_name
