@@ -46,18 +46,26 @@ class _ConvertFromREST:
             Node(
                 git_hash=node["gitHash"],
                 name=node["name"],
-                shards=[
-                    Shard(
-                        collection=shard["class"],
-                        name=shard["name"],
-                        node=node["name"],
-                        object_count=shard["objectCount"],
+                shards=(
+                    [
+                        Shard(
+                            collection=shard["class"],
+                            name=shard["name"],
+                            node=node["name"],
+                            object_count=shard["objectCount"],
+                        )
+                        for shard in cast(List[ShardREST], node["shards"])
+                    ]
+                    if "shards" in node
+                    else []
+                ),
+                stats=(
+                    Stats(
+                        object_count=node["stats"]["objectCount"],
+                        shard_count=node["stats"]["shardCount"],
                     )
-                    for shard in cast(List[ShardREST], node["shards"])
-                ],
-                stats=Stats(
-                    object_count=node["stats"]["objectCount"],
-                    shard_count=node["stats"]["shardCount"],
+                    if "stats" in node
+                    else []
                 ),
                 status=node["status"],
                 version=node["version"],

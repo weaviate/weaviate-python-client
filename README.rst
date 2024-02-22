@@ -23,8 +23,6 @@ The client is tested for python 3.8 and higher.
 
 Visit the official `Weaviate <https://weaviate.io/>`_ website for more information about the Weaviate and how to use it in production.
 
-Check out our `Command Line Interface (CLI) tool <https://pypi.org/project/weaviate-cli/>`_ for interacting with a Weaviate instance directly from your Terminal.
-
 Articles
 --------
 
