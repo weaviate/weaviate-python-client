@@ -80,7 +80,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
         """
-        res = self._query().bm25(
+        res = self._query.bm25(
             query=query,
             properties=query_properties,
             limit=limit,

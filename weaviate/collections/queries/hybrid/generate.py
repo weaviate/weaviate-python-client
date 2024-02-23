@@ -90,7 +90,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
         """
-        res = self._query().hybrid(
+        res = self._query.hybrid(
             query=query or "",
             alpha=alpha,
             vector=vector,

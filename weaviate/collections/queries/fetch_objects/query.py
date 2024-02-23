@@ -63,7 +63,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
         """
-        res = self._query().get(
+        res = self._query.get(
             limit=limit,
             offset=offset,
             after=after,

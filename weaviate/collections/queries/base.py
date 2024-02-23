@@ -84,9 +84,7 @@ class _BaseQuery(Generic[Properties, References]):
         self._properties = properties
         self._references = references
         self._validate_arguments = validate_arguments
-
-    def _query(self) -> _QueryGRPC:
-        return _QueryGRPC(
+        self._query = _QueryGRPC(
             self.__connection,
             self._name,
             self.__tenant,

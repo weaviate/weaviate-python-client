@@ -80,7 +80,7 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query().near_object(
+        res = self._query.near_object(
             near_object=near_object,
             certainty=certainty,
             distance=distance,

@@ -76,7 +76,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query().near_vector(
+        res = self._query.near_vector(
             near_vector=near_vector,
             certainty=certainty,
             distance=distance,
