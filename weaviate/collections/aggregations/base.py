@@ -241,6 +241,7 @@ class _Aggregate:
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         object_limit: Optional[int],
+        target_vector: Optional[str],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
             raise WeaviateInvalidInputError(
@@ -256,6 +257,8 @@ class _Aggregate:
             payload["certainty"] = certainty
         if distance is not None:
             payload["distance"] = distance
+        if target_vector is not None:
+            payload["targetVector"] = target_vector
         builder = builder.with_near_image(payload, encode=False)
         if object_limit is not None:
             builder = builder.with_object_limit(object_limit)
@@ -268,6 +271,7 @@ class _Aggregate:
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         object_limit: Optional[int],
+        target_vector: Optional[str],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
             raise WeaviateInvalidInputError(
@@ -281,6 +285,8 @@ class _Aggregate:
             payload["certainty"] = certainty
         if distance is not None:
             payload["distance"] = distance
+        if target_vector is not None:
+            payload["targetVector"] = target_vector
         builder = builder.with_near_object(payload)
         if object_limit is not None:
             builder = builder.with_object_limit(object_limit)
@@ -295,6 +301,7 @@ class _Aggregate:
         move_to: Optional[Move],
         move_away: Optional[Move],
         object_limit: Optional[int],
+        target_vector: Optional[str],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
             raise WeaviateInvalidInputError(
@@ -305,6 +312,7 @@ class _Aggregate:
                 _ValidateArgument([List[str], str], "query", query),
                 _ValidateArgument([Move, None], "move_to", move_to),
                 _ValidateArgument([Move, None], "move_away", move_away),
+                _ValidateArgument([str, None], "target_vector", target_vector),
             ]
         )
         _Aggregate._parse_near_options(certainty, distance, object_limit)
@@ -318,6 +326,8 @@ class _Aggregate:
             payload["moveTo"] = move_to._to_gql_payload()
         if move_away is not None:
             payload["moveAwayFrom"] = move_away._to_gql_payload()
+        if target_vector is not None:
+            payload["targetVector"] = target_vector
         builder = builder.with_near_text(payload)
         if object_limit is not None:
             builder = builder.with_object_limit(object_limit)
@@ -330,6 +340,7 @@ class _Aggregate:
         certainty: Optional[NUMBER],
         distance: Optional[NUMBER],
         object_limit: Optional[int],
+        target_vector: Optional[str],
     ) -> AggregateBuilder:
         if all([certainty is None, distance is None, object_limit is None]):
             raise WeaviateInvalidInputError(
@@ -343,6 +354,8 @@ class _Aggregate:
             payload["certainty"] = certainty
         if distance is not None:
             payload["distance"] = distance
+        if target_vector is not None:
+            payload["targetVector"] = target_vector
         builder = builder.with_near_vector(payload)
         if object_limit is not None:
             builder = builder.with_object_limit(object_limit)

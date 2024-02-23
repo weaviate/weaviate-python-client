@@ -5,8 +5,8 @@ from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union
 from pydantic import Field
 
 from weaviate.collections.classes.types import _WeaviateInput
+from weaviate.types import INCLUDE_VECTOR, UUID
 from weaviate.util import BaseEnum
-from weaviate.types import UUID
 
 
 class HybridFusion(str, BaseEnum):
@@ -100,16 +100,21 @@ class _MetadataQuery:
     score: bool = False
     explain_score: bool = False
     is_consistent: bool = False
+    vectors: Optional[List[str]] = None
 
     @classmethod
-    def from_public(cls, public: Optional[MetadataQuery], include_vector: bool) -> "_MetadataQuery":
+    def from_public(
+        cls, public: Optional[MetadataQuery], include_vector: INCLUDE_VECTOR
+    ) -> "_MetadataQuery":
         return (
             cls(
-                vector=include_vector,
+                vector=include_vector if isinstance(include_vector, bool) else False,
+                vectors=include_vector if isinstance(include_vector, list) else None,
             )
             if public is None
             else cls(
-                vector=include_vector,
+                vector=include_vector if isinstance(include_vector, bool) else False,
+                vectors=include_vector if isinstance(include_vector, list) else None,
                 creation_time_unix=public.creation_time,
                 last_update_time_unix=public.last_update_time,
                 distance=public.distance,
@@ -264,9 +269,6 @@ PROPERTY = Union[str, QueryNested]
 PROPERTIES = Union[Sequence[PROPERTY], PROPERTY]
 
 NestedProperties = Union[List[Union[str, QueryNested]], str, QueryNested]
-
-_PROPERTY = Union[PROPERTY, REFERENCE]
-_PROPERTIES = Union[PROPERTIES, REFERENCES]
 
 
 class NearMediaType(str, Enum):

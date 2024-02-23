@@ -22,6 +22,7 @@ class _NearVector(_Aggregate):
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
+        target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateReturn:
@@ -37,6 +38,7 @@ class _NearVector(_Aggregate):
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Union[str, GroupByAggregate],
+        target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn:
@@ -51,6 +53,7 @@ class _NearVector(_Aggregate):
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
+        target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
@@ -94,7 +97,9 @@ class _NearVector(_Aggregate):
         )
         builder = self._base(return_metrics, filters, total_count)
         builder = self._add_groupby_to_builder(builder, group_by)
-        builder = self._add_near_vector(builder, near_vector, certainty, distance, object_limit)
+        builder = self._add_near_vector(
+            builder, near_vector, certainty, distance, object_limit, target_vector
+        )
         res = self._do(builder)
         return (
             self._to_aggregate_result(res, return_metrics)

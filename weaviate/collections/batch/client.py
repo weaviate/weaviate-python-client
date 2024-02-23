@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import Optional, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -13,10 +13,10 @@ from weaviate.collections.batch.batch_wrapper import (
     _ContextManagerWrapper,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.internal import ReferenceInput
+from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.types import UUID
+from weaviate.types import UUID, VECTORS
 
 
 class _BatchClient(_BatchBase):
@@ -24,8 +24,9 @@ class _BatchClient(_BatchBase):
         self,
         collection: str,
         properties: Optional[WeaviateProperties] = None,
+        references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
-        vector: Optional[Sequence] = None,
+        vector: Optional[VECTORS] = None,
         tenant: Optional[Union[str, Tenant]] = None,
     ) -> UUID:
         """
@@ -39,11 +40,18 @@ class _BatchClient(_BatchBase):
                 The name of the collection this object belongs to.
             `properties`
                 The data properties of the object to be added as a dictionary.
+            `references`
+                The references of the object to be added as a dictionary.
             `uuid`:
                 The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
                 If it is None an UUIDv4 will generated, by default None
             `vector`:
-                The embedding of the object that should be validated. Can be used when a collection does not have a vectorization module or the given vector was generated using the _identical_ vectorization module that is configured for the class. In this case this vector takes precedence. Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                The embedding of the object. Can be used when a collection does not have a vectorization module or the given
+                vector was generated using the _identical_ vectorization module that is configured for the class. In this
+                case this vector takes precedence.
+                Supported types are
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
             `tenant`
                 The tenant name or Tenant object to be used for this request.
 
@@ -58,7 +66,7 @@ class _BatchClient(_BatchBase):
         return super()._add_object(
             collection=collection,
             properties=properties,
-            references=None,
+            references=references,
             uuid=uuid,
             vector=vector,
             tenant=tenant.name if isinstance(tenant, Tenant) else tenant,

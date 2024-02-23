@@ -12,7 +12,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.types import UUID
+from weaviate.types import UUID, INCLUDE_VECTOR
 
 
 class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -24,7 +24,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[_Sorting] = None,
-        include_vector: bool = False,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None

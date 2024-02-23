@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Generator, Optional, Sequence, Union, Any, Protocol
+from typing import Generator, Optional, Union, Any, Protocol
 
 import pytest
 
@@ -15,6 +15,8 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.grpc import QueryReference
 from weaviate.collections.classes.internal import _CrossReference, ReferenceToMulti
 from weaviate.collections.classes.tenants import Tenant
+
+from weaviate.types import VECTORS
 
 UUID = Union[str, uuid.UUID]
 
@@ -83,7 +85,7 @@ def batch_collection(
 )
 @pytest.mark.parametrize("uuid", [None, UUID1, str(UUID2), UUID3.hex])
 def test_add_object(
-    batch_collection: BatchCollection, uuid: Optional[UUID], vector: Optional[Sequence]
+    batch_collection: BatchCollection, uuid: Optional[UUID], vector: Optional[VECTORS]
 ) -> None:
     collection = batch_collection()
 

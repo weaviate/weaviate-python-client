@@ -1,19 +1,19 @@
 import uuid as uuid_package
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar, Union, cast
+from typing import Any, Dict, Generic, List, Optional, TypeVar, Union, cast
 
 from pydantic import BaseModel, Field, field_validator
 
 from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.types import WeaviateField
-from weaviate.types import BEACON, UUID
+from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _capitalize_first_letter, get_valid_uuid, _get_vector_v4
 
 
 @dataclass
 class _BatchObject:
     collection: str
-    vector: Optional[List[float]]
+    vector: Optional[VECTORS]
     uuid: str
     properties: Optional[Dict[str, WeaviateField]]
     tenant: Optional[str]
@@ -41,11 +41,19 @@ class BatchObject(BaseModel):
     properties: Optional[Dict[str, Any]] = Field(default=None)
     references: Optional[ReferenceInputs] = Field(default=None)
     uuid: Optional[UUID] = Field(default=None)
-    vector: Optional[Sequence] = Field(default=None)
+    vector: Optional[VECTORS] = Field(default=None)
     tenant: Optional[str] = Field(default=None)
 
     def __init__(self, **data: Any) -> None:
-        data["vector"] = _get_vector_v4(v) if (v := data.get("vector")) is not None else None
+        v = data.get("vector")
+        if v is not None:
+            if isinstance(v, dict):  # named vector
+                for key, val in v.items():
+                    v[key] = _get_vector_v4(val)
+                data["vector"] = v
+            else:
+                data["vector"] = _get_vector_v4(v)
+
         data["uuid"] = (
             get_valid_uuid(u) if (u := data.get("uuid")) is not None else uuid_package.uuid4()
         )

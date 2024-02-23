@@ -25,6 +25,7 @@ class _NearText(_Aggregate):
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
+        target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateReturn:
@@ -42,6 +43,7 @@ class _NearText(_Aggregate):
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Union[str, GroupByAggregate],
+        target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn:
@@ -58,6 +60,7 @@ class _NearText(_Aggregate):
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
+        target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
@@ -106,7 +109,14 @@ class _NearText(_Aggregate):
         builder = self._base(return_metrics, filters, total_count)
         builder = self._add_groupby_to_builder(builder, group_by)
         builder = self._add_near_text(
-            builder, query, certainty, distance, move_to, move_away, object_limit
+            builder=builder,
+            query=query,
+            certainty=certainty,
+            distance=distance,
+            move_to=move_to,
+            move_away=move_away,
+            object_limit=object_limit,
+            target_vector=target_vector,
         )
         res = self._do(builder)
         return (

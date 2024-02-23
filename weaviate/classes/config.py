@@ -4,15 +4,16 @@ from weaviate.collections.classes.config import (
     Reconfigure,
     DataType,
     GenerativeSearches,
-    Multi2VecField,
     Property,
     ReferenceProperty,
     Rerankers,
     StopwordsPreset,
     Tokenization,
-    Vectorizers,
     VectorDistances,
 )
+
+from weaviate.collections.classes.config_vectorizers import Multi2VecField, Vectorizers
+
 
 __all__ = [
     "Configure",

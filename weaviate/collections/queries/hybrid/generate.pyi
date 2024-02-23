@@ -10,7 +10,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.types import NUMBER
+from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
     @overload
@@ -30,7 +30,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
-        include_vector: bool = False,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
@@ -52,7 +53,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
-        include_vector: bool = False,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
@@ -74,7 +76,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
-        include_vector: bool = False,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
@@ -96,7 +99,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
-        include_vector: bool = False,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
@@ -118,7 +122,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
-        include_vector: bool = False,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
@@ -140,7 +145,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
-        include_vector: bool = False,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],

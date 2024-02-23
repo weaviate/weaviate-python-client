@@ -60,6 +60,8 @@ from weaviate.util import (
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
+from weaviate.types import INCLUDE_VECTOR
+
 
 class _WeaviateUUIDInt(uuid_lib.UUID):
     def __init__(self, hex_: int) -> None:
@@ -139,11 +141,24 @@ class _BaseQuery(Generic[Properties, References]):
         self,
         add_props: "search_get_pb2.MetadataResult",
     ) -> Dict[str, List[float]]:
-        if len(add_props.vector_bytes) == 0 and len(add_props.vector) == 0:
+        if (
+            len(add_props.vector_bytes) == 0
+            and len(add_props.vector) == 0
+            and len(add_props.vectors) == 0
+        ):
             return {}
 
-        vector_bytes = struct.unpack(f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes)
-        return {"default": list(vector_bytes)}
+        if len(add_props.vector_bytes) > 0:
+            vector_bytes = struct.unpack(
+                f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes
+            )
+            return {"default": list(vector_bytes)}
+
+        vecs = {}
+        for vec in add_props.vectors:
+            vector_bytes = struct.unpack(f"{len(vec.vector_bytes)//4}f", vec.vector_bytes)
+            vecs[vec.name] = list(vector_bytes)
+        return vecs
 
     def __extract_generated_for_object(
         self,
@@ -514,7 +529,7 @@ class _BaseQuery(Generic[Properties, References]):
             )  # is sourced from query-specific generic
 
     def _parse_return_metadata(
-        self, return_metadata: Optional[METADATA], include_vector: bool
+        self, return_metadata: Optional[METADATA], include_vector: INCLUDE_VECTOR
     ) -> Optional[_MetadataQuery]:
         if self._validate_arguments:
             _validate_input(
@@ -522,7 +537,7 @@ class _BaseQuery(Generic[Properties, References]):
                     _ValidateArgument(
                         [Sequence[str], MetadataQuery, None], "return_metadata", return_metadata
                     ),
-                    _ValidateArgument([bool], "include_vector", include_vector),
+                    _ValidateArgument([bool, str, Sequence], "include_vector", include_vector),
                 ]
             )
         if return_metadata is None:

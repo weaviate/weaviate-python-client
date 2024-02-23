@@ -30,7 +30,7 @@ from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateQueryError, WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateQueryError
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4
 
@@ -151,6 +151,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
     ) -> search_get_pb2.SearchReply:
         if self._validate_arguments:
             _validate_input(
@@ -160,6 +161,7 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([List, None], "vector", vector),
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
                 ]
             )
 
@@ -178,6 +180,7 @@ class _QueryGRPC(_BaseGRPC):
                 if fusion_type is not None
                 else None
             ),
+            target_vectors=[target_vector] if target_vector is not None else None,
         )
 
         request = self.__create_request(
@@ -245,12 +248,18 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
         if self._validate_arguments:
-            _validate_input(_ValidateArgument([List], "near_vector", near_vector))
+            _validate_input(
+                [
+                    _ValidateArgument([List], "near_vector", near_vector),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
+                ]
+            )
 
         near_vector = _get_vector_v4(near_vector)
         certainty, distance = self.__parse_near_options(certainty, distance)
@@ -270,6 +279,7 @@ class _QueryGRPC(_BaseGRPC):
                 certainty=certainty,
                 distance=distance,
                 vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
+                target_vectors=[target_vector] if target_vector is not None else None,
             ),
         )
 
@@ -287,14 +297,19 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
-        if not isinstance(near_object, str) and not isinstance(near_object, uuid_lib.UUID):
-            raise WeaviateInvalidInputError(
-                f"near_object must be of type str or uuid.UUID, but got {type(near_object)}"
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([str, uuid_lib.UUID], "near_object", near_object),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
+                ]
             )
+
         certainty, distance = self.__parse_near_options(certainty, distance)
 
         base_request = self.__create_request(
@@ -312,6 +327,7 @@ class _QueryGRPC(_BaseGRPC):
                 id=str(near_object),
                 certainty=certainty,
                 distance=distance,
+                target_vectors=[target_vector] if target_vector is not None else None,
             ),
         )
 
@@ -331,22 +347,21 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
-        if not isinstance(near_text, list) and not isinstance(near_text, str):
-            raise WeaviateInvalidInputError(
-                f"near_text must be of type List[str] or str, but got {type(near_text)}"
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([List, str], "near_text", near_text),
+                    _ValidateArgument([Move, None], "move_away", move_away),
+                    _ValidateArgument([Move, None], "move_to", move_to),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
+                ]
             )
-        if move_away is not None and not isinstance(move_away, Move):
-            raise WeaviateInvalidInputError(
-                f"move_away must be of type Move, but got {type(move_away)}"
-            )
-        if move_to is not None and not isinstance(move_to, Move):
-            raise WeaviateInvalidInputError(
-                f"move_to must be of type Move, but got {type(move_to)}"
-            )
+
         if isinstance(near_text, str):
             near_text = [near_text]
         certainty, distance = self.__parse_near_options(certainty, distance)
@@ -355,6 +370,7 @@ class _QueryGRPC(_BaseGRPC):
             query=near_text,
             certainty=certainty,
             distance=distance,
+            target_vectors=[target_vector] if target_vector is not None else None,
             move_away=search_get_pb2.NearTextSearch.Move(
                 force=move_away.force,
                 concepts=move_away._concepts_list,
@@ -400,37 +416,47 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> search_get_pb2.SearchReply:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([str], "media", media),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
+                ]
+            )
+
         certainty, distance = self.__parse_near_options(certainty, distance)
 
         kwargs: Dict[str, Any] = {}
+        target_vectors = [target_vector] if target_vector is not None else None
 
         if type_ == "audio":
             kwargs["near_audio"] = search_get_pb2.NearAudioSearch(
-                audio=media, distance=distance, certainty=certainty
+                audio=media, distance=distance, certainty=certainty, target_vectors=target_vectors
             )
         elif type_ == "depth":
             kwargs["near_depth"] = search_get_pb2.NearDepthSearch(
-                depth=media, distance=distance, certainty=certainty
+                depth=media, distance=distance, certainty=certainty, target_vectors=target_vectors
             )
         elif type_ == "image":
             kwargs["near_image"] = search_get_pb2.NearImageSearch(
-                image=media, distance=distance, certainty=certainty
+                image=media, distance=distance, certainty=certainty, target_vectors=target_vectors
             )
         elif type_ == "imu":
             kwargs["near_imu"] = search_get_pb2.NearIMUSearch(
-                imu=media, distance=distance, certainty=certainty
+                imu=media, distance=distance, certainty=certainty, target_vectors=target_vectors
             )
         elif type_ == "thermal":
             kwargs["near_thermal"] = search_get_pb2.NearThermalSearch(
-                thermal=media, distance=distance, certainty=certainty
+                thermal=media, distance=distance, certainty=certainty, target_vectors=target_vectors
             )
         elif type_ == "video":
             kwargs["near_video"] = search_get_pb2.NearVideoSearch(
-                video=media, distance=distance, certainty=certainty
+                video=media, distance=distance, certainty=certainty, target_vectors=target_vectors
             )
         else:
             raise ValueError(
@@ -588,6 +614,7 @@ class _QueryGRPC(_BaseGRPC):
             explain_score=metadata.explain_score,
             score=metadata.score,
             is_consistent=metadata.is_consistent,
+            vectors=metadata.vectors,
         )
 
     def __resolve_property(self, prop: QueryNested) -> search_get_pb2.ObjectPropertiesRequest:

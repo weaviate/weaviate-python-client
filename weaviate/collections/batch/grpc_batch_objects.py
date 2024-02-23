@@ -27,6 +27,16 @@ from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.util import _datetime_to_string, _get_vector_v4
 
 
+def _pack_named_vectors(vectors: Dict[str, List[float]]) -> List[base_pb2.Vectors]:
+    return [
+        base_pb2.Vectors(
+            name=name,
+            vector_bytes=struct.pack("{}f".format(len(vector)), *vector),
+        )
+        for name, vector in vectors.items()
+    ]
+
+
 class _BatchGRPC(_BaseGRPC):
     """This class is used to insert multiple objects into Weaviate using the gRPC API.
 
@@ -36,6 +46,38 @@ class _BatchGRPC(_BaseGRPC):
 
     def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
         super().__init__(connection, consistency_level)
+
+    def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
+        def pack_vector(vector: Any) -> bytes:
+            vector_list = _get_vector_v4(vector)
+            return struct.pack("{}f".format(len(vector_list)), *vector_list)
+
+        return [
+            batch_pb2.BatchObject(
+                collection=obj.collection,
+                vector_bytes=(
+                    pack_vector(obj.vector)
+                    if obj.vector is not None and isinstance(obj.vector, list)
+                    else None
+                ),
+                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                properties=(
+                    self.__translate_properties_from_python_to_grpc(
+                        obj.properties,
+                        obj.references if obj.references is not None else {},
+                    )
+                    if obj.properties is not None
+                    else None
+                ),
+                tenant=obj.tenant,
+                vectors=(
+                    _pack_named_vectors(obj.vector)
+                    if obj.vector is not None and isinstance(obj.vector, dict)
+                    else None
+                ),
+            )
+            for obj in objects
+        ]
 
     def objects(self, objects: List[_BatchObject], timeout: int) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
@@ -49,28 +91,7 @@ class _BatchGRPC(_BaseGRPC):
             `tenant`
                 The tenant to be used for this batch operation
         """
-
-        def pack_vector(vector: Any) -> bytes:
-            vector_list = _get_vector_v4(vector)
-            return struct.pack("{}f".format(len(vector_list)), *vector_list)
-
-        weaviate_objs: List[batch_pb2.BatchObject] = [
-            batch_pb2.BatchObject(
-                collection=obj.collection,
-                vector_bytes=pack_vector(obj.vector) if obj.vector is not None else None,
-                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=(
-                    self.__translate_properties_from_python_to_grpc(
-                        obj.properties,
-                        obj.references if obj.references is not None else {},
-                    )
-                    if obj.properties is not None
-                    else None
-                ),
-                tenant=obj.tenant,
-            )
-            for obj in objects
-        ]
+        weaviate_objs = self.__grpc_objects(objects)
 
         start = time.time()
         errors = self.__send_batch(weaviate_objs, timeout=timeout)
@@ -141,28 +162,7 @@ class _BatchGRPC(_BaseGRPC):
             `tenant`
                 The tenant to be used for this batch operation
         """
-
-        def pack_vector(vector: Any) -> bytes:
-            vector_list = _get_vector_v4(vector)
-            return struct.pack("{}f".format(len(vector_list)), *vector_list)
-
-        weaviate_objs: List[batch_pb2.BatchObject] = [
-            batch_pb2.BatchObject(
-                collection=obj.collection,
-                vector_bytes=pack_vector(obj.vector) if obj.vector is not None else None,
-                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=(
-                    self.__translate_properties_from_python_to_grpc(
-                        obj.properties,
-                        obj.references if obj.references is not None else {},
-                    )
-                    if obj.properties is not None
-                    else None
-                ),
-                tenant=obj.tenant,
-            )
-            for obj in objects
-        ]
+        weaviate_objs = self.__grpc_objects(objects)
 
         start = time.time()
         errors = await self.__send_batch_async(weaviate_objs, timeout=timeout)

@@ -12,7 +12,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.types import NUMBER
+from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
 class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -29,7 +29,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
-        include_vector: bool = False,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
@@ -91,6 +92,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
             autocut=auto_limit,
             filters=filters,
             rerank=rerank,
+            target_vector=target_vector,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),

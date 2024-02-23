@@ -12,6 +12,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.types import INCLUDE_VECTOR
 
 
 class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, References]):
@@ -25,7 +26,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
-        include_vector: bool = False,
+        include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,

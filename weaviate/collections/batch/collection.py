@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Sequence, Union
+from typing import Generic, List, Optional, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -13,7 +13,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
 from weaviate.connect import ConnectionV4
-from weaviate.types import UUID
+from weaviate.types import UUID, VECTORS
 
 
 class _BatchCollection(Generic[Properties], _BatchBase):
@@ -40,7 +40,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         properties: Optional[Properties] = None,
         references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
-        vector: Optional[Sequence] = None,
+        vector: Optional[VECTORS] = None,
     ) -> UUID:
         """Add one object to this batch.
 
@@ -50,12 +50,16 @@ class _BatchCollection(Generic[Properties], _BatchBase):
             `properties`
                 The data properties of the object to be added as a dictionary.
             `references`
-                The references of the object to be added as a dictionary. Use `wvc.Reference.to` to create the correct values in the dict.
+                The references of the object to be added as a dictionary.
             `uuid`:
-                The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
-                If it is None an UUIDv4 will generated, by default None
+                The UUID of the object as an uuid.UUID object or str. If it is None an UUIDv4 will generated, by default None
             `vector`:
-                The embedding of the object that should be validated. Can be used when a collection does not have a vectorization module or the given vector was generated using the _identical_ vectorization module that is configured for the class. In this case this vector takes precedence. Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                The embedding of the object. Can be used when a collection does not have a vectorization module or the given
+                vector was generated using the _identical_ vectorization module that is configured for the class. In this
+                case this vector takes precedence.
+                Supported types are
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
 
         Returns:
             `str`
