@@ -12,7 +12,6 @@ from typing import (
     Generic,
     List,
     Optional,
-    Sequence,
     Set,
     TypeVar,
     Union,
@@ -45,7 +44,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateBatchValidationError
-from weaviate.types import UUID
+from weaviate.types import UUID, VECTORS
 from weaviate.warnings import _Warnings
 
 BatchResponse = List[Dict[str, Any]]
@@ -559,7 +558,7 @@ class _BatchBase:
         properties: Optional[WeaviateProperties] = None,
         references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
-        vector: Optional[Sequence] = None,
+        vector: Optional[VECTORS] = None,
         tenant: Optional[str] = None,
     ) -> UUID:
         self.__check_bg_thread_alive()

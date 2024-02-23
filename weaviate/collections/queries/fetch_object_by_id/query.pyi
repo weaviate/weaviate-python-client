@@ -13,14 +13,14 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.types import UUID
+from weaviate.types import INCLUDE_VECTOR, UUID
 
 class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
     @overload
     def fetch_object_by_id(
         self,
         uuid: UUID,
-        include_vector: bool = False,
+        include_vector: INCLUDE_VECTOR = False,
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
@@ -29,7 +29,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
     def fetch_object_by_id(
         self,
         uuid: UUID,
-        include_vector: bool = False,
+        include_vector: INCLUDE_VECTOR = False,
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
@@ -38,7 +38,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
     def fetch_object_by_id(
         self,
         uuid: UUID,
-        include_vector: bool = False,
+        include_vector: INCLUDE_VECTOR = False,
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
@@ -47,7 +47,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
     def fetch_object_by_id(
         self,
         uuid: UUID,
-        include_vector: bool = False,
+        include_vector: INCLUDE_VECTOR = False,
         *,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
@@ -56,7 +56,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
     def fetch_object_by_id(
         self,
         uuid: UUID,
-        include_vector: bool = False,
+        include_vector: INCLUDE_VECTOR = False,
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
@@ -65,7 +65,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
     def fetch_object_by_id(
         self,
         uuid: UUID,
-        include_vector: bool = False,
+        include_vector: INCLUDE_VECTOR = False,
         *,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],

@@ -7,6 +7,8 @@ UUID = Union[str, uuid_package.UUID]
 UUIDS = Union[Sequence[UUID], UUID]
 NUMBER = Union[int, float]
 GEO_COORDINATES = Tuple[float, float]
+VECTORS = Union[Dict[str, List[float]], List[float]]
+INCLUDE_VECTOR = Union[bool, str, List[str]]
 
 BEACON = "weaviate://localhost/"
 

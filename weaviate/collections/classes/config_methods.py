@@ -4,6 +4,8 @@ from weaviate.collections.classes.config import (
     _BQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
+    _NamedVectorConfig,
+    _NamedVectorizerConfig,
     _PQConfig,
     _VectorIndexConfigFlat,
     _InvertedIndexConfig,
@@ -71,11 +73,8 @@ def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfi
 
 
 def __get_vectorizer_config(schema: Dict[str, Any]) -> Optional[_VectorizerConfig]:
-    if schema["vectorizer"] != "none":
-        vec_config: Optional[Dict[str, Any]] = schema["moduleConfig"].pop(
-            schema["vectorizer"], None
-        )
-        assert vec_config is not None
+    if __get_vectorizer(schema) is not None and schema.get("vectorizer", "none") != "none":
+        vec_config: Dict[str, Any] = schema["moduleConfig"].pop(schema["vectorizer"])
         return _VectorizerConfig(
             vectorize_collection_name=vec_config.pop("vectorizeClassName", False),
             model=vec_config,
@@ -85,20 +84,25 @@ def __get_vectorizer_config(schema: Dict[str, Any]) -> Optional[_VectorizerConfi
         return None
 
 
-def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
-    return _CollectionConfigSimple(
-        name=schema["class"],
-        description=schema.get("description"),
-        generative_config=__get_generative_config(schema),
-        properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
-        references=_references_from_config(schema) if schema.get("properties") is not None else [],
-        reranker_config=__get_rerank_config(schema),
-        vectorizer_config=__get_vectorizer_config(schema),
-        vectorizer=Vectorizers(schema["vectorizer"]),
-    )
+def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Vectorizers]:
+    # ignore single vectorizer config if named vectors are present
+    if "vectorConfig" in schema:
+        return None
+    return Vectorizers(schema.get("vectorizer"))
 
 
-def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
+def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]:
+    if "vectorIndexType" in schema:
+        return VectorIndexType(schema["vectorIndexType"])
+    else:
+        return None
+
+
+def __get_vector_index_config(
+    schema: Dict[str, Any]
+) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, None]:
+    if "vectorIndexConfig" not in schema:
+        return None
     quantizer: Optional[Union[_PQConfig, _BQConfig]] = None
     if "bq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["bq"]["enabled"]:
         # values are not present for bq+hnsw
@@ -121,9 +125,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         )
 
     if schema["vectorIndexType"] == "hnsw":
-        vector_index_config: Union[
-            _VectorIndexConfigHNSW, _VectorIndexConfigFlat
-        ] = _VectorIndexConfigHNSW(
+        return _VectorIndexConfigHNSW(
             cleanup_interval_seconds=schema["vectorIndexConfig"]["cleanupIntervalSeconds"],
             distance_metric=VectorDistances(schema["vectorIndexConfig"]["distance"]),
             dynamic_ef_min=schema["vectorIndexConfig"]["dynamicEfMin"],
@@ -139,11 +141,59 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         )
     else:
         assert schema["vectorIndexType"] == "flat"
-        vector_index_config = _VectorIndexConfigFlat(
+        return _VectorIndexConfigFlat(
             distance_metric=VectorDistances(schema["vectorIndexConfig"]["distance"]),
             quantizer=quantizer,
             vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
         )
+
+
+def __get_vector_config(
+    schema: Dict[str, Any], simple: bool
+) -> Optional[Dict[str, _NamedVectorConfig]]:
+    if "vectorConfig" in schema:
+        named_vectors: Dict[str, _NamedVectorConfig] = {}
+        for name in schema["vectorConfig"]:
+            named_vector = schema["vectorConfig"][name]
+
+            vectorizer = named_vector["vectorizer"].keys()
+            assert len(vectorizer) == 1
+
+            vectorizer_str: str = str(list(vectorizer)[0])
+            vec_config: Dict[str, Any] = named_vector["vectorizer"][vectorizer_str]
+            props = vec_config.pop("properties", None)
+
+            vector_index_config = __get_vector_index_config(named_vector)
+            assert vector_index_config is not None
+
+            named_vectors[name] = _NamedVectorConfig(
+                vectorizer=_NamedVectorizerConfig(
+                    vectorizer=Vectorizers(vectorizer_str),
+                    model=vec_config,
+                    source_properties=props,
+                ),
+                vector_index_config=vector_index_config,
+            )
+        return named_vectors
+    else:
+        return None
+
+
+def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
+    return _CollectionConfigSimple(
+        name=schema["class"],
+        description=schema.get("description"),
+        generative_config=__get_generative_config(schema),
+        properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
+        references=_references_from_config(schema) if schema.get("properties") is not None else [],
+        reranker_config=__get_rerank_config(schema),
+        vectorizer_config=__get_vectorizer_config(schema),
+        vectorizer=__get_vectorizer(schema),
+        vector_config=__get_vector_config(schema, simple=True),
+    )
+
+
+def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     return _CollectionConfig(
         name=schema["class"],
         description=schema.get("description"),
@@ -187,10 +237,11 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             strategy=schema["shardingConfig"]["strategy"],
             function=schema["shardingConfig"]["function"],
         ),
-        vector_index_config=vector_index_config,
-        vector_index_type=VectorIndexType(schema["vectorIndexType"]),
+        vector_index_config=__get_vector_index_config(schema),
+        vector_index_type=__get_vector_index_type(schema),
         vectorizer_config=__get_vectorizer_config(schema),
-        vectorizer=Vectorizers(schema["vectorizer"]),
+        vectorizer=__get_vectorizer(schema),
+        vector_config=__get_vector_config(schema, simple=False),
     )
 
 
@@ -250,10 +301,10 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                         "vectorizePropertyName", False
                     ),
                 )
-                if schema["vectorizer"] != "none"
+                if schema.get("vectorizer", "none") != "none"
                 else None
             ),
-            vectorizer=schema["vectorizer"],
+            vectorizer=schema.get("vectorizer", "none"),
         )
         for prop in schema["properties"]
         if _is_primitive(prop["dataType"])

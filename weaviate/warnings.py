@@ -165,6 +165,16 @@ class _Warnings:
         )
 
     @staticmethod
+    def vector_index_config_in_config_update() -> None:
+        warnings.warn(
+            message="""Dep017: You are using the `vector_index_config` argument in the `collection.config.update()` method, which is deprecated.
+            Please instead use the `vectorizer_config` argument instead.
+            """,
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.

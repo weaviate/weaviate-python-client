@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional, List, Generator, Protocol, Type, Dict, Tuple
+from typing import Any, Optional, List, Generator, Protocol, Type, Dict, Tuple, Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -22,6 +22,8 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.types import Properties
 from weaviate.config import AdditionalConfig
 
+from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
+
 
 class CollectionFactory(Protocol):
     """Typing for fixture."""
@@ -31,7 +33,9 @@ class CollectionFactory(Protocol):
         name: str = "",
         properties: Optional[List[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
-        vectorizer_config: Optional[_VectorizerConfigCreate] = None,
+        vectorizer_config: Optional[
+            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+        ] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeConfigCreate] = None,
@@ -57,7 +61,9 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         name: str = "",
         properties: Optional[List[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
-        vectorizer_config: Optional[_VectorizerConfigCreate] = None,
+        vectorizer_config: Optional[
+            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+        ] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         generative_config: Optional[_GenerativeConfigCreate] = None,
@@ -109,7 +115,11 @@ class OpenAICollection(Protocol):
     """Typing for fixture."""
 
     def __call__(
-        self, name: str = "", vectorizer_config: Optional[_VectorizerConfigCreate] = None
+        self,
+        name: str = "",
+        vectorizer_config: Optional[
+            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+        ] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -120,7 +130,10 @@ def openai_collection(
     collection_factory: CollectionFactory,
 ) -> Generator[OpenAICollection, None, None]:
     def _factory(
-        name: str = "", vectorizer_config: Optional[_VectorizerConfigCreate] = None
+        name: str = "",
+        vectorizer_config: Optional[
+            Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+        ] = None,
     ) -> Collection[Any, Any]:
         api_key = os.environ.get("OPENAI_APIKEY")
         if api_key is None:
