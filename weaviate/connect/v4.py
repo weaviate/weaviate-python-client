@@ -102,7 +102,7 @@ class _Connection(_ConnectionBase):
         self._aclient: Optional[AsyncSession] = None
         self._client: Session
         self.__additional_headers = {}
-        self.__auth = auth_client_secret
+        self._auth = auth_client_secret
         self._connection_params = connection_params
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
@@ -136,7 +136,7 @@ class _Connection(_ConnectionBase):
     def connect(self, skip_init_checks: bool) -> None:
         if self.embedded_db is not None:
             self.embedded_db.start()
-        self._create_clients(self.__auth, skip_init_checks)
+        self._create_clients(self._auth, skip_init_checks)
         self.__connected = True
 
         # need this to get the version of weaviate for version checks
@@ -600,6 +600,37 @@ class ConnectionV4(_Connection):
             connection_config,
             embedded_db,
         )
+        self.__prepare_grpc_headers()
+
+    def __prepare_grpc_headers(self) -> None:
+        self.__metadata_list: List[Tuple[str, str]] = []
+        if len(self.additional_headers):
+            for key, val in self.additional_headers.items():
+                if val is not None:
+                    self.__metadata_list.append((key.lower(), val))
+
+        if self._auth is not None:
+            if isinstance(self._auth, AuthApiKey):
+                self.__metadata_list.append(("authorization", self._auth.api_key))
+            else:
+                self.__metadata_list.append(
+                    ("authorization", "dummy_will_be_refreshed_for_each_call")
+                )
+
+        if len(self.__metadata_list) > 0:
+            self.__grpc_headers: Optional[Tuple[Tuple[str, str], ...]] = tuple(self.__metadata_list)
+        else:
+            self.__grpc_headers = None
+
+    def grpc_headers(self) -> Optional[Tuple[Tuple[str, str], ...]]:
+        if self._auth is None or not isinstance(self._auth, AuthApiKey):
+            return self.__grpc_headers
+
+        assert self.__grpc_headers is not None
+        access_token = self.get_current_bearer_token()
+        # auth is last entry in list, rest is static
+        self.__metadata_list[len(self.__metadata_list) - 1] = ("authorization", access_token)
+        return tuple(self.__metadata_list)
 
     def _ping_grpc(self) -> None:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""

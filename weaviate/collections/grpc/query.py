@@ -1,17 +1,6 @@
 from dataclasses import dataclass
 import struct
-from typing import (
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Dict, List, Literal, Optional, Sequence, Set, TypeVar, Union, cast, Tuple
 
 from typing_extensions import TypeAlias
 
@@ -32,7 +21,6 @@ from weaviate.collections.classes.grpc import (
     PROPERTY,
     REFERENCE,
     REFERENCES,
-    _Sort,
     _Sorting,
     Rerank,
 )
@@ -42,7 +30,7 @@ from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateQueryError, WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateQueryError
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4
 
@@ -91,59 +79,405 @@ class _QueryGRPC(_BaseGRPC):
         self._tenant = tenant
         self._validate_arguments = validate_arguments
 
-        self._return_props: Optional[Set[PROPERTY]] = None
-        self._metadata: Optional[_MetadataQuery] = None
-        self._return_refs: Optional[Set[REFERENCE]] = None
+    def __parse_near_options(
+        self,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+    ) -> Tuple[Optional[float], Optional[float]]:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([float, int, None], "certainty", certainty),
+                    _ValidateArgument([float, int, None], "distance", distance),
+                ]
+            )
+        return (
+            float(certainty) if certainty is not None else None,
+            float(distance) if distance is not None else None,
+        )
 
-        self._limit: Optional[int] = None
-        self._offset: Optional[int] = None
-        self._autocut: Optional[int] = None
-        self._after: Optional[UUID] = None
-        self._target_vector: Optional[List[str]] = None
-
-        self._hybrid_query: Optional[str] = None
-        self._hybrid_alpha: Optional[float] = None
-        self._hybrid_vector: Optional[List[float]] = None
-        self._hybrid_properties: Optional[List[str]] = None
-        self._hybrid_fusion_type: Optional[int] = None
-
-        self._bm25_query: Optional[str] = None
-        self._bm25_properties: Optional[List[str]] = None
-
-        self._near_vector_vec: Optional[List[float]] = None
-        self._near_object_obj: Optional[UUID] = None
-        self._near_text: Optional[List[str]] = None
-        self._near_text_move_away: Optional[search_get_pb2.NearTextSearch.Move] = None
-        self._near_text_move_to: Optional[search_get_pb2.NearTextSearch.Move] = None
-
-        self._near_certainty: Optional[float] = None
-        self._near_distance: Optional[float] = None
-
-        self._near_audio: Optional[str] = None
-        self._near_depth: Optional[str] = None
-        self._near_image: Optional[str] = None
-        self._near_imu: Optional[str] = None
-        self._near_thermal: Optional[str] = None
-        self._near_video: Optional[str] = None
-
-        self._generative: Optional[_Generative] = None
-        self._rerank: Optional[Rerank] = None
-        self._sort: Optional[List[_Sort]] = None
-
-        self._group_by: Optional[_GroupBy] = None
-
-        self._filters: Optional[_Filters] = None
-
-    def __parse_sort(self, sort: Optional[_Sorting]) -> None:
+    def get(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[_Sorting] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
+        generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
+    ) -> search_get_pb2.SearchReply:
         if self._validate_arguments:
             _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
 
-        if sort is None:
-            self._sort = None
+        if sort is not None:
+            sort_by: grpc.RepeatedCompositeFieldContainer[search_get_pb2.SortBy] = [
+                search_get_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
+                for sort in sort.sorts
+            ]
         else:
-            self._sort = sort.sorts
+            sort_by = None
 
-    def __parse_common(
+        request = self.__create_request(
+            after=after,
+            limit=limit,
+            offset=offset,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            sort_by=sort_by,
+        )
+
+        return self.__call(request)
+
+    def hybrid(
+        self,
+        query: str,
+        alpha: Optional[float] = None,
+        vector: Optional[List[float]] = None,
+        properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
+        generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
+    ) -> search_get_pb2.SearchReply:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([str], "query", query),
+                    _ValidateArgument([float, int, None], "alpha", alpha),
+                    _ValidateArgument([List, None], "vector", vector),
+                    _ValidateArgument([List, None], "properties", properties),
+                    _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
+                ]
+            )
+
+        hybrid_search = search_get_pb2.Hybrid(
+            properties=properties,
+            query=query,
+            alpha=float(alpha) if alpha is not None else None,
+            vector_bytes=(
+                struct.pack("{}f".format(len(vector)), *vector) if vector is not None else None
+            ),
+            fusion_type=(
+                cast(
+                    search_get_pb2.Hybrid.FusionType,
+                    search_get_pb2.Hybrid.FusionType.Value(fusion_type.value),
+                )
+                if fusion_type is not None
+                else None
+            ),
+            target_vectors=[target_vector] if target_vector is not None else None,
+        )
+
+        request = self.__create_request(
+            limit=limit,
+            offset=offset,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            hybrid_search=hybrid_search,
+        )
+
+        return self.__call(request)
+
+    def bm25(
+        self,
+        query: str,
+        properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
+        generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
+    ) -> search_get_pb2.SearchReply:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([str], "query", query),
+                    _ValidateArgument([List, None], "properties", properties),
+                ]
+            )
+
+        request = self.__create_request(
+            limit=limit,
+            offset=offset,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            bm25=search_get_pb2.BM25(
+                query=query, properties=properties if properties is not None else []
+            ),
+        )
+        return self.__call(request)
+
+    def near_vector(
+        self,
+        near_vector: List[float],
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[_GroupBy] = None,
+        generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([List], "near_vector", near_vector),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
+                ]
+            )
+
+        near_vector = _get_vector_v4(near_vector)
+        certainty, distance = self.__parse_near_options(certainty, distance)
+
+        request = self.__create_request(
+            limit=limit,
+            offset=offset,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            group_by=group_by,
+            near_vector=search_get_pb2.NearVector(
+                certainty=certainty,
+                distance=distance,
+                vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
+                target_vectors=[target_vector] if target_vector is not None else None,
+            ),
+        )
+
+        return self.__call(request)
+
+    def near_object(
+        self,
+        near_object: UUID,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[_GroupBy] = None,
+        generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([str, uuid_lib.UUID], "near_object", near_object),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
+                ]
+            )
+
+        certainty, distance = self.__parse_near_options(certainty, distance)
+
+        base_request = self.__create_request(
+            limit=limit,
+            offset=offset,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            group_by=group_by,
+            near_object=search_get_pb2.NearObject(
+                id=str(near_object),
+                certainty=certainty,
+                distance=distance,
+                target_vectors=[target_vector] if target_vector is not None else None,
+            ),
+        )
+
+        return self.__call(base_request)
+
+    def near_text(
+        self,
+        near_text: Union[List[str], str],
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[_GroupBy] = None,
+        generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([List, str], "near_text", near_text),
+                    _ValidateArgument([Move, None], "move_away", move_away),
+                    _ValidateArgument([Move, None], "move_to", move_to),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
+                ]
+            )
+
+        if isinstance(near_text, str):
+            near_text = [near_text]
+        certainty, distance = self.__parse_near_options(certainty, distance)
+
+        near_text_req = search_get_pb2.NearTextSearch(
+            query=near_text,
+            certainty=certainty,
+            distance=distance,
+            target_vectors=[target_vector] if target_vector is not None else None,
+            move_away=search_get_pb2.NearTextSearch.Move(
+                force=move_away.force,
+                concepts=move_away._concepts_list,
+                uuids=move_away._objects_list,
+            )
+            if move_away is not None
+            else None,
+            move_to=search_get_pb2.NearTextSearch.Move(
+                force=move_to.force,
+                concepts=move_to._concepts_list,
+                uuids=move_to._objects_list,
+            )
+            if move_to is not None
+            else None,
+        )
+
+        request = self.__create_request(
+            limit=limit,
+            offset=offset,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            group_by=group_by,
+            near_text=near_text_req,
+        )
+
+        return self.__call(request)
+
+    def near_media(
+        self,
+        media: str,
+        type_: Literal["audio", "depth", "image", "imu", "thermal", "video"],
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        autocut: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[_GroupBy] = None,
+        generative: Optional[_Generative] = None,
+        rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
+        return_metadata: Optional[_MetadataQuery] = None,
+        return_properties: Optional[PROPERTIES] = None,
+        return_references: Optional[REFERENCES] = None,
+    ) -> search_get_pb2.SearchReply:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([str], "media", media),
+                    _ValidateArgument([str, None], "target_vector", target_vector),
+                ]
+            )
+
+        certainty, distance = self.__parse_near_options(certainty, distance)
+
+        kwargs: Dict[str, Any] = {}
+        target_vectors = [target_vector] if target_vector is not None else None
+
+        if type_ == "audio":
+            kwargs["near_audio"] = search_get_pb2.NearAudioSearch(
+                audio=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+            )
+        elif type_ == "depth":
+            kwargs["near_depth"] = search_get_pb2.NearDepthSearch(
+                depth=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+            )
+        elif type_ == "image":
+            kwargs["near_image"] = search_get_pb2.NearImageSearch(
+                image=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+            )
+        elif type_ == "imu":
+            kwargs["near_imu"] = search_get_pb2.NearIMUSearch(
+                imu=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+            )
+        elif type_ == "thermal":
+            kwargs["near_thermal"] = search_get_pb2.NearThermalSearch(
+                thermal=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+            )
+        elif type_ == "video":
+            kwargs["near_video"] = search_get_pb2.NearVideoSearch(
+                video=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+            )
+        else:
+            raise ValueError(
+                f"type_ must be one of ['audio', 'depth', 'image', 'imu', 'thermal', 'video'], but got {type_}"
+            )
+        request = self.__create_request(
+            limit=limit,
+            offset=offset,
+            filters=filters,
+            metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
+            generative=generative,
+            rerank=rerank,
+            autocut=autocut,
+            group_by=group_by,
+            **kwargs,
+        )
+        return self.__call(request)
+
+    def __create_request(
         self,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -156,8 +490,19 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         autocut: Optional[int] = None,
         group_by: Optional[_GroupBy] = None,
-        target_vector: Optional[str] = None,
-    ) -> None:
+        near_vector: Optional[search_get_pb2.NearVector] = None,
+        sort_by: Optional[Sequence[search_get_pb2.SortBy]] = None,
+        hybrid_search: Optional[search_get_pb2.Hybrid] = None,
+        bm25: Optional[search_get_pb2.BM25] = None,
+        near_object: Optional[search_get_pb2.NearObject] = None,
+        near_text: Optional[search_get_pb2.NearTextSearch] = None,
+        near_audio: Optional[search_get_pb2.NearAudioSearch] = None,
+        near_depth: Optional[search_get_pb2.NearDepthSearch] = None,
+        near_image: Optional[search_get_pb2.NearImageSearch] = None,
+        near_imu: Optional[search_get_pb2.NearIMUSearch] = None,
+        near_thermal: Optional[search_get_pb2.NearThermalSearch] = None,
+        near_video: Optional[search_get_pb2.NearVideoSearch] = None,
+    ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -169,7 +514,6 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([_Generative, None], "generative", generative),
                     _ValidateArgument([Rerank, None], "rerank", rerank),
                     _ValidateArgument([int, None], "autocut", autocut),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
                     _ValidateArgument([_GroupBy, None], "group_by", group_by),
                     _ValidateArgument(
                         [str, QueryNested, Sequence, None], "return_properties", return_properties
@@ -195,536 +539,62 @@ class _QueryGRPC(_BaseGRPC):
                         )
                     )
 
-        self._limit = limit
-        self._offset = offset
-        self._after = after
-        self._filters = filters
-        self._metadata = metadata
-        self._generative = generative
-        self._rerank = rerank
-        self._autocut = autocut
-        self._group_by = group_by
-        self._target_vector = [target_vector] if target_vector is not None else None
-
         if return_references is not None:
-            self._return_refs = self.__convert_to_set(return_references)
-        if return_properties is not None:
-            self._return_props = self.__convert_to_set(return_properties)
-
-    def __parse_hybrid(
-        self,
-        query: str,
-        alpha: Optional[NUMBER] = None,
-        vector: Optional[List[float]] = None,
-        properties: Optional[List[str]] = None,
-        fusion_type: Optional[HybridFusion] = None,
-    ) -> None:
-        if self._validate_arguments:
-            _validate_input(
-                [
-                    _ValidateArgument([str], "query", query),
-                    _ValidateArgument([float, int, None], "alpha", alpha),
-                    _ValidateArgument([List, None], "vector", vector),
-                    _ValidateArgument([List, None], "properties", properties),
-                    _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
-                ]
+            return_references_parsed: Optional[Set[REFERENCE]] = self.__convert_to_set(
+                return_references
             )
-
-        self._hybrid_query = query
-        self._hybrid_alpha = float(alpha) if alpha is not None else None
-        self._hybrid_vector = vector
-        self._hybrid_properties = properties
-        self._hybrid_fusion_type = (
-            search_get_pb2.Hybrid.FusionType.Value(fusion_type.value)
-            if fusion_type is not None
-            else None
-        )
-
-    def __parse_bm25(
-        self,
-        query: str,
-        properties: Optional[List[str]] = None,
-    ) -> None:
-        if self._validate_arguments:
-            _validate_input(
-                [
-                    _ValidateArgument([str], "query", query),
-                    _ValidateArgument([List, None], "properties", properties),
-                ]
-            )
-        self._bm25_query = query
-        self._bm25_properties = properties
-
-    def __parse_near_options(
-        self,
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
-    ) -> None:
-        if self._validate_arguments:
-            _validate_input(
-                [
-                    _ValidateArgument([float, int, None], "certainty", certainty),
-                    _ValidateArgument([float, int, None], "distance", distance),
-                ]
-            )
-
-        self._near_certainty = float(certainty) if certainty is not None else None
-        self._near_distance = float(distance) if distance is not None else None
-
-    def get(
-        self,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        after: Optional[UUID] = None,
-        filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
-        return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-        return_references: Optional[REFERENCES] = None,
-        generative: Optional[_Generative] = None,
-        rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
-    ) -> search_get_pb2.SearchReply:
-        self.__parse_common(
-            limit=limit,
-            offset=offset,
-            after=after,
-            filters=filters,
-            metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
-            generative=generative,
-            rerank=rerank,
-            target_vector=target_vector,
-        )
-        self.__parse_sort(sort)
-        return self.__call()
-
-    def hybrid(
-        self,
-        query: str,
-        alpha: Optional[float] = None,
-        vector: Optional[List[float]] = None,
-        properties: Optional[List[str]] = None,
-        fusion_type: Optional[HybridFusion] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        autocut: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-        return_references: Optional[REFERENCES] = None,
-        generative: Optional[_Generative] = None,
-        rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
-    ) -> search_get_pb2.SearchReply:
-        self.__parse_hybrid(query, alpha, vector, properties, fusion_type)
-        self.__parse_common(
-            limit=limit,
-            offset=offset,
-            filters=filters,
-            metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
-            generative=generative,
-            rerank=rerank,
-            autocut=autocut,
-            target_vector=target_vector,
-        )
-        return self.__call()
-
-    def bm25(
-        self,
-        query: str,
-        properties: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        autocut: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-        return_references: Optional[REFERENCES] = None,
-        generative: Optional[_Generative] = None,
-        rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
-    ) -> search_get_pb2.SearchReply:
-        self.__parse_bm25(query, properties)
-        self.__parse_common(
-            limit=limit,
-            offset=offset,
-            filters=filters,
-            metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
-            generative=generative,
-            rerank=rerank,
-            autocut=autocut,
-            target_vector=target_vector,
-        )
-        return self.__call()
-
-    def near_vector(
-        self,
-        near_vector: List[float],
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        autocut: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[_GroupBy] = None,
-        generative: Optional[_Generative] = None,
-        target_vector: Optional[str] = None,
-        rerank: Optional[Rerank] = None,
-        return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-        return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
-        if self._validate_arguments:
-            _validate_input(_ValidateArgument([List], "near_vector", near_vector))
-
-        self._near_vector_vec = _get_vector_v4(near_vector)
-        self.__parse_near_options(certainty, distance)
-        self.__parse_common(
-            limit=limit,
-            offset=offset,
-            filters=filters,
-            metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
-            generative=generative,
-            rerank=rerank,
-            autocut=autocut,
-            group_by=group_by,
-            target_vector=target_vector,
-        )
-        return self.__call()
-
-    def near_object(
-        self,
-        near_object: UUID,
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        autocut: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[_GroupBy] = None,
-        generative: Optional[_Generative] = None,
-        rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
-        return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-        return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
-        if not isinstance(near_object, str) and not isinstance(near_object, uuid_lib.UUID):
-            raise WeaviateInvalidInputError(
-                f"near_object must be of type str or uuid.UUID, but got {type(near_object)}"
-            )
-        self._near_object_obj = near_object
-        self.__parse_near_options(certainty, distance)
-        self.__parse_common(
-            limit=limit,
-            offset=offset,
-            filters=filters,
-            metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
-            generative=generative,
-            rerank=rerank,
-            autocut=autocut,
-            group_by=group_by,
-            target_vector=target_vector,
-        )
-        return self.__call()
-
-    def near_text(
-        self,
-        near_text: Union[List[str], str],
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
-        move_to: Optional[Move] = None,
-        move_away: Optional[Move] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        autocut: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[_GroupBy] = None,
-        generative: Optional[_Generative] = None,
-        rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
-        return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-        return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
-        if not isinstance(near_text, list) and not isinstance(near_text, str):
-            raise WeaviateInvalidInputError(
-                f"near_text must be of type List[str] or str, but got {type(near_text)}"
-            )
-        if move_away is not None and not isinstance(move_away, Move):
-            raise WeaviateInvalidInputError(
-                f"move_away must be of type Move, but got {type(move_away)}"
-            )
-        if move_to is not None and not isinstance(move_to, Move):
-            raise WeaviateInvalidInputError(
-                f"move_to must be of type Move, but got {type(move_to)}"
-            )
-        if isinstance(near_text, str):
-            near_text = [near_text]
-        self._near_text = near_text
-        self.__parse_near_options(certainty, distance)
-        self.__parse_common(
-            limit=limit,
-            offset=offset,
-            filters=filters,
-            metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
-            generative=generative,
-            rerank=rerank,
-            autocut=autocut,
-            group_by=group_by,
-            target_vector=target_vector,
-        )
-        if move_away is not None:
-            self._near_text_move_away = search_get_pb2.NearTextSearch.Move(
-                force=move_away.force,
-                concepts=move_away._concepts_list,
-                uuids=move_away._objects_list,
-            )
-        if move_to is not None:
-            self._near_text_move_to = search_get_pb2.NearTextSearch.Move(
-                force=move_to.force, concepts=move_to._concepts_list, uuids=move_to._objects_list
-            )
-        return self.__call()
-
-    def near_media(
-        self,
-        media: str,
-        type_: Literal["audio", "depth", "image", "imu", "thermal", "video"],
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        autocut: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[_GroupBy] = None,
-        generative: Optional[_Generative] = None,
-        rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
-        return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
-        return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
-        if type_ == "audio":
-            self._near_audio = media
-        elif type_ == "depth":
-            self._near_depth = media
-        elif type_ == "image":
-            self._near_image = media
-        elif type_ == "imu":
-            self._near_imu = media
-        elif type_ == "thermal":
-            self._near_thermal = media
-        elif type_ == "video":
-            self._near_video = media
         else:
-            raise ValueError(
-                f"type_ must be one of ['audio', 'depth', 'image', 'imu', 'thermal', 'video'], but got {type_}"
+            return_references_parsed = None
+
+        if return_properties is not None:
+            return_properties_parsed: Optional[Set[PROPERTY]] = self.__convert_to_set(
+                return_properties
             )
-        self.__parse_near_options(certainty, distance)
-        self.__parse_common(
+        else:
+            return_properties_parsed = None
+
+        return search_get_pb2.SearchRequest(
+            uses_123_api=True,
+            collection=self._name,
             limit=limit,
             offset=offset,
-            filters=filters,
-            metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
-            generative=generative,
-            rerank=rerank,
+            after=str(after) if after is not None else "",
             autocut=autocut,
-            group_by=group_by,
-            target_vector=target_vector,
+            properties=self._translate_properties_from_python_to_grpc(
+                return_properties_parsed, return_references_parsed
+            ),
+            metadata=(self._metadata_to_grpc(metadata) if metadata is not None else None),
+            consistency_level=self._consistency_level,
+            tenant=self._tenant,
+            filters=_FilterToGRPC.convert(filters),
+            generative=generative.to_grpc() if generative is not None else None,
+            group_by=group_by.to_grpc() if group_by is not None else None,
+            rerank=(
+                search_get_pb2.Rerank(property=rerank.prop, query=rerank.query)
+                if rerank is not None
+                else None
+            ),
+            near_vector=near_vector,
+            sort_by=sort_by,
+            hybrid_search=hybrid_search,
+            bm25_search=bm25,
+            near_object=near_object,
+            near_text=near_text,
+            near_audio=near_audio,
+            near_depth=near_depth,
+            near_image=near_image,
+            near_imu=near_imu,
+            near_thermal=near_thermal,
+            near_video=near_video,
         )
 
-        return self.__call()
-
-    def __call(self) -> search_get_pb2.SearchReply:
-        metadata: Optional[Tuple[Tuple[str, str], ...]] = None
-        access_token = self._connection.get_current_bearer_token()
-
-        metadata_list: List[Tuple[str, str]] = []
-        if len(access_token) > 0:
-            metadata_list.append(("authorization", access_token))
-
-        if len(self._connection.additional_headers):
-            for key, val in self._connection.additional_headers.items():
-                if val is not None:
-                    metadata_list.append((key.lower(), val))
-
-        if len(metadata_list) > 0:
-            metadata = tuple(metadata_list)
-
+    def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
         try:
             assert self._connection.grpc_stub is not None
             res: search_get_pb2.SearchReply  # According to PEP-0526
             res, _ = self._connection.grpc_stub.Search.with_call(
-                search_get_pb2.SearchRequest(
-                    uses_123_api=True,
-                    collection=self._name,
-                    limit=self._limit,
-                    offset=self._offset,
-                    after=str(self._after) if self._after is not None else "",
-                    autocut=self._autocut,
-                    near_vector=(
-                        search_get_pb2.NearVector(
-                            certainty=self._near_certainty,
-                            distance=self._near_distance,
-                            vector_bytes=struct.pack(
-                                "{}f".format(len(self._near_vector_vec)), *self._near_vector_vec
-                            ),
-                            target_vectors=self._target_vector,
-                        )
-                        if self._near_vector_vec is not None
-                        else None
-                    ),
-                    near_object=(
-                        search_get_pb2.NearObject(
-                            id=str(self._near_object_obj),
-                            certainty=self._near_certainty,
-                            distance=self._near_distance,
-                            target_vectors=self._target_vector,
-                        )
-                        if self._near_object_obj is not None
-                        else None
-                    ),
-                    properties=self._translate_properties_from_python_to_grpc(
-                        self._return_props, self._return_refs
-                    ),
-                    metadata=(
-                        self._metadata_to_grpc(self._metadata)
-                        if self._metadata is not None
-                        else None
-                    ),
-                    bm25_search=(
-                        search_get_pb2.BM25(
-                            properties=self._bm25_properties, query=self._bm25_query
-                        )
-                        if self._bm25_query is not None
-                        else None
-                    ),
-                    hybrid_search=(
-                        search_get_pb2.Hybrid(
-                            properties=self._hybrid_properties,
-                            query=self._hybrid_query,
-                            alpha=self._hybrid_alpha,
-                            fusion_type=cast(
-                                search_get_pb2.Hybrid.FusionType, self._hybrid_fusion_type
-                            ),
-                            vector_bytes=(
-                                struct.pack(
-                                    "{}f".format(len(self._hybrid_vector)), *self._hybrid_vector
-                                )
-                                if self._hybrid_vector is not None
-                                else None
-                            ),
-                            target_vectors=self._target_vector,
-                        )
-                        if self._hybrid_query is not None
-                        else None
-                    ),
-                    tenant=self._tenant,
-                    filters=_FilterToGRPC.convert(self._filters),
-                    near_audio=(
-                        search_get_pb2.NearAudioSearch(
-                            audio=self._near_audio,
-                            distance=self._near_distance,
-                            certainty=self._near_certainty,
-                            target_vectors=self._target_vector,
-                        )
-                        if self._near_audio is not None
-                        else None
-                    ),
-                    near_depth=(
-                        search_get_pb2.NearDepthSearch(
-                            depth=self._near_depth,
-                            distance=self._near_distance,
-                            certainty=self._near_certainty,
-                            target_vectors=self._target_vector,
-                        )
-                        if self._near_depth is not None
-                        else None
-                    ),
-                    near_image=(
-                        search_get_pb2.NearImageSearch(
-                            image=self._near_image,
-                            distance=self._near_distance,
-                            certainty=self._near_certainty,
-                            target_vectors=self._target_vector,
-                        )
-                        if self._near_image is not None
-                        else None
-                    ),
-                    near_imu=(
-                        search_get_pb2.NearIMUSearch(
-                            imu=self._near_imu,
-                            distance=self._near_distance,
-                            certainty=self._near_certainty,
-                            target_vectors=self._target_vector,
-                        )
-                        if self._near_imu is not None
-                        else None
-                    ),
-                    near_text=(
-                        search_get_pb2.NearTextSearch(
-                            query=self._near_text,
-                            certainty=self._near_certainty,
-                            distance=self._near_distance,
-                            move_to=self._near_text_move_to,
-                            move_away=self._near_text_move_away,
-                            target_vectors=self._target_vector,
-                        )
-                        if self._near_text is not None
-                        else None
-                    ),
-                    near_thermal=(
-                        search_get_pb2.NearThermalSearch(
-                            thermal=self._near_thermal,
-                            distance=self._near_distance,
-                            certainty=self._near_certainty,
-                            target_vectors=self._target_vector,
-                        )
-                        if self._near_thermal is not None
-                        else None
-                    ),
-                    near_video=(
-                        search_get_pb2.NearVideoSearch(
-                            video=self._near_video,
-                            distance=self._near_distance,
-                            certainty=self._near_certainty,
-                            target_vectors=self._target_vector,
-                        )
-                        if self._near_video is not None
-                        else None
-                    ),
-                    consistency_level=self._consistency_level,
-                    sort_by=(
-                        [
-                            search_get_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
-                            for sort in self._sort
-                        ]
-                        if self._sort is not None
-                        else None
-                    ),
-                    generative=self._generative.to_grpc() if self._generative is not None else None,
-                    group_by=self._group_by.to_grpc() if self._group_by is not None else None,
-                    rerank=(
-                        search_get_pb2.Rerank(property=self._rerank.prop, query=self._rerank.query)
-                        if self._rerank is not None
-                        else None
-                    ),
-                ),
-                metadata=metadata,
+                request,
+                metadata=self._connection.grpc_headers(),
                 timeout=self._connection.timeout_config.connect,
             )
 

@@ -56,7 +56,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         return_metadata = MetadataQuery(
             creation_time=True, last_update_time=True, is_consistent=True
         )
-        res = self._query().get(
+        res = self._query.get(
             limit=1,
             filters=Filter.by_id().equal(uuid),
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),

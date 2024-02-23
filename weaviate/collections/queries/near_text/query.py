@@ -87,7 +87,7 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query().near_text(
+        res = self._query.near_text(
             near_text=query,
             certainty=certainty,
             distance=distance,

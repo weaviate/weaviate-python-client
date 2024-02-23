@@ -24,7 +24,6 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[_Sorting] = None,
-        target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -64,13 +63,12 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
         """
-        res = self._query().get(
+        res = self._query.get(
             limit=limit,
             offset=offset,
             after=after,
             filters=filters,
             sort=sort,
-            target_vector=target_vector,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),

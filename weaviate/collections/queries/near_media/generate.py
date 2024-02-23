@@ -89,7 +89,7 @@ class _NearMediaGenerate(Generic[Properties, References], _BaseQuery[Properties,
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query().near_media(
+        res = self._query.near_media(
             media=self._parse_media(media),
             type_=media_type.value,
             certainty=certainty,

@@ -31,7 +31,6 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -83,7 +82,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
         """
-        res = self._query().bm25(
+        res = self._query.bm25(
             query=query,
             properties=query_properties,
             limit=limit,
@@ -91,7 +90,6 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
             autocut=auto_limit,
             filters=filters,
             rerank=rerank,
-            target_vector=target_vector,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
