@@ -5,20 +5,21 @@ from weaviate.collections.classes.config_base import (
     _ConfigUpdateModel,
 )
 from weaviate.collections.classes.config_vectorizers import (
-    _Img2VecNeuralConfig,
-    _Multi2VecBindConfig,
-    _Multi2VecClipConfig,
-    _Ref2VecCentroidConfig,
-    _Text2VecAWSConfig,
-    _Text2VecAzureOpenAIConfig,
-    _Text2VecCohereConfig,
-    _Text2VecContextionaryConfig,
-    _Text2VecGPT4AllConfig,
-    _Text2VecHuggingFaceConfig,
-    _Text2VecJinaConfig,
-    _Text2VecOpenAIConfig,
-    _Text2VecPalmConfig,
-    _Text2VecTransformersConfig,
+    _Img2VecNeuralConfigCreate,
+    _Multi2VecBindConfigCreate,
+    _Multi2VecClipConfigCreate,
+    _Ref2VecCentroidConfigCreate,
+    _Text2VecAWSConfigCreate,
+    _Text2VecAzureOpenAIConfigCreate,
+    _Text2VecCohereConfigCreate,
+    _Text2VecContextionaryConfigCreate,
+    _Text2VecGPT4AllConfigCreate,
+    _Text2VecHuggingFaceConfigCreate,
+    _Text2VecJinaConfigCreate,
+    _Text2VecOpenAIConfigCreate,
+    _Text2VecPalmConfigCreate,
+    _Text2VecTransformersConfigCreate,
+    _VectorizerConfigCreate,
     AWSModel,
     AWSService,
     CohereModel,
@@ -51,84 +52,29 @@ class _NamedVectorizerConfigCreate(_ConfigCreateModel):
         return {str(vectorizer.value): values}
 
 
-class _Text2VecOpenAIConfigNamed(_Text2VecOpenAIConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Text2VecContextionaryConfigNamed(_Text2VecContextionaryConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Text2VecCohereConfigNamed(_Text2VecCohereConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Text2VecAWSConfigNamed(_Text2VecAWSConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Img2VecNeuralConfigNamed(_Img2VecNeuralConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Multi2VecClipNamed(_Multi2VecClipConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Multi2VecBindNamed(_Multi2VecBindConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Ref2VecCentroidConfigNamed(_Ref2VecCentroidConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Text2VecAzureOpenAIConfigNamed(_Text2VecAzureOpenAIConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Text2VecGPT4AllConfigNamed(_Text2VecGPT4AllConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _NoneConfigNamed(_NamedVectorizerConfigCreate):
-    vectorizer: Vectorizers = Field(default=Vectorizers.NONE, frozen=True, exclude=True)
-
-
-class _Text2VecHuggingFaceConfigNamed(_Text2VecHuggingFaceConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Text2VecPalmConfigNamed(_Text2VecPalmConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Text2VecTransformersConfigNamed(_Text2VecTransformersConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
-class _Text2VecJinaConfigNamed(_Text2VecJinaConfig, _NamedVectorizerConfigCreate):
-    pass
-
-
 class _NamedVectorConfigCreate(_ConfigCreateModel):
     name: str
-    vectorizer: _NamedVectorizerConfigCreate
+    properties: Optional[List[str]] = Field(default=None, min_length=1, alias="source_properties")
+    vectorizer: _VectorizerConfigCreate
     vectorIndexType: VectorIndexType = Field(default=VectorIndexType.HNSW, exclude=True)
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
 
     def _to_dict(self) -> Dict[str, Any]:
-        ret_dict: Dict[str, Any] = {"vectorizer": self.vectorizer._to_dict()}
-
+        ret_dict: Dict[str, Any] = self.__parse_vectorizer()
         if self.vectorIndexConfig is not None:
             ret_dict["vectorIndexType"] = self.vectorIndexConfig.vector_index_type().value
             ret_dict["vectorIndexConfig"] = self.vectorIndexConfig._to_dict()
         else:
             ret_dict["vectorIndexType"] = self.vectorIndexType.value
-
         return ret_dict
+
+    def __parse_vectorizer(self) -> Dict[str, Any]:
+        vectorizer_options = self.vectorizer._to_dict()
+        if self.properties is not None:
+            vectorizer_options["properties"] = self.properties
+        return {"vectorizer": {self.vectorizer.vectorizer.value: vectorizer_options}}
 
 
 class _NamedVectorConfigUpdate(_ConfigUpdateModel):
@@ -151,7 +97,7 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_NoneConfigNamed(),
+            vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             vector_index_config=vector_index_config,
         )
 
@@ -194,8 +140,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecCohereConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecCohereConfigCreate(
                 baseURL=base_url,
                 model=model,
                 truncate=truncate,
@@ -229,8 +175,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecContextionaryConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecContextionaryConfigCreate(
                 vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
@@ -281,8 +227,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecOpenAIConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecOpenAIConfigCreate(
                 baseURL=base_url,
                 model=model,
                 modelVersion=model_version,
@@ -296,9 +242,9 @@ class _NamedVectors:
     @staticmethod
     def text2vec_aws(
         name: str,
+        region: str,
         *,
         model: Optional[Union[AWSModel, str]] = None,
-        region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC - will be validated in the model
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
         source_properties: Optional[List[str]] = None,
@@ -313,10 +259,10 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
-            `model`
-                The model to use, REQUIRED.
             `region`
                 The AWS region to run the model from, REQUIRED.
+            `model`
+                The model to use.
             `source_properties`
                 Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
@@ -326,8 +272,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecAWSConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecAWSConfigCreate(
                 model=model,
                 endpoint=endpoint,
                 region=region,
@@ -363,7 +309,7 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Img2VecNeuralConfigNamed(imageFields=image_fields),
+            vectorizer=_Img2VecNeuralConfigCreate(imageFields=image_fields),
             vector_index_config=vector_index_config,
         )
 
@@ -393,7 +339,7 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Multi2VecClipNamed(
+            vectorizer=_Multi2VecClipConfigCreate(
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
                 vectorizeClassName=vectorize_collection_name,
@@ -432,7 +378,7 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Multi2VecBindNamed(
+            vectorizer=_Multi2VecBindConfigCreate(
                 audioFields=_map_multi2vec_fields(audio_fields),
                 depthFields=_map_multi2vec_fields(depth_fields),
                 imageFields=_map_multi2vec_fields(image_fields),
@@ -470,7 +416,7 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Ref2VecCentroidConfigNamed(
+            vectorizer=_Ref2VecCentroidConfigCreate(
                 referenceProperties=reference_properties,
                 method=method,
             ),
@@ -505,8 +451,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecAzureOpenAIConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecAzureOpenAIConfigCreate(
                 baseURL=base_url,
                 resourceName=resource_name,
                 deploymentId=deployment_id,
@@ -540,8 +486,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecGPT4AllConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecGPT4AllConfigCreate(
                 vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
@@ -598,8 +544,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecHuggingFaceConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecHuggingFaceConfigCreate(
                 model=model,
                 passageModel=passage_model,
                 queryModel=query_model,
@@ -651,8 +597,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecPalmConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecPalmConfigCreate(
                 projectId=project_id,
                 apiEndpoint=api_endpoint,
                 modelId=model_id,
@@ -689,8 +635,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecTransformersConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecTransformersConfigCreate(
                 poolingStrategy=pooling_strategy,
                 vectorizeClassName=vectorize_collection_name,
             ),
@@ -727,8 +673,8 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Text2VecJinaConfigNamed(
-                source_properties=source_properties,
+            source_properties=source_properties,
+            vectorizer=_Text2VecJinaConfigCreate(
                 model=model,
                 vectorizeClassName=vectorize_collection_name,
             ),

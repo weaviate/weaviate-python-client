@@ -116,7 +116,7 @@ class VectorDistances(str, Enum):
 
 
 class _VectorizerConfigCreate(_ConfigCreateModel):
-    vectorizer: Vectorizers
+    vectorizer: Vectorizers = Field(default=..., exclude=True)
 
 
 class _Text2VecContextionaryConfig(_ConfigCreateModel):
@@ -126,7 +126,7 @@ class _Text2VecContextionaryConfig(_ConfigCreateModel):
     vectorizeClassName: bool
 
 
-class _Text2VecContextionaryCreate(_Text2VecContextionaryConfig, _VectorizerConfigCreate):
+class _Text2VecContextionaryConfigCreate(_Text2VecContextionaryConfig, _VectorizerConfigCreate):
     pass
 
 
@@ -167,7 +167,7 @@ class _Text2VecAzureOpenAIConfigCreate(_Text2VecAzureOpenAIConfig, _VectorizerCo
     pass
 
 
-class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
+class _Text2VecHuggingFaceConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(
         default=Vectorizers.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True
     )
@@ -194,6 +194,10 @@ class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
         if self.endpointURL is not None:
             ret_dict["endpointURL"] = self.endpointURL.unicode_string()
         return ret_dict
+
+
+class _Text2VecHuggingFaceConfigCreate(_Text2VecHuggingFaceConfig, _VectorizerConfigCreate):
+    pass
 
 
 OpenAIType = Literal["text", "code"]
@@ -239,7 +243,7 @@ class _Text2VecCohereConfigCreate(_Text2VecCohereConfig, _VectorizerConfigCreate
     pass
 
 
-class _Text2VecPalmConfig(_VectorizerConfigCreate):
+class _Text2VecPalmConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True)
     projectId: str
     apiEndpoint: Optional[AnyHttpUrl]
@@ -253,7 +257,11 @@ class _Text2VecPalmConfig(_VectorizerConfigCreate):
         return ret_dict
 
 
-class _Text2VecTransformersConfig(_VectorizerConfigCreate):
+class _Text2VecPalmConfigCreate(_Text2VecPalmConfig, _VectorizerConfigCreate):
+    pass
+
+
+class _Text2VecTransformersConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(
         default=Vectorizers.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True
     )
@@ -261,15 +269,27 @@ class _Text2VecTransformersConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
+class _Text2VecTransformersConfigCreate(_Text2VecTransformersConfig, _VectorizerConfigCreate):
+    pass
+
+
+class _Text2VecGPT4AllConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_GPT4ALL, frozen=True, exclude=True)
     vectorizeClassName: bool
 
 
-class _Text2VecJinaConfig(_VectorizerConfigCreate):
+class _Text2VecGPT4AllConfigCreate(_Text2VecGPT4AllConfig, _VectorizerConfigCreate):
+    pass
+
+
+class _Text2VecJinaConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_JINAAI, frozen=True, exclude=True)
     model: Optional[str]
     vectorizeClassName: bool
+
+
+class _Text2VecJinaConfigCreate(_Text2VecJinaConfig, _VectorizerConfigCreate):
+    pass
 
 
 class _Img2VecNeuralConfig(_ConfigCreateModel):
@@ -357,14 +377,14 @@ class _Vectorizer:
 
     @staticmethod
     def none() -> _VectorizerConfigCreate:
-        """Create a `VectorizerConfig` object with the vectorizer set to `Vectorizer.NONE`."""
+        """Create a `_VectorizerConfigCreate` object with the vectorizer set to `Vectorizer.NONE`."""
         return _VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
 
     @staticmethod
     def img2vec_neural(
         image_fields: List[str],
     ) -> _VectorizerConfigCreate:
-        """Create a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model.
+        """Create a `_Img2VecNeuralConfigCreate` object for use when vectorizing using the `img2vec-neural` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
         for detailed usage.
@@ -385,7 +405,7 @@ class _Vectorizer:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
+        """Create a `_Multi2VecClipConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-clip)
         for detailed usage.
@@ -418,7 +438,7 @@ class _Vectorizer:
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `Multi2VecClipConfig` object for use when vectorizing using the `multi2vec-clip` model.
+        """Create a `_Multi2VecBindConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind)
         for detailed usage.
@@ -460,7 +480,7 @@ class _Vectorizer:
         reference_properties: List[str],
         method: Literal["mean"] = "mean",
     ) -> _VectorizerConfigCreate:
-        """Create a `Ref2VecCentroidConfig` object for use when vectorizing using the `ref2vec-centroid` model.
+        """Create a `_Ref2VecCentroidConfigCreate` object for use when vectorizing using the `ref2vec-centroid` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/ref2vec-centroid)
         for detailed usage.
@@ -487,7 +507,7 @@ class _Vectorizer:
         service: Union[AWSService, str] = "bedrock",
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `Text2VecAWSConfig` object for use when vectorizing using the `text2vec-aws` model.
+        """Create a `_Text2VecAWSConfigCreate` object for use when vectorizing using the `text2vec-aws` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-aws)
         for detailed usage.
@@ -504,7 +524,7 @@ class _Vectorizer:
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _Text2VecAWSConfig(
+        return _Text2VecAWSConfigCreate(
             model=model,
             region=region,
             vectorizeClassName=vectorize_collection_name,
@@ -519,7 +539,7 @@ class _Vectorizer:
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
     ) -> _VectorizerConfigCreate:
-        """Create a `Text2VecAzureOpenAIConfig` object for use when vectorizing using the `text2vec-azure-openai` model.
+        """Create a `_Text2VecAzureOpenAIConfigCreate` object for use when vectorizing using the `text2vec-azure-openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-azure-openai)
         for detailed usage.
@@ -546,7 +566,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_contextionary(vectorize_collection_name: bool = True) -> _VectorizerConfigCreate:
-        """Create a `Text2VecContextionaryConfig` object for use when vectorizing using the `text2vec-contextionary` model.
+        """Create a `_Text2VecContextionaryConfigCreate` object for use when vectorizing using the `text2vec-contextionary` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
         for detailed usage.
@@ -558,7 +578,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError`` if `vectorize_collection_name` is not a `bool`.
         """
-        return _Text2VecContextionaryCreate(vectorizeClassName=vectorize_collection_name)
+        return _Text2VecContextionaryConfigCreate(vectorizeClassName=vectorize_collection_name)
 
     @staticmethod
     def text2vec_cohere(
@@ -567,7 +587,7 @@ class _Vectorizer:
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
     ) -> _VectorizerConfigCreate:
-        """Create a `Text2VecCohereConfig` object for use when vectorizing using the `text2vec-cohere` model.
+        """Create a `_Text2VecCohereConfigCreate` object for use when vectorizing using the `text2vec-cohere` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
         for detailed usage.
@@ -596,7 +616,7 @@ class _Vectorizer:
     def text2vec_gpt4all(
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `Text2VecGPT4AllConfig` object for use when vectorizing using the `text2vec-gpt4all` model.
+        """Create a `_Text2VecGPT4AllConfigCreate` object for use when vectorizing using the `text2vec-gpt4all` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
         for detailed usage.
@@ -608,7 +628,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `vectorize_collection_name` is not a `bool`.
         """
-        return _Text2VecGPT4AllConfig(vectorizeClassName=vectorize_collection_name)
+        return _Text2VecGPT4AllConfigCreate(vectorizeClassName=vectorize_collection_name)
 
     @staticmethod
     def text2vec_huggingface(
@@ -621,7 +641,7 @@ class _Vectorizer:
         use_cache: Optional[bool] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `Text2VecHuggingFaceConfig` object for use when vectorizing using the `text2vec-huggingface` model.
+        """Create a `_Text2VecHuggingFaceConfigCreate` object for use when vectorizing using the `text2vec-huggingface` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
         for detailed usage.
@@ -649,7 +669,7 @@ class _Vectorizer:
                 It is important to note that some of these variables are mutually exclusive.
                     See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface) for more details.
         """
-        return _Text2VecHuggingFaceConfig(
+        return _Text2VecHuggingFaceConfigCreate(
             model=model,
             passageModel=passage_model,
             queryModel=query_model,
@@ -669,7 +689,7 @@ class _Vectorizer:
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
-        """Create a `Text2VecOpenAIConfig` object for use when vectorizing using the `text2vec-openai` model.
+        """Create a `_Text2VecOpenAIConfigCreate` object for use when vectorizing using the `text2vec-openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-openai)
         for detailed usage.
@@ -707,7 +727,7 @@ class _Vectorizer:
         model_id: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `Text2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
+        """Create a `_Text2VecPalmConfigCreate` object for use when vectorizing using the `text2vec-palm` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
         for detailed usage.
@@ -725,7 +745,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
         """
-        return _Text2VecPalmConfig(
+        return _Text2VecPalmConfigCreate(
             projectId=project_id,
             apiEndpoint=api_endpoint,
             modelId=model_id,
@@ -737,7 +757,7 @@ class _Vectorizer:
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `Text2VecTransformersConfig` object for use when vectorizing using the `text2vec-transformers` model.
+        """Create a `_Text2VecTransformersConfigCreate` object for use when vectorizing using the `text2vec-transformers` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-transformers)
         for detailed usage.
@@ -751,7 +771,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
         """
-        return _Text2VecTransformersConfig(
+        return _Text2VecTransformersConfigCreate(
             poolingStrategy=pooling_strategy,
             vectorizeClassName=vectorize_collection_name,
         )
@@ -761,7 +781,7 @@ class _Vectorizer:
         model: Optional[Union[JinaModel, str]] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `_Text2VecJinaConfig` object for use when vectorizing using the `text2vec-jinaai` model.
+        """Create a `_Text2VecJinaConfigCreate` object for use when vectorizing using the `text2vec-jinaai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai)
         for detailed usage.
@@ -774,4 +794,4 @@ class _Vectorizer:
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _Text2VecJinaConfig(model=model, vectorizeClassName=vectorize_collection_name)
+        return _Text2VecJinaConfigCreate(model=model, vectorizeClassName=vectorize_collection_name)

@@ -11,6 +11,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 from typing_extensions import TypeAlias
@@ -1379,12 +1380,13 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 and len(val) > 0
                 and all(isinstance(item, _NamedVectorConfigCreate) for item in val)
             ):
+                val = cast(List[_NamedVectorConfigCreate], val)
                 ret_dict["vectorConfig"] = {item.name: item._to_dict() for item in val}
 
             else:
                 assert isinstance(val, _ConfigCreateModel)
                 ret_dict[cls_field] = val._to_dict()
-        if self.vectorIndexConfig is None:
+        if self.vectorIndexConfig is None and "vectorConfig" not in ret_dict:
             ret_dict["vectorIndexType"] = VectorIndexType.HNSW
 
         ret_dict["class"] = self.name
