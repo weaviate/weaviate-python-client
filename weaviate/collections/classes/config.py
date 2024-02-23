@@ -267,6 +267,7 @@ class _BQConfigCreate(_QuantizerConfigCreate):
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool]
     centroids: Optional[int]
+    enabled: Optional[bool]
     segments: Optional[int]
     trainingLimit: Optional[int]
     encoder: Optional[_PQEncoderConfigUpdate]
@@ -1134,7 +1135,9 @@ class _CollectionConfig(_ConfigBase):
                 }
 
             # remove default values for single vector setup
-            out.pop("vectorIndexType")
+            out.pop(
+                "vectorIndexType", None
+            )  # if doesn't exist (in the case of named vectors) then do nothing
             out.pop(
                 "vectorIndexConfig", None
             )  # if doesn't exist (in the case of named vectors) then do nothing
@@ -1672,7 +1675,7 @@ class _VectorIndexQuantizerUpdate:
         )
 
     @staticmethod
-    def bq(rescore_limit: Optional[int] = None, enabled: bool = True) -> _BQConfigUpdate:
+    def bq(rescore_limit: Optional[int] = None) -> _BQConfigUpdate:
         """Create a `_BQConfigUpdate` object to be used when updating the binary quantization (BQ) configuration of Weaviate.
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
@@ -1680,7 +1683,7 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _BQConfigUpdate(enabled=enabled, rescoreLimit=rescore_limit)
+        return _BQConfigUpdate(rescoreLimit=rescore_limit)
 
 
 class _VectorIndexUpdate:

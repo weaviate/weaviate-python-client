@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, cast
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -64,8 +64,6 @@ class _QuantizerConfigCreate(_ConfigCreateModel):
 
 
 class _QuantizerConfigUpdate(_ConfigUpdateModel):
-    enabled: Optional[bool] = Field(default=None)
-
     @staticmethod
     @abstractmethod
     def quantizer_name() -> str:
