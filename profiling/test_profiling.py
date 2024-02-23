@@ -138,7 +138,7 @@ def test_object_by_id(client: weaviate.WeaviateClient) -> None:
         assert obj.uuid == batchReturn.uuids[i]
 
 
-# @pytest.mark.profiling
+@pytest.mark.profiling
 def test_vector_search(client: weaviate.WeaviateClient) -> None:
     name = "TestProfileVectorSearch"
     client.collections.delete(name)
