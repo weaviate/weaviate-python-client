@@ -20,7 +20,6 @@ from weaviate.collections.classes.config import (
     _ShardStatus,
     ShardTypes,
 )
-from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigUpdate
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
@@ -88,13 +87,13 @@ class _ConfigBase:
         vector_index_config: Optional[
             Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
         ] = None,
-        vectorizer_config: Optional[
-            Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-                List[_NamedVectorConfigUpdate],
-            ]
-        ] = None,
+        # vectorizer_config: Optional[
+        #     Union[
+        #         _VectorIndexConfigHNSWUpdate,
+        #         _VectorIndexConfigFlatUpdate,
+        #         List[_NamedVectorConfigUpdate],
+        #     ]
+        # ] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
@@ -109,9 +108,6 @@ class _ConfigBase:
                 Configuration for the replication. Use `Reconfigure.replication` to generate one.
             `vector_index_config` DEPRECATED USE `vectorizer_config` INSTEAD
                 Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
-            `vectorizer_config`
-                Configurations for the vector index (or indices) of your collection.
-                Use `Reconfigure.vector_index` if there is only one vectorizer and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
 
         Raises:
             `weaviate.WeaviateInvalidInputError`:
@@ -132,7 +128,7 @@ class _ConfigBase:
                 inverted_index_config=inverted_index_config,
                 replication_config=replication_config,
                 vector_index_config=vector_index_config,
-                vectorizer_config=vectorizer_config,
+                # vectorizer_config=vectorizer_config,
             )
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e
