@@ -1,6 +1,17 @@
 Changelog
 =========
 
+Version 4.5.0
+--------------
+This minor version includes:
+
+- Full support for the new named vectors feature available in the Weaviate ``1.24`` release.
+- Bugfixes to passing of Weaviate schema objects as collection configurations in certain edge cases.
+- Support use of Sagemaker when vectorizing with the ``text2vec-aws`` module.
+- Allow creation of collections that use the ``hnsw`` index with the ``bq`` quantizing strategy.
+- Allow specifying ``dimensions`` when vectorizing with the ``text2vec-openai`` module.
+- Python in-memory performance improvements when making queries .
+
 Version 4.4.4
 --------------
 This patch version includes:
