@@ -44,7 +44,6 @@ from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
     ObjectAlreadyExistsError,
-    UnexpectedStatusCodeError,
     WeaviateInvalidInputError,
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
@@ -129,16 +128,6 @@ def test_insert_bad_input(collection_factory: CollectionFactory) -> None:
 
     with pytest.raises(WeaviateInvalidInputError):
         collection.data.insert({"name": BadInput})
-
-
-def test_insert_id_already_exists(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-    uuid = collection.data.insert(properties={"name": "some name"})
-    with pytest.raises(ObjectAlreadyExistsError):
-        collection.data.insert(properties={"name": "some name"}, uuid=uuid)
 
 
 def test_delete_by_id(collection_factory: CollectionFactory) -> None:
@@ -2042,7 +2031,7 @@ def test_return_phone_number_property_wrong_type(collection_factory: CollectionF
 def test_double_insert_with_same_uuid(collection_factory: CollectionFactory) -> None:
     collection = collection_factory()
     uuid1 = collection.data.insert({})
-    with pytest.raises(UnexpectedStatusCodeError):
+    with pytest.raises(ObjectAlreadyExistsError):
         collection.data.insert({}, uuid=uuid1)
 
 
