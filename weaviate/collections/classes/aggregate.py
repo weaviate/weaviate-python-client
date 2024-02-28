@@ -138,10 +138,10 @@ class _MetricsBase(BaseModel):
 class _MetricsText(_MetricsBase):
     top_occurrences_count: bool
     top_occurrences_value: bool
-    min_occurrences_limit: Optional[int]
+    min_occurrences: Optional[int]
 
     def to_gql(self) -> str:
-        limit = f"(limit: {self.min_occurrences_limit})" if self.min_occurrences_limit else ""
+        limit = f"(limit: {self.min_occurrences})" if self.min_occurrences is not None else ""
         body = " ".join(
             [
                 "count" if self.count else "",
@@ -277,7 +277,7 @@ class Metrics:
         count: bool = False,
         top_occurrences_count: bool = False,
         top_occurrences_value: bool = False,
-        min_occurrences_limit: Optional[int] = None,
+        min_occurrences: Optional[int] = None,
     ) -> _MetricsText:
         """Define the metrics to be returned for a TEXT or TEXT_ARRAY property when aggregating over a collection.
 
@@ -290,7 +290,7 @@ class Metrics:
                 Whether to include the number of the top occurrences of a property's value.
             `top_occurrences_value`
                 Whether to include the value of the top occurrences of a property's value.
-            `min_occurrences_limit`
+            `min_occurrences`
                 Only include entries with more occurrences than the given limit.
 
         Returns:
@@ -305,7 +305,7 @@ class Metrics:
             count=count,
             top_occurrences_count=top_occurrences_count,
             top_occurrences_value=top_occurrences_value,
-            min_occurrences_limit=min_occurrences_limit,
+            min_occurrences=min_occurrences,
         )
 
     def integer(
