@@ -13,6 +13,8 @@ from weaviate.types import UUID
 from weaviate.proto.v1 import base_pb2
 from weaviate.util import get_valid_uuid
 
+from weaviate.exceptions import WeaviateInvalidInputError
+
 
 class _Operator(str, Enum):
     EQUAL = "Equal"
@@ -164,6 +166,8 @@ class _FilterByProperty(_FilterBase):
 
     def contains_any(self, val: FilterValuesList) -> _FilterValue:
         """Filter on whether the property contains any of the given values."""
+        if len(val) == 0:
+            raise WeaviateInvalidInputError("Filter contains_any must have at least one value")
         return _FilterValue(
             target=self._target_path(),
             value=val,
@@ -172,6 +176,9 @@ class _FilterByProperty(_FilterBase):
 
     def contains_all(self, val: FilterValuesList) -> _FilterValue:
         """Filter on whether the property contains all of the given values."""
+        if len(val) == 0:
+            raise WeaviateInvalidInputError("Filter contains_all must have at least one value")
+
         return _FilterValue(
             target=self._target_path(),
             value=val,
@@ -359,6 +366,8 @@ class _FilterById(_FilterBase):
 
     def contains_any(self, uuids: List[UUID]) -> _FilterValue:
         """Filter for objects that has one of the given ID."""
+        if len(uuids) == 0:
+            raise WeaviateInvalidInputError("Filter contains_any must have at least one value")
         return _FilterValue(
             target=self._target_path(),
             value=[get_valid_uuid(val) for val in uuids],
