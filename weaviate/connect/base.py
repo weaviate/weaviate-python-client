@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Literal, Tuple, TypeVar, Union, cast, overload
+from typing import Dict, Literal, Tuple, TypeVar, Union, cast, overload
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -17,7 +17,7 @@ from weaviate.types import NUMBER
 JSONPayload = Union[dict, list]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
-GRPC_OPTIONS = [
+GRPC_DEFAULT_OPTIONS = [
     ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
     ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
 ]
@@ -109,29 +109,35 @@ class ConnectionParams(BaseModel):
         return f"{self.grpc.host}:{self.grpc.port}"
 
     @overload
-    def _grpc_channel(self, async_channel: Literal[False]) -> Channel:
+    def _grpc_channel(self, async_channel: Literal[False], proxies: Dict[str, str]) -> Channel:
         ...
 
     @overload
-    def _grpc_channel(self, async_channel: Literal[True]) -> AsyncChannel:
+    def _grpc_channel(self, async_channel: Literal[True], proxies: Dict[str, str]) -> AsyncChannel:
         ...
 
-    def _grpc_channel(self, async_channel: bool) -> Union[Channel, AsyncChannel]:
+    def _grpc_channel(
+        self, async_channel: bool, proxies: Dict[str, str]
+    ) -> Union[Channel, AsyncChannel]:
         if async_channel:
             import_path = grpc.aio
         else:
             import_path = grpc
 
+        if (p := proxies.get("grpc")) is not None:
+            options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
+        else:
+            options = GRPC_DEFAULT_OPTIONS
         if self.grpc.secure:
             return import_path.secure_channel(
                 target=self._grpc_target,
                 credentials=ssl_channel_credentials(),
-                options=GRPC_OPTIONS,
+                options=options,
             )
         else:
             return import_path.insecure_channel(
                 target=self._grpc_target,
-                options=GRPC_OPTIONS,
+                options=options,
             )
 
     @property
