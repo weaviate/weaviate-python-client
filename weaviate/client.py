@@ -192,7 +192,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
         self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
-            timeout_config=_get_valid_timeout_config(config.timeout),
+            timeout_config=config.timeout,
             additional_headers=additional_headers,
             embedded_db=embedded_db,
             connection_config=config.connection,

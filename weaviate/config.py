@@ -45,8 +45,20 @@ class Config:
             )
 
 
+class Timeout(BaseModel):
+    query: int = Field(default=30, ge=0)
+    insert: int = Field(default=90, ge=0)
+    init: int = Field(default=1, ge=0)
+
+
 class AdditionalConfig(BaseModel):
     connection: ConnectionConfig = Field(default_factory=ConnectionConfig)
     proxies: Union[dict, str, None] = Field(default=None)
-    timeout: Tuple[int, int] = Field(default_factory=lambda: (30, 90))
+    timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
     trust_env: bool = Field(default=False)
+
+    @property
+    def timeout(self) -> Timeout:
+        if isinstance(self.timeout_, tuple):
+            return Timeout(query=self.timeout_[0], insert=self.timeout_[1])
+        return self.timeout_

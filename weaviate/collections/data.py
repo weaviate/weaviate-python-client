@@ -432,7 +432,7 @@ class _DataCollection(Generic[Properties], _Data):
                 )
                 for obj in objects
             ],
-            timeout=self._connection.timeout_config.connect,
+            timeout=self._connection.timeout_config.insert,
         )
 
     def replace(
