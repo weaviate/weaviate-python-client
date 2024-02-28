@@ -63,15 +63,15 @@ class _Operator(str, Enum):
 
 class _Filters:
     def __and__(self, other: "_Filters") -> "_FilterAnd":
-        return _FilterAnd(self, other)
+        return _FilterAnd([self, other])
 
     def __or__(self, other: "_Filters") -> "_FilterOr":
-        return _FilterOr(self, other)
+        return _FilterOr([self, other])
 
 
 class _FilterAnd(_Filters):
-    def __init__(self, *args: _Filters):
-        self.filters: List[_Filters] = list(args)
+    def __init__(self, filters: List[_Filters]):
+        self.filters: List[_Filters] = filters
 
     # replace with the following once 3.11 is the minimum version
     #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorAnd
@@ -81,8 +81,8 @@ class _FilterAnd(_Filters):
 
 
 class _FilterOr(_Filters):
-    def __init__(self, *args: _Filters):
-        self.filters: List[_Filters] = list(args)
+    def __init__(self, filters: List[_Filters]):
+        self.filters: List[_Filters] = filters
 
     # replace with the following once 3.11 is the minimum version
     #     Operator: weaviate_pb2.Filters.OperatorType = weaviate_pb2.Filters.OperatorOr
@@ -560,6 +560,16 @@ class Filter:
     def by_property(name: str, length: bool = False) -> _FilterByProperty:
         """Define a filter based on a property to be used when querying and deleting from a collection."""
         return _FilterByProperty(prop=name, length=length, target=None)
+
+    @staticmethod
+    def all_of(filters: List[_Filters]) -> _Filters:
+        """Combine all filters in the input list with an AND operator."""
+        return _FilterAnd(filters)
+
+    @staticmethod
+    def any_of(filters: List[_Filters]) -> _Filters:
+        """Combine all filters in the input list with an OR operator."""
+        return _FilterOr(filters)
 
 
 # type aliases for return classes
