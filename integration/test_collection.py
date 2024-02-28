@@ -43,6 +43,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
+    ObjectAlreadyExistsError,
     UnexpectedStatusCodeError,
     WeaviateInvalidInputError,
     WeaviateQueryError,
@@ -128,6 +129,16 @@ def test_insert_bad_input(collection_factory: CollectionFactory) -> None:
 
     with pytest.raises(WeaviateInvalidInputError):
         collection.data.insert({"name": BadInput})
+
+
+def test_insert_id_already_exists(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    uuid = collection.data.insert(properties={"name": "some name"})
+    with pytest.raises(ObjectAlreadyExistsError):
+        collection.data.insert(properties={"name": "some name"}, uuid=uuid)
 
 
 def test_delete_by_id(collection_factory: CollectionFactory) -> None:

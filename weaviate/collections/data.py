@@ -48,7 +48,11 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import (
+    ObjectAlreadyExistsError,
+    WeaviateInvalidInputError,
+    UnexpectedStatusCodeError,
+)
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import (
     _datetime_to_string,
@@ -79,13 +83,19 @@ class _Data:
         path = "/objects"
 
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
-        self._connection.post(
+        res = self._connection.post(
             path=path,
             weaviate_object=weaviate_obj,
             params=params,
             error_msg="Object was not added",
-            status_codes=_ExpectedStatusCodes(ok_in=200, error="insert object"),
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 422], error="insert object"),
         )
+        if res.status_code == 422:
+            if "already exists" in res.json()["error"][0]["message"]:
+                raise ObjectAlreadyExistsError(
+                    f"The object with the given UUID: {weaviate_obj['id']} already exists in the collection."
+                )
+            raise UnexpectedStatusCodeError("Object was not added", res)
         return uuid_package.UUID(weaviate_obj["id"])
 
     def _exists(self, uuid: str) -> bool:
