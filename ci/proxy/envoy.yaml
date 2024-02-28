@@ -34,7 +34,7 @@ static_resources:
               - match:
                   connect_matcher: {}
                 route:
-                  cluster: weaviate
+                  cluster: weaviate-proxy
                   upgrade_configs:
                   - upgrade_type: CONNECT
                     connect_config:
@@ -48,7 +48,7 @@ static_resources:
           upgrade_configs:
           - upgrade_type: CONNECT
   clusters:
-  - name: weaviate
+  - name: weaviate-proxy
     type: STRICT_DNS
     connect_timeout: 5s
     typed_extension_protocol_options:
@@ -57,11 +57,11 @@ static_resources:
         explicit_http_config:
           http2_protocol_options: {}
     load_assignment:
-      cluster_name: weaviate
+      cluster_name: weaviate-proxy
       endpoints:
       - lb_endpoints:
         - endpoint:
             address:
               socket_address:
-                address: weaviate
+                address: weaviate-proxy
                 port_value: 50051
