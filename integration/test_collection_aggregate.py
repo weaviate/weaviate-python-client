@@ -71,7 +71,20 @@ def test_simple_aggregation(collection_factory: CollectionFactory) -> None:
     assert res.properties["text"].count == 1
 
 
-def test_aggregation_with_limit(collection_factory: CollectionFactory) -> None:
+def test_aggregation_top_occurence_with_limit(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
+    collection.data.insert({"text": "one"})
+    collection.data.insert({"text": "one"})
+    collection.data.insert({"text": "two"})
+    res = collection.aggregate.over_all(
+        return_metrics=[Metrics("text").text(min_occurrences_limit=1)],
+    )
+    assert isinstance(res.properties["text"], AggregateText)
+    assert len(res.properties["text"].top_occurrences) == 1
+    assert res.properties["text"].top_occurrences[0].count == 2
+
+
+def test_aggregation_groupby_with_limit(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
     collection.data.insert({"text": "one"})
     collection.data.insert({"text": "two"})
