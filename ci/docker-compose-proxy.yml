@@ -11,7 +11,7 @@ services:
       - http
       - --write-timeout=600s
     ports:
-      - 8084:8080
+      - 8075:8080
     image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     restart: on-failure:0
     environment:
