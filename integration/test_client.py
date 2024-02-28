@@ -545,7 +545,7 @@ def test_local_proxies() -> None:
     with weaviate.connect_to_local(
         additional_config=wvc.init.AdditionalConfig(
             proxies={
-                "http": "http://localhost:8099",
+                "http": "http://localhost:8084",
                 "grpc": "http://localhost:10000",
             }
         )
