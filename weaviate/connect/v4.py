@@ -21,9 +21,9 @@ from httpx import (
     RemoteProtocolError,
     RequestError,
     Response,
-    Timeout,
     HTTPTransport,
     get,
+    Timeout,
 )
 
 from weaviate import __version__ as client_version
@@ -32,16 +32,13 @@ from weaviate.auth import (
     AuthApiKey,
     AuthClientCredentials,
 )
-from weaviate.config import ConnectionConfig
+from weaviate.config import ConnectionConfig, Timeout as TimeoutConfig
 from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
     _ConnectionBase,
     ConnectionParams,
-    _Timeout,
     JSONPayload,
     _get_proxies,
-    PYPI_TIMEOUT,
-    TIMEOUT_TYPE_RETURN,
 )
 from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
@@ -89,7 +86,7 @@ class _Connection(_ConnectionBase):
         self,
         connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
-        timeout_config: Tuple[float, float],
+        timeout_config: TimeoutConfig,
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
@@ -108,7 +105,7 @@ class _Connection(_ConnectionBase):
         self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_channel: Optional[Channel] = None
         self._grpc_channel_async: Optional[AsyncChannel] = None
-        self.timeout_config = _Timeout.from_timeout_config(timeout_config)
+        self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
         self._weaviate_version = _ServerVersion.from_string("")
@@ -147,7 +144,7 @@ class _Connection(_ConnectionBase):
 
         if not skip_init_checks:
             try:
-                pkg_info = get(PYPI_PACKAGE_URL, timeout=PYPI_TIMEOUT).json()
+                pkg_info = get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init).json()
                 pkg_info = pkg_info.get("info", {})
                 latest_version = pkg_info.get("version", "unknown version")
                 if is_weaviate_client_too_old(client_version, latest_version):
@@ -201,7 +198,7 @@ class _Connection(_ConnectionBase):
         return Client(
             headers=self._headers,
             timeout=Timeout(
-                None, connect=self.timeout_config.connect, read=self.timeout_config.read
+                None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
             proxies=self._proxies,
             mounts=self.__make_mounts("sync"),
@@ -211,7 +208,7 @@ class _Connection(_ConnectionBase):
         return AsyncClient(
             headers=self._headers,
             timeout=Timeout(
-                None, connect=self.timeout_config.connect, read=self.timeout_config.read
+                None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
             proxies=self._proxies,
             mounts=self.__make_mounts("async"),
@@ -583,7 +580,7 @@ class ConnectionV4(_Connection):
         self,
         connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
-        timeout_config: TIMEOUT_TYPE_RETURN,
+        timeout_config: TimeoutConfig,
         proxies: Union[dict, str, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
@@ -642,7 +639,7 @@ class ConnectionV4(_Connection):
                 "/grpc.health.v1.Health/Check",
                 request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
                 response_deserializer=health_pb2.HealthCheckResponse.FromString,
-            )(health_pb2.HealthCheckRequest(), timeout=1)
+            )(health_pb2.HealthCheckRequest(), timeout=self.timeout_config.init)
             if res.status != health_pb2.HealthCheckResponse.SERVING:
                 raise WeaviateGRPCUnavailableError(f"v{self.server_version}")
         except _channel._InactiveRpcError as e:

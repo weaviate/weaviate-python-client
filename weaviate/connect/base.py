@@ -2,7 +2,6 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Literal, Tuple, TypeVar, Union, cast, overload
 from urllib.parse import urlparse
 
@@ -17,25 +16,11 @@ from weaviate.types import NUMBER
 
 JSONPayload = Union[dict, list]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
-PYPI_TIMEOUT = 0.1
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
 GRPC_OPTIONS = [
     ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
     ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
 ]
-
-
-@dataclass
-class _Timeout:
-    connect: int
-    read: int
-
-    @classmethod
-    def from_timeout_config(cls, timeout: TIMEOUT_TYPE_RETURN) -> "_Timeout":
-        return cls(
-            connect=int(timeout[0]),
-            read=int(timeout[1]),
-        )
 
 
 class ProtocolParams(BaseModel):

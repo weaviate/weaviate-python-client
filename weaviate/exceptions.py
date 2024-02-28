@@ -275,7 +275,9 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
     def __init__(self, weaviate_version: str = "") -> None:
         msg = f"""gRPC health check could not be completed. This could have several reasons:
         - gRPC is not enabled or incorrectly configured on the server with version {weaviate_version} or the client
-        - your connection is unstable or has a high latency. In this case you can disable startup checks by connecting using `skip_init_checks=True`
+        - your connection is unstable or has a high latency. In this case you can:
+            - increase init-timeout in `weaviate.connect_to_local(additional_config=wvc.init.AdditionalConfig(timeout=wvc.init.Timeout(init=X)))`
+            - disable startup checks by connecting using `skip_init_checks=True`
         """
         super().__init__(msg)
 

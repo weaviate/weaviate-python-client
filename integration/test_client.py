@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, Tuple, Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -14,9 +14,10 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
     Vectorizers,
 )
-from weaviate.connect.base import _Timeout
 from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 import weaviate.classes as wvc
+
+from weaviate.config import Timeout
 
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
 WCS_URL = f"https://{WCS_HOST}"
@@ -431,8 +432,9 @@ def test_client_with_skip_init_check(request: SubRequest) -> None:
     assert obj.properties["name"] == "Name"
 
 
-def test_client_with_extra_options() -> None:
-    additional_config = wvc.init.AdditionalConfig(timeout=(1, 2), trust_env=True)
+@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=1)])
+def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> None:
+    additional_config = wvc.init.AdditionalConfig(timeout=timeout, trust_env=True)
 
     for client in [
         weaviate.connect_to_wcs(
@@ -453,7 +455,7 @@ def test_client_with_extra_options() -> None:
             port=8070, grpc_port=50040, additional_config=additional_config
         ),
     ]:
-        assert client._connection.timeout_config == _Timeout(1, 2)
+        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=1)
 
 
 def test_connect_and_close_to_embedded() -> None:

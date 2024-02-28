@@ -371,20 +371,24 @@ class _QueryGRPC(_BaseGRPC):
             certainty=certainty,
             distance=distance,
             target_vectors=[target_vector] if target_vector is not None else None,
-            move_away=search_get_pb2.NearTextSearch.Move(
-                force=move_away.force,
-                concepts=move_away._concepts_list,
-                uuids=move_away._objects_list,
-            )
-            if move_away is not None
-            else None,
-            move_to=search_get_pb2.NearTextSearch.Move(
-                force=move_to.force,
-                concepts=move_to._concepts_list,
-                uuids=move_to._objects_list,
-            )
-            if move_to is not None
-            else None,
+            move_away=(
+                search_get_pb2.NearTextSearch.Move(
+                    force=move_away.force,
+                    concepts=move_away._concepts_list,
+                    uuids=move_away._objects_list,
+                )
+                if move_away is not None
+                else None
+            ),
+            move_to=(
+                search_get_pb2.NearTextSearch.Move(
+                    force=move_to.force,
+                    concepts=move_to._concepts_list,
+                    uuids=move_to._objects_list,
+                )
+                if move_to is not None
+                else None
+            ),
         )
 
         request = self.__create_request(
@@ -595,7 +599,7 @@ class _QueryGRPC(_BaseGRPC):
             res, _ = self._connection.grpc_stub.Search.with_call(
                 request,
                 metadata=self._connection.grpc_headers(),
-                timeout=self._connection.timeout_config.connect,
+                timeout=self._connection.timeout_config.query,
             )
 
             return res
