@@ -16,7 +16,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -36,7 +36,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -56,7 +56,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -76,7 +76,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -96,7 +96,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -116,7 +116,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
