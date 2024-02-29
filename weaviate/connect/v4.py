@@ -32,7 +32,7 @@ from weaviate.auth import (
     AuthApiKey,
     AuthClientCredentials,
 )
-from weaviate.config import ConnectionConfig, Timeout as TimeoutConfig
+from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
 from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
     _ConnectionBase,
@@ -87,7 +87,7 @@ class _Connection(_ConnectionBase):
         connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
         timeout_config: TimeoutConfig,
-        proxies: Union[dict, str, None],
+        proxies: Union[str, Proxies, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
@@ -118,7 +118,7 @@ class _Connection(_ConnectionBase):
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
 
-        self._proxies = _get_proxies(proxies, trust_env)
+        self._proxies: Dict[str, str] = _get_proxies(proxies, trust_env)
 
         # auth secrets can contain more information than a header (refresh tokens and lifetime) and therefore take
         # precedent over headers
@@ -167,31 +167,37 @@ class _Connection(_ConnectionBase):
         self, type_: Literal["sync", "async"]
     ) -> Union[Dict[str, HTTPTransport], Dict[str, AsyncHTTPTransport]]:
         if type_ == "async":
-            atransport = AsyncHTTPTransport(
-                limits=Limits(
-                    max_connections=self.__connection_config.session_pool_maxsize,
-                    max_keepalive_connections=self.__connection_config.session_pool_connections,
-                ),
-                retries=self.__connection_config.session_pool_max_retries,
-                trust_env=self.__trust_env,
-            )
             return {
-                "http://": atransport,
-                "https://": atransport,
+                f"{key}://"
+                if key == "http" or key == "https"
+                else key: AsyncHTTPTransport(
+                    limits=Limits(
+                        max_connections=self.__connection_config.session_pool_maxsize,
+                        max_keepalive_connections=self.__connection_config.session_pool_connections,
+                    ),
+                    proxy=proxy,
+                    retries=self.__connection_config.session_pool_max_retries,
+                    trust_env=self.__trust_env,
+                )
+                for key, proxy in self._proxies.items()
+                if key != "grpc"
             }
         else:
             assert type_ == "sync"
-            transport = HTTPTransport(
-                limits=Limits(
-                    max_connections=self.__connection_config.session_pool_maxsize,
-                    max_keepalive_connections=self.__connection_config.session_pool_connections,
-                ),
-                retries=self.__connection_config.session_pool_max_retries,
-                trust_env=self.__trust_env,
-            )
             return {
-                "http://": transport,
-                "https://": transport,
+                f"{key}://"
+                if key == "http" or key == "https"
+                else key: HTTPTransport(
+                    limits=Limits(
+                        max_connections=self.__connection_config.session_pool_maxsize,
+                        max_keepalive_connections=self.__connection_config.session_pool_connections,
+                    ),
+                    proxy=proxy,
+                    retries=self.__connection_config.session_pool_max_retries,
+                    trust_env=self.__trust_env,
+                )
+                for key, proxy in self._proxies.items()
+                if key != "grpc"
             }
 
     def __make_sync_client(self) -> Client:
@@ -200,7 +206,6 @@ class _Connection(_ConnectionBase):
             timeout=Timeout(
                 None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
-            proxies=self._proxies,
             mounts=self.__make_mounts("sync"),
         )
 
@@ -210,7 +215,6 @@ class _Connection(_ConnectionBase):
             timeout=Timeout(
                 None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
-            proxies=self._proxies,
             mounts=self.__make_mounts("async"),
         )
 
@@ -356,7 +360,9 @@ class _Connection(_ConnectionBase):
         if self._aclient is None:
             self._aclient = self.__make_async_client()
         if self._grpc_stub_async is None:
-            self._grpc_channel_async = self._connection_params._grpc_channel(async_channel=True)
+            self._grpc_channel_async = self._connection_params._grpc_channel(
+                async_channel=True, proxies=self._proxies
+            )
             assert self._grpc_channel_async is not None
             self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel_async)
 
@@ -581,7 +587,7 @@ class ConnectionV4(_Connection):
         connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
         timeout_config: TimeoutConfig,
-        proxies: Union[dict, str, None],
+        proxies: Union[str, Proxies, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
@@ -648,7 +654,9 @@ class ConnectionV4(_Connection):
     def connect(self, skip_init_checks: bool) -> None:
         super().connect(skip_init_checks)
         # create GRPC channel. If Weaviate does not support GRPC then error now.
-        self._grpc_channel = self._connection_params._grpc_channel(async_channel=False)
+        self._grpc_channel = self._connection_params._grpc_channel(
+            async_channel=False, proxies=self._proxies
+        )
         assert self._grpc_channel is not None
         self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
         if not skip_init_checks:

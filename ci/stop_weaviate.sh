@@ -13,3 +13,4 @@ docker-compose -f ci/docker-compose-wcs.yml down --remove-orphans
 docker-compose -f ci/docker-compose-generative.yml down --remove-orphans
 docker-compose -f ci/docker-compose-cluster.yml down --remove-orphans
 docker-compose -f ci/docker-compose-rerank.yml down --remove-orphans
+docker-compose -f ci/docker-compose-proxy.yml down --remove-orphans

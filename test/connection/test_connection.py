@@ -63,7 +63,8 @@ class TestConnection(unittest.TestCase):
         """
 
         error_msg = lambda dt: (
-            "If 'proxies' is not None, it must be of type dict or str. " f"Given type: {dt}."
+            "If 'proxies' is not None, it must be of type dict, str, or wvc.init.Proxies. "
+            f"Given type: {dt}."
         )
         with self.assertRaises(TypeError) as error:
             proxies = _get_proxies([], False)
@@ -79,7 +80,7 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(proxies, {"test": True})
 
         proxies = _get_proxies("test", True)
-        self.assertEqual(proxies, {"http": "test", "https": "test"})
+        self.assertEqual(proxies, {"http": "test", "https": "test", "grpc": "test"})
 
         os_mock.environ.get.return_value = None
         proxies = _get_proxies(None, True)
@@ -87,7 +88,7 @@ class TestConnection(unittest.TestCase):
 
         os_mock.environ.get.return_value = "test"
         proxies = _get_proxies(None, True)
-        self.assertEqual(proxies, {"http": "test", "https": "test"})
+        self.assertEqual(proxies, {"http": "test", "https": "test", "grpc": "test"})
 
     def test__get_valid_timeout_config(self):
         """

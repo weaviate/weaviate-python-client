@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Literal, Tuple, TypeVar, Union, cast, overload
+from typing import Dict, Literal, Tuple, TypeVar, Union, cast, overload
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -11,13 +11,14 @@ from grpc.aio import Channel as AsyncChannel  # type: ignore
 
 from pydantic import BaseModel, field_validator, model_validator
 
+from weaviate.config import Proxies
 from weaviate.types import NUMBER
 
 
 JSONPayload = Union[dict, list]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
-GRPC_OPTIONS = [
+GRPC_DEFAULT_OPTIONS = [
     ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
     ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
 ]
@@ -109,29 +110,35 @@ class ConnectionParams(BaseModel):
         return f"{self.grpc.host}:{self.grpc.port}"
 
     @overload
-    def _grpc_channel(self, async_channel: Literal[False]) -> Channel:
+    def _grpc_channel(self, async_channel: Literal[False], proxies: Dict[str, str]) -> Channel:
         ...
 
     @overload
-    def _grpc_channel(self, async_channel: Literal[True]) -> AsyncChannel:
+    def _grpc_channel(self, async_channel: Literal[True], proxies: Dict[str, str]) -> AsyncChannel:
         ...
 
-    def _grpc_channel(self, async_channel: bool) -> Union[Channel, AsyncChannel]:
+    def _grpc_channel(
+        self, async_channel: bool, proxies: Dict[str, str]
+    ) -> Union[Channel, AsyncChannel]:
         if async_channel:
             import_path = grpc.aio
         else:
             import_path = grpc
 
+        if (p := proxies.get("grpc")) is not None:
+            options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
+        else:
+            options = GRPC_DEFAULT_OPTIONS
         if self.grpc.secure:
             return import_path.secure_channel(
                 target=self._grpc_target,
                 credentials=ssl_channel_credentials(),
-                options=GRPC_OPTIONS,
+                options=options,
             )
         else:
             return import_path.insecure_channel(
                 target=self._grpc_target,
-                options=GRPC_OPTIONS,
+                options=options,
             )
 
     @property
@@ -153,7 +160,7 @@ class _ConnectionBase(ABC):
         raise NotImplementedError
 
 
-def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
+def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> dict:
     """
     Get proxies as dict, compatible with 'requests' library.
     NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'
@@ -182,11 +189,14 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
             return {
                 "http": proxies,
                 "https": proxies,
+                "grpc": proxies,
             }
         if isinstance(proxies, dict):
             return proxies
+        if isinstance(proxies, Proxies):
+            return proxies.model_dump(exclude_none=True)
         raise TypeError(
-            "If 'proxies' is not None, it must be of type dict or str. "
+            "If 'proxies' is not None, it must be of type dict, str, or wvc.init.Proxies. "
             f"Given type: {type(proxies)}."
         )
 
@@ -195,8 +205,9 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
 
     http_proxy = (os.environ.get("HTTP_PROXY"), os.environ.get("http_proxy"))
     https_proxy = (os.environ.get("HTTPS_PROXY"), os.environ.get("https_proxy"))
+    grpc_proxy = (os.environ.get("GRPC_PROXY"), os.environ.get("grpc_proxy"))
 
-    if not any(http_proxy + https_proxy):
+    if not any(http_proxy + https_proxy + grpc_proxy):
         return {}
 
     proxies = {}
@@ -204,6 +215,8 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
         proxies["http"] = http_proxy[0] if http_proxy[0] else http_proxy[1]
     if any(https_proxy):
         proxies["https"] = https_proxy[0] if https_proxy[0] else https_proxy[1]
+    if any(grpc_proxy):
+        proxies["grpc"] = grpc_proxy[0] if grpc_proxy[0] else grpc_proxy[1]
 
     return proxies
 

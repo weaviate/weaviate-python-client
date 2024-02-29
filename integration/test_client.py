@@ -539,3 +539,21 @@ def test_client_is_ready() -> None:
     assert weaviate.connect_to_wcs(
         cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
     ).is_ready()
+
+
+def test_local_proxies() -> None:
+    with weaviate.connect_to_local(
+        additional_config=wvc.init.AdditionalConfig(
+            proxies=wvc.init.Proxies(
+                http="http://localhost:8075",
+                grpc="http://localhost:10000",
+            )
+        )
+    ) as client:
+        client.collections.delete("TestLocalProxies")
+        collection = client.collections.create(
+            "TestLocalProxies",
+            properties=[wvc.config.Property(name="name", data_type=wvc.config.DataType.TEXT)],
+        )
+        collection.data.insert({"name": "Test"})
+        assert collection.query.fetch_objects().objects[0].properties["name"] == "Test"
