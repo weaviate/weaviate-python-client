@@ -32,3 +32,21 @@ def test_filter_lists() -> None:
     or_direct = f1 | f2
     assert isinstance(or_list, _FilterOr)
     assert or_list.filters == or_direct.filters
+
+
+def test_filter_lists_one_entry() -> None:
+    f1 = wvc.query.Filter.by_property("test").equal("test")
+
+    and_list = wvc.query.Filter.all_of([f1])
+    assert and_list == f1
+
+    or_list = wvc.query.Filter.any_of([f1])
+    assert or_list == f1
+
+
+def test_filter_lists_empty() -> None:
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.all_of([])
+
+    with pytest.raises(weaviate.exceptions.WeaviateInvalidInputError):
+        wvc.query.Filter.any_of([])

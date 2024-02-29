@@ -564,11 +564,19 @@ class Filter:
     @staticmethod
     def all_of(filters: List[_Filters]) -> _Filters:
         """Combine all filters in the input list with an AND operator."""
+        if len(filters) == 1:
+            return filters[0]
+        elif len(filters) == 0:
+            raise WeaviateInvalidInputError("Filter.all_of must have at least one filter")
         return _FilterAnd(filters)
 
     @staticmethod
     def any_of(filters: List[_Filters]) -> _Filters:
         """Combine all filters in the input list with an OR operator."""
+        if len(filters) == 1:
+            return filters[0]
+        elif len(filters) == 0:
+            raise WeaviateInvalidInputError("Filter.any_of must have at least one filter")
         return _FilterOr(filters)
 
 
