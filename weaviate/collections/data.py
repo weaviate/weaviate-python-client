@@ -355,7 +355,7 @@ class _DataCollection(Generic[Properties], _Data):
             `vector`
                 The vector(s) of the object.
                 Supported types are
-                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
 
         Returns:
@@ -457,7 +457,7 @@ class _DataCollection(Generic[Properties], _Data):
             `vector`
                 The vector(s) of the object.
                 Supported types are
-                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
 
         Raises:
@@ -517,7 +517,7 @@ class _DataCollection(Generic[Properties], _Data):
             `vector`
                 The vector(s) of the object.
                 Supported types are
-                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
         """
         if self._validate_arguments:
