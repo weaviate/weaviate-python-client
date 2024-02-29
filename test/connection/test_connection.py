@@ -80,7 +80,7 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(proxies, {"test": True})
 
         proxies = _get_proxies("test", True)
-        self.assertEqual(proxies, {"http": "test", "https": "test"})
+        self.assertEqual(proxies, {"http": "test", "https": "test", "grpc": "test"})
 
         os_mock.environ.get.return_value = None
         proxies = _get_proxies(None, True)
