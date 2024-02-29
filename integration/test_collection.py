@@ -2049,3 +2049,28 @@ def test_nil_return(collection_factory: CollectionFactory) -> None:
     assert objs[0].properties["a"] == "a1"
     if "b" in objs[0].properties:  # change this when server version bumps to 1.24.0
         assert objs[0].properties["b"] is None
+
+
+def test_none_query_hybrid_bm25(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+
+    collection.data.insert({"text": "banana"})
+    collection.data.insert({"text": "dog"})
+    collection.data.insert({"text": "different concept"})
+
+    hybrid_objs = collection.query.hybrid(
+        query=None, vector=None, return_metadata=MetadataQuery.full()
+    ).objects
+    assert len(hybrid_objs) == 3
+    assert all(obj.metadata.score is not None and obj.metadata.score == 0.0 for obj in hybrid_objs)
+
+    bm25_objs = collection.query.bm25(query=None, return_metadata=MetadataQuery.full()).objects
+    assert len(bm25_objs) == 3
+    assert all(obj.metadata.score is not None and obj.metadata.score == 0.0 for obj in bm25_objs)

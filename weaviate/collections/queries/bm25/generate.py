@@ -20,7 +20,7 @@ from weaviate.types import INCLUDE_VECTOR
 class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, References]):
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -42,7 +42,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
 
         Arguments:
             `query`
-                The keyword-based query to search for, REQUIRED.
+                The keyword-based query to search for, REQUIRED. If None, a normal search will be performed.
             `single_prompt`
                 The prompt to use for RaG on each object individually.
             `grouped_task`

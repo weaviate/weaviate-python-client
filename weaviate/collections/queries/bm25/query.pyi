@@ -16,7 +16,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
@@ -33,7 +33,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
@@ -50,7 +50,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
@@ -67,7 +67,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
@@ -84,7 +84,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
@@ -101,7 +101,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
     @overload
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,

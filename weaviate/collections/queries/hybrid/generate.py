@@ -45,7 +45,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
 
         Arguments:
             `query`
-                The keyword-based query to search for, REQUIRED.
+                The keyword-based query to search for, REQUIRED. If query and vector are both None, a normal search will be performed.
             `single_prompt`
                 The prompt to use for RaG on each object individually.
             `grouped_task`
@@ -92,7 +92,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
                 If the network connection to Weaviate fails.
         """
         res = self._query.hybrid(
-            query=query or "",
+            query=query,
             alpha=alpha,
             vector=vector,
             properties=query_properties,
