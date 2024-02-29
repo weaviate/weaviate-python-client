@@ -32,7 +32,7 @@ from weaviate.auth import (
     AuthApiKey,
     AuthClientCredentials,
 )
-from weaviate.config import ConnectionConfig, Timeout as TimeoutConfig
+from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
 from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
     _ConnectionBase,
@@ -87,7 +87,7 @@ class _Connection(_ConnectionBase):
         connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
         timeout_config: TimeoutConfig,
-        proxies: Union[dict, str, None],
+        proxies: Union[Dict[str, str], str, Proxies, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
@@ -587,7 +587,7 @@ class ConnectionV4(_Connection):
         connection_params: ConnectionParams,
         auth_client_secret: Optional[AuthCredentials],
         timeout_config: TimeoutConfig,
-        proxies: Union[dict, str, None],
+        proxies: Union[Dict[str, str], str, Proxies, None],
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,

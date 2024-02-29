@@ -11,6 +11,7 @@ from grpc.aio import Channel as AsyncChannel  # type: ignore
 
 from pydantic import BaseModel, field_validator, model_validator
 
+from weaviate.config import Proxies
 from weaviate.types import NUMBER
 
 
@@ -159,7 +160,7 @@ class _ConnectionBase(ABC):
         raise NotImplementedError
 
 
-def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
+def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> dict:
     """
     Get proxies as dict, compatible with 'requests' library.
     NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'
@@ -191,8 +192,10 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
             }
         if isinstance(proxies, dict):
             return proxies
+        if isinstance(proxies, Proxies):
+            return proxies.model_dump(exclude_none=True)
         raise TypeError(
-            "If 'proxies' is not None, it must be of type dict or str. "
+            "If 'proxies' is not None, it must be of type dict, str, or wvc.init.Proxies. "
             f"Given type: {type(proxies)}."
         )
 
@@ -201,8 +204,9 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
 
     http_proxy = (os.environ.get("HTTP_PROXY"), os.environ.get("http_proxy"))
     https_proxy = (os.environ.get("HTTPS_PROXY"), os.environ.get("https_proxy"))
+    grpc_proxy = (os.environ.get("GRPC_PROXY"), os.environ.get("grpc_proxy"))
 
-    if not any(http_proxy + https_proxy):
+    if not any(http_proxy + https_proxy + grpc_proxy):
         return {}
 
     proxies = {}
@@ -210,6 +214,8 @@ def _get_proxies(proxies: Union[dict, str, None], trust_env: bool) -> dict:
         proxies["http"] = http_proxy[0] if http_proxy[0] else http_proxy[1]
     if any(https_proxy):
         proxies["https"] = https_proxy[0] if https_proxy[0] else https_proxy[1]
+    if any(grpc_proxy):
+        proxies["grpc"] = grpc_proxy[0] if grpc_proxy[0] else grpc_proxy[1]
 
     return proxies
 

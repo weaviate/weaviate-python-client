@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field
 
@@ -46,14 +46,30 @@ class Config:
 
 
 class Timeout(BaseModel):
+    """Timeouts for the different operations in the client."""
+
     query: int = Field(default=30, ge=0)
     insert: int = Field(default=90, ge=0)
     init: int = Field(default=1, ge=0)
 
 
+class Proxies(BaseModel):
+    """Proxy configurations for sending requests to Weaviate through a proxy."""
+
+    http: Optional[str] = Field(default=None)
+    https: Optional[str] = Field(default=None)
+    grpc: Optional[str] = Field(default=None)
+
+
 class AdditionalConfig(BaseModel):
+    """Use this class to specify the connection and proxy settings for your client when connecting to Weaviate.
+
+    When specifying the proxies, be aware that supplying a URL (`str`) will only populate the `http` and `https` proxies.
+    In order to specify a gRPC proxy, you need to use the `Proxies` class or supply a `dict` with the `grpc` key populated.
+    """
+
     connection: ConnectionConfig = Field(default_factory=ConnectionConfig)
-    proxies: Union[dict, str, None] = Field(default=None)
+    proxies: Union[Dict[str, str], str, Proxies, None] = Field(default=None)
     timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
     trust_env: bool = Field(default=False)
 
