@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 from pydantic import BaseModel, Field
 
@@ -64,12 +64,16 @@ class Proxies(BaseModel):
 class AdditionalConfig(BaseModel):
     """Use this class to specify the connection and proxy settings for your client when connecting to Weaviate.
 
-    When specifying the proxies, be aware that supplying a URL (`str`) will only populate the `http` and `https` proxies.
-    In order to specify a gRPC proxy, you need to use the `Proxies` class or supply a `dict` with the `grpc` key populated.
+    When specifying the timeout, you can either provide a tuple with the query and insert timeouts, or a `Timeout` object.
+    The `Timeout` object gives you additional option to configure the `init` timeout, which controls how long the client
+    initialisation checks will wait for before throwing. This is useful when you have a slow network connection.
+
+    When specifying the proxies, be aware that supplying a URL (`str`) will populate all of the `http`, `https`, and grpc proxies.
+    In order for this to be possible, you must have a proxy that is capable of handling simultaneous HTTP/1.1 and HTTP/2 traffic.
     """
 
     connection: ConnectionConfig = Field(default_factory=ConnectionConfig)
-    proxies: Union[Dict[str, str], str, Proxies, None] = Field(default=None)
+    proxies: Union[str, Proxies, None] = Field(default=None)
     timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
     trust_env: bool = Field(default=False)
 

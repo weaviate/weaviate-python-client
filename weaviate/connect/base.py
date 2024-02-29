@@ -189,6 +189,7 @@ def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> d
             return {
                 "http": proxies,
                 "https": proxies,
+                "grpc": proxies,
             }
         if isinstance(proxies, dict):
             return proxies
