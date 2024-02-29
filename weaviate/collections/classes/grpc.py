@@ -158,6 +158,13 @@ class GroupBy(_WeaviateInput):
     number_of_groups: int
 
 
+class Group(_WeaviateInput):
+    """Define how the query's grouping operation should be performed."""
+
+    force: float = Field(ge=0.0, lt=1.0)
+    strategy: Literal["closest", "merge"]
+
+
 class _Sort(_WeaviateInput):
     prop: str
     ascending: bool = Field(default=True)

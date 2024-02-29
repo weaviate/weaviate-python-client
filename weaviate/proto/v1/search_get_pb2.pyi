@@ -42,6 +42,7 @@ class SearchRequest(_message.Message):
         "near_imu",
         "generative",
         "rerank",
+        "grouping",
         "uses_123_api",
     )
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
@@ -69,6 +70,7 @@ class SearchRequest(_message.Message):
     NEAR_IMU_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     RERANK_FIELD_NUMBER: _ClassVar[int]
+    GROUPING_FIELD_NUMBER: _ClassVar[int]
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
@@ -95,6 +97,7 @@ class SearchRequest(_message.Message):
     near_imu: NearIMUSearch
     generative: GenerativeSearch
     rerank: Rerank
+    grouping: Grouping
     uses_123_api: bool
     def __init__(
         self,
@@ -123,6 +126,7 @@ class SearchRequest(_message.Message):
         near_imu: _Optional[_Union[NearIMUSearch, _Mapping]] = ...,
         generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
         rerank: _Optional[_Union[Rerank, _Mapping]] = ...,
+        grouping: _Optional[_Union[Grouping, _Mapping]] = ...,
         uses_123_api: bool = ...,
     ) -> None: ...
 
@@ -514,6 +518,27 @@ class Rerank(_message.Message):
     property: str
     query: str
     def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
+
+class Grouping(_message.Message):
+    __slots__ = ("strategy", "force")
+
+    class GroupingStrategy(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        GROUPING_STRATEGY_UNSPECIFIED: _ClassVar[Grouping.GroupingStrategy]
+        GROUPING_STRATEGY_CLOSEST: _ClassVar[Grouping.GroupingStrategy]
+        GROUPING_STRATEGY_MERGE: _ClassVar[Grouping.GroupingStrategy]
+    GROUPING_STRATEGY_UNSPECIFIED: Grouping.GroupingStrategy
+    GROUPING_STRATEGY_CLOSEST: Grouping.GroupingStrategy
+    GROUPING_STRATEGY_MERGE: Grouping.GroupingStrategy
+    STRATEGY_FIELD_NUMBER: _ClassVar[int]
+    FORCE_FIELD_NUMBER: _ClassVar[int]
+    strategy: Grouping.GroupingStrategy
+    force: float
+    def __init__(
+        self,
+        strategy: _Optional[_Union[Grouping.GroupingStrategy, str]] = ...,
+        force: _Optional[float] = ...,
+    ) -> None: ...
 
 class SearchReply(_message.Message):
     __slots__ = ("took", "results", "generative_grouped_result", "group_by_results")

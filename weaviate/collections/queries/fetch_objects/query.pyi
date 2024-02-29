@@ -3,7 +3,14 @@ from typing import Generic, List, Literal, Optional, Union, Type, overload
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, _Sort, _Sorting
+from weaviate.collections.classes.grpc import (
+    METADATA,
+    PROPERTIES,
+    REFERENCES,
+    _Sort,
+    _Sorting,
+    Group,
+)
 from weaviate.collections.classes.internal import (
     QueryReturn,
     CrossReferences,
@@ -27,6 +34,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         sort: Optional[_Sorting] = None,
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
+        group: Optional[Group] = None,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None
@@ -42,6 +50,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         sort: Optional[_Sorting] = None,
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
+        group: Optional[Group] = None,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES
@@ -87,6 +96,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         sort: Optional[_Sorting] = None,
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
+        group: Optional[Group] = None,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES
@@ -102,6 +112,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         sort: Optional[_Sorting] = None,
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
+        group: Optional[Group] = None,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences]
@@ -117,6 +128,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         sort: Optional[_Sorting] = None,
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
+        group: Optional[Group] = None,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None

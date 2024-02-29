@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import struct
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, TypeVar, Union, cast, Tuple
 
@@ -11,6 +10,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
+    Group,
     HybridFusion,
     _QueryReferenceMultiTarget,
     _MetadataQuery,
@@ -55,13 +55,6 @@ _PyValue: TypeAlias = Union[
 ]
 
 
-@dataclass
-class _Move:
-    force: float
-    concepts: List[str]
-    objects: List[uuid_lib.UUID]
-
-
 A = TypeVar("A")
 
 
@@ -103,6 +96,7 @@ class _QueryGRPC(_BaseGRPC):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[_Sorting] = None,
+        group: Optional[Group] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -130,6 +124,7 @@ class _QueryGRPC(_BaseGRPC):
             return_references=return_references,
             generative=generative,
             rerank=rerank,
+            group=group,
             sort_by=sort_by,
         )
 
@@ -493,6 +488,7 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         autocut: Optional[int] = None,
+        group: Optional[Group] = None,
         group_by: Optional[_GroupBy] = None,
         near_vector: Optional[search_get_pb2.NearVector] = None,
         sort_by: Optional[Sequence[search_get_pb2.SortBy]] = None,
@@ -519,6 +515,7 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([Rerank, None], "rerank", rerank),
                     _ValidateArgument([int, None], "autocut", autocut),
                     _ValidateArgument([_GroupBy, None], "group_by", group_by),
+                    _ValidateArgument([Group, None], "group", group),
                     _ValidateArgument(
                         [str, QueryNested, Sequence, None], "return_properties", return_properties
                     ),
@@ -590,6 +587,18 @@ class _QueryGRPC(_BaseGRPC):
             near_imu=near_imu,
             near_thermal=near_thermal,
             near_video=near_video,
+            grouping=(
+                search_get_pb2.Grouping(
+                    force=group.force,
+                    strategy=(
+                        search_get_pb2.Grouping.GROUPING_STRATEGY_CLOSEST
+                        if group.strategy == "closest"
+                        else search_get_pb2.Grouping.GROUPING_STRATEGY_MERGE
+                    ),
+                )
+                if group is not None
+                else None
+            ),
         )
 
     def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:

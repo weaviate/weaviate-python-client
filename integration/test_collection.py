@@ -23,6 +23,7 @@ from weaviate.collections.classes.data import (
     DataObject,
 )
 from weaviate.collections.classes.grpc import (
+    Group,
     QueryReference,
     HybridFusion,
     GroupBy,
@@ -2049,3 +2050,27 @@ def test_nil_return(collection_factory: CollectionFactory) -> None:
     assert objs[0].properties["a"] == "a1"
     if "b" in objs[0].properties:  # change this when server version bumps to 1.24.0
         assert objs[0].properties["b"] is None
+
+
+def test_group(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="other", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+
+    collection.data.insert_many(
+        [
+            {"name": "Fox news", "other": "one"},
+            {"name": "Wired", "other": "two"},
+            {"name": "New Yorker", "other": "three"},
+            {"name": "International New York Times", "other": "four"},
+            {"name": "The New York Times Company", "other": "five"},
+        ]
+    )
+
+    collection.query.fetch_objects(group=Group(force=0.05, strategy="merge"))

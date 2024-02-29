@@ -3,7 +3,7 @@ from typing import Generic, Optional
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, _Sorting
+from weaviate.collections.classes.grpc import METADATA, _Sorting, Group
 from weaviate.collections.classes.internal import (
     QueryReturnType,
     ReturnProperties,
@@ -24,6 +24,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         sort: Optional[_Sorting] = None,
+        group: Optional[Group] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -69,6 +70,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
             after=after,
             filters=filters,
             sort=sort,
+            group=group,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
