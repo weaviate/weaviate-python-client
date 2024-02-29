@@ -41,7 +41,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
 
         Arguments:
             `query`
-                The keyword-based query to search for, REQUIRED.
+                The keyword-based query to search for, REQUIRED. If query and vector are both None, a normal search will be performed.
             `alpha`
                 The weight of the BM25 score. If not specified, the default weight specified by the server is used.
             `vector`
@@ -82,7 +82,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
                 If the network connection to Weaviate fails.
         """
         res = self._query.hybrid(
-            query=query or "",
+            query=query,
             alpha=alpha,
             vector=vector,
             properties=query_properties,

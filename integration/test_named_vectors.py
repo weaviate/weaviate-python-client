@@ -7,6 +7,7 @@ import weaviate.classes as wvc
 from weaviate.collections.classes.data import DataObject
 
 from weaviate.collections.classes.config import (
+    PQConfig,
     _VectorIndexConfigFlat,
     Vectorizers,
 )
@@ -131,6 +132,77 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
     )
     assert obj.vector["title"] is not None
     assert obj.vector["bringYourOwn"] == [0.5, 0.25, 0.75]
+
+
+def test_update(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
+
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
+        ],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+        ],
+    )
+
+    uuid = collection.data.insert(
+        properties={"title": "Hello", "content": "World"},
+        vector={
+            "bringYourOwn": [0.5, 0.25, 0.75],
+        },
+    )
+    assert collection.query.fetch_object_by_id(uuid, include_vector=True).vector[
+        "bringYourOwn"
+    ] == [0.5, 0.25, 0.75]
+    collection.data.update(
+        uuid,
+        vector={
+            "bringYourOwn": [0.375, 0.625, 0.875],
+        },
+    )
+    assert collection.query.fetch_object_by_id(uuid, include_vector=True).vector[
+        "bringYourOwn"
+    ] == [0.375, 0.625, 0.875]
+
+
+def test_replace(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
+
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
+        ],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+        ],
+    )
+
+    uuid = collection.data.insert(
+        properties={"title": "Hello", "content": "World"},
+        vector={
+            "bringYourOwn": [0.5, 0.25, 0.75],
+        },
+    )
+    assert collection.query.fetch_object_by_id(uuid, include_vector=True).vector[
+        "bringYourOwn"
+    ] == [0.5, 0.25, 0.75]
+    collection.data.replace(
+        uuid,
+        properties={"title": "Hello", "content": "World"},
+        vector={
+            "bringYourOwn": [0.375, 0.625, 0.875],
+        },
+    )
+    assert collection.query.fetch_object_by_id(uuid, include_vector=True).vector[
+        "bringYourOwn"
+    ] == [0.375, 0.625, 0.875]
 
 
 def test_query(collection_factory: CollectionFactory) -> None:
@@ -374,53 +446,53 @@ def test_aggregation(collection_factory: CollectionFactory) -> None:
     assert agg.properties["number"].minimum == 1
 
 
-# def test_update_to_enable_quantizer_on_specific_named_vector(
-#     collection_factory: CollectionFactory,
-# ) -> None:
-#     collection = collection_factory("dummy")
-#     if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-#         pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
-#     collection = collection_factory(
-#         properties=[
-#             wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
-#             wvc.config.Property(name="second", data_type=wvc.config.DataType.TEXT),
-#         ],
-#         vectorizer_config=[
-#             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-#                 "first",
-#                 source_properties=["first"],
-#                 vectorize_collection_name=False,
-#             ),
-#             wvc.config.Configure.NamedVectors.text2vec_contextionary(
-#                 "second",
-#                 source_properties=["second"],
-#                 vectorize_collection_name=False,
-#             ),
-#         ],
-#     )
+def test_update_to_enable_quantizer_on_specific_named_vector(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="second", data_type=wvc.config.DataType.TEXT),
+        ],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                "first",
+                source_properties=["first"],
+                vectorize_collection_name=False,
+            ),
+            wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                "second",
+                source_properties=["second"],
+                vectorize_collection_name=False,
+            ),
+        ],
+    )
 
-#     config = collection.config.get()
-#     assert config.vector_config is not None
-#     assert config.vector_config["first"].vector_index_config is not None
-#     assert config.vector_config["second"].vector_index_config is not None
-#     assert config.vector_config["second"].vector_index_config.quantizer is None
+    config = collection.config.get()
+    assert config.vector_config is not None
+    assert config.vector_config["first"].vector_index_config is not None
+    assert config.vector_config["second"].vector_index_config is not None
+    assert config.vector_config["second"].vector_index_config.quantizer is None
 
-#     collection.config.update(
-#         vectorizer_config=[
-#             wvc.config.Reconfigure.NamedVectors.update(
-#                 name="second",
-#                 vector_index_config=wvc.config.Reconfigure.VectorIndex.hnsw(
-#                     quantizer=wvc.config.Reconfigure.VectorIndex.Quantizer.pq(bit_compression=True)
-#                 ),
-#             )
-#         ]
-#     )
-#     config = collection.config.get()
-#     assert config.vector_config is not None
-#     assert config.vector_config["first"].vector_index_config is not None
-#     assert config.vector_config["second"].vector_index_config is not None
-#     assert isinstance(config.vector_config["second"].vector_index_config.quantizer, PQConfig)
-#     assert config.vector_config["second"].vector_index_config.quantizer.bit_compression is True
+    collection.config.update(
+        vectorizer_config=[
+            wvc.config.Reconfigure.NamedVectors.update(
+                name="second",
+                vector_index_config=wvc.config.Reconfigure.VectorIndex.hnsw(
+                    quantizer=wvc.config.Reconfigure.VectorIndex.Quantizer.pq(bit_compression=True)
+                ),
+            )
+        ]
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    assert config.vector_config["first"].vector_index_config is not None
+    assert config.vector_config["second"].vector_index_config is not None
+    assert isinstance(config.vector_config["second"].vector_index_config.quantizer, PQConfig)
+    assert config.vector_config["second"].vector_index_config.quantizer.bit_compression is True
 
 
 # def test_update_to_change_quantizer_from_pq_to_bq_on_specific_named_vector(

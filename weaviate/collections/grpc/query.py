@@ -137,7 +137,7 @@ class _QueryGRPC(_BaseGRPC):
 
     def hybrid(
         self,
-        query: str,
+        query: Optional[str],
         alpha: Optional[float] = None,
         vector: Optional[List[float]] = None,
         properties: Optional[List[str]] = None,
@@ -156,7 +156,7 @@ class _QueryGRPC(_BaseGRPC):
         if self._validate_arguments:
             _validate_input(
                 [
-                    _ValidateArgument([str], "query", query),
+                    _ValidateArgument([None, str], "query", query),
                     _ValidateArgument([float, int, None], "alpha", alpha),
                     _ValidateArgument([List, None], "vector", vector),
                     _ValidateArgument([List, None], "properties", properties),
@@ -165,22 +165,32 @@ class _QueryGRPC(_BaseGRPC):
                 ]
             )
 
-        hybrid_search = search_get_pb2.Hybrid(
-            properties=properties,
-            query=query,
-            alpha=float(alpha) if alpha is not None else None,
-            vector_bytes=(
-                struct.pack("{}f".format(len(vector)), *vector) if vector is not None else None
-            ),
-            fusion_type=(
-                cast(
-                    search_get_pb2.Hybrid.FusionType,
-                    search_get_pb2.Hybrid.FusionType.Value(fusion_type.value),
-                )
-                if fusion_type is not None
-                else None
-            ),
-            target_vectors=[target_vector] if target_vector is not None else None,
+        # Set hybrid search to only query the other search-type if one of the two is not set
+        if query is None:
+            alpha = 1
+        if vector is None:
+            alpha = 0
+
+        hybrid_search = (
+            search_get_pb2.Hybrid(
+                properties=properties,
+                query=query,
+                alpha=float(alpha) if alpha is not None else None,
+                vector_bytes=(
+                    struct.pack("{}f".format(len(vector)), *vector) if vector is not None else None
+                ),
+                fusion_type=(
+                    cast(
+                        search_get_pb2.Hybrid.FusionType,
+                        search_get_pb2.Hybrid.FusionType.Value(fusion_type.value),
+                    )
+                    if fusion_type is not None
+                    else None
+                ),
+                target_vectors=[target_vector] if target_vector is not None else None,
+            )
+            if query is not None or vector is not None
+            else None
         )
 
         request = self.__create_request(
@@ -200,7 +210,7 @@ class _QueryGRPC(_BaseGRPC):
 
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -215,7 +225,7 @@ class _QueryGRPC(_BaseGRPC):
         if self._validate_arguments:
             _validate_input(
                 [
-                    _ValidateArgument([str], "query", query),
+                    _ValidateArgument([None, str], "query", query),
                     _ValidateArgument([List, None], "properties", properties),
                 ]
             )
@@ -232,7 +242,9 @@ class _QueryGRPC(_BaseGRPC):
             autocut=autocut,
             bm25=search_get_pb2.BM25(
                 query=query, properties=properties if properties is not None else []
-            ),
+            )
+            if query is not None
+            else None,
         )
         return self.__call(request)
 

@@ -457,7 +457,9 @@ def _get_vector_v4(vector: Sequence) -> List[float]:
     try:
         return get_vector(vector)
     except TypeError as e:
-        raise WeaviateInvalidInputError("") from e
+        raise WeaviateInvalidInputError(
+            f"The vector you supplied was malformatted! Vector:  {vector}"
+        ) from e
 
 
 def get_domain_from_weaviate_url(url: str) -> str:

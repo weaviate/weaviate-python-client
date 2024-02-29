@@ -18,7 +18,7 @@ from weaviate.types import INCLUDE_VECTOR
 class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, References]):
     def bm25(
         self,
-        query: str,
+        query: Optional[str],
         *,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
@@ -37,7 +37,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
 
         Arguments:
             `query`
-                The keyword-based query to search for, REQUIRED.
+                The keyword-based query to search for, REQUIRED. If None, a normal search will be performed.
             `query_properties`
                 The properties to search in. If not specified, all properties are searched.
             `limit`
