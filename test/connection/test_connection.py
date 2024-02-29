@@ -88,7 +88,7 @@ class TestConnection(unittest.TestCase):
 
         os_mock.environ.get.return_value = "test"
         proxies = _get_proxies(None, True)
-        self.assertEqual(proxies, {"http": "test", "https": "test"})
+        self.assertEqual(proxies, {"http": "test", "https": "test", "grpc": "test"})
 
     def test__get_valid_timeout_config(self):
         """
