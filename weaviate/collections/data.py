@@ -329,6 +329,13 @@ class _DataCollection(Generic[Properties], _Data):
             data_model,
         )
 
+    def __parse_vector(self, obj: Dict[str, Any], vector: VECTORS) -> Dict[str, Any]:
+        if isinstance(vector, dict):
+            obj["vectors"] = {key: _get_vector_v4(val) for key, val in vector.items()}
+        else:
+            obj["vector"] = _get_vector_v4(vector)
+        return obj
+
     def insert(
         self,
         properties: Properties,
@@ -346,7 +353,7 @@ class _DataCollection(Generic[Properties], _Data):
             `uuid`
                 The UUID of the object. If not provided, a random UUID will be generated.
             `vector`
-                The vector of the object.
+                The vector(s) of the object.
                 Supported types are
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
@@ -378,14 +385,8 @@ class _DataCollection(Generic[Properties], _Data):
             "properties": {**props, **refs},
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
-
         if vector is not None:
-            if isinstance(vector, dict):
-                for key, val in vector.items():
-                    vector[key] = _get_vector_v4(val)
-                weaviate_obj["vectors"] = vector
-            else:
-                weaviate_obj["vector"] = _get_vector_v4(vector)
+            weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
         return self._insert(weaviate_obj)
 
@@ -440,7 +441,7 @@ class _DataCollection(Generic[Properties], _Data):
         uuid: UUID,
         properties: Properties,
         references: Optional[ReferenceInputs] = None,
-        vector: Optional[Sequence[float]] = None,
+        vector: Optional[VECTORS] = None,
     ) -> None:
         """Replace an object in the collection.
 
@@ -454,7 +455,10 @@ class _DataCollection(Generic[Properties], _Data):
             `references`
                 Any references to other objects in Weaviate, REQUIRED.
             `vector`
-                The vector of the object.
+                The vector(s) of the object.
+                Supported types are
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
 
         Raises:
             `weaviate.WeaviateConnectionError`:
@@ -474,7 +478,9 @@ class _DataCollection(Generic[Properties], _Data):
                     _ValidateArgument(
                         expected=[Mapping, None], name="references", value=references
                     ),
-                    _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+                    _ValidateArgument(
+                        expected=[Sequence, None, Mapping], name="vector", value=vector
+                    ),
                 ]
             )
         props = self._serialize_props(properties) if properties is not None else {}
@@ -484,7 +490,7 @@ class _DataCollection(Generic[Properties], _Data):
             "properties": {**props, **refs},
         }
         if vector is not None:
-            weaviate_obj["vector"] = _get_vector_v4(vector)
+            weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
         self._replace(weaviate_obj, uuid=uuid)
 
@@ -493,7 +499,7 @@ class _DataCollection(Generic[Properties], _Data):
         uuid: UUID,
         properties: Optional[Properties] = None,
         references: Optional[ReferenceInputs] = None,
-        vector: Optional[List[float]] = None,
+        vector: Optional[VECTORS] = None,
     ) -> None:
         """Update an object in the collection.
 
@@ -509,7 +515,10 @@ class _DataCollection(Generic[Properties], _Data):
             `references`
                 Any references to other objects in Weaviate.
             `vector`
-                The vector of the object.
+                The vector(s) of the object.
+                Supported types are
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
         """
         if self._validate_arguments:
             _validate_input(
@@ -521,14 +530,16 @@ class _DataCollection(Generic[Properties], _Data):
                     _ValidateArgument(
                         expected=[Mapping, None], name="references", value=references
                     ),
-                    _ValidateArgument(expected=[Sequence, None], name="vector", value=vector),
+                    _ValidateArgument(
+                        expected=[Sequence, None, Mapping], name="vector", value=vector
+                    ),
                 ],
             )
         props = self._serialize_props(properties) if properties is not None else {}
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
         if vector is not None:
-            weaviate_obj["vector"] = _get_vector_v4(vector)
+            weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
         self._update(weaviate_obj, uuid=uuid)
 

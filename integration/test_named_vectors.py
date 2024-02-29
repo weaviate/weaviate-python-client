@@ -133,6 +133,77 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
     assert obj.vector["bringYourOwn"] == [0.5, 0.25, 0.75]
 
 
+def test_update(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
+
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
+        ],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+        ],
+    )
+
+    uuid = collection.data.insert(
+        properties={"title": "Hello", "content": "World"},
+        vector={
+            "bringYourOwn": [0.5, 0.25, 0.75],
+        },
+    )
+    assert collection.query.fetch_object_by_id(uuid, include_vector=True).vector[
+        "bringYourOwn"
+    ] == [0.5, 0.25, 0.75]
+    collection.data.update(
+        uuid,
+        vector={
+            "bringYourOwn": [0.375, 0.625, 0.875],
+        },
+    )
+    assert collection.query.fetch_object_by_id(uuid, include_vector=True).vector[
+        "bringYourOwn"
+    ] == [0.375, 0.625, 0.875]
+
+
+def test_replace(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
+
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
+            wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
+        ],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+        ],
+    )
+
+    uuid = collection.data.insert(
+        properties={"title": "Hello", "content": "World"},
+        vector={
+            "bringYourOwn": [0.5, 0.25, 0.75],
+        },
+    )
+    assert collection.query.fetch_object_by_id(uuid, include_vector=True).vector[
+        "bringYourOwn"
+    ] == [0.5, 0.25, 0.75]
+    collection.data.replace(
+        uuid,
+        properties={"title": "Hello", "content": "World"},
+        vector={
+            "bringYourOwn": [0.375, 0.625, 0.875],
+        },
+    )
+    assert collection.query.fetch_object_by_id(uuid, include_vector=True).vector[
+        "bringYourOwn"
+    ] == [0.375, 0.625, 0.875]
+
+
 def test_query(collection_factory: CollectionFactory) -> None:
     collection = collection_factory("dummy")
     if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
