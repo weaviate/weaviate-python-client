@@ -63,7 +63,8 @@ class TestConnection(unittest.TestCase):
         """
 
         error_msg = lambda dt: (
-            "If 'proxies' is not None, it must be of type dict or str. " f"Given type: {dt}."
+            "If 'proxies' is not None, it must be of type dict, str, or wvc.init.Proxies. "
+            f"Given type: {dt}."
         )
         with self.assertRaises(TypeError) as error:
             proxies = _get_proxies([], False)
