@@ -19,6 +19,7 @@ from weaviate.collections.classes.config import (
     ShardStatus,
     _ShardStatus,
     ShardTypes,
+    _NamedVectorConfigUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -30,6 +31,7 @@ from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
 from weaviate.util import _decode_json_response_dict, _decode_json_response_list
+from weaviate.warnings import _Warnings
 
 from weaviate.connect.v4 import _ExpectedStatusCodes
 
@@ -91,6 +93,7 @@ class _ConfigBase:
             Union[
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
+                List[_NamedVectorConfigUpdate],
             ]
         ] = None,
     ) -> None:
@@ -108,7 +111,8 @@ class _ConfigBase:
             `vector_index_config` DEPRECATED USE `vectorizer_config` INSTEAD
                 Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
             `vectorizer_config`
-                Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
+                Configurations for the vector index (or indices) of your collection.
+                Use `Reconfigure.vector_index` if there is only one vectorizer and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
 
         Raises:
             `weaviate.WeaviateInvalidInputError`:
@@ -123,6 +127,8 @@ class _ConfigBase:
             - To change it, you will have to delete the collection and recreate it with the desired options.
             - This is not the case of adding properties, which can be done with `collection.config.add_property()`.
         """
+        if vector_index_config is not None:
+            _Warnings.vector_index_config_in_config_update()
         try:
             config = _CollectionConfigUpdate(
                 description=description,
