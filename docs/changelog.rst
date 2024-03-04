@@ -1,6 +1,18 @@
 Changelog
 =========
 
+Version 4.5.1
+--------------
+This patch version includes:
+
+- Introduces ``weaviate.classes.init.Timeout`` class allowing to define the timeout used when performing client init checks, in addition to connect and query
+- Fixes a bug when performing ``contains_any/contains_all`` filtering using an empty list
+- Adds the ability to limit the ``top_occurences`` return when performing aggregation queries
+- Allows for defining gRPC proxying of the client and fixes the parsing of ``http`` and ``https`` proxies
+- Allow ``None`` as a query value in BM25 and hybrid queries
+- Fix missing named vectors support in ``data.update`` and ``data.replace``
+- Reimplement support for updating named vector configurations alongside the patched ``1.24.1`` server version
+
 Version 4.5.0
 --------------
 This minor version includes:
