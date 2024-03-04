@@ -5,6 +5,10 @@ Version 4.5.1
 --------------
 This patch version includes:
 
+- Implements an extension to the filtering syntax allowing to pass lists of filters
+    - ``Filter.all_of([f1, f2]])`` is a shortcut for ``f1 & f2``
+    - ``Filter.any_of([f1, f2]])`` is a shortcut for ``f1 | f2``
+    - Can all be chained and mixed together to create dynamic and complex filters
 - Introduces ``weaviate.classes.init.Timeout`` class allowing to define the timeout used when performing client init checks, in addition to connect and query
 - Fixes a bug when performing ``contains_any/contains_all`` filtering using an empty list
 - Adds the ability to limit the ``top_occurences`` return when performing aggregation queries
