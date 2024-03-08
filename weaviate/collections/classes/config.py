@@ -128,12 +128,18 @@ class Tokenization(str, Enum):
             Tokenize by lowercase.
         `FIELD`
             Tokenize by field.
+        `GSE`
+            Tokenize using GSE (for Chinese and Japanese).
+        `TRIGRAM`
+            Tokenize into trigrams.
     """
 
     WORD = "word"
     WHITESPACE = "whitespace"
     LOWERCASE = "lowercase"
     FIELD = "field"
+    GSE = "gse"
+    TRIGRAM = "trigram"
 
 
 class GenerativeSearches(str, Enum):
