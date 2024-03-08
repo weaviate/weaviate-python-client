@@ -1,11 +1,10 @@
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
-from typing_extensions import TypeAlias
 
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
+from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel
-
 
 CohereModel: TypeAlias = Literal[
     "embed-multilingual-v2.0",
@@ -246,15 +245,9 @@ class _Text2VecCohereConfigCreate(_Text2VecCohereConfig, _VectorizerConfigCreate
 class _Text2VecPalmConfig(_ConfigCreateModel):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True)
     projectId: str
-    apiEndpoint: Optional[AnyHttpUrl]
+    apiEndpoint: Optional[str]
     modelId: Optional[str]
     vectorizeClassName: bool
-
-    def _to_dict(self) -> Dict[str, Any]:
-        ret_dict = super()._to_dict()
-        if self.apiEndpoint is not None:
-            ret_dict["apiEndpoint"] = self.apiEndpoint.unicode_string()
-        return ret_dict
 
 
 class _Text2VecPalmConfigCreate(_Text2VecPalmConfig, _VectorizerConfigCreate):
@@ -723,7 +716,7 @@ class _Vectorizer:
     @staticmethod
     def text2vec_palm(
         project_id: str,
-        api_endpoint: Optional[AnyHttpUrl] = None,
+        api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
@@ -736,7 +729,7 @@ class _Vectorizer:
             `project_id`
                 The project ID to use, REQUIRED.
             `api_endpoint`
-                The API endpoint to use. Defaults to `None`, which uses the server-defined default.
+                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
             `model_id`
                 The model ID to use. Defaults to `None`, which uses the server-defined default.
             `vectorize_collection_name`

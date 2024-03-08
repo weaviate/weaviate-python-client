@@ -236,14 +236,14 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_palm(
             project_id="project",
-            api_endpoint="https://api.google.com",
+            api_endpoint="api.google.com",
             model_id="model",
             vectorize_collection_name=False,
         ),
         {
             "text2vec-palm": {
                 "projectId": "project",
-                "apiEndpoint": "https://api.google.com/",
+                "apiEndpoint": "api.google.com/",
                 "modelId": "model",
                 "vectorizeClassName": False,
             }

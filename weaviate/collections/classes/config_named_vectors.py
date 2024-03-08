@@ -1,8 +1,17 @@
 from typing import Any, Dict, List, Literal, Optional, Union
+
 from pydantic import AnyHttpUrl, Field
+
 from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
     _ConfigUpdateModel,
+)
+from weaviate.collections.classes.config_vector_index import (
+    _VectorIndexConfigCreate,
+    _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigUpdate,
+    VectorIndexType,
 )
 from weaviate.collections.classes.config_vectorizers import (
     _Img2VecNeuralConfigCreate,
@@ -30,13 +39,6 @@ from weaviate.collections.classes.config_vectorizers import (
     OpenAIType,
     Vectorizers,
     _map_multi2vec_fields,
-)
-from weaviate.collections.classes.config_vector_index import (
-    _VectorIndexConfigCreate,
-    _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigUpdate,
-    VectorIndexType,
 )
 
 
@@ -566,7 +568,7 @@ class _NamedVectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-        api_endpoint: Optional[AnyHttpUrl] = None,
+        api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_palm` model.
@@ -588,7 +590,7 @@ class _NamedVectors:
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
             `api_endpoint`
-                The API endpoint to use. Defaults to `None`, which uses the server-defined default.
+                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
             `model_id`
                 The model ID to use. Defaults to `None`, which uses the server-defined default.
 
