@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 4.5.2
+--------------
+This patch version includes:
+
+- Fixes endpoint parameter for ``text2vec-palm``
+- Adds support for GSE and TRIGRAM tokenizers
+
 Version 4.5.1
 --------------
 This patch version includes:
