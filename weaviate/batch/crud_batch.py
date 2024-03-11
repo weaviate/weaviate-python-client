@@ -968,7 +968,9 @@ class Batch:
                 self._objects_throughput_frame
             )
 
-            self._recommended_num_objects = max(round(obj_per_second * self._creation_time), 1)
+            self._recommended_num_objects = max(
+                round(obj_per_second * float(self._creation_time)), 1
+            )
 
             res = _decode_json_response_list(response, "batch add objects")
             assert res is not None
@@ -1065,7 +1067,7 @@ class Batch:
                 self._references_throughput_frame
             )
 
-            self._recommended_num_references = round(ref_per_sec * self._creation_time)
+            self._recommended_num_references = round(ref_per_sec * float(self._creation_time))
 
             res = _decode_json_response_list(response, "Create references")
             assert res is not None
@@ -1172,7 +1174,7 @@ class Batch:
             )
             self._recommended_num_objects = max(
                 min(
-                    round(obj_per_second * self._creation_time),
+                    round(obj_per_second * float(self._creation_time)),
                     self._recommended_num_objects + 250,
                 ),
                 1,
@@ -1210,7 +1212,7 @@ class Batch:
                 self._references_throughput_frame
             )
             self._recommended_num_references = min(
-                round(ref_per_sec * self._creation_time),
+                round(ref_per_sec * float(self._creation_time)),
                 self._recommended_num_references * 2,
             )
 
@@ -1742,11 +1744,11 @@ class Batch:
         _check_positive_num(value, "creation_time", Real)
         if self._recommended_num_references is not None:
             self._recommended_num_references = round(
-                self._recommended_num_references * value / self._creation_time
+                self._recommended_num_references * float(value) / float(self._creation_time)
             )
         if self._recommended_num_objects is not None:
             self._recommended_num_objects = round(
-                self._recommended_num_objects * value / self._creation_time
+                self._recommended_num_objects * float(value) / float(self._creation_time)
             )
         self._creation_time = value
         if self._batching_type:
