@@ -275,7 +275,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             vectorize_collection_name=False,
             model="voyage-large-2",
             truncate=False,
-            baseURL="https://voyage.made-up.com",
+            base_url="https://voyage.made-up.com",
         ),
         {
             "text2vec-voyageai": {

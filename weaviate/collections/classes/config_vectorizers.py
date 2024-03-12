@@ -810,7 +810,7 @@ class _Vectorizer:
     @staticmethod
     def text2vec_voyageai(
         model: Optional[Union[VoyageModel, str]] = None,
-        base_uRL: Optional[str] = None,
+        base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
@@ -824,7 +824,7 @@ class _Vectorizer:
                 The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai#available-models) for more details.
-            `base_uRL`
+            `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `truncate`
                 Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
@@ -833,7 +833,7 @@ class _Vectorizer:
         """
         return _Text2VecVoyageConfigCreate(
             model=model,
-            baseURL=base_uRL,
+            baseURL=base_url,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
         )
