@@ -24,6 +24,7 @@ OpenAIModel: TypeAlias = Literal[
     "text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"
 ]
 JinaModel: TypeAlias = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
+VoyageModel: TypeAlias = Literal["voyage-large-2, voyage-code-2, voyage-2"]
 AWSModel: TypeAlias = Literal[
     "amazon.titan-embed-text-v1",
     "cohere.embed-english-v3",
@@ -62,6 +63,8 @@ class Vectorizers(str, Enum):
             Weaviate module backed by Transformers text-based embedding models.
         `TEXT2VEC_JINAAI`
             Weaviate module backed by Jina AI text-based embedding models.
+        `TEXT2VEC_VOYAGEAI`
+            Weaviate module backed by Voyage AI text-based embedding models.
         `IMG2VEC_NEURAL`
             Weaviate module backed by a ResNet-50 neural network for images.
         `MULTI2VEC_CLIP`
@@ -82,6 +85,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_PALM = "text2vec-palm"
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_JINAAI = "text2vec-jinaai"
+    TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_BIND = "multi2vec-bind"
@@ -282,6 +286,20 @@ class _Text2VecJinaConfig(_ConfigCreateModel):
 
 
 class _Text2VecJinaConfigCreate(_Text2VecJinaConfig, _VectorizerConfigCreate):
+    pass
+
+
+class _Text2VecVoyageConfig(_ConfigCreateModel):
+    vectorizer: Vectorizers = Field(
+        default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    baseURL: Optional[str]
+    truncate: Optional[bool]
+    vectorizeClassName: bool
+
+
+class _Text2VecVoyageConfigCreate(_Text2VecVoyageConfig, _VectorizerConfigCreate):
     pass
 
 
@@ -788,3 +806,35 @@ class _Vectorizer:
                 Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecJinaConfigCreate(model=model, vectorizeClassName=vectorize_collection_name)
+
+    @staticmethod
+    def text2vec_voyageai(
+        model: Optional[Union[VoyageModel, str]] = None,
+        baseURL: Optional[str] = None,
+        truncate: Optional[bool] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecVoyageConfigCreate` object for use when vectorizing using the `text2vec-voyageai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+                See the
+                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai#available-models) for more details.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `baseURL`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+
+        """
+        return _Text2VecVoyageConfigCreate(
+            model=model,
+            baseURL=baseURL,
+            truncate=truncate,
+            vectorizeClassName=vectorize_collection_name,
+        )

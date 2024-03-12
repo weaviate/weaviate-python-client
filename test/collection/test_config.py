@@ -271,6 +271,22 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_voyageai(
+            vectorize_collection_name=False,
+            model="voyage-large-2",
+            truncate=False,
+            baseURL="https://voyage.made-up.com",
+        ),
+        {
+            "text2vec-voyageai": {
+                "vectorizeClassName": False,
+                "model": "voyage-large-2",
+                "baseURL": "https://voyage.made-up.com",
+                "truncate": False,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.img2vec_neural(
             image_fields=["test"],
         ),
@@ -1040,6 +1056,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "poolingStrategy": "masked_mean",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_voyageai(
+                name="test", source_properties=["prop"], truncate=True
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-voyageai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "truncate": True,
                     }
                 },
                 "vectorIndexType": "hnsw",

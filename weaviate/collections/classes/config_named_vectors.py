@@ -28,6 +28,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecOpenAIConfigCreate,
     _Text2VecPalmConfigCreate,
     _Text2VecTransformersConfigCreate,
+    _Text2VecVoyageConfigCreate,
     _VectorizerConfigCreate,
     AWSModel,
     AWSService,
@@ -38,6 +39,7 @@ from weaviate.collections.classes.config_vectorizers import (
     OpenAIModel,
     OpenAIType,
     Vectorizers,
+    VoyageModel,
     _map_multi2vec_fields,
 )
 
@@ -679,6 +681,54 @@ class _NamedVectors:
             vectorizer=_Text2VecJinaConfigCreate(
                 model=model,
                 vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2vec_voyageai(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model: Optional[Union[VoyageModel, str]] = None,
+        baseURL: Optional[str] = None,
+        truncate: Optional[bool] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `text2vec-jinaai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+                See the
+                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai#available-models) for more details.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `baseURL`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecVoyageConfigCreate(
+                model=model,
+                vectorizeClassName=vectorize_collection_name,
+                baseURL=baseURL,
+                truncate=truncate,
             ),
             vector_index_config=vector_index_config,
         )
