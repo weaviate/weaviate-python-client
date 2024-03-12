@@ -321,10 +321,11 @@ class _NamedVectors:
     def multi2vec_clip(
         name: str,
         *,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        interference_url: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_clip` model.
 
@@ -340,6 +341,12 @@ class _NamedVectors:
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+            `inference_url`
+                The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -347,6 +354,7 @@ class _NamedVectors:
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
                 vectorizeClassName=vectorize_collection_name,
+                inferenceUrl=interference_url,
             ),
             vector_index_config=vector_index_config,
         )

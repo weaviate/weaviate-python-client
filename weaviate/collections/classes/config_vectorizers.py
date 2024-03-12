@@ -345,6 +345,7 @@ class _Multi2VecBase(_ConfigCreateModel):
 
 class _Multi2VecClipConfig(_Multi2VecBase):
     vectorizer: Vectorizers = Field(default=Vectorizers.MULTI2VEC_CLIP, frozen=True, exclude=True)
+    inferenceUrl: Optional[str]
 
 
 class _Multi2VecClipConfigCreate(_Multi2VecClipConfig, _VectorizerConfigCreate):
@@ -417,6 +418,7 @@ class _Vectorizer:
     def multi2vec_clip(
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        interference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecClipConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
@@ -429,6 +431,8 @@ class _Vectorizer:
                 The image fields to use in vectorization.
             `text_fields`
                 The text fields to use in vectorization.
+            `inference_url`
+                The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
 
@@ -439,6 +443,7 @@ class _Vectorizer:
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             vectorizeClassName=vectorize_collection_name,
+            inferenceUrl=interference_url,
         )
 
     @staticmethod
@@ -785,11 +790,11 @@ class _Vectorizer:
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
             `inference_url`
-                The inferenceUrl to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
+                The inference url to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
             `passage_inference_url`
-                The inferenceUrl to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
+                The inference url to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
             `query_inference_url`
-                The inferenceUrl to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
+                The inference url to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
