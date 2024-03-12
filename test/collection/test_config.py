@@ -262,11 +262,13 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.text2vec_transformers(
             pooling_strategy="cls",
             vectorize_collection_name=False,
+            inference_url="https://api.transformers.com",
         ),
         {
             "text2vec-transformers": {
                 "vectorizeClassName": False,
                 "poolingStrategy": "cls",
+                "inferenceUrl": "https://api.transformers.com",
             }
         },
     ),

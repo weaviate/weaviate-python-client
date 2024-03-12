@@ -264,6 +264,9 @@ class _Text2VecTransformersConfig(_ConfigCreateModel):
     )
     poolingStrategy: Literal["masked_mean", "cls"]
     vectorizeClassName: bool
+    inferenceUrl: Optional[str]
+    passageInferenceUrl: Optional[str]
+    queryInferenceUrl: Optional[str]
 
 
 class _Text2VecTransformersConfigCreate(_Text2VecTransformersConfig, _VectorizerConfigCreate):
@@ -767,6 +770,9 @@ class _Vectorizer:
     def text2vec_transformers(
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         vectorize_collection_name: bool = True,
+        inference_url: Optional[str] = None,
+        passage_inference_url: Optional[str] = None,
+        query_inference_url: Optional[str] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecTransformersConfigCreate` object for use when vectorizing using the `text2vec-transformers` model.
 
@@ -778,6 +784,12 @@ class _Vectorizer:
                 The pooling strategy to use. Defaults to `masked_mean`.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
+            `inference_url`
+                The inferenceUrl to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
+            `passage_inference_url`
+                The inferenceUrl to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
+            `query_inference_url`
+                The inferenceUrl to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
@@ -785,6 +797,9 @@ class _Vectorizer:
         return _Text2VecTransformersConfigCreate(
             poolingStrategy=pooling_strategy,
             vectorizeClassName=vectorize_collection_name,
+            inferenceUrl=inference_url,
+            passageInferenceUrl=passage_inference_url,
+            queryInferenceUrl=query_inference_url,
         )
 
     @staticmethod

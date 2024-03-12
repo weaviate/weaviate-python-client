@@ -619,6 +619,9 @@ class _NamedVectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
+        inference_url: Optional[str] = None,
+        passage_inference_url: Optional[str] = None,
+        query_inference_url: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_transformers` model.
 
@@ -636,6 +639,12 @@ class _NamedVectors:
                 Whether to vectorize the collection name. Defaults to `True`.
             `pooling_strategy`
                 The pooling strategy to use. Defaults to `masked_mean`.
+            `inference_url`
+                The inferenceUrl to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
+            `passage_inference_url`
+                The inferenceUrl to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
+            `query_inference_url`
+                The inferenceUrl to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -643,6 +652,9 @@ class _NamedVectors:
             vectorizer=_Text2VecTransformersConfigCreate(
                 poolingStrategy=pooling_strategy,
                 vectorizeClassName=vectorize_collection_name,
+                inferenceUrl=inference_url,
+                passageInferenceUrl=passage_inference_url,
+                queryInferenceUrl=query_inference_url,
             ),
             vector_index_config=vector_index_config,
         )
