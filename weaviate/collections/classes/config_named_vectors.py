@@ -693,7 +693,7 @@ class _NamedVectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         model: Optional[Union[VoyageModel, str]] = None,
-        baseURL: Optional[str] = None,
+        base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
@@ -714,9 +714,7 @@ class _NamedVectors:
                 The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai#available-models) for more details.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `baseURL`
+            `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `truncate`
                 Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
@@ -727,7 +725,7 @@ class _NamedVectors:
             vectorizer=_Text2VecVoyageConfigCreate(
                 model=model,
                 vectorizeClassName=vectorize_collection_name,
-                baseURL=baseURL,
+                baseURL=base_url,
                 truncate=truncate,
             ),
             vector_index_config=vector_index_config,
