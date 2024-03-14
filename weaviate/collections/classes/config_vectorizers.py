@@ -89,6 +89,7 @@ class Vectorizers(str, Enum):
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_BIND = "multi2vec-bind"
+    MULTI2VEC_PALM = "multi2vec-palm"
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
@@ -350,6 +351,15 @@ class _Multi2VecClipConfig(_Multi2VecBase):
 
 class _Multi2VecClipConfigCreate(_Multi2VecClipConfig, _VectorizerConfigCreate):
     pass
+
+
+class _Multi2VecPalmConfig(_Multi2VecBase, _VectorizerConfigCreate):
+    vectorizer: Vectorizers = Field(default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True)
+    projectId: str
+    location: Optional[str]
+    modelId: Optional[str]
+    dimensions: Optional[int]
+    vectorizeClassName: bool
 
 
 class _Multi2VecBindConfig(_Multi2VecBase):
@@ -767,6 +777,51 @@ class _Vectorizer:
         return _Text2VecPalmConfigCreate(
             projectId=project_id,
             apiEndpoint=api_endpoint,
+            modelId=model_id,
+            vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
+    def multi2vec_palm(
+        *,
+        location: str,
+        project_id: str,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        dimensions: Optional[int] = None,
+        model_id: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Multi2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
+        for detailed usage.
+
+        Arguments:
+            `location`
+                Where the model runs. REQUIRED.
+            `project_id`
+                The project ID to use, REQUIRED.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+            `dimensions`
+                The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+
+        Raises:
+            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+        """
+        return _Multi2VecPalmConfig(
+            projectId=project_id,
+            location=location,
+            imageFields=_map_multi2vec_fields(image_fields),
+            textFields=_map_multi2vec_fields(text_fields),
+            dimensions=dimensions,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
         )

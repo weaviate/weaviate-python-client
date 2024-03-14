@@ -312,6 +312,23 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.multi2vec_palm(
+            image_fields=["image"],
+            text_fields=["text"],
+            project_id="project",
+            location="us-central1",
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "projectId": "project",
+                "location": "us-central1",
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.multi2vec_clip(
             image_fields=[Multi2VecField(name="image")],
             text_fields=[Multi2VecField(name="text")],
@@ -722,7 +739,7 @@ TEST_CONFIG_WITH_RERANKER = [
 def test_config_with_reranker(
     reranker_config: _RerankerConfigCreate,
     expected_mc: dict,
-):
+) -> None:
     config = _CollectionConfigCreate(name="test", reranker_config=reranker_config)
     assert config._to_dict() == {
         **DEFAULTS,
@@ -732,7 +749,7 @@ def test_config_with_reranker(
     }
 
 
-def test_config_with_properties():
+def test_config_with_properties() -> None:
     config = _CollectionConfigCreate(
         name="test",
         description="test",
@@ -1119,6 +1136,31 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "multi2vec-clip": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.multi2vec_palm(
+                name="test",
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
                         "vectorizeClassName": True,
                     }
                 },
