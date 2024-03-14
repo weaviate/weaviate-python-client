@@ -69,6 +69,8 @@ class Vectorizers(str, Enum):
             Weaviate module backed by a ResNet-50 neural network for images.
         `MULTI2VEC_CLIP`
             Weaviate module backed by a Sentence-BERT CLIP model for images and text.
+        `MULTI2VEC_PALM`
+            Weaviate module backed by a palm model for images and text.
         `MULTI2VEC_BIND`
             Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         `REF2VEC_CENTROID`
@@ -884,6 +886,7 @@ class _Vectorizer:
 
     @staticmethod
     def text2vec_voyageai(
+        *,
         model: Optional[Union[VoyageModel, str]] = None,
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,

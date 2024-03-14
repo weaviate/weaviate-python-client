@@ -336,8 +336,6 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
@@ -381,8 +379,6 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
@@ -436,8 +432,6 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
@@ -474,8 +468,8 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
+            `reference_properties`
+                The reference properties to use in vectorization, REQUIRED.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
