@@ -262,11 +262,29 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.text2vec_transformers(
             pooling_strategy="cls",
             vectorize_collection_name=False,
+            inference_url="https://api.transformers.com",
         ),
         {
             "text2vec-transformers": {
                 "vectorizeClassName": False,
                 "poolingStrategy": "cls",
+                "inferenceUrl": "https://api.transformers.com",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_voyageai(
+            vectorize_collection_name=False,
+            model="voyage-large-2",
+            truncate=False,
+            base_url="https://voyage.made-up.com",
+        ),
+        {
+            "text2vec-voyageai": {
+                "vectorizeClassName": False,
+                "model": "voyage-large-2",
+                "baseURL": "https://voyage.made-up.com",
+                "truncate": False,
             }
         },
     ),
@@ -289,6 +307,23 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-clip": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_palm(
+            image_fields=["image"],
+            text_fields=["text"],
+            project_id="project",
+            location="us-central1",
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "projectId": "project",
+                "location": "us-central1",
                 "vectorizeClassName": True,
             }
         },
@@ -536,6 +571,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-anyscale": {}},
     ),
     (
+        Configure.Generative.mistral(temperature=0.5, max_tokens=100, model="model"),
+        {"generative-mistral": {"temperature": 0.5, "maxTokens": 100, "model": "model"}},
+    ),
+    (
         Configure.Generative.openai(
             model="gpt-4",
             frequency_penalty=0.5,
@@ -700,7 +739,7 @@ TEST_CONFIG_WITH_RERANKER = [
 def test_config_with_reranker(
     reranker_config: _RerankerConfigCreate,
     expected_mc: dict,
-):
+) -> None:
     config = _CollectionConfigCreate(name="test", reranker_config=reranker_config)
     assert config._to_dict() == {
         **DEFAULTS,
@@ -710,7 +749,7 @@ def test_config_with_reranker(
     }
 
 
-def test_config_with_properties():
+def test_config_with_properties() -> None:
     config = _CollectionConfigCreate(
         name="test",
         description="test",
@@ -1048,6 +1087,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     ),
     (
         [
+            Configure.NamedVectors.text2vec_voyageai(
+                name="test", source_properties=["prop"], truncate=True
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-voyageai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "truncate": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
             Configure.NamedVectors.img2vec_neural(
                 name="test",
                 image_fields=["test"],
@@ -1078,6 +1136,31 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "multi2vec-clip": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.multi2vec_palm(
+                name="test",
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
                         "vectorizeClassName": True,
                     }
                 },

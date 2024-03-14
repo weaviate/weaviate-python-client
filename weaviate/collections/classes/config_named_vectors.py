@@ -17,6 +17,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Img2VecNeuralConfigCreate,
     _Multi2VecBindConfigCreate,
     _Multi2VecClipConfigCreate,
+    _Multi2VecPalmConfig,
     _Ref2VecCentroidConfigCreate,
     _Text2VecAWSConfigCreate,
     _Text2VecAzureOpenAIConfigCreate,
@@ -28,6 +29,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecOpenAIConfigCreate,
     _Text2VecPalmConfigCreate,
     _Text2VecTransformersConfigCreate,
+    _Text2VecVoyageConfigCreate,
     _VectorizerConfigCreate,
     AWSModel,
     AWSService,
@@ -38,6 +40,7 @@ from weaviate.collections.classes.config_vectorizers import (
     OpenAIModel,
     OpenAIType,
     Vectorizers,
+    VoyageModel,
     _map_multi2vec_fields,
 )
 
@@ -319,10 +322,11 @@ class _NamedVectors:
     def multi2vec_clip(
         name: str,
         *,
-        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        interference_url: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_clip` model.
 
@@ -332,18 +336,75 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+            `inference_url`
+                The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecClipConfigCreate(
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
+                vectorizeClassName=vectorize_collection_name,
+                inferenceUrl=interference_url,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def multi2vec_palm(
+        name: str,
+        *,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        location: str,
+        project_id: str,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        dimensions: Optional[int] = None,
+        model_id: Optional[str] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `multi2vec_clip` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `location`
+                Where the model runs. REQUIRED.
+            `project_id`
+                The project ID to use, REQUIRED.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+            `dimensions`
+                The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecPalmConfig(
+                projectId=project_id,
+                location=location,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+                dimensions=dimensions,
+                modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
@@ -371,8 +432,6 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
@@ -409,8 +468,8 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
+            `reference_properties`
+                The reference properties to use in vectorization, REQUIRED.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
@@ -617,6 +676,9 @@ class _NamedVectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
+        inference_url: Optional[str] = None,
+        passage_inference_url: Optional[str] = None,
+        query_inference_url: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_transformers` model.
 
@@ -634,6 +696,12 @@ class _NamedVectors:
                 Whether to vectorize the collection name. Defaults to `True`.
             `pooling_strategy`
                 The pooling strategy to use. Defaults to `masked_mean`.
+            `inference_url`
+                The inferenceUrl to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
+            `passage_inference_url`
+                The inferenceUrl to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
+            `query_inference_url`
+                The inferenceUrl to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -641,6 +709,9 @@ class _NamedVectors:
             vectorizer=_Text2VecTransformersConfigCreate(
                 poolingStrategy=pooling_strategy,
                 vectorizeClassName=vectorize_collection_name,
+                inferenceUrl=inference_url,
+                passageInferenceUrl=passage_inference_url,
+                queryInferenceUrl=query_inference_url,
             ),
             vector_index_config=vector_index_config,
         )
@@ -679,6 +750,52 @@ class _NamedVectors:
             vectorizer=_Text2VecJinaConfigCreate(
                 model=model,
                 vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2vec_voyageai(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model: Optional[Union[VoyageModel, str]] = None,
+        base_url: Optional[str] = None,
+        truncate: Optional[bool] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `text2vec-jinaai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+                See the
+                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai#available-models) for more details.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecVoyageConfigCreate(
+                model=model,
+                vectorizeClassName=vectorize_collection_name,
+                baseURL=base_url,
+                truncate=truncate,
             ),
             vector_index_config=vector_index_config,
         )

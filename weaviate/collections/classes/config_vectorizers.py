@@ -24,6 +24,7 @@ OpenAIModel: TypeAlias = Literal[
     "text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"
 ]
 JinaModel: TypeAlias = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
+VoyageModel: TypeAlias = Literal["voyage-large-2, voyage-code-2, voyage-2"]
 AWSModel: TypeAlias = Literal[
     "amazon.titan-embed-text-v1",
     "cohere.embed-english-v3",
@@ -62,10 +63,14 @@ class Vectorizers(str, Enum):
             Weaviate module backed by Transformers text-based embedding models.
         `TEXT2VEC_JINAAI`
             Weaviate module backed by Jina AI text-based embedding models.
+        `TEXT2VEC_VOYAGEAI`
+            Weaviate module backed by Voyage AI text-based embedding models.
         `IMG2VEC_NEURAL`
             Weaviate module backed by a ResNet-50 neural network for images.
         `MULTI2VEC_CLIP`
             Weaviate module backed by a Sentence-BERT CLIP model for images and text.
+        `MULTI2VEC_PALM`
+            Weaviate module backed by a palm model for images and text.
         `MULTI2VEC_BIND`
             Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         `REF2VEC_CENTROID`
@@ -82,9 +87,11 @@ class Vectorizers(str, Enum):
     TEXT2VEC_PALM = "text2vec-palm"
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_JINAAI = "text2vec-jinaai"
+    TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_BIND = "multi2vec-bind"
+    MULTI2VEC_PALM = "multi2vec-palm"
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
@@ -260,6 +267,9 @@ class _Text2VecTransformersConfig(_ConfigCreateModel):
     )
     poolingStrategy: Literal["masked_mean", "cls"]
     vectorizeClassName: bool
+    inferenceUrl: Optional[str]
+    passageInferenceUrl: Optional[str]
+    queryInferenceUrl: Optional[str]
 
 
 class _Text2VecTransformersConfigCreate(_Text2VecTransformersConfig, _VectorizerConfigCreate):
@@ -282,6 +292,20 @@ class _Text2VecJinaConfig(_ConfigCreateModel):
 
 
 class _Text2VecJinaConfigCreate(_Text2VecJinaConfig, _VectorizerConfigCreate):
+    pass
+
+
+class _Text2VecVoyageConfig(_ConfigCreateModel):
+    vectorizer: Vectorizers = Field(
+        default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    baseURL: Optional[str]
+    truncate: Optional[bool]
+    vectorizeClassName: bool
+
+
+class _Text2VecVoyageConfigCreate(_Text2VecVoyageConfig, _VectorizerConfigCreate):
     pass
 
 
@@ -324,10 +348,20 @@ class _Multi2VecBase(_ConfigCreateModel):
 
 class _Multi2VecClipConfig(_Multi2VecBase):
     vectorizer: Vectorizers = Field(default=Vectorizers.MULTI2VEC_CLIP, frozen=True, exclude=True)
+    inferenceUrl: Optional[str]
 
 
 class _Multi2VecClipConfigCreate(_Multi2VecClipConfig, _VectorizerConfigCreate):
     pass
+
+
+class _Multi2VecPalmConfig(_Multi2VecBase, _VectorizerConfigCreate):
+    vectorizer: Vectorizers = Field(default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True)
+    projectId: str
+    location: Optional[str]
+    modelId: Optional[str]
+    dimensions: Optional[int]
+    vectorizeClassName: bool
 
 
 class _Multi2VecBindConfig(_Multi2VecBase):
@@ -396,6 +430,7 @@ class _Vectorizer:
     def multi2vec_clip(
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        interference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecClipConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
@@ -408,6 +443,8 @@ class _Vectorizer:
                 The image fields to use in vectorization.
             `text_fields`
                 The text fields to use in vectorization.
+            `inference_url`
+                The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
 
@@ -418,6 +455,7 @@ class _Vectorizer:
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             vectorizeClassName=vectorize_collection_name,
+            inferenceUrl=interference_url,
         )
 
     @staticmethod
@@ -746,9 +784,57 @@ class _Vectorizer:
         )
 
     @staticmethod
+    def multi2vec_palm(
+        *,
+        location: str,
+        project_id: str,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        dimensions: Optional[int] = None,
+        model_id: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Multi2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
+        for detailed usage.
+
+        Arguments:
+            `location`
+                Where the model runs. REQUIRED.
+            `project_id`
+                The project ID to use, REQUIRED.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+            `dimensions`
+                The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+
+        Raises:
+            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+        """
+        return _Multi2VecPalmConfig(
+            projectId=project_id,
+            location=location,
+            imageFields=_map_multi2vec_fields(image_fields),
+            textFields=_map_multi2vec_fields(text_fields),
+            dimensions=dimensions,
+            modelId=model_id,
+            vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
     def text2vec_transformers(
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         vectorize_collection_name: bool = True,
+        inference_url: Optional[str] = None,
+        passage_inference_url: Optional[str] = None,
+        query_inference_url: Optional[str] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecTransformersConfigCreate` object for use when vectorizing using the `text2vec-transformers` model.
 
@@ -760,6 +846,12 @@ class _Vectorizer:
                 The pooling strategy to use. Defaults to `masked_mean`.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
+            `inference_url`
+                The inference url to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
+            `passage_inference_url`
+                The inference url to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
+            `query_inference_url`
+                The inference url to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
@@ -767,6 +859,9 @@ class _Vectorizer:
         return _Text2VecTransformersConfigCreate(
             poolingStrategy=pooling_strategy,
             vectorizeClassName=vectorize_collection_name,
+            inferenceUrl=inference_url,
+            passageInferenceUrl=passage_inference_url,
+            queryInferenceUrl=query_inference_url,
         )
 
     @staticmethod
@@ -788,3 +883,35 @@ class _Vectorizer:
                 Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecJinaConfigCreate(model=model, vectorizeClassName=vectorize_collection_name)
+
+    @staticmethod
+    def text2vec_voyageai(
+        *,
+        model: Optional[Union[VoyageModel, str]] = None,
+        base_url: Optional[str] = None,
+        truncate: Optional[bool] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecVoyageConfigCreate` object for use when vectorizing using the `text2vec-voyageai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+                See the
+                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai#available-models) for more details.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _Text2VecVoyageConfigCreate(
+            model=model,
+            baseURL=base_url,
+            truncate=truncate,
+            vectorizeClassName=vectorize_collection_name,
+        )
