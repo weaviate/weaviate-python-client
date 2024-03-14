@@ -168,8 +168,6 @@ class _QueryGRPC(_BaseGRPC):
         # Set hybrid search to only query the other search-type if one of the two is not set
         if query is None:
             alpha = 1
-        if vector is None:
-            alpha = 0
 
         hybrid_search = (
             search_get_pb2.Hybrid(
