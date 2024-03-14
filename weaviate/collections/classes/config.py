@@ -164,6 +164,7 @@ class GenerativeSearches(str, Enum):
     PALM = "generative-palm"
     AWS = "generative-aws"
     ANYSCALE = "generative-anyscale"
+    MISTRAL = "generative-mistral"
 
 
 class Rerankers(str, Enum):
@@ -367,6 +368,15 @@ class _GenerativeAnyscale(_GenerativeConfigCreate):
     model: Optional[str]
 
 
+class _GenerativeMistral(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
+    )
+    temperature: Optional[float]
+    model: Optional[str]
+    maxTokens: Optional[int]
+
+
 class _GenerativeOpenAIConfigBase(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
@@ -463,6 +473,14 @@ class _Generative:
         temperature: Optional[float] = None,
     ) -> _GenerativeConfigCreate:
         return _GenerativeAnyscale(model=model, temperature=temperature)
+
+    @staticmethod
+    def mistral(
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
 
     @staticmethod
     def openai(

@@ -554,6 +554,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-anyscale": {}},
     ),
     (
+        Configure.Generative.mistral(temperature=0.5, max_tokens=100, model="model"),
+        {"generative-mistral": {"temperature": 0.5, "maxTokens": 100, "model": "model"}},
+    ),
+    (
         Configure.Generative.openai(
             model="gpt-4",
             frequency_penalty=0.5,
