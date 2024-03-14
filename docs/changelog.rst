@@ -5,6 +5,7 @@ Version 4.5.3
 --------------
 This patch version includes:
 
+- Fix bug with hybrid searches without vector.
 - Support for new modules in Weaviate 1.24.2:
   - ``text2vec-voyageai``
   - ``generative-mistral``
