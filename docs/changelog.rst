@@ -1,6 +1,17 @@
 Changelog
 =========
 
+Version 4.5.3
+--------------
+This patch version includes:
+
+- Support for new modules in Weaviate 1.24.2:
+  - ``text2vec-voyageai``
+  - ``generative-mistral``
+  - Support new parameters for interference URLs in ``text2vec-transformers`` and ``multi2vec-clip``
+- Support for new modules in Weaviate 1.24.3:
+  - ``multi2vec-palm``
+
 Version 4.5.2
 --------------
 This patch version includes:
