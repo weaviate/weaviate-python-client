@@ -315,6 +315,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.multi2vec_palm(
             image_fields=["image"],
             text_fields=["text"],
+            video_fields=["video"],
             project_id="project",
             location="us-central1",
         ),
@@ -322,6 +323,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-palm": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
+                "videoFields": ["video"],
                 "projectId": "project",
                 "location": "us-central1",
                 "vectorizeClassName": True,
