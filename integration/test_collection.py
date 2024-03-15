@@ -709,6 +709,38 @@ def test_hybrid_offset(collection_factory: CollectionFactory, offset: int, expec
     assert len(collection.query.hybrid(query="test", alpha=0, offset=offset).objects) == expected
 
 
+def test_hybrid_alpha(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+
+    res = collection.data.insert_many(
+        [
+            {"name": "banana"},
+            {"name": "fruit"},
+            {"name": "car"},
+        ]
+    )
+    assert res.has_errors is False
+
+    hybrid_res = collection.query.hybrid(query="fruit", alpha=0)
+    bm25_res = collection.query.bm25(query="fruit")
+    assert all(
+        bm25_res.objects[i].uuid == hybrid_res.objects[i].uuid
+        for i in range(len(hybrid_res.objects))
+    )
+
+    hybrid_res = collection.query.hybrid(query="fruit", alpha=1)
+    text_res = collection.query.near_text(query="fruit")
+    assert all(
+        text_res.objects[i].uuid == hybrid_res.objects[i].uuid
+        for i in range(len(hybrid_res.objects))
+    )
+
+
 @pytest.mark.parametrize("limit", [1, 2])
 def test_bm25_limit(collection_factory: CollectionFactory, limit: int) -> None:
     collection = collection_factory(
