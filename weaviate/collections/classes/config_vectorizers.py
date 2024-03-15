@@ -357,6 +357,7 @@ class _Multi2VecClipConfigCreate(_Multi2VecClipConfig, _VectorizerConfigCreate):
 
 class _Multi2VecPalmConfig(_Multi2VecBase, _VectorizerConfigCreate):
     vectorizer: Vectorizers = Field(default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True)
+    videoFields: Optional[List[Multi2VecField]]
     projectId: str
     location: Optional[str]
     modelId: Optional[str]
@@ -790,6 +791,7 @@ class _Vectorizer:
         project_id: str,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         dimensions: Optional[int] = None,
         model_id: Optional[str] = None,
         vectorize_collection_name: bool = True,
@@ -808,6 +810,8 @@ class _Vectorizer:
                 The image fields to use in vectorization.
             `text_fields`
                 The text fields to use in vectorization.
+            `video_fields`
+                The video fields to use in vectorization.
             `dimensions`
                 The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
             `model_id`
@@ -823,6 +827,7 @@ class _Vectorizer:
             location=location,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
+            videoFields=_map_multi2vec_fields(video_fields),
             dimensions=dimensions,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
