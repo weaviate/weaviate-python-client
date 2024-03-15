@@ -317,6 +317,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             text_fields=["text"],
             video_fields=["video"],
             project_id="project",
+            video_interval_seconds=1,
             location="us-central1",
         ),
         {
@@ -326,6 +327,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "videoFields": ["video"],
                 "projectId": "project",
                 "location": "us-central1",
+                "videoIntervalSeconds": 1,
                 "vectorizeClassName": True,
             }
         },
