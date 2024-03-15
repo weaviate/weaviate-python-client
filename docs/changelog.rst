@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 4.5.4
+--------------
+This patch version includes:
+
+- Fix parsing of creation/update time from old weaviate versions that write them in ns instead of ms
+- Support ``video_fields`` in ``multi2vec-palm`` which was added in Weaviate 1.24.4:
+
 Version 4.5.3
 --------------
 This patch version includes:
