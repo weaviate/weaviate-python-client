@@ -94,6 +94,16 @@ class _BaseQuery(Generic[Properties, References]):
             validate_arguments=self._validate_arguments,
         )
 
+    def __retrieve_timestamp(
+        self,
+        timestamp: int,
+    ) -> datetime.datetime:
+        # Handle the case in which last_update_time_unix is in nanoseconds or milliseconds, issue #958
+        if len(str(timestamp)) <= 13:
+            return datetime.datetime.fromtimestamp(timestamp / 1000, tz=datetime.timezone.utc)
+        else:
+            return datetime.datetime.fromtimestamp(timestamp / 1e9, tz=datetime.timezone.utc)
+
     def __extract_metadata_for_object(
         self,
         add_props: "search_get_pb2.MetadataResult",
@@ -102,16 +112,12 @@ class _BaseQuery(Generic[Properties, References]):
             distance=add_props.distance if add_props.distance_present else None,
             certainty=add_props.certainty if add_props.certainty_present else None,
             creation_time=(
-                datetime.datetime.fromtimestamp(
-                    add_props.creation_time_unix / 1000, tz=datetime.timezone.utc
-                )
+                self.__retrieve_timestamp(add_props.creation_time_unix)
                 if add_props.creation_time_unix_present
                 else None
             ),
             last_update_time=(
-                datetime.datetime.fromtimestamp(
-                    add_props.last_update_time_unix / 1000, tz=datetime.timezone.utc
-                )
+                self.__retrieve_timestamp(add_props.last_update_time_unix)
                 if add_props.last_update_time_unix_present
                 else None
             ),
