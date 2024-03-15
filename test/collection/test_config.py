@@ -327,7 +327,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "videoFields": ["video"],
                 "projectId": "project",
                 "location": "us-central1",
-                "video_interval_seconds": 1,
+                "videoIntervalSeconds": 1,
                 "vectorizeClassName": True,
             }
         },
