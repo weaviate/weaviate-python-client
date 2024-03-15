@@ -362,6 +362,7 @@ class _Multi2VecPalmConfig(_Multi2VecBase, _VectorizerConfigCreate):
     location: Optional[str]
     modelId: Optional[str]
     dimensions: Optional[int]
+    videoIntervalSeconds: Optional[int]
     vectorizeClassName: bool
 
 
@@ -794,6 +795,7 @@ class _Vectorizer:
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         dimensions: Optional[int] = None,
         model_id: Optional[str] = None,
+        video_interval_seconds: Optional[int] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecPalmConfig` object for use when vectorizing using the `text2vec-palm` model.
@@ -816,6 +818,8 @@ class _Vectorizer:
                 The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
             `model_id`
                 The model ID to use. Defaults to `None`, which uses the server-defined default.
+            `video_interval_seconds`
+                Length of a video interval. Defaults to `None`, which uses the server-defined default.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
 
@@ -830,6 +834,7 @@ class _Vectorizer:
             videoFields=_map_multi2vec_fields(video_fields),
             dimensions=dimensions,
             modelId=model_id,
+            videoIntervalSeconds=video_interval_seconds,
             vectorizeClassName=vectorize_collection_name,
         )
 

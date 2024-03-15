@@ -370,6 +370,7 @@ class _NamedVectors:
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         dimensions: Optional[int] = None,
+        video_interval_seconds: Optional[int] = None,
         model_id: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_clip` model.
@@ -396,6 +397,8 @@ class _NamedVectors:
                 The video fields to use in vectorization.
             `dimensions`
                 The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            `video_interval_seconds`
+                Length of a video interval. Defaults to `None`, which uses the server-defined default.
             `model_id`
                 The model ID to use. Defaults to `None`, which uses the server-defined default.
         """
@@ -409,6 +412,7 @@ class _NamedVectors:
                 videoFields=_map_multi2vec_fields(video_fields),
                 dimensions=dimensions,
                 modelId=model_id,
+                videoIntervalSeconds=video_interval_seconds,
                 vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
