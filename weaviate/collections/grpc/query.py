@@ -214,6 +214,7 @@ class _QueryGRPC(_BaseGRPC):
         offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[_GroupBy] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -238,6 +239,7 @@ class _QueryGRPC(_BaseGRPC):
             generative=generative,
             rerank=rerank,
             autocut=autocut,
+            group_by=group_by,
             bm25=search_get_pb2.BM25(
                 query=query, properties=properties if properties is not None else []
             )

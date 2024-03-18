@@ -3,8 +3,9 @@ from typing import Generic, List, Optional
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import Rerank, METADATA
+from weaviate.collections.classes.grpc import GroupBy, Rerank, METADATA
 from weaviate.collections.classes.internal import (
+    _GroupBy,
     QueryReturnType,
     ReturnProperties,
     ReturnReferences,
@@ -25,6 +26,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         offset: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -76,6 +78,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
             offset=offset,
             autocut=auto_limit,
             filters=filters,
+            group_by=_GroupBy.from_input(group_by),
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
