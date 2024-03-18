@@ -1,4 +1,5 @@
 import asyncio
+from collections import deque
 import math
 import threading
 import time
@@ -53,7 +54,9 @@ BatchResponse = List[Dict[str, Any]]
 TBatchInput = TypeVar("TBatchInput")
 TBatchReturn = TypeVar("TBatchReturn")
 MAX_CONCURRENT_REQUESTS = 10
-DEFAULT_REQUEST_TIMEOUT = 120
+DEFAULT_REQUEST_TIMEOUT = 180
+CONCURRENT_REQUESTS_DYNAMIC_VECTORIZER = 2
+BATCH_TIME_TARGET = 10
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
@@ -158,6 +161,7 @@ class _BatchBase:
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
         batch_mode: _BatchMode,
+        vectorizer_batching: bool,
         objects_: Optional[ObjectsBatchRequest] = None,
         references: Optional[ReferencesBatchRequest] = None,
     ) -> None:
@@ -165,6 +169,7 @@ class _BatchBase:
         self.__batch_references = references or ReferencesBatchRequest()
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = consistency_level
+        self.__vectorizer_batching = vectorizer_batching
 
         self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
         self.__batch_rest = _BatchRESTAsync(connection, self.__consistency_level)
@@ -211,7 +216,8 @@ class _BatchBase:
 
         # dynamic batching
         self.__time_last_scale_up: float = 0
-        self.__max_observed_rate: int = 0
+        self.__rate_queue: deque = deque(maxlen=50)  # 5s with 0.1s refresh rate
+        self.__took_queue: deque = deque(maxlen=CONCURRENT_REQUESTS_DYNAMIC_VECTORIZER)
 
         # fixed rate batching
         self.__time_stamp_last_request: float = 0
@@ -303,6 +309,7 @@ class _BatchBase:
                     self.__recommended_num_refs, uuid_lookup=self.__uuid_lookup
                 )
                 self.__uuid_lookup_lock.release()
+
                 # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                 asyncio.run_coroutine_threadsafe(
                     self.__send_batch_async(
@@ -320,7 +327,7 @@ class _BatchBase:
         loop.call_soon_threadsafe(loop.stop)
 
     def dynamic_batch_rate_loop(self) -> None:
-        refresh_time = 0.1
+        refresh_time = 1
         while (
             self.__shut_background_thread_down is not None
             and not self.__shut_background_thread_down.is_set()
@@ -375,53 +382,72 @@ class _BatchBase:
             self.__concurrent_requests = 10
             return
 
-        rate = status[0]["batchStats"]["ratePerSecond"]
+        rate: int = status[0]["batchStats"]["ratePerSecond"]
         rate_per_worker = rate / self.__concurrent_requests
 
         batch_length = status[0]["batchStats"]["queueLength"]
 
-        if rate > self.__max_observed_rate:
-            self.__max_observed_rate = rate
+        self.__rate_queue.append(rate)
 
-        if batch_length == 0:  # scale up if queue is empty
-            self.__recommended_num_objects = min(
-                self.__recommended_num_objects + 50,
-                self.__max_batch_size,
-            )
+        if self.__vectorizer_batching:
+            # slow vectorizer, we want to send larger batches that can take a bit longer, but fewer of them
+            self.__concurrent_requests = CONCURRENT_REQUESTS_DYNAMIC_VECTORIZER
 
-            if (
-                self.__max_batch_size == self.__recommended_num_objects
-                and len(self.__batch_objects) > self.__recommended_num_objects
-                and time.time() - self.__time_last_scale_up > 1
-                and self.__concurrent_requests < MAX_CONCURRENT_REQUESTS
-            ):
-                self.__concurrent_requests += 1
-                self.__time_last_scale_up = time.time()
-
-        else:
-            ratio = batch_length / rate
-            if 2.1 > ratio > 1.9:  # ideal, send exactly as many objects as weaviate can process
-                self.__recommended_num_objects = math.floor(rate_per_worker)
-            elif ratio <= 1.9:  # we can send more
-                self.__recommended_num_objects = math.floor(
-                    min(
-                        self.__recommended_num_objects * 1.5,
-                        rate_per_worker * 2 / ratio,
+            request_rate_multiplier = 1
+            if len(self.__took_queue) > 0:
+                max_took = max(self.__took_queue)
+                if max_took > BATCH_TIME_TARGET:
+                    request_rate_multiplier = 1 / (max_took - BATCH_TIME_TARGET) ** 2
+                elif max_took < BATCH_TIME_TARGET // 2:
+                    request_rate_multiplier = (
+                        1 + 0.5 * (BATCH_TIME_TARGET - max_took) / BATCH_TIME_TARGET
                     )
+
+            mean_rate = sum(self.__rate_queue) / len(self.__rate_queue)
+            self.__recommended_num_objects = min(
+                max(int((max(self.__rate_queue) + mean_rate) * request_rate_multiplier) // 2, 1),
+                500,
+            )
+        else:
+            if batch_length == 0:  # scale up if queue is empty
+                self.__recommended_num_objects = min(
+                    self.__recommended_num_objects + 50,
+                    self.__max_batch_size,
                 )
 
-                if self.__max_batch_size == self.__recommended_num_objects:
+                if (
+                    self.__max_batch_size == self.__recommended_num_objects
+                    and len(self.__batch_objects) > self.__recommended_num_objects
+                    and time.time() - self.__time_last_scale_up > 1
+                    and self.__concurrent_requests < MAX_CONCURRENT_REQUESTS
+                ):
                     self.__concurrent_requests += 1
+                    self.__time_last_scale_up = time.time()
 
-            elif ratio < 10:  # too high, scale down
-                self.__recommended_num_objects = math.floor(rate_per_worker * 2 / ratio)
+            else:
+                ratio = batch_length / rate
+                if 2.1 > ratio > 1.9:  # ideal, send exactly as many objects as weaviate can process
+                    self.__recommended_num_objects = math.floor(rate_per_worker)
+                elif ratio <= 1.9:  # we can send more
+                    self.__recommended_num_objects = math.floor(
+                        min(
+                            self.__recommended_num_objects * 1.5,
+                            rate_per_worker * 2 / ratio,
+                        )
+                    )
 
-                if self.__recommended_num_objects < 100 and self.__concurrent_requests > 2:
-                    self.__concurrent_requests -= 1
+                    if self.__max_batch_size == self.__recommended_num_objects:
+                        self.__concurrent_requests += 1
 
-            else:  # way too high, stop sending new batches
-                self.__recommended_num_objects = 0
-                self.__concurrent_requests = 2
+                elif ratio < 10:  # too high, scale down
+                    self.__recommended_num_objects = math.floor(rate_per_worker * 2 / ratio)
+
+                    if self.__recommended_num_objects < 100 and self.__concurrent_requests > 2:
+                        self.__concurrent_requests -= 1
+
+                else:  # way too high, stop sending new batches
+                    self.__recommended_num_objects = 0
+                    self.__concurrent_requests = 2
 
     async def __send_batch_async(
         self, objs: List[_BatchObject], refs: List[_BatchReference], readd_rate_limit: bool
@@ -445,61 +471,57 @@ class _BatchBase:
                 )
 
             readded_uuids = set()
-            if readd_rate_limit:
-                readded_objects = []
-                highest_retry_count = 0
-                for i, err in response_obj.errors.items():
-                    if ("support@cohere.com" in err.message and "rate limit" in err.message) or (
-                        "OpenAI" in err.message
-                        and (
-                            "Rate limit reached" in err.message
-                            or "on tokens per min (TPM)" in err.message
-                            or "503 error: Service Unavailable." in err.message
-                            or "500 error: The server had an error while processing your request."
-                            in err.message
-                        )
-                    ):
-                        if err.object_.retry_count > highest_retry_count:
-                            highest_retry_count = err.object_.retry_count
-
-                        if err.object_.retry_count > 5:
-                            continue  # too many retries, give up
-                        err.object_.retry_count += 1
-                        readded_objects.append(i)
-
-                if len(readded_objects) > 0:
-                    _Warnings.batch_rate_limit_reached(
-                        response_obj.errors[readded_objects[0]].message,
-                        self.__fix_rate_batching_base_time * (highest_retry_count + 1),
+            readded_objects = []
+            highest_retry_count = 0
+            for i, err in response_obj.errors.items():
+                if ("support@cohere.com" in err.message and "rate limit" in err.message) or (
+                    "OpenAI" in err.message
+                    and (
+                        "Rate limit reached" in err.message
+                        or "on tokens per min (TPM)" in err.message
+                        or "503 error: Service Unavailable." in err.message
+                        or "500 error: The server had an error while processing your request."
+                        in err.message
                     )
+                ):
+                    if err.object_.retry_count > highest_retry_count:
+                        highest_retry_count = err.object_.retry_count
 
-                    readd_objects = [
-                        err.object_
-                        for i, err in response_obj.errors.items()
-                        if i in readded_objects
-                    ]
-                    readded_uuids = {obj.uuid for obj in readd_objects}
+                    if err.object_.retry_count > 5:
+                        continue  # too many retries, give up
+                    err.object_.retry_count += 1
+                    readded_objects.append(i)
 
-                    self.__batch_objects.prepend(readd_objects)
+            if len(readded_objects) > 0:
+                _Warnings.batch_rate_limit_reached(
+                    response_obj.errors[readded_objects[0]].message,
+                    self.__fix_rate_batching_base_time * (highest_retry_count + 1),
+                )
 
-                    new_errors = {
-                        i: err for i, err in response_obj.errors.items() if i not in readded_objects
-                    }
-                    response_obj = BatchObjectReturn(
-                        uuids={
-                            i: uid
-                            for i, uid in response_obj.uuids.items()
-                            if i not in readded_objects
-                        },
-                        errors=new_errors,
-                        has_errors=len(new_errors) > 0,
-                        all_responses=[
-                            err
-                            for i, err in enumerate(response_obj.all_responses)
-                            if i not in readded_objects
-                        ],
-                        elapsed_seconds=response_obj.elapsed_seconds,
-                    )
+                readd_objects = [
+                    err.object_ for i, err in response_obj.errors.items() if i in readded_objects
+                ]
+                readded_uuids = {obj.uuid for obj in readd_objects}
+
+                self.__batch_objects.prepend(readd_objects)
+
+                new_errors = {
+                    i: err for i, err in response_obj.errors.items() if i not in readded_objects
+                }
+                response_obj = BatchObjectReturn(
+                    uuids={
+                        i: uid for i, uid in response_obj.uuids.items() if i not in readded_objects
+                    },
+                    errors=new_errors,
+                    has_errors=len(new_errors) > 0,
+                    all_responses=[
+                        err
+                        for i, err in enumerate(response_obj.all_responses)
+                        if i not in readded_objects
+                    ],
+                    elapsed_seconds=response_obj.elapsed_seconds,
+                )
+                if readd_rate_limit:
                     self.__time_stamp_last_request = (
                         time.time() + self.__fix_rate_batching_base_time * (highest_retry_count + 1)
                     )  # skip a full minute to recover from the rate limit
@@ -516,6 +538,7 @@ class _BatchBase:
             self.__results_for_wrapper.results.objs += response_obj
             self.__results_for_wrapper.failed_objects.extend(response_obj.errors.values())
             self.__results_lock.release()
+            self.__took_queue.append(time.time() - start)
 
         if len(refs) > 0:
             start = time.time()
