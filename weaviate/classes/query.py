@@ -3,6 +3,8 @@ from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.grpc import (
     HybridFusion,
     GroupBy,
+    HybridNearText,
+    HybridNearVector,
     MetadataQuery,
     Move,
     NearMediaType,
@@ -19,6 +21,8 @@ __all__ = [
     "GeoCoordinate",
     "GroupBy",
     "HybridFusion",
+    "HybridNearText",
+    "HybridNearVector",
     "MetadataQuery",
     "Metrics",
     "Move",

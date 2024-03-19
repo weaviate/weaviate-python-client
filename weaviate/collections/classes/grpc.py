@@ -226,6 +226,29 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+@dataclass
+class HybridNearText:
+    """Define a hybrid near text search."""
+
+    text: Union[str, List[str]]
+    distance: Optional[float] = None
+    certainty: Optional[float] = None
+    move_to: Optional[Move] = None
+    move_away: Optional[Move] = None
+
+
+@dataclass
+class HybridNearVector:
+    """Define a hybrid vector search."""
+
+    vector: List[float]
+    distance: Optional[float] = None
+    certainty: Optional[float] = None
+
+
+HybridVectorType = Union[List[float], HybridNearText, HybridNearVector]
+
+
 class _QueryReference(_WeaviateInput):
     link_on: str
     include_vector: bool = Field(default=False)

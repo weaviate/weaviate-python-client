@@ -3,7 +3,7 @@ from typing import Generic, List, Optional
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, HybridFusion, Rerank
+from weaviate.collections.classes.grpc import METADATA, HybridFusion, HybridVectorType, Rerank
 from weaviate.collections.classes.internal import (
     QueryReturnType,
     ReturnProperties,
@@ -21,7 +21,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         query: Optional[str],
         *,
         alpha: NUMBER = 0.5,
-        vector: Optional[List[float]] = None,
+        vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         limit: Optional[int] = None,
