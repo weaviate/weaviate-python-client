@@ -400,7 +400,7 @@ class _BatchBase:
                     request_rate_multiplier = 1 / (max_took - BATCH_TIME_TARGET) ** 2
                 elif max_took < BATCH_TIME_TARGET // 2:
                     request_rate_multiplier = (
-                        1 + 0.5 * (BATCH_TIME_TARGET - max_took) / BATCH_TIME_TARGET
+                        1 + 0.1 * (BATCH_TIME_TARGET - max_took) / BATCH_TIME_TARGET
                     )
 
             mean_rate = sum(self.__rate_queue) / len(self.__rate_queue)
@@ -474,7 +474,13 @@ class _BatchBase:
             readded_objects = []
             highest_retry_count = 0
             for i, err in response_obj.errors.items():
-                if ("support@cohere.com" in err.message and "rate limit" in err.message) or (
+                if (
+                    "support@cohere.com" in err.message
+                    and (
+                        "rate limit" in err.message
+                        or "500 error: internal server error" in err.message
+                    )
+                ) or (
                     "OpenAI" in err.message
                     and (
                         "Rate limit reached" in err.message
