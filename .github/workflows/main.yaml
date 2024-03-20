@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.10
-  NEW_WEAVIATE_VERSION: preview-improved-update-of-target-vector-configs-3688182
+  NEW_WEAVIATE_VERSION: preview-add-nearvector-and-neartext-to-hybrid-search-b7c2fa5
 
 jobs:
   lint-and-format:
