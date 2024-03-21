@@ -83,6 +83,43 @@ jobs:
           name: coverage-report-${{ matrix.folder }}
           path: coverage-${{ matrix.folder }}.xml
 
+  integration-tests-embedded:
+    name: Run Integration Tests Embedded
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        versions: [
+          { py: "3.8", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.9", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.10", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.11", weaviate: $NEW_WEAVIATE_VERSION},
+          { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
+          { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
+        ]
+        optional_dependencies: [false]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.versions.py }}
+          cache: 'pip' # caching pip dependencies
+      - run: |
+          pip install -r requirements-devel.txt
+          pip install .
+      - name: Run integration tests without auth secrets (for forks)
+        if: ${{ github.event.pull_request.head.repo.fork }}
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-embedded.xml integration_embedded
+      - name: Archive code coverage results
+        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-integration-embedded
+          path: coverage-integration-embedded.xml
+
   integration-tests-v3:
     name: Run Integration Tests v3
     runs-on: ubuntu-latest
@@ -97,7 +134,6 @@ jobs:
           { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
           { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
         ]
-
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -148,7 +184,6 @@ jobs:
           { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
           { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
         ]
-
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
