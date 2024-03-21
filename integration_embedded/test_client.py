@@ -1,7 +1,7 @@
 import pytest
 from typing import Tuple, Union
 
-from .. import weaviate
+import weaviate
 from weaviate.classes.init import AdditionalConfig, Timeout
 from weaviate.exceptions import WeaviateClosedClientError
 
