@@ -110,8 +110,8 @@ jobs:
       - run: |
           pip install -r requirements-devel.txt
           pip install .
-      - name: Run integration tests without auth secrets (for forks)
-        if: ${{ github.event.pull_request.head.repo.fork }}
+      - name: Run integration tests
+        if: ${{ !github.event.pull_request.head.repo.fork }}
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-embedded.xml integration_embedded
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
