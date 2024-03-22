@@ -62,10 +62,10 @@ class _Operator(str, Enum):
 
 
 class _Filters:
-    def __and__(self, other: "_Filters") -> "_FilterAnd":
+    def __and__(self, other: "_Filters") -> "_Filters":
         return _FilterAnd([self, other])
 
-    def __or__(self, other: "_Filters") -> "_FilterOr":
+    def __or__(self, other: "_Filters") -> "_Filters":
         return _FilterOr([self, other])
 
 
