@@ -156,7 +156,7 @@ class _FilterByProperty(_FilterBase):
 
         self._property = prop
 
-    def is_none(self, val: bool) -> _FilterValue:
+    def is_none(self, val: bool) -> _Filters:
         """Filter on whether the property is `None`."""
         return _FilterValue(
             target=self._target_path(),
@@ -164,7 +164,7 @@ class _FilterByProperty(_FilterBase):
             operator=_Operator.IS_NULL,
         )
 
-    def contains_any(self, val: FilterValuesList) -> _FilterValue:
+    def contains_any(self, val: FilterValuesList) -> _Filters:
         """Filter on whether the property contains any of the given values."""
         if len(val) == 0:
             raise WeaviateInvalidInputError("Filter contains_any must have at least one value")
@@ -174,7 +174,7 @@ class _FilterByProperty(_FilterBase):
             operator=_Operator.CONTAINS_ANY,
         )
 
-    def contains_all(self, val: FilterValuesList) -> _FilterValue:
+    def contains_all(self, val: FilterValuesList) -> _Filters:
         """Filter on whether the property contains all of the given values."""
         if len(val) == 0:
             raise WeaviateInvalidInputError("Filter contains_all must have at least one value")
@@ -185,19 +185,19 @@ class _FilterByProperty(_FilterBase):
             operator=_Operator.CONTAINS_ALL,
         )
 
-    def equal(self, val: FilterValues) -> _FilterValue:
+    def equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is equal to the given value."""
         return _FilterValue(target=self._target_path(), value=val, operator=_Operator.EQUAL)
 
-    def not_equal(self, val: FilterValues) -> _FilterValue:
+    def not_equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is not equal to the given value."""
         return _FilterValue(target=self._target_path(), value=val, operator=_Operator.NOT_EQUAL)
 
-    def less_than(self, val: FilterValues) -> _FilterValue:
+    def less_than(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is less than the given value."""
         return _FilterValue(target=self._target_path(), value=val, operator=_Operator.LESS_THAN)
 
-    def less_or_equal(self, val: FilterValues) -> _FilterValue:
+    def less_or_equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is less than or equal to the given value."""
         return _FilterValue(
             target=self._target_path(),
@@ -205,7 +205,7 @@ class _FilterByProperty(_FilterBase):
             operator=_Operator.LESS_THAN_EQUAL,
         )
 
-    def greater_than(self, val: FilterValues) -> _FilterValue:
+    def greater_than(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is greater than the given value."""
         return _FilterValue(
             target=self._target_path(),
@@ -213,7 +213,7 @@ class _FilterByProperty(_FilterBase):
             operator=_Operator.GREATER_THAN,
         )
 
-    def greater_or_equal(self, val: FilterValues) -> _FilterValue:
+    def greater_or_equal(self, val: FilterValues) -> _Filters:
         """Filter on whether the property is greater than or equal to the given value."""
         return _FilterValue(
             target=self._target_path(),
@@ -221,14 +221,14 @@ class _FilterByProperty(_FilterBase):
             operator=_Operator.GREATER_THAN_EQUAL,
         )
 
-    def like(self, val: str) -> _FilterValue:
+    def like(self, val: str) -> _Filters:
         """Filter on whether the property is like the given value.
 
         This filter can make use of `*` and `?` as wildcards. See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-partial-matches-text) for more details.
         """
         return _FilterValue(target=self._target_path(), value=val, operator=_Operator.LIKE)
 
-    def within_geo_range(self, coordinate: GeoCoordinate, distance: float) -> _FilterValue:
+    def within_geo_range(self, coordinate: GeoCoordinate, distance: float) -> _Filters:
         """Filter on whether the property is within a given range of a geo-coordinate.
 
         See [the docs](https://weaviate.io/developers/weaviate/search/filters##by-geo-coordinates) for more details.
@@ -243,7 +243,7 @@ class _FilterByProperty(_FilterBase):
 
 
 class _FilterByTime(_FilterBase):
-    def contains_any(self, dates: List[datetime]) -> _FilterValue:
+    def contains_any(self, dates: List[datetime]) -> _Filters:
         """Filter for objects with the given time.
 
         Arguments:
@@ -258,7 +258,7 @@ class _FilterByTime(_FilterBase):
             operator=_Operator.CONTAINS_ANY,
         )
 
-    def equal(self, date: datetime) -> _FilterValue:
+    def equal(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is equal to the given time.
 
         Arguments:
@@ -273,7 +273,7 @@ class _FilterByTime(_FilterBase):
             operator=_Operator.EQUAL,
         )
 
-    def not_equal(self, date: datetime) -> _FilterValue:
+    def not_equal(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is not equal to the given time.
 
         Arguments:
@@ -288,7 +288,7 @@ class _FilterByTime(_FilterBase):
             operator=_Operator.NOT_EQUAL,
         )
 
-    def less_than(self, date: datetime) -> _FilterValue:
+    def less_than(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is less than the given time.
 
         Arguments:
@@ -303,7 +303,7 @@ class _FilterByTime(_FilterBase):
             operator=_Operator.LESS_THAN,
         )
 
-    def less_or_equal(self, date: datetime) -> _FilterValue:
+    def less_or_equal(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is less than or equal to the given time.
 
         Arguments:
@@ -318,7 +318,7 @@ class _FilterByTime(_FilterBase):
             operator=_Operator.LESS_THAN_EQUAL,
         )
 
-    def greater_than(self, date: datetime) -> _FilterValue:
+    def greater_than(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is greater than the given time.
 
         Arguments:
@@ -333,7 +333,7 @@ class _FilterByTime(_FilterBase):
             operator=_Operator.GREATER_THAN,
         )
 
-    def greater_or_equal(self, date: datetime) -> _FilterValue:
+    def greater_or_equal(self, date: datetime) -> _Filters:
         """Filter on whether the creation time is greater than or equal to the given time.
 
         Arguments:
@@ -364,7 +364,7 @@ class _FilterById(_FilterBase):
         self._target = target
         self._property = "_id"
 
-    def contains_any(self, uuids: List[UUID]) -> _FilterValue:
+    def contains_any(self, uuids: List[UUID]) -> _Filters:
         """Filter for objects that has one of the given ID."""
         if len(uuids) == 0:
             raise WeaviateInvalidInputError("Filter contains_any must have at least one value")
@@ -374,7 +374,7 @@ class _FilterById(_FilterBase):
             operator=_Operator.CONTAINS_ANY,
         )
 
-    def equal(self, uuid: UUID) -> _FilterValue:
+    def equal(self, uuid: UUID) -> _Filters:
         """Filter for object that has the given ID."""
         return _FilterValue(
             target=self._target_path(),
@@ -382,7 +382,7 @@ class _FilterById(_FilterBase):
             operator=_Operator.EQUAL,
         )
 
-    def not_equal(self, uuid: UUID) -> _FilterValue:
+    def not_equal(self, uuid: UUID) -> _Filters:
         """Filter our object that has the given ID."""
         return _FilterValue(
             target=self._target_path(),
@@ -396,7 +396,7 @@ class _FilterByCount(_FilterBase):
         self._target = target
         self._property = _CountRef(link_on=link_on)
 
-    def equal(self, count: int) -> _FilterValue:
+    def equal(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
         Arguments:
@@ -409,7 +409,7 @@ class _FilterByCount(_FilterBase):
             operator=_Operator.EQUAL,
         )
 
-    def not_equal(self, count: int) -> _FilterValue:
+    def not_equal(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
         Arguments:
@@ -422,7 +422,7 @@ class _FilterByCount(_FilterBase):
             operator=_Operator.NOT_EQUAL,
         )
 
-    def less_than(self, count: int) -> _FilterValue:
+    def less_than(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
         Arguments:
@@ -435,7 +435,7 @@ class _FilterByCount(_FilterBase):
             operator=_Operator.LESS_THAN,
         )
 
-    def less_or_equal(self, count: int) -> _FilterValue:
+    def less_or_equal(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
         Arguments:
@@ -448,7 +448,7 @@ class _FilterByCount(_FilterBase):
             operator=_Operator.LESS_THAN_EQUAL,
         )
 
-    def greater_than(self, count: int) -> _FilterValue:
+    def greater_than(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
         Arguments:
@@ -461,7 +461,7 @@ class _FilterByCount(_FilterBase):
             operator=_Operator.GREATER_THAN,
         )
 
-    def greater_or_equal(self, count: int) -> _FilterValue:
+    def greater_or_equal(self, count: int) -> _Filters:
         """Filter on whether the number of references is equal to the given integer.
 
         Arguments:
