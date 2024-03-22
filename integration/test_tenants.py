@@ -1,3 +1,4 @@
+import pytest
 import uuid
 
 from integration.conftest import CollectionFactory
@@ -10,6 +11,7 @@ from weaviate.collections.classes.data import (
     DataObject,
 )
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
+from weaviate.exceptions import WeaviateNotImplementedError
 
 
 def test_delete_by_id_tenant(collection_factory: CollectionFactory) -> None:
@@ -251,6 +253,11 @@ def test_tenant_exists(collection_factory: CollectionFactory) -> None:
     )
     tenant = Tenant(name="1")
     collection.tenants.create([tenant])
-    assert collection.tenants.exists(tenant.name)
-    assert collection.tenants.exists(tenant)
-    assert not collection.tenants.exists("2")
+
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 5):
+        with pytest.raises(WeaviateNotImplementedError):
+            collection.tenants.exists(tenant.name)
+    else:
+        assert collection.tenants.exists(tenant.name)
+        assert collection.tenants.exists(tenant)
+        assert not collection.tenants.exists("2")

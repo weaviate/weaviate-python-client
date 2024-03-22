@@ -3,8 +3,8 @@ from typing import Dict, Any, List, Union
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect import ConnectionV4
-
 from weaviate.connect.v4 import _ExpectedStatusCodes
+from weaviate.exceptions import WeaviateNotImplementedError
 
 
 class _Tenants:
@@ -166,6 +166,11 @@ class _Tenants:
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
+        if self.__connection._weaviate_version.is_lower_than(
+            1, 24, 5
+        ):  # change to 1.25.0 when it lands
+            raise WeaviateNotImplementedError(str(self.__connection._weaviate_version), "1.25.0")
+
         tenant_name = tenant.name if isinstance(tenant, Tenant) else tenant
 
         path = "/schema/" + self.__name + "/tenants/" + tenant_name
