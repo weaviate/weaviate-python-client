@@ -19,14 +19,15 @@ class _Tenants:
         self.__connection = connection
         self.__name = name
 
-    def create(self, tenants: List[Union[str, Tenant]]) -> None:
+    def create(self, tenants: Union[str, Tenant, List[Union[str, Tenant]]]) -> None:
         """Create the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
             `tenants`
-                List of tenants names and/or `wvc.config.tenants.Tenant` objects to add to the given collection.
+                A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to add to the given collection.
                 If a string is provided, the tenant will be added with the default activity status of `HOT`.
 
         Raises:
@@ -38,15 +39,27 @@ class _Tenants:
                 If `tenants` is not a list of `wvc.Tenant` objects.
         """
         _validate_input(
-            [_ValidateArgument(expected=[List[Union[str, Tenant]]], name="tenants", value=tenants)]
+            [
+                _ValidateArgument(
+                    expected=[str, Tenant, List[Union[str, Tenant]]], name="tenants", value=tenants
+                )
+            ]
         )
 
-        loaded_tenants = [
-            tenant.model_dump()
-            if isinstance(tenant, Tenant)
-            else {"name": tenant, "activityStatus": TenantActivityStatus.HOT}
-            for tenant in tenants
-        ]
+        loaded_tenants = (
+            [
+                tenant.model_dump()
+                if isinstance(tenant, Tenant)
+                else {"name": tenant, "activityStatus": TenantActivityStatus.HOT}
+                for tenant in tenants
+            ]
+            if isinstance(tenants, list)
+            else [
+                {"name": tenants, "activityStatus": TenantActivityStatus.HOT}
+                if isinstance(tenants, str)
+                else tenants.model_dump()
+            ]
+        )
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.post(
@@ -58,14 +71,15 @@ class _Tenants:
             ),
         )
 
-    def remove(self, tenants: List[Union[str, Tenant]]) -> None:
+    def remove(self, tenants: Union[str, Tenant, List[Union[str, Tenant]]]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
             `tenants`
-                List of tenants names and/or `wvc.config.tenants.Tenant` objects to remove from the given class.
+                A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to remove from the given class.
 
         Raises:
             `weaviate.WeaviateConnectionError`
@@ -76,12 +90,18 @@ class _Tenants:
                 If `tenants` is not a list of strings.
         """
         _validate_input(
-            [_ValidateArgument(expected=[List[Union[str, Tenant]]], name="tenants", value=tenants)]
+            [
+                _ValidateArgument(
+                    expected=[str, Tenant, List[Union[str, Tenant]]], name="tenants", value=tenants
+                )
+            ]
         )
 
-        loaded_tenants = [
-            tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants
-        ]
+        loaded_tenants = (
+            [tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
+            if isinstance(tenants, list)
+            else [tenants if isinstance(tenants, str) else tenants.name]
+        )
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.delete(
@@ -116,14 +136,15 @@ class _Tenants:
         tenant_resp: List[Dict[str, Any]] = response.json()
         return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
 
-    def update(self, tenants: List[Tenant]) -> None:
+    def update(self, tenants: Union[Tenant, List[Tenant]]) -> None:
         """Update the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
             `tenants`
-                List of `wvc.config.tenants.Tenant` objects to update for the given collection.
+                A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to update for the given collection.
 
         Raises:
             `weaviate.WeaviateConnectionError`
@@ -133,9 +154,15 @@ class _Tenants:
             `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of `wvc.Tenant` objects.
         """
-        _validate_input([_ValidateArgument(expected=[List[Tenant]], name="tenants", value=tenants)])
+        _validate_input(
+            [_ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)]
+        )
 
-        loaded_tenants = [tenant.model_dump() for tenant in tenants]
+        loaded_tenants = (
+            [tenant.model_dump() for tenant in tenants]
+            if isinstance(tenants, list)
+            else [tenants.model_dump()]
+        )
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.put(

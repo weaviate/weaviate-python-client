@@ -19,7 +19,7 @@ def test_delete_by_id_tenant(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
-    collection.tenants.create([Tenant(name="tenant1")])
+    collection.tenants.create(Tenant(name="tenant1"))
     tenant1 = collection.with_tenant("tenant1")
     uuid = tenant1.data.insert(properties={})
     assert tenant1.query.fetch_object_by_id(uuid) is not None
@@ -109,14 +109,15 @@ def test_tenants(collection_factory: CollectionFactory) -> None:
         ),
     )
 
-    collection.tenants.create([Tenant(name="tenant1")])
+    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
 
     tenants = collection.tenants.get()
-    assert len(tenants) == 1
+    assert len(tenants) == 2
     assert type(tenants["tenant1"]) is Tenant
     assert tenants["tenant1"].name == "tenant1"
 
     collection.tenants.remove(["tenant1"])
+    collection.tenants.remove(Tenant(name="tenant2"))
 
     tenants = collection.tenants.get()
     assert len(tenants) == 0
@@ -235,11 +236,11 @@ def test_update_tenant(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
-    collection.tenants.create([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
+    collection.tenants.create(Tenant(name="1", activity_status=TenantActivityStatus.HOT))
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.HOT
 
-    collection.tenants.update([Tenant(name="1", activity_status=TenantActivityStatus.COLD)])
+    collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.COLD))
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.COLD
 
