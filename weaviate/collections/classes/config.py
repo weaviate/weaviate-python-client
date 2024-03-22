@@ -295,9 +295,7 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 class _ShardingConfigCreate(_ConfigCreateModel):
     virtualPerPhysical: Optional[int]
     desiredCount: Optional[int]
-    actualCount: Optional[int]
     desiredVirtualCount: Optional[int]
-    actualVirtualCount: Optional[int]
     key: str = "_id"
     strategy: str = "hash"
     function: str = "murmur3"
@@ -1636,9 +1634,7 @@ class Configure:
     def sharding(
         virtual_per_physical: Optional[int] = None,
         desired_count: Optional[int] = None,
-        actual_count: Optional[int] = None,
         desired_virtual_count: Optional[int] = None,
-        actual_virtual_count: Optional[int] = None,
     ) -> _ShardingConfigCreate:
         """Create a `ShardingConfigCreate` object to be used when defining the sharding configuration of Weaviate.
 
@@ -1651,19 +1647,13 @@ class Configure:
                 The number of virtual shards per physical shard.
             `desired_count`
                 The desired number of physical shards.
-            `actual_count`
-                The actual number of physical shards.
             `desired_virtual_count`
                 The desired number of virtual shards.
-            `actual_virtual_count`
-                The actual number of virtual shards.
         """
         return _ShardingConfigCreate(
             virtualPerPhysical=virtual_per_physical,
             desiredCount=desired_count,
-            actualCount=actual_count,
             desiredVirtualCount=desired_virtual_count,
-            actualVirtualCount=actual_virtual_count,
         )
 
 
