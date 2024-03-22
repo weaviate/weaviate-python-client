@@ -14,8 +14,8 @@ on:
   pull_request:
 
 env:
-  OLD_WEAVIATE_VERSION: 1.23.10
-  NEW_WEAVIATE_VERSION: preview-improved-update-of-target-vector-configs-3688182
+  OLD_WEAVIATE_VERSION: 1.23.13
+  NEW_WEAVIATE_VERSION: 1.24.5
 
 jobs:
   lint-and-format:
@@ -87,16 +87,8 @@ jobs:
     name: Run Integration Tests Embedded
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        versions: [
-          { py: "3.8", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.9", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.10", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
-          { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
-        ]
+        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -105,7 +97,7 @@ jobs:
           fetch-tags: true
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.versions.py }}
+          python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: |
           pip install -r requirements-devel.txt
@@ -242,11 +234,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-report-integration-v3
+      - name: Download coverage integration embedded
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-integration-embedded
       - name: Codecov
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
-          files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
+          files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-integration-embedded.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
