@@ -18,6 +18,13 @@ from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.types import UUID, VECTORS
 
+from weaviate.connect.v4 import ConnectionV4
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from weaviate.collections.collections import _Collections
+
 
 class _BatchClient(_BatchBase):
     def add_object(
@@ -109,7 +116,18 @@ class _BatchClient(_BatchBase):
 
 
 class _BatchClientWrapper(_BatchWrapper):
+    def __init__(self, connection: ConnectionV4, config: "_Collections"):
+        super().__init__(connection, None)
+        self.__config = config
+        self._vectorizer_batching: Optional[bool] = None
+
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchClient]:
+        if self._vectorizer_batching is None or not self._vectorizer_batching:
+            configs = self.__config.list_all(simple=True)
+            self._vectorizer_batching = any(
+                config.vectorizer_config is not None for config in configs.values()
+            )
+
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
             _BatchClient(
@@ -117,6 +135,7 @@ class _BatchClientWrapper(_BatchWrapper):
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
                 batch_mode=self._batch_mode,
+                vectorizer_batching=self._vectorizer_batching,
             )
         )
 

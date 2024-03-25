@@ -200,8 +200,6 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             trust_env=config.trust_env,
         )
 
-        self.batch = _BatchClientWrapper(self._connection, consistency_level=None)
-        """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
         self.cluster = _Cluster(self._connection)
@@ -211,6 +209,8 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
+        self.batch = _BatchClientWrapper(self._connection, config=self.collections)
+        """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
 
     def __parse_connection_params_and_embedded_db(
         self,
