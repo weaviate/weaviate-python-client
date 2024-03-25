@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generic, List, TypeVar, cast
+from typing import Generic, List, Literal, Optional, TypeVar, cast
 
 from weaviate.cluster.types import Node as NodeREST, Shard as ShardREST
 
@@ -12,6 +12,10 @@ class Shard:
     name: str
     node: str
     object_count: int
+    vector_indexing_status: Literal["READONLY", "INDEXING", "READY"]
+    vector_queue_length: int
+    compressed: bool
+    loaded: Optional[bool]  # not present in <1.24.x
 
 
 @dataclass
@@ -53,6 +57,10 @@ class _ConvertFromREST:
                             name=shard["name"],
                             node=node["name"],
                             object_count=shard["objectCount"],
+                            vector_indexing_status=shard["vectorIndexingStatus"],
+                            vector_queue_length=shard["vectorQueueLength"],
+                            compressed=shard["compressed"],
+                            loaded=shard.get("loaded"),
                         )
                         for shard in cast(List[ShardREST], node["shards"])
                     ]
