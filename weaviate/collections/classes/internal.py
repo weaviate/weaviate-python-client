@@ -559,6 +559,12 @@ GenerativeNearMediaReturnType = Union[
     GenerativeReturnType[Properties, References, TProperties, TReferences],
     GenerativeGroupByReturnType[Properties, References, TProperties, TReferences],
 ]
+"""@Deprecated: Use `GenerativeSearchReturnType` instead."""
+
+GenerativeSearchReturnType = Union[
+    GenerativeReturnType[Properties, References, TProperties, TReferences],
+    GenerativeGroupByReturnType[Properties, References, TProperties, TReferences],
+]
 
 QueryReturnType = Union[
     QueryReturn[Properties, References],
@@ -578,7 +584,13 @@ GroupByReturnType = Union[
     GroupByReturn[TProperties, CrossReferences],
 ]
 
+QuerySearchReturnType = Union[
+    QueryReturnType[Properties, References, TProperties, TReferences],
+    GroupByReturnType[Properties, References, TProperties, TReferences],
+]
+
 QueryNearMediaReturnType = Union[
     QueryReturnType[Properties, References, TProperties, TReferences],
     GroupByReturnType[Properties, References, TProperties, TReferences],
 ]
+"""@Deprecated: Use `QuerySearchReturnType` instead."""

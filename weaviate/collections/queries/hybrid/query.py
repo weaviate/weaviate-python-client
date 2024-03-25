@@ -3,12 +3,13 @@ from typing import Generic, List, Optional
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, HybridFusion, Rerank
+from weaviate.collections.classes.grpc import METADATA, GroupBy, HybridFusion, Rerank
 from weaviate.collections.classes.internal import (
-    QueryReturnType,
+    QuerySearchReturnType,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
+    _GroupBy,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
@@ -28,13 +29,14 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         offset: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryReturnType[Properties, References, TProperties, TReferences]:
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/hybrid) for a more detailed explanation.
@@ -58,6 +60,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                How the results should be grouped by a specific property.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             `include_vector`
@@ -75,10 +79,11 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `QueryReturn` object that includes the searched objects.
+            A `QueryReturn` or `GroupByReturn` object that includes the searched objects.
+            If `group_by` is provided then a `GroupByReturn` object is returned, otherwise a `QueryReturn` object is returned.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
+            `weaviate.exceptions.WeaviateQueryError`:
                 If the network connection to Weaviate fails.
         """
         res = self._query.hybrid(
@@ -91,6 +96,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
             offset=offset,
             autocut=auto_limit,
             filters=filters,
+            group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
             target_vector=target_vector,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
@@ -100,12 +106,13 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         return self._result_to_query_return(
             res,
             _QueryOptions.from_input(
-                return_metadata,
-                return_properties,
-                include_vector,
-                self._references,
-                return_references,
-                rerank,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                include_vector=include_vector,
+                collection_references=self._references,
+                query_references=return_references,
+                rerank=rerank,
+                group_by=group_by,
             ),
             return_properties,
             return_references,
