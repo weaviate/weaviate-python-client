@@ -210,9 +210,7 @@ def test_exist_with_tenant(collection_factory: CollectionFactory) -> None:
 
 
 def test_tenant_with_activity(collection_factory: CollectionFactory) -> None:
-    name = "TestTenantActivity"
     collection = collection_factory(
-        name=name,
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
@@ -230,9 +228,7 @@ def test_tenant_with_activity(collection_factory: CollectionFactory) -> None:
 
 
 def test_update_tenant(collection_factory: CollectionFactory) -> None:
-    name = "TestUpdateTenant"
     collection = collection_factory(
-        name=name,
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
@@ -246,9 +242,7 @@ def test_update_tenant(collection_factory: CollectionFactory) -> None:
 
 
 def test_tenant_exists(collection_factory: CollectionFactory) -> None:
-    name = "TestTenantExists"
     collection = collection_factory(
-        name=name,
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
