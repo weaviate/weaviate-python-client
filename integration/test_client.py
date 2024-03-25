@@ -337,7 +337,7 @@ def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) ->
     if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
         assert nodes[0].shards[0].loaded is None
     else:
-        assert nodes[0].shards[0].loaded is False
+        assert nodes[0].shards[0].loaded is True
 
 
 def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubRequest) -> None:
