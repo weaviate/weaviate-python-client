@@ -1896,7 +1896,7 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
 
     hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
         query=None,
-        vector=wvc.query.HybridNearVector(vector=obj.vector["default"]),
+        vector=wvc.query.HybridNear.vector(vector=obj.vector["default"]),
     ).objects
 
     assert hybrid_objs[0].uuid == uuid_banana
@@ -1910,7 +1910,7 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
 
     hybrid_objs2 = collection.query.hybrid(
         query=None,
-        vector=wvc.query.HybridNearVector(
+        vector=wvc.query.HybridNear.vector(
             vector=obj.vector["default"], distance=near_vec[0].metadata.distance + 0.001
         ),
         return_metadata=MetadataQuery.full(),
@@ -1935,7 +1935,7 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
 
     hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
         query=None,
-        vector=wvc.query.HybridNearText(text="banana pudding"),
+        vector=wvc.query.HybridNear.text(text="banana pudding"),
     ).objects
 
     assert hybrid_objs[0].uuid == uuid_banana_pudding
@@ -1943,7 +1943,7 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
 
     hybrid_objs2 = collection.query.hybrid(
         query=None,
-        vector=wvc.query.HybridNearText(
+        vector=wvc.query.HybridNear.text(
             text="banana",
             move_to=wvc.query.Move(concepts="pudding", force=0.1),
             move_away=wvc.query.Move(concepts="smoothie", force=0.1),

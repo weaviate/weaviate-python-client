@@ -14,8 +14,8 @@ from weaviate.collections.classes.grpc import (
     HybridFusion,
     _QueryReferenceMultiTarget,
     _MetadataQuery,
-    HybridNearText,
-    HybridNearVector,
+    _HybridNearText,
+    _HybridNearVector,
     HybridVectorType,
     Move,
     QueryNested,
@@ -162,7 +162,7 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([None, str], "query", query),
                     _ValidateArgument([float, int, None], "alpha", alpha),
                     _ValidateArgument(
-                        [list, HybridNearText, HybridNearVector, None], "vector", vector
+                        [list, _HybridNearText, _HybridNearVector, None], "vector", vector
                     ),
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
@@ -201,7 +201,7 @@ class _QueryGRPC(_BaseGRPC):
                         move_away=self.__parse_move(vector.move_away),
                         move_to=self.__parse_move(vector.move_to),
                     )
-                    if vector is not None and isinstance(vector, HybridNearText)
+                    if vector is not None and isinstance(vector, _HybridNearText)
                     else None
                 ),
                 near_vector=(
@@ -210,7 +210,7 @@ class _QueryGRPC(_BaseGRPC):
                         certainty=vector.certainty,
                         distance=vector.distance,
                     )
-                    if vector is not None and isinstance(vector, HybridNearVector)
+                    if vector is not None and isinstance(vector, _HybridNearVector)
                     else None
                 ),
             )
