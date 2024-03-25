@@ -53,6 +53,7 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.warnings import _Warnings
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
@@ -295,9 +296,7 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 class _ShardingConfigCreate(_ConfigCreateModel):
     virtualPerPhysical: Optional[int]
     desiredCount: Optional[int]
-    actualCount: Optional[int]
     desiredVirtualCount: Optional[int]
-    actualVirtualCount: Optional[int]
     key: str = "_id"
     strategy: str = "hash"
     function: str = "murmur3"
@@ -1651,19 +1650,23 @@ class Configure:
                 The number of virtual shards per physical shard.
             `desired_count`
                 The desired number of physical shards.
-            `actual_count`
-                The actual number of physical shards.
+            `actual_count` DEPRECATED
+                The actual number of physical shards. This is a read-only field so has no effect.
+                It is kept for backwards compatibility but will be removed in a future release.
             `desired_virtual_count`
                 The desired number of virtual shards.
-            `actual_virtual_count`
-                The actual number of virtual shards.
+            `actual_virtual_count` DEPRECATED
+                The actual number of virtual shards. This is a read-only field so has no effect.
+                It is kept for backwards compatibility but will be removed in a future release.
         """
+        if actual_count is not None:
+            _Warnings.sharding_actual_count_is_deprecated("actual_count")
+        if actual_virtual_count is not None:
+            _Warnings.sharding_actual_count_is_deprecated("actual_virtual_count")
         return _ShardingConfigCreate(
             virtualPerPhysical=virtual_per_physical,
             desiredCount=desired_count,
-            actualCount=actual_count,
             desiredVirtualCount=desired_virtual_count,
-            actualVirtualCount=actual_virtual_count,
         )
 
 

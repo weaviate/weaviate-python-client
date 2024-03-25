@@ -1,5 +1,8 @@
+from typing import Optional
 from weaviate.backup.backup import (
     _Backup,
+    BackupConfigCreate,
+    BackupConfigRestore,
     BackupStatusReturn,
     BackupStorage,
 )
@@ -15,7 +18,11 @@ class _CollectionBackup:
         self._backup = _Backup(connection)
 
     def create(
-        self, backup_id: str, backend: BackupStorage, wait_for_completion: bool = False
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        wait_for_completion: bool = False,
+        config: Optional[BackupConfigCreate] = None,
     ) -> BackupStatusReturn:
         """Create a backup of this collection.
 
@@ -26,6 +33,8 @@ class _CollectionBackup:
                 The backend storage where to create the backup.
             `wait_for_completion`
                 Whether to wait until the backup is done. By default False.
+            `config`
+                The configuration for the backup creation. By default None.
 
         Returns:
             A `BackupStatusReturn` object that contains the backup creation response.
@@ -40,11 +49,17 @@ class _CollectionBackup:
             `TypeError`
                 One of the arguments have a wrong type.
         """
-        create = self._backup.create(backup_id, backend, [self._name], None, wait_for_completion)
+        create = self._backup.create(
+            backup_id, backend, [self._name], None, wait_for_completion, config
+        )
         return BackupStatusReturn(status=create.status, path=create.path)
 
     def restore(
-        self, backup_id: str, backend: BackupStorage, wait_for_completion: bool = False
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        wait_for_completion: bool = False,
+        config: Optional[BackupConfigRestore] = None,
     ) -> BackupStatusReturn:
         """
         Restore a backup of all/per class Weaviate objects.
@@ -56,7 +71,10 @@ class _CollectionBackup:
             `backend`
                 The backend storage from where to restore the backup.
             `wait_for_completion`
-                Whether to wait until the backup restore is done.
+                Whether to wait until the backup restore is done. By default False.
+            `config`
+                The configuration for the backup restoration. By default None.
+
 
         Returns:
             A `BackupStatusReturn` object that contains the backup restore response.
@@ -69,7 +87,9 @@ class _CollectionBackup:
             `weaviate.BackupFailedError`
                 If the backup failed.
         """
-        restore = self._backup.restore(backup_id, backend, [self._name], None, wait_for_completion)
+        restore = self._backup.restore(
+            backup_id, backend, [self._name], None, wait_for_completion, config
+        )
         return BackupStatusReturn(status=restore.status, path=restore.path)
 
     def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:

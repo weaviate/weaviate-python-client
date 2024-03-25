@@ -175,6 +175,15 @@ class _Warnings:
         )
 
     @staticmethod
+    def sharding_actual_count_is_deprecated(argument: str) -> None:
+        warnings.warn(
+            message=f"""Dep018: You are using the {argument} argument in the `Configure.sharding` method, which is deprecated.
+            This field is read-only so has no effect and as such is deprecated. It will be removed in a future release.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
