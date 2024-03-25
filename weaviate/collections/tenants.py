@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Sequence, Union
 
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.validator import _validate_input, _ValidateArgument
@@ -19,7 +19,7 @@ class _Tenants:
         self.__connection = connection
         self.__name = name
 
-    def create(self, tenants: Union[str, Tenant, List[Union[str, Tenant]]]) -> None:
+    def create(self, tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]]) -> None:
         """Create the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
@@ -41,7 +41,9 @@ class _Tenants:
         _validate_input(
             [
                 _ValidateArgument(
-                    expected=[str, Tenant, List[Union[str, Tenant]]], name="tenants", value=tenants
+                    expected=[str, Tenant, Sequence[Union[str, Tenant]]],
+                    name="tenants",
+                    value=tenants,
                 )
             ]
         )
@@ -53,7 +55,7 @@ class _Tenants:
                 else {"name": tenant, "activityStatus": TenantActivityStatus.HOT}
                 for tenant in tenants
             ]
-            if isinstance(tenants, list)
+            if isinstance(tenants, Sequence)
             else [
                 {"name": tenants, "activityStatus": TenantActivityStatus.HOT}
                 if isinstance(tenants, str)
@@ -71,7 +73,7 @@ class _Tenants:
             ),
         )
 
-    def remove(self, tenants: Union[str, Tenant, List[Union[str, Tenant]]]) -> None:
+    def remove(self, tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
@@ -92,14 +94,16 @@ class _Tenants:
         _validate_input(
             [
                 _ValidateArgument(
-                    expected=[str, Tenant, List[Union[str, Tenant]]], name="tenants", value=tenants
+                    expected=[str, Tenant, Sequence[Union[str, Tenant]]],
+                    name="tenants",
+                    value=tenants,
                 )
             ]
         )
 
         loaded_tenants = (
             [tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
-            if isinstance(tenants, list)
+            if isinstance(tenants, Sequence)
             else [tenants if isinstance(tenants, str) else tenants.name]
         )
 
@@ -136,7 +140,7 @@ class _Tenants:
         tenant_resp: List[Dict[str, Any]] = response.json()
         return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
 
-    def update(self, tenants: Union[Tenant, List[Tenant]]) -> None:
+    def update(self, tenants: Union[Tenant, Sequence[Tenant]]) -> None:
         """Update the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
@@ -155,12 +159,12 @@ class _Tenants:
                 If `tenants` is not a list of `wvc.Tenant` objects.
         """
         _validate_input(
-            [_ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)]
+            [_ValidateArgument(expected=[Tenant, Sequence[Tenant]], name="tenants", value=tenants)]
         )
 
         loaded_tenants = (
             [tenant.model_dump() for tenant in tenants]
-            if isinstance(tenants, list)
+            if isinstance(tenants, Sequence)
             else [tenants.model_dump()]
         )
 
