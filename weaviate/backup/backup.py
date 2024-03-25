@@ -31,7 +31,7 @@ class BackupCompressionLevel(str, Enum):
 
     DEFAULT = "DefaultCompression"
     BEST_SPEED = "BestSpeed"
-    BEST_QUALITY = "BestCompression"
+    BEST_COMPRESSION = "BestCompression"
 
 
 class BackupStorage(str, Enum):
