@@ -57,6 +57,7 @@ MAX_CONCURRENT_REQUESTS = 10
 DEFAULT_REQUEST_TIMEOUT = 180
 CONCURRENT_REQUESTS_DYNAMIC_VECTORIZER = 2
 BATCH_TIME_TARGET = 10
+VECTORIZER_BATCHING_STEP_SIZE = 48  # cohere max batch size is 96
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
@@ -204,10 +205,15 @@ class _BatchBase:
             self.__recommended_num_objects = (
                 self.__batching_mode.requests_per_minute // self.__concurrent_requests
             )
-        else:
-            assert isinstance(self.__batching_mode, _DynamicBatching)
+        elif isinstance(self.__batching_mode, _DynamicBatching) and not self.__vectorizer_batching:
             self.__recommended_num_objects = 10
             self.__concurrent_requests = 2
+        else:
+            assert isinstance(self.__batching_mode, _DynamicBatching) and self.__vectorizer_batching
+            self.__recommended_num_objects = VECTORIZER_BATCHING_STEP_SIZE
+            self.__concurrent_requests = 2
+            self.__dynamic_batching_sleep_time: int = 0
+            self._batch_send: bool = False
 
         self.__recommended_num_refs: int = 50
 
@@ -295,6 +301,16 @@ class _BatchBase:
                     continue
                 self.__time_stamp_last_request = time.time()
                 refresh_time = 0
+            elif isinstance(self.__batching_mode, _DynamicBatching) and self.__vectorizer_batching:
+                if self.__dynamic_batching_sleep_time > 0:
+                    if (
+                        time.time() - self.__time_stamp_last_request
+                        < self.__dynamic_batching_sleep_time
+                    ):
+                        time.sleep(1)
+                        continue
+
+                self.__time_stamp_last_request = time.time()
 
             if self.__active_requests < self.__concurrent_requests and (
                 len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
@@ -319,6 +335,7 @@ class _BatchBase:
                     ),
                     loop,
                 )
+                self._batch_send = True
 
             time.sleep(refresh_time)
 
@@ -390,24 +407,37 @@ class _BatchBase:
         self.__rate_queue.append(rate)
 
         if self.__vectorizer_batching:
-            # slow vectorizer, we want to send larger batches that can take a bit longer, but fewer of them
-            self.__concurrent_requests = CONCURRENT_REQUESTS_DYNAMIC_VECTORIZER
-
-            request_rate_multiplier = 1
-            if len(self.__took_queue) > 0:
+            # slow vectorizer, we want to send larger batches that can take a bit longer, but fewer of them. We might need to sleep
+            if len(self.__took_queue) > 0 and self._batch_send:
                 max_took = max(self.__took_queue)
+                self.__dynamic_batching_sleep_time = 0
                 if max_took > BATCH_TIME_TARGET:
-                    request_rate_multiplier = 1 / (max_took - BATCH_TIME_TARGET) ** 2
-                elif max_took < BATCH_TIME_TARGET // 2:
-                    request_rate_multiplier = (
-                        1 + 0.1 * (BATCH_TIME_TARGET - max_took) / BATCH_TIME_TARGET
-                    )
+                    current_step = self.__recommended_num_objects // VECTORIZER_BATCHING_STEP_SIZE
+                    if current_step > 1:
+                        self.__recommended_num_objects = VECTORIZER_BATCHING_STEP_SIZE * (
+                            current_step - 1
+                        )
+                    elif current_step == 1 and self.__concurrent_requests > 1:
+                        self.__concurrent_requests -= 1
+                    else:
+                        # cannot scale down, sleep a bit
+                        self.__dynamic_batching_sleep_time = max_took - BATCH_TIME_TARGET
 
-            mean_rate = sum(self.__rate_queue) / len(self.__rate_queue)
-            self.__recommended_num_objects = min(
-                max(int((max(self.__rate_queue) + mean_rate) * request_rate_multiplier) // 2, 1),
-                500,
-            )
+                elif max_took < 3 * BATCH_TIME_TARGET // 4:
+                    if self.__dynamic_batching_sleep_time > 0:
+                        self.__dynamic_batching_sleep_time = 0
+                    elif self.__concurrent_requests < 3:
+                        self.__concurrent_requests += 1
+                    else:
+                        current_step = (
+                            self.__recommended_num_objects // VECTORIZER_BATCHING_STEP_SIZE
+                        )
+                        self.__recommended_num_objects = VECTORIZER_BATCHING_STEP_SIZE * (
+                            current_step + 1
+                        )
+
+                self._batch_send = False
+
         else:
             if batch_length == 0:  # scale up if queue is empty
                 self.__recommended_num_objects = min(

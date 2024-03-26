@@ -54,7 +54,7 @@ def weaviate_mock(ready_mock):
 
 @pytest.fixture(scope="function")
 def weaviate_no_auth_mock(ready_mock):
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.16"})
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.25"})
     ready_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
         Response(json.dumps({}), status=404)
     )

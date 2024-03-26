@@ -2,13 +2,15 @@
 Client class definition.
 """
 
-from typing import Generic, Optional, Tuple, TypeVar, Union, Dict, Any
+from typing import Generic, List, Optional, Tuple, TypeVar, Union, Dict, Any
 
 from httpx import HTTPError as HttpxError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.backup.backup import _Backup
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
+
+from weaviate.connect.integrations import _IntegrationConfig
 
 from .auth import AuthCredentials
 from .backup import Backup
@@ -155,6 +157,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
         additional_headers: Optional[dict] = None,
         additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
+        integrations_config: Optional[Union[List[_IntegrationConfig], _IntegrationConfig]] = None,
     ) -> None:
         """Initialise a WeaviateClient class instance to use when interacting with Weaviate.
 
@@ -187,6 +190,9 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             connection_params, embedded_options
         )
         config = additional_config or AdditionalConfig()
+        if isinstance(integrations_config, _IntegrationConfig):
+            integrations_config = [integrations_config]
+
         self.__skip_init_checks = skip_init_checks
 
         self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
@@ -198,6 +204,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             connection_config=config.connection,
             proxies=config.proxies,
             trust_env=config.trust_env,
+            integrations_config=integrations_config,
         )
 
         self.backup = _Backup(self._connection)

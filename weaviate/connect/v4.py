@@ -60,6 +60,8 @@ from weaviate.util import (
 from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.warnings import _Warnings
 
+from weaviate.connect.integrations import _IntegrationConfig
+
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 
@@ -92,6 +94,7 @@ class _Connection(_ConnectionBase):
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedV4] = None,
+        integrations_config: Optional[List[_IntegrationConfig]] = None,
     ):
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
@@ -117,6 +120,10 @@ class _Connection(_ConnectionBase):
             self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
                 self._headers[key.lower()] = value
+        if integrations_config is not None:
+            for integration in integrations_config:
+                self._headers.update(integration._to_header())
+                self.__additional_headers.update(integration._to_header())
 
         self._proxies: Dict[str, str] = _get_proxies(proxies, trust_env)
 
@@ -592,6 +599,7 @@ class ConnectionV4(_Connection):
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedV4] = None,
+        integrations_config: Optional[List[_IntegrationConfig]] = None,
     ):
         super().__init__(
             connection_params,
@@ -602,6 +610,7 @@ class ConnectionV4(_Connection):
             additional_headers,
             connection_config,
             embedded_db,
+            integrations_config=integrations_config,
         )
         self.__prepare_grpc_headers()
 
