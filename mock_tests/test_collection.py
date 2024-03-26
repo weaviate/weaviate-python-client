@@ -271,7 +271,7 @@ def test_return_from_bind_module(
             ),
             {
                 "X-Cohere-Api-Key": "key",
-                "X-Cohere-Ratelimit-Embedding-RequestPM": "50",
+                "X-Cohere-Ratelimit-RequestPM-Embedding": "50",
                 "X-Cohere-Baseurl": "http://some-url.com",
             },
         ),
