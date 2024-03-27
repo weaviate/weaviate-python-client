@@ -14,9 +14,7 @@ from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 
 
 class _BatchWrapper:
-    def __init__(
-        self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel] = None
-    ):
+    def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
         self._connection = connection
         self._consistency_level = consistency_level
         self._current_batch: Optional[_BatchBase] = None

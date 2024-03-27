@@ -72,12 +72,12 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             self._connection, self.name, consistency_level, tenant
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
-        self.batch = _BatchCollectionWrapper[Properties](
-            connection, consistency_level, self.name, tenant
-        )
-        """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
         self.config = _ConfigCollection(self._connection, self.name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
+        self.batch = _BatchCollectionWrapper[Properties](
+            connection, consistency_level, self.name, tenant, self.config
+        )
+        """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
         self.data = _DataCollection[Properties](
             connection, self.name, consistency_level, tenant, validate_arguments, properties
         )

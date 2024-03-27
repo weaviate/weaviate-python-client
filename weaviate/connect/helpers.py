@@ -1,7 +1,7 @@
 """Helper functions for creating a new WeaviateClient in common scenarios."""
 
 from urllib.parse import urlparse
-from typing import Optional, Dict
+from typing import List, Optional, Dict, Union
 
 from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateClient
@@ -10,6 +10,8 @@ from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions
 from weaviate.validator import _validate_input, _ValidateArgument
 
+from weaviate.connect.integrations import _IntegrationConfig
+
 
 def connect_to_wcs(
     cluster_url: str,
@@ -17,6 +19,7 @@ def connect_to_wcs(
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
+    integrations_config: Optional[Union[List[_IntegrationConfig], _IntegrationConfig]] = None,
 ) -> WeaviateClient:
     """
     Connect to your own Weaviate Cloud Service (WCS) instance.
@@ -38,6 +41,8 @@ def connect_to_wcs(
             This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         `skip_init_checks`
             Whether to skip the initialization checks when connecting to Weaviate.
+        `integrations_config`
+            The configuration for integrations such as vectorizers and generative modules.
 
     Returns
         `weaviate.WeaviateClient`
@@ -81,6 +86,7 @@ def connect_to_wcs(
         additional_headers=headers,
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
+        integrations_config=integrations_config,
     )
     return __connect(client)
 
@@ -93,6 +99,7 @@ def connect_to_local(
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
     auth_credentials: Optional[AuthCredentials] = None,
+    integrations_config: Optional[Union[List[_IntegrationConfig], _IntegrationConfig]] = None,
 ) -> WeaviateClient:
     """
     Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
@@ -118,6 +125,8 @@ def connect_to_local(
             The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
+        `integrations_config`
+            The configuration for integrations such as vectorizers and generative modules.
 
     Returns
         `weaviate.WeaviateClient`
@@ -153,6 +162,7 @@ def connect_to_local(
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
         auth_client_secret=auth_credentials,
+        integrations_config=integrations_config,
     )
     return __connect(client)
 
@@ -167,6 +177,7 @@ def connect_to_embedded(
     persistence_data_path: Optional[str] = None,
     binary_path: Optional[str] = None,
     environment_variables: Optional[Dict[str, str]] = None,
+    integrations_config: Optional[Union[List[_IntegrationConfig], _IntegrationConfig]] = None,
 ) -> WeaviateClient:
     """
     Connect to an embedded Weaviate instance.
@@ -200,6 +211,8 @@ def connect_to_embedded(
             Otherwise it is: `~/.cache/weaviate-embedded`
         `environment_variables`
             Additional environment variables to be passed to the embedded instance for configuration.
+        `integrations_config`
+            The configuration for integrations such as vectorizers and generative modules.
 
     Returns
         `weaviate.WeaviateClient`
@@ -239,6 +252,7 @@ def connect_to_embedded(
         embedded_options=options,
         additional_headers=headers,
         additional_config=additional_config,
+        integrations_config=integrations_config,
     )
     return __connect(client)
 
@@ -254,6 +268,7 @@ def connect_to_custom(
     additional_config: Optional[AdditionalConfig] = None,
     auth_credentials: Optional[AuthCredentials] = None,
     skip_init_checks: bool = False,
+    integrations_config: Optional[Union[List[_IntegrationConfig], _IntegrationConfig]] = None,
 ) -> WeaviateClient:
     """
     Connect to a Weaviate instance with custom connection parameters.
@@ -287,6 +302,8 @@ def connect_to_custom(
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
         `skip_init_checks`
             Whether to skip the initialization checks when connecting to Weaviate.
+        `integrations_config`
+            The configuration for integrations such as vectorizers and generative modules.
 
     Returns
         `weaviate.WeaviateClient`
@@ -332,6 +349,7 @@ def connect_to_custom(
         additional_headers=headers,
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
+        integrations_config=integrations_config,
     )
     return __connect(client)
 
