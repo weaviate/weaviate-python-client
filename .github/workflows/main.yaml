@@ -14,8 +14,8 @@ on:
   pull_request:
 
 env:
-  OLD_WEAVIATE_VERSION: 1.23.10
-  NEW_WEAVIATE_VERSION: preview-improved-update-of-target-vector-configs-3688182
+  OLD_WEAVIATE_VERSION: 1.23.13
+  NEW_WEAVIATE_VERSION: 1.24.5
 
 jobs:
   lint-and-format:
@@ -83,6 +83,35 @@ jobs:
           name: coverage-report-${{ matrix.folder }}
           path: coverage-${{ matrix.folder }}.xml
 
+  integration-tests-embedded:
+    name: Run Integration Tests Embedded
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        optional_dependencies: [false]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.version }}
+          cache: 'pip' # caching pip dependencies
+      - run: |
+          pip install -r requirements-devel.txt
+          pip install .
+      - name: Run integration tests
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-embedded.xml integration_embedded
+      - name: Archive code coverage results
+        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-integration-embedded
+          path: coverage-integration-embedded.xml
+
   integration-tests-v3:
     name: Run Integration Tests v3
     runs-on: ubuntu-latest
@@ -97,7 +126,6 @@ jobs:
           { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
           { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
         ]
-
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -148,7 +176,6 @@ jobs:
           { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
           { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
         ]
-
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -207,11 +234,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-report-integration-v3
+      - name: Download coverage integration embedded
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-integration-embedded
       - name: Codecov
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
-          files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
+          files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-integration-embedded.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
