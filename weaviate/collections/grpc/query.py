@@ -200,6 +200,9 @@ class _QueryGRPC(_BaseGRPC):
                         distance=vector.distance,
                         move_away=self.__parse_move(vector.move_away),
                         move_to=self.__parse_move(vector.move_to),
+                        target_vectors=[vector.target_vector]
+                        if vector.target_vector is not None
+                        else None,
                     )
                     if vector is not None and isinstance(vector, _HybridNearText)
                     else None
@@ -209,6 +212,9 @@ class _QueryGRPC(_BaseGRPC):
                         vector_bytes=struct.pack("{}f".format(len(vector.vector)), *vector.vector),
                         certainty=vector.certainty,
                         distance=vector.distance,
+                        target_vectors=[vector.target_vector]
+                        if vector.target_vector is not None
+                        else None,
                     )
                     if vector is not None and isinstance(vector, _HybridNearVector)
                     else None
