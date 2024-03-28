@@ -86,12 +86,17 @@ class _BaseQuery(Generic[Properties, References]):
         self._properties = properties
         self._references = references
         self._validate_arguments = validate_arguments
+
+        self.__uses_125_api = self.__connection._weaviate_version.is_at_least(
+            1, 24, 5
+        )  # TODO: change to 1.25 when it lands
         self._query = _QueryGRPC(
             self.__connection,
             self._name,
             self.__tenant,
             self.__consistency_level,
             validate_arguments=self._validate_arguments,
+            uses_125_api=self.__uses_125_api,
         )
 
     def __retrieve_timestamp(
@@ -172,6 +177,27 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> Optional[str]:
         return add_props.generative if add_props.generative_present else None
 
+    def __deserialize_list_value_prop_125(self, value: properties_pb2.ListValue) -> Any:
+        if value.HasField("bool_values"):
+            return value.bool_values.values
+        if value.HasField("date_values"):
+            return [_datetime_from_weaviate_str(val) for val in value.date_values.values]
+        if value.HasField("int_values"):
+            return value.int_values.values
+        if value.HasField("number_values"):
+            return value.number_values.values
+        if value.HasField("text_values"):
+            return value.text_values.values
+        if value.HasField("uuid_values"):
+            return [uuid_lib.UUID(val) for val in value.uuid_values.values]
+        if value.HasField("object_values"):
+            return [
+                self.__parse_nonref_properties_result(val) for val in value.object_values.values
+            ]
+
+    def __deserialize_list_value_prop_123(self, value: properties_pb2.ListValue) -> Any:
+        return [self.__deserialize_non_ref_prop(val) for val in value.values]
+
     def __deserialize_non_ref_prop(self, value: properties_pb2.Value) -> Any:
         if value.HasField("uuid_value"):
             return uuid_lib.UUID(value.uuid_value)
@@ -179,6 +205,8 @@ class _BaseQuery(Generic[Properties, References]):
             return _datetime_from_weaviate_str(value.date_value)
         if value.HasField("string_value"):
             return str(value.string_value)
+        if value.HasField("text_value"):
+            return str(value.text_value)
         if value.HasField("int_value"):
             return int(value.int_value)
         if value.HasField("number_value"):
@@ -186,7 +214,11 @@ class _BaseQuery(Generic[Properties, References]):
         if value.HasField("bool_value"):
             return bool(value.bool_value)
         if value.HasField("list_value"):
-            return [self.__deserialize_non_ref_prop(val) for val in value.list_value.values]
+            return (
+                self.__deserialize_list_value_prop_125(value.list_value)
+                if self.__uses_125_api
+                else self.__deserialize_list_value_prop_123(value.list_value)
+            )
         if value.HasField("object_value"):
             return self.__parse_nonref_properties_result(value.object_value)
         if value.HasField("geo_value"):

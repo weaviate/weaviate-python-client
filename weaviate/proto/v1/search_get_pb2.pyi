@@ -43,6 +43,7 @@ class SearchRequest(_message.Message):
         "generative",
         "rerank",
         "uses_123_api",
+        "uses_125_api",
     )
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
@@ -70,6 +71,7 @@ class SearchRequest(_message.Message):
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     RERANK_FIELD_NUMBER: _ClassVar[int]
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
+    USES_125_API_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
     consistency_level: _base_pb2.ConsistencyLevel
@@ -96,6 +98,7 @@ class SearchRequest(_message.Message):
     generative: GenerativeSearch
     rerank: Rerank
     uses_123_api: bool
+    uses_125_api: bool
     def __init__(
         self,
         collection: _Optional[str] = ...,
@@ -124,6 +127,7 @@ class SearchRequest(_message.Message):
         generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
         rerank: _Optional[_Union[Rerank, _Mapping]] = ...,
         uses_123_api: bool = ...,
+        uses_125_api: bool = ...,
     ) -> None: ...
 
 class GroupBy(_message.Message):
@@ -258,6 +262,8 @@ class Hybrid(_message.Message):
         "fusion_type",
         "vector_bytes",
         "target_vectors",
+        "near_text",
+        "near_vector",
     )
 
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -275,6 +281,8 @@ class Hybrid(_message.Message):
     FUSION_TYPE_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    NEAR_TEXT_FIELD_NUMBER: _ClassVar[int]
+    NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
     query: str
     properties: _containers.RepeatedScalarFieldContainer[str]
     vector: _containers.RepeatedScalarFieldContainer[float]
@@ -282,6 +290,8 @@ class Hybrid(_message.Message):
     fusion_type: Hybrid.FusionType
     vector_bytes: bytes
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    near_text: NearTextSearch
+    near_vector: NearVector
     def __init__(
         self,
         query: _Optional[str] = ...,
@@ -291,6 +301,8 @@ class Hybrid(_message.Message):
         fusion_type: _Optional[_Union[Hybrid.FusionType, str]] = ...,
         vector_bytes: _Optional[bytes] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        near_text: _Optional[_Union[NearTextSearch, _Mapping]] = ...,
+        near_vector: _Optional[_Union[NearVector, _Mapping]] = ...,
     ) -> None: ...
 
 class NearTextSearch(_message.Message):
