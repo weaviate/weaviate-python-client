@@ -3,7 +3,7 @@ from typing import Generic, List, Optional
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, HybridFusion, Rerank
+from weaviate.collections.classes.grpc import METADATA, HybridFusion, HybridVectorType, Rerank
 from weaviate.collections.classes.internal import (
     GenerativeReturnType,
     _Generative,
@@ -25,7 +25,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
         alpha: NUMBER = 0.5,
-        vector: Optional[List[float]] = None,
+        vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         limit: Optional[int] = None,
@@ -70,6 +70,8 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
                 The filters to apply to the search.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            `target_vector`
+                The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
             `include_vector`
                 Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`

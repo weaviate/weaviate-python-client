@@ -258,6 +258,8 @@ class Hybrid(_message.Message):
         "fusion_type",
         "vector_bytes",
         "target_vectors",
+        "near_text",
+        "near_vector",
     )
 
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -275,6 +277,8 @@ class Hybrid(_message.Message):
     FUSION_TYPE_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    NEAR_TEXT_FIELD_NUMBER: _ClassVar[int]
+    NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
     query: str
     properties: _containers.RepeatedScalarFieldContainer[str]
     vector: _containers.RepeatedScalarFieldContainer[float]
@@ -282,6 +286,8 @@ class Hybrid(_message.Message):
     fusion_type: Hybrid.FusionType
     vector_bytes: bytes
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    near_text: NearTextSearch
+    near_vector: NearVector
     def __init__(
         self,
         query: _Optional[str] = ...,
@@ -291,6 +297,8 @@ class Hybrid(_message.Message):
         fusion_type: _Optional[_Union[Hybrid.FusionType, str]] = ...,
         vector_bytes: _Optional[bytes] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        near_text: _Optional[_Union[NearTextSearch, _Mapping]] = ...,
+        near_vector: _Optional[_Union[NearVector, _Mapping]] = ...,
     ) -> None: ...
 
 class NearTextSearch(_message.Message):

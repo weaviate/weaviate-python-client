@@ -60,6 +60,8 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
                 The filters to apply to the search.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            `target_vector`
+                The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
             `include_vector`
                 Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
