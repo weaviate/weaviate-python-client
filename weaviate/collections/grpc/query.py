@@ -73,11 +73,13 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
+        uses_125_api: bool,
     ):
         super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
         self._validate_arguments = validate_arguments
+        self.__uses_125_api = uses_125_api
 
     def __parse_near_options(
         self,
@@ -569,6 +571,7 @@ class _QueryGRPC(_BaseGRPC):
 
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
+            uses_125_api=self.__uses_125_api,
             collection=self._name,
             limit=limit,
             offset=offset,
