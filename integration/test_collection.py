@@ -47,6 +47,7 @@ from weaviate.exceptions import (
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
+    WeaviateNotImplementedError,
 )
 from weaviate.types import UUID, UUIDS
 
@@ -1889,10 +1890,20 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
         ),
     )
     uuid_banana = collection.data.insert({"text": "banana"})
+    obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
+
+    if collection._connection._weaviate_version.is_lower_than(
+        1, 24, 0
+    ):  # TODO: change to 1.25.0 when lands
+        with pytest.raises(WeaviateNotImplementedError):
+            collection.query.hybrid(
+                query=None,
+                vector=wvc.query.HybridNear.vector(vector=obj.vector["default"]),
+            ).objects
+        return
+
     collection.data.insert({"text": "dog"})
     collection.data.insert({"text": "different concept"})
-
-    obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
     hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
         query=None,
@@ -1921,6 +1932,11 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
 
 
 def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(
+        1, 24, 0
+    ):  # TODO: change to 1.25.0 when lands
+        pytest.skip("Named vectors is supported in this version of Weaviate")
     collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -1978,6 +1994,17 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
             vectorize_collection_name=False
         ),
     )
+
+    if collection._connection._weaviate_version.is_lower_than(
+        1, 24, 0
+    ):  # TODO: change to 1.25.0 when lands
+        with pytest.raises(WeaviateNotImplementedError):
+            collection.query.hybrid(
+                query=None,
+                vector=wvc.query.HybridNear.text(text="banana pudding"),
+            ).objects
+        return
+
     uuid_banana_pudding = collection.data.insert({"text": "banana pudding"})
     collection.data.insert({"text": "banana smoothie"})
     collection.data.insert({"text": "different concept"})
@@ -2004,6 +2031,11 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
 
 
 def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(
+        1, 24, 0
+    ):  # TODO: change to 1.25.0 when lands
+        pytest.skip("Hybrid with near text is supported in this version of Weaviate")
     collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
