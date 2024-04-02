@@ -1201,7 +1201,7 @@ class AggregateBuilder(GraphQL):
             if self._limit is not None:
                 query += f"limit: {self._limit}"
             if self._hybrid is not None:
-                query += f"hybrid: {self._hybrid}"
+                query += str(self._hybrid)
             query += ")"
 
         # Body
