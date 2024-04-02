@@ -153,7 +153,7 @@ class _Backup:
         if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 24, 0):
                 raise WeaviateNotImplementedError(
-                    "BackupConfigCreate", str(self._connection._weaviate_version), "1.24.0"
+                    "BackupConfigCreate", self._connection.server_version, "1.24.0"
                 )
             if not isinstance(config, BackupConfigCreate):
                 raise WeaviateInvalidInputError(
@@ -280,7 +280,7 @@ class _Backup:
         if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 24, 0):
                 raise WeaviateNotImplementedError(
-                    "BackupConfigRestore", str(self._connection._weaviate_version), "1.24.0"
+                    "BackupConfigRestore", self._connection.server_version, "1.24.0"
                 )
             if not isinstance(config, BackupConfigRestore):
                 raise WeaviateInvalidInputError(

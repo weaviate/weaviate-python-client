@@ -13,7 +13,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import GroupBy, Rerank
-from weaviate.exceptions import WeaviateQueryError
+from weaviate.exceptions import WeaviateQueryError, WeaviateNotImplementedError
 from weaviate.util import _ServerVersion
 
 
@@ -202,18 +202,28 @@ def test_bm25_generate_and_group_by_with_everything(
         ]
     )
 
-    res = collection.generate.bm25(
-        query="Teddy",
-        query_properties=["content"],
-        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-        grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
-        group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
-    )
-    assert res.generated == "Teddy apples"
-    assert len(res.groups) == 1
-    groups = list(res.groups.values())
-    assert groups[0].generated == "Yes"
-    assert res.objects[0].belongs_to_group == "apples are big"
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        res = collection.generate.bm25(
+            query="Teddy",
+            query_properties=["content"],
+            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+            group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
+        )
+        assert res.generated == "Teddy apples"
+        assert len(res.groups) == 1
+        groups = list(res.groups.values())
+        assert groups[0].generated == "Yes"
+        assert res.objects[0].belongs_to_group == "apples are big"
+    else:
+        with pytest.raises(WeaviateNotImplementedError):
+            collection.generate.bm25(
+                query="Teddy",
+                query_properties=["content"],
+                single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+                grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+                group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
+            )
 
 
 def test_hybrid_generate_with_everything(
@@ -273,19 +283,30 @@ def test_hybrid_generate_and_group_by_with_everything(
         ]
     )
 
-    res = collection.generate.hybrid(
-        query="Teddy",
-        alpha=0,
-        query_properties=["content"],
-        single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
-        grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
-        group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
-    )
-    assert res.generated == "Teddy apples"
-    assert len(res.groups) == 1
-    groups = list(res.groups.values())
-    assert groups[0].generated == "Yes"
-    assert res.objects[0].belongs_to_group == "apples are big"
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        res = collection.generate.hybrid(
+            query="Teddy",
+            alpha=0,
+            query_properties=["content"],
+            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+            group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
+        )
+        assert res.generated == "Teddy apples"
+        assert len(res.groups) == 1
+        groups = list(res.groups.values())
+        assert groups[0].generated == "Yes"
+        assert res.objects[0].belongs_to_group == "apples are big"
+    else:
+        with pytest.raises(WeaviateNotImplementedError):
+            collection.generate.hybrid(
+                query="Teddy",
+                alpha=0,
+                query_properties=["content"],
+                single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+                grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+                group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
+            )
 
 
 def test_near_object_generate_with_everything(openai_collection: OpenAICollection) -> None:

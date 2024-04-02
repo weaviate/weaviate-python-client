@@ -13,6 +13,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.exceptions import WeaviateNotImplementedError
 from weaviate.types import INCLUDE_VECTOR
 
 
@@ -73,7 +74,13 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         Raises:
             `weaviate.exceptions.WeaviateQueryError`:
                 If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateNotImplementedError`:
+                If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
+        if group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid():
+            raise WeaviateNotImplementedError(
+                "BM25 group by", self._connection.server_version, "1.25.0"
+            )
         res = self._query.bm25(
             query=query,
             properties=query_properties,

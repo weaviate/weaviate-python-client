@@ -47,6 +47,7 @@ from weaviate.exceptions import (
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
+    WeaviateNotImplementedError,
 )
 from weaviate.types import UUID, UUIDS
 
@@ -573,17 +574,23 @@ def test_search_hybrid_group_by(collection_factory: CollectionFactory) -> None:
     )
     collection.data.insert({"Name": "some name"}, uuid=uuid.uuid4())
     collection.data.insert({"Name": "other word"}, uuid=uuid.uuid4())
-    objs = collection.query.hybrid(alpha=0, query="name", include_vector=True).objects
-    assert len(objs) == 1
-
-    group_objs = collection.query.hybrid(
-        alpha=1,
-        query="name",
-        vector=objs[0].vector["default"],
-        group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
-    ).objects
-    assert len(group_objs) == 2
-    assert group_objs[0].belongs_to_group == "some name"
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        objs = collection.query.hybrid(
+            alpha=0,
+            query="name",
+            include_vector=True,
+            group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
+        ).objects
+        assert len(objs) == 1
+        assert objs[0].belongs_to_group == "some name"
+    else:
+        with pytest.raises(WeaviateNotImplementedError):
+            collection.query.hybrid(
+                alpha=0,
+                query="name",
+                include_vector=True,
+                group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
+            )
 
 
 @pytest.mark.parametrize("query", [None, ""])
@@ -706,11 +713,17 @@ def test_bm25_group_by(collection_factory: CollectionFactory) -> None:
         ]
     )
     assert res.has_errors is False
-    objs = collection.query.bm25(
-        query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
-    ).objects
-    assert len(objs) == 1
-    assert objs[0].belongs_to_group == "test"
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        objs = collection.query.bm25(
+            query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
+        ).objects
+        assert len(objs) == 1
+        assert objs[0].belongs_to_group == "test"
+    else:
+        with pytest.raises(WeaviateNotImplementedError):
+            collection.query.bm25(
+                query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
+            )
 
 
 @pytest.mark.parametrize("limit", [1, 2])
