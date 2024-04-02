@@ -56,6 +56,14 @@ class _IntegrationConfigVoyage(_IntegrationConfig):
     base_url: Optional[str] = Field(serialization_alias="X-Voyageai-Baseurl")
 
 
+class _IntegrationConfigJina(_IntegrationConfig):
+    api_key: str = Field(serialization_alias="X-Jinaai-Api-Key")
+    request_per_minute_embeddings: Optional[int] = Field(
+        serialization_alias="X-Jinaai-Ratelimit-RequestPM-Embedding"
+    )
+    base_url: Optional[str] = Field(serialization_alias="X-Jinaai-Baseurl")
+
+
 class Integrations:
     @staticmethod
     def cohere(
@@ -115,5 +123,18 @@ class Integrations:
             api_key=api_key,
             request_per_minute_embeddings=request_per_minute_embeddings,
             tokens_per_minute_embeddings=tokens_per_minute_embeddings,
+            base_url=base_url,
+        )
+
+    @staticmethod
+    def jinaai(
+        *,
+        api_key: str,
+        request_per_minute_embeddings: Optional[int] = None,
+        base_url: Optional[str] = None
+    ) -> _IntegrationConfig:
+        return _IntegrationConfigJina(
+            api_key=api_key,
+            request_per_minute_embeddings=request_per_minute_embeddings,
             base_url=base_url,
         )
