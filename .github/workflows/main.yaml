@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.13
-  NEW_WEAVIATE_VERSION: preview-hybrid-groupby-9d7c390
+  NEW_WEAVIATE_VERSION: preview-hybrid-groupby-fbe0610
 
 jobs:
   lint-and-format:

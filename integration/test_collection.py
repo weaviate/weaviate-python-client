@@ -1951,7 +1951,7 @@ def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionF
 
     # make a near vector search to get the distance
     near_vec = collection.query.near_vector(
-        near_vector=obj.vector["text"], return_metadata=["distance"]
+        near_vector=obj.vector["text"], return_metadata=["distance"], target_vector="text"
     ).objects
     assert near_vec[0].metadata.distance is not None
 
