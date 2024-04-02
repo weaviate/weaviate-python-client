@@ -411,14 +411,18 @@ class _BatchBase:
             if len(self.__took_queue) > 0 and self._batch_send:
                 max_took = max(self.__took_queue)
                 self.__dynamic_batching_sleep_time = 0
-                if max_took > BATCH_TIME_TARGET:
+                if max_took > 2 * BATCH_TIME_TARGET:
+                    self.__concurrent_requests = 1
+                    self.__recommended_num_objects = VECTORIZER_BATCHING_STEP_SIZE
+                elif max_took > BATCH_TIME_TARGET:
                     current_step = self.__recommended_num_objects // VECTORIZER_BATCHING_STEP_SIZE
-                    if current_step > 1:
+
+                    if self.__concurrent_requests > 1:
+                        self.__concurrent_requests -= 1
+                    elif current_step > 1:
                         self.__recommended_num_objects = VECTORIZER_BATCHING_STEP_SIZE * (
                             current_step - 1
                         )
-                    elif current_step == 1 and self.__concurrent_requests > 1:
-                        self.__concurrent_requests -= 1
                     else:
                         # cannot scale down, sleep a bit
                         self.__dynamic_batching_sleep_time = max_took - BATCH_TIME_TARGET
@@ -435,7 +439,6 @@ class _BatchBase:
                         self.__recommended_num_objects = VECTORIZER_BATCHING_STEP_SIZE * (
                             current_step + 1
                         )
-
                 self._batch_send = False
 
         else:
