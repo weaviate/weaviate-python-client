@@ -118,7 +118,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
                 grouped_properties=grouped_properties,
             ),
         )
-        return self._result_to_generative_query_return(
+        return self._result_to_generative_groupby_return(
             res,
             _QueryOptions.from_input(
                 return_metadata=return_metadata,

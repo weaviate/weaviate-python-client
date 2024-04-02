@@ -87,7 +87,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
             return_references=self._parse_return_references(return_references),
             rerank=rerank,
         )
-        return self._result_to_query_return(
+        return self._result_to_query_or_groupby_return(
             res,
             _QueryOptions.from_input(
                 return_metadata=return_metadata,
