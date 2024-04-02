@@ -235,7 +235,33 @@ class _Aggregate:
         )
 
     @staticmethod
-    def _add_near_image(
+    def _add_hybrid_to_builder(
+        builder: AggregateBuilder,
+        query: Optional[str],
+        alpha: Optional[NUMBER],
+        vector: Optional[List[float]],
+        query_properties: Optional[List[str]],
+        object_limit: Optional[int],
+        target_vector: Optional[str],
+    ) -> AggregateBuilder:
+        payload: dict = {}
+        if query is not None:
+            payload["query"] = query
+        if alpha is not None:
+            payload["alpha"] = alpha
+        if vector is not None:
+            payload["vector"] = vector
+        if query_properties is not None:
+            payload["properties"] = query_properties
+        if target_vector is not None:
+            payload["targetVectors"] = [target_vector]
+        builder = builder.with_hybrid(payload)
+        if object_limit is not None:
+            builder = builder.with_object_limit(object_limit)
+        return builder
+
+    @staticmethod
+    def _add_near_image_to_builder(
         builder: AggregateBuilder,
         near_image: Union[str, pathlib.Path, io.BufferedReader],
         certainty: Optional[NUMBER],
@@ -265,7 +291,7 @@ class _Aggregate:
         return builder
 
     @staticmethod
-    def _add_near_object(
+    def _add_near_object_to_builder(
         builder: AggregateBuilder,
         near_object: UUID,
         certainty: Optional[NUMBER],
@@ -293,7 +319,7 @@ class _Aggregate:
         return builder
 
     @staticmethod
-    def _add_near_text(
+    def _add_near_text_to_builder(
         builder: AggregateBuilder,
         query: Union[List[str], str],
         certainty: Optional[NUMBER],
@@ -334,7 +360,7 @@ class _Aggregate:
         return builder
 
     @staticmethod
-    def _add_near_vector(
+    def _add_near_vector_to_builder(
         builder: AggregateBuilder,
         near_vector: List[float],
         certainty: Optional[NUMBER],

@@ -294,6 +294,53 @@ def test_near_object_missing_param(collection_factory: CollectionFactory) -> Non
     "option,expected_len",
     [
         ({"object_limit": 1}, 1),
+        ({"object_limit": 2}, 2),
+    ],
+)
+def test_hybrid_aggregation(
+    collection_factory: CollectionFactory, option: dict, expected_len: int
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    text_1 = "some text"
+    text_2 = "nothing like the other one at all, not even a little bit"
+    uuid = collection.data.insert({"text": text_1})
+    obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
+    assert "default" in obj.vector
+    collection.data.insert({"text": text_2})
+    res: AggregateReturn = collection.aggregate.hybrid(
+        None,
+        alpha=1,
+        vector=obj.vector["default"],
+        return_metrics=[
+            Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
+        ],
+        **option,
+    )
+    assert isinstance(res.properties["text"], AggregateText)
+    assert res.properties["text"].count == expected_len
+    assert len(res.properties["text"].top_occurrences) == expected_len
+    assert text_1 in [
+        top_occurrence.value for top_occurrence in res.properties["text"].top_occurrences
+    ]
+    if expected_len == 2:
+        assert text_2 in [
+            top_occurrence.value for top_occurrence in res.properties["text"].top_occurrences
+        ]
+    else:
+        assert text_2 not in [
+            top_occurrence.value for top_occurrence in res.properties["text"].top_occurrences
+        ]
+
+
+@pytest.mark.parametrize(
+    "option,expected_len",
+    [
+        ({"object_limit": 1}, 1),
         ({"certainty": 0.9}, 1),
         ({"distance": 0.1}, 1),
         ({"object_limit": 2}, 2),

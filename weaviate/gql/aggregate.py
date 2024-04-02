@@ -3,13 +3,11 @@ GraphQL `Aggregate` command.
 """
 
 import json
+from dataclasses import dataclass
 from typing import List, Optional, Union
 
 from weaviate.connect import Connection, ConnectionV4
-from weaviate.util import (
-    _capitalize_first_letter,
-    file_encoder_b64,
-)
+from weaviate.util import _capitalize_first_letter, file_encoder_b64, _sanitize_str
 from .filter import (
     Where,
     GraphQL,
@@ -25,6 +23,38 @@ from .filter import (
     NearVideo,
     MediaType,
 )
+
+
+@dataclass
+class Hybrid:
+    query: Optional[str]
+    alpha: Optional[float]
+    vector: Optional[List[float]]
+    properties: Optional[List[str]]
+    target_vectors: Optional[List[str]]
+
+    def __init__(self, content: dict) -> None:
+        self.query = content.get("query")
+        self.alpha = content.get("alpha")
+        self.vector = content.get("vector")
+        self.properties = content.get("properties")
+        self.target_vectors = content.get("targetVectors")
+
+    def __str__(self) -> str:
+        ret = ""
+        if self.query is not None:
+            ret += f"query: {_sanitize_str(self.query)}"
+        if self.vector is not None:
+            ret += f", vector: {self.vector}"
+        if self.alpha is not None:
+            ret += f", alpha: {self.alpha}"
+        if self.properties is not None and len(self.properties) > 0:
+            props = '","'.join(self.properties)
+            ret += f', properties: ["{props}"]'
+        if self.target_vectors is not None:
+            target_vectors = '","'.join(self.target_vectors)
+            ret += f', targetVectors: ["{target_vectors}"]'
+        return "hybrid:{" + ret + "}"
 
 
 class AggregateBuilder(GraphQL):
@@ -55,6 +85,7 @@ class AggregateBuilder(GraphQL):
         self._near: Optional[Filter] = None
         self._tenant: Optional[str] = None
         self._limit: Optional[int] = None
+        self._hybrid: Optional[Hybrid] = None
 
     def with_tenant(self, tenant: str) -> "AggregateBuilder":
         """Sets a tenant for the query."""
@@ -209,6 +240,20 @@ class AggregateBuilder(GraphQL):
         self._uses_filter = True
         return self
 
+    def with_hybrid(self, content: dict) -> "AggregateBuilder":
+        """Get objects using bm25 and vector, then combine the results using a reciprocal ranking algorithm.
+
+        Parameters
+        ----------
+        content : dict
+            The content of the `hybrid` filter to set.
+        """
+        if self._near is not None:
+            raise AttributeError("Cannot use 'hybrid' and 'near' filters simultaneously.")
+        self._hybrid = Hybrid(content)
+        self._uses_filter = True
+        return self
+
     def with_group_by_filter(self, properties: List[str]) -> "AggregateBuilder":
         """
         Add a group by filter to the query. Might requires the user to set
@@ -308,6 +353,8 @@ class AggregateBuilder(GraphQL):
 
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")
+        if self._hybrid is not None:
+            raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
         self._near = NearText(content)
         self._uses_filter = True
         return self
@@ -373,6 +420,8 @@ class AggregateBuilder(GraphQL):
 
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")
+        if self._hybrid is not None:
+            raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
         self._near = NearVector(content)
         self._uses_filter = True
         return self
@@ -423,6 +472,8 @@ class AggregateBuilder(GraphQL):
 
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")
+        if self._hybrid is not None:
+            raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
         self._near = NearObject(content, is_server_version_14)
         self._uses_filter = True
         return self
@@ -534,6 +585,8 @@ class AggregateBuilder(GraphQL):
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
+        if self._hybrid is not None:
+            raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
         if encode:
             content["image"] = file_encoder_b64(content["image"])
         self._near = NearImage(content)
@@ -648,6 +701,8 @@ class AggregateBuilder(GraphQL):
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
+        if self._hybrid is not None:
+            raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
         self._near = NearAudio(content)
@@ -762,6 +817,8 @@ class AggregateBuilder(GraphQL):
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
+        if self._hybrid is not None:
+            raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
         self._near = NearVideo(content)
@@ -876,6 +933,8 @@ class AggregateBuilder(GraphQL):
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
+        if self._hybrid is not None:
+            raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
         self._near = NearDepth(content)
@@ -989,6 +1048,8 @@ class AggregateBuilder(GraphQL):
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
+        if self._hybrid is not None:
+            raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
         self._near = NearThermal(content)
@@ -1103,6 +1164,8 @@ class AggregateBuilder(GraphQL):
                 "Cannot use multiple 'near' filters, or a 'near' filter along"
                 " with a 'ask' filter!"
             )
+        if self._hybrid is not None:
+            raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
         if encode:
             content[self._media_type.value] = file_encoder_b64(content[self._media_type.value])
         self._near = NearIMU(content)
@@ -1137,7 +1200,8 @@ class AggregateBuilder(GraphQL):
                 query += f'tenant: "{self._tenant}"'
             if self._limit is not None:
                 query += f"limit: {self._limit}"
-
+            if self._hybrid is not None:
+                query += f"hybrid: {self._hybrid}"
             query += ")"
 
         # Body
