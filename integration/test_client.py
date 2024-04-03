@@ -332,6 +332,18 @@ def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) ->
     assert nodes[0].shards[0].collection == collection.name
 
 
+def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    client.collections.delete(request.node.name)
+    collection = client.collections.create(
+        name=request.node.name,
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+
+    nodes = client.cluster.nodes(collection.name, output="verbose")
+    assert len(nodes) == 1
+    assert len(nodes[0].shards) == 0
+
+
 def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     client.collections.delete(request.node.name)
     collection = client.collections.create(name=request.node.name)
