@@ -302,6 +302,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                     ),
                 )
                 if schema.get("vectorizer", "none") != "none"
+                and prop.get("moduleConfig", None) is not None
                 else None
             ),
             vectorizer=schema.get("vectorizer", "none"),
