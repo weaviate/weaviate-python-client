@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 4.5.5
+--------------
+This patch version includes:
+
+- Bugfix when parsing the result from ``v1/nodes`` API with ``shards: null``
+- Bugfix when parsing the result from ``v1/schema`` API with ``class.properties.moduleConfig: null`` and ``class.vectoriser: !'none'``
+- Dependency bumps
+
 Version 4.5.4
 --------------
 This patch version includes:
