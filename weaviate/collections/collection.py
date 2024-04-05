@@ -1,4 +1,5 @@
 import json
+import uuid as uuid_package
 from dataclasses import asdict
 from typing import Generic, Literal, Optional, Type, Union, overload
 
@@ -25,6 +26,7 @@ from weaviate.collections.iterator import _ObjectIterator
 from weaviate.collections.query import _GenerateCollection, _QueryCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.connect import ConnectionV4
+from weaviate.types import UUID
 from weaviate.validator import _validate_input, _ValidateArgument
 
 
@@ -192,6 +194,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
+        after: Optional[UUID] = None,
     ) -> _ObjectIterator[Properties, References]:
         ...
 
@@ -203,6 +206,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
+        after: Optional[UUID] = None,
     ) -> _ObjectIterator[Properties, CrossReferences]:
         ...
 
@@ -214,6 +218,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         *,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
+        after: Optional[UUID] = None,
     ) -> _ObjectIterator[Properties, TReferences]:
         ...
 
@@ -225,6 +230,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         *,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        after: Optional[UUID] = None,
     ) -> _ObjectIterator[TProperties, References]:
         ...
 
@@ -236,6 +242,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         *,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        after: Optional[UUID] = None,
     ) -> _ObjectIterator[TProperties, CrossReferences]:
         ...
 
@@ -247,6 +254,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         *,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        after: Optional[UUID] = None,
     ) -> _ObjectIterator[TProperties, TReferences]:
         ...
 
@@ -256,6 +264,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        after: Optional[UUID] = None,
     ) -> Union[
         _ObjectIterator[Properties, References],
         _ObjectIterator[Properties, CrossReferences],
@@ -283,6 +292,8 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                 The properties to return with each object.
             `return_references`
                 The references to return with each object.
+            `after`
+                The cursor to use to mark the initial starting point of the iterator in the collection.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCQueryError`:
@@ -296,5 +307,8 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                 return_metadata=return_metadata,
                 return_properties=return_properties,
                 return_references=return_references,
-            ).objects
+            ).objects,
+            after
+            if after is None or isinstance(after, uuid_package.UUID)
+            else uuid_package.UUID(after),
         )
