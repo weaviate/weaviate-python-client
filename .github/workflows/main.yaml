@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.13
-  NEW_WEAVIATE_VERSION: preview-hybrid-groupby-fbe0610
+  NEW_WEAVIATE_VERSION: preview-add-groupby-to-hybrid-search-and-bm25f-add-moveto-movefrom-etc-to-aggregate-hybrid-search-c6ed9f3
 
 jobs:
   lint-and-format:
