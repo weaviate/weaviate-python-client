@@ -185,6 +185,7 @@ class Rerankers(str, Enum):
     NONE = "none"
     COHERE = "reranker-cohere"
     TRANSFORMERS = "reranker-transformers"
+    VOYAGEAI = "reranker-voyageai"
 
 
 class StopwordsPreset(str, Enum):
@@ -460,6 +461,14 @@ class _RerankerTransformersConfig(_RerankerConfigCreate):
     reranker: Rerankers = Field(default=Rerankers.TRANSFORMERS, frozen=True, exclude=True)
 
 
+RerankerVoyageAIModel = Literal["rerank-lite-1"]
+
+
+class _RerankerVoyageAIConfig(_RerankerConfigCreate):
+    reranker: Rerankers = Field(default=Rerankers.VOYAGEAI, frozen=True, exclude=True)
+    model: Optional[Union[RerankerVoyageAIModel, str]] = Field(default=None)
+
+
 class _Generative:
     """Use this factory class to create the correct object for the `generative_config` argument in the `collections.create()` method.
 
@@ -702,6 +711,21 @@ class _Reranker:
                 The model to use. Defaults to `None`, which uses the server-defined default
         """
         return _RerankerCohereConfig(model=model)
+
+    @staticmethod
+    def voyageai(
+        model: Optional[Union[RerankerVoyageAIModel, str]] = None,
+    ) -> _RerankerConfigCreate:
+        """Create a `_RerankerVoyageAIConfig` object for use when reranking using the `reranker-voyageai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-voyageai)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _RerankerVoyageAIConfig(model=model)
 
 
 class _CollectionConfigCreateBase(_ConfigCreateModel):

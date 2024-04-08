@@ -14,8 +14,8 @@ on:
   pull_request:
 
 env:
-  OLD_WEAVIATE_VERSION: 1.23.13
-  NEW_WEAVIATE_VERSION: 1.24.5
+  OLD_WEAVIATE_VERSION: 1.23.14
+  NEW_WEAVIATE_VERSION: 1.24.8
 
 jobs:
   lint-and-format:
