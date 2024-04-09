@@ -107,24 +107,30 @@ class ListValue(_message.Message):
     UUID_VALUES_FIELD_NUMBER: _ClassVar[int]
     INT_VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedCompositeFieldContainer[Value]
-    number_values: NumberValues
-    text_values: TextValues
-    bool_values: BoolValues
+    number_values: ListValueBytes
+    text_values: ListValueBytes
+    bool_values: ListValueBytes
     object_values: ObjectValues
-    date_values: DateValues
-    uuid_values: UuidValues
-    int_values: IntValues
+    date_values: ListValueBytes
+    uuid_values: ListValueBytes
+    int_values: ListValueBytes
     def __init__(
         self,
         values: _Optional[_Iterable[_Union[Value, _Mapping]]] = ...,
-        number_values: _Optional[_Union[NumberValues, _Mapping]] = ...,
-        text_values: _Optional[_Union[TextValues, _Mapping]] = ...,
-        bool_values: _Optional[_Union[BoolValues, _Mapping]] = ...,
+        number_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
+        text_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
+        bool_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
         object_values: _Optional[_Union[ObjectValues, _Mapping]] = ...,
-        date_values: _Optional[_Union[DateValues, _Mapping]] = ...,
-        uuid_values: _Optional[_Union[UuidValues, _Mapping]] = ...,
-        int_values: _Optional[_Union[IntValues, _Mapping]] = ...,
+        date_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
+        uuid_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
+        int_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
     ) -> None: ...
+
+class ListValueBytes(_message.Message):
+    __slots__ = ("values",)
+    VALUES_FIELD_NUMBER: _ClassVar[int]
+    values: bytes
+    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
 
 class NumberValues(_message.Message):
     __slots__ = ("values",)

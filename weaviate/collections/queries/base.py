@@ -4,7 +4,7 @@ import os
 import pathlib
 import struct
 import uuid as uuid_lib
-from typing import Any, Dict, Generic, List, Optional, Sequence, Type, Union, cast
+from typing import Any, Dict, Generator, Generic, List, Optional, Sequence, Type, Union, cast
 
 from typing_extensions import is_typeddict
 
@@ -160,15 +160,11 @@ class _BaseQuery(Generic[Properties, References]):
             return {}
 
         if len(add_props.vector_bytes) > 0:
-            vector_bytes = struct.unpack(
-                f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes
-            )
-            return {"default": list(vector_bytes)}
+            return {"default": list(self.__decode_floats(add_props.vector_bytes))}
 
         vecs = {}
         for vec in add_props.vectors:
-            vector_bytes = struct.unpack(f"{len(vec.vector_bytes)//4}f", vec.vector_bytes)
-            vecs[vec.name] = list(vector_bytes)
+            vecs[vec.name] = list(self.__decode_floats(vec.vector_bytes))
         return vecs
 
     def __extract_generated_for_object(
@@ -177,23 +173,74 @@ class _BaseQuery(Generic[Properties, References]):
     ) -> Optional[str]:
         return add_props.generative if add_props.generative_present else None
 
+    # def __deserialize_list_value_prop_125(self, value: properties_pb2.ListValue) -> Any:
+    #     if value.HasField("bool_values"):
+    #         return value.bool_values.values
+    #     if value.HasField("date_values"):
+    #         return [_datetime_from_weaviate_str(val) for val in value.date_values.values]
+    #     if value.HasField("int_values"):
+    #         return value.int_values.values
+    #     if value.HasField("number_values"):
+    #         return value.number_values.values
+    #     if value.HasField("text_values"):
+    #         return value.text_values.values
+    #     if value.HasField("uuid_values"):
+    #         return [uuid_lib.UUID(val) for val in value.uuid_values.values]
+    #     if value.HasField("object_values"):
+    #         return [
+    #             self.__parse_nonref_properties_result(val) for val in value.object_values.values
+    #         ]
+
+    def __decode_floats(self, byte_vector: bytes) -> Generator[float, None, None]:
+        for val in struct.unpack(f"{len(byte_vector)//4}f", byte_vector):
+            yield val
+
+    def __decode_ints(self, byte_vector: bytes) -> Generator[int, None, None]:
+        for val in struct.unpack(f"{len(byte_vector)//4}i", byte_vector):
+            yield int(val)
+
+    def __decode_strings(self, byte_vector: bytes) -> Generator[str, None, None]:
+        for byte_string in byte_vector.split(b","):
+            yield byte_string.decode("utf-8")
+
     def __deserialize_list_value_prop_125(self, value: properties_pb2.ListValue) -> Any:
         if value.HasField("bool_values"):
-            return value.bool_values.values
+            return [bool(byte) for byte in value.bool_values.values]
         if value.HasField("date_values"):
-            return [_datetime_from_weaviate_str(val) for val in value.date_values.values]
+            return [
+                _datetime_from_weaviate_str(val)
+                for val in self.__decode_strings(value.date_values.values)
+            ]
         if value.HasField("int_values"):
-            return value.int_values.values
+            return list(self.__decode_ints(value.int_values.values))
         if value.HasField("number_values"):
-            return value.number_values.values
+            return list(self.__decode_floats(value.number_values.values))
         if value.HasField("text_values"):
-            return value.text_values.values
+            return list(self.__decode_strings(value.text_values.values))
         if value.HasField("uuid_values"):
-            return [uuid_lib.UUID(val) for val in value.uuid_values.values]
+            return [uuid_lib.UUID(val) for val in self.__decode_strings(value.uuid_values.values)]
         if value.HasField("object_values"):
             return [
                 self.__parse_nonref_properties_result(val) for val in value.object_values.values
             ]
+
+    # def __deserialize_list_value_prop_125(self, value: properties_pb2.ListValue) -> Any:
+    #     if value.HasField("bool_values"):
+    #         return value.bool_values.values
+    #     if value.HasField("date_values"):
+    #         return [_datetime_from_weaviate_str(val) for val in value.date_values.values]
+    #     if value.HasField("int_values"):
+    #         return value.int_values.values
+    #     if value.HasField("number_values"):
+    #         return value.number_values.values
+    #     if value.HasField("text_values"):
+    #         return value.text_values.values
+    #     if value.HasField("uuid_values"):
+    #         return [uuid_lib.UUID(val) for val in value.uuid_values.values]
+    #     if value.HasField("object_values"):
+    #         return [
+    #             self.__parse_nonref_properties_result(val) for val in value.object_values.values
+    #         ]
 
     def __deserialize_list_value_prop_123(self, value: properties_pb2.ListValue) -> Any:
         return [self.__deserialize_non_ref_prop(val) for val in value.values]

@@ -3,6 +3,7 @@
 # - benchmark: pytest profiling/test_profiling.py --benchmark-only --benchmark-disable-gc
 
 import math
+import uuid
 from typing import Any, List
 import pytest
 import weaviate
@@ -188,6 +189,43 @@ def test_blob_properties(client: weaviate.WeaviateClient) -> None:
         assert len(objs) == 100
 
 
+@pytest.mark.profiling
+def test_list_value_properties(client: weaviate.WeaviateClient) -> None:
+    name = "TestProfileListValueProperties"
+    client.collections.delete(name)
+
+    col = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="dates", data_type=DataType.DATE_ARRAY),
+            Property(name="ints", data_type=DataType.INT_ARRAY),
+            Property(name="numbers", data_type=DataType.NUMBER_ARRAY),
+            Property(name="texts", data_type=DataType.TEXT_ARRAY),
+            Property(name="uuids", data_type=DataType.UUID_ARRAY),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    col = client.collections.get(name)
+
+    col.data.insert_many(
+        [
+            {
+                "dates": ["2021-01-01T00:00:00Z"] * (i % 10 + 1),
+                "ints": [i] * (i % 10 + 1),
+                "numbers": [3.3] * (i % 10 + 1),
+                "texts": ["Test"] * (i % 10 + 1),
+                "uuids": [uuid.uuid4()] * (i % 10 + 1),
+            }
+            for i in range(1000)
+        ]
+    )
+
+    for _ in range(100):
+        objs = col.query.fetch_objects(limit=1000).objects
+        assert len(objs) == 1000
+
+
 def test_benchmark_get_vector(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_get_vector, client)
 
@@ -206,3 +244,7 @@ def test_benchmark_vector_search(benchmark: Any, client: weaviate.WeaviateClient
 
 def test_benchmark_blob_properties(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_blob_properties, client)
+
+
+def test_benchmark_list_value_properties(benchmark: Any, client: weaviate.WeaviateClient) -> None:
+    benchmark(test_list_value_properties, client)
