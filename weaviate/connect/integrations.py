@@ -138,3 +138,16 @@ class Integrations:
             request_per_minute_embeddings=request_per_minute_embeddings,
             base_url=base_url,
         )
+
+    @staticmethod
+    def huggingface(
+        *,
+        api_key: str,
+        request_per_minute_embeddings: Optional[int] = None,
+        base_url: Optional[str] = None
+    ) -> _IntegrationConfig:
+        return _IntegrationConfigJina(
+            api_key=api_key,
+            request_per_minute_embeddings=request_per_minute_embeddings,
+            base_url=base_url,
+        )
