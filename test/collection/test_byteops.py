@@ -35,7 +35,13 @@ def test_decode_strings():
 
 
 def test_generate_strings():
-    assert next(_ByteOps.generate_strings(b"")) is None
+    assert list(_ByteOps.generate_strings(b"")) == []
+
+    count = 0
+    for _ in _ByteOps.generate_strings(b""):
+        count += 1
+    assert count == 0
+
     generator = _ByteOps.generate_strings(b"hello,world")
     assert next(generator) == "hello"
     assert next(generator) == "world"
