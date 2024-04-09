@@ -295,8 +295,9 @@ def test_integration_config(
         port=MOCK_PORT,
         host=MOCK_IP,
         grpc_port=MOCK_PORT_GRPC,
-        integrations_config=integrations,
     )
+
+    client.integrations.configure(integrations)
 
     weaviate_no_auth_mock.expect_request("/v1/schema", headers=headers).respond_with_json(
         status=200, response_json={"classes": []}
