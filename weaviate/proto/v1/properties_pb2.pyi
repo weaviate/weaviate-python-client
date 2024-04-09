@@ -91,64 +91,58 @@ class ListValue(_message.Message):
     __slots__ = (
         "values",
         "number_values",
-        "text_values",
         "bool_values",
         "object_values",
         "date_values",
         "uuid_values",
         "int_values",
+        "text_values",
     )
     VALUES_FIELD_NUMBER: _ClassVar[int]
     NUMBER_VALUES_FIELD_NUMBER: _ClassVar[int]
-    TEXT_VALUES_FIELD_NUMBER: _ClassVar[int]
     BOOL_VALUES_FIELD_NUMBER: _ClassVar[int]
     OBJECT_VALUES_FIELD_NUMBER: _ClassVar[int]
     DATE_VALUES_FIELD_NUMBER: _ClassVar[int]
     UUID_VALUES_FIELD_NUMBER: _ClassVar[int]
     INT_VALUES_FIELD_NUMBER: _ClassVar[int]
+    TEXT_VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedCompositeFieldContainer[Value]
-    number_values: ListValueBytes
-    text_values: ListValueBytes
-    bool_values: ListValueBytes
+    number_values: NumberValues
+    bool_values: BoolValues
     object_values: ObjectValues
-    date_values: ListValueBytes
-    uuid_values: ListValueBytes
-    int_values: ListValueBytes
+    date_values: DateValues
+    uuid_values: UuidValues
+    int_values: IntValues
+    text_values: TextValues
     def __init__(
         self,
         values: _Optional[_Iterable[_Union[Value, _Mapping]]] = ...,
-        number_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
-        text_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
-        bool_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
+        number_values: _Optional[_Union[NumberValues, _Mapping]] = ...,
+        bool_values: _Optional[_Union[BoolValues, _Mapping]] = ...,
         object_values: _Optional[_Union[ObjectValues, _Mapping]] = ...,
-        date_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
-        uuid_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
-        int_values: _Optional[_Union[ListValueBytes, _Mapping]] = ...,
+        date_values: _Optional[_Union[DateValues, _Mapping]] = ...,
+        uuid_values: _Optional[_Union[UuidValues, _Mapping]] = ...,
+        int_values: _Optional[_Union[IntValues, _Mapping]] = ...,
+        text_values: _Optional[_Union[TextValues, _Mapping]] = ...,
     ) -> None: ...
 
-class ListValueBytes(_message.Message):
+class NumberValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
     values: bytes
     def __init__(self, values: _Optional[bytes] = ...) -> None: ...
 
-class NumberValues(_message.Message):
-    __slots__ = ("values",)
-    VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[float]
-    def __init__(self, values: _Optional[_Iterable[float]] = ...) -> None: ...
-
 class TextValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, values: _Optional[_Iterable[str]] = ...) -> None: ...
+    values: bytes
+    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
 
 class BoolValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[bool]
-    def __init__(self, values: _Optional[_Iterable[bool]] = ...) -> None: ...
+    values: bytes
+    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
 
 class ObjectValues(_message.Message):
     __slots__ = ("values",)
@@ -161,20 +155,20 @@ class ObjectValues(_message.Message):
 class DateValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, values: _Optional[_Iterable[str]] = ...) -> None: ...
+    values: bytes
+    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
 
 class UuidValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, values: _Optional[_Iterable[str]] = ...) -> None: ...
+    values: bytes
+    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
 
 class IntValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: _containers.RepeatedScalarFieldContainer[int]
-    def __init__(self, values: _Optional[_Iterable[int]] = ...) -> None: ...
+    values: bytes
+    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
 
 class GeoCoordinate(_message.Message):
     __slots__ = ("longitude", "latitude")

@@ -571,7 +571,7 @@ class _QueryGRPC(_BaseGRPC):
 
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
-            uses_125_api=False,
+            uses_125_api=self.__uses_125_api,
             collection=self._name,
             limit=limit,
             offset=offset,

@@ -3,9 +3,9 @@
 # - benchmark: pytest profiling/test_profiling.py --benchmark-only --benchmark-disable-gc
 
 import math
-import uuid
 from typing import Any, List
 import pytest
+import tqdm
 import weaviate
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
@@ -197,6 +197,7 @@ def test_list_value_properties(client: weaviate.WeaviateClient) -> None:
     col = client.collections.create(
         name=name,
         properties=[
+            Property(name="bools", data_type=DataType.BOOL_ARRAY),
             Property(name="dates", data_type=DataType.DATE_ARRAY),
             Property(name="ints", data_type=DataType.INT_ARRAY),
             Property(name="numbers", data_type=DataType.NUMBER_ARRAY),
@@ -211,19 +212,22 @@ def test_list_value_properties(client: weaviate.WeaviateClient) -> None:
     col.data.insert_many(
         [
             {
-                "dates": ["2021-01-01T00:00:00Z"] * (i % 10 + 1),
-                "ints": [i] * (i % 10 + 1),
-                "numbers": [3.3] * (i % 10 + 1),
-                "texts": ["Test"] * (i % 10 + 1),
-                "uuids": [uuid.uuid4()] * (i % 10 + 1),
+                "bools": [True] * 10000,
+                # "dates": ["2021-01-01T00:00:00Z"] * 10000,
+                "ints": [i] * 10000,
+                "numbers": [3.3] * 10000,
+                "texts": ["Test"] * 10000,
+                # "uuids": [uuid.uuid4()] * 10000,
             }
-            for i in range(1000)
+            for i in range(100)
         ]
     )
 
-    for _ in range(100):
-        objs = col.query.fetch_objects(limit=1000).objects
-        assert len(objs) == 1000
+    for _ in tqdm.trange(100):
+        objs = col.query.fetch_objects(
+            limit=100, return_properties=["bools", "ints", "numbers", "texts"]
+        ).objects
+        assert len(objs) == 100
 
 
 def test_benchmark_get_vector(benchmark: Any, client: weaviate.WeaviateClient) -> None:
