@@ -135,14 +135,14 @@ class NumberValues(_message.Message):
 class TextValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: bytes
-    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
+    values: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, values: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class BoolValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: bytes
-    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
+    values: _containers.RepeatedScalarFieldContainer[bool]
+    def __init__(self, values: _Optional[_Iterable[bool]] = ...) -> None: ...
 
 class ObjectValues(_message.Message):
     __slots__ = ("values",)
@@ -155,14 +155,14 @@ class ObjectValues(_message.Message):
 class DateValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: bytes
-    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
+    values: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, values: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class UuidValues(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
-    values: bytes
-    def __init__(self, values: _Optional[bytes] = ...) -> None: ...
+    values: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, values: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class IntValues(_message.Message):
     __slots__ = ("values",)

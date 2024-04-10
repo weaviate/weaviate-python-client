@@ -177,22 +177,17 @@ class _BaseQuery(Generic[Properties, References]):
         self, value: properties_pb2.ListValue
     ) -> Optional[List[Any]]:
         if value.HasField("bool_values"):
-            return _ByteOps.decode_bools(value.bool_values.values)
+            return list(value.bool_values.values)
         if value.HasField("date_values"):
-            return [
-                _datetime_from_weaviate_str(val)
-                for val in _ByteOps.generate_strings(value.date_values.values)
-            ]
+            return [_datetime_from_weaviate_str(val) for val in value.date_values.values]
         if value.HasField("int_values"):
             return _ByteOps.decode_int64s(value.int_values.values)
         if value.HasField("number_values"):
             return _ByteOps.decode_float64s(value.number_values.values)
         if value.HasField("text_values"):
-            return _ByteOps.decode_strings(value.text_values.values)
+            return list(value.text_values.values)
         if value.HasField("uuid_values"):
-            return [
-                uuid_lib.UUID(val) for val in _ByteOps.generate_strings(value.uuid_values.values)
-            ]
+            return [uuid_lib.UUID(val) for val in value.uuid_values.values]
         if value.HasField("object_values"):
             return [
                 self.__parse_nonref_properties_result(val) for val in value.object_values.values

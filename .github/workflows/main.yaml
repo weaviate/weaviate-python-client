@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.13
-  NEW_WEAVIATE_VERSION: preview-change-listvalue-message-to-avoid-grpc-n-1-problem-201fa70
+  NEW_WEAVIATE_VERSION: preview-change-listvalue-message-to-avoid-grpc-n-1-problem-bebe4d3
 
 jobs:
   lint-and-format:
