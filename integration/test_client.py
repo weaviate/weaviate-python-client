@@ -444,7 +444,7 @@ def test_client_with_skip_init_check(request: SubRequest) -> None:
     assert obj.properties["name"] == "Name"
 
 
-@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=1)])
+@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
 def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> None:
     additional_config = wvc.init.AdditionalConfig(timeout=timeout, trust_env=True)
 
@@ -464,7 +464,7 @@ def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> 
             additional_config=additional_config,
         ),
     ]:
-        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=1)
+        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
 
 
 def test_client_error_for_wcs_without_auth() -> None:
