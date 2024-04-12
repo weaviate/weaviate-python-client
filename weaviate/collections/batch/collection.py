@@ -13,12 +13,14 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
 from weaviate.connect import ConnectionV4
+from weaviate.event_loop import _EventLoop
 from weaviate.types import UUID, VECTORS
 
 
 class _BatchCollection(Generic[Properties], _BatchBase):
     def __init__(
         self,
+        event_loop: _EventLoop,
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
@@ -31,6 +33,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
             consistency_level=consistency_level,
             results=results,
             batch_mode=batch_mode,
+            event_loop=event_loop,
         )
         self.__name = name
         self.__tenant = tenant
@@ -108,12 +111,13 @@ class _BatchCollection(Generic[Properties], _BatchBase):
 class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
     def __init__(
         self,
+        event_loop: _EventLoop,
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         name: str,
         tenant: Optional[str] = None,
     ) -> None:
-        super().__init__(connection, consistency_level)
+        super().__init__(event_loop, connection, consistency_level)
         self.__name = name
         self.__tenant = tenant
 
@@ -121,6 +125,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
             _BatchCollection[Properties](
+                event_loop=self._event_loop,
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,

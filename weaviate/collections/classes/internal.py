@@ -531,6 +531,7 @@ QuerySingleReturn = Union[
     ObjectSingleReturn[Properties, TReferences],
     ObjectSingleReturn[TProperties, References],
     ObjectSingleReturn[TProperties, CrossReferences],
+    None,
 ]
 
 GenerativeGroupByReturnType = Union[

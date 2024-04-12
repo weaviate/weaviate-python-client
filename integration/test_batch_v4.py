@@ -87,7 +87,8 @@ def client_factory(
     ) -> Tuple[weaviate.WeaviateClient, str]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(request.node.name) + name
-        client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
+        if client_fixture is None:
+            client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
         client_fixture.collections.delete(name_fixture)
 
         client_fixture.collections.create(
@@ -104,6 +105,7 @@ def client_factory(
     yield _factory
     if client_fixture is not None and name_fixture is not None:
         client_fixture.collections.delete(name_fixture)
+        client_fixture.close()
 
 
 def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:

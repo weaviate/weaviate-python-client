@@ -117,6 +117,7 @@ class _BatchClientWrapper(_BatchWrapper):
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
                 batch_mode=self._batch_mode,
+                event_loop=self._event_loop,
             )
         )
 

@@ -78,12 +78,13 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(request.node.name) + name
-        client_fixture = weaviate.connect_to_local(
-            headers=headers,
-            grpc_port=ports[1],
-            port=ports[0],
-            additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
-        )
+        if client_fixture is None:
+            client_fixture = weaviate.connect_to_local(
+                headers=headers,
+                grpc_port=ports[1],
+                port=ports[0],
+                additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
+            )
         client_fixture.collections.delete(name_fixture)
 
         collection: Collection[Any, Any] = client_fixture.collections.create(
@@ -187,7 +188,8 @@ def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(name)
-        client_fixture = weaviate.connect_to_local()
+        if client_fixture is None:
+            client_fixture = weaviate.connect_to_local()
 
         collection: Collection[Any, Any] = client_fixture.collections.get(
             name=name_fixture,

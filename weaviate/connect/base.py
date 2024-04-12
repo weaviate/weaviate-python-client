@@ -2,12 +2,14 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Literal, Tuple, TypeVar, Union, cast, overload
+from typing import Dict, Tuple, TypeVar, Union, cast
 from urllib.parse import urlparse
 
-import grpc  # type: ignore
-from grpc import Channel, ssl_channel_credentials
-from grpc.aio import Channel as AsyncChannel  # type: ignore
+# import grpc  # type: ignore
+# from grpc import Channel, ssl_channel_credentials
+# from grpc.aio import Channel as AsyncChannel  # type: ignore
+
+from grpclib.client import Channel
 
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -109,37 +111,49 @@ class ConnectionParams(BaseModel):
     def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
 
-    @overload
-    def _grpc_channel(self, async_channel: Literal[False], proxies: Dict[str, str]) -> Channel:
-        ...
+    # @overload
+    # def _grpc_channel(self, async_channel: Literal[False], proxies: Dict[str, str]) -> Channel:
+    #     ...
 
-    @overload
-    def _grpc_channel(self, async_channel: Literal[True], proxies: Dict[str, str]) -> AsyncChannel:
-        ...
+    # @overload
+    # def _grpc_channel(self, async_channel: Literal[True], proxies: Dict[str, str]) -> AsyncChannel:
+    #     ...
 
-    def _grpc_channel(
-        self, async_channel: bool, proxies: Dict[str, str]
-    ) -> Union[Channel, AsyncChannel]:
-        if async_channel:
-            import_path = grpc.aio
-        else:
-            import_path = grpc
+    # def _grpc_channel(
+    #     self, async_channel: bool, proxies: Dict[str, str]
+    # ) -> Union[Channel, AsyncChannel]:
+    #     if async_channel:
+    #         import_path = grpc.aio
+    #     else:
+    #         import_path = grpc
 
-        if (p := proxies.get("grpc")) is not None:
-            options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
-        else:
-            options = GRPC_DEFAULT_OPTIONS
-        if self.grpc.secure:
-            return import_path.secure_channel(
-                target=self._grpc_target,
-                credentials=ssl_channel_credentials(),
-                options=options,
-            )
-        else:
-            return import_path.insecure_channel(
-                target=self._grpc_target,
-                options=options,
-            )
+    #     if (p := proxies.get("grpc")) is not None:
+    #         options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
+    #     else:
+    #         options = GRPC_DEFAULT_OPTIONS
+    #     if self.grpc.secure:
+    #         return import_path.secure_channel(
+    #             target=self._grpc_target,
+    #             credentials=ssl_channel_credentials(),
+    #             options=options,
+    #         )
+    #     else:
+    #         return import_path.insecure_channel(
+    #             target=self._grpc_target,
+    #             options=options,
+    #         )
+
+    def _grpc_channel(self, proxies: Dict[str, str]) -> Channel:
+        # if (p := proxies.get("grpc")) is not None:
+        #     options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
+        # else:
+        #     options = GRPC_DEFAULT_OPTIONS
+        return Channel(
+            host=self._grpc_address[0],
+            port=self._grpc_address[1],
+            # options=options,
+            ssl=self.grpc.secure,
+        )
 
     @property
     def _http_scheme(self) -> str:

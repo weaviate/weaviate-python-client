@@ -41,7 +41,7 @@ from weaviate.collections.classes.internal import (
     ReferenceToMulti,
 )
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
-from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
+from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties, _PhoneNumber
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     WeaviateInvalidInputError,
@@ -127,7 +127,8 @@ def test_insert_bad_input(collection_factory: CollectionFactory) -> None:
             self.name = "test"
 
     with pytest.raises(WeaviateInvalidInputError):
-        collection.data.insert({"name": BadInput})
+        res = collection.data.insert({"name": BadInput})
+        print(res)
 
 
 def test_delete_by_id(collection_factory: CollectionFactory) -> None:
@@ -2040,9 +2041,11 @@ def test_return_phone_number_property(collection_factory: CollectionFactory) -> 
     objs = collection.query.fetch_objects(return_properties=["phone"]).objects
     obj2 = [obj for obj in objs if obj.uuid == uuid2][0]
     assert len(objs) == 2
+    assert isinstance(obj1.properties["phone"], _PhoneNumber)
     assert obj1.properties["phone"].number == "+441612345000"
     assert obj1.properties["phone"].valid
     assert obj1.properties["phone"].international_formatted == "+44 161 234 5000"
+    assert isinstance(obj2.properties["phone"], _PhoneNumber)
     assert obj2.properties["phone"].number == "01612345000"
     assert obj2.properties["phone"].valid
     assert obj2.properties["phone"].international_formatted == "+44 161 234 5000"

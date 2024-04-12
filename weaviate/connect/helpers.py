@@ -1,10 +1,10 @@
 """Helper functions for creating a new WeaviateClient in common scenarios."""
 
 from urllib.parse import urlparse
-from typing import Optional, Dict
+from typing import Awaitable, Optional, Dict, Literal, Union, overload
 
 from weaviate.auth import AuthCredentials
-from weaviate.client import WeaviateClient
+from weaviate.client import WeaviateClient, WeaviateAsyncClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions
@@ -85,6 +85,7 @@ def connect_to_wcs(
     return __connect(client)
 
 
+@overload
 def connect_to_local(
     host: str = "localhost",
     port: int = 8080,
@@ -93,7 +94,36 @@ def connect_to_local(
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
     auth_credentials: Optional[AuthCredentials] = None,
+    use_async: Literal[False] = False,
 ) -> WeaviateClient:
+    ...
+
+
+@overload
+def connect_to_local(
+    host: str = "localhost",
+    port: int = 8080,
+    grpc_port: int = 50051,
+    headers: Optional[Dict[str, str]] = None,
+    additional_config: Optional[AdditionalConfig] = None,
+    skip_init_checks: bool = False,
+    auth_credentials: Optional[AuthCredentials] = None,
+    *,
+    use_async: Literal[True],
+) -> Awaitable[WeaviateAsyncClient]:
+    ...
+
+
+def connect_to_local(
+    host: str = "localhost",
+    port: int = 8080,
+    grpc_port: int = 50051,
+    headers: Optional[Dict[str, str]] = None,
+    additional_config: Optional[AdditionalConfig] = None,
+    skip_init_checks: bool = False,
+    auth_credentials: Optional[AuthCredentials] = None,
+    use_async: bool = False,
+) -> Union[WeaviateClient, Awaitable[WeaviateAsyncClient]]:
     """
     Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
 
@@ -118,6 +148,8 @@ def connect_to_local(
             The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
+        `use_async`
+            Whether to return an asynchronous client. If set to True, an asynchronous client is returned, otherwise a synchronous client is returned.
 
     Returns
         `weaviate.WeaviateClient`
@@ -144,17 +176,32 @@ def connect_to_local(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
-    client = WeaviateClient(
-        connection_params=ConnectionParams(
-            http=ProtocolParams(host=host, port=port, secure=False),
-            grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
-        ),
-        additional_headers=headers,
-        additional_config=additional_config,
-        skip_init_checks=skip_init_checks,
-        auth_client_secret=auth_credentials,
-    )
-    return __connect(client)
+    if use_async:
+        return __aconnect(
+            WeaviateAsyncClient(
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(host=host, port=port, secure=False),
+                    grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
+                ),
+                additional_headers=headers,
+                additional_config=additional_config,
+                skip_init_checks=skip_init_checks,
+                auth_client_secret=auth_credentials,
+            )
+        )
+    else:
+        return __connect(
+            WeaviateClient(
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(host=host, port=port, secure=False),
+                    grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
+                ),
+                additional_headers=headers,
+                additional_config=additional_config,
+                skip_init_checks=skip_init_checks,
+                auth_client_secret=auth_credentials,
+            )
+        )
 
 
 def connect_to_embedded(
@@ -342,4 +389,13 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
         return client
     except Exception as e:
         client.close()
+        raise e
+
+
+async def __aconnect(client: WeaviateAsyncClient) -> WeaviateAsyncClient:
+    try:
+        await client.connect()
+        return client
+    except Exception as e:
+        await client.close()
         raise e

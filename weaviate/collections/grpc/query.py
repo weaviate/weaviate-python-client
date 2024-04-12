@@ -1,10 +1,23 @@
 from dataclasses import dataclass
 import struct
-from typing import Any, Dict, List, Literal, Optional, Sequence, Set, TypeVar, Union, cast, Tuple
+from typing import (
+    Any,
+    Awaitable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+    Union,
+    cast,
+    Tuple,
+)
 
 from typing_extensions import TypeAlias
 
-import grpc  # type: ignore
+from grpclib.exceptions import GRPCError
 import uuid as uuid_lib
 
 from weaviate.collections.classes.config import ConsistencyLevel
@@ -108,12 +121,12 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
 
         if sort is not None:
-            sort_by: grpc.RepeatedCompositeFieldContainer[search_get_pb2.SortBy] = [
+            sort_by: Optional[List[search_get_pb2.SortBy]] = [
                 search_get_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
                 for sort in sort.sorts
             ]
@@ -152,7 +165,7 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[str] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -219,7 +232,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -262,7 +275,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -311,7 +324,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -361,7 +374,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -434,7 +447,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -602,20 +615,16 @@ class _QueryGRPC(_BaseGRPC):
             near_video=near_video,
         )
 
-    def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
+    async def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
         try:
             assert self._connection.grpc_stub is not None
-            res: search_get_pb2.SearchReply  # According to PEP-0526
-            res, _ = self._connection.grpc_stub.Search.with_call(
+            return await self._connection.grpc_stub.Search(
                 request,
                 metadata=self._connection.grpc_headers(),
                 timeout=self._connection.timeout_config.query,
             )
-
-            return res
-
-        except grpc.RpcError as e:
-            raise WeaviateQueryError(e.details(), "GRPC search")  # pyright: ignore
+        except GRPCError as e:
+            raise WeaviateQueryError(e.message or str(e), "GRPC search")  # pyright: ignore
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:
         return search_get_pb2.MetadataRequest(

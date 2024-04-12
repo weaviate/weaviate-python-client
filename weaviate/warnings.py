@@ -247,3 +247,12 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def unclosed_connection() -> None:
+        warnings.warn(
+            message="""Con004: The connection to Weaviate was not closed properly. This can lead to memory leaks.
+            Please make sure to close the connection using `client.close()`.""",
+            category=ResourceWarning,
+            stacklevel=1,
+        )

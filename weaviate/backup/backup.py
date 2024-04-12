@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection, ConnectionV4
+from weaviate.event_loop import _EventLoop
 from weaviate.exceptions import (
     BackupFailedException,
     EmptyResponseException,
@@ -56,13 +57,13 @@ class BackupReturn(BackupStatusReturn):
     collections: List[str] = Field(default_factory=list, alias="classes")
 
 
-class _Backup:
+class _BackupAsync:
     """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
 
     def __init__(self, connection: ConnectionV4):
         self._connection = connection
 
-    def create(
+    async def create(
         self,
         backup_id: str,
         backend: BackupStorage,
@@ -121,7 +122,7 @@ class _Backup:
         }
         path = f"/backups/{backend.value}"
 
-        response = self._connection.post(
+        response = await self._connection.post(
             path=path,
             weaviate_object=payload,
             error_msg="Backup creation failed due to connection error.",
@@ -131,7 +132,7 @@ class _Backup:
         assert create_status is not None
         if wait_for_completion:
             while True:
-                status = self.get_create_status(
+                status = await self.get_create_status(
                     backup_id=backup_id,
                     backend=backend,
                 )
@@ -143,7 +144,7 @@ class _Backup:
                 sleep(1)
         return BackupReturn(**create_status)
 
-    def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+    async def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
         """
         Checks if a started backup job has completed.
 
@@ -166,7 +167,7 @@ class _Backup:
 
         path = f"/backups/{backend.value}/{backup_id}"
 
-        response = self._connection.get(
+        response = await self._connection.get(
             path=path, error_msg="Backup creation status failed due to connection error."
         )
 
@@ -175,7 +176,7 @@ class _Backup:
             raise EmptyResponseException()
         return BackupStatusReturn(**typed_response)
 
-    def restore(
+    async def restore(
         self,
         backup_id: str,
         backend: BackupStorage,
@@ -232,7 +233,7 @@ class _Backup:
             "exclude": exclude_collections,
         }
         path = f"/backups/{backend.value}/{backup_id}/restore"
-        response = self._connection.post(
+        response = await self._connection.post(
             path=path,
             weaviate_object=payload,
             error_msg="Backup restore failed due to connection error.",
@@ -241,7 +242,7 @@ class _Backup:
         assert restore_status is not None
         if wait_for_completion:
             while True:
-                status = self.get_restore_status(
+                status = await self.get_restore_status(
                     backup_id=backup_id,
                     backend=backend,
                 )
@@ -253,7 +254,9 @@ class _Backup:
                 sleep(1)
         return BackupReturn(**restore_status)
 
-    def get_restore_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+    async def get_restore_status(
+        self, backup_id: str, backend: BackupStorage
+    ) -> BackupStatusReturn:
         """
         Checks if a started classification job has completed.
 
@@ -276,13 +279,157 @@ class _Backup:
         )
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
-        response = self._connection.get(
+        response = await self._connection.get(
             path=path, error_msg="Backup restore status failed due to connection error."
         )
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
             raise EmptyResponseException()
         return BackupStatusReturn(**typed_response)
+
+
+class _Backup:
+    """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
+
+    def __init__(self, event_loop: _EventLoop, backup: _BackupAsync):
+        self.__event_loop = event_loop
+        self.__backup = backup
+
+    def create(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        include_collections: Optional[Union[List[str], str]] = None,
+        exclude_collections: Optional[Union[List[str], str]] = None,
+        wait_for_completion: bool = False,
+    ) -> BackupReturn:
+        """Create a backup of all/per collection Weaviate objects.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage where to create the backup.
+        include_collections : Union[List[str], str], optional
+            The collection/list of collections to be included in the backup. If not specified all
+            collections will be included. Either `include_collections` or `exclude_collections` can be set. By default None.
+        exclude_collections : Union[List[str], str], optional
+            The collection/list of collections to be excluded in the backup.
+            Either `include_collections` or `exclude_collections` can be set. By default None.
+        wait_for_completion : bool, optional
+            Whether to wait until the backup is done. By default False.
+
+        Returns
+        -------
+         A `_BackupReturn` object that contains the backup creation response.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            One of the arguments have a wrong type.
+        """
+        return self.__event_loop.run_until_complete(
+            self.__backup.create,
+            backup_id=backup_id,
+            backend=backend,
+            include_collections=include_collections,
+            exclude_collections=exclude_collections,
+            wait_for_completion=wait_for_completion,
+        )
+
+    def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+        """
+        Checks if a started backup job has completed.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage eNUM
+            The backend storage where the backup was created.
+
+        Returns
+        -------
+         A `BackupStatusReturn` object that contains the backup creation status response.
+        """
+        return self.__event_loop.run_until_complete(
+            self.__backup.get_create_status, backup_id=backup_id, backend=backend
+        )
+
+    def restore(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        include_collections: Union[List[str], str, None] = None,
+        exclude_collections: Union[List[str], str, None] = None,
+        wait_for_completion: bool = False,
+    ) -> BackupReturn:
+        """
+        Restore a backup of all/per collection Weaviate objects.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage from where to restore the backup.
+        include_collections : Union[List[str], str], optional
+            The collection/list of collections to be included in the backup restore. If not specified all
+            collections will be included (that were backup-ed). Either `include_collections` or
+            `exclude_collections` can be set. By default None.
+        exclude_collections : Union[List[str], str], optional
+            The collection/list of collections to be excluded in the backup restore.
+            Either `include_collections` or `exclude_collections` can be set. By default None.
+        wait_for_completion : bool, optional
+            Whether to wait until the backup restore is done.
+
+        Returns
+        -------
+         A `BackupReturn` object that contains the backup restore response.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
+        return self.__event_loop.run_until_complete(
+            self.__backup.restore,
+            backup_id=backup_id,
+            backend=backend,
+            include_collections=include_collections,
+            exclude_collections=exclude_collections,
+            wait_for_completion=wait_for_completion,
+        )
+
+    def get_restore_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+        """
+        Checks if a started classification job has completed.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage where to create the backup.
+
+        Returns
+        -------
+         A `BackupStatusReturn` object that contains the backup restore status response.
+        """
+        return self.__event_loop.run_until_complete(
+            self.__backup.get_restore_status, backup_id=backup_id, backend=backend
+        )
 
 
 class Backup:
