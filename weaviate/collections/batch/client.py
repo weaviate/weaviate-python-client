@@ -12,6 +12,7 @@ from weaviate.collections.batch.batch_wrapper import (
     _BatchMode,
     _ContextManagerWrapper,
 )
+from weaviate.collections.classes.batch import BatchRetryConfig
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
@@ -117,11 +118,14 @@ class _BatchClientWrapper(_BatchWrapper):
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
                 batch_mode=self._batch_mode,
+                retry_config=self._batch_retry_config,
             )
         )
 
     def dynamic(
-        self, consistency_level: Optional[ConsistencyLevel] = None
+        self,
+        consistency_level: Optional[ConsistencyLevel] = None,
+        retry_config: Optional[BatchRetryConfig] = None,
     ) -> _ContextManagerWrapper[_BatchClient]:
         """Configure dynamic batching.
 
@@ -130,8 +134,11 @@ class _BatchClientWrapper(_BatchWrapper):
         Arguments:
             `consistency_level`
                 The consistency level to be used to send batches. If not provided, the default value is `None`.
+            `retry_config`
+                Configuration for retrying failed objects during the batching algorithm. If not provided, the default value is `None`.
         """
         self._batch_mode: _BatchMode = _DynamicBatching()
+        self._batch_retry_config = retry_config
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset()
 
@@ -140,6 +147,7 @@ class _BatchClientWrapper(_BatchWrapper):
         batch_size: int = 100,
         concurrent_requests: int = 2,
         consistency_level: Optional[ConsistencyLevel] = None,
+        retry_config: Optional[BatchRetryConfig] = None,
     ) -> _ContextManagerWrapper[_BatchClient]:
         """Configure fixed size batches. Note that the default is dynamic batching.
 
@@ -153,14 +161,20 @@ class _BatchClientWrapper(_BatchWrapper):
                 made to Weaviate and not the speed of batch creation within Python.
             `consistency_level`
                 The consistency level to be used to send batches. If not provided, the default value is `None`.
+            `retry_config`
+                Configuration for retrying failed objects during the batching algorithm. If not provided, the default value is `None`.
 
         """
         self._batch_mode = _FixedSizeBatching(batch_size, concurrent_requests)
+        self._batch_retry_config = retry_config
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset()
 
     def rate_limit(
-        self, requests_per_minute: int, consistency_level: Optional[ConsistencyLevel] = None
+        self,
+        requests_per_minute: int,
+        consistency_level: Optional[ConsistencyLevel] = None,
+        retry_config: Optional[BatchRetryConfig] = None,
     ) -> _ContextManagerWrapper[_BatchClient]:
         """Configure batches with a rate limited vectorizer.
 
@@ -171,7 +185,10 @@ class _BatchClientWrapper(_BatchWrapper):
                 The number of requests that the vectorizer can process per minute.
             `consistency_level`
                 The consistency level to be used to send batches. If not provided, the default value is `None`.
+            `retry_config`
+                Configuration for retrying failed objects during the batching algorithm. If not provided, the default value is `None`.
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)
+        self._batch_retry_config = retry_config
         self._consistency_level = consistency_level
         return self.__create_batch_and_reset()

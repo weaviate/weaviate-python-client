@@ -34,6 +34,7 @@ from weaviate.collections.classes.batch import (
     BatchObjectReturn,
     BatchReferenceReturn,
     Shard,
+    BatchRetryConfig,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import (
@@ -160,6 +161,7 @@ class _BatchBase:
         batch_mode: _BatchMode,
         objects_: Optional[ObjectsBatchRequest] = None,
         references: Optional[ReferencesBatchRequest] = None,
+        retry_config: Optional[BatchRetryConfig] = None,
     ) -> None:
         self.__batch_objects = objects_ or ObjectsBatchRequest()
         self.__batch_references = references or ReferencesBatchRequest()
@@ -183,6 +185,9 @@ class _BatchBase:
 
         self.__batching_mode: _BatchMode = batch_mode
         self.__max_batch_size: int = 1000
+
+        self.__retry_config = retry_config
+        self.__objects_retried: Dict[str, int] = {}
 
         if isinstance(self.__batching_mode, _FixedSizeBatching):
             self.__recommended_num_objects = self.__batching_mode.batch_size
@@ -446,7 +451,7 @@ class _BatchBase:
 
             readded_uuids = set()
             if readd_rate_limit:
-                readded_objects = []
+                readded_objects: List[int] = []
                 highest_retry_count = 0
                 for i, err in response_obj.errors.items():
                     if ("support@cohere.com" in err.message and "rate limit" in err.message) or (
@@ -482,30 +487,38 @@ class _BatchBase:
 
                     self.__batch_objects.prepend(readd_objects)
 
-                    new_errors = {
-                        i: err for i, err in response_obj.errors.items() if i not in readded_objects
-                    }
-                    response_obj = BatchObjectReturn(
-                        uuids={
-                            i: uid
-                            for i, uid in response_obj.uuids.items()
-                            if i not in readded_objects
-                        },
-                        errors=new_errors,
-                        has_errors=len(new_errors) > 0,
-                        all_responses=[
-                            err
-                            for i, err in enumerate(response_obj.all_responses)
-                            if i not in readded_objects
-                        ],
-                        elapsed_seconds=response_obj.elapsed_seconds,
-                    )
+                    response_obj = self.__alter_errors_after_retry(response_obj, readded_objects)
                     self.__time_stamp_last_request = (
                         time.time() + self.__fix_rate_batching_base_time * (highest_retry_count + 1)
                     )  # skip a full minute to recover from the rate limit
                     self.__fix_rate_batching_base_time += (
                         1  # increase the base time as the current one is too low
                     )
+
+            if self.__retry_config is not None:
+                readded_objects = []
+                for i, err in response_obj.errors.items():
+                    if any(
+                        msg in err.message
+                        for msg in self.__retry_config.retry_on_error_message_contains
+                    ):
+                        if err.object_.retry_count > self.__retry_config.max_retries:
+                            highest_retry_count = err.object_.retry_count
+
+                        if err.object_.retry_count >= self.__retry_config.max_retries:
+                            continue  # too many retries, give up
+                        err.object_.retry_count += 1
+                        readded_objects.append(i)
+
+                readd_objects = [
+                    err.object_ for i, err in response_obj.errors.items() if i in readded_objects
+                ]
+                readded_uuids = readded_uuids.union({obj.uuid for obj in readd_objects})
+
+                self.__batch_objects.prepend(readd_objects)
+
+                response_obj = self.__alter_errors_after_retry(response_obj, readded_objects)
+
             self.__uuid_lookup_lock.acquire()
             self.__uuid_lookup.difference_update(
                 obj.uuid for obj in objs if obj.uuid not in readded_uuids
@@ -540,6 +553,20 @@ class _BatchBase:
         self.__active_requests_lock.acquire()
         self.__active_requests -= 1
         self.__active_requests_lock.release()
+
+    def __alter_errors_after_retry(
+        self, response_obj: BatchObjectReturn, readded_objects: List[int]
+    ) -> BatchObjectReturn:
+        new_errors = {i: err for i, err in response_obj.errors.items() if i not in readded_objects}
+        return BatchObjectReturn(
+            uuids={i: uid for i, uid in response_obj.uuids.items() if i not in readded_objects},
+            errors=new_errors,
+            has_errors=len(new_errors) > 0,
+            all_responses=[
+                err for i, err in enumerate(response_obj.all_responses) if i not in readded_objects
+            ],
+            elapsed_seconds=response_obj.elapsed_seconds,
+        )
 
     def flush(self) -> None:
         """Flush the batch queue and wait for all requests to be finished."""

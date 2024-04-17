@@ -7,7 +7,13 @@ from weaviate.collections.batch.base import (
     _DynamicBatching,
     _BatchMode,
 )
-from weaviate.collections.classes.batch import BatchResult, ErrorObject, ErrorReference, Shard
+from weaviate.collections.classes.batch import (
+    BatchRetryConfig,
+    BatchResult,
+    ErrorObject,
+    ErrorReference,
+    Shard,
+)
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.connect import ConnectionV4
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
@@ -22,7 +28,7 @@ class _BatchWrapper:
         self._current_batch: Optional[_BatchBase] = None
         # config options
         self._batch_mode: _BatchMode = _DynamicBatching()
-
+        self._batch_retry_config: Optional[BatchRetryConfig] = None
         self._batch_data = _BatchDataWrapper()
 
     def wait_for_vector_indexing(
