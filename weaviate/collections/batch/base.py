@@ -187,7 +187,6 @@ class _BatchBase:
         self.__max_batch_size: int = 1000
 
         self.__retry_config = retry_config
-        self.__objects_retried: Dict[str, int] = {}
 
         if isinstance(self.__batching_mode, _FixedSizeBatching):
             self.__recommended_num_objects = self.__batching_mode.batch_size
@@ -515,6 +514,9 @@ class _BatchBase:
                 ]
                 readded_uuids = readded_uuids.union({obj.uuid for obj in readd_objects})
 
+                await asyncio.sleep(
+                    self.__retry_config.retry_wait_time
+                )  # wait before adding the objects again
                 self.__batch_objects.prepend(readd_objects)
 
                 response_obj = self.__alter_errors_after_retry(response_obj, readded_objects)
