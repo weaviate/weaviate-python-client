@@ -132,3 +132,40 @@ class _Tenants:
                 ok_in=200, error=f"Update collection tenants for {self.__name}"
             ),
         )
+
+    def exists(self, tenant_name: str) -> bool:
+        """Use this method to check if a tenant exists in the collection.
+
+        Arguments:
+            `tenant_name`
+                The name of the tenant to check.
+
+        Returns:
+            `True` if the tenant exists, `False` otherwise.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a non-OK status.
+            `weaviate.WeaviateInvalidInputError`
+                If `tenant_name` is not a string
+        """
+        _validate_input(
+            [
+                _ValidateArgument(expected=[str], name="tenant_name", value=tenant_name),
+            ]
+        )
+
+        path = f"/schema/{self.__name}/tenants/{tenant_name}"
+        response = self.__connection.head(
+            path=path,
+            error_msg="Tenant may not exist.",
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="tenant exists"),
+        )
+
+        if response.status_code == 200:
+            return True
+        else:
+            assert response.status_code == 404
+            return False

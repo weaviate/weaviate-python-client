@@ -2106,3 +2106,19 @@ def test_none_query_hybrid_bm25(collection_factory: CollectionFactory) -> None:
     bm25_objs = collection.query.bm25(query=None, return_metadata=MetadataQuery.full()).objects
     assert len(bm25_objs) == 3
     assert all(obj.metadata.score is not None and obj.metadata.score == 0.0 for obj in bm25_objs)
+
+
+def test_tenant_exists(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(
+            enabled=True,
+        ),
+    )
+
+    collection.tenants.create([Tenant(name="tenant1")])
+    collection.tenants.create([Tenant(name="tenant2")])
+
+    assert collection.tenants.exists("tenant1")
+    assert not collection.tenants.exists("tenant3")
+    assert collection.tenants.exists("tenant2")
