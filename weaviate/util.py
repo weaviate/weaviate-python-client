@@ -10,8 +10,9 @@ import os
 import re
 from enum import Enum, EnumMeta
 from pathlib import Path
-from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
+from typing import Union, Any, Optional, List, Dict, Generator, Tuple, cast, Sequence
 
+import numpy
 import requests
 import httpx
 import uuid as uuid_lib
@@ -408,7 +409,7 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
     return _uuid
 
 
-def get_vector(vector: Sequence) -> List[float]:
+def get_vector(vector: Union[Sequence, numpy.ndarray]) -> List[float]:
     """
     Get weaviate compatible format of the embedding vector.
 
@@ -453,7 +454,7 @@ def get_vector(vector: Sequence) -> List[float]:
     ) from None
 
 
-def _get_vector_v4(vector: Sequence) -> List[float]:
+def _get_vector_v4(vector: Union[Sequence, numpy.ndarray]) -> List[float]:
     try:
         return get_vector(vector)
     except TypeError as e:

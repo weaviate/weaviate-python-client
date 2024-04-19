@@ -5,6 +5,7 @@ import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Union
 
+import numpy as np
 import pytest
 
 from integration.conftest import CollectionFactory, CollectionFactoryGet, _sanitize_collection_name
@@ -2106,3 +2107,40 @@ def test_none_query_hybrid_bm25(collection_factory: CollectionFactory) -> None:
     bm25_objs = collection.query.bm25(query=None, return_metadata=MetadataQuery.full()).objects
     assert len(bm25_objs) == 3
     assert all(obj.metadata.score is not None and obj.metadata.score == 0.0 for obj in bm25_objs)
+
+
+def test_insert_many_with_numpy_ndarray_vector(
+    collection_factory: CollectionFactory,
+    collection_factory_get: CollectionFactoryGet,
+) -> None:
+    dummy = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    collection = collection_factory_get(dummy.name)
+    ret = collection.data.insert_many(
+        [
+            DataObject(properties={"name": "value1"}, vector=[0.1, 0.2, 0.3]),
+            DataObject(properties={"name": "value2"}, vector=np.array([0.1, 0.2, 0.3])),
+        ]
+    )
+
+    obj1 = collection.query.fetch_object_by_id(ret.uuids[0], include_vector=True)
+    obj2 = collection.query.fetch_object_by_id(ret.uuids[1], include_vector=True)
+    assert is_float_array_close(obj1.vector["default"], [0.1, 0.2, 0.3])
+    assert is_float_array_close(obj2.vector["default"], [0.1, 0.2, 0.3])
+
+
+def is_close(a: float, b: float, rel_tol: float, abs_tol: float) -> bool:
+    return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+
+def is_float_array_close(a: list[float], b: list[float]) -> bool:
+    if len(a) != len(b):
+        return False
+
+    for i in range(len(a)):
+        if not is_close(a[i], b[i], 1e-7, 0):
+            return False
+
+    return True

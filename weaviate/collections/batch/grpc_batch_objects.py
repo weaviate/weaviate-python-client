@@ -5,6 +5,7 @@ import uuid as uuid_package
 from typing import Any, Dict, List, Optional, Union, cast
 
 import grpc  # type: ignore
+import numpy
 from google.protobuf.struct_pb2 import Struct
 
 from weaviate.collections.classes.batch import (
@@ -57,7 +58,7 @@ class _BatchGRPC(_BaseGRPC):
                 collection=obj.collection,
                 vector_bytes=(
                     pack_vector(obj.vector)
-                    if obj.vector is not None and isinstance(obj.vector, list)
+                    if obj.vector is not None and isinstance(obj.vector, (list, numpy.ndarray))
                     else None
                 ),
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
