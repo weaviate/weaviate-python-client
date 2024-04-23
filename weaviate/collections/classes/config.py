@@ -53,6 +53,7 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.warnings import _Warnings
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
@@ -252,7 +253,7 @@ class _PQEncoderConfigUpdate(_ConfigUpdateModel):
 
 
 class _PQConfigCreate(_QuantizerConfigCreate):
-    bitCompression: Optional[bool]
+    bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
     encoder: _PQEncoderConfigCreate
     segments: Optional[int]
@@ -273,7 +274,7 @@ class _BQConfigCreate(_QuantizerConfigCreate):
 
 
 class _PQConfigUpdate(_QuantizerConfigUpdate):
-    bitCompression: Optional[bool]
+    bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
     enabled: Optional[bool]
     segments: Optional[int]
@@ -1016,7 +1017,7 @@ PQEncoderConfig = _PQEncoderConfig
 
 @dataclass
 class _PQConfig(_ConfigBase):
-    bit_compression: bool
+    bit_compression: Optional[bool]
     segments: int
     centroids: int
     training_limit: int
@@ -1490,8 +1491,9 @@ class _VectorIndexQuantizer:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
+        if bit_compression is not None:
+            _Warnings.bit_compression_in_pq_config()
         return _PQConfigCreate(
-            bitCompression=bit_compression,
             centroids=centroids,
             segments=segments,
             trainingLimit=training_limit,
@@ -1709,9 +1711,11 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
+        if bit_compression is not None:
+            _Warnings.bit_compression_in_pq_config()
+
         return _PQConfigUpdate(
             enabled=enabled,
-            bitCompression=bit_compression,
             centroids=centroids,
             segments=segments,
             trainingLimit=training_limit,

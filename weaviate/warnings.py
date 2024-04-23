@@ -175,6 +175,14 @@ class _Warnings:
         )
 
     @staticmethod
+    def bit_compression_in_pq_config() -> None:
+        warnings.warn(
+            message="""Dep018: You are using the `bit_compression` argument in the `quantizer.pq()` method, which is deprecated so has no effect.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
