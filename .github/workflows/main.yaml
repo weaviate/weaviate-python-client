@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.14
-  NEW_WEAVIATE_VERSION: 1.24.8
+  NEW_WEAVIATE_VERSION: preview-add-an-external-grpc-method-for-getting-tenant-information-7eeb6c5
 
 jobs:
   lint-and-format:

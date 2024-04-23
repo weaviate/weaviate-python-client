@@ -795,6 +795,10 @@ class _ServerVersion:
                 f"Unable to parse a version from the input string: {initial}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
             )
 
+    @property
+    def supports_grpc_tenants_get(self) -> bool:
+        return self >= _ServerVersion(1, 25, 0)  # change to 1.25.0 when it lands
+
 
 def is_weaviate_too_old(current_version_str: str) -> bool:
     """
