@@ -307,3 +307,11 @@ class WeaviateConnectionError(WeaviateBaseError):
     def __init__(self, message: str = "") -> None:
         msg = f"""Connection to Weaviate failed. {message}"""
         super().__init__(msg)
+
+
+class WeaviateUnsupportedFeatureError(WeaviateBaseError):
+    """Is raised when a client method tries to use a new feature with an old Weaviate version."""
+
+    def __init__(self, feature: str, current: str, minimum: str) -> None:
+        msg = f"""{feature} is not supported by your connected server's Weaviate version. The current version is {current}, but the feature requires at least version {minimum}."""
+        super().__init__(msg)

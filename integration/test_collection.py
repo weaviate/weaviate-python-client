@@ -48,6 +48,7 @@ from weaviate.exceptions import (
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import UUID, UUIDS
 
@@ -1095,13 +1096,15 @@ def test_tenants(collection_factory: CollectionFactory) -> None:
     assert tenants["tenant1"].name == "tenant1"
     assert tenants["tenant2"].name == "tenant2"
 
-    if collection._connection._weaviate_version.supports_grpc_tenants_get:
+    if collection._connection._weaviate_version.supports_tenants_get_grpc:
         tenants = collection.tenants.get_by_names(names=["tenant2"])
         assert len(tenants) == 1
         assert type(tenants["tenant2"]) is Tenant
         assert tenants["tenant2"].name == "tenant2"
     else:
-        pytest.raises(WeaviateInvalidInputError, collection.tenants.get_by_names, names=["tenant2"])
+        pytest.raises(
+            WeaviateUnsupportedFeatureError, collection.tenants.get_by_names, names=["tenant2"]
+        )
 
     collection.tenants.remove(["tenant1", "tenant2"])
 
@@ -1117,7 +1120,7 @@ def test_tenant_get_by_name(collection_factory: CollectionFactory) -> None:
 
     collection.tenants.create([Tenant(name="tenant1")])
 
-    if collection._connection._weaviate_version.supports_grpc_tenants_get:
+    if collection._connection._weaviate_version.supports_tenants_get_grpc:
         tenant = collection.tenants.get_by_name("tenant1")
         assert tenant is not None
         assert tenant.name == "tenant1"
@@ -1125,7 +1128,25 @@ def test_tenant_get_by_name(collection_factory: CollectionFactory) -> None:
         tenant = collection.tenants.get_by_name("tenant2")
         assert tenant is None
     else:
-        pytest.raises(WeaviateInvalidInputError, collection.tenants.get_by_name, "tenant3")
+        pytest.raises(WeaviateUnsupportedFeatureError, collection.tenants.get_by_name, "tenant3")
+
+
+def test_tenant_exists(collection_factory: CollectionFactory) -> None:
+    name = "TestTenantExists"
+    collection = collection_factory(
+        name=name,
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+    if collection._connection._weaviate_version.supports_tenants_get_grpc:
+        tenant = Tenant(name="1")
+        collection.tenants.create([tenant])
+        assert collection.tenants.exists(tenant.name)
+        assert collection.tenants.exists(tenant)
+        assert not collection.tenants.exists("2")
+    else:
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            collection.tenants.exists("1")
 
 
 def test_multi_searches(collection_factory: CollectionFactory) -> None:

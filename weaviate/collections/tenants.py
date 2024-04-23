@@ -1,10 +1,9 @@
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.grpc.tenants import _TenantsGRPC
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.validator import _validate_input, _ValidateArgument
 
 from weaviate.connect.v4 import _ExpectedStatusCodes
@@ -135,7 +134,7 @@ class _Tenants:
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if self.__connection._weaviate_version.supports_grpc_tenants_get:
+        if self.__connection._weaviate_version.supports_tenants_get_grpc:
             return self.__get_with_grpc()
         else:
             return self.__get_with_rest()
@@ -159,10 +158,7 @@ class _Tenants:
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if not self.__connection._weaviate_version.supports_grpc_tenants_get:
-            raise WeaviateInvalidInputError(
-                "The 'get_by_names' method is only supported with Weaviate version >=1.25.0"
-            )
+        self.__connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_names' method")
         if self.__validate_arguments:
             _validate_input(
                 [_ValidateArgument(expected=[Sequence[str]], name="names", value=names)]
@@ -186,10 +182,7 @@ class _Tenants:
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if not self.__connection._weaviate_version.supports_grpc_tenants_get:
-            raise WeaviateInvalidInputError(
-                "The 'get_by_name' method is only supported with Weaviate version >=1.25.0"
-            )
+        self.__connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_name' method")
         response = self.__grpc.get(names=[name])
         if len(response.tenants) == 0:
             return None
@@ -231,3 +224,36 @@ class _Tenants:
                 ok_in=200, error=f"Update collection tenants for {self.__name}"
             ),
         )
+
+    def exists(self, tenant: Union[str, Tenant]) -> bool:
+        """Check if a tenant exists for a collection in Weaviate.
+
+        The collection must have been created with multi-tenancy enabled.
+
+        Arguments:
+            `tenant`
+                Tenant name or `wvc.config.tenants.Tenant` object to check for existence.
+
+        Returns:
+            `bool`
+                `True` if the tenant exists, `False` otherwise.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a non-OK status.
+        """
+        self.__connection._weaviate_version.check_is_at_least_1_25_0("The 'exists' method")
+
+        tenant_name = tenant.name if isinstance(tenant, Tenant) else tenant
+
+        path = "/schema/" + self.__name + "/tenants/" + tenant_name
+        response = self.__connection.head(
+            path=path,
+            error_msg=f"Could not check if tenant exists for {self.__name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=[200, 404], error=f"Check if tenant exists for {self.__name}"
+            ),  # allow 404 to perform bool check on response code
+        )
+        return response.status_code == 200
