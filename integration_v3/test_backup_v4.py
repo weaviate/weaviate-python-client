@@ -261,8 +261,8 @@ def test_fail_restoring_backup_for_existing_class(client: weaviate.WeaviateClien
             backend=BACKEND,
             wait_for_completion=True,
         )
-        assert class_name[0] in str(excinfo.value)
-        assert "already exists" in str(excinfo.value)
+    assert class_name[0] in str(excinfo.value)
+    assert "already exists" in str(excinfo.value)
 
 
 def test_fail_creating_existing_backup(client: weaviate.WeaviateClient) -> None:
