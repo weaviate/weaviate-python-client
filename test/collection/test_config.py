@@ -930,7 +930,7 @@ def test_vector_config_flat_pq() -> None:
 
     assert vi_dict["distance"] == "dot"
     assert vi_dict["vectorCacheMaxObjects"] == 456
-    assert vi_dict["pq"]["bitCompression"] is None
+    assert "bitCompression" not in vi_dict["pq"]
     assert vi_dict["pq"]["segments"] == 789
 
 

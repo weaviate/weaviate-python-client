@@ -470,7 +470,6 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
             ),
         ],
     )
-
     config = collection.config.get()
     assert config.vector_config is not None
     assert config.vector_config["first"].vector_index_config is not None
@@ -492,10 +491,7 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
     assert config.vector_config["first"].vector_index_config is not None
     assert config.vector_config["second"].vector_index_config is not None
     assert isinstance(config.vector_config["second"].vector_index_config.quantizer, PQConfig)
-    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        assert config.vector_config["second"].vector_index_config.quantizer.bit_compression is False
-    else:
-        assert config.vector_config["second"].vector_index_config.quantizer.bit_compression is None
+    assert config.vector_config["second"].vector_index_config.quantizer.centroids == 256
 
 
 # def test_update_to_change_quantizer_from_pq_to_bq_on_specific_named_vector(

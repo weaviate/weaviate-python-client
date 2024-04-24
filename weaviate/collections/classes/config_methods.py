@@ -112,7 +112,7 @@ def __get_vector_index_config(
         )
     elif "pq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["pq"].get("enabled"):
         quantizer = _PQConfig(
-            bit_compression=schema["vectorIndexConfig"]["pq"].get("bitCompression"),
+            internal_bit_compression=schema["vectorIndexConfig"]["pq"].get("bitCompression"),
             segments=schema["vectorIndexConfig"]["pq"].get("segments"),
             centroids=schema["vectorIndexConfig"]["pq"].get("centroids"),
             training_limit=schema["vectorIndexConfig"]["pq"].get("trainingLimit"),

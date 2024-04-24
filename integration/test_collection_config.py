@@ -320,10 +320,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.ef_construction == 100
     assert config.vector_index_config.flat_search_cutoff == 41000
     assert config.vector_index_config.max_connections == 72
-    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        assert config.vector_index_config.quantizer.bit_compression is True
-    else:
-        assert config.vector_index_config.quantizer.bit_compression is None
+    assert config.vector_index_config.quantizer.bit_compression is False
     assert config.vector_index_config.quantizer.centroids == 128
     assert config.vector_index_config.quantizer.encoder.distribution == PQEncoderDistribution.NORMAL
     # assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE # potential weaviate bug, this returns as PQEncoderType.KMEANS
@@ -342,7 +339,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
         ],
-        ports=(8087, 50051),
+        ports=(8087, 50058),
     )
     config = collection.config.get()
 
@@ -358,7 +355,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             stopwords_preset=StopwordsPreset.EN,
             stopwords_removals=["the"],
         ),
-        replication_config=Reconfigure.replication(factor=2),
+        # replication_config=Reconfigure.replication(factor=2), # currently not updateable in RAFT
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             vector_cache_max_objects=2000000,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(
@@ -381,7 +378,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
-    assert config.replication_config.factor == 2
+    # assert config.replication_config.factor == 2
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -394,10 +391,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
     assert config.vector_index_config.max_connections == 64
-    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        assert config.vector_index_config.quantizer.bit_compression is True
-    else:
-        assert config.vector_index_config.quantizer.bit_compression is None
+    assert config.vector_index_config.quantizer.bit_compression is False
     assert config.vector_index_config.quantizer.centroids == 128
     assert config.vector_index_config.quantizer.encoder.type_ == PQEncoderType.TILE
     assert config.vector_index_config.quantizer.encoder.distribution == PQEncoderDistribution.NORMAL

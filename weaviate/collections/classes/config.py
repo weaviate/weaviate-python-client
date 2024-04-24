@@ -1017,11 +1017,16 @@ PQEncoderConfig = _PQEncoderConfig
 
 @dataclass
 class _PQConfig(_ConfigBase):
-    bit_compression: Optional[bool]
+    internal_bit_compression: bool
     segments: int
     centroids: int
     training_limit: int
     encoder: PQEncoderConfig
+
+    @property
+    def bit_compression(self) -> bool:
+        _Warnings.bit_compression_in_pq_config()
+        return self.internal_bit_compression
 
 
 PQConfig = _PQConfig

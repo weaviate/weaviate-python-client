@@ -177,7 +177,7 @@ class _Warnings:
     @staticmethod
     def bit_compression_in_pq_config() -> None:
         warnings.warn(
-            message="""Dep018: You are using the `bit_compression` argument in the `quantizer.pq()` method, which is deprecated so has no effect.""",
+            message="""Dep018: The `bit_compression` argument in `PQConfig` is deprecated and will be removed by Q4 2024.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
