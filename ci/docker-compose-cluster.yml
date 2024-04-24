@@ -19,6 +19,9 @@ services:
       RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
       RAFT_BOOTSTRAP_EXPECT: "3"
       DISABLE_TELEMETRY: 'true'
+      CONTEXTIONARY_URL: contextionary:9999
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
 
 
   weaviate-node-2:
@@ -49,6 +52,9 @@ services:
       RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
       RAFT_BOOTSTRAP_EXPECT: "3"
       DISABLE_TELEMETRY: 'true'
+      CONTEXTIONARY_URL: contextionary:9999
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
 
   weaviate-node-3:
     init: true
@@ -78,4 +84,7 @@ services:
       RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
       RAFT_BOOTSTRAP_EXPECT: "3"
       DISABLE_TELEMETRY: 'true'
+      CONTEXTIONARY_URL: contextionary:9999
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
 ...
