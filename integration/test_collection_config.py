@@ -237,7 +237,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
             stopwords_removals=["the"],
         ),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-        replication_config=Configure.replication(factor=2),
+        # replication_config=Configure.replication(factor=2), # currently not updateable in RAFT
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
             distance_metric=VectorDistances.DOT,
@@ -308,7 +308,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
 
     assert config.multi_tenancy_config.enabled is True
 
-    assert config.replication_config.factor == 2
+    # assert config.replication_config.factor == 2
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -340,7 +340,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
         ],
-        ports=(8087, 50051),
+        ports=(8087, 50058),
     )
     config = collection.config.get()
 
@@ -356,7 +356,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             stopwords_preset=StopwordsPreset.EN,
             stopwords_removals=["the"],
         ),
-        replication_config=Reconfigure.replication(factor=2),
+        # replication_config=Reconfigure.replication(factor=2), # currently not updateable in RAFT
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             vector_cache_max_objects=2000000,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(
@@ -380,7 +380,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
-    assert config.replication_config.factor == 2
+    # assert config.replication_config.factor == 2
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -418,7 +418,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
-    assert config.replication_config.factor == 2
+    # assert config.replication_config.factor == 2
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300

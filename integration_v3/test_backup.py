@@ -238,7 +238,7 @@ def test_fail_on_non_existing_backend(client: weaviate.Client) -> None:
     for func in [client.backup.create, client.backup.get_create_status, client.backup.restore]:
         with pytest.raises(ValueError) as excinfo:
             func(backup_id=backup_id, backend=backend)
-            assert backend in str(excinfo.value)
+        assert backend in str(excinfo.value)
 
 
 def test_fail_on_non_existing_class(client: weaviate.Client) -> None:
@@ -248,8 +248,8 @@ def test_fail_on_non_existing_class(client: weaviate.Client) -> None:
     for func in [client.backup.create, client.backup.restore]:
         with pytest.raises(UnexpectedStatusCodeException) as excinfo:
             func(backup_id=backup_id, backend=BACKEND, include_classes=class_name)
-            assert class_name in str(excinfo.value)
-            assert "422" in str(excinfo.value)
+        assert class_name in str(excinfo.value)
+        assert "422" in str(excinfo.value)
 
 
 def test_fail_restoring_backup_for_existing_class(client: weaviate.Client):
@@ -269,8 +269,8 @@ def test_fail_restoring_backup_for_existing_class(client: weaviate.Client):
             backend=BACKEND,
             wait_for_completion=True,
         )
-        assert class_name[0] in str(excinfo.value)
-        assert "already exists" in str(excinfo.value)
+    assert class_name[0] in str(excinfo.value)
+    assert "already exists" in str(excinfo.value)
 
 
 def test_fail_creating_existing_backup(client: weaviate.Client):
@@ -290,8 +290,8 @@ def test_fail_creating_existing_backup(client: weaviate.Client):
             backend=BACKEND,
             wait_for_completion=True,
         )
-        assert backup_id in str(excinfo.value)
-        assert "422" in str(excinfo.value)
+    assert backup_id in str(excinfo.value)
+    assert "422" in str(excinfo.value)
 
 
 def test_fail_restoring_non_existing_backup(client: weaviate.Client):
@@ -299,8 +299,8 @@ def test_fail_restoring_non_existing_backup(client: weaviate.Client):
     backup_id = _create_backup_id()
     with pytest.raises(UnexpectedStatusCodeException) as excinfo:
         client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
-        assert backup_id in str(excinfo.value)
-        assert "404" in str(excinfo.value)
+    assert backup_id in str(excinfo.value)
+    assert "404" in str(excinfo.value)
 
 
 def test_fail_checking_status_for_non_existing_restore(client: weaviate.Client):
@@ -312,8 +312,8 @@ def test_fail_checking_status_for_non_existing_restore(client: weaviate.Client):
                 backup_id=backup_id,
                 backend=BACKEND,
             )
-            assert backup_id in str(excinfo)
-            assert "404" in str(excinfo)
+        assert backup_id in str(excinfo)
+        assert "404" in str(excinfo)
 
 
 def test_fail_creating_backup_for_both_include_and_exclude_classes(client: weaviate.Client):
@@ -331,6 +331,6 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(client: weavi
                 backend=BACKEND,
                 wait_for_completion=True,
             )
-            assert "Either 'include_classes' OR 'exclude_classes' can be set, not both" in str(
-                excinfo.value
-            )
+        assert "Either 'include_classes' OR 'exclude_classes' can be set, not both" in str(
+            excinfo.value
+        )
