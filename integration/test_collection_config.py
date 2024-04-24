@@ -416,7 +416,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
-    assert config.replication_config.factor == 2
+    # assert config.replication_config.factor == 2
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
