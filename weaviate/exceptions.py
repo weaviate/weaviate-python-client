@@ -272,7 +272,7 @@ class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
 class WeaviateGRPCUnavailableError(WeaviateBaseError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
-    def __init__(self, weaviate_version: str = "", grpc_address = ("", "")) -> None:
+    def __init__(self, weaviate_version: str = "", grpc_address=("", "")) -> None:
         msg = f"""
 The gRPC health check against Weaviate at {grpc_address[0]}:{grpc_address[1]} could not be completed.
 Weaviate {weaviate_version} makes use of a high-speed gRPC API as well as a REST API.
