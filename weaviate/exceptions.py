@@ -280,9 +280,10 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
         else:
             grpc_msg = f"Please check that the server address and port ({grpc_address[0]}:{grpc_address[1]}) are correct."
         msg = f"""
-The gRPC health check against Weaviate could not be completed.
 Weaviate {weaviate_version} makes use of a high-speed gRPC API as well as a REST API.
-This could be due to one of several reasons:
+Unfortunately, the gRPC health check against Weaviate could not be completed.
+
+This error could be due to one of several reasons:
 - The gRPC traffic at the specified port is blocked by a firewall.
 - gRPC is not enabled or incorrectly configured on the server or the client.
     - {grpc_msg}
