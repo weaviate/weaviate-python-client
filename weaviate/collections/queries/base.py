@@ -160,11 +160,11 @@ class _BaseQuery(Generic[Properties, References]):
             return {}
 
         if len(add_props.vector_bytes) > 0:
-            return {"default": list(_ByteOps.decode_float32s(add_props.vector_bytes))}
+            return {"default": _ByteOps.decode_float32s(add_props.vector_bytes)}
 
         vecs = {}
         for vec in add_props.vectors:
-            vecs[vec.name] = list(_ByteOps.decode_float32s(vec.vector_bytes))
+            vecs[vec.name] = _ByteOps.decode_float32s(vec.vector_bytes)
         return vecs
 
     def __extract_generated_for_object(
