@@ -244,7 +244,7 @@ class _Connection(_ConnectionBase):
                 response = client.get(oidc_url)
             except Exception as e:
                 raise WeaviateConnectionError(
-                    f"Error: {e}. Is Weaviate running and reachable at {self.url}?"
+                    f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
                 )
 
         if response.status_code == 200:
