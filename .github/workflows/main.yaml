@@ -15,7 +15,7 @@ on:
 
 env:
   OLD_WEAVIATE_VERSION: 1.23.14
-  NEW_WEAVIATE_VERSION: 1.25.0-raft-83a51ad
+  NEW_WEAVIATE_VERSION: preview-fix-update-schema-when-pq-is-enabled-for-a-named-vector-index-bbc9931
 
 jobs:
   lint-and-format:
