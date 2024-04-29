@@ -14,7 +14,7 @@ from weaviate.backup.backup import (
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
 from weaviate.exceptions import (
-    WeaviateNotImplementedError,
+    WeaviateUnsupportedFeatureError,
     UnexpectedStatusCodeException,
     BackupFailedException,
 )
@@ -430,7 +430,7 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
 
     article = client.collections.get("Article")
 
-    with pytest.raises(WeaviateNotImplementedError):
+    with pytest.raises(WeaviateUnsupportedFeatureError):
         article.backup.create(
             backup_id=backup_id,
             backend=BACKEND,
@@ -442,7 +442,7 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
             ),
         )
 
-    with pytest.raises(WeaviateNotImplementedError):
+    with pytest.raises(WeaviateUnsupportedFeatureError):
         article.backup.restore(
             backup_id=backup_id,
             backend=BACKEND,
