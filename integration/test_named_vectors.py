@@ -14,7 +14,7 @@ from weaviate.collections.classes.config import (
 
 from weaviate.collections.classes.aggregate import AggregateInteger
 
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 
 
 def test_create_named_vectors_throws_error_in_old_version(
@@ -24,7 +24,7 @@ def test_create_named_vectors_throws_error_in_old_version(
     if not collection._connection._weaviate_version.is_lower_than(1, 24, 0):
         pytest.skip("Named vectors are supported in versions higher than 1.24.0")
 
-    with pytest.raises(WeaviateInvalidInputError):
+    with pytest.raises(WeaviateUnsupportedFeatureError):
         collection_factory(
             properties=[
                 wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
