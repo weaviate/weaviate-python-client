@@ -376,8 +376,8 @@ def test_backup_and_restore_with_collection(client: weaviate.WeaviateClient) -> 
 def test_backup_and_restore_with_collection_and_config_1_24_x(
     client: weaviate.WeaviateClient,
 ) -> None:
-    if client._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Backup config is only supported from Weaviate 1.24.0")
+    if client._connection._weaviate_version.is_lower_than(1, 25, 0):
+        pytest.skip("Backup config is only supported from Weaviate 1.25.0")
 
     backup_id = _create_backup_id()
 
