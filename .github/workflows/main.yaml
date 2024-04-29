@@ -14,8 +14,9 @@ on:
   pull_request:
 
 env:
-  OLD_WEAVIATE_VERSION: 1.23.13
-  NEW_WEAVIATE_VERSION: preview-add-groupby-to-hybrid-search-and-bm25f-add-moveto-movefrom-etc-to-aggregate-hybrid-search-c6ed9f3
+  WEAVIATE_123: 1.23.14
+  WEAVIATE_124: 1.24.10
+  WEAVIATE_125: 1.25.0-raft-fa6e08b
 
 jobs:
   lint-and-format:
@@ -119,12 +120,13 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.9", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.10", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
-          { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
+          { py: "3.8", weaviate: $WEAVIATE_125},
+          { py: "3.9", weaviate: $WEAVIATE_125},
+          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_123},
+          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.12", weaviate: $WEAVIATE_125}
         ]
         optional_dependencies: [false]
     steps:
@@ -169,12 +171,13 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.9", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.10", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
-          { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
+          { py: "3.8", weaviate: $WEAVIATE_125},
+          { py: "3.9", weaviate: $WEAVIATE_125},
+          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_123},
+          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.12", weaviate: $WEAVIATE_125}
         ]
         optional_dependencies: [false]
     steps:
@@ -278,8 +281,9 @@ jobs:
       fail-fast: false
       matrix:
         server: [
-          $OLD_WEAVIATE_VERSION,
-          $NEW_WEAVIATE_VERSION,
+          $WEAVIATE_123,
+          $WEAVIATE_124,
+          $WEAVIATE_125
         ]
     steps:
       - name: Download build artifact to append to release
