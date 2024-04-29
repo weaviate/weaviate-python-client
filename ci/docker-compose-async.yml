@@ -12,7 +12,7 @@ services:
     image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
       - "8090:8090"
-      - "50060:50051"
+      - "50061:50051"
     restart: on-failure:0
     environment:
       QUERY_DEFAULTS_LIMIT: 25

@@ -64,7 +64,7 @@ class _ConvertFromREST:
                         )
                         for shard in cast(List[ShardREST], node["shards"])
                     ]
-                    if "shards" in node
+                    if "shards" in node and node["shards"] is not None
                     else []
                 ),
                 stats=(

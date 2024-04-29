@@ -470,7 +470,6 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
             ),
         ],
     )
-
     config = collection.config.get()
     assert config.vector_config is not None
     assert config.vector_config["first"].vector_index_config is not None
@@ -482,7 +481,7 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
             wvc.config.Reconfigure.NamedVectors.update(
                 name="second",
                 vector_index_config=wvc.config.Reconfigure.VectorIndex.hnsw(
-                    quantizer=wvc.config.Reconfigure.VectorIndex.Quantizer.pq(bit_compression=True)
+                    quantizer=wvc.config.Reconfigure.VectorIndex.Quantizer.pq()
                 ),
             )
         ]
@@ -492,7 +491,7 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
     assert config.vector_config["first"].vector_index_config is not None
     assert config.vector_config["second"].vector_index_config is not None
     assert isinstance(config.vector_config["second"].vector_index_config.quantizer, PQConfig)
-    assert config.vector_config["second"].vector_index_config.quantizer.bit_compression is True
+    assert config.vector_config["second"].vector_index_config.quantizer.centroids == 256
 
 
 # def test_update_to_change_quantizer_from_pq_to_bq_on_specific_named_vector(
