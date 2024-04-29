@@ -52,11 +52,7 @@ class _Tenants:
         """
         if self.__validate_arguments:
             _validate_input(
-                [
-                    _ValidateArgument(
-                        expected=[Union[Tenant, List[Tenant]]], name="tenants", value=tenants
-                    )
-                ]
+                [_ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)]
             )
 
         loaded_tenants = (
@@ -218,11 +214,7 @@ class _Tenants:
         """
         if self.__validate_arguments:
             _validate_input(
-                [
-                    _ValidateArgument(
-                        expected=[Union[Tenant, List[Tenant]]], name="tenants", value=tenants
-                    )
-                ]
+                [_ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)]
             )
 
         loaded_tenants = (
