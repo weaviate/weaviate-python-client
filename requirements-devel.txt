@@ -13,11 +13,11 @@ wheel
 setuptools_scm
 Sphinx>=7.0.0
 sphinx-rtd-theme==2.0.0
-autodoc-pydantic==2.1.0
+autodoc-pydantic==2.2.0
 
 grpcio-tools
 
-pytest==8.1.1
+pytest==8.2.0
 pytest-cov==5.0.0
 pytest-benchmark==4.0.0
 pytest-profiling==1.7.0
@@ -38,6 +38,6 @@ typing_extensions>=4.7.1<5.0.0
 pre-commit
 
 flake8
-flake8-bugbear==24.4.21
+flake8-bugbear==24.4.26
 flake8-comprehensions==3.14.0
 flake8-builtins==2.5.0
