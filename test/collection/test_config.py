@@ -923,14 +923,14 @@ def test_vector_config_flat_pq() -> None:
     vector_index = Configure.VectorIndex.flat(
         distance_metric=VectorDistances.DOT,
         vector_cache_max_objects=456,
-        quantizer=Configure.VectorIndex.Quantizer.pq(bit_compression=True, segments=789),
+        quantizer=Configure.VectorIndex.Quantizer.pq(segments=789),
     )
 
     vi_dict = vector_index._to_dict()
 
     assert vi_dict["distance"] == "dot"
     assert vi_dict["vectorCacheMaxObjects"] == 456
-    assert vi_dict["pq"]["bitCompression"]
+    assert "bitCompression" not in vi_dict["pq"]
     assert vi_dict["pq"]["segments"] == 789
 
 

@@ -11,17 +11,17 @@ services:
       QUERY_DEFAULTS_LIMIT: 20
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: "./weaviate-node-1"
+      CLUSTER_HOSTNAME: "node1"
       CLUSTER_GOSSIP_BIND_PORT: "7110"
       CLUSTER_DATA_BIND_PORT: "7111"
-      CONTEXTIONARY_URL: contextionary:9999
-      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
-      ENABLE_MODULES: text2vec-contextionary
-      DISABLE_TELEMETRY: 'true'
       RAFT_PORT: '8300'
       RAFT_INTERNAL_RPC_PORT: "8301"
       RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
       RAFT_BOOTSTRAP_EXPECT: "3"
-      CLUSTER_HOSTNAME: "node1"
+      DISABLE_TELEMETRY: 'true'
+      CONTEXTIONARY_URL: contextionary:9999
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
 
   weaviate-node-2:
     init: true
@@ -36,7 +36,6 @@ services:
     ports:
       - 8088:8080
       - "50059:50051"
-      - 6061:6060
     restart: on-failure:0
     environment:
       LOG_LEVEL: 'debug'
@@ -47,13 +46,14 @@ services:
       CLUSTER_GOSSIP_BIND_PORT: '7110'
       CLUSTER_DATA_BIND_PORT: '7111'
       CLUSTER_JOIN: 'weaviate-node-1:7110'
-      CONTEXTIONARY_URL: contextionary:9999
-      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
-      ENABLE_MODULES: text2vec-contextionary
       RAFT_PORT: '8300'
       RAFT_INTERNAL_RPC_PORT: "8301"
       RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
       RAFT_BOOTSTRAP_EXPECT: "3"
+      DISABLE_TELEMETRY: 'true'
+      CONTEXTIONARY_URL: contextionary:9999
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
 
   weaviate-node-3:
     init: true
@@ -86,5 +86,4 @@ services:
       CONTEXTIONARY_URL: contextionary:9999
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
-
 ...

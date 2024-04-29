@@ -249,7 +249,6 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
             flat_search_cutoff=41000,
             max_connections=72,
             quantizer=Configure.VectorIndex.Quantizer.pq(
-                bit_compression=True,
                 centroids=128,
                 encoder_distribution=PQEncoderDistribution.NORMAL,
                 encoder_type=PQEncoderType.TILE,
@@ -321,7 +320,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.ef_construction == 100
     assert config.vector_index_config.flat_search_cutoff == 41000
     assert config.vector_index_config.max_connections == 72
-    assert config.vector_index_config.quantizer.bit_compression is True
+    assert config.vector_index_config.quantizer.bit_compression is False
     assert config.vector_index_config.quantizer.centroids == 128
     assert config.vector_index_config.quantizer.encoder.distribution == PQEncoderDistribution.NORMAL
     # assert config.vector_index_config.pq.encoder.type_ == PQEncoderType.TILE # potential weaviate bug, this returns as PQEncoderType.KMEANS
@@ -360,7 +359,6 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             vector_cache_max_objects=2000000,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(
-                bit_compression=True,
                 centroids=128,
                 encoder_type=PQEncoderType.TILE,
                 encoder_distribution=PQEncoderDistribution.NORMAL,
@@ -393,7 +391,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
     assert config.vector_index_config.max_connections == 64
-    assert config.vector_index_config.quantizer.bit_compression is True
+    assert config.vector_index_config.quantizer.bit_compression is False
     assert config.vector_index_config.quantizer.centroids == 128
     assert config.vector_index_config.quantizer.encoder.type_ == PQEncoderType.TILE
     assert config.vector_index_config.quantizer.encoder.distribution == PQEncoderDistribution.NORMAL

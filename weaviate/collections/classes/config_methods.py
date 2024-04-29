@@ -110,24 +110,26 @@ def __get_vector_index_config(
             cache=schema["vectorIndexConfig"]["bq"].get("cache"),
             rescore_limit=schema["vectorIndexConfig"]["bq"].get("rescoreLimit"),
         )
-    elif "pq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["pq"]["enabled"]:
+    elif "pq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["pq"].get("enabled"):
         quantizer = _PQConfig(
-            bit_compression=schema["vectorIndexConfig"]["pq"]["bitCompression"],
-            segments=schema["vectorIndexConfig"]["pq"]["segments"],
-            centroids=schema["vectorIndexConfig"]["pq"]["centroids"],
-            training_limit=schema["vectorIndexConfig"]["pq"]["trainingLimit"],
+            internal_bit_compression=schema["vectorIndexConfig"]["pq"].get("bitCompression"),
+            segments=schema["vectorIndexConfig"]["pq"].get("segments"),
+            centroids=schema["vectorIndexConfig"]["pq"].get("centroids"),
+            training_limit=schema["vectorIndexConfig"]["pq"].get("trainingLimit"),
             encoder=_PQEncoderConfig(
-                type_=PQEncoderType(schema["vectorIndexConfig"]["pq"]["encoder"]["type"]),
+                type_=PQEncoderType(
+                    schema["vectorIndexConfig"]["pq"].get("encoder", {}).get("type")
+                ),
                 distribution=PQEncoderDistribution(
-                    schema["vectorIndexConfig"]["pq"]["encoder"]["distribution"]
+                    schema["vectorIndexConfig"]["pq"].get("encoder", {}).get("distribution")
                 ),
             ),
         )
 
     if schema["vectorIndexType"] == "hnsw":
         return _VectorIndexConfigHNSW(
-            cleanup_interval_seconds=schema["vectorIndexConfig"]["cleanupIntervalSeconds"],
-            distance_metric=VectorDistances(schema["vectorIndexConfig"]["distance"]),
+            cleanup_interval_seconds=schema["vectorIndexConfig"].get("cleanupIntervalSeconds"),
+            distance_metric=VectorDistances(schema["vectorIndexConfig"].get("distance")),
             dynamic_ef_min=schema["vectorIndexConfig"]["dynamicEfMin"],
             dynamic_ef_max=schema["vectorIndexConfig"]["dynamicEfMax"],
             dynamic_ef_factor=schema["vectorIndexConfig"]["dynamicEfFactor"],
