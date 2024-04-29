@@ -17,6 +17,11 @@ services:
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
       DISABLE_TELEMETRY: 'true'
+      RAFT_PORT: '8300'
+      RAFT_INTERNAL_RPC_PORT: "8301"
+      RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
+      RAFT_BOOTSTRAP_EXPECT: "3"
+      CLUSTER_HOSTNAME: "node1"
 
   weaviate-node-2:
     init: true
@@ -39,10 +44,47 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: './weaviate-node-2'
       CLUSTER_HOSTNAME: 'node2'
-      CLUSTER_GOSSIP_BIND_PORT: '7112'
-      CLUSTER_DATA_BIND_PORT: '7113'
+      CLUSTER_GOSSIP_BIND_PORT: '7110'
+      CLUSTER_DATA_BIND_PORT: '7111'
       CLUSTER_JOIN: 'weaviate-node-1:7110'
       CONTEXTIONARY_URL: contextionary:9999
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
+      RAFT_PORT: '8300'
+      RAFT_INTERNAL_RPC_PORT: "8301"
+      RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
+      RAFT_BOOTSTRAP_EXPECT: "3"
+
+  weaviate-node-3:
+    init: true
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --scheme
+      - http
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
+    ports:
+      - 8089:8080
+      - "50060:50051"
+    restart: on-failure:0
+    environment:
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 20
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: './weaviate-node-2'
+      CLUSTER_HOSTNAME: 'node3'
+      CLUSTER_GOSSIP_BIND_PORT: '7110'
+      CLUSTER_DATA_BIND_PORT: '7111'
+      CLUSTER_JOIN: 'weaviate-node-1:7110'
+      RAFT_PORT: '8300'
+      RAFT_INTERNAL_RPC_PORT: "8301"
+      RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
+      RAFT_BOOTSTRAP_EXPECT: "3"
+      DISABLE_TELEMETRY: 'true'
+      CONTEXTIONARY_URL: contextionary:9999
+      DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
+      ENABLE_MODULES: text2vec-contextionary
+
 ...
