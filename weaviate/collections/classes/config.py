@@ -186,6 +186,7 @@ class Rerankers(str, Enum):
     NONE = "none"
     COHERE = "reranker-cohere"
     TRANSFORMERS = "reranker-transformers"
+    VOYAGEAI = "reranker-voyageai"
 
 
 class StopwordsPreset(str, Enum):
@@ -252,7 +253,7 @@ class _PQEncoderConfigUpdate(_ConfigUpdateModel):
 
 
 class _PQConfigCreate(_QuantizerConfigCreate):
-    bitCompression: Optional[bool]
+    bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
     encoder: _PQEncoderConfigCreate
     segments: Optional[int]
@@ -273,7 +274,7 @@ class _BQConfigCreate(_QuantizerConfigCreate):
 
 
 class _PQConfigUpdate(_QuantizerConfigUpdate):
-    bitCompression: Optional[bool]
+    bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
     enabled: Optional[bool]
     segments: Optional[int]
@@ -457,6 +458,14 @@ class _RerankerCohereConfig(_RerankerConfigCreate):
 
 class _RerankerTransformersConfig(_RerankerConfigCreate):
     reranker: Rerankers = Field(default=Rerankers.TRANSFORMERS, frozen=True, exclude=True)
+
+
+RerankerVoyageAIModel = Literal["rerank-lite-1"]
+
+
+class _RerankerVoyageAIConfig(_RerankerConfigCreate):
+    reranker: Rerankers = Field(default=Rerankers.VOYAGEAI, frozen=True, exclude=True)
+    model: Optional[Union[RerankerVoyageAIModel, str]] = Field(default=None)
 
 
 class _Generative:
@@ -701,6 +710,21 @@ class _Reranker:
                 The model to use. Defaults to `None`, which uses the server-defined default
         """
         return _RerankerCohereConfig(model=model)
+
+    @staticmethod
+    def voyageai(
+        model: Optional[Union[RerankerVoyageAIModel, str]] = None,
+    ) -> _RerankerConfigCreate:
+        """Create a `_RerankerVoyageAIConfig` object for use when reranking using the `reranker-voyageai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-voyageai)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _RerankerVoyageAIConfig(model=model)
 
 
 class _CollectionConfigCreateBase(_ConfigCreateModel):
@@ -991,11 +1015,16 @@ PQEncoderConfig = _PQEncoderConfig
 
 @dataclass
 class _PQConfig(_ConfigBase):
-    bit_compression: bool
+    internal_bit_compression: bool
     segments: int
     centroids: int
     training_limit: int
     encoder: PQEncoderConfig
+
+    @property
+    def bit_compression(self) -> bool:
+        _Warnings.bit_compression_in_pq_config()
+        return self.internal_bit_compression
 
 
 PQConfig = _PQConfig
@@ -1465,8 +1494,9 @@ class _VectorIndexQuantizer:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
+        if bit_compression is not None:
+            _Warnings.bit_compression_in_pq_config()
         return _PQConfigCreate(
-            bitCompression=bit_compression,
             centroids=centroids,
             segments=segments,
             trainingLimit=training_limit,
@@ -1688,9 +1718,11 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
+        if bit_compression is not None:
+            _Warnings.bit_compression_in_pq_config()
+
         return _PQConfigUpdate(
             enabled=enabled,
-            bitCompression=bit_compression,
             centroids=centroids,
             segments=segments,
             trainingLimit=training_limit,

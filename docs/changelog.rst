@@ -1,5 +1,20 @@
 Changelog
 =========
+Version 4.5.6
+--------------
+This patch version includes:
+
+- Support for configuring collections with the new ``reranker-voyageai`` module
+- Providing an ``alpha`` parameter to ``collection.iterator()`` to control the beginning of the iteration
+- Update the default ``Timeout.init`` value from ``1s`` to ``2s``
+
+Version 4.5.5
+--------------
+This patch version includes:
+
+- Bugfix when parsing the result from ``v1/nodes`` API with ``shards: null``
+- Bugfix when parsing the result from ``v1/schema`` API with ``class.properties.moduleConfig: null`` and ``class.vectoriser: !'none'``
+- Dependency bumps
 
 Version 4.5.4
 --------------

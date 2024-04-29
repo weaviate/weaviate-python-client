@@ -10,16 +10,19 @@ ITERATOR_CACHE_SIZE = 100
 
 class _ObjectIterator(Generic[P, R], Iterable[Object[P, R]]):
     def __init__(
-        self, fetch_objects_query: Callable[[int, Optional[UUID]], List[Object[P, R]]]
+        self,
+        fetch_objects_query: Callable[[int, Optional[UUID]], List[Object[P, R]]],
+        init_after: Optional[UUID],
     ) -> None:
         self.__query = fetch_objects_query
+        self.__init_after = init_after
 
         self.__iter_object_cache: List[Object[P, R]] = []
-        self.__iter_object_last_uuid: Optional[UUID] = None
+        self.__iter_object_last_uuid: Optional[UUID] = init_after
 
     def __iter__(self) -> Iterator[Object[P, R]]:
         self.__iter_object_cache = []
-        self.__iter_object_last_uuid = None
+        self.__iter_object_last_uuid = self.__init_after
         return self
 
     def __next__(self) -> Object[P, R]:

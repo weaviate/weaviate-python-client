@@ -15,7 +15,7 @@ from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple,
 import requests
 import httpx
 import uuid as uuid_lib
-import validators  # type: ignore
+import validators
 from requests.exceptions import JSONDecodeError
 
 from weaviate.exceptions import (

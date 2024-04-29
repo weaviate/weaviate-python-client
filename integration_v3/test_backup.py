@@ -290,8 +290,8 @@ def test_fail_creating_existing_backup(client: weaviate.Client):
             backend=BACKEND,
             wait_for_completion=True,
         )
-        assert backup_id in str(excinfo.value)
-        assert "422" in str(excinfo.value)
+    assert backup_id in str(excinfo.value)
+    assert "422" in str(excinfo.value)
 
 
 def test_fail_restoring_non_existing_backup(client: weaviate.Client):
