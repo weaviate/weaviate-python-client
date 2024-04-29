@@ -340,6 +340,18 @@ def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) ->
         assert nodes[0].shards[0].loaded is True
 
 
+def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+    client.collections.delete(request.node.name)
+    collection = client.collections.create(
+        name=request.node.name,
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+
+    nodes = client.cluster.nodes(collection.name, output="verbose")
+    assert len(nodes) == 1
+    assert len(nodes[0].shards) == 0
+
+
 def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     client.collections.delete(request.node.name)
     collection = client.collections.create(name=request.node.name)
@@ -440,7 +452,7 @@ def test_client_with_skip_init_check(request: SubRequest) -> None:
     assert obj.properties["name"] == "Name"
 
 
-@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=1)])
+@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
 def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> None:
     additional_config = wvc.init.AdditionalConfig(timeout=timeout, trust_env=True)
 
@@ -460,7 +472,7 @@ def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> 
             additional_config=additional_config,
         ),
     ]:
-        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=1)
+        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
 
 
 def test_client_error_for_wcs_without_auth() -> None:

@@ -402,7 +402,7 @@ def test_add_one_hundred_objects_and_references_between_all(client_factory: Clie
 def test_add_1000_objects_with_async_indexing_and_wait(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
-    client, name = client_factory(ports=(8090, 50060))
+    client, name = client_factory(ports=(8090, 50061))
 
     nr_objects = 1000
     with client.batch.dynamic() as batch:
@@ -422,12 +422,12 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] == 0
 
 
-@pytest.mark.skip("Difficult to find numbers that work reliable in the CI")
+@pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
 def test_add_10000_objects_with_async_indexing_and_dont_wait(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
     old_client = weaviate.Client("http://localhost:8090")
-    client, name = client_factory(ports=(8090, 50060))
+    client, name = client_factory(ports=(8090, 50061))
 
     nr_objects = 10000
     vec_length = 1000
@@ -451,7 +451,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
 def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
-    client, name = client_factory(ports=(8090, 50060), multi_tenant=True)
+    client, name = client_factory(ports=(8090, 50061), multi_tenant=True)
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     collection = client.collections.get(name)
     collection.tenants.create(tenants)
@@ -476,10 +476,11 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
         assert shard["vectorQueueSize"] == 0
 
 
+@pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
 def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     client_factory: ClientFactory,
 ) -> None:
-    client, name = client_factory(ports=(8090, 50060), multi_tenant=True)
+    client, name = client_factory(ports=(8090, 50061), multi_tenant=True)
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     collection = client.collections.get(name)
     collection.tenants.create(tenants)

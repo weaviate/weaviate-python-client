@@ -50,7 +50,7 @@ class Timeout(BaseModel):
 
     query: int = Field(default=30, ge=0)
     insert: int = Field(default=90, ge=0)
-    init: int = Field(default=1, ge=0)
+    init: int = Field(default=2, ge=0)
 
 
 class Proxies(BaseModel):

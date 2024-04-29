@@ -3,7 +3,7 @@ Weaviate Exceptions.
 """
 
 from json.decoder import JSONDecodeError
-from typing import Union
+from typing import Union, Tuple
 import httpx
 import requests
 
@@ -272,13 +272,25 @@ class WeaviateInsertInvalidPropertyError(WeaviateBaseError):
 class WeaviateGRPCUnavailableError(WeaviateBaseError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
-    def __init__(self, weaviate_version: str = "") -> None:
-        msg = f"""gRPC health check could not be completed. This could have several reasons:
-        - gRPC is not enabled or incorrectly configured on the server with version {weaviate_version} or the client
-        - your connection is unstable or has a high latency. In this case you can:
-            - increase init-timeout in `weaviate.connect_to_local(additional_config=wvc.init.AdditionalConfig(timeout=wvc.init.Timeout(init=X)))`
-            - disable startup checks by connecting using `skip_init_checks=True`
-        """
+    def __init__(
+        self, weaviate_version: str = "", grpc_address: Tuple[str, int] = ("not provided", 0)
+    ) -> None:
+        if grpc_address[0] == "not provided":
+            grpc_msg = "Please check the server address and port."
+        else:
+            grpc_msg = f"Please check that the server address and port ({grpc_address[0]}:{grpc_address[1]}) are correct."
+        msg = f"""
+Weaviate {weaviate_version} makes use of a high-speed gRPC API as well as a REST API.
+Unfortunately, the gRPC health check against Weaviate could not be completed.
+
+This error could be due to one of several reasons:
+- The gRPC traffic at the specified port is blocked by a firewall.
+- gRPC is not enabled or incorrectly configured on the server or the client.
+    - {grpc_msg}
+- your connection is unstable or has a high latency. In this case you can:
+    - increase init-timeout in `weaviate.connect_to_local(additional_config=wvc.init.AdditionalConfig(timeout=wvc.init.Timeout(init=X)))`
+    - disable startup checks by connecting using `skip_init_checks=True`
+"""
         super().__init__(msg)
 
 
