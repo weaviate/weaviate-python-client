@@ -281,8 +281,9 @@ jobs:
       fail-fast: false
       matrix:
         server: [
-          $OLD_WEAVIATE_VERSION,
-          $NEW_WEAVIATE_VERSION,
+          $WEAVIATE_123,
+          $WEAVIATE_124,
+          $WEAVIATE_125
         ]
     steps:
       - name: Download build artifact to append to release
