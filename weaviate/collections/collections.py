@@ -27,7 +27,7 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import Collection
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.util import _capitalize_first_letter
 
@@ -99,6 +99,8 @@ class _Collections(_CollectionsBase):
         Raises:
             `weaviate.WeaviateInvalidInputError`
                 If the input parameters are invalid.
+            `weaviate.exceptions.WeaviateUnsupportedFeatureError`
+                If the Weaviate version is lower than 1.24.0 and named vectorizers are provided.
             `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
@@ -125,8 +127,10 @@ class _Collections(_CollectionsBase):
                 vectorizer_config=vectorizer_config or _Vectorizer.none(),
                 vector_index_config=vector_index_config,
             )
-        except ValidationError as e:
-            raise WeaviateInvalidInputError("Invalid collection config create parameters.") from e
+        except ValidationError:
+            raise WeaviateUnsupportedFeatureError(
+                "Named vectorizers", self._connection.server_version, "1.24.0"
+            )
         name = super()._create(config._to_dict())
         assert (
             config.name == name

@@ -11,7 +11,7 @@ from weaviate.collections.classes.data import (
     DataObject,
 )
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
-from weaviate.exceptions import WeaviateNotImplementedError
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 
 
 def test_delete_by_id_tenant(collection_factory: CollectionFactory) -> None:
@@ -104,9 +104,7 @@ def test_update_with_tenant(collection_factory: CollectionFactory) -> None:
 def test_tenants(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
-        multi_tenancy_config=Configure.multi_tenancy(
-            enabled=True,
-        ),
+        multi_tenancy_config=Configure.multi_tenancy(),
     )
 
     collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
@@ -114,10 +112,21 @@ def test_tenants(collection_factory: CollectionFactory) -> None:
     tenants = collection.tenants.get()
     assert len(tenants) == 2
     assert type(tenants["tenant1"]) is Tenant
+    assert type(tenants["tenant2"]) is Tenant
     assert tenants["tenant1"].name == "tenant1"
+    assert tenants["tenant2"].name == "tenant2"
 
-    collection.tenants.remove(["tenant1"])
-    collection.tenants.remove(Tenant(name="tenant2"))
+    if collection._connection._weaviate_version.supports_tenants_get_grpc:
+        tenants = collection.tenants.get_by_names(names=["tenant2"])
+        assert len(tenants) == 1
+        assert type(tenants["tenant2"]) is Tenant
+        assert tenants["tenant2"].name == "tenant2"
+    else:
+        pytest.raises(
+            WeaviateUnsupportedFeatureError, collection.tenants.get_by_names, names=["tenant2"]
+        )
+
+    collection.tenants.remove(["tenant1", "tenant2"])
 
     tenants = collection.tenants.get()
     assert len(tenants) == 0
@@ -249,10 +258,29 @@ def test_tenant_exists(collection_factory: CollectionFactory) -> None:
     tenant = Tenant(name="1")
     collection.tenants.create([tenant])
 
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 5):
-        with pytest.raises(WeaviateNotImplementedError):
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             collection.tenants.exists(tenant.name)
     else:
         assert collection.tenants.exists(tenant.name)
         assert collection.tenants.exists(tenant)
         assert not collection.tenants.exists("2")
+
+
+def test_tenant_get_by_name(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(),
+    )
+
+    collection.tenants.create([Tenant(name="tenant1")])
+
+    if collection._connection._weaviate_version.supports_tenants_get_grpc:
+        tenant = collection.tenants.get_by_name("tenant1")
+        assert tenant is not None
+        assert tenant.name == "tenant1"
+
+        tenant = collection.tenants.get_by_name("tenant2")
+        assert tenant is None
+    else:
+        pytest.raises(WeaviateUnsupportedFeatureError, collection.tenants.get_by_name, "tenant3")

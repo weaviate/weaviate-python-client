@@ -12,7 +12,7 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.connect import Connection, ConnectionV4
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
-    WeaviateNotImplementedError,
+    WeaviateUnsupportedFeatureError,
     BackupFailedException,
     EmptyResponseException,
 )
@@ -151,9 +151,9 @@ class _Backup:
         }
 
         if config is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 24, 0):
-                raise WeaviateNotImplementedError(
-                    "BackupConfigCreate", str(self._connection._weaviate_version), "1.24.0"
+            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigCreate", str(self._connection._weaviate_version), "1.25.0"
                 )
             if not isinstance(config, BackupConfigCreate):
                 raise WeaviateInvalidInputError(
@@ -278,9 +278,9 @@ class _Backup:
         }
 
         if config is not None:
-            if self._connection._weaviate_version.is_lower_than(1, 24, 0):
-                raise WeaviateNotImplementedError(
-                    "BackupConfigRestore", str(self._connection._weaviate_version), "1.24.0"
+            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigRestore", str(self._connection._weaviate_version), "1.25.0"
                 )
             if not isinstance(config, BackupConfigRestore):
                 raise WeaviateInvalidInputError(
