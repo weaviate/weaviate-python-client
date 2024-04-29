@@ -203,3 +203,20 @@ def test_iterator(collection_factory: CollectionFactory, count: int) -> None:
             assert first_order == ret
 
         assert sorted(ret) == expected
+
+
+def test_iterator_with_after(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="data", data_type=DataType.INT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+        data_model_properties=Dict[str, int],
+    )
+
+    collection.data.insert_many([DataObject(properties={"data": i}) for i in range(10)])
+
+    uuids = [obj.uuid for obj in collection.iterator()]
+    iterator = collection.iterator(after=uuids[5])
+    assert (
+        next(iterator).properties["data"]
+        == collection.query.fetch_object_by_id(uuids[6]).properties["data"]
+    )

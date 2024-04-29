@@ -240,7 +240,13 @@ class _Connection(_ConnectionBase):
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         with self.__make_sync_client() as client:
-            response = client.get(oidc_url)
+            try:
+                response = client.get(oidc_url)
+            except Exception as e:
+                raise WeaviateConnectionError(
+                    f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
+                )
+
         if response.status_code == 200:
             # Some setups are behind proxies that return some default page - for example a login - for all requests.
             # If the response is not json, we assume that this is the case and try unauthenticated access. Any auth
@@ -650,9 +656,13 @@ class ConnectionV4(_Connection):
                 response_deserializer=health_pb2.HealthCheckResponse.FromString,
             )(health_pb2.HealthCheckRequest(), timeout=self.timeout_config.init)
             if res.status != health_pb2.HealthCheckResponse.SERVING:
-                raise WeaviateGRPCUnavailableError(f"v{self.server_version}")
+                raise WeaviateGRPCUnavailableError(
+                    f"v{self.server_version}", self._connection_params._grpc_address
+                )
         except _channel._InactiveRpcError as e:
-            raise WeaviateGRPCUnavailableError(f"v{self.server_version}") from e
+            raise WeaviateGRPCUnavailableError(
+                f"v{self.server_version}", self._connection_params._grpc_address
+            ) from e
 
     def connect(self, skip_init_checks: bool) -> None:
         super().connect(skip_init_checks)

@@ -68,7 +68,7 @@ class _BatchRESTAsync:
     async def references(self, references: List[_BatchReference]) -> BatchReferenceReturn:
         params: Dict[str, str] = {}
         if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level
+            params["consistency_level"] = self.__consistency_level.value
 
         refs = [
             (
