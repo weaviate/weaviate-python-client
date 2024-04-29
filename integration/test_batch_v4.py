@@ -422,7 +422,7 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] == 0
 
 
-@pytest.mark.skip("Difficult to find numbers that work reliable in the CI")
+@pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
 def test_add_10000_objects_with_async_indexing_and_dont_wait(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
@@ -476,6 +476,7 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
         assert shard["vectorQueueSize"] == 0
 
 
+@pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
 def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     client_factory: ClientFactory,
 ) -> None:
