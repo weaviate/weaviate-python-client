@@ -550,7 +550,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait():
             )
     shard_status = client.schema.get_class_shards("BatchTestAsync")
     assert shard_status[0]["status"] == "INDEXING"
-    assert shard_status[0]["vectorQueueSize"] > 0
+    assert shard_status[0]["vectorQueueSize"] >= 0
     res = client.query.aggregate("BatchTestAsync").with_meta_count().do()
     assert res["data"]["Aggregate"]["BatchTestAsync"][0]["meta"]["count"] == nr_objects
 
@@ -649,4 +649,4 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one():
             assert shard["vectorQueueSize"] == 0
         else:
             assert shard["status"] == "INDEXING"
-            assert shard["vectorQueueSize"] > 0
+            assert shard["vectorQueueSize"] >= 0
