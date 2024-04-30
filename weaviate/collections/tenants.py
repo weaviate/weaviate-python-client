@@ -52,7 +52,7 @@ class _Tenants:
         """
         if self.__validate_arguments:
             _validate_input(
-                [_ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)]
+                _ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)
             )
 
         loaded_tenants = (
@@ -89,9 +89,7 @@ class _Tenants:
                 If `tenants` is not a list of strings.
         """
         if self.__validate_arguments:
-            _validate_input(
-                [_ValidateArgument(expected=[List[str]], name="tenants", value=tenants)]
-            )
+            _validate_input(_ValidateArgument(expected=[List[str]], name="tenants", value=tenants))
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.delete(
@@ -164,9 +162,7 @@ class _Tenants:
         """
         self.__connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_names' method")
         if self.__validate_arguments:
-            _validate_input(
-                [_ValidateArgument(expected=[Sequence[str]], name="names", value=names)]
-            )
+            _validate_input(_ValidateArgument(expected=[Sequence[str]], name="names", value=names))
         return self.__get_with_grpc(names=names)
 
     def get_by_name(self, name: str) -> Optional[Tenant]:
@@ -214,7 +210,7 @@ class _Tenants:
         """
         if self.__validate_arguments:
             _validate_input(
-                [_ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)]
+                _ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)
             )
 
         loaded_tenants = (
