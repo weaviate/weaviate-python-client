@@ -10,10 +10,16 @@ class TenantActivityStatus(str, Enum):
             The tenant is fully active and can be used.
         `COLD`
             The tenant is not active, files stored locally.
+        `WARM`
+            Not supported currently; reserved for future use.
+        `FROZEN`
+            Not supported currently; reserved for future use.
     """
 
     HOT = "HOT"
     COLD = "COLD"
+    WARM = "WARM"
+    FROZEN = "FROZEN"
 
 
 class Tenant(BaseModel):
