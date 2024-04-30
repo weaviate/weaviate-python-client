@@ -41,7 +41,7 @@ class _CollectionBackup:
                 One of the arguments have a wrong type.
         """
         create = self._backup.create(backup_id, backend, [self._name], None, wait_for_completion)
-        return BackupStatusReturn(status=create.status, path=create.path)
+        return BackupStatusReturn(error=create.error, status=create.status, path=create.path)
 
     def restore(
         self, backup_id: str, backend: BackupStorage, wait_for_completion: bool = False
@@ -70,7 +70,7 @@ class _CollectionBackup:
                 If the backup failed.
         """
         restore = self._backup.restore(backup_id, backend, [self._name], None, wait_for_completion)
-        return BackupStatusReturn(status=restore.status, path=restore.path)
+        return BackupStatusReturn(error=restore.error, status=restore.status, path=restore.path)
 
     def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
         """Check if a started backup job has completed.
