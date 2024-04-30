@@ -1,3 +1,4 @@
+from weaviate.proto.v1 import base_pb2 as _base_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -27,17 +28,17 @@ TENANT_ACTIVITY_STATUS_WARM: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_FROZEN: TenantActivityStatus
 
 class TenantsGetRequest(_message.Message):
-    __slots__ = ("collection", "is_consistent", "names")
+    __slots__ = ("collection", "consistency_level", "names")
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
-    IS_CONSISTENT_FIELD_NUMBER: _ClassVar[int]
+    CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
     NAMES_FIELD_NUMBER: _ClassVar[int]
     collection: str
-    is_consistent: bool
+    consistency_level: _base_pb2.ConsistencyLevel
     names: TenantNames
     def __init__(
         self,
         collection: _Optional[str] = ...,
-        is_consistent: bool = ...,
+        consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...,
         names: _Optional[_Union[TenantNames, _Mapping]] = ...,
     ) -> None: ...
 
