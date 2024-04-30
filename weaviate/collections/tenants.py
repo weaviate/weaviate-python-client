@@ -182,7 +182,7 @@ class _Tenants:
 
         Arguments:
             `names`
-                Optional list of tenant names to retrieve. If not provided, all tenants will be returned.
+                List of tenant names to retrieve. To retrieve all tenants, use the `get` method.
 
         Raises:
             `weaviate.WeaviateConnectionError`
