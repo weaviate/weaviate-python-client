@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from weaviate.collections.classes.tenants import Tenant
+from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.grpc.tenants import _TenantsGRPC
 from weaviate.connect import ConnectionV4
@@ -33,14 +33,16 @@ class _Tenants:
         )
         self.__validate_arguments = validate_arguments
 
-    def create(self, tenants: Union[Tenant, List[Tenant]]) -> None:
+    def create(self, tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]]) -> None:
         """Create the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
             `tenants`
-                A tenant or list of tenants to add to the given collection.
+                A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to add to the given collection.
+                If a string is provided, the tenant will be added with the default activity status of `HOT`.
 
         Raises:
             `weaviate.WeaviateConnectionError`
@@ -52,13 +54,28 @@ class _Tenants:
         """
         if self.__validate_arguments:
             _validate_input(
-                _ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)
+                [
+                    _ValidateArgument(
+                        expected=[str, Tenant, Sequence[Union[str, Tenant]]],
+                        name="tenants",
+                        value=tenants,
+                    )
+                ]
             )
 
         loaded_tenants = (
-            [tenants.model_dump()]
-            if isinstance(tenants, Tenant)
-            else [tenant.model_dump() for tenant in tenants]
+            [
+                tenant.model_dump()
+                if isinstance(tenant, Tenant)
+                else {"name": tenant, "activityStatus": TenantActivityStatus.HOT}
+                for tenant in tenants
+            ]
+            if isinstance(tenants, Sequence)
+            else [
+                {"name": tenants, "activityStatus": TenantActivityStatus.HOT}
+                if isinstance(tenants, str)
+                else tenants.model_dump()
+            ]
         )
 
         path = "/schema/" + self.__name + "/tenants"
@@ -71,14 +88,15 @@ class _Tenants:
             ),
         )
 
-    def remove(self, tenants: List[str]) -> None:
+    def remove(self, tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
             `tenants`
-                List of tenant names to remove from the given class.
+                A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to remove from the given class.
 
         Raises:
             `weaviate.WeaviateConnectionError`
@@ -89,12 +107,26 @@ class _Tenants:
                 If `tenants` is not a list of strings.
         """
         if self.__validate_arguments:
-            _validate_input(_ValidateArgument(expected=[List[str]], name="tenants", value=tenants))
+            _validate_input(
+                [
+                    _ValidateArgument(
+                        expected=[str, Tenant, Sequence[Union[str, Tenant]]],
+                        name="tenants",
+                        value=tenants,
+                    )
+                ]
+            )
+
+        loaded_tenants = (
+            [tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
+            if isinstance(tenants, Sequence)
+            else [tenants if isinstance(tenants, str) else tenants.name]
+        )
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.delete(
             path=path,
-            weaviate_object=tenants,
+            weaviate_object=loaded_tenants,
             error_msg=f"Collection tenants may not have been deleted for {self.__name}",
             status_codes=_ExpectedStatusCodes(
                 ok_in=200, error=f"Delete collection tenants for {self.__name}"
@@ -145,9 +177,7 @@ class _Tenants:
         """Return named tenants currently associated with a collection in Weaviate.
 
         If the tenant does not exist, it will not be included in the response.
-
         If no names are provided, all tenants will be returned.
-
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
@@ -198,7 +228,8 @@ class _Tenants:
 
         Arguments:
             `tenants`
-                List of tenants to update for the given collection.
+                A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                and/or `wvc.config.tenants.Tenant` objects to update for the given collection.
 
         Raises:
             `weaviate.WeaviateConnectionError`
