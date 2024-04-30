@@ -46,7 +46,7 @@ class BackupStatus(str, Enum):
 class BackupStatusReturn(BaseModel):
     """Return type of the backup status methods."""
 
-    error: Optional[str]
+    error: Optional[str] = Field(default=None)
     status: BackupStatus
     path: str
 
