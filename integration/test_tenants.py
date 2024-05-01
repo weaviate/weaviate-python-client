@@ -1,5 +1,6 @@
 import pytest
 import uuid
+from typing import Union
 
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
@@ -117,13 +118,13 @@ def test_tenants(collection_factory: CollectionFactory) -> None:
     assert tenants["tenant2"].name == "tenant2"
 
     if collection._connection._weaviate_version.supports_tenants_get_grpc:
-        tenants = collection.tenants.get_by_names(names=["tenant2"])
+        tenants = collection.tenants.get_by_names(tenants=["tenant2"])
         assert len(tenants) == 1
         assert type(tenants["tenant2"]) is Tenant
         assert tenants["tenant2"].name == "tenant2"
     else:
         pytest.raises(
-            WeaviateUnsupportedFeatureError, collection.tenants.get_by_names, names=["tenant2"]
+            WeaviateUnsupportedFeatureError, collection.tenants.get_by_names, tenants=["tenant2"]
         )
 
     collection.tenants.remove(["tenant1", "tenant2"])
@@ -267,7 +268,15 @@ def test_tenant_exists(collection_factory: CollectionFactory) -> None:
         assert not collection.tenants.exists("2")
 
 
-def test_tenant_get_by_name(collection_factory: CollectionFactory) -> None:
+@pytest.mark.parametrize("tenant1", ["tenant1", Tenant(name="tenant1")])
+@pytest.mark.parametrize("tenant2", ["tenant2", Tenant(name="tenant2")])
+@pytest.mark.parametrize("tenant3", ["tenant3", Tenant(name="tenant3")])
+def test_tenant_get_by_name(
+    collection_factory: CollectionFactory,
+    tenant1: Union[str, Tenant],
+    tenant2: Union[str, Tenant],
+    tenant3: Union[str, Tenant],
+) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(),
@@ -276,11 +285,11 @@ def test_tenant_get_by_name(collection_factory: CollectionFactory) -> None:
     collection.tenants.create([Tenant(name="tenant1")])
 
     if collection._connection._weaviate_version.supports_tenants_get_grpc:
-        tenant = collection.tenants.get_by_name("tenant1")
+        tenant = collection.tenants.get_by_name(tenant1)
         assert tenant is not None
         assert tenant.name == "tenant1"
 
-        tenant = collection.tenants.get_by_name("tenant2")
+        tenant = collection.tenants.get_by_name(tenant2)
         assert tenant is None
     else:
-        pytest.raises(WeaviateUnsupportedFeatureError, collection.tenants.get_by_name, "tenant3")
+        pytest.raises(WeaviateUnsupportedFeatureError, collection.tenants.get_by_name, tenant3)

@@ -146,8 +146,14 @@ class _Tenants:
         tenant_resp: List[Dict[str, Any]] = response.json()
         return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
 
-    def __get_with_grpc(self, names: Optional[Sequence[str]] = None) -> Dict[str, Tenant]:
-        response = self.__grpc.get(names=names)
+    def __get_with_grpc(
+        self, tenants: Optional[Sequence[Union[str, Tenant]]] = None
+    ) -> Dict[str, Tenant]:
+        response = self.__grpc.get(
+            names=[tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
+            if tenants is not None
+            else tenants
+        )
 
         return {
             tenant.name: Tenant(
@@ -173,7 +179,7 @@ class _Tenants:
         else:
             return self.__get_with_rest()
 
-    def get_by_names(self, names: Sequence[str]) -> Dict[str, Tenant]:
+    def get_by_names(self, tenants: Sequence[Union[str, Tenant]]) -> Dict[str, Tenant]:
         """Return named tenants currently associated with a collection in Weaviate.
 
         If the tenant does not exist, it will not be included in the response.
@@ -181,8 +187,8 @@ class _Tenants:
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
-            `names`
-                List of tenant names to retrieve. To retrieve all tenants, use the `get` method.
+            `tenant`
+                Sequence of tenant names of wvc.tenants.Tenant objects to retrieve. To retrieve all tenants, use the `get` method.
 
         Raises:
             `weaviate.WeaviateConnectionError`
@@ -192,10 +198,14 @@ class _Tenants:
         """
         self.__connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_names' method")
         if self.__validate_arguments:
-            _validate_input(_ValidateArgument(expected=[Sequence[str]], name="names", value=names))
-        return self.__get_with_grpc(names=names)
+            _validate_input(
+                _ValidateArgument(
+                    expected=[Sequence[Union[str, Tenant]]], name="names", value=tenants
+                )
+            )
+        return self.__get_with_grpc(tenants=tenants)
 
-    def get_by_name(self, name: str) -> Optional[Tenant]:
+    def get_by_name(self, tenant: Union[str, Tenant]) -> Optional[Tenant]:
         """Return a specific tenant associated with a collection in Weaviate.
 
         If the tenant does not exist, `None` will be returned.
@@ -213,7 +223,7 @@ class _Tenants:
                 If Weaviate reports a non-OK status.
         """
         self.__connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_name' method")
-        response = self.__grpc.get(names=[name])
+        response = self.__grpc.get(names=[tenant.name if isinstance(tenant, Tenant) else tenant])
         if len(response.tenants) == 0:
             return None
         return Tenant(
