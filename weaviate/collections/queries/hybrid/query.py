@@ -89,9 +89,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
             `weaviate.exceptions.WeaviateNotImplementedError`:
                 If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
-        if (
-            group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid()
-        ):  # TODO: change to 1.25.0 when it lands
+        if group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid():
             raise WeaviateNotImplementedError(
                 "Hybrid group by", self._connection.server_version, "1.25.0"
             )

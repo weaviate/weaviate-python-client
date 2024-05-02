@@ -587,7 +587,7 @@ class _Connection(_ConnectionBase):
         return res
 
     def supports_groupby_in_bm25_and_hybrid(self) -> bool:
-        return self._weaviate_version.is_at_least(1, 24, 0)  # TODO: change to 1.25.0 when it lands
+        return self._weaviate_version.is_at_least(1, 25, 0)
 
 
 class ConnectionV4(_Connection):
