@@ -16,6 +16,8 @@ from weaviate.config import AdditionalConfig
 
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 
+from weaviate.connect.integrations import _IntegrationConfig
+
 
 def get_file_path(file_name: str) -> str:
     if not os.path.exists(file_name) and not os.path.exists("profiling/" + file_name):
@@ -36,6 +38,7 @@ class CollectionFactory(Protocol):
         ] = None,
         headers: Optional[Dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
+        integration_config: Optional[Union[_IntegrationConfig, List[_IntegrationConfig]]] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -53,6 +56,7 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         ] = None,
         headers: Optional[Dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
+        integration_config: Optional[Union[_IntegrationConfig, List[_IntegrationConfig]]] = None,
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(request.node.name)
@@ -61,6 +65,8 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
             additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
         )
         client_fixture.collections.delete(name_fixture)
+        if integration_config is not None:
+            client_fixture.integrations.configure(integration_config)
 
         collection: Collection[Any, Any] = client_fixture.collections.create(
             name=name_fixture,
