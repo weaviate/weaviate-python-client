@@ -20,6 +20,7 @@ from weaviate.collections.classes.config import (
     _ShardStatus,
     ShardTypes,
     _NamedVectorConfigUpdate,
+    _MultiTenancyConfigUpdate
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -96,6 +97,7 @@ class _ConfigBase:
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
+        multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
@@ -113,6 +115,9 @@ class _ConfigBase:
             `vectorizer_config`
                 Configurations for the vector index (or indices) of your collection.
                 Use `Reconfigure.vector_index` if there is only one vectorizer and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
+            `multi_tenancy_config`
+                Configuration for multi-tenancy settings. Use `Reconfigure.multi_tenancy` to generate one.
+                Only `auto_tenant_creation` is supported.
 
         Raises:
             `weaviate.WeaviateInvalidInputError`:
@@ -136,6 +141,7 @@ class _ConfigBase:
                 replication_config=replication_config,
                 vector_index_config=vector_index_config,
                 vectorizer_config=vectorizer_config,
+                multi_tenancy_config=multi_tenancy_config,
             )
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e

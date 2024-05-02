@@ -6,6 +6,7 @@ from weaviate.collections.classes.config import (
     Configure,
     DataType,
     Property,
+    Reconfigure,
 )
 from weaviate.collections.classes.data import (
     DataObject,
@@ -256,3 +257,20 @@ def test_tenant_exists(collection_factory: CollectionFactory) -> None:
         assert collection.tenants.exists(tenant.name)
         assert collection.tenants.exists(tenant)
         assert not collection.tenants.exists("2")
+
+
+def test_autotenant_toggling(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        return
+    
+    assert not collection.config.get().multi_tenancy_config.auto_tenant_creation
+
+    collection.config.update(multi_tenancy_config=Reconfigure.multi_tenancy(auto_tenant_creation=True))
+    assert collection.config.get().multi_tenancy_config.auto_tenant_creation
+
+    collection.config.update(multi_tenancy_config=Reconfigure.multi_tenancy(auto_tenant_creation=False))
+    assert not collection.config.get().multi_tenancy_config.auto_tenant_creation
