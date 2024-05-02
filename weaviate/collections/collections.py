@@ -11,7 +11,6 @@ from weaviate.collections.classes.config import (
     _GenerativeConfigCreate,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
-    _MultiTenancyConfigUpdate,
     _VectorIndexConfigCreate,
     Property,
     _ShardingConfigCreate,
