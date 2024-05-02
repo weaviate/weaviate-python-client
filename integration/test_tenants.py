@@ -266,11 +266,15 @@ def test_autotenant_toggling(collection_factory: CollectionFactory) -> None:
     )
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
         return
-    
+
     assert not collection.config.get().multi_tenancy_config.auto_tenant_creation
 
-    collection.config.update(multi_tenancy_config=Reconfigure.multi_tenancy(auto_tenant_creation=True))
+    collection.config.update(
+        multi_tenancy_config=Reconfigure.multi_tenancy(auto_tenant_creation=True)
+    )
     assert collection.config.get().multi_tenancy_config.auto_tenant_creation
 
-    collection.config.update(multi_tenancy_config=Reconfigure.multi_tenancy(auto_tenant_creation=False))
+    collection.config.update(
+        multi_tenancy_config=Reconfigure.multi_tenancy(auto_tenant_creation=False)
+    )
     assert not collection.config.get().multi_tenancy_config.auto_tenant_creation

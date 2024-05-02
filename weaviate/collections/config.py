@@ -20,7 +20,7 @@ from weaviate.collections.classes.config import (
     _ShardStatus,
     ShardTypes,
     _NamedVectorConfigUpdate,
-    _MultiTenancyConfigUpdate
+    _MultiTenancyConfigUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -97,7 +97,7 @@ class _ConfigBase:
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
-        multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None
+        multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 

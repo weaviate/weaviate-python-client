@@ -896,6 +896,7 @@ class _MultiTenancyConfig(_ConfigBase):
     enabled: bool
     auto_tenant_creation: bool
 
+
 MultiTenancyConfig = _MultiTenancyConfig
 
 
@@ -1650,7 +1651,9 @@ class Configure:
         )
 
     @staticmethod
-    def multi_tenancy(enabled: bool = True, auto_tenant_creation: bool = False) -> _MultiTenancyConfigCreate:
+    def multi_tenancy(
+        enabled: bool = True, auto_tenant_creation: bool = False
+    ) -> _MultiTenancyConfigCreate:
         """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
 
         Arguments:
