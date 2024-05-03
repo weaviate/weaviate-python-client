@@ -99,7 +99,7 @@ class _NearImage(_Aggregate):
         )
         builder = self._base(return_metrics, filters, total_count)
         builder = self._add_groupby_to_builder(builder, group_by)
-        builder = self._add_near_image(
+        builder = self._add_near_image_to_builder(
             builder, near_image, certainty, distance, object_limit, target_vector
         )
         res = self._do(builder)
