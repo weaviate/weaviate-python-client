@@ -8,6 +8,7 @@ from weaviate.collections.classes.config import (
     _NamedVectorizerConfig,
     _PQConfig,
     _VectorIndexConfigFlat,
+    _VectorIndexConfigDynamic,
     _InvertedIndexConfig,
     _BM25Config,
     _StopwordsConfig,
@@ -98,56 +99,75 @@ def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]
         return None
 
 
-def __get_vector_index_config(
-    schema: Dict[str, Any]
-) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, None]:
-    if "vectorIndexConfig" not in schema:
-        return None
+def __get_quantizer_config(config: Dict[str, Any]) -> Optional[Union[_PQConfig, _BQConfig]]:
     quantizer: Optional[Union[_PQConfig, _BQConfig]] = None
-    if "bq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["bq"]["enabled"]:
+    if "bq" in config and config["bq"]["enabled"]:
         # values are not present for bq+hnsw
         quantizer = _BQConfig(
-            cache=schema["vectorIndexConfig"]["bq"].get("cache"),
-            rescore_limit=schema["vectorIndexConfig"]["bq"].get("rescoreLimit"),
+            cache=config["bq"].get("cache"),
+            rescore_limit=config["bq"].get("rescoreLimit"),
         )
-    elif "pq" in schema["vectorIndexConfig"] and schema["vectorIndexConfig"]["pq"].get("enabled"):
+    elif "pq" in config and config["pq"].get("enabled"):
         quantizer = _PQConfig(
-            internal_bit_compression=schema["vectorIndexConfig"]["pq"].get("bitCompression"),
-            segments=schema["vectorIndexConfig"]["pq"].get("segments"),
-            centroids=schema["vectorIndexConfig"]["pq"].get("centroids"),
-            training_limit=schema["vectorIndexConfig"]["pq"].get("trainingLimit"),
+            internal_bit_compression=config["pq"].get("bitCompression"),
+            segments=config["pq"].get("segments"),
+            centroids=config["pq"].get("centroids"),
+            training_limit=config["pq"].get("trainingLimit"),
             encoder=_PQEncoderConfig(
                 type_=PQEncoderType(
-                    schema["vectorIndexConfig"]["pq"].get("encoder", {}).get("type")
+                    config["pq"].get("encoder", {}).get("type")
                 ),
                 distribution=PQEncoderDistribution(
-                    schema["vectorIndexConfig"]["pq"].get("encoder", {}).get("distribution")
+                    config["pq"].get("encoder", {}).get("distribution")
                 ),
             ),
         )
+    return quantizer
 
-    if schema["vectorIndexType"] == "hnsw":
-        return _VectorIndexConfigHNSW(
-            cleanup_interval_seconds=schema["vectorIndexConfig"].get("cleanupIntervalSeconds"),
-            distance_metric=VectorDistances(schema["vectorIndexConfig"].get("distance")),
-            dynamic_ef_min=schema["vectorIndexConfig"]["dynamicEfMin"],
-            dynamic_ef_max=schema["vectorIndexConfig"]["dynamicEfMax"],
-            dynamic_ef_factor=schema["vectorIndexConfig"]["dynamicEfFactor"],
-            ef=schema["vectorIndexConfig"]["ef"],
-            ef_construction=schema["vectorIndexConfig"]["efConstruction"],
-            flat_search_cutoff=schema["vectorIndexConfig"]["flatSearchCutoff"],
-            max_connections=schema["vectorIndexConfig"]["maxConnections"],
+def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
+    quantizer = __get_quantizer_config(config)
+    return _VectorIndexConfigHNSW(
+            cleanup_interval_seconds=config.get("cleanupIntervalSeconds"),
+            distance_metric=VectorDistances(config.get("distance")),
+            dynamic_ef_min=config["dynamicEfMin"],
+            dynamic_ef_max=config["dynamicEfMax"],
+            dynamic_ef_factor=config["dynamicEfFactor"],
+            ef=config["ef"],
+            ef_construction=config["efConstruction"],
+            flat_search_cutoff=config["flatSearchCutoff"],
+            max_connections=config["maxConnections"],
             quantizer=quantizer,
-            skip=schema["vectorIndexConfig"]["skip"],
-            vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
+            skip=config["skip"],
+            vector_cache_max_objects=config["vectorCacheMaxObjects"],
+        )
+
+def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
+    quantizer = __get_quantizer_config(config)
+    return _VectorIndexConfigFlat(
+            distance_metric=VectorDistances(config["distance"]),
+            quantizer=quantizer,
+            vector_cache_max_objects=config["vectorCacheMaxObjects"],
+        )
+
+def __get_vector_index_config(
+    schema: Dict[str, Any]
+) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, None]:
+    if "vectorIndexConfig" not in schema:
+        return None
+    if schema["vectorIndexType"] == "hnsw":
+        return __get_hnsw_config(schema["vectorIndexConfig"])
+    elif schema["vectorIndexType"] == "flat":
+        return __get_flat_config(schema["vectorIndexConfig"])
+    elif schema["vectorIndexType"] == "dynamic":
+        return _VectorIndexConfigDynamic(
+            distance_metric=VectorDistances(schema["vectorIndexConfig"]["distance"]),
+            threshold=schema["vectorIndexConfig"].get("threshold"),
+            quantizer=None,
+            hnsw=__get_hnsw_config(schema["vectorIndexConfig"]["hnsw"]),
+            flat=__get_flat_config(schema["vectorIndexConfig"]["flat"]),
         )
     else:
-        assert schema["vectorIndexType"] == "flat"
-        return _VectorIndexConfigFlat(
-            distance_metric=VectorDistances(schema["vectorIndexConfig"]["distance"]),
-            quantizer=quantizer,
-            vector_cache_max_objects=schema["vectorIndexConfig"]["vectorCacheMaxObjects"],
-        )
+        return None
 
 
 def __get_vector_config(

@@ -41,6 +41,8 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigFlatCreate,
     _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigDynamicCreate,
+    _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
     VectorIndexType as VectorIndexTypeAlias,
@@ -1118,6 +1120,20 @@ class _VectorIndexConfigFlat(_VectorIndexConfig):
 
 VectorIndexConfigFlat = _VectorIndexConfigFlat
 
+@dataclass
+class _VectorIndexConfigDynamic(_VectorIndexConfig):
+    distance_metric: VectorDistances
+    hnsw: Optional[VectorIndexConfigHNSW]
+    flat: Optional[VectorIndexConfigFlat]
+    threshold: Optional[int]
+
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.DYNAMIC.value
+
+
+VectorIndexConfigDynamic = _VectorIndexConfigDynamic
+
 
 @dataclass
 class _GenerativeConfig(_ConfigBase):
@@ -1618,6 +1634,31 @@ class _VectorIndex:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigFlatCreate(
             distance=distance_metric,
+            vectorCacheMaxObjects=vector_cache_max_objects,
+            quantizer=quantizer,
+        )
+    
+    @staticmethod
+    def dynamic(
+        distance_metric: Optional[VectorDistances] = None,
+        threshold: Optional[int] = None,
+        hnsw: Optional[_VectorIndexConfigHNSWCreate] = None,
+        flat: Optional[_VectorIndexConfigFlatCreate] = None,
+        vector_cache_max_objects: Optional[int] = None,
+        quantizer: Optional[_BQConfigCreate] = None,
+    ) -> _VectorIndexConfigDynamicCreate:
+        """Create a `_VectorIndexConfigDynamicCreate` object to be used when defining the DYNAMIC vector index configuration of Weaviate.
+
+        Use this method when defining the `vector_index_config` argument in `collections.create()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexConfigDynamicCreate(
+            distance=distance_metric,
+            threshold=threshold,
+            hnsw=hnsw,
+            flat=flat,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
         )
