@@ -19,7 +19,11 @@ from weaviate.collections.classes.aggregate import (
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
 from weaviate.collections.classes.filters import Filter, _Filters
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
+from weaviate.exceptions import (
+    WeaviateInvalidInputError,
+    WeaviateQueryError,
+    WeaviateNotImplementedError,
+)
 from weaviate.util import file_encoder_b64
 
 from weaviate.collections.classes.grpc import Move
@@ -354,7 +358,7 @@ def test_hybrid_aggregation_group_by(
     collection.data.insert({"text": text_1})
     collection.data.insert({"text": text_2})
 
-    res = collection.aggregate.hybrid(
+    querier = lambda: collection.aggregate.hybrid(
         "text",
         alpha=0,
         query_properties=["text"],
@@ -362,6 +366,12 @@ def test_hybrid_aggregation_group_by(
         total_count=True,
         object_limit=2,  # has no effect due to alpha=0
     )
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateNotImplementedError):
+            querier()
+        return
+
+    res = querier()
     assert res.groups[0].grouped_by.prop == "text"
     assert res.groups[0].grouped_by.value == "some text"
     assert res.groups[0].total_count == 1
@@ -384,10 +394,6 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
         with pytest.raises(WeaviateInvalidInputError):
             collection_maker()
         return
-    if dummy._connection._weaviate_version.is_lower_than(
-        1, 24, 11
-    ) and dummy._connection._weaviate_version.is_at_least(1, 24, 0):
-        pytest.skip("Currently bugged with 1.24.x <= 1.24.10")
 
     collection = collection_maker()
     text_1 = "some text"
@@ -395,7 +401,7 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
     collection.data.insert({"text": text_1})
     collection.data.insert({"text": text_2})
 
-    res = collection.aggregate.hybrid(
+    querier = lambda: collection.aggregate.hybrid(
         "text",
         alpha=0,
         query_properties=["text"],
@@ -404,6 +410,12 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
         object_limit=2,  # has no effect due to alpha=0
         target_vector="all",
     )
+    if dummy._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateNotImplementedError):
+            querier()
+        return
+
+    res = querier()
     assert res.groups[0].grouped_by.prop == "text"
     assert res.groups[0].grouped_by.value == "some text"
     assert res.groups[0].total_count == 1

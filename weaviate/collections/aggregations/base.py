@@ -52,13 +52,13 @@ class _Aggregate:
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
     ):
-        self.__connection = connection
+        self._connection = connection
         self.__name = name
         self._tenant = tenant
         self._consistency_level = consistency_level
 
     def _query(self) -> AggregateBuilder:
-        return AggregateBuilder(self.__name, self.__connection)
+        return AggregateBuilder(self.__name, self._connection)
 
     def _to_aggregate_result(
         self, response: dict, metrics: Optional[List[_Metrics]]
