@@ -345,6 +345,41 @@ def test_hybrid_aggregation_group_by(
     dummy = collection_factory("dummy")
     collection_maker = lambda: collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        with pytest.raises(WeaviateInvalidInputError):
+            collection_maker()
+        return
+
+    collection = collection_maker()
+    text_1 = "some text"
+    text_2 = "nothing like the other one at all, not even a little bit"
+    collection.data.insert({"text": text_1})
+    collection.data.insert({"text": text_2})
+
+    res = collection.aggregate.hybrid(
+        "text",
+        alpha=0,
+        query_properties=["text"],
+        group_by=group_by,
+        total_count=True,
+        object_limit=2,  # has no effect due to alpha=0
+    )
+    assert res.groups[0].grouped_by.prop == "text"
+    assert res.groups[0].grouped_by.value == "some text"
+    assert res.groups[0].total_count == 1
+
+
+@pytest.mark.parametrize("group_by", ["text", GroupByAggregate(prop="text", limit=1)])
+def test_hybrid_aggregation_group_by_with_named_vectors(
+    collection_factory: CollectionFactory, group_by: Union[str, GroupByAggregate]
+) -> None:
+    dummy = collection_factory("dummy")
+    collection_maker = lambda: collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
                 name="all", vectorize_collection_name=False
@@ -355,6 +390,10 @@ def test_hybrid_aggregation_group_by(
         with pytest.raises(WeaviateInvalidInputError):
             collection_maker()
         return
+    if dummy._connection._weaviate_version.is_lower_than(
+        1, 24, 11
+    ) and dummy._connection._weaviate_version.is_at_least(1, 24, 0):
+        pytest.skip("Currently bugged with 1.24.x <= 1.24.10")
 
     collection = collection_maker()
     text_1 = "some text"
