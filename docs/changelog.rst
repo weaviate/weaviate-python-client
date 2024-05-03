@@ -1,5 +1,15 @@
 Changelog
 =========
+Version 4.5.7
+--------------
+This patch version includes:
+
+- Deprecation of the ``bit_compression`` field in the ``PQConfig`` class
+- Improvements to closing possibly open objects and connections
+- Enhances the ``WeaviateGRPCUnavailableError`` message with added context relevant to the user's environment
+- Relaxes the ``httpx`` requirements to aid compatability with other packages
+
+
 Version 4.5.6
 --------------
 This patch version includes:
