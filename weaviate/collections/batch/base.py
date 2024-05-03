@@ -288,60 +288,65 @@ class _BatchBase:
         future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
         future.result()  # Wait for self._connection.aopen() to finish
         refresh_time: float = 0.01
-        while (
-            self.__shut_background_thread_down is not None
-            and not self.__shut_background_thread_down.is_set()
-        ):
-            if isinstance(self.__batching_mode, _RateLimitedBatching):
-                if (
-                    time.time() - self.__time_stamp_last_request
-                    < self.__fix_rate_batching_base_time // self.__concurrent_requests
-                ):
-                    time.sleep(1)
-                    continue
-                self.__time_stamp_last_request = time.time()
-                refresh_time = 0
-            elif isinstance(self.__batching_mode, _DynamicBatching) and self.__vectorizer_batching:
-                if self.__dynamic_batching_sleep_time > 0:
+
+        try:
+            while (
+                self.__shut_background_thread_down is not None
+                and not self.__shut_background_thread_down.is_set()
+            ):
+                if isinstance(self.__batching_mode, _RateLimitedBatching):
                     if (
                         time.time() - self.__time_stamp_last_request
-                        < self.__dynamic_batching_sleep_time
+                        < self.__fix_rate_batching_base_time // self.__concurrent_requests
                     ):
                         time.sleep(1)
                         continue
+                    self.__time_stamp_last_request = time.time()
+                    refresh_time = 0
+                elif (
+                    isinstance(self.__batching_mode, _DynamicBatching)
+                    and self.__vectorizer_batching
+                ):
+                    if self.__dynamic_batching_sleep_time > 0:
+                        if (
+                            time.time() - self.__time_stamp_last_request
+                            < self.__dynamic_batching_sleep_time
+                        ):
+                            time.sleep(1)
+                            continue
 
-                self.__time_stamp_last_request = time.time()
+                    self.__time_stamp_last_request = time.time()
 
-            if self.__active_requests < self.__concurrent_requests and (
-                len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
-            ):
-                self.__active_requests_lock.acquire()
-                self.__active_requests += 1
-                self.__active_requests_lock.release()
+                if self.__active_requests < self.__concurrent_requests and (
+                    len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
+                ):
+                    self._batch_send = True
+                    self.__active_requests_lock.acquire()
+                    self.__active_requests += 1
+                    self.__active_requests_lock.release()
 
-                objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
-                self.__uuid_lookup_lock.acquire()
-                refs = self.__batch_references.pop_items(
-                    self.__recommended_num_refs, uuid_lookup=self.__uuid_lookup
-                )
-                self.__uuid_lookup_lock.release()
+                    objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
+                    self.__uuid_lookup_lock.acquire()
+                    refs = self.__batch_references.pop_items(
+                        self.__recommended_num_refs, uuid_lookup=self.__uuid_lookup
+                    )
+                    self.__uuid_lookup_lock.release()
+                    # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
+                    asyncio.run_coroutine_threadsafe(
+                        self.__send_batch_async(
+                            objs,
+                            refs,
+                            readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
+                        ),
+                        loop,
+                    )
 
-                # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
-                asyncio.run_coroutine_threadsafe(
-                    self.__send_batch_async(
-                        objs,
-                        refs,
-                        readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
-                    ),
-                    loop,
-                )
-                self._batch_send = True
+                time.sleep(refresh_time)
 
-            time.sleep(refresh_time)
-
-        future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
-        future.result()  # Wait for self._connection.aclose() to finish
-        loop.call_soon_threadsafe(loop.stop)
+        finally:
+            future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
+            future.result()  # Wait for self._connection.aclose() to finish
+            loop.call_soon_threadsafe(loop.stop)
 
     def dynamic_batch_rate_loop(self) -> None:
         refresh_time = 1

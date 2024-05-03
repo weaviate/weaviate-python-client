@@ -73,6 +73,7 @@ class BackupConfigRestore(_BackupConfigBase):
 class BackupStatusReturn(BaseModel):
     """Return type of the backup status methods."""
 
+    error: Optional[str] = Field(default=None)
     status: BackupStatus
     path: str
 
@@ -153,7 +154,7 @@ class _Backup:
         if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 24, 0):
                 raise WeaviateNotImplementedError(
-                    "BackupConfigCreate", str(self._connection._weaviate_version), "1.24.0"
+                    "BackupConfigCreate", self._connection.server_version, "1.24.0"
                 )
             if not isinstance(config, BackupConfigCreate):
                 raise WeaviateInvalidInputError(
@@ -181,7 +182,9 @@ class _Backup:
                 if status.status == BackupStatus.SUCCESS:
                     break
                 if status.status == BackupStatus.FAILED:
-                    raise BackupFailedException(f"Backup failed: {create_status}")
+                    raise BackupFailedException(
+                        f"Backup failed: {create_status} with error: {status.error}"
+                    )
                 sleep(1)
         return BackupReturn(**create_status)
 
@@ -280,7 +283,7 @@ class _Backup:
         if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 24, 0):
                 raise WeaviateNotImplementedError(
-                    "BackupConfigRestore", str(self._connection._weaviate_version), "1.24.0"
+                    "BackupConfigRestore", self._connection.server_version, "1.24.0"
                 )
             if not isinstance(config, BackupConfigRestore):
                 raise WeaviateInvalidInputError(
@@ -306,7 +309,9 @@ class _Backup:
                 if status.status == BackupStatus.SUCCESS:
                     break
                 if status.status == BackupStatus.FAILED:
-                    raise BackupFailedException(f"Backup restore failed: {restore_status}")
+                    raise BackupFailedException(
+                        f"Backup restore failed: {restore_status} with error: {status.error}"
+                    )
                 sleep(1)
         return BackupReturn(**restore_status)
 

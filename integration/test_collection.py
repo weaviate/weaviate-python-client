@@ -47,6 +47,7 @@ from weaviate.exceptions import (
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
+    WeaviateNotImplementedError,
 )
 from weaviate.types import UUID, UUIDS
 
@@ -564,6 +565,34 @@ def test_search_hybrid(collection_factory: CollectionFactory, fusion_type: Hybri
     assert len(objs) == 2
 
 
+def test_search_hybrid_group_by(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    collection.data.insert({"Name": "some name"}, uuid=uuid.uuid4())
+    collection.data.insert({"Name": "other word"}, uuid=uuid.uuid4())
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        objs = collection.query.hybrid(
+            alpha=0,
+            query="name",
+            include_vector=True,
+            group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
+        ).objects
+        assert len(objs) == 1
+        assert objs[0].belongs_to_group == "some name"
+    else:
+        with pytest.raises(WeaviateNotImplementedError):
+            collection.query.hybrid(
+                alpha=0,
+                query="name",
+                include_vector=True,
+                group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
+            )
+
+
 @pytest.mark.parametrize("query", [None, ""])
 def test_search_hybrid_only_vector(
     collection_factory: CollectionFactory, query: Optional[str]
@@ -651,6 +680,50 @@ def test_hybrid_alpha(collection_factory: CollectionFactory) -> None:
         text_res.objects[i].uuid == hybrid_res.objects[i].uuid
         for i in range(len(hybrid_res.objects))
     )
+
+
+def test_bm25(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    res = collection.data.insert_many(
+        [
+            {"Name": "test"},
+            {"Name": "another"},
+            {"Name": "test"},
+        ]
+    )
+    assert res.has_errors is False
+    assert len(collection.query.bm25(query="test").objects) == 2
+
+
+def test_bm25_group_by(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    res = collection.data.insert_many(
+        [
+            {"Name": "test"},
+            {"Name": "another"},
+            {"Name": "test"},
+        ]
+    )
+    assert res.has_errors is False
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        objs = collection.query.bm25(
+            query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
+        ).objects
+        assert len(objs) == 1
+        assert objs[0].belongs_to_group == "test"
+    else:
+        with pytest.raises(WeaviateNotImplementedError):
+            collection.query.bm25(
+                query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
+            )
 
 
 @pytest.mark.parametrize("limit", [1, 2])

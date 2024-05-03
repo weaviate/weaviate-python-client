@@ -52,7 +52,7 @@ class _CollectionBackup:
         create = self._backup.create(
             backup_id, backend, [self._name], None, wait_for_completion, config
         )
-        return BackupStatusReturn(status=create.status, path=create.path)
+        return BackupStatusReturn(error=create.error, status=create.status, path=create.path)
 
     def restore(
         self,
@@ -90,7 +90,7 @@ class _CollectionBackup:
         restore = self._backup.restore(
             backup_id, backend, [self._name], None, wait_for_completion, config
         )
-        return BackupStatusReturn(status=restore.status, path=restore.path)
+        return BackupStatusReturn(error=restore.error, status=restore.status, path=restore.path)
 
     def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
         """Check if a started backup job has completed.

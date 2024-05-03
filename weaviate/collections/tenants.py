@@ -197,9 +197,7 @@ class _Tenants:
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if self.__connection._weaviate_version.is_lower_than(
-            1, 24, 5
-        ):  # change to 1.25.0 when it lands
+        if self.__connection._weaviate_version.is_lower_than(1, 25, 0):
             raise WeaviateNotImplementedError(
                 "tenants.exists", str(self.__connection._weaviate_version), "1.25.0"
             )
