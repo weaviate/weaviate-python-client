@@ -26,7 +26,7 @@ from weaviate.collections.classes.internal import (
     Object,
     _extract_properties_from_data_model,
     _extract_references_from_data_model,
-    GenerativeNearMediaReturnType,
+    GenerativeSearchReturnType,
     GenerativeReturn,
     GenerativeGroupByReturn,
     GroupByReturn,
@@ -34,7 +34,7 @@ from weaviate.collections.classes.internal import (
     Group,
     GenerativeGroup,
     QueryReturn,
-    QueryNearMediaReturnType,
+    QuerySearchReturnType,
     _QueryOptions,
     ReturnProperties,
     ReturnReferences,
@@ -79,7 +79,7 @@ class _BaseQuery(Generic[Properties, References]):
         references: Optional[Type[References]],
         validate_arguments: bool,
     ):
-        self.__connection = connection
+        self._connection = connection
         self._name = name
         self.__tenant = tenant
         self.__consistency_level = consistency_level
@@ -87,7 +87,7 @@ class _BaseQuery(Generic[Properties, References]):
         self._references = references
         self._validate_arguments = validate_arguments
         self._query = _QueryGRPC(
-            self.__connection,
+            self._connection,
             self._name,
             self.__tenant,
             self.__consistency_level,
@@ -415,7 +415,7 @@ class _BaseQuery(Generic[Properties, References]):
         references: Optional[
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
-    ) -> GenerativeNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
         return (
             self._result_to_generative_query_return(res, options, properties, references)
             if options.is_group_by is False
@@ -494,7 +494,7 @@ class _BaseQuery(Generic[Properties, References]):
         references: Optional[
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
-    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
         return (
             self._result_to_query_return(res, options, properties, references)
             if not options.is_group_by

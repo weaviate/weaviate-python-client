@@ -11,7 +11,7 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
-    QueryNearMediaReturnType,
+    QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
@@ -37,7 +37,7 @@ class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects by audio in this collection using an audio-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
@@ -62,6 +62,8 @@ class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, Re
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                How the results should be grouped by a specific property.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             `target_vector`
@@ -81,11 +83,11 @@ class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `QueryReturn` or `_GroupByReturn` object that includes the searched objects.
-            If `group_by` is provided then a `_GroupByReturn` object is returned, otherwise a `QueryReturn` object is returned.
+            A `QueryReturn` or `GroupByReturn` object that includes the searched objects.
+            If `group_by` is provided then a `GroupByReturn` object is returned, otherwise a `QueryReturn` object is returned.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
+            `weaviate.exceptions.WeaviateQueryError`:
                 If the request to the Weaviate server fails.
         """
         res = self._query.near_media(
