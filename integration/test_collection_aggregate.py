@@ -342,7 +342,8 @@ def test_hybrid_aggregation(
 def test_hybrid_aggregation_group_by(
     collection_factory: CollectionFactory, group_by: Union[str, GroupByAggregate]
 ) -> None:
-    collection = collection_factory(
+    dummy = collection_factory("dummy")
+    collection_maker = lambda: collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
@@ -350,6 +351,12 @@ def test_hybrid_aggregation_group_by(
             )
         ],
     )
+    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        with pytest.raises(WeaviateInvalidInputError):
+            collection_maker()
+        return
+
+    collection = collection_maker()
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
     collection.data.insert({"text": text_1})
@@ -383,12 +390,19 @@ def test_hybrid_aggregation_group_by(
 def test_near_vector_aggregation(
     collection_factory: CollectionFactory, option: dict, expected_len: int
 ) -> None:
-    collection = collection_factory(
+    dummy = collection_factory("dummy")
+    collection_maker = lambda: collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
     )
+    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        with pytest.raises(WeaviateInvalidInputError):
+            collection_maker()
+        return
+
+    collection = collection_maker()
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
     uuid = collection.data.insert({"text": text_1})
