@@ -142,8 +142,8 @@ class _EmbeddedBase:
             if self._download_url.endswith(".tar.gz"):
                 tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
                 urllib.request.urlretrieve(self._download_url, tar_filename)
-                binary_tar = tarfile.open(tar_filename)
-                binary_tar.extract("weaviate", path=Path(self.options.binary_path))
+                with tarfile.open(tar_filename) as binary_tar:
+                    binary_tar.extract("weaviate", path=Path(self.options.binary_path))
                 tar_filename.unlink()
             else:
                 assert self._download_url.endswith(".zip")
@@ -251,11 +251,11 @@ class EmbeddedV3(_EmbeddedBase):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((self.options.hostname, self.options.port))
-            s.close()
             return True
         except (socket.error, ConnectionRefusedError):
-            s.close()
             return False
+        finally:
+            s.close()
 
     def start(self) -> None:
         if self.is_listening():
