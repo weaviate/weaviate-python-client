@@ -16,7 +16,7 @@ on:
 env:
   WEAVIATE_123: 1.23.14
   WEAVIATE_124: 1.24.10
-  WEAVIATE_125: preview-support-auto-tenant-toggling-on-mt-enabled-classes-c08b729
+  WEAVIATE_125: 1.25.0-rc.0
 
 jobs:
   lint-and-format:

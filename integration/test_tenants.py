@@ -250,7 +250,7 @@ def test_tenant_exists(collection_factory: CollectionFactory) -> None:
     tenant = Tenant(name="1")
     collection.tenants.create([tenant])
 
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 5):
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
         with pytest.raises(WeaviateNotImplementedError):
             collection.tenants.exists(tenant.name)
     else:
