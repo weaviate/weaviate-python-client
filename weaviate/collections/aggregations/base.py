@@ -254,7 +254,7 @@ class _Aggregate:
         if query_properties is not None:
             payload["properties"] = query_properties
         if target_vector is not None:
-            payload["targetVector"] = target_vector
+            payload["targetVectors"] = [target_vector]
         builder = builder.with_hybrid(payload)
         if object_limit is not None:
             builder = builder.with_object_limit(object_limit)
