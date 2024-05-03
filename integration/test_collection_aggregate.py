@@ -390,17 +390,12 @@ def test_hybrid_aggregation_group_by(
 def test_near_vector_aggregation(
     collection_factory: CollectionFactory, option: dict, expected_len: int
 ) -> None:
-    dummy = collection_factory("dummy")
     collection_maker = lambda: collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
     )
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        with pytest.raises(WeaviateInvalidInputError):
-            collection_maker()
-        return
 
     collection = collection_maker()
     text_1 = "some text"
