@@ -1,6 +1,7 @@
 import pathlib
 import uuid
 from datetime import datetime, timezone
+from typing import Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -335,6 +336,37 @@ def test_hybrid_aggregation(
         assert text_2 not in [
             top_occurrence.value for top_occurrence in res.properties["text"].top_occurrences
         ]
+
+
+@pytest.mark.parametrize("group_by", ["text", GroupByAggregate(prop="text", limit=1)])
+def test_hybrid_aggregation_group_by(
+    collection_factory: CollectionFactory, group_by: Union[str, GroupByAggregate]
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary(
+                name="all", vectorize_collection_name=False
+            )
+        ],
+    )
+    text_1 = "some text"
+    text_2 = "nothing like the other one at all, not even a little bit"
+    collection.data.insert({"text": text_1})
+    collection.data.insert({"text": text_2})
+
+    res = collection.aggregate.hybrid(
+        "text",
+        alpha=0,
+        query_properties=["text"],
+        group_by=group_by,
+        total_count=True,
+        object_limit=2,  # has no effect due to alpha=0
+        target_vector="all",
+    )
+    assert res.groups[0].grouped_by.prop == "text"
+    assert res.groups[0].grouped_by.value == "some text"
+    assert res.groups[0].total_count == 1
 
 
 @pytest.mark.parametrize(
