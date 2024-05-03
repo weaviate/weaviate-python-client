@@ -87,9 +87,7 @@ class _BaseQuery(Generic[Properties, References]):
         self._references = references
         self._validate_arguments = validate_arguments
 
-        self.__uses_125_api = self.__connection._weaviate_version.is_at_least(
-            1, 24, 5
-        )  # TODO: change to 1.25 when it lands
+        self.__uses_125_api = self.__connection._weaviate_version.is_at_least(1, 25, 0)
         self._query = _QueryGRPC(
             self.__connection,
             self._name,
