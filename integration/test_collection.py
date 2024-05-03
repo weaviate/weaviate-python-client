@@ -1892,9 +1892,7 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
     uuid_banana = collection.data.insert({"text": "banana"})
     obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
-    if collection._connection._weaviate_version.is_lower_than(
-        1, 24, 0
-    ):  # TODO: change to 1.25.0 when lands
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
         with pytest.raises(WeaviateNotImplementedError):
             collection.query.hybrid(
                 query=None,
@@ -1932,11 +1930,6 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
 
 
 def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(
-        1, 24, 0
-    ):  # TODO: change to 1.25.0 when lands
-        pytest.skip("Named vectors is supported in this version of Weaviate")
     collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -1957,29 +1950,36 @@ def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionF
 
     obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
-    hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
-        query=None,
-        vector=wvc.query.HybridNear.vector(vector=obj.vector["text"], target_vector="text"),
-    ).objects
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateNotImplementedError):
+            hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+                query=None,
+                vector=wvc.query.HybridNear.vector(vector=obj.vector["text"], target_vector="text"),
+            ).objects
+    else:
+        hybrid_objs = collection.query.hybrid(
+            query=None,
+            vector=wvc.query.HybridNear.vector(vector=obj.vector["text"], target_vector="text"),
+        ).objects
 
-    assert hybrid_objs[0].uuid == uuid_banana
-    assert len(hybrid_objs) == 3
+        assert hybrid_objs[0].uuid == uuid_banana
+        assert len(hybrid_objs) == 3
 
-    # make a near vector search to get the distance
-    near_vec = collection.query.near_vector(
-        near_vector=obj.vector["text"], return_metadata=["distance"], target_vector="text"
-    ).objects
-    assert near_vec[0].metadata.distance is not None
+        # make a near vector search to get the distance
+        near_vec = collection.query.near_vector(
+            near_vector=obj.vector["text"], return_metadata=["distance"], target_vector="text"
+        ).objects
+        assert near_vec[0].metadata.distance is not None
 
-    hybrid_objs2 = collection.query.hybrid(
-        query=None,
-        vector=wvc.query.HybridNear.vector(
-            vector=obj.vector["text"],
-            distance=near_vec[0].metadata.distance + 0.001,
-            target_vector="text",
-        ),
-        return_metadata=MetadataQuery.full(),
-    ).objects
+        hybrid_objs2 = collection.query.hybrid(
+            query=None,
+            vector=wvc.query.HybridNear.vector(
+                vector=obj.vector["text"],
+                distance=near_vec[0].metadata.distance + 0.001,
+                target_vector="text",
+            ),
+            return_metadata=MetadataQuery.full(),
+        ).objects
 
     assert hybrid_objs2[0].uuid == uuid_banana
     assert len(hybrid_objs2) == 1
@@ -1995,9 +1995,7 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
         ),
     )
 
-    if collection._connection._weaviate_version.is_lower_than(
-        1, 24, 0
-    ):  # TODO: change to 1.25.0 when lands
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
         with pytest.raises(WeaviateNotImplementedError):
             collection.query.hybrid(
                 query=None,
@@ -2031,11 +2029,6 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
 
 
 def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory("dummy")
-    if collection._connection._weaviate_version.is_lower_than(
-        1, 24, 0
-    ):  # TODO: change to 1.25.0 when lands
-        pytest.skip("Hybrid with near text is supported in this version of Weaviate")
     collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
@@ -2054,23 +2047,30 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
     collection.data.insert({"text": "banana smoothie"})
     collection.data.insert({"text": "different concept"})
 
-    hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
-        query=None,
-        vector=wvc.query.HybridNear.text(text="banana pudding", target_vector="text"),
-    ).objects
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateNotImplementedError):
+            hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+                query=None,
+                vector=wvc.query.HybridNear.text(text="banana pudding", target_vector="text"),
+            ).objects
+    else:
+        hybrid_objs = collection.query.hybrid(
+            query=None,
+            vector=wvc.query.HybridNear.text(text="banana pudding", target_vector="text"),
+        ).objects
 
-    assert hybrid_objs[0].uuid == uuid_banana_pudding
-    assert len(hybrid_objs) == 3
+        assert hybrid_objs[0].uuid == uuid_banana_pudding
+        assert len(hybrid_objs) == 3
 
-    hybrid_objs2 = collection.query.hybrid(
-        query=None,
-        vector=wvc.query.HybridNear.text(
-            text="banana",
-            move_to=wvc.query.Move(concepts="pudding", force=0.1),
-            move_away=wvc.query.Move(concepts="smoothie", force=0.1),
-            target_vector="text",
-        ),
-        return_metadata=MetadataQuery.full(),
-    ).objects
+        hybrid_objs2 = collection.query.hybrid(
+            query=None,
+            vector=wvc.query.HybridNear.text(
+                text="banana",
+                move_to=wvc.query.Move(concepts="pudding", force=0.1),
+                move_away=wvc.query.Move(concepts="smoothie", force=0.1),
+                target_vector="text",
+            ),
+            return_metadata=MetadataQuery.full(),
+        ).objects
 
-    assert hybrid_objs2[0].uuid == uuid_banana_pudding
+        assert hybrid_objs2[0].uuid == uuid_banana_pudding
