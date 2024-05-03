@@ -60,7 +60,7 @@ class _Hybrid(_Aggregate):
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
-        """Aggregate metrics over all the objects in this collection without any vector search.
+        """Aggregate metrics over all the objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         Arguments:
             `query`
