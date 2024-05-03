@@ -156,7 +156,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[str] = None,
     ) -> search_get_pb2.SearchReply:
-        if self._connection._weaviate_version.is_lower_than(1, 24, 0) and (
+        if self._connection._weaviate_version.is_lower_than(1, 25, 0) and (
             isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
         ):
             raise WeaviateNotImplementedError(
