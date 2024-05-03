@@ -8,17 +8,19 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
+from weaviate.exceptions import WeaviateNotImplementedError
 from weaviate.types import NUMBER
 
 
-class _NearVector(_Aggregate):
+class _Hybrid(_Aggregate):
     @overload
-    def near_vector(
+    def hybrid(
         self,
-        near_vector: List[float],
+        query: Optional[str],
         *,
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
+        alpha: NUMBER = 0.7,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
@@ -29,12 +31,13 @@ class _NearVector(_Aggregate):
         ...
 
     @overload
-    def near_vector(
+    def hybrid(
         self,
-        near_vector: List[float],
+        query: Optional[str],
         *,
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
+        alpha: NUMBER = 0.7,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Union[str, GroupByAggregate],
@@ -44,12 +47,13 @@ class _NearVector(_Aggregate):
     ) -> AggregateGroupByReturn:
         ...
 
-    def near_vector(
+    def hybrid(
         self,
-        near_vector: List[float],
+        query: Optional[str],
         *,
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
+        alpha: NUMBER = 0.7,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
@@ -57,21 +61,19 @@ class _NearVector(_Aggregate):
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
-        """Aggregate metrics over the objects returned by a near vector search on this collection.
-
-        At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
-
-        This method requires that the objects in the collection have associated vectors.
+        """Aggregate metrics over all the objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         Arguments:
-            `near_vector`
-                The vector to search on.
-            `certainty`
-                The minimum certainty of the vector search.
-            `distance`
-                The maximum distance of the vector search.
+            `query`
+                The keyword-based query to search for, REQUIRED. If query and vector are both None, a normal search will be performed.
+            `alpha`
+                The weight of the BM25 score. If not specified, the default weight specified by the server is used.
+            `vector`
+                The specific vector to search for. If not specified, the query is vectorized and used in the similarity search.
+            `query_properties`
+                The properties to search in. If not specified, all properties are searched.
             `object_limit`
-                The maximum number of objects to return from the vector search prior to the aggregation.
+                The maximum number of objects to return from the hybrid vector search prior to the aggregation.
             `filters`
                 The filters to apply to the search.
             `group_by`
@@ -90,16 +92,20 @@ class _NearVector(_Aggregate):
             `weaviate.exceptions.WeaviateInvalidInputError`:
                 If any of the input arguments are of the wrong type.
         """
+        if group_by is not None and self._connection._weaviate_version.is_lower_than(1, 25, 0):
+            raise WeaviateNotImplementedError(
+                "Hybrid aggregation", self._connection.server_version, "1.25.0"
+            )
         return_metrics = (
             return_metrics
             if (return_metrics is None or isinstance(return_metrics, list))
             else [return_metrics]
         )
         builder = self._base(return_metrics, filters, total_count)
-        builder = self._add_groupby_to_builder(builder, group_by)
-        builder = self._add_near_vector_to_builder(
-            builder, near_vector, certainty, distance, object_limit, target_vector
+        builder = self._add_hybrid_to_builder(
+            builder, query, alpha, vector, query_properties, object_limit, target_vector
         )
+        builder = self._add_groupby_to_builder(builder, group_by)
         res = self._do(builder)
         return (
             self._to_aggregate_result(res, return_metrics)
