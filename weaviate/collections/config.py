@@ -7,6 +7,7 @@ from weaviate.collections.classes.config import (
     _InvertedIndexConfigUpdate,
     _ReplicationConfigUpdate,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigDynamicUpdate,
     PropertyType,
     Property,
     ReferenceProperty,
@@ -87,12 +88,13 @@ class _ConfigBase:
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
-            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
+            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate, _VectorIndexConfigDynamicUpdate]
         ] = None,
         vectorizer_config: Optional[
             Union[
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
+                _VectorIndexConfigDynamicUpdate,
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,

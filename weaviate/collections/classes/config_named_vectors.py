@@ -10,6 +10,7 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigCreate,
     _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigUpdate,
     VectorIndexType,
 )
@@ -814,7 +815,7 @@ class _NamedVectorsUpdate:
     def update(
         name: str,
         *,
-        vector_index_config: Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate],
+        vector_index_config: Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate, _VectorIndexConfigDynamicUpdate],
     ) -> _NamedVectorConfigUpdate:
         """Update the vector index configuration of a named vector.
 
