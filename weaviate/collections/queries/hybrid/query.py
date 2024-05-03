@@ -20,7 +20,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         self,
         query: Optional[str],
         *,
-        alpha: NUMBER = 0.5,
+        alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,

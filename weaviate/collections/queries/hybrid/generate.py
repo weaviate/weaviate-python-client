@@ -24,7 +24,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseQuery[Properties, Re
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        alpha: NUMBER = 0.5,
+        alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
