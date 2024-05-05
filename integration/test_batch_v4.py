@@ -7,7 +7,7 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 from integration.conftest import _sanitize_collection_name
-from weaviate.collections.classes.batch import Shard
+from weaviate.collections.classes.batch import Shard, BatchRetryConfig
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -536,3 +536,19 @@ def test_error_reset(client_factory: ClientFactory) -> None:
     assert len(errs) == 1
     assert errs[0].object_.properties is not None
     assert errs[0].object_.properties["name"] == 1
+
+
+def test_error_retrying(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    config = BatchRetryConfig(
+        retry_on_error_message_contains=[
+            "invalid text property 'name' on class 'Test_error_retrying'"
+        ]
+    )
+    with client.batch.dynamic(retry_config=config) as batch:
+        batch.add_object(properties={"name": 1}, collection=name)
+        batch.add_object(properties={"name": "correct"}, collection=name)
+
+    errs = client.batch.failed_objects
+    assert len(errs) == 1
+    assert errs[0].object_.retry_count == config.max_retries

@@ -253,3 +253,11 @@ class DeleteManyReturn(Generic[T]):
     matches: int
     objects: T
     successful: int
+
+
+class BatchRetryConfig(BaseModel):
+    """Configuration for retrying failed batch operations."""
+
+    max_retries: int = 3
+    retry_on_error_message_contains: List[str] = Field(default_factory=list)
+    retry_wait_time: int = 0
