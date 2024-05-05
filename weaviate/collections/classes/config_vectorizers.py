@@ -255,6 +255,7 @@ class _Text2VecPalmConfig(_ConfigCreateModel):
     apiEndpoint: Optional[str]
     modelId: Optional[str]
     vectorizeClassName: bool
+    titleProperty: Optional[str]
 
 
 class _Text2VecPalmConfigCreate(_Text2VecPalmConfig, _VectorizerConfigCreate):
@@ -758,6 +759,7 @@ class _Vectorizer:
         project_id: str,
         api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
+        title_property: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecPalmConfigCreate` object for use when vectorizing using the `text2vec-palm` model.
@@ -772,6 +774,8 @@ class _Vectorizer:
                 The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
             `model_id`
                 The model ID to use. Defaults to `None`, which uses the server-defined default.
+            `title_property`
+                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
 
@@ -783,6 +787,7 @@ class _Vectorizer:
             apiEndpoint=api_endpoint,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
+            titleProperty=title_property,
         )
 
     @staticmethod
