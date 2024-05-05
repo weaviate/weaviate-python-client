@@ -60,6 +60,8 @@ Vectorizers: TypeAlias = VectorizersAlias
 VectorIndexType: TypeAlias = VectorIndexTypeAlias
 VectorDistances: TypeAlias = VectorDistancesAlias
 
+from config_vectorizers import AWSService
+
 
 class ConsistencyLevel(str, Enum):
     """The consistency levels when writing to Weaviate with replication enabled.
@@ -442,8 +444,10 @@ class _GenerativeAWSConfig(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
-    model: str
     region: str
+    service: str
+    model: Optional[str]
+    endpoint: Optional[str]
 
 
 class _RerankerConfigCreate(_ConfigCreateModel):
@@ -662,8 +666,10 @@ class _Generative:
 
     @staticmethod
     def aws(
-        model: str,
         region: str,
+        service: Union[AWSService, str] = "bedrock",
+        model: Optional[str] = None,
+        endpoint: Optional[str] = None,
     ) -> _GenerativeConfigCreate:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
@@ -671,14 +677,20 @@ class _Generative:
         for detailed usage.
 
         Arguments:
-            `model`
-                The model to use, REQUIRED.
             `region`
                 The AWS region to run the model from, REQUIRED.
+            `service`
+                The AWS service to use, options are "bedrock" and "sagemaker".
+            `model`
+                The model to use, REQUIRED for service "bedrock".
+            `endpoint`
+                The model to use, REQUIRED for service "sagemaker".
         """
         return _GenerativeAWSConfig(
             model=model,
             region=region,
+            service=service,
+            endpoint=endpoint,
         )
 
 
