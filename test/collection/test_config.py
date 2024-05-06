@@ -195,6 +195,20 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_octoai(
+            vectorize_collection_name=False,
+            model="thenlper/gte-large",
+            base_url="https://text.octoai.com",
+        ),
+        {
+            "text2vec-octoai": {
+                "vectorizeClassName": False,
+                "model": "thenlper/gte-large",
+                "baseURL": "https://text.octoai.com",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_openai(),
         {
             "text2vec-openai": {
@@ -1028,6 +1042,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "vectorizeClassName": True,
                         "region": "us-east-1",
                         "service": "bedrock",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_octoai(
+                name="test", source_properties=["prop"], base_url="https://text.octoai.com"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-octoai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "baseURL": "https://text.octoai.com",
                     }
                 },
                 "vectorIndexType": "hnsw",
