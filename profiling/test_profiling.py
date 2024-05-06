@@ -4,8 +4,8 @@
 
 import math
 from typing import Any, List
+import uuid
 import pytest
-import tqdm
 import weaviate
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
@@ -210,19 +210,19 @@ def test_list_value_properties(client: weaviate.WeaviateClient) -> None:
     col = client.collections.get(name)
 
     with col.batch.dynamic() as batch:
-        for i in tqdm.trange(100):
+        for i in range(100):
             batch.add_object(
                 properties={
                     "bools": [True] * 10000,
-                    # "dates": ["2021-01-01T00:00:00Z"] * 10000,
+                    "dates": ["2021-01-01T00:00:00Z"] * 10000,
                     "ints": [i] * 10000,
                     "numbers": [3.3] * 10000,
                     "texts": ["Test"] * 10000,
-                    # "uuids": [uuid.uuid4()] * 10000,
+                    "uuids": [uuid.uuid4()] * 10000,
                 }
             )
 
-    for _ in tqdm.trange(100):
+    for _ in range(100):
         objs = col.query.fetch_objects(
             limit=100, return_properties=["bools", "ints", "numbers", "texts"]
         ).objects
