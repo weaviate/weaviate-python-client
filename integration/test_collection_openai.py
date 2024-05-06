@@ -13,7 +13,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import GroupBy, Rerank
-from weaviate.exceptions import WeaviateQueryError, WeaviateNotImplementedError
+from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
 from weaviate.util import _ServerVersion
 
 
@@ -216,7 +216,7 @@ def test_bm25_generate_and_group_by_with_everything(
         assert groups[0].generated == "Yes"
         assert res.objects[0].belongs_to_group == "apples are big"
     else:
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             collection.generate.bm25(
                 query="Teddy",
                 query_properties=["content"],
@@ -298,7 +298,7 @@ def test_hybrid_generate_and_group_by_with_everything(
         assert groups[0].generated == "Yes"
         assert res.objects[0].belongs_to_group == "apples are big"
     else:
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             collection.generate.hybrid(
                 query="Teddy",
                 alpha=0,
