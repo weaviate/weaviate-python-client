@@ -1,4 +1,4 @@
-from typing import List, Optional, TypedDict
+from typing import List, Literal, Optional, TypedDict
 
 
 class BatchStats(TypedDict):
@@ -7,7 +7,18 @@ class BatchStats(TypedDict):
 
 
 # must use functional syntax because class is a keyword
-Shard = TypedDict("Shard", {"class": str, "name": str, "objectCount": int})
+Shard = TypedDict(
+    "Shard",
+    {
+        "name": str,
+        "class": str,
+        "objectCount": int,
+        "vectorIndexingStatus": Literal["READONLY", "INDEXING", "READY"],
+        "vectorQueueLength": int,
+        "compressed": bool,
+        "loaded": Optional[bool],
+    },
+)
 
 
 class Stats(TypedDict):

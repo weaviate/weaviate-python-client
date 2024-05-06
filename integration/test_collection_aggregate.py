@@ -1,6 +1,7 @@
 import pathlib
 import uuid
 from datetime import datetime, timezone
+from typing import Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -18,7 +19,11 @@ from weaviate.collections.classes.aggregate import (
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
 from weaviate.collections.classes.filters import Filter, _Filters
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
+from weaviate.exceptions import (
+    WeaviateInvalidInputError,
+    WeaviateQueryError,
+    WeaviateNotImplementedError,
+)
 from weaviate.util import file_encoder_b64
 
 from weaviate.collections.classes.grpc import Move
@@ -294,6 +299,132 @@ def test_near_object_missing_param(collection_factory: CollectionFactory) -> Non
     "option,expected_len",
     [
         ({"object_limit": 1}, 1),
+        ({"object_limit": 2}, 2),
+    ],
+)
+def test_hybrid_aggregation(
+    collection_factory: CollectionFactory, option: dict, expected_len: int
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    text_1 = "some text"
+    text_2 = "nothing like the other one at all, not even a little bit"
+    uuid = collection.data.insert({"text": text_1})
+    obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
+    assert "default" in obj.vector
+    collection.data.insert({"text": text_2})
+    res: AggregateReturn = collection.aggregate.hybrid(
+        None,
+        alpha=1,
+        vector=obj.vector["default"],
+        return_metrics=[
+            Metrics("text").text(count=True, top_occurrences_count=True, top_occurrences_value=True)
+        ],
+        **option,
+    )
+    assert isinstance(res.properties["text"], AggregateText)
+    assert res.properties["text"].count == expected_len
+    assert len(res.properties["text"].top_occurrences) == expected_len
+    assert text_1 in [
+        top_occurrence.value for top_occurrence in res.properties["text"].top_occurrences
+    ]
+    if expected_len == 2:
+        assert text_2 in [
+            top_occurrence.value for top_occurrence in res.properties["text"].top_occurrences
+        ]
+    else:
+        assert text_2 not in [
+            top_occurrence.value for top_occurrence in res.properties["text"].top_occurrences
+        ]
+
+
+@pytest.mark.parametrize("group_by", ["text", GroupByAggregate(prop="text", limit=1)])
+def test_hybrid_aggregation_group_by(
+    collection_factory: CollectionFactory, group_by: Union[str, GroupByAggregate]
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+
+    text_1 = "some text"
+    text_2 = "nothing like the other one at all, not even a little bit"
+    collection.data.insert({"text": text_1})
+    collection.data.insert({"text": text_2})
+
+    querier = lambda: collection.aggregate.hybrid(
+        "text",
+        alpha=0,
+        query_properties=["text"],
+        group_by=group_by,
+        total_count=True,
+        object_limit=2,  # has no effect due to alpha=0
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateNotImplementedError):
+            querier()
+        return
+
+    res = querier()
+    assert res.groups[0].grouped_by.prop == "text"
+    assert res.groups[0].grouped_by.value == "some text"
+    assert res.groups[0].total_count == 1
+
+
+@pytest.mark.parametrize("group_by", ["text", GroupByAggregate(prop="text", limit=1)])
+def test_hybrid_aggregation_group_by_with_named_vectors(
+    collection_factory: CollectionFactory, group_by: Union[str, GroupByAggregate]
+) -> None:
+    dummy = collection_factory("dummy")
+    collection_maker = lambda: collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary(
+                name="all", vectorize_collection_name=False
+            )
+        ],
+    )
+    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        with pytest.raises(WeaviateInvalidInputError):
+            collection_maker()
+        return
+
+    collection = collection_maker()
+    text_1 = "some text"
+    text_2 = "nothing like the other one at all, not even a little bit"
+    collection.data.insert({"text": text_1})
+    collection.data.insert({"text": text_2})
+
+    querier = lambda: collection.aggregate.hybrid(
+        "text",
+        alpha=0,
+        query_properties=["text"],
+        group_by=group_by,
+        total_count=True,
+        object_limit=2,  # has no effect due to alpha=0
+        target_vector="all",
+    )
+    if dummy._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateNotImplementedError):
+            querier()
+        return
+
+    res = querier()
+    assert res.groups[0].grouped_by.prop == "text"
+    assert res.groups[0].grouped_by.value == "some text"
+    assert res.groups[0].total_count == 1
+
+
+@pytest.mark.parametrize(
+    "option,expected_len",
+    [
+        ({"object_limit": 1}, 1),
         ({"certainty": 0.9}, 1),
         ({"distance": 0.1}, 1),
         ({"object_limit": 2}, 2),
@@ -304,12 +435,14 @@ def test_near_object_missing_param(collection_factory: CollectionFactory) -> Non
 def test_near_vector_aggregation(
     collection_factory: CollectionFactory, option: dict, expected_len: int
 ) -> None:
-    collection = collection_factory(
+    collection_maker = lambda: collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
         ),
     )
+
+    collection = collection_maker()
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
     uuid = collection.data.insert({"text": text_1})

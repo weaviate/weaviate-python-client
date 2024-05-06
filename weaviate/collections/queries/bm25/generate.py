@@ -3,16 +3,18 @@ from typing import Generic, List, Optional
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import Rerank, METADATA
+from weaviate.collections.classes.grpc import GroupBy, Rerank, METADATA
 from weaviate.collections.classes.internal import (
-    GenerativeReturnType,
+    GenerativeSearchReturnType,
     _Generative,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
+    _GroupBy,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
+from weaviate.exceptions import WeaviateNotImplementedError
 
 from weaviate.types import INCLUDE_VECTOR
 
@@ -30,12 +32,13 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
         offset: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a keyword-based BM25 search of objects in this collection.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
@@ -59,6 +62,8 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                How the results should be grouped by a specific property.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             `include_vector`
@@ -76,12 +81,19 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
             If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `_GenerativeNearMediaReturn` object that includes the searched objects with per-object generated results and group generated results.
+            A `GenerativeReturn` or `GenerativeGroupByReturn` object that includes the searched objects.
+            If `group_by` is provided then a `GenerativeGroupByReturn` object is returned, otherwise a `GenerativeReturn` object is returned.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
+            `weaviate.exceptions.WeaviateQueryError`:
                 If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateNotImplementedError`:
+                If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
+        if group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid():
+            raise WeaviateNotImplementedError(
+                "BM25 group by", self._connection.server_version, "1.25.0"
+            )
         res = self._query.bm25(
             query=query,
             properties=query_properties,
@@ -89,6 +101,7 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
             offset=offset,
             autocut=auto_limit,
             filters=filters,
+            group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
@@ -99,15 +112,16 @@ class _BM25Generate(Generic[Properties, References], _BaseQuery[Properties, Refe
                 grouped_properties=grouped_properties,
             ),
         )
-        return self._result_to_generative_query_return(
+        return self._result_to_generative_return(
             res,
             _QueryOptions.from_input(
-                return_metadata,
-                return_properties,
-                include_vector,
-                self._references,
-                return_references,
-                rerank,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                include_vector=include_vector,
+                collection_references=self._references,
+                query_references=return_references,
+                rerank=rerank,
+                group_by=group_by,
             ),
             return_properties,
             return_references,
