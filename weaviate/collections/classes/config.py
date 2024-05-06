@@ -42,7 +42,6 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigDynamicCreate,
-    _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
     VectorIndexType as VectorIndexTypeAlias,
@@ -1120,6 +1119,7 @@ class _VectorIndexConfigFlat(_VectorIndexConfig):
 
 VectorIndexConfigFlat = _VectorIndexConfigFlat
 
+
 @dataclass
 class _VectorIndexConfigDynamic(_VectorIndexConfig):
     distance_metric: VectorDistances
@@ -1178,7 +1178,9 @@ class _NamedVectorizerConfig(_ConfigBase):
 @dataclass
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
-    vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]
+    vector_index_config: Union[
+        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic
+    ]
 
     def to_dict(self) -> Dict:
         ret_dict = super().to_dict()
@@ -1201,7 +1203,9 @@ class _CollectionConfig(_ConfigBase):
     replication_config: ReplicationConfig
     reranker_config: Optional[RerankerConfig]
     sharding_config: Optional[ShardingConfig]
-    vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat, None]
+    vector_index_config: Union[
+        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, None
+    ]
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
     vectorizer: Optional[Vectorizers]
@@ -1637,7 +1641,7 @@ class _VectorIndex:
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
         )
-    
+
     @staticmethod
     def dynamic(
         distance_metric: Optional[VectorDistances] = None,

@@ -7,7 +7,6 @@ from weaviate.collections.classes.config import (
     _InvertedIndexConfigUpdate,
     _ReplicationConfigUpdate,
     _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigDynamicUpdate,
     PropertyType,
     Property,
     ReferenceProperty,
@@ -36,6 +35,8 @@ from weaviate.util import _decode_json_response_dict, _decode_json_response_list
 from weaviate.warnings import _Warnings
 
 from weaviate.connect.v4 import _ExpectedStatusCodes
+
+from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 
 
 class _ConfigBase:
@@ -89,7 +90,11 @@ class _ConfigBase:
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
-            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate, _VectorIndexConfigDynamicUpdate]
+            Union[
+                _VectorIndexConfigHNSWUpdate,
+                _VectorIndexConfigFlatUpdate,
+                _VectorIndexConfigDynamicUpdate,
+            ]
         ] = None,
         vectorizer_config: Optional[
             Union[

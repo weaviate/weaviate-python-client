@@ -114,9 +114,7 @@ def __get_quantizer_config(config: Dict[str, Any]) -> Optional[Union[_PQConfig, 
             centroids=config["pq"].get("centroids"),
             training_limit=config["pq"].get("trainingLimit"),
             encoder=_PQEncoderConfig(
-                type_=PQEncoderType(
-                    config["pq"].get("encoder", {}).get("type")
-                ),
+                type_=PQEncoderType(config["pq"].get("encoder", {}).get("type")),
                 distribution=PQEncoderDistribution(
                     config["pq"].get("encoder", {}).get("distribution")
                 ),
@@ -124,30 +122,33 @@ def __get_quantizer_config(config: Dict[str, Any]) -> Optional[Union[_PQConfig, 
         )
     return quantizer
 
+
 def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigHNSW(
-            cleanup_interval_seconds=config.get("cleanupIntervalSeconds"),
-            distance_metric=VectorDistances(config.get("distance")),
-            dynamic_ef_min=config["dynamicEfMin"],
-            dynamic_ef_max=config["dynamicEfMax"],
-            dynamic_ef_factor=config["dynamicEfFactor"],
-            ef=config["ef"],
-            ef_construction=config["efConstruction"],
-            flat_search_cutoff=config["flatSearchCutoff"],
-            max_connections=config["maxConnections"],
-            quantizer=quantizer,
-            skip=config["skip"],
-            vector_cache_max_objects=config["vectorCacheMaxObjects"],
-        )
+        cleanup_interval_seconds=config["cleanupIntervalSeconds"],
+        distance_metric=VectorDistances(config.get("distance")),
+        dynamic_ef_min=config["dynamicEfMin"],
+        dynamic_ef_max=config["dynamicEfMax"],
+        dynamic_ef_factor=config["dynamicEfFactor"],
+        ef=config["ef"],
+        ef_construction=config["efConstruction"],
+        flat_search_cutoff=config["flatSearchCutoff"],
+        max_connections=config["maxConnections"],
+        quantizer=quantizer,
+        skip=config["skip"],
+        vector_cache_max_objects=config["vectorCacheMaxObjects"],
+    )
+
 
 def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigFlat(
-            distance_metric=VectorDistances(config["distance"]),
-            quantizer=quantizer,
-            vector_cache_max_objects=config["vectorCacheMaxObjects"],
-        )
+        distance_metric=VectorDistances(config["distance"]),
+        quantizer=quantizer,
+        vector_cache_max_objects=config["vectorCacheMaxObjects"],
+    )
+
 
 def __get_vector_index_config(
     schema: Dict[str, Any]
@@ -250,17 +251,19 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
         replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
         reranker_config=__get_rerank_config(schema),
-        sharding_config=None
-        if schema.get("multiTenancyConfig", {}).get("enabled", False)
-        else _ShardingConfig(
-            virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
-            desired_count=schema["shardingConfig"]["desiredCount"],
-            actual_count=schema["shardingConfig"]["actualCount"],
-            desired_virtual_count=schema["shardingConfig"]["desiredVirtualCount"],
-            actual_virtual_count=schema["shardingConfig"]["actualVirtualCount"],
-            key=schema["shardingConfig"]["key"],
-            strategy=schema["shardingConfig"]["strategy"],
-            function=schema["shardingConfig"]["function"],
+        sharding_config=(
+            None
+            if schema.get("multiTenancyConfig", {}).get("enabled", False)
+            else _ShardingConfig(
+                virtual_per_physical=schema["shardingConfig"]["virtualPerPhysical"],
+                desired_count=schema["shardingConfig"]["desiredCount"],
+                actual_count=schema["shardingConfig"]["actualCount"],
+                desired_virtual_count=schema["shardingConfig"]["desiredVirtualCount"],
+                actual_virtual_count=schema["shardingConfig"]["actualVirtualCount"],
+                key=schema["shardingConfig"]["key"],
+                strategy=schema["shardingConfig"]["strategy"],
+                function=schema["shardingConfig"]["function"],
+            )
         ),
         vector_index_config=__get_vector_index_config(schema),
         vector_index_type=__get_vector_index_type(schema),
