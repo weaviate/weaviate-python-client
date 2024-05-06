@@ -689,6 +689,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             "generative-aws": {
                 "model": "cohere.command-light-text-v14",
                 "region": "us-east-1",
+                "service": "bedrock",
             }
         },
     ),
