@@ -859,7 +859,11 @@ class _NamedVectorsUpdate:
     def update(
         name: str,
         *,
-        vector_index_config: Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate, _VectorIndexConfigDynamicUpdate],
+        vector_index_config: Union[
+            _VectorIndexConfigHNSWUpdate,
+            _VectorIndexConfigFlatUpdate,
+            _VectorIndexConfigDynamicUpdate,
+        ],
     ) -> _NamedVectorConfigUpdate:
         """Update the vector index configuration of a named vector.
 
