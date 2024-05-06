@@ -22,7 +22,7 @@ from weaviate.collections.classes.filters import Filter, _Filters
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateQueryError,
-    WeaviateNotImplementedError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.util import file_encoder_b64
 
@@ -367,7 +367,7 @@ def test_hybrid_aggregation_group_by(
         object_limit=2,  # has no effect due to alpha=0
     )
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             querier()
         return
 
@@ -411,7 +411,7 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
         target_vector="all",
     )
     if dummy._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             querier()
         return
 

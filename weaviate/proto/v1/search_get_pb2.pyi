@@ -43,6 +43,7 @@ class SearchRequest(_message.Message):
         "generative",
         "rerank",
         "uses_123_api",
+        "uses_125_api",
     )
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
@@ -70,6 +71,7 @@ class SearchRequest(_message.Message):
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     RERANK_FIELD_NUMBER: _ClassVar[int]
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
+    USES_125_API_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
     consistency_level: _base_pb2.ConsistencyLevel
@@ -96,6 +98,7 @@ class SearchRequest(_message.Message):
     generative: GenerativeSearch
     rerank: Rerank
     uses_123_api: bool
+    uses_125_api: bool
     def __init__(
         self,
         collection: _Optional[str] = ...,
@@ -124,6 +127,7 @@ class SearchRequest(_message.Message):
         generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
         rerank: _Optional[_Union[Rerank, _Mapping]] = ...,
         uses_123_api: bool = ...,
+        uses_125_api: bool = ...,
     ) -> None: ...
 
 class GroupBy(_message.Message):

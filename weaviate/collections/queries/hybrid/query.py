@@ -20,7 +20,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.exceptions import WeaviateNotImplementedError
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
@@ -99,7 +99,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
                 If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
         if group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid():
-            raise WeaviateNotImplementedError(
+            raise WeaviateUnsupportedFeatureError(
                 "Hybrid group by", self._connection.server_version, "1.25.0"
             )
         res = self._query.hybrid(

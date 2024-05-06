@@ -47,7 +47,7 @@ from weaviate.exceptions import (
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
-    WeaviateNotImplementedError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import UUID, UUIDS
 
@@ -586,7 +586,7 @@ def test_search_hybrid_group_by(collection_factory: CollectionFactory) -> None:
         assert len(objs) == 1
         assert objs[0].belongs_to_group == "some name"
     else:
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             collection.query.hybrid(
                 alpha=0,
                 query="name",
@@ -722,7 +722,7 @@ def test_bm25_group_by(collection_factory: CollectionFactory) -> None:
         assert len(objs) == 1
         assert objs[0].belongs_to_group == "test"
     else:
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             collection.query.bm25(
                 query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
             )
@@ -1965,7 +1965,7 @@ def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> Non
     obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             collection.query.hybrid(
                 query=None,
                 vector=wvc.query.HybridNear.vector(vector=obj.vector["default"]),
@@ -2031,7 +2031,7 @@ def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionF
     obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
 
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
                 query=None,
                 vector=wvc.query.HybridNear.vector(vector=obj.vector["text"], target_vector="text"),
@@ -2077,7 +2077,7 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
     )
 
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             collection.query.hybrid(
                 query=None,
                 vector=wvc.query.HybridNear.text(text="banana pudding"),
@@ -2136,7 +2136,7 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
     collection.data.insert({"text": "different concept"})
 
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        with pytest.raises(WeaviateNotImplementedError):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
             hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
                 query=None,
                 vector=wvc.query.HybridNear.text(text="banana pudding", target_vector="text"),

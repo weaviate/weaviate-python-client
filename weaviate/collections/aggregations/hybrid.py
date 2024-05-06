@@ -8,7 +8,7 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
-from weaviate.exceptions import WeaviateNotImplementedError
+from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import NUMBER
 
 
@@ -93,7 +93,7 @@ class _Hybrid(_Aggregate):
                 If any of the input arguments are of the wrong type.
         """
         if group_by is not None and self._connection._weaviate_version.is_lower_than(1, 25, 0):
-            raise WeaviateNotImplementedError(
+            raise WeaviateUnsupportedFeatureError(
                 "Hybrid aggregation", self._connection.server_version, "1.25.0"
             )
         return_metrics = (

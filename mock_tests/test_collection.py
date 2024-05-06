@@ -169,7 +169,7 @@ def test_missing_multi_tenancy_config(
             index_timestamps=False,
             stopwords=StopwordsConfig(preset=StopwordsPreset.NONE, additions=[], removals=[]),
         ),
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=MultiTenancyConfig(enabled=True, auto_tenant_creation=False),
         sharding_config=ShardingConfig(
             virtual_per_physical=0,
             desired_count=0,
