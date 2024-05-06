@@ -62,7 +62,6 @@ VectorIndexType: TypeAlias = VectorIndexTypeAlias
 VectorDistances: TypeAlias = VectorDistancesAlias
 
 
-
 class ConsistencyLevel(str, Enum):
     """The consistency levels when writing to Weaviate with replication enabled.
 
