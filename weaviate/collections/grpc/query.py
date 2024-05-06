@@ -33,7 +33,7 @@ from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateQueryError, WeaviateNotImplementedError
+from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4
 
@@ -162,7 +162,7 @@ class _QueryGRPC(_BaseGRPC):
         if self._connection._weaviate_version.is_lower_than(1, 25, 0) and (
             isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
         ):
-            raise WeaviateNotImplementedError(
+            raise WeaviateUnsupportedFeatureError(
                 "Hybrid search with NearText or NearVector",
                 str(self._connection._weaviate_version),
                 "1.25.0",

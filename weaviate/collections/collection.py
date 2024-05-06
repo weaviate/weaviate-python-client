@@ -104,7 +104,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
-        self.tenants = _Tenants(connection, self.name)
+        self.tenants = _Tenants(connection, self.name, consistency_level, validate_arguments)
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
 
         self.backup = _CollectionBackup(connection, self.name)

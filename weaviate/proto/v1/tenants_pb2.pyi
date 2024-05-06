@@ -27,17 +27,14 @@ TENANT_ACTIVITY_STATUS_WARM: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_FROZEN: TenantActivityStatus
 
 class TenantsGetRequest(_message.Message):
-    __slots__ = ("collection", "is_consistent", "names")
+    __slots__ = ("collection", "names")
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
-    IS_CONSISTENT_FIELD_NUMBER: _ClassVar[int]
     NAMES_FIELD_NUMBER: _ClassVar[int]
     collection: str
-    is_consistent: bool
     names: TenantNames
     def __init__(
         self,
         collection: _Optional[str] = ...,
-        is_consistent: bool = ...,
         names: _Optional[_Union[TenantNames, _Mapping]] = ...,
     ) -> None: ...
 
