@@ -12,7 +12,7 @@ from weaviate.collections.batch.batch_wrapper import (
     _BatchMode,
     _ContextManagerWrapper,
 )
-from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
@@ -124,9 +124,23 @@ class _BatchClientWrapper(_BatchWrapper):
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchClient]:
         if self._vectorizer_batching is None or not self._vectorizer_batching:
             configs = self.__config.list_all(simple=True)
-            self._vectorizer_batching = any(
-                config.vectorizer_config is not None for config in configs.values()
-            )
+
+            vectorizer_batching = False
+            for config in configs.values():
+                if config.vector_config is not None:
+                    vectorizer_batching = False
+                    for vec_config in config.vector_config.values():
+                        if vec_config.vectorizer.vectorizer is not Vectorizers.NONE:
+                            vectorizer_batching = True
+                            break
+                    vectorizer_batching = vectorizer_batching
+                else:
+                    vectorizer_batching = any(
+                        config.vectorizer_config is not None for config in configs.values()
+                    )
+                if vectorizer_batching:
+                    break
+            self._vectorizer_batching = vectorizer_batching
 
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(

@@ -128,7 +128,15 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
         if self._vectorizer_batching is None:
             config = self.__config.get(simple=True)
-            self._vectorizer_batching = config.vectorizer is not Vectorizers.NONE
+            if config.vector_config is not None:
+                vectorizer_batching = False
+                for vec_config in config.vector_config.values():
+                    if vec_config.vectorizer.vectorizer is not Vectorizers.NONE:
+                        vectorizer_batching = True
+                        break
+                self._vectorizer_batching = vectorizer_batching
+            else:
+                self._vectorizer_batching = config.vectorizer is not Vectorizers.NONE
 
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
