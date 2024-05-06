@@ -83,6 +83,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
+    TEXT2VEC_OCTOAI = "text2vec-octoai"
     TEXT2VEC_OPENAI = "text2vec-openai"
     TEXT2VEC_PALM = "text2vec-palm"
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
@@ -307,6 +308,13 @@ class _Text2VecVoyageConfig(_ConfigCreateModel):
 
 class _Text2VecVoyageConfigCreate(_Text2VecVoyageConfig, _VectorizerConfigCreate):
     pass
+
+
+class _Text2VecOctoConfig(_VectorizerConfigCreate):
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_OCTOAI, frozen=True, exclude=True)
+    model: Optional[str]
+    baseURL: Optional[str]
+    vectorizeClassName: bool
 
 
 class _Img2VecNeuralConfig(_ConfigCreateModel):
@@ -710,6 +718,32 @@ class _Vectorizer:
             waitForModel=wait_for_model,
             useGPU=use_gpu,
             useCache=use_cache,
+            vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
+    def text2vec_octoai(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[Union[OpenAIModel, str]] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecOctoConfig` object for use when vectorizing using the `text2vec-openai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-octoai)
+        for detailed usage.
+
+        Arguments:
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _Text2VecOctoConfig(
+            baseURL=base_url,
+            model=model,
             vectorizeClassName=vectorize_collection_name,
         )
 
