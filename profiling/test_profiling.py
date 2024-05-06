@@ -4,6 +4,7 @@
 
 import math
 from typing import Any, List
+import uuid
 import pytest
 import weaviate
 from weaviate.collections.classes.config import Configure, DataType, Property
@@ -188,6 +189,46 @@ def test_blob_properties(client: weaviate.WeaviateClient) -> None:
         assert len(objs) == 100
 
 
+@pytest.mark.profiling
+def test_list_value_properties(client: weaviate.WeaviateClient) -> None:
+    name = "TestProfileListValueProperties"
+    client.collections.delete(name)
+
+    col = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="bools", data_type=DataType.BOOL_ARRAY),
+            Property(name="dates", data_type=DataType.DATE_ARRAY),
+            Property(name="ints", data_type=DataType.INT_ARRAY),
+            Property(name="numbers", data_type=DataType.NUMBER_ARRAY),
+            Property(name="texts", data_type=DataType.TEXT_ARRAY),
+            Property(name="uuids", data_type=DataType.UUID_ARRAY),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    col = client.collections.get(name)
+
+    with col.batch.dynamic() as batch:
+        for i in range(100):
+            batch.add_object(
+                properties={
+                    "bools": [True] * 10000,
+                    "dates": ["2021-01-01T00:00:00Z"] * 10000,
+                    "ints": [i] * 10000,
+                    "numbers": [3.3] * 10000,
+                    "texts": ["Test"] * 10000,
+                    "uuids": [uuid.uuid4()] * 10000,
+                }
+            )
+
+    for _ in range(100):
+        objs = col.query.fetch_objects(
+            limit=100, return_properties=["bools", "ints", "numbers", "texts"]
+        ).objects
+        assert len(objs) == 100
+
+
 def test_benchmark_get_vector(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_get_vector, client)
 
@@ -206,3 +247,7 @@ def test_benchmark_vector_search(benchmark: Any, client: weaviate.WeaviateClient
 
 def test_benchmark_blob_properties(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_blob_properties, client)
+
+
+def test_benchmark_list_value_properties(benchmark: Any, client: weaviate.WeaviateClient) -> None:
+    benchmark(test_list_value_properties, client)

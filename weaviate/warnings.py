@@ -175,6 +175,15 @@ class _Warnings:
         )
 
     @staticmethod
+    def sharding_actual_count_is_deprecated(argument: str) -> None:
+        warnings.warn(
+            message=f"""Dep018: You are using the {argument} argument in the `Configure.sharding` method, which is deprecated.
+            This field is read-only so has no effect and as such is deprecated. It will be removed in a future release.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def bit_compression_in_pq_config() -> None:
         warnings.warn(
             message="""Dep018: The `bit_compression` argument in `PQConfig` is deprecated and will be removed by Q4 2024.""",

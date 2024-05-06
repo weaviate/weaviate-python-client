@@ -195,6 +195,20 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_octoai(
+            vectorize_collection_name=False,
+            model="thenlper/gte-large",
+            base_url="https://text.octoai.com",
+        ),
+        {
+            "text2vec-octoai": {
+                "vectorizeClassName": False,
+                "model": "thenlper/gte-large",
+                "baseURL": "https://text.octoai.com",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_openai(),
         {
             "text2vec-openai": {
@@ -577,6 +591,22 @@ TEST_CONFIG_WITH_GENERATIVE = [
     (
         Configure.Generative.mistral(temperature=0.5, max_tokens=100, model="model"),
         {"generative-mistral": {"temperature": 0.5, "maxTokens": 100, "model": "model"}},
+    ),
+    (
+        Configure.Generative.octoai(
+            model="mistral-7b-instruct",
+            temperature=0.5,
+            base_url="https://text.octoai.run",
+            max_tokens=123,
+        ),
+        {
+            "generative-octoai": {
+                "model": "mistral-7b-instruct",
+                "maxTokens": 123,
+                "temperature": 0.5,
+                "baseURL": "https://text.octoai.run",
+            }
+        },
     ),
     (
         Configure.Generative.openai(
@@ -1028,6 +1058,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "vectorizeClassName": True,
                         "region": "us-east-1",
                         "service": "bedrock",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_octoai(
+                name="test", source_properties=["prop"], base_url="https://text.octoai.com"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-octoai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "baseURL": "https://text.octoai.com",
                     }
                 },
                 "vectorIndexType": "hnsw",

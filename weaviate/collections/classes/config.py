@@ -160,12 +160,13 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by AWS Bedrock generative models.
     """
 
-    OPENAI = "generative-openai"
-    COHERE = "generative-cohere"
-    PALM = "generative-palm"
     AWS = "generative-aws"
     ANYSCALE = "generative-anyscale"
+    COHERE = "generative-cohere"
     MISTRAL = "generative-mistral"
+    OCTOAI = "generative-octoai"
+    OPENAI = "generative-openai"
+    PALM = "generative-palm"
 
 
 class Rerankers(str, Enum):
@@ -297,9 +298,7 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 class _ShardingConfigCreate(_ConfigCreateModel):
     virtualPerPhysical: Optional[int]
     desiredCount: Optional[int]
-    actualCount: Optional[int]
     desiredVirtualCount: Optional[int]
-    actualVirtualCount: Optional[int]
     key: str = "_id"
     strategy: str = "hash"
     function: str = "murmur3"
@@ -352,10 +351,11 @@ class _InvertedIndexConfigUpdate(_ConfigUpdateModel):
 
 class _MultiTenancyConfigCreate(_ConfigCreateModel):
     enabled: bool
+    autoTenantCreation: Optional[bool]
 
 
 class _MultiTenancyConfigUpdate(_ConfigUpdateModel):
-    enabled: Optional[bool] = None
+    autoTenantCreation: Optional[bool] = None
 
 
 class _GenerativeConfigCreate(_ConfigCreateModel):
@@ -367,6 +367,16 @@ class _GenerativeAnyscale(_GenerativeConfigCreate):
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
     temperature: Optional[float]
+    model: Optional[str]
+
+
+class _GenerativeOctoai(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.OCTOAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[str]
+    temperature: Optional[float]
+    maxTokens: Optional[int]
     model: Optional[str]
 
 
@@ -491,6 +501,18 @@ class _Generative:
         max_tokens: Optional[int] = None,
     ) -> _GenerativeConfigCreate:
         return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
+
+    @staticmethod
+    def octoai(
+        *,
+        base_url: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeOctoai(
+            baseURL=base_url, maxTokens=max_tokens, model=model, temperature=temperature
+        )
 
     @staticmethod
     def openai(
@@ -803,6 +825,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     vectorizerConfig: Optional[
         Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]
     ] = Field(default=None, alias="vectorizer_config")
+    multiTenancyConfig: Optional[_MultiTenancyConfigUpdate] = Field(
+        default=None, alias="multi_tenancy_config"
+    )
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         if self.description is not None:
@@ -814,6 +839,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
         if self.replicationConfig is not None:
             schema["replicationConfig"] = self.replicationConfig.merge_with_existing(
                 schema["replicationConfig"]
+            )
+        if self.multiTenancyConfig is not None:
+            schema["multiTenancyConfig"] = self.multiTenancyConfig.merge_with_existing(
+                schema["multiTenancyConfig"]
             )
         if self.vectorIndexConfig is not None:
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
@@ -888,6 +917,7 @@ InvertedIndexConfig = _InvertedIndexConfig
 @dataclass
 class _MultiTenancyConfig(_ConfigBase):
     enabled: bool
+    auto_tenant_creation: bool
 
 
 MultiTenancyConfig = _MultiTenancyConfig
@@ -1644,14 +1674,18 @@ class Configure:
         )
 
     @staticmethod
-    def multi_tenancy(enabled: bool = True) -> _MultiTenancyConfigCreate:
+    def multi_tenancy(
+        enabled: bool = True, auto_tenant_creation: bool = False
+    ) -> _MultiTenancyConfigCreate:
         """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
 
         Arguments:
             `enabled`
                 Whether multi-tenancy is enabled. Defaults to `True`.
+            `auto_tenant_creation`
+                Automatically create nonexistent tenants during batch import. Defaults to `False`
         """
-        return _MultiTenancyConfigCreate(enabled=enabled)
+        return _MultiTenancyConfigCreate(enabled=enabled, autoTenantCreation=auto_tenant_creation)
 
     @staticmethod
     def replication(factor: Optional[int] = None) -> _ReplicationConfigCreate:
@@ -1682,19 +1716,23 @@ class Configure:
                 The number of virtual shards per physical shard.
             `desired_count`
                 The desired number of physical shards.
-            `actual_count`
-                The actual number of physical shards.
+            `actual_count` DEPRECATED
+                The actual number of physical shards. This is a read-only field so has no effect.
+                It is kept for backwards compatibility but will be removed in a future release.
             `desired_virtual_count`
                 The desired number of virtual shards.
-            `actual_virtual_count`
-                The actual number of virtual shards.
+            `actual_virtual_count` DEPRECATED
+                The actual number of virtual shards. This is a read-only field so has no effect.
+                It is kept for backwards compatibility but will be removed in a future release.
         """
+        if actual_count is not None:
+            _Warnings.sharding_actual_count_is_deprecated("actual_count")
+        if actual_virtual_count is not None:
+            _Warnings.sharding_actual_count_is_deprecated("actual_virtual_count")
         return _ShardingConfigCreate(
             virtualPerPhysical=virtual_per_physical,
             desiredCount=desired_count,
-            actualCount=actual_count,
             desiredVirtualCount=desired_virtual_count,
-            actualVirtualCount=actual_virtual_count,
         )
 
 
@@ -1840,3 +1878,15 @@ class Reconfigure:
                 The replication factor.
         """
         return _ReplicationConfigUpdate(factor=factor)
+
+    @staticmethod
+    def multi_tenancy(auto_tenant_creation: Optional[bool] = None) -> _MultiTenancyConfigUpdate:
+        """Create a `MultiTenancyConfigUpdate` object.
+
+        Use this method when defining the `multi_tenancy` argument in `collection.update()`.
+
+        Arguments:
+            `auto_tenant_creation`
+                When set, implicitly creates nonexisting tenants during batch imports
+        """
+        return _MultiTenancyConfigUpdate(autoTenantCreation=auto_tenant_creation)

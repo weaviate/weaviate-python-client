@@ -7,7 +7,7 @@ from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
     _Generative,
     _GroupBy,
-    GenerativeNearMediaReturnType,
+    GenerativeSearchReturnType,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
@@ -38,7 +38,7 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> GenerativeNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-object object search in this collection using a vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#nearobject) for a more detailed explanation.
@@ -58,8 +58,12 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                How the results should be grouped by a specific property.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            `target_vector`
+                The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
             `include_vector`
                 Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
@@ -75,7 +79,8 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `_GenerativeNearMediaReturn` object that includes the searched objects with per-object generated results and group generated results.
+            A `GenerativeReturn` or `GenerativeGroupByReturn` object that includes the searched objects.
+            If `group_by` is provided then a `GenerativeGroupByReturn` object is returned, otherwise a `GenerativeReturn` object is returned.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCQueryError`:

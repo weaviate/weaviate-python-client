@@ -23,6 +23,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     ResponseCannotBeDecodedError,
     WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.warnings import _Warnings
 from weaviate.types import NUMBER, UUIDS, TIME
@@ -799,6 +800,14 @@ class _ServerVersion:
             raise ValueError(
                 f"Unable to parse a version from the input string: {initial}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
             )
+
+    def check_is_at_least_1_25_0(self, feature: str) -> None:
+        if not self >= _ServerVersion(1, 25, 0):
+            raise WeaviateUnsupportedFeatureError(feature, str(self), "1.25.0")
+
+    @property
+    def supports_tenants_get_grpc(self) -> bool:
+        return self >= _ServerVersion(1, 25, 0)
 
 
 def is_weaviate_too_old(current_version_str: str) -> bool:

@@ -5,9 +5,19 @@ from typing import Generator, List, Union
 import pytest
 
 import weaviate
-from weaviate.backup.backup import BackupStatus, BackupStorage
+from weaviate.backup.backup import (
+    BackupCompressionLevel,
+    BackupConfigCreate,
+    BackupConfigRestore,
+    BackupStatus,
+    BackupStorage,
+)
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
-from weaviate.exceptions import UnexpectedStatusCodeException, BackupFailedException
+from weaviate.exceptions import (
+    WeaviateUnsupportedFeatureError,
+    UnexpectedStatusCodeException,
+    BackupFailedException,
+)
 
 BACKEND = BackupStorage.FILESYSTEM
 
@@ -361,3 +371,81 @@ def test_backup_and_restore_with_collection(client: weaviate.WeaviateClient) -> 
     # check restore status
     restore_status = article.backup.get_restore_status(backup_id, BACKEND)
     assert restore_status.status == BackupStatus.SUCCESS
+
+
+def test_backup_and_restore_with_collection_and_config_1_24_x(
+    client: weaviate.WeaviateClient,
+) -> None:
+    if client._connection._weaviate_version.is_lower_than(1, 25, 0):
+        pytest.skip("Backup config is only supported from Weaviate 1.25.0")
+
+    backup_id = _create_backup_id()
+
+    article = client.collections.get("Article")
+
+    # create backup
+    create = article.backup.create(
+        backup_id=backup_id,
+        backend=BACKEND,
+        wait_for_completion=True,
+        config=BackupConfigCreate(
+            cpu_percentage=60, chunk_size=256, compression_level=BackupCompressionLevel.BEST_SPEED
+        ),
+    )
+    assert create.status == BackupStatus.SUCCESS
+
+    assert len(article) == len(ARTICLES_IDS)
+
+    # check create status
+    create_status = article.backup.get_create_status(backup_id, BACKEND)
+    assert create_status.status == BackupStatus.SUCCESS
+
+    # remove existing class
+    client.collections.delete("Article")
+
+    # restore backup
+    restore = article.backup.restore(
+        backup_id=backup_id,
+        backend=BACKEND,
+        wait_for_completion=True,
+        config=BackupConfigRestore(cpu_percentage=70),
+    )
+    assert restore.status == BackupStatus.SUCCESS
+
+    # # check data exists again
+    assert len(article) == len(ARTICLES_IDS)
+
+    # check restore status
+    restore_status = article.backup.get_restore_status(backup_id, BACKEND)
+    assert restore_status.status == BackupStatus.SUCCESS
+
+
+def test_backup_and_restore_with_collection_and_config_1_23_x(
+    client: weaviate.WeaviateClient,
+) -> None:
+    if client._connection._weaviate_version.is_at_least(1, 24, 0):
+        pytest.skip("Backup config is supported from Weaviate 1.24.0")
+
+    backup_id = _create_backup_id()
+
+    article = client.collections.get("Article")
+
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        article.backup.create(
+            backup_id=backup_id,
+            backend=BACKEND,
+            wait_for_completion=True,
+            config=BackupConfigCreate(
+                cpu_percentage=60,
+                chunk_size=256,
+                compression_level=BackupCompressionLevel.BEST_SPEED,
+            ),
+        )
+
+    with pytest.raises(WeaviateUnsupportedFeatureError):
+        article.backup.restore(
+            backup_id=backup_id,
+            backend=BACKEND,
+            wait_for_completion=True,
+            config=BackupConfigRestore(cpu_percentage=70),
+        )

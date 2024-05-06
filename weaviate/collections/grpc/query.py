@@ -14,6 +14,9 @@ from weaviate.collections.classes.grpc import (
     HybridFusion,
     _QueryReferenceMultiTarget,
     _MetadataQuery,
+    _HybridNearText,
+    _HybridNearVector,
+    HybridVectorType,
     Move,
     QueryNested,
     _QueryReference,
@@ -30,7 +33,7 @@ from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateQueryError
+from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4
 
@@ -73,11 +76,13 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
+        uses_125_api: bool,
     ):
         super().__init__(connection, consistency_level)
         self._name: str = name
         self._tenant = tenant
         self._validate_arguments = validate_arguments
+        self.__uses_125_api = uses_125_api
 
     def __parse_near_options(
         self,
@@ -139,13 +144,14 @@ class _QueryGRPC(_BaseGRPC):
         self,
         query: Optional[str],
         alpha: Optional[float] = None,
-        vector: Optional[List[float]] = None,
+        vector: Optional[HybridVectorType] = None,
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[_GroupBy] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -153,12 +159,22 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[str] = None,
     ) -> search_get_pb2.SearchReply:
+        if self._connection._weaviate_version.is_lower_than(1, 25, 0) and (
+            isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
+        ):
+            raise WeaviateUnsupportedFeatureError(
+                "Hybrid search with NearText or NearVector",
+                str(self._connection._weaviate_version),
+                "1.25.0",
+            )
         if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument([None, str], "query", query),
                     _ValidateArgument([float, int, None], "alpha", alpha),
-                    _ValidateArgument([List, None], "vector", vector),
+                    _ValidateArgument(
+                        [list, _HybridNearText, _HybridNearVector, None], "vector", vector
+                    ),
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
                     _ValidateArgument([str, None], "target_vector", target_vector),
@@ -174,9 +190,6 @@ class _QueryGRPC(_BaseGRPC):
                 properties=properties,
                 query=query,
                 alpha=float(alpha) if alpha is not None else None,
-                vector_bytes=(
-                    struct.pack("{}f".format(len(vector)), *vector) if vector is not None else None
-                ),
                 fusion_type=(
                     cast(
                         search_get_pb2.Hybrid.FusionType,
@@ -186,6 +199,37 @@ class _QueryGRPC(_BaseGRPC):
                     else None
                 ),
                 target_vectors=[target_vector] if target_vector is not None else None,
+                vector_bytes=(
+                    struct.pack("{}f".format(len(vector)), *vector)
+                    if vector is not None and isinstance(vector, list)
+                    else None
+                ),
+                near_text=(
+                    search_get_pb2.NearTextSearch(
+                        query=[vector.text] if isinstance(vector.text, str) else vector.text,
+                        certainty=vector.certainty,
+                        distance=vector.distance,
+                        move_away=self.__parse_move(vector.move_away),
+                        move_to=self.__parse_move(vector.move_to),
+                        target_vectors=[vector.target_vector]
+                        if vector.target_vector is not None
+                        else None,
+                    )
+                    if vector is not None and isinstance(vector, _HybridNearText)
+                    else None
+                ),
+                near_vector=(
+                    search_get_pb2.NearVector(
+                        vector_bytes=struct.pack("{}f".format(len(vector.vector)), *vector.vector),
+                        certainty=vector.certainty,
+                        distance=vector.distance,
+                        target_vectors=[vector.target_vector]
+                        if vector.target_vector is not None
+                        else None,
+                    )
+                    if vector is not None and isinstance(vector, _HybridNearVector)
+                    else None
+                ),
             )
             if query is not None or vector is not None
             else None
@@ -195,6 +239,7 @@ class _QueryGRPC(_BaseGRPC):
             limit=limit,
             offset=offset,
             filters=filters,
+            group_by=group_by,
             metadata=return_metadata,
             return_properties=return_properties,
             return_references=return_references,
@@ -214,6 +259,7 @@ class _QueryGRPC(_BaseGRPC):
         offset: Optional[int] = None,
         autocut: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[_GroupBy] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -232,17 +278,20 @@ class _QueryGRPC(_BaseGRPC):
             limit=limit,
             offset=offset,
             filters=filters,
+            group_by=group_by,
             metadata=return_metadata,
             return_properties=return_properties,
             return_references=return_references,
             generative=generative,
             rerank=rerank,
             autocut=autocut,
-            bm25=search_get_pb2.BM25(
-                query=query, properties=properties if properties is not None else []
-            )
-            if query is not None
-            else None,
+            bm25=(
+                search_get_pb2.BM25(
+                    query=query, properties=properties if properties is not None else []
+                )
+                if query is not None
+                else None
+            ),
         )
         return self.__call(request)
 
@@ -381,24 +430,8 @@ class _QueryGRPC(_BaseGRPC):
             certainty=certainty,
             distance=distance,
             target_vectors=[target_vector] if target_vector is not None else None,
-            move_away=(
-                search_get_pb2.NearTextSearch.Move(
-                    force=move_away.force,
-                    concepts=move_away._concepts_list,
-                    uuids=move_away._objects_list,
-                )
-                if move_away is not None
-                else None
-            ),
-            move_to=(
-                search_get_pb2.NearTextSearch.Move(
-                    force=move_to.force,
-                    concepts=move_to._concepts_list,
-                    uuids=move_to._objects_list,
-                )
-                if move_to is not None
-                else None
-            ),
+            move_away=self.__parse_move(move_away),
+            move_to=self.__parse_move(move_to),
         )
 
         request = self.__create_request(
@@ -491,6 +524,18 @@ class _QueryGRPC(_BaseGRPC):
         )
         return self.__call(request)
 
+    @staticmethod
+    def __parse_move(move: Optional[Move]) -> Optional[search_get_pb2.NearTextSearch.Move]:
+        return (
+            search_get_pb2.NearTextSearch.Move(
+                force=move.force,
+                concepts=move._concepts_list,
+                uuids=move._objects_list,
+            )
+            if move is not None
+            else None
+        )
+
     def __create_request(
         self,
         limit: Optional[int] = None,
@@ -569,6 +614,7 @@ class _QueryGRPC(_BaseGRPC):
 
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
+            uses_125_api=self.__uses_125_api,
             collection=self._name,
             limit=limit,
             offset=offset,

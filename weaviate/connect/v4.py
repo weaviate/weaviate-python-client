@@ -586,6 +586,9 @@ class _Connection(_ConnectionBase):
         assert res is not None
         return res
 
+    def supports_groupby_in_bm25_and_hybrid(self) -> bool:
+        return self._weaviate_version.is_at_least(1, 25, 0)
+
 
 class ConnectionV4(_Connection):
     def __init__(
