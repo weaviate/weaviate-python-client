@@ -160,12 +160,13 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by AWS Bedrock generative models.
     """
 
-    OPENAI = "generative-openai"
-    COHERE = "generative-cohere"
-    PALM = "generative-palm"
     AWS = "generative-aws"
     ANYSCALE = "generative-anyscale"
+    COHERE = "generative-cohere"
     MISTRAL = "generative-mistral"
+    OCTOAI = "generative-octoai"
+    OPENAI = "generative-openai"
+    PALM = "generative-palm"
 
 
 class Rerankers(str, Enum):
@@ -368,6 +369,16 @@ class _GenerativeAnyscale(_GenerativeConfigCreate):
     model: Optional[str]
 
 
+class _GenerativeOctoai(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.OCTOAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[str]
+    temperature: Optional[float]
+    maxTokens: Optional[int]
+    model: Optional[str]
+
+
 class _GenerativeMistral(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
@@ -489,6 +500,18 @@ class _Generative:
         max_tokens: Optional[int] = None,
     ) -> _GenerativeConfigCreate:
         return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
+
+    @staticmethod
+    def octoai(
+        *,
+        base_url: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeOctoai(
+            baseURL=base_url, maxTokens=max_tokens, model=model, temperature=temperature
+        )
 
     @staticmethod
     def openai(

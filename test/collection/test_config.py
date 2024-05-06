@@ -593,6 +593,22 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-mistral": {"temperature": 0.5, "maxTokens": 100, "model": "model"}},
     ),
     (
+        Configure.Generative.octoai(
+            model="mistral-7b-instruct",
+            temperature=0.5,
+            base_url="https://text.octoai.run",
+            max_tokens=123,
+        ),
+        {
+            "generative-octoai": {
+                "model": "mistral-7b-instruct",
+                "maxTokens": 123,
+                "temperature": 0.5,
+                "baseURL": "https://text.octoai.run",
+            }
+        },
+    ),
+    (
         Configure.Generative.openai(
             model="gpt-4",
             frequency_penalty=0.5,
