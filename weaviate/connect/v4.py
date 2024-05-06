@@ -364,7 +364,7 @@ class _Connection(_ConnectionBase):
 
     async def aopen(self) -> None:
         if self._aclient is None:
-            self._aclient = self.__make_async_client()
+            self._aclient = await self.__make_async_client().__aenter__()
         if self._grpc_stub_async is None:
             self._grpc_channel_async = self._connection_params._grpc_channel(
                 async_channel=True, proxies=self._proxies
@@ -374,7 +374,7 @@ class _Connection(_ConnectionBase):
 
     async def aclose(self) -> None:
         if self._aclient is not None:
-            await self._aclient.aclose()
+            await self._aclient.__aexit__()
             self._aclient = None
         if self._grpc_stub_async is not None:
             assert self._grpc_channel_async is not None
@@ -585,6 +585,9 @@ class _Connection(_ConnectionBase):
         res = _decode_json_response_dict(response, "Meta endpoint")
         assert res is not None
         return res
+
+    def supports_groupby_in_bm25_and_hybrid(self) -> bool:
+        return self._weaviate_version.is_at_least(1, 25, 0)
 
 
 class ConnectionV4(_Connection):

@@ -108,7 +108,7 @@ class _NearText(_Aggregate):
         )
         builder = self._base(return_metrics, filters, total_count)
         builder = self._add_groupby_to_builder(builder, group_by)
-        builder = self._add_near_text(
+        builder = self._add_near_text_to_builder(
             builder=builder,
             query=query,
             certainty=certainty,

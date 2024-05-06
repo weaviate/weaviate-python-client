@@ -18,6 +18,7 @@ env:
   WEAVIATE_124: 1.24.10
   WEAVIATE_125: preview-remove-consistency-from-tenant-get-486f1a6
 
+
 jobs:
   lint-and-format:
     name: Run Linter and Formatter
