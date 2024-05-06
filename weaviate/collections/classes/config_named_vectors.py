@@ -637,6 +637,7 @@ class _NamedVectors:
         vectorize_collection_name: bool = True,
         api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
+        title_property: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_palm` model.
 
@@ -660,6 +661,8 @@ class _NamedVectors:
                 The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
             `model_id`
                 The model ID to use. Defaults to `None`, which uses the server-defined default.
+            `title_property`
+                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
 
         Raises:
             `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
@@ -672,6 +675,7 @@ class _NamedVectors:
                 apiEndpoint=api_endpoint,
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
+                titleProperty=title_property,
             ),
             vector_index_config=vector_index_config,
         )

@@ -54,13 +54,13 @@ from weaviate.collections.classes.config_named_vectors import (
 )
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.warnings import _Warnings
+from config_vectorizers import AWSService
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
 VectorIndexType: TypeAlias = VectorIndexTypeAlias
 VectorDistances: TypeAlias = VectorDistancesAlias
 
-from config_vectorizers import AWSService
 
 
 class ConsistencyLevel(str, Enum):
