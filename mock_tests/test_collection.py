@@ -283,6 +283,42 @@ def test_return_from_bind_module(
             ],
             {"X-Cohere-Api-Key": "key", "X-Openai-Api-Key": "key2"},
         ),
+        (
+            [
+                wvc.init.Integrations.voyageai(
+                    api_key="key", base_url="http://some-url.com", request_per_minute_embeddings=50
+                )
+            ],
+            {
+                "X-Voyageai-Api-Key": "key",
+                "X-Voyageai-Ratelimit-RequestPM-Embedding": "50",
+                "X-Voyageai-Baseurl": "http://some-url.com",
+            },
+        ),
+        (
+            [
+                wvc.init.Integrations.jinaai(
+                    api_key="key", base_url="http://some-url.com", request_per_minute_embeddings=50
+                )
+            ],
+            {
+                "X-Jinaai-Api-Key": "key",
+                "X-Jinaai-Ratelimit-RequestPM-Embedding": "50",
+                "X-Jinaai-Baseurl": "http://some-url.com",
+            },
+        ),
+        (
+            [
+                wvc.init.Integrations.octoai(
+                    api_key="key", base_url="http://some-url.com", request_per_minute_embeddings=50
+                )
+            ],
+            {
+                "X-Octoai-Api-Key": "key",
+                "X-Octoai-Ratelimit-RequestPM-Embedding": "50",
+                "X-Octoai-Baseurl": "http://some-url.com",
+            },
+        ),
     ],
 )
 def test_integration_config(

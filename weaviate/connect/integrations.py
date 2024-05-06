@@ -64,6 +64,14 @@ class _IntegrationConfigJina(_IntegrationConfig):
     base_url: Optional[str] = Field(serialization_alias="X-Jinaai-Baseurl")
 
 
+class _IntegrationConfigOcto(_IntegrationConfig):
+    api_key: str = Field(serialization_alias="X-Octoai-Api-Key")
+    request_per_minute_embeddings: Optional[int] = Field(
+        serialization_alias="X-Octoai-Ratelimit-RequestPM-Embedding"
+    )
+    base_url: Optional[str] = Field(serialization_alias="X-Octoai-Baseurl")
+
+
 class Integrations:
     @staticmethod
     def cohere(
@@ -95,7 +103,7 @@ class Integrations:
             base_url=base_url,
         )
 
-    # need more info to support this
+    # not yet implemented
     # @staticmethod
     # def aws(
     #     *,
@@ -140,13 +148,13 @@ class Integrations:
         )
 
     @staticmethod
-    def huggingface(
+    def octoai(
         *,
         api_key: str,
         request_per_minute_embeddings: Optional[int] = None,
         base_url: Optional[str] = None
     ) -> _IntegrationConfig:
-        return _IntegrationConfigJina(
+        return _IntegrationConfigOcto(
             api_key=api_key,
             request_per_minute_embeddings=request_per_minute_embeddings,
             base_url=base_url,
