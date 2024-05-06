@@ -60,6 +60,8 @@ from weaviate.util import (
 from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.warnings import _Warnings
 
+from weaviate.connect.integrations import _IntegrationConfig
+
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 
@@ -154,6 +156,11 @@ class _Connection(_ConnectionBase):
 
     def is_connected(self) -> bool:
         return self.__connected
+
+    def set_integrations(self, integrations_config: List[_IntegrationConfig]) -> None:
+        for integration in integrations_config:
+            self._headers.update(integration._to_header())
+            self.__additional_headers.update(integration._to_header())
 
     @overload
     def __make_mounts(self, type_: Literal["sync"]) -> Dict[str, HTTPTransport]:

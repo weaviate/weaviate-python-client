@@ -10,6 +10,8 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.backup.backup import _Backup
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 
+from weaviate.integrations import _Integrations
+
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
@@ -187,6 +189,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             connection_params, embedded_options
         )
         config = additional_config or AdditionalConfig()
+
         self.__skip_init_checks = skip_init_checks
 
         self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
@@ -200,8 +203,6 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
             trust_env=config.trust_env,
         )
 
-        self.batch = _BatchClientWrapper(self._connection, consistency_level=None)
-        """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
         self.cluster = _Cluster(self._connection)
@@ -211,6 +212,10 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
+        self.batch = _BatchClientWrapper(self._connection, config=self.collections)
+        """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
+
+        self.integrations = _Integrations(self._connection)
 
     def __parse_connection_params_and_embedded_db(
         self,
