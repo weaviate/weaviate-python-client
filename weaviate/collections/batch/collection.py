@@ -13,6 +13,7 @@ from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
 from weaviate.connect import ConnectionV4
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS
 
 if TYPE_CHECKING:
@@ -127,16 +128,22 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
         if self._vectorizer_batching is None:
-            config = self.__config.get(simple=True)
-            if config.vector_config is not None:
-                vectorizer_batching = False
-                for vec_config in config.vector_config.values():
-                    if vec_config.vectorizer.vectorizer is not Vectorizers.NONE:
-                        vectorizer_batching = True
-                        break
-                self._vectorizer_batching = vectorizer_batching
-            else:
-                self._vectorizer_batching = config.vectorizer is not Vectorizers.NONE
+            try:
+                config = self.__config.get(simple=True)
+                if config.vector_config is not None:
+                    vectorizer_batching = False
+                    for vec_config in config.vector_config.values():
+                        if vec_config.vectorizer.vectorizer is not Vectorizers.NONE:
+                            vectorizer_batching = True
+                            break
+                    self._vectorizer_batching = vectorizer_batching
+                else:
+                    self._vectorizer_batching = config.vectorizer is not Vectorizers.NONE
+            except UnexpectedStatusCodeError as e:
+                # collection does not have to exist if autoschema is enabled. Individual objects will be validated and might fail
+                if e.status_code != 404:
+                    raise e
+                self._vectorizer_batching = False
 
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(

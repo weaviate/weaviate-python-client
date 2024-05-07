@@ -4,7 +4,7 @@ from typing import Generator, Optional, Union, Any, Protocol
 
 import pytest
 
-from integration.conftest import CollectionFactory
+from integration.conftest import CollectionFactory, CollectionFactoryGet
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
     Configure,
@@ -225,3 +225,12 @@ def test_refs_and_objects(batch_collection: BatchCollection) -> None:
     obj = col.query.fetch_object_by_id(uuids[-1], return_references=QueryReference(link_on="test"))
     assert "test" in obj.references
     assert obj.references["test"].objects[0].uuid == uuids[-1]
+
+
+def test_non_existant_collection(collection_factory_get: CollectionFactoryGet) -> None:
+    collection = collection_factory_get("DoesNotExist")
+    with collection.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 2})
+
+    # above should not throw - depending on the autoschema config this might create an error or
+    # not, so we do not check for errors here
