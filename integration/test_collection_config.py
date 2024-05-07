@@ -760,6 +760,9 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
         ports=(8090, 50061),
     )
 
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        pytest.skip("Dynamic index is not supported in Weaviate versions lower than 1.25.0")
+
     config = collection.config.get()
     assert isinstance(config.vector_index_config, _VectorIndexConfigDynamic)
     assert config.vector_index_config.distance_metric == VectorDistances.COSINE
