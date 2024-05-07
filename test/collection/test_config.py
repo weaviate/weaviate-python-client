@@ -1111,6 +1111,29 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     ),
     (
         [
+            Configure.NamedVectors.text2vec_ollama(
+                name="test",
+                source_properties=["prop"],
+                api_endpoint="https://123.0.0.4",
+                model_id="cool-model",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-ollama": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "apiEndpoint": "https://123.0.0.4",
+                        "modelId": "cool-model",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
             Configure.NamedVectors.text2vec_openai(
                 name="test", source_properties=["prop"], base_url="https://api.openai.com/"
             )
