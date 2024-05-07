@@ -628,7 +628,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             api_endpoint="https://123.456.789.0",
         ),
         {
-            "generative-octoai": {
+            "generative-ollama": {
                 "modelId": "cool-model",
                 "apiEndpoint": "https://123.456.789.0",
             }
