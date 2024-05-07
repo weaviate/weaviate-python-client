@@ -542,4 +542,6 @@ def test_non_existant_collection(client_factory: ClientFactory) -> None:
     client, _ = client_factory()
     with client.batch.dynamic() as batch:
         batch.add_object(properties={"name": 2}, collection="DoesNotExist")
-    assert len(client.batch.failed_objects) == 0
+
+    # above should not throw - depending on the autoschema config this might create an error or
+    # not, so we do not check for errors here
