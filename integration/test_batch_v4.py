@@ -536,3 +536,10 @@ def test_error_reset(client_factory: ClientFactory) -> None:
     assert len(errs) == 1
     assert errs[0].object_.properties is not None
     assert errs[0].object_.properties["name"] == 1
+
+
+def test_non_existant_collection(client_factory: ClientFactory) -> None:
+    client, _ = client_factory()
+    with client.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 2}, collection="DoesNotExist")
+    assert len(client.batch.failed_objects) == 0
