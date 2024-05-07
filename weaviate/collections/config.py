@@ -36,6 +36,8 @@ from weaviate.warnings import _Warnings
 
 from weaviate.connect.v4 import _ExpectedStatusCodes
 
+from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
+
 
 class _ConfigBase:
     def __init__(self, connection: ConnectionV4, name: str, tenant: Optional[str]) -> None:
@@ -88,12 +90,17 @@ class _ConfigBase:
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
-            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
+            Union[
+                _VectorIndexConfigHNSWUpdate,
+                _VectorIndexConfigFlatUpdate,
+                _VectorIndexConfigDynamicUpdate,
+            ]
         ] = None,
         vectorizer_config: Optional[
             Union[
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
+                _VectorIndexConfigDynamicUpdate,
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,

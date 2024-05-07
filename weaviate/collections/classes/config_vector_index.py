@@ -23,6 +23,7 @@ class VectorIndexType(str, Enum):
 
     HNSW = "hnsw"
     FLAT = "flat"
+    DYNAMIC = "dynamic"
 
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
@@ -101,3 +102,19 @@ class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.FLAT
+
+
+class _VectorIndexConfigDynamicCreate(_VectorIndexConfigCreate):
+    threshold: Optional[int]
+    hnsw: Optional[_VectorIndexConfigHNSWCreate]
+    flat: Optional[_VectorIndexConfigFlatCreate]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.DYNAMIC
+
+
+class _VectorIndexConfigDynamicUpdate(_VectorIndexConfigUpdate):
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.DYNAMIC

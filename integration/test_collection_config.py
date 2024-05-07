@@ -10,6 +10,8 @@ from weaviate.collections.classes.config import (
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
+    _VectorIndexConfigDynamic,
+    _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
     Configure,
     Reconfigure,
@@ -463,6 +465,7 @@ def test_update_flat(collection_factory: CollectionFactory) -> None:
     config = collection.config.get()
     assert config.vector_index_type == VectorIndexType.FLAT
     assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigFlat)
     assert config.vector_index_config.vector_cache_max_objects == 5
     assert isinstance(config.vector_index_config.quantizer, _BQConfig)
     assert config.vector_index_config.quantizer.rescore_limit == 10
@@ -476,6 +479,7 @@ def test_update_flat(collection_factory: CollectionFactory) -> None:
     config = collection.config.get()
     assert config.vector_index_type == VectorIndexType.FLAT
     assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigFlat)
     assert config.vector_index_config.vector_cache_max_objects == 10
     assert isinstance(config.vector_index_config.quantizer, _BQConfig)
     assert config.vector_index_config.quantizer.rescore_limit == 20
@@ -570,6 +574,7 @@ def test_config_vector_index_flat_and_quantizer_bq(collection_factory: Collectio
     conf = collection.config.get()
     assert conf.vector_index_type == VectorIndexType.FLAT
     assert conf.vector_index_config is not None
+    assert isinstance(conf.vector_index_config, _VectorIndexConfigFlat)
     assert conf.vector_index_config.vector_cache_max_objects == 234
     assert isinstance(conf.vector_index_config.quantizer, _BQConfig)
     assert conf.vector_index_config.quantizer.rescore_limit == 456
@@ -587,8 +592,8 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
     conf = collection.config.get()
     assert conf.vector_index_type == VectorIndexType.HNSW
     assert conf.vector_index_config is not None
-    assert conf.vector_index_config.vector_cache_max_objects == 234
     assert isinstance(conf.vector_index_config, _VectorIndexConfigHNSW)
+    assert conf.vector_index_config.vector_cache_max_objects == 234
     assert conf.vector_index_config.ef_construction == 789
     assert isinstance(conf.vector_index_config.quantizer, _PQConfig)
     assert conf.vector_index_config.quantizer.segments == 456
@@ -742,3 +747,29 @@ def test_config_skip_vector_index(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
+
+
+def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 25, 0):
+        pytest.skip("Dynamic index is not supported in Weaviate versions lower than 1.25.0")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.dynamic(
+            distance_metric=VectorDistances.COSINE,
+            threshold=1000,
+            hnsw=Configure.VectorIndex.hnsw(cleanup_interval_seconds=123, flat_search_cutoff=1234),
+            flat=Configure.VectorIndex.flat(vector_cache_max_objects=7643),
+        ),
+        ports=(8090, 50061),
+    )
+
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigDynamic)
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
+    assert config.vector_index_config.threshold == 1000
+    assert isinstance(config.vector_index_config.hnsw, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.hnsw.cleanup_interval_seconds == 123
+    assert config.vector_index_config.hnsw.flat_search_cutoff == 1234
+    assert isinstance(config.vector_index_config.flat, _VectorIndexConfigFlat)
+    assert config.vector_index_config.flat.vector_cache_max_objects == 7643
