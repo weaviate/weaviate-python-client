@@ -691,10 +691,10 @@ class _Generative:
 
     @staticmethod
     def aws(
-        region: str,
-        service: Union[AWSService, str] = "bedrock",
         model: Optional[str] = None,
+        region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC
         endpoint: Optional[str] = None,
+        service: Union[AWSService, str] = "bedrock",
     ) -> _GenerativeConfigCreate:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
@@ -702,14 +702,14 @@ class _Generative:
         for detailed usage.
 
         Arguments:
-            `region`
-                The AWS region to run the model from, REQUIRED.
-            `service`
-                The AWS service to use, options are "bedrock" and "sagemaker".
             `model`
                 The model to use, REQUIRED for service "bedrock".
+            `region`
+                The AWS region to run the model from, REQUIRED.
             `endpoint`
                 The model to use, REQUIRED for service "sagemaker".
+            `service`
+                The AWS service to use, options are "bedrock" and "sagemaker".
         """
         return _GenerativeAWSConfig(
             model=model,
