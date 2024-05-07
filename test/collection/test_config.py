@@ -211,13 +211,13 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_ollama(
             vectorize_collection_name=False,
-            model_id="cool-model",
+            model="cool-model",
             api_endpoint="https://123.0.0.4",
         ),
         {
             "text2vec-ollama": {
                 "vectorizeClassName": False,
-                "modelId": "cool-model",
+                "model": "cool-model",
                 "apiEndpoint": "https://123.0.0.4",
             }
         },
@@ -624,12 +624,12 @@ TEST_CONFIG_WITH_GENERATIVE = [
     ),
     (
         Configure.Generative.ollama(
-            model_id="cool-model",
+            model="cool-model",
             api_endpoint="https://123.456.789.0",
         ),
         {
             "generative-ollama": {
-                "modelId": "cool-model",
+                "model": "cool-model",
                 "apiEndpoint": "https://123.456.789.0",
             }
         },
@@ -1115,7 +1115,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 name="test",
                 source_properties=["prop"],
                 api_endpoint="https://123.0.0.4",
-                model_id="cool-model",
+                model="cool-model",
             )
         ],
         {
@@ -1125,7 +1125,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "apiEndpoint": "https://123.0.0.4",
-                        "modelId": "cool-model",
+                        "model": "cool-model",
                     }
                 },
                 "vectorIndexType": "hnsw",

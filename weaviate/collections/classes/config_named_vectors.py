@@ -240,7 +240,7 @@ class _NamedVectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-        model_id: Optional[str] = None,
+        model: Optional[str] = None,
         api_endpoint: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-ollama` model.
@@ -257,7 +257,7 @@ class _NamedVectors:
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
-            `model_id`
+            `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
@@ -270,7 +270,7 @@ class _NamedVectors:
             source_properties=source_properties,
             vectorizer=_Text2VecOllamaConfig(
                 apiEndpoint=api_endpoint,
-                modelId=model_id,
+                model=model,
                 vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
