@@ -37,6 +37,7 @@ from weaviate.collections.classes.config_base import (
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
+    _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigHNSWCreate,
     _VectorIndexConfigFlatCreate,
     _VectorIndexConfigHNSWUpdate,
@@ -1601,7 +1602,6 @@ class _VectorIndex:
         """
         return _VectorIndexConfigSkipCreate(
             distance=None,
-            vectorCacheMaxObjects=None,
             quantizer=None,
         )
 
@@ -1665,7 +1665,6 @@ class _VectorIndex:
         threshold: Optional[int] = None,
         hnsw: Optional[_VectorIndexConfigHNSWCreate] = None,
         flat: Optional[_VectorIndexConfigFlatCreate] = None,
-        vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_BQConfigCreate] = None,
     ) -> _VectorIndexConfigDynamicCreate:
         """Create a `_VectorIndexConfigDynamicCreate` object to be used when defining the DYNAMIC vector index configuration of Weaviate.
@@ -1680,7 +1679,6 @@ class _VectorIndex:
             threshold=threshold,
             hnsw=hnsw,
             flat=flat,
-            vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
         )
 
@@ -1858,7 +1856,7 @@ class _VectorIndexUpdate:
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
-        Use this method when defining the `vector_index_config` argument in `collection.update()`.
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
@@ -1880,13 +1878,35 @@ class _VectorIndexUpdate:
     ) -> _VectorIndexConfigFlatUpdate:
         """Create an `_VectorIndexConfigFlatUpdate` object to update the configuration of the FLAT vector index.
 
-        Use this method when defining the `vector_index_config` argument in `collection.update()`.
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigFlatUpdate(
             vectorCacheMaxObjects=vector_cache_max_objects,
+            quantizer=quantizer,
+        )
+
+    @staticmethod
+    def dynamic(
+        *,
+        threshold: Optional[int] = None,
+        hnsw: Optional[_VectorIndexConfigHNSWUpdate] = None,
+        flat: Optional[_VectorIndexConfigFlatUpdate] = None,
+        quantizer: Optional[_BQConfigUpdate] = None,
+    ) -> _VectorIndexConfigDynamicUpdate:
+        """Create an `_VectorIndexConfigDynamicUpdate` object to update the configuration of the Dynamic vector index.
+
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexConfigDynamicUpdate(
+            threshold=threshold,
+            hnsw=hnsw,
+            flat=flat,
             quantizer=quantizer,
         )
 
