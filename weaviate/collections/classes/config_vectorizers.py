@@ -320,7 +320,7 @@ class _Text2VecOctoConfig(_VectorizerConfigCreate):
 
 class _Text2VecOllamaConfig(_VectorizerConfigCreate):
     vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_OLLAMA, frozen=True, exclude=True)
-    modelId: Optional[str]
+    model: Optional[str]
     apiEndpoint: Optional[str]
     vectorizeClassName: bool
 
@@ -759,7 +759,7 @@ class _Vectorizer:
     def text2vec_ollama(
         *,
         api_endpoint: Optional[str] = None,
-        model_id: Optional[str] = None,
+        model: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecOllamaConfig` object for use when vectorizing using the `text2vec-ollama` model.
@@ -777,7 +777,7 @@ class _Vectorizer:
         """
         return _Text2VecOllamaConfig(
             apiEndpoint=api_endpoint,
-            modelId=model_id,
+            model=model,
             vectorizeClassName=vectorize_collection_name,
         )
 

@@ -396,7 +396,7 @@ class _GenerativeOllama(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
     )
-    modelId: Optional[str]
+    model: Optional[str]
     apiEndpoint: Optional[str]
 
 
@@ -529,9 +529,9 @@ class _Generative:
     def ollama(
         *,
         api_endpoint: Optional[str] = None,
-        model_id: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> _GenerativeConfigCreate:
-        return _GenerativeOllama(modelId=model_id, apiEndpoint=api_endpoint)
+        return _GenerativeOllama(model=model, apiEndpoint=api_endpoint)
 
     @staticmethod
     def openai(
