@@ -247,7 +247,7 @@ class _HybridNearVector(_HybridNearBase):
 HybridVectorType = Union[List[float], _HybridNearText, _HybridNearVector]
 
 
-class SubQuery:
+class HybridVector:
     """Use this factory class to define the appropriate classes needed when defining near text and near vector sub-searches in hybrid queries."""
 
     @staticmethod
