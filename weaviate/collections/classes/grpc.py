@@ -251,7 +251,7 @@ class HybridVector:
     """Use this factory class to define the appropriate classes needed when defining near text and near vector sub-searches in hybrid queries."""
 
     @staticmethod
-    def neartext(
+    def near_text(
         query: Union[str, List[str]],
         *,
         certainty: Optional[float] = None,
@@ -289,7 +289,7 @@ class HybridVector:
         )
 
     @staticmethod
-    def nearvector(
+    def near_vector(
         vector: List[float],
         *,
         certainty: Optional[float] = None,
