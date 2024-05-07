@@ -758,7 +758,9 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
         vector_index_config=Configure.VectorIndex.dynamic(
             distance_metric=VectorDistances.COSINE,
             threshold=1000,
-            hnsw=Configure.VectorIndex.hnsw(cleanup_interval_seconds=123, flat_search_cutoff=1234),
+            hnsw=Configure.VectorIndex.hnsw(
+                cleanup_interval_seconds=123, flat_search_cutoff=1234, vector_cache_max_objects=789
+            ),
             flat=Configure.VectorIndex.flat(vector_cache_max_objects=7643),
         ),
         ports=(8090, 50061),
@@ -771,5 +773,26 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.vector_index_config.hnsw, _VectorIndexConfigHNSW)
     assert config.vector_index_config.hnsw.cleanup_interval_seconds == 123
     assert config.vector_index_config.hnsw.flat_search_cutoff == 1234
+    assert config.vector_index_config.hnsw.vector_cache_max_objects == 789
     assert isinstance(config.vector_index_config.flat, _VectorIndexConfigFlat)
     assert config.vector_index_config.flat.vector_cache_max_objects == 7643
+
+    collection.config.update(
+        vectorizer_config=Reconfigure.VectorIndex.dynamic(
+            threshold=2000,
+            hnsw=Reconfigure.VectorIndex.hnsw(
+                flat_search_cutoff=4567, vector_cache_max_objects=678
+            ),
+            flat=Reconfigure.VectorIndex.flat(vector_cache_max_objects=9876),
+        ),
+    )
+    config = collection.config.get()
+    assert isinstance(config.vector_index_config, _VectorIndexConfigDynamic)
+    assert config.vector_index_config.distance_metric == VectorDistances.COSINE
+    assert config.vector_index_config.threshold == 2000
+    assert isinstance(config.vector_index_config.hnsw, _VectorIndexConfigHNSW)
+    assert config.vector_index_config.hnsw.cleanup_interval_seconds == 123
+    assert config.vector_index_config.hnsw.flat_search_cutoff == 4567
+    assert config.vector_index_config.hnsw.vector_cache_max_objects == 678
+    assert isinstance(config.vector_index_config.flat, _VectorIndexConfigFlat)
+    assert config.vector_index_config.flat.vector_cache_max_objects == 9876

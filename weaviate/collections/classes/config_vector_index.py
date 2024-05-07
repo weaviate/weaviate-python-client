@@ -28,7 +28,6 @@ class VectorIndexType(str, Enum):
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
     distance: Optional[VectorDistances]
-    vectorCacheMaxObjects: Optional[int]
     quantizer: Optional[_QuantizerConfigCreate] = Field(exclude=True)
 
     @staticmethod
@@ -47,7 +46,6 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
 
 
 class _VectorIndexConfigUpdate(_ConfigUpdateModel):
-    vectorCacheMaxObjects: Optional[int]
     quantizer: Optional[_QuantizerConfigUpdate] = Field(exclude=True)
 
     @staticmethod
@@ -73,6 +71,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
     ef: Optional[int]
     flatSearchCutoff: Optional[int]
     maxConnections: Optional[int]
+    vectorCacheMaxObjects: Optional[int]
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -80,6 +79,8 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
 
 
 class _VectorIndexConfigFlatCreate(_VectorIndexConfigCreate):
+    vectorCacheMaxObjects: Optional[int]
+
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.FLAT
@@ -99,6 +100,8 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
 
 
 class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
+    vectorCacheMaxObjects: Optional[int]
+
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.FLAT
@@ -115,6 +118,10 @@ class _VectorIndexConfigDynamicCreate(_VectorIndexConfigCreate):
 
 
 class _VectorIndexConfigDynamicUpdate(_VectorIndexConfigUpdate):
+    threshold: Optional[int]
+    hnsw: Optional[_VectorIndexConfigHNSWUpdate]
+    flat: Optional[_VectorIndexConfigFlatUpdate]
+
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.DYNAMIC

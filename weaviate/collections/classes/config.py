@@ -37,6 +37,7 @@ from weaviate.collections.classes.config_base import (
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
+    _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigHNSWCreate,
     _VectorIndexConfigFlatCreate,
     _VectorIndexConfigHNSWUpdate,
@@ -166,6 +167,7 @@ class GenerativeSearches(str, Enum):
     COHERE = "generative-cohere"
     MISTRAL = "generative-mistral"
     OCTOAI = "generative-octoai"
+    OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
     PALM = "generative-palm"
 
@@ -390,6 +392,14 @@ class _GenerativeMistral(_GenerativeConfigCreate):
     maxTokens: Optional[int]
 
 
+class _GenerativeOllama(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
+    )
+    modelId: Optional[str]
+    apiEndpoint: Optional[str]
+
+
 class _GenerativeOpenAIConfigBase(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
@@ -514,6 +524,14 @@ class _Generative:
         return _GenerativeOctoai(
             baseURL=base_url, maxTokens=max_tokens, model=model, temperature=temperature
         )
+
+    @staticmethod
+    def ollama(
+        *,
+        api_endpoint: Optional[str] = None,
+        model_id: Optional[str] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeOllama(modelId=model_id, apiEndpoint=api_endpoint)
 
     @staticmethod
     def openai(
@@ -1584,7 +1602,6 @@ class _VectorIndex:
         """
         return _VectorIndexConfigSkipCreate(
             distance=None,
-            vectorCacheMaxObjects=None,
             quantizer=None,
         )
 
@@ -1648,7 +1665,6 @@ class _VectorIndex:
         threshold: Optional[int] = None,
         hnsw: Optional[_VectorIndexConfigHNSWCreate] = None,
         flat: Optional[_VectorIndexConfigFlatCreate] = None,
-        vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_BQConfigCreate] = None,
     ) -> _VectorIndexConfigDynamicCreate:
         """Create a `_VectorIndexConfigDynamicCreate` object to be used when defining the DYNAMIC vector index configuration of Weaviate.
@@ -1663,7 +1679,6 @@ class _VectorIndex:
             threshold=threshold,
             hnsw=hnsw,
             flat=flat,
-            vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
         )
 
@@ -1841,7 +1856,7 @@ class _VectorIndexUpdate:
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
-        Use this method when defining the `vector_index_config` argument in `collection.update()`.
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
@@ -1863,13 +1878,35 @@ class _VectorIndexUpdate:
     ) -> _VectorIndexConfigFlatUpdate:
         """Create an `_VectorIndexConfigFlatUpdate` object to update the configuration of the FLAT vector index.
 
-        Use this method when defining the `vector_index_config` argument in `collection.update()`.
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigFlatUpdate(
             vectorCacheMaxObjects=vector_cache_max_objects,
+            quantizer=quantizer,
+        )
+
+    @staticmethod
+    def dynamic(
+        *,
+        threshold: Optional[int] = None,
+        hnsw: Optional[_VectorIndexConfigHNSWUpdate] = None,
+        flat: Optional[_VectorIndexConfigFlatUpdate] = None,
+        quantizer: Optional[_BQConfigUpdate] = None,
+    ) -> _VectorIndexConfigDynamicUpdate:
+        """Create an `_VectorIndexConfigDynamicUpdate` object to update the configuration of the Dynamic vector index.
+
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexConfigDynamicUpdate(
+            threshold=threshold,
+            hnsw=hnsw,
+            flat=flat,
             quantizer=quantizer,
         )
 
