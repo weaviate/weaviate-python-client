@@ -2034,7 +2034,9 @@ def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionF
         with pytest.raises(WeaviateUnsupportedFeatureError):
             hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
                 query=None,
-                vector=wvc.query.HybridVector.vector(vector=obj.vector["text"], target_vector="text"),
+                vector=wvc.query.HybridVector.vector(
+                    vector=obj.vector["text"], target_vector="text"
+                ),
             ).objects
         return
 
