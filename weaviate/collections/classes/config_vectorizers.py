@@ -736,7 +736,7 @@ class _Vectorizer:
         model: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `_Text2VecOctoConfig` object for use when vectorizing using the `text2vec-openai` model.
+        """Create a `_Text2VecOctoConfig` object for use when vectorizing using the `text2vec-octoai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-octoai)
         for detailed usage.
@@ -762,9 +762,9 @@ class _Vectorizer:
         model_id: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
-        """Create a `_Text2VecOctoConfig` object for use when vectorizing using the `text2vec-openai` model.
+        """Create a `_Text2VecOllamaConfig` object for use when vectorizing using the `text2vec-ollama` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-octoai)
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-ollama)
         for detailed usage.
 
         Arguments:

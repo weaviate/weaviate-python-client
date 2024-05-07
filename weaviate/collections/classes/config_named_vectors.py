@@ -200,7 +200,7 @@ class _NamedVectors:
         model: Optional[str] = None,
         base_url: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `text2vec_octoai` model.
+        """Create a named vector using the `text2vec-octoai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-octoai)
         for detailed usage.
@@ -243,9 +243,9 @@ class _NamedVectors:
         model_id: Optional[str] = None,
         api_endpoint: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `text2vec_octoai` model.
+        """Create a named vector using the `text2vec-ollama` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-octoai)
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-ollama)
         for detailed usage.
 
         Arguments:
