@@ -247,12 +247,12 @@ class _HybridNearVector(_HybridNearBase):
 HybridVectorType = Union[List[float], _HybridNearText, _HybridNearVector]
 
 
-class HybridNear:
+class HybridVector:
     """Use this factory class to define the appropriate classes needed when defining near text and near vector sub-searches in hybrid queries."""
 
     @staticmethod
-    def text(
-        text: Union[str, List[str]],
+    def near_text(
+        query: Union[str, List[str]],
         *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
@@ -263,7 +263,7 @@ class HybridNear:
         """Define a near text search to be used within a hybrid query.
 
         Arguments:
-            `text`
+            `query`
                 The text to search for as a string or a list of strings.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
@@ -280,7 +280,7 @@ class HybridNear:
             A `_HybridNearText` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
         """
         return _HybridNearText(
-            text=text,
+            text=query,
             distance=distance,
             certainty=certainty,
             move_to=move_to,
@@ -289,7 +289,7 @@ class HybridNear:
         )
 
     @staticmethod
-    def vector(
+    def near_vector(
         vector: List[float],
         *,
         certainty: Optional[float] = None,
