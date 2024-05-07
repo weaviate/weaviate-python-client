@@ -166,6 +166,7 @@ class GenerativeSearches(str, Enum):
     COHERE = "generative-cohere"
     MISTRAL = "generative-mistral"
     OCTOAI = "generative-octoai"
+    OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
     PALM = "generative-palm"
 
@@ -390,6 +391,14 @@ class _GenerativeMistral(_GenerativeConfigCreate):
     maxTokens: Optional[int]
 
 
+class _GenerativeOllama(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
+    )
+    modelId: Optional[str]
+    apiEndpoint: Optional[str]
+
+
 class _GenerativeOpenAIConfigBase(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
@@ -514,6 +523,14 @@ class _Generative:
         return _GenerativeOctoai(
             baseURL=base_url, maxTokens=max_tokens, model=model, temperature=temperature
         )
+
+    @staticmethod
+    def ollama(
+        *,
+        api_endpoint: Optional[str] = None,
+        model_id: Optional[str] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeOllama(modelId=model_id, apiEndpoint=api_endpoint)
 
     @staticmethod
     def openai(

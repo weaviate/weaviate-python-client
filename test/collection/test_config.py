@@ -209,6 +209,20 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_ollama(
+            vectorize_collection_name=False,
+            model_id="cool-model",
+            api_endpoint="https://123.0.0.4",
+        ),
+        {
+            "text2vec-ollama": {
+                "vectorizeClassName": False,
+                "modelId": "cool-model",
+                "apiEndpoint": "https://123.0.0.4",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_openai(),
         {
             "text2vec-openai": {
@@ -605,6 +619,18 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "maxTokens": 123,
                 "temperature": 0.5,
                 "baseURL": "https://text.octoai.run",
+            }
+        },
+    ),
+    (
+        Configure.Generative.ollama(
+            model_id="cool-model",
+            api_endpoint="https://123.456.789.0",
+        ),
+        {
+            "generative-octoai": {
+                "modelId": "cool-model",
+                "apiEndpoint": "https://123.456.789.0",
             }
         },
     ),
