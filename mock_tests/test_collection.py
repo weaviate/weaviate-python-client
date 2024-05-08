@@ -263,7 +263,7 @@ def test_return_from_bind_module(
         (wvc.config.Integrations.cohere(api_key="key"), {"X-Cohere-Api-Key": "key"}),
         (
             wvc.config.Integrations.cohere(
-                api_key="key", request_per_minute_embeddings=50, base_url="http://some-url.com"
+                api_key="key", requests_per_minute_embeddings=50, base_url="http://some-url.com"
             ),
             {
                 "X-Cohere-Api-Key": "key",
@@ -282,7 +282,7 @@ def test_return_from_bind_module(
         (
             [
                 wvc.config.Integrations.voyageai(
-                    api_key="key", base_url="http://some-url.com", request_per_minute_embeddings=50
+                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
                 )
             ],
             {
@@ -294,7 +294,7 @@ def test_return_from_bind_module(
         (
             [
                 wvc.config.Integrations.jinaai(
-                    api_key="key", base_url="http://some-url.com", request_per_minute_embeddings=50
+                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
                 )
             ],
             {
@@ -306,7 +306,7 @@ def test_return_from_bind_module(
         (
             [
                 wvc.config.Integrations.octoai(
-                    api_key="key", base_url="http://some-url.com", request_per_minute_embeddings=50
+                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
                 )
             ],
             {
