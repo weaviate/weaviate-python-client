@@ -225,7 +225,7 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        for name in self.list_all().keys():
+        for name in self.list_all(False).keys():
             self.delete(name)
 
     def exists(self, name: str) -> bool:
@@ -284,7 +284,7 @@ class _Collections(_CollectionsBase):
         ...
 
     def list_all(
-        self, simple: bool = True
+        self, simple: bool = False
     ) -> Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]:
         """List the configurations of the all the collections currently in the Weaviate instance.
 
