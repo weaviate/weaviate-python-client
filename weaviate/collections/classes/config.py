@@ -1225,21 +1225,13 @@ NamedVectorConfig = _NamedVectorConfig
 
 
 @dataclass
-class _CollectionConfig(_ConfigBase):
+class _CollectionConfigBase(_ConfigBase):
     name: str
     description: Optional[str]
     generative_config: Optional[GenerativeConfig]
-    inverted_index_config: InvertedIndexConfig
-    multi_tenancy_config: MultiTenancyConfig
     properties: List[PropertyConfig]
     references: List[ReferencePropertyConfig]
-    replication_config: ReplicationConfig
     reranker_config: Optional[RerankerConfig]
-    sharding_config: Optional[ShardingConfig]
-    vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, None
-    ]
-    vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
     vectorizer: Optional[Vectorizers]
     vector_config: Optional[Dict[str, _NamedVectorConfig]]
@@ -1287,20 +1279,24 @@ class _CollectionConfig(_ConfigBase):
         return out
 
 
+@dataclass
+class _CollectionConfig(_CollectionConfigBase):
+    inverted_index_config: InvertedIndexConfig
+    multi_tenancy_config: MultiTenancyConfig
+    replication_config: ReplicationConfig
+    sharding_config: Optional[ShardingConfig]
+    vector_index_config: Union[
+        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, None
+    ]
+    vector_index_type: Optional[VectorIndexType]
+
+
 CollectionConfig = _CollectionConfig
 
 
 @dataclass
-class _CollectionConfigSimple(_ConfigBase):
-    name: str
-    description: Optional[str]
-    generative_config: Optional[GenerativeConfig]
-    properties: List[PropertyConfig]
-    references: List[ReferencePropertyConfig]
-    reranker_config: Optional[RerankerConfig]
-    vectorizer_config: Optional[VectorizerConfig]
-    vectorizer: Optional[Vectorizers]
-    vector_config: Optional[Dict[str, _NamedVectorConfig]]
+class _CollectionConfigSimple(_CollectionConfigBase):
+    pass
 
 
 CollectionConfigSimple = _CollectionConfigSimple
