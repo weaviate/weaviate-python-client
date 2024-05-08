@@ -2034,15 +2034,15 @@ def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionF
         with pytest.raises(WeaviateUnsupportedFeatureError):
             hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
                 query=None,
-                vector=wvc.query.HybridVector.near_vector(
-                    vector=obj.vector["text"], target_vector="text"
-                ),
+                vector=wvc.query.HybridVector.near_vector(vector=obj.vector["text"]),
+                target_vector="text",
             ).objects
         return
 
     hybrid_objs = collection.query.hybrid(
         query=None,
-        vector=wvc.query.HybridVector.near_vector(vector=obj.vector["text"], target_vector="text"),
+        vector=wvc.query.HybridVector.near_vector(vector=obj.vector["text"]),
+        target_vector="text",
     ).objects
 
     assert hybrid_objs[0].uuid == uuid_banana
@@ -2059,8 +2059,8 @@ def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionF
         vector=wvc.query.HybridVector.near_vector(
             vector=obj.vector["text"],
             distance=near_vec[0].metadata.distance + 0.001,
-            target_vector="text",
         ),
+        target_vector="text",
         return_metadata=MetadataQuery.full(),
     ).objects
 
@@ -2141,15 +2141,15 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
         with pytest.raises(WeaviateUnsupportedFeatureError):
             hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
                 query=None,
-                vector=wvc.query.HybridVector.near_text(
-                    query="banana pudding", target_vector="text"
-                ),
+                vector=wvc.query.HybridVector.near_text(query="banana pudding"),
+                target_vector="text",
             ).objects
         return
 
     hybrid_objs = collection.query.hybrid(
         query=None,
-        vector=wvc.query.HybridVector.near_text(query="banana pudding", target_vector="text"),
+        vector=wvc.query.HybridVector.near_text(query="banana pudding"),
+        target_vector="text",
     ).objects
 
     assert hybrid_objs[0].uuid == uuid_banana_pudding
@@ -2161,8 +2161,8 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
             query="banana",
             move_to=wvc.query.Move(concepts="pudding", force=0.1),
             move_away=wvc.query.Move(concepts="smoothie", force=0.1),
-            target_vector="text",
         ),
+        target_vector="text",
         return_metadata=MetadataQuery.full(),
     ).objects
 
