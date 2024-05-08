@@ -1,10 +1,10 @@
 import asyncio
-from collections import deque
 import math
 import threading
 import time
 import uuid as uuid_package
 from abc import ABC
+from collections import deque
 from copy import copy
 from dataclasses import dataclass, field
 from typing import (
@@ -348,7 +348,7 @@ class _BatchBase:
             future.result()  # Wait for self._connection.aclose() to finish
             loop.call_soon_threadsafe(loop.stop)
 
-    def dynamic_batch_rate_loop(self) -> None:
+    def __dynamic_batch_rate_loop(self) -> None:
         refresh_time = 1
         while (
             self.__shut_background_thread_down is not None
@@ -370,7 +370,7 @@ class _BatchBase:
 
         def dynamic_batch_rate_wrapper() -> None:
             try:
-                self.dynamic_batch_rate_loop()
+                self.__dynamic_batch_rate_loop()
             except Exception as e:
                 self.__bg_thread_exception = e
 
