@@ -315,6 +315,18 @@ def test_return_from_bind_module(
                 "X-Octoai-Baseurl": "http://some-url.com",
             },
         ),
+        (
+            [
+                wvc.config.Integrations.aws(
+                    access_key="access_key", secret_key="secret_key", session_token="session_token"
+                )
+            ],
+            {
+                "X-Aws-Access-Key": "access_key",
+                "X-Aws-Secret-Key": "secret_key",
+                "X-AWS-Session-Token": "session_token",
+            },
+        ),
     ],
 )
 def test_integration_config(

@@ -1,4 +1,5 @@
 from typing import Dict, Optional, cast
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -35,14 +36,15 @@ class _IntegrationConfigOpenAi(_IntegrationConfig):
 
 
 class _IntegrationConfigAWS(_IntegrationConfig):
-    access_key: str = Field(serialization_alias="X-Aws-Access-Key")
-    secret_key: str = Field(serialization_alias="X-Aws-Secret-Key")
-    requests_per_minute_embeddings: Optional[int] = Field(
-        serialization_alias="X-Aws-Ratelimit-RequestPM-Embedding"
-    )
-    tokens_per_minute_embeddings: Optional[int] = Field(
-        serialization_alias="X-Aws-Ratelimit-TokensPM-Embedding"
-    )
+    access_key: Optional[str] = Field(serialization_alias="X-Aws-Access-Key")
+    secret_key: Optional[str] = Field(serialization_alias="X-Aws-Secret-Key")
+    session_token: Optional[str] = Field(serialization_alias="X-AWS-Session-Token")
+    # requests_per_minute_embeddings: Optional[int] = Field(
+    #     serialization_alias="X-Aws-Ratelimit-RequestPM-Embedding"
+    # )
+    # tokens_per_minute_embeddings: Optional[int] = Field(
+    #     serialization_alias="X-Aws-Ratelimit-TokensPM-Embedding"
+    # )
 
 
 class _IntegrationConfigVoyage(_IntegrationConfig):
@@ -78,7 +80,7 @@ class Integrations:
         *,
         api_key: str,
         base_url: Optional[str] = None,
-        requests_per_minute_embeddings: Optional[int] = None
+        requests_per_minute_embeddings: Optional[int] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigCohere(
             api_key=api_key,
@@ -93,7 +95,7 @@ class Integrations:
         requests_per_minute_embeddings: Optional[int] = None,
         tokens_per_minute_embeddings: Optional[int] = None,
         organization: Optional[str] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigOpenAi(
             api_key=api_key,
@@ -103,21 +105,20 @@ class Integrations:
             base_url=base_url,
         )
 
-    # not yet implemented
-    # @staticmethod
-    # def aws(
-    #     *,
-    #     access_key: str,
-    #     secret_key: str,
-    #     requests_per_minute_embeddings: Optional[int] = None,
-    #     tokens_per_minute_embeddings: Optional[int] = None,
-    # ) -> _IntegrationConfig:
-    #     return _IntegrationConfigAWS(
-    #         access_key=access_key,
-    #         secret_key=secret_key,
-    #         requests_per_minute_embeddings=requests_per_minute_embeddings,
-    #         tokens_per_minute_embeddings=tokens_per_minute_embeddings,
-    #     )
+    @staticmethod
+    def aws(
+        *,
+        access_key: Optional[str] = None,
+        secret_key: Optional[str] = None,
+        session_token: Optional[str] = None,
+        # requests_per_minute_embeddings: Optional[int] = None,
+        # tokens_per_minute_embeddings: Optional[int] = None,
+    ) -> _IntegrationConfig:
+        return _IntegrationConfigAWS(
+            access_key=access_key,
+            secret_key=secret_key,
+            session_token=session_token,
+        )
 
     @staticmethod
     def voyageai(
@@ -125,7 +126,7 @@ class Integrations:
         api_key: str,
         requests_per_minute_embeddings: Optional[int] = None,
         tokens_per_minute_embeddings: Optional[int] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigVoyage(
             api_key=api_key,
@@ -139,7 +140,7 @@ class Integrations:
         *,
         api_key: str,
         requests_per_minute_embeddings: Optional[int] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigJina(
             api_key=api_key,
@@ -152,7 +153,7 @@ class Integrations:
         *,
         api_key: str,
         requests_per_minute_embeddings: Optional[int] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigOcto(
             api_key=api_key,
