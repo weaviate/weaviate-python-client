@@ -97,7 +97,7 @@ class Integrations:
         *,
         api_key: str,
         base_url: Optional[str] = None,
-        requests_per_minute_embeddings: Optional[int] = None
+        requests_per_minute_embeddings: Optional[int] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigCohere(
             api_key=api_key,
