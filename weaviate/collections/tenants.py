@@ -182,12 +182,12 @@ class _Tenants:
     def get_by_names(self, tenants: Sequence[Union[str, Tenant]]) -> Dict[str, Tenant]:
         """Return named tenants currently associated with a collection in Weaviate.
 
-        If the tenant does not exist, it will not be included in the response.
+        If a tenant in the provided sequence does not exist, it will be ignored in the response.
         If no names are provided, all tenants will be returned.
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
-            `tenant`
+            `tenants`
                 Sequence of tenant names of wvc.tenants.Tenant objects to retrieve. To retrieve all tenants, use the `get` method.
 
         Raises:
@@ -213,7 +213,7 @@ class _Tenants:
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
-            `name`
+            `tenant`
                 The name of the tenant to retrieve.
 
         Raises:
