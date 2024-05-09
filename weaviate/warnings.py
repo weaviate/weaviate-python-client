@@ -156,9 +156,11 @@ class _Warnings:
     @staticmethod
     def weaviate_v3_client_is_deprecated() -> None:
         warnings.warn(
-            message="""Dep016: You are using the Weaviate v3 client, which is deprecated.
-            Consider upgrading to the new and improved v4 client instead!
-            See here for usage: https://weaviate.io/developers/weaviate/client-libraries/python
+            message="""Dep016: You are creating a Weaviate v3 client using ``client =  weaviate.Client(...)``, which is
+            deprecated. Consider upgrading to the new and improved v4 client instead!
+            See here for
+                - migrating from v3 to v4: https://weaviate.io/developers/weaviate/client-libraries/python/v3_v4_migration
+                - usage: https://weaviate.io/developers/weaviate/client-libraries/python
             """,
             category=DeprecationWarning,
             stacklevel=1,
