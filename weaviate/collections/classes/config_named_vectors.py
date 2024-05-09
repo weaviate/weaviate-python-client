@@ -2,20 +2,29 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import AnyHttpUrl, Field
 
-from weaviate.collections.classes.config_base import (
-    _ConfigCreateModel,
-    _ConfigUpdateModel,
-)
+from weaviate.collections.classes.config_base import _ConfigCreateModel, _ConfigUpdateModel
 from weaviate.collections.classes.config_vector_index import (
-    _VectorIndexConfigCreate,
-    _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigDynamicUpdate,
-    _VectorIndexConfigUpdate,
     VectorIndexType,
+    _VectorIndexConfigCreate,
+    _VectorIndexConfigDynamicUpdate,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vectorizers import (
+    AWSModel,
+    AWSService,
+    CohereModel,
+    CohereTruncation,
+    JinaModel,
+    Multi2VecField,
+    OpenAIModel,
+    OpenAIType,
+    Vectorizers,
+    VoyageModel,
+    WeaviateModel,
     _Img2VecNeuralConfigCreate,
+    _map_multi2vec_fields,
     _Multi2VecBindConfigCreate,
     _Multi2VecClipConfigCreate,
     _Multi2VecPalmConfig,
@@ -33,18 +42,8 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecPalmConfigCreate,
     _Text2VecTransformersConfigCreate,
     _Text2VecVoyageConfigCreate,
+    _Text2VecWeaviateConfigCreate,
     _VectorizerConfigCreate,
-    AWSModel,
-    AWSService,
-    CohereModel,
-    CohereTruncation,
-    JinaModel,
-    Multi2VecField,
-    OpenAIModel,
-    OpenAIType,
-    Vectorizers,
-    VoyageModel,
-    _map_multi2vec_fields,
 )
 
 
@@ -897,6 +896,27 @@ class _NamedVectors:
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 truncate=truncate,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2vec_weaviate(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model: Optional[Union[WeaviateModel, str]] = None,
+        base_url: Optional[str] = None,
+    ) -> _NamedVectorConfigCreate:
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecWeaviateConfigCreate(
+                model=model,
+                vectorizeClassName=vectorize_collection_name,
+                baseURL=base_url,
             ),
             vector_index_config=vector_index_config,
         )

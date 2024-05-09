@@ -317,6 +317,20 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_weaviate(
+            vectorize_collection_name=False,
+            model="Snowflake/snowflake-arctic-embed-s",
+            base_url="https://inference.weaviate.cloud",
+        ),
+        {
+            "text2vec-weaviate": {
+                "vectorizeClassName": False,
+                "model": "Snowflake/snowflake-arctic-embed-s",
+                "baseURL": "https://inference.weaviate.cloud",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.img2vec_neural(
             image_fields=["test"],
         ),
@@ -1201,6 +1215,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "truncate": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_weaviate(
+                name="test", source_properties=["prop"], base_url="https://inference.weaviate.cloud"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-weaviate": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "baseURL": "https://inference.weaviate.cloud",
                     }
                 },
                 "vectorIndexType": "hnsw",
