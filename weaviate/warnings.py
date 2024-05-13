@@ -51,7 +51,7 @@ class _Warnings:
         msg = """Auth004: Received an authentication header and an auth_client_secret parameter.
 
         The auth_client_secret takes precedence over the header. The authentication header will be ignored.
-          
+
         Use weaviate.auth.AuthBearerToken(..) to supply an access token via auth_client_secret parameter and,
         if available with your provider, to supply refresh tokens and token lifetimes.
         """
@@ -71,7 +71,7 @@ class _Warnings:
         warnings.warn(
             message=f"""Dep001: You are using Weaviate Python Client version {__version__}. This version supports
             changes and features of Weaviate >=1.14.x, but you are connected to Weaviate {server_version}.
- 
+
             To use this Python Client with the new features, upgrade your
             Weaviate instance.""",
             category=DeprecationWarning,
