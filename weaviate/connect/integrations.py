@@ -1,4 +1,5 @@
 from typing import Dict, Optional, cast
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -65,11 +66,11 @@ class _IntegrationConfigJina(_IntegrationConfig):
 
 
 class _IntegrationConfigOcto(_IntegrationConfig):
-    api_key: str = Field(serialization_alias="X-Octoai-Api-Key")
+    api_key: str = Field(serialization_alias="X-OctoAI-Api-Key")
     requests_per_minute_embeddings: Optional[int] = Field(
-        serialization_alias="X-Octoai-Ratelimit-RequestPM-Embedding"
+        serialization_alias="X-OctoAI-Ratelimit-RequestPM-Embedding"
     )
-    base_url: Optional[str] = Field(serialization_alias="X-Octoai-Baseurl")
+    base_url: Optional[str] = Field(serialization_alias="X-OctoAI-Baseurl")
 
 
 class Integrations:
