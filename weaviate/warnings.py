@@ -33,7 +33,7 @@ class _Warnings:
             authentication exception.
 
             Things to try:
-            - You might need to enable refresh tokens in your authentication provider settings. 
+            - You might need to enable refresh tokens in your authentication provider settings.
             - You might need to send the correct scope. For some providers, the scope needs to include "offline_access".
             """,
             category=UserWarning,
@@ -50,11 +50,11 @@ class _Warnings:
     def auth_header_and_auth_secret() -> None:
         msg = """Auth004: Received an authentication header and an auth_client_secret parameter.
 
-         The auth_client_secret takes precedence over the header. The authentication header will be ignored.
+        The auth_client_secret takes precedence over the header. The authentication header will be ignored.
           
-         Use weaviate.auth.AuthBearerToken(..) to supply an access token via auth_client_secret parameter and,
-         if available with your provider, to supply refresh tokens and token lifetimes.
-         """
+        Use weaviate.auth.AuthBearerToken(..) to supply an access token via auth_client_secret parameter and,
+        if available with your provider, to supply refresh tokens and token lifetimes.
+        """
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
@@ -71,7 +71,7 @@ class _Warnings:
         warnings.warn(
             message=f"""Dep001: You are using Weaviate Python Client version {__version__}. This version supports
             changes and features of Weaviate >=1.14.x, but you are connected to Weaviate {server_version}.
-            
+ 
             To use this Python Client with the new features, upgrade your
             Weaviate instance.""",
             category=DeprecationWarning,
@@ -111,7 +111,7 @@ class _Warnings:
         warnings.warn(
             message=f"""Con001: Could not reach token issuer for the periodic refresh. This client will automatically
             retry to refresh. If the retry does not succeed, the client will become unauthenticated.
-            
+
             The cause might be an unstable internet connection or a problem with your authentication provider.
             Exception: {exc}
             """,
@@ -142,7 +142,7 @@ class _Warnings:
         warnings.warn(
             message="""Dep006: You are using the `client.batch()` method. This method will be removed in the next major release.
             Use the `client.batch.configure()` method to configure your batch process, and `client.batch` to enter the context manager.
-            
+
             See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
             category=DeprecationWarning,
             stacklevel=1,
@@ -211,7 +211,7 @@ class _Warnings:
     @staticmethod
     def text2vec_huggingface_endpoint_url_and_model_set_together() -> None:
         warnings.warn(
-            message="""Con003: You are setting the endpoint_url alongside model or passage_model and 
+            message="""Con003: You are setting the endpoint_url alongside model or passage_model and
             query_model in your Text2Vec-HuggingFace module configuration. The model definitions will
             be ignored in favour of endpoint_url.
             """,
