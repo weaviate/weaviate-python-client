@@ -208,6 +208,10 @@ class _EmbeddedBase:
         # Bug with weaviate requires setting gossip and data bind port
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
+        my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
+        my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
+        my_env.setdefault("RAFT_PORT", str(get_random_port()))
+        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(get_random_port()))
 
         my_env.setdefault(
             "ENABLE_MODULES",
