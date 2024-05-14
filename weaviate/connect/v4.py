@@ -40,6 +40,7 @@ from weaviate.connect.base import (
     JSONPayload,
     _get_proxies,
 )
+from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
     AuthenticationFailedError,
@@ -59,8 +60,6 @@ from weaviate.util import (
 )
 from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.warnings import _Warnings
-
-from weaviate.connect.integrations import _IntegrationConfig
 
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
@@ -619,9 +618,9 @@ class ConnectionV4(_Connection):
             connection_config,
             embedded_db,
         )
-        self.__prepare_grpc_headers()
+        self._prepare_grpc_headers()
 
-    def __prepare_grpc_headers(self) -> None:
+    def _prepare_grpc_headers(self) -> None:
         self.__metadata_list: List[Tuple[str, str]] = []
         if len(self.additional_headers):
             for key, val in self.additional_headers.items():
