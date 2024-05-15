@@ -24,7 +24,13 @@ OpenAIModel: TypeAlias = Literal[
     "text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"
 ]
 JinaModel: TypeAlias = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
-VoyageModel: TypeAlias = Literal["voyage-large-2, voyage-code-2, voyage-2"]
+VoyageModel: TypeAlias = Literal[
+    "voyage-large-2",
+    "voyage-code-2",
+    "voyage-2",
+    "voyage-law-2",
+    "voyage-large-2-instruct",
+]
 AWSModel: TypeAlias = Literal[
     "amazon.titan-embed-text-v1",
     "cohere.embed-english-v3",
