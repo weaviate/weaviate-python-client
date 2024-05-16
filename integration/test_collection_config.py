@@ -621,6 +621,7 @@ def test_config_reranker_module(
     collection = client.collections.create(
         name="TestCollectionConfigRerankerModule",
         reranker_config=reranker_config,
+        vectorizer_config=Configure.Vectorizer.none(),
     )
     conf = collection.config.get()
     assert conf.reranker_config is not None
