@@ -163,7 +163,6 @@ def __get_vector_index_config(
         return _VectorIndexConfigDynamic(
             distance_metric=VectorDistances(schema["vectorIndexConfig"]["distance"]),
             threshold=schema["vectorIndexConfig"].get("threshold"),
-            quantizer=None,
             hnsw=__get_hnsw_config(schema["vectorIndexConfig"]["hnsw"]),
             flat=__get_flat_config(schema["vectorIndexConfig"]["flat"]),
         )

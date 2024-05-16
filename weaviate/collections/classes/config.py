@@ -1154,7 +1154,7 @@ VectorIndexConfigFlat = _VectorIndexConfigFlat
 
 
 @dataclass
-class _VectorIndexConfigDynamic(_VectorIndexConfig):
+class _VectorIndexConfigDynamic(_ConfigBase):
     distance_metric: VectorDistances
     hnsw: Optional[VectorIndexConfigHNSW]
     flat: Optional[VectorIndexConfigFlat]
@@ -1680,7 +1680,6 @@ class _VectorIndex:
         threshold: Optional[int] = None,
         hnsw: Optional[_VectorIndexConfigHNSWCreate] = None,
         flat: Optional[_VectorIndexConfigFlatCreate] = None,
-        quantizer: Optional[_BQConfigCreate] = None,
     ) -> _VectorIndexConfigDynamicCreate:
         """Create a `_VectorIndexConfigDynamicCreate` object to be used when defining the DYNAMIC vector index configuration of Weaviate.
 
@@ -1690,11 +1689,7 @@ class _VectorIndex:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigDynamicCreate(
-            distance=distance_metric,
-            threshold=threshold,
-            hnsw=hnsw,
-            flat=flat,
-            quantizer=quantizer,
+            distance=distance_metric, threshold=threshold, hnsw=hnsw, flat=flat, quantizer=None
         )
 
 
