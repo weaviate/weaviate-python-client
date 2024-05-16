@@ -138,7 +138,7 @@ class _Connection(_ConnectionBase):
         self.__connected = True
         if self.embedded_db is not None:
             try:
-                self.wait_for_weaviate(1)
+                self.wait_for_weaviate(10)
             except WeaviateStartUpError as e:
                 self.embedded_db.stop()
                 self.__connected = False
