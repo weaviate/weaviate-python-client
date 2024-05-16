@@ -1,14 +1,12 @@
-from dataclasses import dataclass
 import struct
+import uuid as uuid_lib
+from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence, Set, TypeVar, Union, cast, Tuple
 
+import grpc  # type: ignore
 from typing_extensions import TypeAlias
 
-import grpc  # type: ignore
-import uuid as uuid_lib
-
 from weaviate.collections.classes.config import ConsistencyLevel
-
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
     HybridFusion,
@@ -29,18 +27,13 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.internal import _Generative, _GroupBy
 from weaviate.collections.filters import _FilterToGRPC
-
 from weaviate.collections.grpc.shared import _BaseGRPC
-
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
+from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4
-
-from weaviate.proto.v1 import search_get_pb2
-
 from weaviate.validator import _ValidateArgument, _validate_input
-
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
 _PyValue: TypeAlias = Union[
@@ -400,7 +393,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[Union[str, List[str]]] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -411,7 +404,7 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([List, str], "near_text", near_text),
                     _ValidateArgument([Move, None], "move_away", move_away),
                     _ValidateArgument([Move, None], "move_to", move_to),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument([str, List, None], "target_vector", target_vector),
                 ]
             )
 
@@ -419,11 +412,14 @@ class _QueryGRPC(_BaseGRPC):
             near_text = [near_text]
         certainty, distance = self.__parse_near_options(certainty, distance)
 
+        if target_vector is not None and isinstance(target_vector, str):
+            target_vector = [target_vector]
+
         near_text_req = search_get_pb2.NearTextSearch(
             query=near_text,
             certainty=certainty,
             distance=distance,
-            target_vectors=[target_vector] if target_vector is not None else None,
+            target_vectors=target_vector,
             move_away=self.__parse_move(move_away),
             move_to=self.__parse_move(move_to),
         )
