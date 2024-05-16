@@ -119,7 +119,7 @@ def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
 
     assert config.name == collection.name
     assert config.description is None
-    assert config.vectorizer == Vectorizers.TEXT2VEC_CONTEXTIONARY
+    assert config.vectorizer == Vectorizers.NONE
 
     assert config.properties == []
 
