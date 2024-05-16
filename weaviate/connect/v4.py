@@ -16,6 +16,7 @@ from httpx import (
     Client,
     ConnectError,
     HTTPError,
+    HTTPStatusError,
     Limits,
     ReadError,
     RemoteProtocolError,
@@ -620,7 +621,7 @@ class _Connection(_ConnectionBase):
             try:
                 self.get("/.well-known/ready").raise_for_status()
                 return
-            except (ConnectError, ReadError, TimeoutError):
+            except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
