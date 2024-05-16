@@ -212,6 +212,7 @@ class _EmbeddedBase:
         my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
         my_env.setdefault("RAFT_PORT", str(get_random_port()))
         my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(get_random_port()))
+        my_env.setdefault("PROFILING_PORT", str(get_random_port()))
 
         my_env.setdefault(
             "ENABLE_MODULES",

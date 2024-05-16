@@ -136,6 +136,13 @@ class _Connection(_ConnectionBase):
             self.embedded_db.start()
         self._create_clients(self._auth, skip_init_checks)
         self.__connected = True
+        if self.embedded_db is not None:
+            try:
+                self.wait_for_weaviate(1)
+            except WeaviateStartUpError as e:
+                self.embedded_db.stop()
+                self.__connected = False
+                raise e
 
         # need this to get the version of weaviate for version checks
         try:
@@ -594,6 +601,35 @@ class _Connection(_ConnectionBase):
 
     def supports_groupby_in_bm25_and_hybrid(self) -> bool:
         return self._weaviate_version.is_at_least(1, 25, 0)
+
+    def wait_for_weaviate(self, startup_period: int) -> None:
+        """
+        Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
+
+        Parameters
+        ----------
+        startup_period : int
+            Describes how long the client will wait for weaviate to start in seconds.
+
+        Raises
+        ------
+        WeaviateStartUpError
+            If weaviate takes longer than the time limit to respond.
+        """
+        for _i in range(startup_period):
+            try:
+                self.get("/.well-known/ready").raise_for_status()
+                return
+            except (ConnectError, ReadError, TimeoutError):
+                time.sleep(1)
+
+        try:
+            self.get("/.well-known/ready").raise_for_status()
+            return
+        except (ConnectError, ReadError, TimeoutError) as error:
+            raise WeaviateStartUpError(
+                f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
+            ) from error
 
 
 class ConnectionV4(_Connection):

@@ -178,6 +178,9 @@ class Connection(_ConnectionBase):
         except requests.exceptions.RequestException:
             pass  # ignore any errors related to requests, it is a best-effort warning
 
+        if embedded_db is not None:
+            self.wait_for_weaviate(1)
+
     def _create_sessions(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a async httpx session and a sync request session.
 
