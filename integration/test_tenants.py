@@ -74,7 +74,7 @@ def test_replace_with_tenant(collection_factory: CollectionFactory) -> None:
     assert tenant2.query.fetch_object_by_id(uuid) is None
 
 
-def test_update(collection_factory: CollectionFactory) -> None:
+def test_tenants_update(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),

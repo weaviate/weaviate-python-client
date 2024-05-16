@@ -152,7 +152,7 @@ def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequ
     name = request.node.name
     client.collections.delete(name)
 
-    col = client.collections.create(name=name)
+    col = client.collections.create(name=name, vectorizer_config=Configure.Vectorizer.none())
     assert client.collections.exists(name)
     assert isinstance(col, Collection)
 
@@ -324,7 +324,9 @@ def test_collection_name_capitalization(
 
 def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     client.collections.delete(request.node.name)
-    collection = client.collections.create(name=request.node.name)
+    collection = client.collections.create(
+        name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+    )
 
     nodes = client.cluster.nodes(collection.name, output="verbose")
     assert len(nodes) == 1
@@ -345,6 +347,7 @@ def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: Su
     collection = client.collections.create(
         name=request.node.name,
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+        vectorizer_config=Configure.Vectorizer.none(),
     )
 
     nodes = client.cluster.nodes(collection.name, output="verbose")
@@ -354,7 +357,9 @@ def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: Su
 
 def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     client.collections.delete(request.node.name)
-    collection = client.collections.create(name=request.node.name)
+    collection = client.collections.create(
+        name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+    )
 
     nodes = client.cluster.nodes(collection.name, output="minimal")
     assert len(nodes) == 1
@@ -509,6 +514,7 @@ def test_local_proxies() -> None:
         collection = client.collections.create(
             "TestLocalProxies",
             properties=[wvc.config.Property(name="name", data_type=wvc.config.DataType.TEXT)],
+            vectorizer_config=Configure.Vectorizer.none(),
         )
         collection.data.insert({"name": "Test"})
         assert collection.query.fetch_objects().objects[0].properties["name"] == "Test"
