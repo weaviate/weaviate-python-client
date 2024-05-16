@@ -13,7 +13,7 @@ class _Warnings:
     @staticmethod
     def auth_with_anon_weaviate() -> None:
         warnings.warn(
-            message="""Auth001: The client was configured to use authentication, but weaviate is configured without
+            message="""Auth001: The client is configured to use authentication, but weaviate is configured without
                     authentication. Are you sure this is correct?""",
             category=UserWarning,
             stacklevel=1,
@@ -27,14 +27,14 @@ class _Warnings:
             msg = "Also, no expiration time was given."
 
         warnings.warn(
-            message=f"""Auth002: The token returned from you identity provider does not contain a refresh token. {msg}
+            message=f"""Auth002: The token your identity provider returned does not contain a refresh token. {msg}
 
-            Access to your weaviate instance is not possible after expiration and this client will return an
+            Access to your weaviate instance is not possible after the token expires. This client returns an
             authentication exception.
 
             Things to try:
-            - You might need to enable refresh tokens in the settings of your authentication provider
-            - You might need to send the correct scope. For some providers it needs to include "offline_access"
+            - You might need to enable refresh tokens in your authentication provider settings.
+            - You might need to send the correct scope. For some providers, the scope needs to include "offline_access".
             """,
             category=UserWarning,
             stacklevel=1,
@@ -50,10 +50,11 @@ class _Warnings:
     def auth_header_and_auth_secret() -> None:
         msg = """Auth004: Received an authentication header and an auth_client_secret parameter.
 
-         The auth_client_secret takes precedence over the header and the authentication header will be ignored. Use
-         weaviate.auth.AuthBearerToken(..) to supply an access token via auth_client_secret parameter and (if available)
-         also supply refresh tokens and token lifetimes.
-         """
+        The auth_client_secret takes precedence over the header. The authentication header will be ignored.
+
+        Use weaviate.auth.AuthBearerToken(..) to supply an access token via auth_client_secret parameter and,
+        if available with your provider, to supply refresh tokens and token lifetimes.
+        """
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
@@ -61,16 +62,17 @@ class _Warnings:
         msg = f"""Auth005: Could not parse Weaviate's OIDC configuration, using unauthenticated access. If you added
         an authorization header yourself it will be unaffected.
 
-        This can happen if weaviate is miss-configured or you have a proxy between the client and weaviate.
+        This can happen if weaviate is miss-configured or if you have a proxy between the client and weaviate.
         You can test this by visiting {url}."""
         warnings.warn(message=msg, category=UserWarning, stacklevel=1)
 
     @staticmethod
     def weaviate_server_older_than_1_14(server_version: str) -> None:
         warnings.warn(
-            message=f"""Dep001: You are using the Weaviate Python Client version {__version__} which supports
+            message=f"""Dep001: You are using Weaviate Python Client version {__version__}. This version supports
             changes and features of Weaviate >=1.14.x, but you are connected to Weaviate {server_version}.
-            If you want to make use of these new changes/features using this Python Client version, upgrade your
+
+            To use this Python Client with the new features, upgrade your
             Weaviate instance.""",
             category=DeprecationWarning,
             stacklevel=1,
@@ -79,8 +81,8 @@ class _Warnings:
     @staticmethod
     def manual_batching() -> None:
         warnings.warn(
-            message="""Dep002: You are batching manually. This means you are NOT using the client's built-in
-            multi-threading. Setting `batch_size` in `client.batch.configure()`  to an int value will enabled automatic
+            message="""Dep002: Manual batching does NOT use the client's built-in multi-threading. Set
+            `batch_size` in `client.batch.configure()` to an integer value to enabled automatic
             batching. See:
             https://weaviate.io/developers/weaviate/current/restful-api-references/batch.html#example-request-1""",
             category=DeprecationWarning,
@@ -99,7 +101,7 @@ class _Warnings:
     @staticmethod
     def startup_period_deprecated() -> None:
         warnings.warn(
-            message="""Dep004: startup_period is deprecated and has no effect. Please remove it from your code.""",
+            message="""Dep004: startup_period is deprecated and has no effect.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -108,8 +110,9 @@ class _Warnings:
     def token_refresh_failed(exc: Exception) -> None:
         warnings.warn(
             message=f"""Con001: Could not reach token issuer for the periodic refresh. This client will automatically
-            retry to refresh. If this does not succeed, the client will become unauthenticated.
-            Causes might be an unstable internet connection or a problem with your authentication provider.
+            retry to refresh. If the retry does not succeed, the client will become unauthenticated.
+
+            The cause might be an unstable internet connection or a problem with your authentication provider.
             Exception: {exc}
             """,
             category=UserWarning,
@@ -120,7 +123,7 @@ class _Warnings:
     def weaviate_too_old_vs_latest(server_version: str) -> None:
         warnings.warn(
             message=f"""Dep004: You are connected to Weaviate {server_version}.
-            Please consider upgrading to the latest version. See https://www.weaviate.io/developers/weaviate for details.""",
+            Consider upgrading to the latest version. See https://www.weaviate.io/developers/weaviate for details.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -129,7 +132,7 @@ class _Warnings:
     def weaviate_client_too_old_vs_latest(client_version: str, latest_version: str) -> None:
         warnings.warn(
             message=f"""Dep005: You are using weaviate-client version {client_version}. The latest version is {latest_version}.
-            Please consider upgrading to the latest version. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
+            Consider upgrading to the latest version. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -137,8 +140,9 @@ class _Warnings:
     @staticmethod
     def use_of_client_batch_will_be_removed_in_next_major_release() -> None:
         warnings.warn(
-            message="""Dep006: You are using the `client.batch()` method, which will be removed in the next major release.
-            Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
+            message="""Dep006: You are using the `client.batch()` method. This method will be removed in the next major release.
+            Use the `client.batch.configure()` method to configure your batch process, and `client.batch` to enter the context manager.
+
             See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
             category=DeprecationWarning,
             stacklevel=1,
@@ -148,7 +152,7 @@ class _Warnings:
     def root_module_import(name: str, loc: str) -> None:
         warnings.warn(
             f"Dep010: Importing {name} from weaviate is deprecated. "
-            f"Please import it from its specific module: weaviate.{loc}",
+            f"Import {name} from its module: weaviate.{loc}",
             DeprecationWarning,
             stacklevel=2,  # don't increase stacklevel, as this otherwise writes the auth-secrets into the log
         )
@@ -156,12 +160,11 @@ class _Warnings:
     @staticmethod
     def weaviate_v3_client_is_deprecated() -> None:
         warnings.warn(
-            message="""Dep016: You are creating a Weaviate v3 client using `client =  weaviate.Client(...)`, which is
-            deprecated. Consider creating a v4 (`weaviate.WeaviateClient`) client, using a `weaviate.connect_to_<method>`
-            helper function.
-            See here for
-                - migrating from v3 to v4: https://weaviate.io/developers/weaviate/client-libraries/python/v3_v4_migration
-                - general v4 usage: https://weaviate.io/developers/weaviate/client-libraries/python
+            message="""Dep016: Python client v3 `weaviate.Client(...)` connections and methods are deprecated. Update
+            your code to use Python client v4 `weaviate.WeaviateClient` connections and methods.
+
+            For Python Client v4 usage, see: https://weaviate.io/developers/weaviate/client-libraries/python
+            For code migration, see: https://weaviate.io/developers/weaviate/client-libraries/python/v3_v4_migration
             """,
             category=DeprecationWarning,
             stacklevel=1,
@@ -171,7 +174,7 @@ class _Warnings:
     def vector_index_config_in_config_update() -> None:
         warnings.warn(
             message="""Dep017: You are using the `vector_index_config` argument in the `collection.config.update()` method, which is deprecated.
-            Please instead use the `vectorizer_config` argument instead.
+            Use the `vectorizer_config` argument instead.
             """,
             category=DeprecationWarning,
             stacklevel=1,
@@ -181,7 +184,7 @@ class _Warnings:
     def sharding_actual_count_is_deprecated(argument: str) -> None:
         warnings.warn(
             message=f"""Dep018: You are using the {argument} argument in the `Configure.sharding` method, which is deprecated.
-            This field is read-only so has no effect and as such is deprecated. It will be removed in a future release.""",
+            This field is read-only, the argument has no effect. It will be removed in a future release.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
@@ -198,7 +201,7 @@ class _Warnings:
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
-            If you want to use a different timezone, please specify it in the datetime object. For example:
+            To use a different timezone, specify it in the datetime object. For example:
             datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone(-datetime.timedelta(hours=2))).isoformat() = 2021-01-01T00:00:00-02:00
             """,
             category=UserWarning,
@@ -208,8 +211,9 @@ class _Warnings:
     @staticmethod
     def text2vec_huggingface_endpoint_url_and_model_set_together() -> None:
         warnings.warn(
-            message="""Con003: You are setting the endpoint_url alongside model or passage_model and query_model in your Text2Vec-HuggingFace module configuration.
-            The model definitions will be ignored in favour of endpoint_url.
+            message="""Con003: You are setting the endpoint_url alongside model or passage_model and
+            query_model in your Text2Vec-HuggingFace module configuration. The model definitions will
+            be ignored in favour of endpoint_url.
             """,
             category=UserWarning,
             stacklevel=1,
@@ -219,9 +223,9 @@ class _Warnings:
     def batch_executor_is_shutdown() -> None:
         warnings.warn(
             message="""Bat001: The BatchExecutor was shutdown, most probably when it exited the `with` statement.
-                It will be initialized again. If you are not `batch` in the `with client.batch as batch`
-                please make sure to shut it down when done importing data: `client.batch.shutdown()`.
-                You can start it again using the `client.batch.start()` method.""",
+                It will be initialized again. If you use `batch` outside the `with client.batch as batch` context,
+                shut down `batch` when the data import finishes: `client.batch.shutdown()`.
+                To start `batch` again, use the `client.batch.start()` method.""",
             category=UserWarning,
             stacklevel=1,
         )
@@ -237,7 +241,7 @@ class _Warnings:
     @staticmethod
     def batch_refresh_failed(err: str) -> None:
         warnings.warn(
-            message=f"""Bat003: The dynamic batch-size could not be refreshed successfully with error {err}""",
+            message=f"""Bat003: The dynamic batch-size could not be refreshed successfully: error {err}""",
             category=UserWarning,
             stacklevel=1,
         )
@@ -245,8 +249,8 @@ class _Warnings:
     @staticmethod
     def batch_retrying_failed_batches_hit_hard_limit(limit: int) -> None:
         warnings.warn(
-            message=f"""Bat004: Attempts to retry failed objects and/or references have hit the hard limit of {limit}.
-            The failed objects and references can be accessed in client.collections.batch.failed_objects and client.collections.batch.failed_references.""",
+            message=f"""Bat004: Attempts to retry failed objects or references have hit the hard limit of {limit}.
+            The failed objects or references can be accessed in client.collections.batch.failed_objects and client.collections.batch.failed_references.""",
             category=UserWarning,
             stacklevel=1,
         )
