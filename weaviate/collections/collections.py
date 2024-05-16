@@ -16,7 +16,6 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigCreate,
     _RerankerConfigCreate,
     _VectorizerConfigCreate,
-    _Vectorizer,
 )
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
@@ -122,7 +121,7 @@ class _Collections(_CollectionsBase):
             replication_config=replication_config,
             reranker_config=reranker_config,
             sharding_config=sharding_config,
-            vectorizer_config=vectorizer_config or _Vectorizer.none(),
+            vectorizer_config=vectorizer_config,
             vector_index_config=vector_index_config,
         )
 

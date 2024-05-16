@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.6.1
+--------------
+This patch version includes:
+  - Fixes for ``client.integrations.configure``
+
 Version 4.6.0
 --------------
 This minor version includes:

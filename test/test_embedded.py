@@ -106,30 +106,32 @@ def embedded_db_binary_path(tmp_path_factory: pytest.TempPathFactory):
     "options", [EmbeddedOptions(), EmbeddedOptions(port=30666, grpc_port=50046)]
 )
 def test_embedded_end_to_end(options: EmbeddedDB, tmp_path):
-    options.binary_path = tmp_path
-    options.persistence_data_path = tmp_path
-    embedded_db = EmbeddedDB(options=options)
-    assert embedded_db.is_listening() is False
-    with pytest.raises(WeaviateStartUpError):
-        with patch("time.sleep") as mocked_sleep:
-            embedded_db.wait_till_listening()
-            mocked_sleep.assert_has_calls([0.1] * 300)
+    try:
+        options.binary_path = tmp_path
+        options.persistence_data_path = tmp_path
+        embedded_db = EmbeddedDB(options=options)
+        assert embedded_db.is_listening() is False
+        with pytest.raises(WeaviateStartUpError):
+            with patch("time.sleep") as mocked_sleep:
+                embedded_db.wait_till_listening()
+                mocked_sleep.assert_has_calls([0.1] * 300)
 
-    embedded_db.ensure_running()
-    assert embedded_db.is_listening() is True
-    with patch("builtins.print") as mocked_print:
-        embedded_db.start()
-        mocked_print.assert_called_once_with(
-            f"embedded weaviate is already listening on port {options.port}"
-        )
+        embedded_db.ensure_running()
+        assert embedded_db.is_listening() is True
+        with patch("builtins.print") as mocked_print:
+            embedded_db.start()
+            mocked_print.assert_called_once_with(
+                f"embedded weaviate is already listening on port {options.port}"
+            )
 
-    # killing the process should restart it again when ensure running is called
-    os.kill(embedded_db.process.pid, signal.SIGTERM)
-    time.sleep(0.2)
-    assert embedded_db.is_listening() is False
-    embedded_db.ensure_running()
-    assert embedded_db.is_listening() is True
-    embedded_db.stop()
+        # killing the process should restart it again when ensure running is called
+        os.kill(embedded_db.process.pid, signal.SIGTERM)
+        time.sleep(0.2)
+        assert embedded_db.is_listening() is False
+        embedded_db.ensure_running()
+        assert embedded_db.is_listening() is True
+    finally:
+        embedded_db.stop()
 
 
 def test_embedded_multiple_instances(tmp_path_factory: pytest.TempPathFactory):
@@ -151,10 +153,14 @@ def test_embedded_multiple_instances(tmp_path_factory: pytest.TempPathFactory):
             grpc_port=50054,
         )
     )
-    embedded_db.ensure_running()
-    assert embedded_db.is_listening() is True
-    embedded_db2.ensure_running()
-    assert embedded_db2.is_listening() is True
+    try:
+        embedded_db.ensure_running()
+        assert embedded_db.is_listening() is True
+        embedded_db2.ensure_running()
+        assert embedded_db2.is_listening() is True
+    finally:
+        embedded_db.stop()
+        embedded_db2.stop()
 
 
 def test_embedded_different_versions(tmp_path_factory: pytest.TempPathFactory):
@@ -174,10 +180,14 @@ def test_embedded_different_versions(tmp_path_factory: pytest.TempPathFactory):
             version="https://github.com/weaviate/weaviate/releases/download/v1.18.0/weaviate-v1.18.0-linux-amd64.tar.gz",
         )
     )
-    meta1 = client1.get_meta()
-    assert meta1["version"] == "1.18.1"
-    meta2 = client2.get_meta()
-    assert meta2["version"] == "1.18.0"
+    try:
+        meta1 = client1.get_meta()
+        assert meta1["version"] == "1.18.1"
+        meta2 = client2.get_meta()
+        assert meta2["version"] == "1.18.0"
+    finally:
+        client1._connection.embedded_db.stop()
+        client2._connection.embedded_db.stop()
 
 
 def test_custom_env_vars(tmp_path_factory: pytest.TempPathFactory):
@@ -189,8 +199,11 @@ def test_custom_env_vars(tmp_path_factory: pytest.TempPathFactory):
             port=30666,
         )
     )
-    meta = client.get_meta()
-    assert len(meta["modules"]) == 0
+    try:
+        meta = client.get_meta()
+        assert len(meta["modules"]) == 0
+    finally:
+        client._connection.embedded_db.stop()
 
 
 def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory) -> None:
@@ -228,6 +241,8 @@ def test_weaviate_state(tmp_path_factory: pytest.TempPathFactory) -> None:
     count = client.query.aggregate("Person").with_meta_count().do()
     assert count["data"]["Aggregate"]["Person"][0]["meta"]["count"] == 1
 
+    client._connection.embedded_db.stop()
+
 
 def test_version(tmp_path_factory: pytest.TempPathFactory):
     client = weaviate.Client(
@@ -238,8 +253,11 @@ def test_version(tmp_path_factory: pytest.TempPathFactory):
             port=30667,
         )
     )
-    meta = client.get_meta()
-    assert meta["version"] == "1.18.2"
+    try:
+        meta = client.get_meta()
+        assert meta["version"] == "1.18.2"
+    finally:
+        client._connection.embedded_db.stop()
 
 
 def test_latest(tmp_path_factory: pytest.TempPathFactory):
@@ -253,9 +271,14 @@ def test_latest(tmp_path_factory: pytest.TempPathFactory):
             grpc_port=50060,
         )
     )
-    meta = client.get_meta()
-    latest = requests.get("https://api.github.com/repos/weaviate/weaviate/releases/latest").json()
-    assert "v" + meta["version"] == latest["tag_name"]
+    try:
+        meta = client.get_meta()
+        latest = requests.get(
+            "https://api.github.com/repos/weaviate/weaviate/releases/latest"
+        ).json()
+        assert "v" + meta["version"] == latest["tag_name"]
+    finally:
+        client._connection.embedded_db.stop()
 
 
 @pytest.mark.parametrize(
@@ -288,12 +311,35 @@ def test_embedded_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
             grpc_port=50061,
         ),
     )
+    try:
+        assert client.is_ready()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
 
-    assert client.is_ready()
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
+        assert sock.connect_ex(("127.0.0.1", 50061)) == 0  # running
+    finally:
+        client._connection.embedded_db.stop()
 
-    assert sock.connect_ex(("127.0.0.1", 50061)) == 0  # running
+
+def test_embedded_v4_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
+    client = weaviate.WeaviateClient(
+        embedded_options=EmbeddedOptions(
+            persistence_data_path=tmp_path_factory.mktemp("data"),
+            binary_path=tmp_path_factory.mktemp("bin"),
+            version="latest",
+            port=30668,
+            grpc_port=50061,
+        ),
+    )
+    try:
+        client.connect()
+        assert client.is_ready()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
+
+        assert sock.connect_ex(("127.0.0.1", 50061)) == 0  # running
+    finally:
+        client._connection.embedded_db.stop()
 
 
 def test_embedded_with_grpc_port_default(tmp_path_factory: pytest.TempPathFactory):
@@ -305,12 +351,14 @@ def test_embedded_with_grpc_port_default(tmp_path_factory: pytest.TempPathFactor
             port=30669,
         )
     )
+    try:
+        assert client.is_ready()
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
 
-    assert client.is_ready()
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(1.0)  # we're only pinging the port, 1s is plenty
-
-    assert sock.connect_ex(("127.0.0.1", 50060)) == 0  # running
+        assert sock.connect_ex(("127.0.0.1", 50060)) == 0  # running
+    finally:
+        client._connection.embedded_db.stop()
 
 
 def test_embedded_stop(tmp_path_factory: pytest.TempPathFactory):
@@ -320,14 +368,16 @@ def test_embedded_stop(tmp_path_factory: pytest.TempPathFactory):
             binary_path=tmp_path_factory.mktemp("bin"),
             version="latest",
             port=30668,
-            grpc_port=50061,
+            grpc_port=50060,
         ),
     )
+    try:
+        assert client.is_ready()
 
-    assert client.is_ready()
-
-    assert client._connection.embedded_db.process is not None
-    client._connection.embedded_db.stop()
-    assert client._connection.embedded_db.process is None
-    client._connection.embedded_db.stop()
-    assert client._connection.embedded_db.process is None
+        assert client._connection.embedded_db.process is not None
+        client._connection.embedded_db.stop()
+        assert client._connection.embedded_db.process is None
+        client._connection.embedded_db.stop()
+        assert client._connection.embedded_db.process is None
+    finally:
+        client._connection.embedded_db.stop()
