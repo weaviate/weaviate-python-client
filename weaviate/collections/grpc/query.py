@@ -294,7 +294,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[Union[List[str], str]] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -303,12 +303,15 @@ class _QueryGRPC(_BaseGRPC):
             _validate_input(
                 [
                     _ValidateArgument([List], "near_vector", near_vector),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument([str, List, None], "target_vector", target_vector),
                 ]
             )
 
         near_vector = _get_vector_v4(near_vector)
         certainty, distance = self.__parse_near_options(certainty, distance)
+
+        if target_vector is not None and isinstance(target_vector, str):
+            target_vector = [target_vector]
 
         request = self.__create_request(
             limit=limit,
@@ -325,7 +328,7 @@ class _QueryGRPC(_BaseGRPC):
                 certainty=certainty,
                 distance=distance,
                 vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
-                target_vectors=[target_vector] if target_vector is not None else None,
+                target_vectors=target_vector,
             ),
         )
 
