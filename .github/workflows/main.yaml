@@ -16,7 +16,7 @@ on:
 env:
   WEAVIATE_123: 1.23.14
   WEAVIATE_124: 1.24.10
-  WEAVIATE_125: preview--add-go-workspace-b8b8f5d
+  WEAVIATE_125: preview--add-go-workspace-f7ef63b
 
 
 jobs:
