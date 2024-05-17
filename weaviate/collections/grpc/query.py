@@ -150,7 +150,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[Union[str, List[str]]] = None,
     ) -> search_get_pb2.SearchReply:
         if self._connection._weaviate_version.is_lower_than(1, 25, 0) and (
             isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
@@ -170,13 +170,16 @@ class _QueryGRPC(_BaseGRPC):
                     ),
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument([str, List, None], "target_vector", target_vector),
                 ]
             )
 
         # Set hybrid search to only query the other search-type if one of the two is not set
         if query is None:
             alpha = 1
+
+        if target_vector is not None and isinstance(target_vector, str):
+            target_vector = [target_vector]
 
         hybrid_search = (
             search_get_pb2.Hybrid(
@@ -191,7 +194,7 @@ class _QueryGRPC(_BaseGRPC):
                     if fusion_type is not None
                     else None
                 ),
-                target_vectors=[target_vector] if target_vector is not None else None,
+                target_vectors=target_vector,
                 vector_bytes=(
                     struct.pack("{}f".format(len(vector)), *vector)
                     if vector is not None and isinstance(vector, list)
