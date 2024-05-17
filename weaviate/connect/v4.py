@@ -299,7 +299,7 @@ class _Connection(_ConnectionBase):
                 if is_weaviate_domain(self.url):
                     msg += """
 
-                    You can instantiate the client with login credentials for the Weaviate Cloud using
+                    You can instantiate the client with login credentials for Weaviate Cloud using
 
                     client = weaviate.connect_to_weaviate_cloud(
                       url=YOUR_WEAVIATE_URL,

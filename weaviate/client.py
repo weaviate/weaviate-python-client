@@ -162,8 +162,8 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
 
         Use this specific initializer when you want to create a custom Client specific to your Weaviate setup.
 
-        If you want to get going quickly connecting to the Weaviate Cloud or a local instance then use the
-        `weaviate.connect_to_weaviate_cloud` or `weaviate.connect_to_local` helper functions instead.
+        To simplify connections to Weaviate Cloud or local instances, use the weaviate.connect_to_weaviate_cloud
+        or weaviate.connect_to_local helper functions.
 
         Arguments:
             - `connection_params`: `weaviate.connect.ConnectionParams` or None, optional
