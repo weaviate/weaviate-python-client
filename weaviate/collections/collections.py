@@ -1,7 +1,5 @@
 from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
 
-from pydantic_core import ValidationError
-
 from weaviate.collections.base import _CollectionsBase
 from weaviate.collections.classes.config import (
     _NamedVectorConfigCreate,
@@ -18,7 +16,6 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigCreate,
     _RerankerConfigCreate,
     _VectorizerConfigCreate,
-    _Vectorizer,
 )
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
@@ -27,9 +24,9 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import Collection
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
-from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _capitalize_first_letter
+from weaviate.validator import _validate_input, _ValidateArgument
 
 
 class _Collections(_CollectionsBase):
@@ -112,25 +109,22 @@ class _Collections(_CollectionsBase):
             raise WeaviateInvalidInputError(
                 "Named vectorizers are only supported in Weaviate v1.24.0 and higher"
             )
-        try:
-            config = _CollectionConfigCreate(
-                description=description,
-                generative_config=generative_config,
-                inverted_index_config=inverted_index_config,
-                multi_tenancy_config=multi_tenancy_config,
-                name=name,
-                properties=properties,
-                references=references,
-                replication_config=replication_config,
-                reranker_config=reranker_config,
-                sharding_config=sharding_config,
-                vectorizer_config=vectorizer_config or _Vectorizer.none(),
-                vector_index_config=vector_index_config,
-            )
-        except ValidationError:
-            raise WeaviateUnsupportedFeatureError(
-                "Named vectorizers", self._connection.server_version, "1.24.0"
-            )
+
+        config = _CollectionConfigCreate(
+            description=description,
+            generative_config=generative_config,
+            inverted_index_config=inverted_index_config,
+            multi_tenancy_config=multi_tenancy_config,
+            name=name,
+            properties=properties,
+            references=references,
+            replication_config=replication_config,
+            reranker_config=reranker_config,
+            sharding_config=sharding_config,
+            vectorizer_config=vectorizer_config,
+            vector_index_config=vector_index_config,
+        )
+
         name = super()._create(config._to_dict())
         assert (
             config.name == name

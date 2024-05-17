@@ -1,5 +1,31 @@
 Changelog
 =========
+
+Version 4.6.1
+--------------
+This patch version includes:
+  - Fixes for ``client.integrations.configure``
+
+Version 4.6.0
+--------------
+This minor version includes:
+
+- Support for Weaviate 1.25.0:
+
+  - BM25/Hybrid support groupBy parameter
+  - Hybrid supports MoveTo/MoveAwayFrom in near_vector and near_text through HybridVector class
+  - Ollama text2vec and generative module
+  - Octoai text2vec and generative module
+  - multi2vev-palm module
+  - dynamic vector index type
+  - auto tenant creation
+  - improved batching with vectorization
+  - tenant exists endpoint
+  - get tenant by name
+
+- Added ``client.integrations.configure`` to configure api-keys and model provider parameters for integration/module-providers without setting headers.
+- Improved error messages and deprecation warnings.
+
 Version 4.5.7
 --------------
 This patch version includes:

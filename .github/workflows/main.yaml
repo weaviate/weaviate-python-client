@@ -18,7 +18,6 @@ env:
   WEAVIATE_124: 1.24.10
   WEAVIATE_125: preview--add-go-workspace-f7ef63b
 
-
 jobs:
   lint-and-format:
     name: Run Linter and Formatter

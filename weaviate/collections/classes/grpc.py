@@ -231,7 +231,6 @@ class _HybridNearBase(_WeaviateInput):
 
     distance: Optional[float] = None
     certainty: Optional[float] = None
-    target_vector: Optional[str] = None
 
 
 class _HybridNearText(_HybridNearBase):
@@ -247,23 +246,22 @@ class _HybridNearVector(_HybridNearBase):
 HybridVectorType = Union[List[float], _HybridNearText, _HybridNearVector]
 
 
-class HybridNear:
+class HybridVector:
     """Use this factory class to define the appropriate classes needed when defining near text and near vector sub-searches in hybrid queries."""
 
     @staticmethod
-    def text(
-        text: Union[str, List[str]],
+    def near_text(
+        query: Union[str, List[str]],
         *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
         move_to: Optional[Move] = None,
         move_away: Optional[Move] = None,
-        target_vector: Optional[str] = None
     ) -> _HybridNearText:
         """Define a near text search to be used within a hybrid query.
 
         Arguments:
-            `text`
+            `query`
                 The text to search for as a string or a list of strings.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
@@ -273,28 +271,24 @@ class HybridNear:
                 Define the concepts that should be moved towards in the vector space during the search.
             `move_away`
                 Define the concepts that should be moved away from in the vector space during the search.
-            `target_vector`
-                The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
 
         Returns:
             A `_HybridNearText` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
         """
         return _HybridNearText(
-            text=text,
+            text=query,
             distance=distance,
             certainty=certainty,
             move_to=move_to,
             move_away=move_away,
-            target_vector=target_vector,
         )
 
     @staticmethod
-    def vector(
+    def near_vector(
         vector: List[float],
         *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
-        target_vector: Optional[str] = None
     ) -> _HybridNearVector:
         """Define a near vector search to be used within a hybrid query.
 
@@ -303,15 +297,11 @@ class HybridNear:
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
                 The maximum distance to search. If not specified, the default distance specified by the server is used.
-            `target_vector`
-                The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
 
         Returns:
             A `_HybridNearVector` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
         """
-        return _HybridNearVector(
-            vector=vector, distance=distance, certainty=certainty, target_vector=target_vector
-        )
+        return _HybridNearVector(vector=vector, distance=distance, certainty=certainty)
 
 
 class _QueryReference(_WeaviateInput):

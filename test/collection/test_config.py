@@ -209,6 +209,20 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_ollama(
+            vectorize_collection_name=False,
+            model="cool-model",
+            api_endpoint="https://123.0.0.4",
+        ),
+        {
+            "text2vec-ollama": {
+                "vectorizeClassName": False,
+                "model": "cool-model",
+                "apiEndpoint": "https://123.0.0.4",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_openai(),
         {
             "text2vec-openai": {
@@ -609,6 +623,18 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.ollama(
+            model="cool-model",
+            api_endpoint="https://123.456.789.0",
+        ),
+        {
+            "generative-ollama": {
+                "model": "cool-model",
+                "apiEndpoint": "https://123.456.789.0",
+            }
+        },
+    ),
+    (
         Configure.Generative.openai(
             model="gpt-4",
             frequency_penalty=0.5,
@@ -689,6 +715,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             "generative-aws": {
                 "model": "cohere.command-light-text-v14",
                 "region": "us-east-1",
+                "service": "bedrock",
             }
         },
     ),
@@ -1077,6 +1104,29 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "baseURL": "https://text.octoai.com",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_ollama(
+                name="test",
+                source_properties=["prop"],
+                api_endpoint="https://123.0.0.4",
+                model="cool-model",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-ollama": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "apiEndpoint": "https://123.0.0.4",
+                        "model": "cool-model",
                     }
                 },
                 "vectorIndexType": "hnsw",

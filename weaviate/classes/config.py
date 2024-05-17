@@ -13,6 +13,7 @@ from weaviate.collections.classes.config import (
 )
 
 from weaviate.collections.classes.config_vectorizers import Multi2VecField, Vectorizers
+from weaviate.connect.integrations import Integrations
 
 
 __all__ = [
@@ -21,6 +22,7 @@ __all__ = [
     "Reconfigure",
     "DataType",
     "GenerativeSearches",
+    "Integrations",
     "Multi2VecField",
     "Property",
     "ReferenceProperty",

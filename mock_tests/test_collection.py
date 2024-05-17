@@ -1,13 +1,14 @@
 import json
 import time
 from typing import Any, Dict
-import grpc
-from werkzeug import Request, Response
 
+import grpc
 import pytest
 from pytest_httpserver import HTTPServer
+from werkzeug import Request, Response
 
 import weaviate
+import weaviate.classes as wvc
 from mock_tests.conftest import MOCK_PORT, MOCK_IP, MOCK_PORT_GRPC, CLIENT_ID
 from weaviate.collections.classes.config import (
     CollectionConfig,
@@ -23,14 +24,9 @@ from weaviate.collections.classes.config import (
     VectorIndexType,
     ShardingConfig,
 )
-
-from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
-import weaviate.classes as wvc
-
 from weaviate.connect.base import ConnectionParams, ProtocolParams
-
 from weaviate.connect.integrations import _IntegrationConfig
-
+from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
@@ -264,10 +260,10 @@ def test_return_from_bind_module(
 @pytest.mark.parametrize(
     "integrations,headers",
     [
-        (wvc.init.Integrations.cohere(api_key="key"), {"X-Cohere-Api-Key": "key"}),
+        (wvc.config.Integrations.cohere(api_key="key"), {"X-Cohere-Api-Key": "key"}),
         (
-            wvc.init.Integrations.cohere(
-                api_key="key", request_per_minute_embeddings=50, base_url="http://some-url.com"
+            wvc.config.Integrations.cohere(
+                api_key="key", requests_per_minute_embeddings=50, base_url="http://some-url.com"
             ),
             {
                 "X-Cohere-Api-Key": "key",
@@ -275,18 +271,18 @@ def test_return_from_bind_module(
                 "X-Cohere-Baseurl": "http://some-url.com",
             },
         ),
-        ([wvc.init.Integrations.cohere(api_key="key")], {"X-Cohere-Api-Key": "key"}),
+        ([wvc.config.Integrations.cohere(api_key="key")], {"X-Cohere-Api-Key": "key"}),
         (
             [
-                wvc.init.Integrations.cohere(api_key="key"),
-                wvc.init.Integrations.openai(api_key="key2"),
+                wvc.config.Integrations.cohere(api_key="key"),
+                wvc.config.Integrations.openai(api_key="key2"),
             ],
             {"X-Cohere-Api-Key": "key", "X-Openai-Api-Key": "key2"},
         ),
         (
             [
-                wvc.init.Integrations.voyageai(
-                    api_key="key", base_url="http://some-url.com", request_per_minute_embeddings=50
+                wvc.config.Integrations.voyageai(
+                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
                 )
             ],
             {
@@ -297,8 +293,8 @@ def test_return_from_bind_module(
         ),
         (
             [
-                wvc.init.Integrations.jinaai(
-                    api_key="key", base_url="http://some-url.com", request_per_minute_embeddings=50
+                wvc.config.Integrations.jinaai(
+                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
                 )
             ],
             {
@@ -309,8 +305,8 @@ def test_return_from_bind_module(
         ),
         (
             [
-                wvc.init.Integrations.octoai(
-                    api_key="key", base_url="http://some-url.com", request_per_minute_embeddings=50
+                wvc.config.Integrations.octoai(
+                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
                 )
             ],
             {

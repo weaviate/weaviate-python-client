@@ -16,6 +16,7 @@ from httpx import (
     Client,
     ConnectError,
     HTTPError,
+    HTTPStatusError,
     Limits,
     ReadError,
     RemoteProtocolError,
@@ -40,6 +41,7 @@ from weaviate.connect.base import (
     JSONPayload,
     _get_proxies,
 )
+from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
     AuthenticationFailedError,
@@ -59,8 +61,6 @@ from weaviate.util import (
 )
 from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.warnings import _Warnings
-
-from weaviate.connect.integrations import _IntegrationConfig
 
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
@@ -137,6 +137,13 @@ class _Connection(_ConnectionBase):
             self.embedded_db.start()
         self._create_clients(self._auth, skip_init_checks)
         self.__connected = True
+        if self.embedded_db is not None:
+            try:
+                self.wait_for_weaviate(10)
+            except WeaviateStartUpError as e:
+                self.embedded_db.stop()
+                self.__connected = False
+                raise e
 
         # need this to get the version of weaviate for version checks
         try:
@@ -596,6 +603,35 @@ class _Connection(_ConnectionBase):
     def supports_groupby_in_bm25_and_hybrid(self) -> bool:
         return self._weaviate_version.is_at_least(1, 25, 0)
 
+    def wait_for_weaviate(self, startup_period: int) -> None:
+        """
+        Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
+
+        Parameters
+        ----------
+        startup_period : int
+            Describes how long the client will wait for weaviate to start in seconds.
+
+        Raises
+        ------
+        WeaviateStartUpError
+            If weaviate takes longer than the time limit to respond.
+        """
+        for _i in range(startup_period):
+            try:
+                self.get("/.well-known/ready").raise_for_status()
+                return
+            except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
+                time.sleep(1)
+
+        try:
+            self.get("/.well-known/ready").raise_for_status()
+            return
+        except (ConnectError, ReadError, TimeoutError) as error:
+            raise WeaviateStartUpError(
+                f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
+            ) from error
+
 
 class ConnectionV4(_Connection):
     def __init__(
@@ -619,9 +655,9 @@ class ConnectionV4(_Connection):
             connection_config,
             embedded_db,
         )
-        self.__prepare_grpc_headers()
+        self._prepare_grpc_headers()
 
-    def __prepare_grpc_headers(self) -> None:
+    def _prepare_grpc_headers(self) -> None:
         self.__metadata_list: List[Tuple[str, str]] = []
         if len(self.additional_headers):
             for key, val in self.additional_headers.items():
