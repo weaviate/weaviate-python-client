@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 4.6.2
+--------------
+This patch version includes:
+  - Respect default vectorizer
+  - Wait for Weaviate 1.25 to be ready before starting the embedded client
+  - Add missing models for voyageai
+  - Rename WCS to Weaviate Cloud and add new helper function `weaviate.connect_to_weaviate_cloud`
+
 Version 4.6.1
 --------------
 This patch version includes:
