@@ -27,7 +27,7 @@ def connect_to_weaviate_cloud(
 
     Arguments:
         `cluster_url`
-            The WCS cluster URL or hostname to connect to. Usually in the form rAnD0mD1g1t5.something.weaviate.cloud
+            The WCD cluster URL or hostname to connect to. Usually in the form rAnD0mD1g1t5.something.weaviate.cloud
         `auth_credentials`
             The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
@@ -93,7 +93,7 @@ def connect_to_wcs(
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
     """
-    Connect to your own Weaviate Cloud Service (WCS) instance.
+    Connect to your own Weaviate Cloud (WCD) instance.
 
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
@@ -101,7 +101,7 @@ def connect_to_wcs(
 
     Arguments:
         `cluster_url`
-            The WCS cluster URL or hostname to connect to. Usually in the form rAnD0mD1g1t5.something.weaviate.cloud
+            The WCD cluster URL or hostname to connect to. Usually in the form rAnD0mD1g1t5.something.weaviate.cloud
         `auth_credentials`
             The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`

@@ -240,13 +240,12 @@ class Connection(_ConnectionBase):
                 if is_weaviate_domain(self.url):
                     msg += """
 
-                    You can instantiate the client with login credentials for WCS using
+                    You can instantiate the client with login credentials for Weaviate Cloud using
 
                     client = weaviate.Client(
                       url=YOUR_WEAVIATE_URL,
-                      auth_client_secret=weaviate.AuthClientPassword(
-                        username = YOUR_WCS_USER,
-                        password = YOUR_WCS_PW,
+                      auth_client_secret=weaviate.AuthApiKey(
+                        api_key = YOUR_WCD_API_KEY,
                       ))
                     """
                 raise AuthenticationFailedException(msg)
