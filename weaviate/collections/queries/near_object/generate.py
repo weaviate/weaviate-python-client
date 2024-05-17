@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional
+from typing import Generic, List, Optional, Union
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -33,7 +33,7 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[Union[str, List[str]]] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,

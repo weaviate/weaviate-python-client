@@ -462,7 +462,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[Union[str, List[str]]] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -478,31 +478,32 @@ class _QueryGRPC(_BaseGRPC):
         certainty, distance = self.__parse_near_options(certainty, distance)
 
         kwargs: Dict[str, Any] = {}
-        target_vectors = [target_vector] if target_vector is not None else None
+        if target_vector is not None and isinstance(target_vector, str):
+            target_vector = [target_vector]
 
         if type_ == "audio":
             kwargs["near_audio"] = search_get_pb2.NearAudioSearch(
-                audio=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                audio=media, distance=distance, certainty=certainty, target_vectors=target_vector
             )
         elif type_ == "depth":
             kwargs["near_depth"] = search_get_pb2.NearDepthSearch(
-                depth=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                depth=media, distance=distance, certainty=certainty, target_vectors=target_vector
             )
         elif type_ == "image":
             kwargs["near_image"] = search_get_pb2.NearImageSearch(
-                image=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                image=media, distance=distance, certainty=certainty, target_vectors=target_vector
             )
         elif type_ == "imu":
             kwargs["near_imu"] = search_get_pb2.NearIMUSearch(
-                imu=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                imu=media, distance=distance, certainty=certainty, target_vectors=target_vector
             )
         elif type_ == "thermal":
             kwargs["near_thermal"] = search_get_pb2.NearThermalSearch(
-                thermal=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                thermal=media, distance=distance, certainty=certainty, target_vectors=target_vector
             )
         elif type_ == "video":
             kwargs["near_video"] = search_get_pb2.NearVideoSearch(
-                video=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                video=media, distance=distance, certainty=certainty, target_vectors=target_vector
             )
         else:
             raise ValueError(
