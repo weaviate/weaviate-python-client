@@ -17,6 +17,7 @@ from .connect.helpers import (
     connect_to_embedded,
     connect_to_local,
     connect_to_wcs,
+    connect_to_weaviate_cloud,
 )
 
 from . import (
@@ -51,6 +52,7 @@ __all__ = [
     "connect_to_embedded",
     "connect_to_local",
     "connect_to_wcs",
+    "connect_to_weaviate_cloud",
     "auth",
     "backup",
     "batch",
