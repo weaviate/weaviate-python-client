@@ -465,6 +465,9 @@ def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> 
         weaviate.connect_to_wcs(
             cluster_url=WCS_URL, auth_credentials=WCS_CREDS, additional_config=additional_config
         ),
+        weaviate.connect_to_weaviate_cloud(
+            cluster_url=WCS_URL, auth_credentials=WCS_CREDS, additional_config=additional_config
+        ),
         weaviate.connect_to_local(additional_config=additional_config),
         weaviate.connect_to_custom(
             http_secure=True,

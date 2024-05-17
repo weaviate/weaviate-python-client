@@ -192,7 +192,7 @@ class _Warnings:
     @staticmethod
     def bit_compression_in_pq_config() -> None:
         warnings.warn(
-            message="""Dep018: The `bit_compression` argument in `PQConfig` is deprecated and will be removed by Q4 2024.""",
+            message="""Dep019: The `bit_compression` argument in `PQConfig` is deprecated and will be removed by Q4 2024.""",
             category=DeprecationWarning,
             stacklevel=1,
         )
