@@ -75,7 +75,7 @@ This patch version includes:
 - Support for new modules in Weaviate 1.24.2:
   - ``text2vec-voyageai``
   - ``generative-mistral``
-  - Support new parameters for interference URLs in ``text2vec-transformers`` and ``multi2vec-clip``
+  - Support new parameters for inference URLs in ``text2vec-transformers`` and ``multi2vec-clip``
 - Support for new modules in Weaviate 1.24.3:
   - ``multi2vec-palm``
 

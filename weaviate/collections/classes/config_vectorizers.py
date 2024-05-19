@@ -455,7 +455,7 @@ class _Vectorizer:
     def multi2vec_clip(
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        interference_url: Optional[str] = None,
+        inference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecClipConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
@@ -480,7 +480,7 @@ class _Vectorizer:
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             vectorizeClassName=vectorize_collection_name,
-            inferenceUrl=interference_url,
+            inferenceUrl=inference_url,
         )
 
     @staticmethod

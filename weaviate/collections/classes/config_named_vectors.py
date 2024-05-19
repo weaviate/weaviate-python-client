@@ -415,7 +415,7 @@ class _NamedVectors:
         vectorize_collection_name: bool = True,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
-        interference_url: Optional[str] = None,
+        inference_url: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_clip` model.
 
@@ -442,7 +442,7 @@ class _NamedVectors:
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
                 vectorizeClassName=vectorize_collection_name,
-                inferenceUrl=interference_url,
+                inferenceUrl=inference_url,
             ),
             vector_index_config=vector_index_config,
         )
