@@ -17,7 +17,7 @@ autodoc-pydantic==2.2.0
 
 grpcio-tools
 
-pytest==8.2.0
+pytest==8.2.1
 pytest-cov==5.0.0
 pytest-benchmark==4.0.0
 pytest-profiling==1.7.0
