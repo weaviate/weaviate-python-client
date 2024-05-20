@@ -414,7 +414,7 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
     return _uuid
 
 
-def get_vector(vector: Sequence) -> List[float]:
+def get_vector(vector: Sequence) -> list:
     """
     Get weaviate compatible format of the embedding vector.
 
@@ -459,9 +459,12 @@ def get_vector(vector: Sequence) -> List[float]:
     ) from None
 
 
-def _get_vector_v4(vector: Sequence) -> List[float]:
+def _get_vector_v4(vector: Sequence, parse_dtype: bool) -> List[float]:
     try:
-        return get_vector(vector)
+        vec = get_vector(vector)
+        if parse_dtype:
+            return [float(entry) for entry in vec]
+        return vec
     except TypeError as e:
         raise WeaviateInvalidInputError(
             f"The vector you supplied was malformatted! Vector:  {vector}"

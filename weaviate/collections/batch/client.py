@@ -35,6 +35,7 @@ class _BatchClient(_BatchBase):
         uuid: Optional[UUID] = None,
         vector: Optional[VECTORS] = None,
         tenant: Optional[Union[str, Tenant]] = None,
+        convert_vector_data_type: bool = False,
     ) -> UUID:
         """
         Add one object to this batch.
@@ -61,6 +62,9 @@ class _BatchClient(_BatchBase):
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
             `tenant`
                 The tenant name or Tenant object to be used for this request.
+            `convert_vector_data_type`
+                Whether to convert the data types of the object vectors to the one supported by Weaviate. If set to `True`, the client will loop through
+                the vectors converting the internal data type to float. This will have a significant impact on performance for large vectors.
 
         Returns:
             `str`
@@ -77,6 +81,7 @@ class _BatchClient(_BatchBase):
             uuid=uuid,
             vector=vector,
             tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
+            convert_vector_data_type=convert_vector_data_type,
         )
 
     def add_reference(

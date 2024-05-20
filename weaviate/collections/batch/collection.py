@@ -47,6 +47,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[VECTORS] = None,
+        convert_vector_data_type: bool = False,
     ) -> UUID:
         """Add one object to this batch.
 
@@ -57,16 +58,18 @@ class _BatchCollection(Generic[Properties], _BatchBase):
                 The data properties of the object to be added as a dictionary.
             `references`
                 The references of the object to be added as a dictionary.
-            `uuid`:
+            `uuid`
                 The UUID of the object as an uuid.UUID object or str. If it is None an UUIDv4 will generated, by default None
-            `vector`:
+            `vector`
                 The embedding of the object. Can be used when a collection does not have a vectorization module or the given
-                vector was generated using the _identical_ vectorization module that is configured for the class. In this
+                vector was generated using the *identical* vectorization module that is configured for the class. In this
                 case this vector takes precedence.
-                Supported types are
-                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
-                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
-
+                    Supported types are:
+                        for single vectors: `list`, `numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                        for named vectors: `Dict[str, *list above*]`, where the string is the name of the vector.
+            `convert_vector_data_type`
+                Whether to convert the data types of the object vectors to the one supported by Weaviate. If set to `True`, the client will loop through
+                the vectors converting the internal data type to float. This will have a significant impact on performance for large vectors.
         Returns:
             `str`
                 The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
@@ -82,6 +85,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
             uuid=uuid,
             vector=vector,
             tenant=self.__tenant,
+            convert_vector_data_type=convert_vector_data_type,
         )
 
     def add_reference(

@@ -314,7 +314,7 @@ class _QueryGRPC(_BaseGRPC):
                 ]
             )
 
-        near_vector = _get_vector_v4(near_vector)
+        near_vector = _get_vector_v4(near_vector, False)
         certainty, distance = self.__parse_near_options(certainty, distance)
 
         request = self.__create_request(

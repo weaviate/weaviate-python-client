@@ -627,10 +627,12 @@ class _BatchBase:
         uuid: Optional[UUID] = None,
         vector: Optional[VECTORS] = None,
         tenant: Optional[str] = None,
+        convert_vector_data_type: bool = False,
     ) -> UUID:
         self.__check_bg_thread_alive()
         try:
             batch_object = BatchObject(
+                convert_vector_data_type=convert_vector_data_type,
                 collection=collection,
                 properties=properties,
                 references=references,

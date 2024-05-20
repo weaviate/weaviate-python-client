@@ -19,6 +19,7 @@ class _BatchObject:
     tenant: Optional[str]
     references: Optional[ReferenceInputs]
     retry_count: int = 0
+    convert_vector_data_type: bool = False
 
 
 @dataclass
@@ -43,16 +44,18 @@ class BatchObject(BaseModel):
     uuid: Optional[UUID] = Field(default=None)
     vector: Optional[VECTORS] = Field(default=None)
     tenant: Optional[str] = Field(default=None)
+    convert_vector_data_type: bool = Field(default=False)
 
     def __init__(self, **data: Any) -> None:
         v = data.get("vector")
+        parse_dtype = cast(bool, data.get("convert_vector_data_type")) or False
         if v is not None:
             if isinstance(v, dict):  # named vector
                 for key, val in v.items():
-                    v[key] = _get_vector_v4(val)
+                    v[key] = _get_vector_v4(val, parse_dtype)
                 data["vector"] = v
             else:
-                data["vector"] = _get_vector_v4(v)
+                data["vector"] = _get_vector_v4(v, parse_dtype)
 
         data["uuid"] = (
             get_valid_uuid(u) if (u := data.get("uuid")) is not None else uuid_package.uuid4()
@@ -67,6 +70,7 @@ class BatchObject(BaseModel):
             properties=self.properties,
             tenant=self.tenant,
             references=self.references,
+            convert_vector_data_type=self.convert_vector_data_type,
         )
 
     @field_validator("collection")

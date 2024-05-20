@@ -329,11 +329,13 @@ class _DataCollection(Generic[Properties], _Data):
             data_model,
         )
 
-    def __parse_vector(self, obj: Dict[str, Any], vector: VECTORS) -> Dict[str, Any]:
+    def __parse_vector(
+        self, obj: Dict[str, Any], vector: VECTORS, parse_dtype: bool
+    ) -> Dict[str, Any]:
         if isinstance(vector, dict):
-            obj["vectors"] = {key: _get_vector_v4(val) for key, val in vector.items()}
+            obj["vectors"] = {key: _get_vector_v4(val, parse_dtype) for key, val in vector.items()}
         else:
-            obj["vector"] = _get_vector_v4(vector)
+            obj["vector"] = _get_vector_v4(vector, parse_dtype)
         return obj
 
     def insert(
@@ -342,6 +344,7 @@ class _DataCollection(Generic[Properties], _Data):
         references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[VECTORS] = None,
+        convert_vector_data_type: bool = False,
     ) -> uuid_package.UUID:
         """Insert a single object into the collection.
 
@@ -357,7 +360,9 @@ class _DataCollection(Generic[Properties], _Data):
                 Supported types are
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
-
+            `convert_vector_data_type`
+                Whether to convert the data type of the vector to the one supported by Weaviate. If set to `True`, the client will loop through
+                the vector converting the internal data type to float. This will have a significant impact on performance for large vectors.
         Returns:
             `uuid.UUID`, the UUID of the inserted object.
 
@@ -386,13 +391,15 @@ class _DataCollection(Generic[Properties], _Data):
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
         if vector is not None:
-            weaviate_obj = self.__parse_vector(weaviate_obj, vector)
+            weaviate_obj = self.__parse_vector(weaviate_obj, vector, convert_vector_data_type)
 
         return self._insert(weaviate_obj)
 
     def insert_many(
         self,
         objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
+        *,
+        convert_vector_data_type: bool = False,
     ) -> BatchObjectReturn:
         """Insert multiple objects into the collection.
 
@@ -401,7 +408,9 @@ class _DataCollection(Generic[Properties], _Data):
                 The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, ReferenceInputs]`
                     If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
                         If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
-
+            `convert_vector_data_type`
+                Whether to convert the data types of the object vectors to the one supported by Weaviate. If set to `True`, the client will loop through
+                the vectors converting the internal data type to float. This will have a significant impact on performance for large vectors.
         Raises:
             `weaviate.exceptions.WeaviateGRPCBatchError`:
                 If any unexpected error occurs during the batch operation.
@@ -420,6 +429,7 @@ class _DataCollection(Generic[Properties], _Data):
                         properties=cast(dict, obj.properties),
                         tenant=self._tenant,
                         references=obj.references,
+                        convert_vector_data_type=convert_vector_data_type,
                     )
                     if isinstance(obj, DataObject)
                     else _BatchObject(
@@ -429,6 +439,7 @@ class _DataCollection(Generic[Properties], _Data):
                         properties=cast(dict, obj),
                         tenant=self._tenant,
                         references=None,
+                        convert_vector_data_type=False,
                     )
                 )
                 for obj in objects
@@ -442,6 +453,7 @@ class _DataCollection(Generic[Properties], _Data):
         properties: Properties,
         references: Optional[ReferenceInputs] = None,
         vector: Optional[VECTORS] = None,
+        convert_vector_data_type: bool = False,
     ) -> None:
         """Replace an object in the collection.
 
@@ -459,7 +471,9 @@ class _DataCollection(Generic[Properties], _Data):
                 Supported types are
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
-
+            `convert_vector_data_type`
+                Whether to convert the data type of the vector to the one supported by Weaviate. If set to `True`, the client will loop through
+                the vector converting the internal data type to float. This will have a significant impact on performance for large vectors.
         Raises:
             `weaviate.WeaviateConnectionError`:
                 If the network connection to Weaviate fails.
@@ -490,7 +504,7 @@ class _DataCollection(Generic[Properties], _Data):
             "properties": {**props, **refs},
         }
         if vector is not None:
-            weaviate_obj = self.__parse_vector(weaviate_obj, vector)
+            weaviate_obj = self.__parse_vector(weaviate_obj, vector, convert_vector_data_type)
 
         self._replace(weaviate_obj, uuid=uuid)
 
@@ -500,6 +514,7 @@ class _DataCollection(Generic[Properties], _Data):
         properties: Optional[Properties] = None,
         references: Optional[ReferenceInputs] = None,
         vector: Optional[VECTORS] = None,
+        convert_vector_data_type: bool = False,
     ) -> None:
         """Update an object in the collection.
 
@@ -519,6 +534,9 @@ class _DataCollection(Generic[Properties], _Data):
                 Supported types are
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+            `convert_vector_data_type`
+                Whether to convert the data type of the vector to the one supported by Weaviate. If set to `True`, the client will loop through
+                the vector converting the internal data type to float. This will have a significant impact on performance for large vectors.
         """
         if self._validate_arguments:
             _validate_input(
@@ -539,7 +557,7 @@ class _DataCollection(Generic[Properties], _Data):
         refs = self._serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
         if vector is not None:
-            weaviate_obj = self.__parse_vector(weaviate_obj, vector)
+            weaviate_obj = self.__parse_vector(weaviate_obj, vector, convert_vector_data_type)
 
         self._update(weaviate_obj, uuid=uuid)
 

@@ -48,15 +48,15 @@ class _BatchGRPC(_BaseGRPC):
         super().__init__(connection, consistency_level)
 
     def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
-        def pack_vector(vector: Any) -> bytes:
-            vector_list = _get_vector_v4(vector)
-            return struct.pack("{}f".format(len(vector_list)), *vector_list)
+        def pack_vector(vector: List[float], parse_dtype: bool) -> bytes:
+            vec = _get_vector_v4(vector, parse_dtype)
+            return struct.pack("{}f".format(len(vec)), *vec)
 
         return [
             batch_pb2.BatchObject(
                 collection=obj.collection,
                 vector_bytes=(
-                    pack_vector(obj.vector)
+                    pack_vector(obj.vector, obj.convert_vector_data_type)
                     if obj.vector is not None and isinstance(obj.vector, list)
                     else None
                 ),
