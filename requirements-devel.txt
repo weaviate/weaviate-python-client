@@ -26,7 +26,7 @@ pytest-xdist==3.6.1
 werkzeug>=2.3.7
 pytest-httpserver>=1.0.8
 
-numpy>=1.26.4<2.0.0
+numpy>=1.24.4<2.0.0
 pandas>=2.2.2<3.0.0
 polars>=0.20.26<0.21.0
 
