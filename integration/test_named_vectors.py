@@ -8,6 +8,7 @@ from weaviate.collections.classes.data import DataObject
 
 from weaviate.collections.classes.config import (
     PQConfig,
+    _VectorIndexConfigHNSW,
     _VectorIndexConfigFlat,
     Vectorizers,
 )
@@ -474,6 +475,7 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
     assert config.vector_config is not None
     assert config.vector_config["first"].vector_index_config is not None
     assert config.vector_config["second"].vector_index_config is not None
+    assert isinstance(config.vector_config["second"].vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_config["second"].vector_index_config.quantizer is None
 
     collection.config.update(
@@ -490,6 +492,7 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
     assert config.vector_config is not None
     assert config.vector_config["first"].vector_index_config is not None
     assert config.vector_config["second"].vector_index_config is not None
+    assert isinstance(config.vector_config["second"].vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_config["second"].vector_index_config.quantizer, PQConfig)
     assert config.vector_config["second"].vector_index_config.quantizer.centroids == 256
 

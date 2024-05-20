@@ -116,6 +116,17 @@ class _VectorIndexConfigDynamicCreate(_VectorIndexConfigCreate):
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.DYNAMIC
 
+    def _to_dict(self) -> dict:
+        ret_dict = super()._to_dict()
+        if self.hnsw is not None:
+            ret_dict["hnsw"] = self.hnsw._to_dict()
+        if self.flat is not None:
+            ret_dict["flat"] = self.flat._to_dict()
+        if self.threshold is not None:
+            ret_dict["threshold"] = self.threshold
+
+        return ret_dict
+
 
 class _VectorIndexConfigDynamicUpdate(_VectorIndexConfigUpdate):
     threshold: Optional[int]

@@ -451,6 +451,7 @@ def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
     config = collection.config.get()
     assert config.vector_index_type == VectorIndexType.HNSW
     assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _BQConfig)
 
 
@@ -760,9 +761,15 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
             distance_metric=VectorDistances.COSINE,
             threshold=1000,
             hnsw=Configure.VectorIndex.hnsw(
-                cleanup_interval_seconds=123, flat_search_cutoff=1234, vector_cache_max_objects=789
+                cleanup_interval_seconds=123,
+                flat_search_cutoff=1234,
+                vector_cache_max_objects=789,
+                quantizer=Configure.VectorIndex.Quantizer.pq(centroids=128),
             ),
-            flat=Configure.VectorIndex.flat(vector_cache_max_objects=7643),
+            flat=Configure.VectorIndex.flat(
+                vector_cache_max_objects=7643,
+                quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
+            ),
         ),
         ports=(8090, 50061),
     )
@@ -775,16 +782,25 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.hnsw.cleanup_interval_seconds == 123
     assert config.vector_index_config.hnsw.flat_search_cutoff == 1234
     assert config.vector_index_config.hnsw.vector_cache_max_objects == 789
+    assert isinstance(config.vector_index_config.hnsw.quantizer, _PQConfig)
+    assert config.vector_index_config.hnsw.quantizer.centroids == 128
     assert isinstance(config.vector_index_config.flat, _VectorIndexConfigFlat)
     assert config.vector_index_config.flat.vector_cache_max_objects == 7643
+    assert isinstance(config.vector_index_config.flat.quantizer, _BQConfig)
+    assert config.vector_index_config.flat.quantizer.rescore_limit == 10
 
     collection.config.update(
         vectorizer_config=Reconfigure.VectorIndex.dynamic(
             threshold=2000,
             hnsw=Reconfigure.VectorIndex.hnsw(
-                flat_search_cutoff=4567, vector_cache_max_objects=678
+                flat_search_cutoff=4567,
+                vector_cache_max_objects=678,
+                quantizer=Reconfigure.VectorIndex.Quantizer.pq(centroids=128),
             ),
-            flat=Reconfigure.VectorIndex.flat(vector_cache_max_objects=9876),
+            flat=Reconfigure.VectorIndex.flat(
+                vector_cache_max_objects=9876,
+                quantizer=Reconfigure.VectorIndex.Quantizer.bq(rescore_limit=11),
+            ),
         ),
     )
     config = collection.config.get()
@@ -795,5 +811,9 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.hnsw.cleanup_interval_seconds == 123
     assert config.vector_index_config.hnsw.flat_search_cutoff == 4567
     assert config.vector_index_config.hnsw.vector_cache_max_objects == 678
+    assert isinstance(config.vector_index_config.hnsw.quantizer, _PQConfig)
+    assert config.vector_index_config.hnsw.quantizer.centroids == 128
     assert isinstance(config.vector_index_config.flat, _VectorIndexConfigFlat)
     assert config.vector_index_config.flat.vector_cache_max_objects == 9876
+    assert isinstance(config.vector_index_config.flat.quantizer, _BQConfig)
+    assert config.vector_index_config.flat.quantizer.rescore_limit == 11
