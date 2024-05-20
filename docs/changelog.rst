@@ -1,5 +1,9 @@
 Changelog
 =========
+Version 4.6.3
+--------------
+This patch version includes:
+    - Removal of top-level validation of ``vector`` in ``data.insert``, ``data.replace``, and ``data.update``. This validation occurs within the ``_get_vector_v4`` method now instead.
 
 Version 4.6.2
 --------------
