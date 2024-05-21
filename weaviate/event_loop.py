@@ -2,13 +2,18 @@ import asyncio
 import threading
 import time
 from concurrent.futures import Future
-from typing import Any, Callable, Coroutine, Optional, TypeVar
+from typing import Any, Callable, Coroutine, Generic, Optional, TypeVar, cast
 from typing_extensions import ParamSpec
 
 from weaviate.exceptions import WeaviateClosedClientError
 
 P = ParamSpec("P")
 T = TypeVar("T")
+
+
+class _Future(Future, Generic[T]):
+    def result(self, timeout: Optional[float] = None) -> T:
+        return cast(T, super().result(timeout))
 
 
 class _EventLoop:
@@ -34,14 +39,14 @@ class _EventLoop:
 
     def schedule(
         self, f: Callable[P, Coroutine[Any, Any, T]], *args: P.args, **kwargs: P.kwargs
-    ) -> Future[T]:
+    ) -> _Future[T]:
         """This method schedules the provided coroutine for execution in the event loop running in a parallel thread.
 
         The coroutine will be executed asynchronously in the background.
         """
         if self.loop is None:
             raise WeaviateClosedClientError()
-        return asyncio.run_coroutine_threadsafe(f(*args, **kwargs), self.loop)
+        return cast(_Future[T], asyncio.run_coroutine_threadsafe(f(*args, **kwargs), self.loop))
 
     def shutdown(self) -> None:
         if self.loop is None:
