@@ -2,7 +2,8 @@ import asyncio
 import threading
 import time
 from concurrent.futures import Future
-from typing import Any, Callable, Coroutine, Optional, ParamSpec, TypeVar
+from typing import Any, Callable, Coroutine, Optional, TypeVar
+from typing_extensions import ParamSpec
 
 from weaviate.exceptions import WeaviateClosedClientError
 
