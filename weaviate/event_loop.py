@@ -33,7 +33,7 @@ class _EventLoop:
 
         The result of the coroutine is returned.
         """
-        if self.loop is None:
+        if self.loop is None or self.loop.is_closed():
             raise WeaviateClosedClientError()
         return asyncio.run_coroutine_threadsafe(f(*args, **kwargs), self.loop).result()
 
@@ -44,7 +44,7 @@ class _EventLoop:
 
         The coroutine will be executed asynchronously in the background.
         """
-        if self.loop is None:
+        if self.loop is None or self.loop.is_closed():
             raise WeaviateClosedClientError()
         return cast(_Future[T], asyncio.run_coroutine_threadsafe(f(*args, **kwargs), self.loop))
 
