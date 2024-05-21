@@ -8,11 +8,13 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
     _ReferencePropertyMultiTarget,
     _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigDynamicUpdate,
     CollectionConfig,
     CollectionConfigSimple,
     ShardStatus,
     ShardTypes,
     _NamedVectorConfigUpdate,
+    _MultiTenancyConfigUpdate,
 )
 
 from weaviate.collections.config.asy import _ConfigCollectionAsync
@@ -55,6 +57,7 @@ class _ConfigCollection:
         *,
         description: Optional[str] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
+        multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
             Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
@@ -63,6 +66,7 @@ class _ConfigCollection:
             Union[
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
+                _VectorIndexConfigDynamicUpdate,
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
@@ -76,6 +80,8 @@ class _ConfigCollection:
                 A description of the collection.
             `inverted_index_config`
                 Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
+            `multi_tenancy_config`
+                Configuration for the multi-tenancy. Use `Reconfigure.multi_tenancy` to generate one.
             `replication_config`
                 Configuration for the replication. Use `Reconfigure.replication` to generate one.
             `vector_index_config` DEPRECATED USE `vectorizer_config` INSTEAD
@@ -104,6 +110,7 @@ class _ConfigCollection:
             replication_config=replication_config,
             vector_index_config=vector_index_config,
             vectorizer_config=vectorizer_config,
+            multi_tenancy_config=multi_tenancy_config,
         )
 
     def get_shards(self) -> List[ShardStatus]:

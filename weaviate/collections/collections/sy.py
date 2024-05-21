@@ -19,7 +19,7 @@ from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
     Properties,
 )
-from weaviate.collections.collection import Collection, CollectionAsync
+from weaviate.collections.collection import Collection
 from weaviate.collections.collections.asy import _CollectionsAsync
 from weaviate.event_loop import _EventLoop
 
@@ -157,12 +157,8 @@ class _Collections:
         """
         return Collection[Properties, References](
             self.__loop,
-            CollectionAsync[Properties, References](
-                self.__collections._connection,
-                name,
-                properties=data_model_properties,
-                references=data_model_references,
-                validate_arguments=not skip_argument_validation,
+            self.__collections.get(
+                name, data_model_properties, data_model_references, skip_argument_validation
             ),
         )
 

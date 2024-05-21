@@ -20,7 +20,7 @@ class _BatchWrapper:
         self,
         event_loop: _EventLoop,
         connection: ConnectionV4,
-        consistency_level: Optional[ConsistencyLevel] = None,
+        consistency_level: Optional[ConsistencyLevel],
     ):
         self._connection = connection
         self._consistency_level = consistency_level

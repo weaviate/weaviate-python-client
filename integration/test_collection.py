@@ -40,7 +40,6 @@ from weaviate.collections.classes.internal import (
     Object,
     ReferenceToMulti,
 )
-from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties, _PhoneNumber
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
@@ -48,8 +47,11 @@ from weaviate.exceptions import (
     WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import UUID, UUIDS
+
+import weaviate.classes as wvc
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
@@ -142,21 +144,6 @@ def test_delete_by_id(collection_factory: CollectionFactory) -> None:
     assert collection.query.fetch_object_by_id(uuid) is None
     # does not exist anymore
     assert not collection.data.delete_by_id(uuid)
-
-
-def test_delete_by_id_tenant(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-    collection.tenants.create([Tenant(name="tenant1")])
-    tenant1 = collection.with_tenant("tenant1")
-    uuid = tenant1.data.insert(properties={})
-    assert tenant1.query.fetch_object_by_id(uuid) is not None
-    assert tenant1.data.delete_by_id(uuid)
-    assert tenant1.query.fetch_object_by_id(uuid) is None
-    # does not exist anymore
-    assert not tenant1.data.delete_by_id(uuid)
 
 
 def test_delete_by_id_consistency_level(collection_factory: CollectionFactory) -> None:
@@ -418,32 +405,6 @@ def test_insert_many_error(collection_factory: CollectionFactory) -> None:
     assert isinstance(ret.all_responses[1], uuid.UUID)
 
 
-def test_insert_many_with_tenant(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-
-    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
-    tenant1 = collection.with_tenant("tenant1")
-    tenant2 = collection.with_tenant("tenant2")
-
-    ret = tenant1.data.insert_many(
-        [
-            DataObject(properties={"name": "some name"}, vector=[1, 2, 3]),
-            DataObject(properties={"name": "some other name"}, uuid=uuid.uuid4()),
-        ]
-    )
-    assert not ret.has_errors
-    obj1 = tenant1.query.fetch_object_by_id(ret.uuids[0])
-    obj2 = tenant1.query.fetch_object_by_id(ret.uuids[1])
-    assert obj1.properties["name"] == "some name"
-    assert obj2.properties["name"] == "some other name"
-    assert tenant2.query.fetch_object_by_id(ret.uuids[0]) is None
-    assert tenant2.query.fetch_object_by_id(ret.uuids[1]) is None
-
-
 def test_replace(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
@@ -513,52 +474,6 @@ def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> Non
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "real name"
     assert obj.vector["default"] == [2, 3, 4]
-
-
-def test_replace_with_tenant(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-
-    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
-    tenant1 = collection.with_tenant("tenant1")
-    tenant2 = collection.with_tenant("tenant2")
-
-    uuid = tenant1.data.insert(properties={"name": "some name"})
-    tenant1.data.replace(properties={"name": "other name"}, uuid=uuid)
-    assert tenant1.query.fetch_object_by_id(uuid).properties["name"] == "other name"
-    assert tenant2.query.fetch_object_by_id(uuid) is None
-
-
-def test_update(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-    uuid = collection.data.insert(properties={"name": "some name"})
-    collection.data.update(properties={"name": "other name"}, uuid=uuid, vector=[1, 2, 3])
-    obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
-    assert obj.properties["name"] == "other name"
-    assert obj.vector["default"] == [1, 2, 3]
-
-
-def test_update_with_tenant(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-
-    collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
-    tenant1 = collection.with_tenant("tenant1")
-    tenant2 = collection.with_tenant("tenant2")
-
-    uuid = tenant1.data.insert(properties={"name": "some name"})
-    tenant1.data.update(properties={"name": "other name"}, uuid=uuid)
-    assert tenant1.query.fetch_object_by_id(uuid).properties["name"] == "other name"
-    assert tenant2.query.fetch_object_by_id(uuid) is None
 
 
 @pytest.mark.parametrize("to_uuids", [UUID3, [UUID3]])
@@ -653,6 +568,34 @@ def test_search_hybrid(collection_factory: CollectionFactory, fusion_type: Hybri
     assert len(objs) == 2
 
 
+def test_search_hybrid_group_by(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    collection.data.insert({"Name": "some name"}, uuid=uuid.uuid4())
+    collection.data.insert({"Name": "other word"}, uuid=uuid.uuid4())
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        objs = collection.query.hybrid(
+            alpha=0,
+            query="name",
+            include_vector=True,
+            group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
+        ).objects
+        assert len(objs) == 1
+        assert objs[0].belongs_to_group == "some name"
+    else:
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            collection.query.hybrid(
+                alpha=0,
+                query="name",
+                include_vector=True,
+                group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2),
+            )
+
+
 @pytest.mark.parametrize("query", [None, ""])
 def test_search_hybrid_only_vector(
     collection_factory: CollectionFactory, query: Optional[str]
@@ -740,6 +683,50 @@ def test_hybrid_alpha(collection_factory: CollectionFactory) -> None:
         text_res.objects[i].uuid == hybrid_res.objects[i].uuid
         for i in range(len(hybrid_res.objects))
     )
+
+
+def test_bm25(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    res = collection.data.insert_many(
+        [
+            {"Name": "test"},
+            {"Name": "another"},
+            {"Name": "test"},
+        ]
+    )
+    assert res.has_errors is False
+    assert len(collection.query.bm25(query="test").objects) == 2
+
+
+def test_bm25_group_by(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    res = collection.data.insert_many(
+        [
+            {"Name": "test"},
+            {"Name": "another"},
+            {"Name": "test"},
+        ]
+    )
+    assert res.has_errors is False
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        objs = collection.query.bm25(
+            query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
+        ).objects
+        assert len(objs) == 1
+        assert objs[0].belongs_to_group == "test"
+    else:
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            collection.query.bm25(
+                query="test", group_by=GroupBy(prop="name", objects_per_group=1, number_of_groups=2)
+            )
 
 
 @pytest.mark.parametrize("limit", [1, 2])
@@ -1081,27 +1068,6 @@ def test_near_object_group_by_argument(collection_factory: CollectionFactory) ->
     assert ret.objects[3].belongs_to_group == "Mountain"
 
 
-def test_tenants(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
-        multi_tenancy_config=Configure.multi_tenancy(
-            enabled=True,
-        ),
-    )
-
-    collection.tenants.create([Tenant(name="tenant1")])
-
-    tenants = collection.tenants.get()
-    assert len(tenants) == 1
-    assert type(tenants["tenant1"]) is Tenant
-    assert tenants["tenant1"].name == "tenant1"
-
-    collection.tenants.remove(["tenant1"])
-
-    tenants = collection.tenants.get()
-    assert len(tenants) == 0
-
-
 def test_multi_searches(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -1130,51 +1096,6 @@ def test_multi_searches(collection_factory: CollectionFactory) -> None:
     assert objects[0].metadata._is_empty()
 
 
-def test_search_with_tenant(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
-        properties=[Property(name="name", data_type=DataType.TEXT)],
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-
-    collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
-    tenant1 = collection.with_tenant("Tenant1")
-    tenant2 = collection.with_tenant("Tenant2")
-    uuid1 = tenant1.data.insert({"name": "some name"})
-    objects1 = tenant1.query.bm25(query="some").objects
-    assert len(objects1) == 1
-    assert objects1[0].uuid == uuid1
-
-    objects2 = tenant2.query.bm25(query="some").objects
-    assert len(objects2) == 0
-
-
-def test_fetch_object_by_id_with_tenant(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
-        properties=[Property(name="name", data_type=DataType.TEXT)],
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-
-    collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
-    tenant1 = collection.with_tenant("Tenant1")
-    tenant2 = collection.with_tenant("Tenant2")
-
-    uuid1 = tenant1.data.insert({"name": "some name"})
-    obj1 = tenant1.query.fetch_object_by_id(uuid1)
-    assert obj1.properties["name"] == "some name"
-
-    obj2 = tenant2.query.fetch_object_by_id(uuid1)
-    assert obj2 is None
-
-    uuid2 = tenant2.data.insert({"name": "some other name"})
-    obj3 = tenant2.query.fetch_object_by_id(uuid2)
-    assert obj3.properties["name"] == "some other name"
-
-    obj4 = tenant1.query.fetch_object_by_id(uuid2)
-    assert obj4 is None
-
-
 def test_fetch_objects_with_limit(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -1186,31 +1107,6 @@ def test_fetch_objects_with_limit(collection_factory: CollectionFactory) -> None
 
     objects = collection.query.fetch_objects(limit=5).objects
     assert len(objects) == 5
-
-
-def test_fetch_objects_with_tenant(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
-        properties=[Property(name="name", data_type=DataType.TEXT)],
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-
-    collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
-    tenant1 = collection.with_tenant("Tenant1")
-    tenant2 = collection.with_tenant("Tenant2")
-
-    tenant1.data.insert({"name": "some name"})
-    objects = tenant1.query.fetch_objects().objects
-    assert len(objects) == 1
-    assert objects[0].properties["name"] == "some name"
-
-    objects = tenant2.query.fetch_objects().objects
-    assert len(objects) == 0
-
-    tenant2.data.insert({"name": "some other name"})
-    objects = tenant2.query.fetch_objects().objects
-    assert len(objects) == 1
-    assert objects[0].properties["name"] == "some other name"
 
 
 def test_add_property(collection_factory: CollectionFactory) -> None:
@@ -1401,58 +1297,6 @@ def test_exist(collection_factory: CollectionFactory) -> None:
 
     assert collection.data.exists(uuid1)
     assert not collection.data.exists(uuid.uuid4())
-
-
-def test_exist_with_tenant(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-    collection.tenants.create([Tenant(name="Tenant1"), Tenant(name="Tenant2")])
-
-    uuid1 = collection.with_tenant("Tenant1").data.insert({})
-    uuid2 = collection.with_tenant("Tenant2").data.insert({})
-
-    assert collection.with_tenant("Tenant1").data.exists(uuid1)
-    assert not collection.with_tenant("Tenant2").data.exists(uuid1)
-    assert collection.with_tenant("Tenant2").data.exists(uuid2)
-    assert not collection.with_tenant("Tenant1").data.exists(uuid2)
-
-
-def test_tenant_with_activity(collection_factory: CollectionFactory) -> None:
-    name = "TestTenantActivity"
-    collection = collection_factory(
-        name=name,
-        vectorizer_config=Configure.Vectorizer.none(),
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-    collection.tenants.create(
-        [
-            Tenant(name="1", activity_status=TenantActivityStatus.HOT),
-            Tenant(name="2", activity_status=TenantActivityStatus.COLD),
-            Tenant(name="3"),
-        ]
-    )
-    tenants = collection.tenants.get()
-    assert tenants["1"].activity_status == TenantActivityStatus.HOT
-    assert tenants["2"].activity_status == TenantActivityStatus.COLD
-    assert tenants["3"].activity_status == TenantActivityStatus.HOT
-
-
-def test_update_tenant(collection_factory: CollectionFactory) -> None:
-    name = "TestUpdateTenant"
-    collection = collection_factory(
-        name=name,
-        vectorizer_config=Configure.Vectorizer.none(),
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-    )
-    collection.tenants.create([Tenant(name="1", activity_status=TenantActivityStatus.HOT)])
-    tenants = collection.tenants.get()
-    assert tenants["1"].activity_status == TenantActivityStatus.HOT
-
-    collection.tenants.update([Tenant(name="1", activity_status=TenantActivityStatus.COLD)])
-    tenants = collection.tenants.get()
-    assert tenants["1"].activity_status == TenantActivityStatus.COLD
 
 
 def test_return_list_properties(collection_factory: CollectionFactory) -> None:
@@ -2109,3 +1953,220 @@ def test_none_query_hybrid_bm25(collection_factory: CollectionFactory) -> None:
     bm25_objs = collection.query.bm25(query=None, return_metadata=MetadataQuery.full()).objects
     assert len(bm25_objs) == 3
     assert all(obj.metadata.score is not None and obj.metadata.score == 0.0 for obj in bm25_objs)
+
+
+def test_hybrid_near_vector_search(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    uuid_banana = collection.data.insert({"text": "banana"})
+    obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
+
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            collection.query.hybrid(
+                query=None,
+                vector=wvc.query.HybridVector.near_vector(vector=obj.vector["default"]),
+            ).objects
+        return
+
+    collection.data.insert({"text": "dog"})
+    collection.data.insert({"text": "different concept"})
+
+    hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+        query=None,
+        vector=wvc.query.HybridVector.near_vector(vector=obj.vector["default"]),
+    ).objects
+
+    assert hybrid_objs[0].uuid == uuid_banana
+    assert len(hybrid_objs) == 3
+
+    # make a near vector search to get the distance
+    near_vec = collection.query.near_vector(
+        near_vector=obj.vector["default"], return_metadata=["distance"]
+    ).objects
+    assert near_vec[0].metadata.distance is not None
+
+    hybrid_objs2 = collection.query.hybrid(
+        query=None,
+        vector=wvc.query.HybridVector.near_vector(
+            vector=obj.vector["default"], distance=near_vec[0].metadata.distance + 0.001
+        ),
+        return_metadata=MetadataQuery.full(),
+    ).objects
+
+    assert hybrid_objs2[0].uuid == uuid_banana
+    assert len(hybrid_objs2) == 1
+
+
+def test_hybrid_near_vector_search_named_vectors(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    collection_maker = lambda: collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="int", data_type=DataType.INT),
+        ],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary(
+                name="text", vectorize_collection_name=False
+            ),
+            Configure.NamedVectors.text2vec_contextionary(
+                name="int", vectorize_collection_name=False
+            ),
+        ],
+    )
+
+    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        with pytest.raises(WeaviateInvalidInputError):
+            collection_maker()
+        return
+
+    collection = collection_maker()
+    uuid_banana = collection.data.insert({"text": "banana"})
+    collection.data.insert({"text": "dog"})
+    collection.data.insert({"text": "different concept"})
+
+    obj = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
+
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+                query=None,
+                vector=wvc.query.HybridVector.near_vector(vector=obj.vector["text"]),
+                target_vector="text",
+            ).objects
+        return
+
+    hybrid_objs = collection.query.hybrid(
+        query=None,
+        vector=wvc.query.HybridVector.near_vector(vector=obj.vector["text"]),
+        target_vector="text",
+    ).objects
+
+    assert hybrid_objs[0].uuid == uuid_banana
+    assert len(hybrid_objs) == 3
+
+    # make a near vector search to get the distance
+    near_vec = collection.query.near_vector(
+        near_vector=obj.vector["text"], return_metadata=["distance"], target_vector="text"
+    ).objects
+    assert near_vec[0].metadata.distance is not None
+
+    hybrid_objs2 = collection.query.hybrid(
+        query=None,
+        vector=wvc.query.HybridVector.near_vector(
+            vector=obj.vector["text"],
+            distance=near_vec[0].metadata.distance + 0.001,
+        ),
+        target_vector="text",
+        return_metadata=MetadataQuery.full(),
+    ).objects
+
+    assert hybrid_objs2[0].uuid == uuid_banana
+    assert len(hybrid_objs2) == 1
+
+
+def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            collection.query.hybrid(
+                query=None,
+                vector=wvc.query.HybridVector.near_text(query="banana pudding"),
+            ).objects
+        return
+
+    uuid_banana_pudding = collection.data.insert({"text": "banana pudding"})
+    collection.data.insert({"text": "banana smoothie"})
+    collection.data.insert({"text": "different concept"})
+
+    hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+        query=None,
+        vector=wvc.query.HybridVector.near_text(query="banana pudding"),
+    ).objects
+
+    assert hybrid_objs[0].uuid == uuid_banana_pudding
+    assert len(hybrid_objs) == 3
+
+    hybrid_objs2 = collection.query.hybrid(
+        query=None,
+        vector=wvc.query.HybridVector.near_text(
+            query="banana",
+            move_to=wvc.query.Move(concepts="pudding", force=0.1),
+            move_away=wvc.query.Move(concepts="smoothie", force=0.1),
+        ),
+        return_metadata=MetadataQuery.full(),
+    ).objects
+
+    assert hybrid_objs2[0].uuid == uuid_banana_pudding
+
+
+def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    collection_maker = lambda: collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="int", data_type=DataType.INT),
+        ],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary(
+                name="text", vectorize_collection_name=False
+            ),
+            Configure.NamedVectors.text2vec_contextionary(
+                name="int", vectorize_collection_name=False
+            ),
+        ],
+    )
+    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        with pytest.raises(WeaviateInvalidInputError):
+            collection_maker()
+        return
+
+    collection = collection_maker()
+    uuid_banana_pudding = collection.data.insert({"text": "banana pudding"})
+    collection.data.insert({"text": "banana smoothie"})
+    collection.data.insert({"text": "different concept"})
+
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            hybrid_objs: List[Object[Any, Any]] = collection.query.hybrid(
+                query=None,
+                vector=wvc.query.HybridVector.near_text(query="banana pudding"),
+                target_vector="text",
+            ).objects
+        return
+
+    hybrid_objs = collection.query.hybrid(
+        query=None,
+        vector=wvc.query.HybridVector.near_text(query="banana pudding"),
+        target_vector="text",
+    ).objects
+
+    assert hybrid_objs[0].uuid == uuid_banana_pudding
+    assert len(hybrid_objs) == 3
+
+    hybrid_objs2 = collection.query.hybrid(
+        query=None,
+        vector=wvc.query.HybridVector.near_text(
+            query="banana",
+            move_to=wvc.query.Move(concepts="pudding", force=0.1),
+            move_away=wvc.query.Move(concepts="smoothie", force=0.1),
+        ),
+        target_vector="text",
+        return_metadata=MetadataQuery.full(),
+    ).objects
+
+    assert hybrid_objs2[0].uuid == uuid_banana_pudding

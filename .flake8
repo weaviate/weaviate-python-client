@@ -6,6 +6,7 @@ per-file-ignores =
     weaviate/cluster/types.py:A005
     weaviate/collections/classes/types.py:A005
     weaviate/collections/collections.py:A005
+    weaviate/collections/__init__.py:A005
     weaviate/types.py:A005
     weaviate/warnings.py:A005
 

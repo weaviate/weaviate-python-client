@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Union
+from typing import TYPE_CHECKING, Generic, List, Optional, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -9,12 +9,16 @@ from weaviate.collections.batch.base import (
     _RateLimitedBatching,
 )
 from weaviate.collections.batch.batch_wrapper import _BatchWrapper, _ContextManagerWrapper
-from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
 from weaviate.connect import ConnectionV4
 from weaviate.event_loop import _EventLoop
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS
+
+if TYPE_CHECKING:
+    from weaviate.collections.config import _ConfigCollection
 
 
 class _BatchCollection(Generic[Properties], _BatchBase):
@@ -26,7 +30,8 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         results: _BatchDataWrapper,
         batch_mode: _BatchMode,
         name: str,
-        tenant: Optional[str] = None,
+        tenant: Optional[str],
+        vectorizer_batching: bool,
     ) -> None:
         super().__init__(
             connection=connection,
@@ -34,6 +39,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
             results=results,
             batch_mode=batch_mode,
             event_loop=event_loop,
+            vectorizer_batching=vectorizer_batching,
         )
         self.__name = name
         self.__tenant = tenant
@@ -115,13 +121,34 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         name: str,
-        tenant: Optional[str] = None,
+        tenant: Optional[str],
+        config: "_ConfigCollection",
     ) -> None:
         super().__init__(event_loop, connection, consistency_level)
         self.__name = name
         self.__tenant = tenant
+        self.__config = config
+        self._vectorizer_batching: Optional[bool] = None
 
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+        if self._vectorizer_batching is None:
+            try:
+                config = self.__config.get(simple=True)
+                if config.vector_config is not None:
+                    vectorizer_batching = False
+                    for vec_config in config.vector_config.values():
+                        if vec_config.vectorizer.vectorizer is not Vectorizers.NONE:
+                            vectorizer_batching = True
+                            break
+                    self._vectorizer_batching = vectorizer_batching
+                else:
+                    self._vectorizer_batching = config.vectorizer is not Vectorizers.NONE
+            except UnexpectedStatusCodeError as e:
+                # collection does not have to exist if autoschema is enabled. Individual objects will be validated and might fail
+                if e.status_code != 404:
+                    raise e
+                self._vectorizer_batching = False
+
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
             _BatchCollection[Properties](
@@ -132,6 +159,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
                 batch_mode=self._batch_mode,
                 name=self.__name,
                 tenant=self.__tenant,
+                vectorizer_batching=self._vectorizer_batching,
             )
         )
 

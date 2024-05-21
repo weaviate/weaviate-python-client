@@ -90,7 +90,7 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         collection: Collection[Any, Any] = client_fixture.collections.create(
             name=name_fixture,
             description=description,
-            vectorizer_config=vectorizer_config,
+            vectorizer_config=vectorizer_config or Configure.Vectorizer.none(),
             properties=properties,
             references=references,
             inverted_index_config=inverted_index_config,
@@ -145,7 +145,7 @@ def openai_collection(
 
         collection = collection_factory(
             name=name,
-            vectorizer_config=vectorizer_config,
+            vectorizer_config=vectorizer_config or Configure.Vectorizer.none(),
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
                 Property(name="content", data_type=DataType.TEXT),

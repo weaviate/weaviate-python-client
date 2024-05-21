@@ -6,14 +6,14 @@ from weaviate.classes.init import AdditionalConfig, Timeout
 from weaviate.exceptions import WeaviateClosedClientError
 
 
-@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=1)])
+@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
 def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> None:
     additional_config = AdditionalConfig(timeout=timeout, trust_env=True)
 
     client = weaviate.connect_to_embedded(
         port=8070, grpc_port=50040, additional_config=additional_config
     )
-    assert client._connection.timeout_config == Timeout(query=1, insert=2, init=1)
+    assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
 
 
 def test_connect_and_close_to_embedded() -> None:

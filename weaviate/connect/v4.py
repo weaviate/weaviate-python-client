@@ -17,6 +17,7 @@ from httpx import (
     Client,
     ConnectError,
     HTTPError,
+    HTTPStatusError,
     Limits,
     ReadError,
     RemoteProtocolError,
@@ -40,6 +41,7 @@ from weaviate.connect.base import (
     JSONPayload,
     _get_proxies,
 )
+from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
     AuthenticationFailedError,
@@ -127,7 +129,7 @@ class ConnectionV4(_ConnectionBase):
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
-        self.__prepare_grpc_headers()
+        self._prepare_grpc_headers()
 
     async def connect(self, skip_init_checks: bool) -> None:
         self.__connected = True
@@ -135,6 +137,14 @@ class ConnectionV4(_ConnectionBase):
             self.embedded_db.start()
 
         await self._open_connections(self._auth, skip_init_checks)
+        self.__connected = True
+        if self.embedded_db is not None:
+            try:
+                await self.wait_for_weaviate(10)
+            except WeaviateStartUpError as e:
+                self.embedded_db.stop()
+                self.__connected = False
+                raise e
 
         # need this to get the version of weaviate for version checks
         try:
@@ -173,6 +183,11 @@ class ConnectionV4(_ConnectionBase):
 
     def is_connected(self) -> bool:
         return self.__connected
+
+    def set_integrations(self, integrations_config: List[_IntegrationConfig]) -> None:
+        for integration in integrations_config:
+            self._headers.update(integration._to_header())
+            self.__additional_headers.update(integration._to_header())
 
     @overload
     def __make_mounts(self, type_: Literal["sync"]) -> Dict[str, HTTPTransport]:
@@ -254,7 +269,13 @@ class ConnectionV4(_ConnectionBase):
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         async with self.__make_async_client() as client:
-            response = await client.get(oidc_url)
+            try:
+                response = await client.get(oidc_url)
+            except Exception as e:
+                raise WeaviateConnectionError(
+                    f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
+                )
+
         if response.status_code == 200:
             # Some setups are behind proxies that return some default page - for example a login - for all requests.
             # If the response is not json, we assume that this is the case and try unauthenticated access. Any auth
@@ -292,9 +313,9 @@ class ConnectionV4(_ConnectionBase):
                 if is_weaviate_domain(self.url):
                     msg += """
 
-                    You can instantiate the client with login credentials for WCS using
+                    You can instantiate the client with login credentials for Weaviate Cloud using
 
-                    client = weaviate.connect_to_wcs(
+                    client = weaviate.connect_to_weaviate_cloud(
                       url=YOUR_WEAVIATE_URL,
                       auth_client_secret=wvc.init.Auth.api_key("YOUR_API_KEY")
                     )
@@ -550,7 +571,39 @@ class ConnectionV4(_ConnectionBase):
         assert res is not None
         return res
 
-    def __prepare_grpc_headers(self) -> None:
+    def supports_groupby_in_bm25_and_hybrid(self) -> bool:
+        return self._weaviate_version.is_at_least(1, 25, 0)
+
+    async def wait_for_weaviate(self, startup_period: int) -> None:
+        """
+        Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
+
+        Parameters
+        ----------
+        startup_period : int
+            Describes how long the client will wait for weaviate to start in seconds.
+
+        Raises
+        ------
+        WeaviateStartUpError
+            If weaviate takes longer than the time limit to respond.
+        """
+        for _i in range(startup_period):
+            try:
+                (await self.get("/.well-known/ready")).raise_for_status()
+                return
+            except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
+                time.sleep(1)
+
+        try:
+            (await self.get("/.well-known/ready")).raise_for_status()
+            return
+        except (ConnectError, ReadError, TimeoutError) as error:
+            raise WeaviateStartUpError(
+                f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
+            ) from error
+
+    def _prepare_grpc_headers(self) -> None:
         self.__metadata_list: List[Tuple[str, str]] = []
         if len(self.additional_headers):
             for key, val in self.additional_headers.items():
@@ -582,6 +635,8 @@ class ConnectionV4(_ConnectionBase):
 
     async def _ping_grpc(self) -> None:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
+        if not self.is_connected():
+            raise WeaviateClosedClientError()
         assert self._grpc_channel is not None
         try:
             request = self._grpc_channel.request(
@@ -597,10 +652,14 @@ class ConnectionV4(_ConnectionBase):
                 await stream.end()
             if res is None or res.status != health_pb2.HealthCheckResponse.SERVING:
                 self.__connected = False
-                raise WeaviateGRPCUnavailableError(f"v{self.server_version}")
+                raise WeaviateGRPCUnavailableError(
+                    f"v{self.server_version}", self._connection_params._grpc_address
+                )
         except Exception as e:
             self.__connected = False
-            raise WeaviateGRPCUnavailableError(f"v{self.server_version}") from e
+            raise WeaviateGRPCUnavailableError(
+                f"v{self.server_version}", self._connection_params._grpc_address
+            ) from e
 
     @property
     def grpc_stub(self) -> Optional[weaviate_grpc.WeaviateStub]:

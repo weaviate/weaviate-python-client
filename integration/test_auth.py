@@ -9,7 +9,7 @@ import weaviate
 import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
 from weaviate import util
-from weaviate.collections.classes.config import DataType, Property
+from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.filters import Filter
 from weaviate.exceptions import AuthenticationFailedError, UnexpectedStatusCodeError
 
@@ -265,6 +265,7 @@ def test_auth_e2e(request: SubRequest) -> None:
             properties=[
                 Property(name="name", data_type=DataType.TEXT),
             ],
+            vectorizer_config=Configure.Vectorizer.none(),
         )
         col.data.insert({"name": "test"})
         col.data.insert_many([{"name": "test2"}])

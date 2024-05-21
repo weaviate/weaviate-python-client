@@ -68,6 +68,8 @@ class Collection(Generic[Properties, References]):
         self.name = collection.name
         self._connection = collection._connection
 
+        config = _ConfigCollection(event_loop, collection.config)
+
         self.aggregate = _AggregateCollection(event_loop, collection.aggregate)
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
         self.backup = _CollectionBackup(event_loop, collection.backup)
@@ -78,9 +80,10 @@ class Collection(Generic[Properties, References]):
             collection.consistency_level,
             collection.name,
             collection.tenant,
+            config,
         )
         """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
-        self.config = _ConfigCollection(event_loop, collection.config)
+        self.config = config
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollection[Properties](event_loop, collection.data)
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
@@ -211,7 +214,9 @@ class Collection(Generic[Properties, References]):
     ) -> _ObjectIterator[TProperties, TReferences]:
         ...
 
-    def iterator(
+    # weaviate/collections/collection.py:263: error: Overloaded function implementation does not accept all possible arguments of signature 3  [misc]
+    # weaviate/collections/collection.py:263: error: Overloaded function implementation cannot produce return type of signature 3  [misc]
+    def iterator(  # type: ignore
         self,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,

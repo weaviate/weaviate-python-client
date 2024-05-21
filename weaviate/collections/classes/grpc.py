@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.types import INCLUDE_VECTOR, UUID
@@ -224,6 +224,84 @@ class Rerank(_WeaviateInput):
 
     prop: str
     query: Optional[str] = Field(default=None)
+
+
+class _HybridNearBase(_WeaviateInput):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+    distance: Optional[float] = None
+    certainty: Optional[float] = None
+
+
+class _HybridNearText(_HybridNearBase):
+    text: Union[str, List[str]]
+    move_to: Optional[Move] = None
+    move_away: Optional[Move] = None
+
+
+class _HybridNearVector(_HybridNearBase):
+    vector: List[float]
+
+
+HybridVectorType = Union[List[float], _HybridNearText, _HybridNearVector]
+
+
+class HybridVector:
+    """Use this factory class to define the appropriate classes needed when defining near text and near vector sub-searches in hybrid queries."""
+
+    @staticmethod
+    def near_text(
+        query: Union[str, List[str]],
+        *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+    ) -> _HybridNearText:
+        """Define a near text search to be used within a hybrid query.
+
+        Arguments:
+            `query`
+                The text to search for as a string or a list of strings.
+            `certainty`
+                The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
+            `distance`
+                The maximum distance to search. If not specified, the default distance specified by the server is used.
+            `move_to`
+                Define the concepts that should be moved towards in the vector space during the search.
+            `move_away`
+                Define the concepts that should be moved away from in the vector space during the search.
+
+        Returns:
+            A `_HybridNearText` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
+        """
+        return _HybridNearText(
+            text=query,
+            distance=distance,
+            certainty=certainty,
+            move_to=move_to,
+            move_away=move_away,
+        )
+
+    @staticmethod
+    def near_vector(
+        vector: List[float],
+        *,
+        certainty: Optional[float] = None,
+        distance: Optional[float] = None,
+    ) -> _HybridNearVector:
+        """Define a near vector search to be used within a hybrid query.
+
+        Arguments:
+            `certainty`
+                The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
+            `distance`
+                The maximum distance to search. If not specified, the default distance specified by the server is used.
+
+        Returns:
+            A `_HybridNearVector` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
+        """
+        return _HybridNearVector(vector=vector, distance=distance, certainty=certainty)
 
 
 class _QueryReference(_WeaviateInput):

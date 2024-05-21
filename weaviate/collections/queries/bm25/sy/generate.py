@@ -3,7 +3,7 @@ from typing import Generic, List, Optional
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import Rerank, METADATA
+from weaviate.collections.classes.grpc import GroupBy, Rerank, METADATA
 from weaviate.collections.classes.internal import (
     GenerativeReturnType,
     ReturnProperties,
@@ -28,6 +28,7 @@ class _BM25Generate(Generic[Properties, References], _BaseGenerate[Properties, R
         offset: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
@@ -57,6 +58,8 @@ class _BM25Generate(Generic[Properties, References], _BaseGenerate[Properties, R
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                How the results should be grouped by a specific property.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             `include_vector`
@@ -91,6 +94,7 @@ class _BM25Generate(Generic[Properties, References], _BaseGenerate[Properties, R
             offset=offset,
             auto_limit=auto_limit,
             filters=filters,
+            group_by=group_by,
             rerank=rerank,
             include_vector=include_vector,
             return_metadata=return_metadata,

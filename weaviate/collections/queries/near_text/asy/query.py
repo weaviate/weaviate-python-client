@@ -14,7 +14,7 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
-    QueryNearMediaReturnType,
+    QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base_async import _BaseAsync
@@ -41,7 +41,7 @@ class _NearTextQueryAsync(Generic[Properties, References], _BaseAsync[Properties
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects in this collection by text using text-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.
@@ -64,8 +64,12 @@ class _NearTextQueryAsync(Generic[Properties, References], _BaseAsync[Properties
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                How the results should be grouped by a specific property.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            `target_vector`
+                The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
             `include_vector`
                 Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
@@ -81,7 +85,8 @@ class _NearTextQueryAsync(Generic[Properties, References], _BaseAsync[Properties
             If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `QueryReturn` object that includes the searched objects.
+            A `QueryReturn` or `GroupByReturn` object that includes the searched objects.
+            If `group_by` is provided then a `GroupByReturn` object is returned, otherwise a `QueryReturn` object is returned.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCQueryError`:

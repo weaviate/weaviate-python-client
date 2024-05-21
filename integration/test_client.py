@@ -152,7 +152,7 @@ def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequ
     name = request.node.name
     client.collections.delete(name)
 
-    col = client.collections.create(name=name)
+    col = client.collections.create(name=name, vectorizer_config=Configure.Vectorizer.none())
     assert client.collections.exists(name)
     assert isinstance(col, Collection)
 
@@ -324,12 +324,22 @@ def test_collection_name_capitalization(
 
 def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     client.collections.delete(request.node.name)
-    collection = client.collections.create(name=request.node.name)
+    collection = client.collections.create(
+        name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+    )
 
     nodes = client.cluster.nodes(collection.name, output="verbose")
     assert len(nodes) == 1
     assert len(nodes[0].shards) == 1
     assert nodes[0].shards[0].collection == collection.name
+    assert nodes[0].shards[0].object_count == 0
+    assert nodes[0].shards[0].vector_indexing_status == "READY"
+    assert nodes[0].shards[0].vector_queue_length == 0
+    assert nodes[0].shards[0].compressed is False
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        assert nodes[0].shards[0].loaded is None
+    else:
+        assert nodes[0].shards[0].loaded is True
 
 
 def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: SubRequest) -> None:
@@ -337,6 +347,7 @@ def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: Su
     collection = client.collections.create(
         name=request.node.name,
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+        vectorizer_config=Configure.Vectorizer.none(),
     )
 
     nodes = client.cluster.nodes(collection.name, output="verbose")
@@ -346,7 +357,9 @@ def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: Su
 
 def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     client.collections.delete(request.node.name)
-    collection = client.collections.create(name=request.node.name)
+    collection = client.collections.create(
+        name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+    )
 
     nodes = client.cluster.nodes(collection.name, output="minimal")
     assert len(nodes) == 1
@@ -444,12 +457,15 @@ def test_client_with_skip_init_check(request: SubRequest) -> None:
     assert obj.properties["name"] == "Name"
 
 
-@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=1)])
+@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
 def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> None:
     additional_config = wvc.init.AdditionalConfig(timeout=timeout, trust_env=True)
 
     for client in [
         weaviate.connect_to_wcs(
+            cluster_url=WCS_URL, auth_credentials=WCS_CREDS, additional_config=additional_config
+        ),
+        weaviate.connect_to_weaviate_cloud(
             cluster_url=WCS_URL, auth_credentials=WCS_CREDS, additional_config=additional_config
         ),
         weaviate.connect_to_local(additional_config=additional_config),
@@ -464,7 +480,7 @@ def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> 
             additional_config=additional_config,
         ),
     ]:
-        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=1)
+        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
 
 
 def test_client_error_for_wcs_without_auth() -> None:
@@ -488,6 +504,7 @@ def test_client_is_ready() -> None:
     ).is_ready()
 
 
+@pytest.mark.skip("gRPC proxying is not supported by grpclib at this time")
 def test_local_proxies() -> None:
     with weaviate.connect_to_local(
         additional_config=wvc.init.AdditionalConfig(
@@ -501,6 +518,7 @@ def test_local_proxies() -> None:
         collection = client.collections.create(
             "TestLocalProxies",
             properties=[wvc.config.Property(name="name", data_type=wvc.config.DataType.TEXT)],
+            vectorizer_config=Configure.Vectorizer.none(),
         )
         collection.data.insert({"name": "Test"})
         assert collection.query.fetch_objects().objects[0].properties["name"] == "Test"

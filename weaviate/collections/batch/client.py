@@ -12,11 +12,19 @@ from weaviate.collections.batch.batch_wrapper import (
     _BatchMode,
     _ContextManagerWrapper,
 )
-from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.event_loop import _EventLoop
 from weaviate.types import UUID, VECTORS
+
+from weaviate.connect.v4 import ConnectionV4
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from weaviate.collections.collections.sy import _Collections
 
 
 class _BatchClient(_BatchBase):
@@ -109,7 +117,38 @@ class _BatchClient(_BatchBase):
 
 
 class _BatchClientWrapper(_BatchWrapper):
+    def __init__(
+        self,
+        event_loop: _EventLoop,
+        connection: ConnectionV4,
+        config: "_Collections",
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ):
+        super().__init__(event_loop, connection, consistency_level)
+        self.__config = config
+        self._vectorizer_batching: Optional[bool] = None
+
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchClient]:
+        if self._vectorizer_batching is None or not self._vectorizer_batching:
+            configs = self.__config.list_all(simple=True)
+
+            vectorizer_batching = False
+            for config in configs.values():
+                if config.vector_config is not None:
+                    vectorizer_batching = False
+                    for vec_config in config.vector_config.values():
+                        if vec_config.vectorizer.vectorizer is not Vectorizers.NONE:
+                            vectorizer_batching = True
+                            break
+                    vectorizer_batching = vectorizer_batching
+                else:
+                    vectorizer_batching = any(
+                        config.vectorizer_config is not None for config in configs.values()
+                    )
+                if vectorizer_batching:
+                    break
+            self._vectorizer_batching = vectorizer_batching
+
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
             _BatchClient(
@@ -118,6 +157,7 @@ class _BatchClientWrapper(_BatchWrapper):
                 results=self._batch_data,
                 batch_mode=self._batch_mode,
                 event_loop=self._event_loop,
+                vectorizer_batching=self._vectorizer_batching,
             )
         )
 

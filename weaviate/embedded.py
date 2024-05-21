@@ -142,8 +142,8 @@ class _EmbeddedBase:
             if self._download_url.endswith(".tar.gz"):
                 tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
                 urllib.request.urlretrieve(self._download_url, tar_filename)
-                binary_tar = tarfile.open(tar_filename)
-                binary_tar.extract("weaviate", path=Path(self.options.binary_path))
+                with tarfile.open(tar_filename) as binary_tar:
+                    binary_tar.extract("weaviate", path=Path(self.options.binary_path))
                 tar_filename.unlink()
             else:
                 assert self._download_url.endswith(".zip")
@@ -208,6 +208,11 @@ class _EmbeddedBase:
         # Bug with weaviate requires setting gossip and data bind port
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
+        my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
+        my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
+        my_env.setdefault("RAFT_PORT", str(get_random_port()))
+        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(get_random_port()))
+        my_env.setdefault("PROFILING_PORT", str(get_random_port()))
 
         my_env.setdefault(
             "ENABLE_MODULES",
@@ -251,11 +256,11 @@ class EmbeddedV3(_EmbeddedBase):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((self.options.hostname, self.options.port))
-            s.close()
             return True
         except (socket.error, ConnectionRefusedError):
-            s.close()
             return False
+        finally:
+            s.close()
 
     def start(self) -> None:
         if self.is_listening():

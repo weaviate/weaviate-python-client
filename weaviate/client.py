@@ -9,6 +9,8 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.backup.backup import _Backup, _BackupAsync
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 
+from weaviate.integrations import _Integrations
+
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
@@ -81,8 +83,8 @@ class WeaviateClient:
 
         Use this specific initializer when you want to create a custom Client specific to your Weaviate setup.
 
-        If you want to get going quickly connecting to WCS or a local instance then use the `weaviate.connect_to_wcs` or
-        `weaviate.connect_to_local` helper functions instead.
+        To simplify connections to Weaviate Cloud or local instances, use the weaviate.connect_to_weaviate_cloud
+        or weaviate.connect_to_local helper functions.
 
         Arguments:
             - `connection_params`: `weaviate.connect.ConnectionParams` or None, optional
@@ -108,6 +110,7 @@ class WeaviateClient:
             connection_params, embedded_options
         )
         config = additional_config or AdditionalConfig()
+
         self.__skip_init_checks = skip_init_checks
 
         self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
@@ -122,17 +125,21 @@ class WeaviateClient:
         )
         self._event_loop = _EventLoop()
 
-        self.batch = _BatchClientWrapper(self._event_loop, self._connection, consistency_level=None)
+        collections = _Collections(self._event_loop, _CollectionsAsync(self._connection))
+
+        self.batch = _BatchClientWrapper(self._event_loop, self._connection, config=collections)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._event_loop, _BackupAsync(self._connection))
         """This namespace contains all functionality to backup data."""
         self.cluster = _Cluster(self._event_loop, _ClusterAsync(self._connection))
         """This namespace contains all functionality to inspect the connected Weaviate cluster."""
-        self.collections = _Collections(self._event_loop, _CollectionsAsync(self._connection))
+        self.collections = collections
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
+
+        self.integrations = _Integrations(self._connection)
 
     def __parse_connection_params_and_embedded_db(
         self,

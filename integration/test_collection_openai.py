@@ -13,7 +13,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import GroupBy, Rerank
-from weaviate.exceptions import WeaviateQueryError
+from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
 from weaviate.util import _ServerVersion
 
 
@@ -180,6 +180,52 @@ def test_bm25_generate_with_everything(
         assert obj.generated == "Yes"
 
 
+def test_bm25_generate_and_group_by_with_everything(
+    openai_collection: OpenAICollection, request: SubRequest
+) -> None:
+    collection = openai_collection()
+
+    collection.data.insert_many(
+        [
+            DataObject(
+                properties={
+                    "text": "apples are big",
+                    "content": "Teddy is the biggest and bigger than everything else",
+                }
+            ),
+            DataObject(
+                properties={
+                    "text": "bananas are small",
+                    "content": "cats are the smallest and smaller than everything else",
+                }
+            ),
+        ]
+    )
+
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        res = collection.generate.bm25(
+            query="Teddy",
+            query_properties=["content"],
+            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+            group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
+        )
+        assert res.generated == "Teddy apples"
+        assert len(res.groups) == 1
+        groups = list(res.groups.values())
+        assert groups[0].generated == "Yes"
+        assert res.objects[0].belongs_to_group == "apples are big"
+    else:
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            collection.generate.bm25(
+                query="Teddy",
+                query_properties=["content"],
+                single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+                grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+                group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
+            )
+
+
 def test_hybrid_generate_with_everything(
     openai_collection: OpenAICollection, request: SubRequest
 ) -> None:
@@ -213,6 +259,54 @@ def test_hybrid_generate_with_everything(
     for obj in res.objects:
         assert obj.generated is not None
         assert obj.generated.lower() == "yes"
+
+
+def test_hybrid_generate_and_group_by_with_everything(
+    openai_collection: OpenAICollection, request: SubRequest
+) -> None:
+    collection = openai_collection()
+
+    collection.data.insert_many(
+        [
+            DataObject(
+                properties={
+                    "text": "apples are big",
+                    "content": "Teddy is the biggest and bigger than everything else",
+                }
+            ),
+            DataObject(
+                properties={
+                    "text": "bananas are small",
+                    "content": "cats are the smallest and smaller than everything else",
+                }
+            ),
+        ]
+    )
+
+    if collection._connection.supports_groupby_in_bm25_and_hybrid():
+        res = collection.generate.hybrid(
+            query="Teddy",
+            alpha=0,
+            query_properties=["content"],
+            single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+            grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+            group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
+        )
+        assert res.generated == "Teddy apples"
+        assert len(res.groups) == 1
+        groups = list(res.groups.values())
+        assert groups[0].generated == "Yes"
+        assert res.objects[0].belongs_to_group == "apples are big"
+    else:
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            collection.generate.hybrid(
+                query="Teddy",
+                alpha=0,
+                query_properties=["content"],
+                single_prompt="Is there something to eat in {text}? Only answer yes if there is something to eat or no if not without punctuation",
+                grouped_task="What is the biggest and what is the smallest? Only write the names separated by a space",
+                group_by=GroupBy(prop="text", number_of_groups=2, objects_per_group=1),
+            )
 
 
 def test_near_object_generate_with_everything(openai_collection: OpenAICollection) -> None:
@@ -431,7 +525,7 @@ def test_near_vector_generate_and_group_by_with_everything(
     assert list(res.groups.values())[1].generated == "No"
 
 
-def test_openapi_invalid_key(request: SubRequest) -> None:
+def test_openai_invalid_key(request: SubRequest) -> None:
     local_client = weaviate.connect_to_local(
         port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": "IamNotValid"}
     )
@@ -441,13 +535,14 @@ def test_openapi_invalid_key(request: SubRequest) -> None:
         name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_config=Configure.Generative.openai(),
+        vectorizer_config=Configure.Vectorizer.none(),
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateQueryError):
         collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 
-def test_openapi_no_module(request: SubRequest) -> None:
+def test_openai_no_module(request: SubRequest) -> None:
     local_client = weaviate.connect_to_local(
         port=8080, grpc_port=50051, headers={"X-OpenAI-Api-Key": "doesnt matter"}
     )
@@ -457,6 +552,7 @@ def test_openapi_no_module(request: SubRequest) -> None:
         name=request.node.name,
         properties=[Property(name="text", data_type=DataType.TEXT)],
         generative_config=Configure.Generative.openai(),
+        vectorizer_config=Configure.Vectorizer.none(),
     )
     collection.data.insert(properties={"text": "test"})
     with pytest.raises(WeaviateQueryError):

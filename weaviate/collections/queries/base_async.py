@@ -2,7 +2,6 @@ import datetime
 import io
 import os
 import pathlib
-import struct
 import uuid as uuid_lib
 from typing import Any, Dict, Generic, List, Optional, Sequence, Type, Union, cast
 
@@ -26,7 +25,7 @@ from weaviate.collections.classes.internal import (
     Object,
     _extract_properties_from_data_model,
     _extract_references_from_data_model,
-    GenerativeNearMediaReturnType,
+    GenerativeSearchReturnType,
     GenerativeReturn,
     GenerativeGroupByReturn,
     GroupByReturn,
@@ -34,7 +33,7 @@ from weaviate.collections.classes.internal import (
     Group,
     GenerativeGroup,
     QueryReturn,
-    QueryNearMediaReturnType,
+    QuerySearchReturnType,
     _QueryOptions,
     ReturnProperties,
     ReturnReferences,
@@ -49,6 +48,7 @@ from weaviate.collections.classes.types import (
     References,
     TReferences,
 )
+from weaviate.collections.queries.byteops import _ByteOps
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -79,19 +79,22 @@ class _BaseAsync(Generic[Properties, References]):
         references: Optional[Type[References]],
         validate_arguments: bool,
     ):
-        self.__connection = connection
+        self._connection = connection
         self._name = name
         self.__tenant = tenant
         self.__consistency_level = consistency_level
         self._properties = properties
         self._references = references
         self._validate_arguments = validate_arguments
+
+        self.__uses_125_api = self._connection._weaviate_version.is_at_least(1, 25, 0)
         self._query = _QueryGRPC(
-            self.__connection,
+            self._connection,
             self._name,
             self.__tenant,
             self.__consistency_level,
             validate_arguments=self._validate_arguments,
+            uses_125_api=self.__uses_125_api,
         )
 
     def __retrieve_timestamp(
@@ -155,15 +158,11 @@ class _BaseAsync(Generic[Properties, References]):
             return {}
 
         if len(add_props.vector_bytes) > 0:
-            vector_bytes = struct.unpack(
-                f"{len(add_props.vector_bytes)//4}f", add_props.vector_bytes
-            )
-            return {"default": list(vector_bytes)}
+            return {"default": _ByteOps.decode_float32s(add_props.vector_bytes)}
 
         vecs = {}
         for vec in add_props.vectors:
-            vector_bytes = struct.unpack(f"{len(vec.vector_bytes)//4}f", vec.vector_bytes)
-            vecs[vec.name] = list(vector_bytes)
+            vecs[vec.name] = _ByteOps.decode_float32s(vec.vector_bytes)
         return vecs
 
     def __extract_generated_for_object(
@@ -172,6 +171,31 @@ class _BaseAsync(Generic[Properties, References]):
     ) -> Optional[str]:
         return add_props.generative if add_props.generative_present else None
 
+    def __deserialize_list_value_prop_125(
+        self, value: properties_pb2.ListValue
+    ) -> Optional[List[Any]]:
+        if value.HasField("bool_values"):
+            return list(value.bool_values.values)
+        if value.HasField("date_values"):
+            return [_datetime_from_weaviate_str(val) for val in value.date_values.values]
+        if value.HasField("int_values"):
+            return _ByteOps.decode_int64s(value.int_values.values)
+        if value.HasField("number_values"):
+            return _ByteOps.decode_float64s(value.number_values.values)
+        if value.HasField("text_values"):
+            return list(value.text_values.values)
+        if value.HasField("uuid_values"):
+            return [uuid_lib.UUID(val) for val in value.uuid_values.values]
+        if value.HasField("object_values"):
+            return [
+                self.__parse_nonref_properties_result(val) for val in value.object_values.values
+            ]
+        _Warnings.unknown_type_encountered(value.WhichOneof("Value"))
+        return None
+
+    def __deserialize_list_value_prop_123(self, value: properties_pb2.ListValue) -> List[Any]:
+        return [self.__deserialize_non_ref_prop(val) for val in value.values]
+
     def __deserialize_non_ref_prop(self, value: properties_pb2.Value) -> Any:
         if value.HasField("uuid_value"):
             return uuid_lib.UUID(value.uuid_value)
@@ -179,6 +203,8 @@ class _BaseAsync(Generic[Properties, References]):
             return _datetime_from_weaviate_str(value.date_value)
         if value.HasField("string_value"):
             return str(value.string_value)
+        if value.HasField("text_value"):
+            return str(value.text_value)
         if value.HasField("int_value"):
             return int(value.int_value)
         if value.HasField("number_value"):
@@ -186,7 +212,11 @@ class _BaseAsync(Generic[Properties, References]):
         if value.HasField("bool_value"):
             return bool(value.bool_value)
         if value.HasField("list_value"):
-            return [self.__deserialize_non_ref_prop(val) for val in value.list_value.values]
+            return (
+                self.__deserialize_list_value_prop_125(value.list_value)
+                if self.__uses_125_api
+                else self.__deserialize_list_value_prop_123(value.list_value)
+            )
         if value.HasField("object_value"):
             return self.__parse_nonref_properties_result(value.object_value)
         if value.HasField("geo_value"):
@@ -415,7 +445,7 @@ class _BaseAsync(Generic[Properties, References]):
         references: Optional[
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
-    ) -> GenerativeNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
         return (
             self._result_to_generative_query_return(res, options, properties, references)
             if options.is_group_by is False
@@ -494,7 +524,7 @@ class _BaseAsync(Generic[Properties, References]):
         references: Optional[
             ReturnReferences[TReferences]
         ],  # required until 3.12 is minimum supported version to use new generics syntax
-    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
         return (
             self._result_to_query_return(res, options, properties, references)
             if not options.is_group_by

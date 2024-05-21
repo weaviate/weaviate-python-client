@@ -1,8 +1,6 @@
 import asyncio
 from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
-
-from pydantic_core import ValidationError
-
+from pydantic import ValidationError
 from weaviate.collections.base import _CollectionsBase
 from weaviate.collections.classes.config import (
     _NamedVectorConfigCreate,
@@ -19,7 +17,6 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigCreate,
     _RerankerConfigCreate,
     _VectorizerConfigCreate,
-    _Vectorizer,
 )
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
@@ -29,8 +26,8 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.collections.collection import CollectionAsync
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.util import _capitalize_first_letter
+from weaviate.validator import _validate_input, _ValidateArgument
 
 
 class _CollectionsAsync(_CollectionsBase):
@@ -100,6 +97,8 @@ class _CollectionsAsync(_CollectionsBase):
         Raises:
             `weaviate.WeaviateInvalidInputError`
                 If the input parameters are invalid.
+            `weaviate.exceptions.WeaviateUnsupportedFeatureError`
+                If the Weaviate version is lower than 1.24.0 and named vectorizers are provided.
             `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
@@ -123,7 +122,7 @@ class _CollectionsAsync(_CollectionsBase):
                 replication_config=replication_config,
                 reranker_config=reranker_config,
                 sharding_config=sharding_config,
-                vectorizer_config=vectorizer_config or _Vectorizer.none(),
+                vectorizer_config=vectorizer_config,
                 vector_index_config=vector_index_config,
             )
         except ValidationError as e:

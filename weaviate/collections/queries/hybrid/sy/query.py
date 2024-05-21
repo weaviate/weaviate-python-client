@@ -3,7 +3,13 @@ from typing import Generic, List, Optional
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, HybridFusion, Rerank
+from weaviate.collections.classes.grpc import (
+    METADATA,
+    GroupBy,
+    HybridFusion,
+    HybridVectorType,
+    Rerank,
+)
 from weaviate.collections.classes.internal import (
     QueryReturnType,
     ReturnProperties,
@@ -19,14 +25,15 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         self,
         query: Optional[str],
         *,
-        alpha: NUMBER = 0.5,
-        vector: Optional[List[float]] = None,
+        alpha: NUMBER = 0.7,
+        vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         auto_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
@@ -57,6 +64,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                How the results should be grouped by a specific property.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
             `include_vector`
@@ -91,6 +100,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
             offset=offset,
             auto_limit=auto_limit,
             filters=filters,
+            group_by=group_by,
             rerank=rerank,
             target_vector=target_vector,
             include_vector=include_vector,

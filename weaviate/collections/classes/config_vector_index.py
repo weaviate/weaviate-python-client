@@ -23,11 +23,11 @@ class VectorIndexType(str, Enum):
 
     HNSW = "hnsw"
     FLAT = "flat"
+    DYNAMIC = "dynamic"
 
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
     distance: Optional[VectorDistances]
-    vectorCacheMaxObjects: Optional[int]
     quantizer: Optional[_QuantizerConfigCreate] = Field(exclude=True)
 
     @staticmethod
@@ -46,7 +46,6 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
 
 
 class _VectorIndexConfigUpdate(_ConfigUpdateModel):
-    vectorCacheMaxObjects: Optional[int]
     quantizer: Optional[_QuantizerConfigUpdate] = Field(exclude=True)
 
     @staticmethod
@@ -72,6 +71,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
     ef: Optional[int]
     flatSearchCutoff: Optional[int]
     maxConnections: Optional[int]
+    vectorCacheMaxObjects: Optional[int]
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -79,6 +79,8 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
 
 
 class _VectorIndexConfigFlatCreate(_VectorIndexConfigCreate):
+    vectorCacheMaxObjects: Optional[int]
+
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.FLAT
@@ -98,6 +100,39 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
 
 
 class _VectorIndexConfigFlatUpdate(_VectorIndexConfigUpdate):
+    vectorCacheMaxObjects: Optional[int]
+
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.FLAT
+
+
+class _VectorIndexConfigDynamicCreate(_VectorIndexConfigCreate):
+    threshold: Optional[int]
+    hnsw: Optional[_VectorIndexConfigHNSWCreate]
+    flat: Optional[_VectorIndexConfigFlatCreate]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.DYNAMIC
+
+    def _to_dict(self) -> dict:
+        ret_dict = super()._to_dict()
+        if self.hnsw is not None:
+            ret_dict["hnsw"] = self.hnsw._to_dict()
+        if self.flat is not None:
+            ret_dict["flat"] = self.flat._to_dict()
+        if self.threshold is not None:
+            ret_dict["threshold"] = self.threshold
+
+        return ret_dict
+
+
+class _VectorIndexConfigDynamicUpdate(_VectorIndexConfigUpdate):
+    threshold: Optional[int]
+    hnsw: Optional[_VectorIndexConfigHNSWUpdate]
+    flat: Optional[_VectorIndexConfigFlatUpdate]
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.DYNAMIC

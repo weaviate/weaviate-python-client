@@ -11,7 +11,7 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
-    QueryNearMediaReturnType,
+    QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base_async import _BaseAsync
@@ -36,7 +36,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects by image in this collection using an image-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/image) for a more detailed explanation.
@@ -59,8 +59,12 @@ class _NearImageQueryAsync(Generic[Properties, References], _BaseAsync[Propertie
                 The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
             `filters`
                 The filters to apply to the search.
+            `group_by`
+                How the results should be grouped by a specific property.
             `rerank`
                 How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            `target_vector`
+                The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
             `include_vector`
                 Whether to include the vector in the results. If not specified, this is set to False.
             `return_metadata`
@@ -76,10 +80,11 @@ class _NearImageQueryAsync(Generic[Properties, References], _BaseAsync[Propertie
             - If `return_references` is not provided then no references are provided.
 
         Returns:
-            A `QueryReturn` object that includes the searched objects.
+            A `QueryReturn` or `GroupByReturn` object that includes the searched objects.
+            If `group_by` is provided then a `GroupByReturn` object is returned, otherwise a `QueryReturn` object is returned.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
+            `weaviate.exceptions.WeaviateQueryError`:
                 If the request to the Weaviate server fails.
         """
         res = await self._query.near_media(

@@ -24,7 +24,13 @@ OpenAIModel: TypeAlias = Literal[
     "text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"
 ]
 JinaModel: TypeAlias = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
-VoyageModel: TypeAlias = Literal["voyage-large-2, voyage-code-2, voyage-2"]
+VoyageModel: TypeAlias = Literal[
+    "voyage-large-2",
+    "voyage-code-2",
+    "voyage-2",
+    "voyage-law-2",
+    "voyage-large-2-instruct",
+]
 AWSModel: TypeAlias = Literal[
     "amazon.titan-embed-text-v1",
     "cohere.embed-english-v3",
@@ -83,6 +89,8 @@ class Vectorizers(str, Enum):
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
+    TEXT2VEC_OCTOAI = "text2vec-octoai"
+    TEXT2VEC_OLLAMA = "text2vec-ollama"
     TEXT2VEC_OPENAI = "text2vec-openai"
     TEXT2VEC_PALM = "text2vec-palm"
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
@@ -255,6 +263,7 @@ class _Text2VecPalmConfig(_ConfigCreateModel):
     apiEndpoint: Optional[str]
     modelId: Optional[str]
     vectorizeClassName: bool
+    titleProperty: Optional[str]
 
 
 class _Text2VecPalmConfigCreate(_Text2VecPalmConfig, _VectorizerConfigCreate):
@@ -307,6 +316,20 @@ class _Text2VecVoyageConfig(_ConfigCreateModel):
 
 class _Text2VecVoyageConfigCreate(_Text2VecVoyageConfig, _VectorizerConfigCreate):
     pass
+
+
+class _Text2VecOctoConfig(_VectorizerConfigCreate):
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_OCTOAI, frozen=True, exclude=True)
+    model: Optional[str]
+    baseURL: Optional[str]
+    vectorizeClassName: bool
+
+
+class _Text2VecOllamaConfig(_VectorizerConfigCreate):
+    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_OLLAMA, frozen=True, exclude=True)
+    model: Optional[str]
+    apiEndpoint: Optional[str]
+    vectorizeClassName: bool
 
 
 class _Img2VecNeuralConfig(_ConfigCreateModel):
@@ -714,6 +737,58 @@ class _Vectorizer:
         )
 
     @staticmethod
+    def text2vec_octoai(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecOctoConfig` object for use when vectorizing using the `text2vec-octoai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-octoai)
+        for detailed usage.
+
+        Arguments:
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _Text2VecOctoConfig(
+            baseURL=base_url,
+            model=model,
+            vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
+    def text2vec_ollama(
+        *,
+        api_endpoint: Optional[str] = None,
+        model: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecOllamaConfig` object for use when vectorizing using the `text2vec-ollama` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-ollama)
+        for detailed usage.
+
+        Arguments:
+            `api_endpoint`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `modelId`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _Text2VecOllamaConfig(
+            apiEndpoint=api_endpoint,
+            model=model,
+            vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
     def text2vec_openai(
         model: Optional[Union[OpenAIModel, str]] = None,
         model_version: Optional[str] = None,
@@ -758,6 +833,7 @@ class _Vectorizer:
         project_id: str,
         api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
+        title_property: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecPalmConfigCreate` object for use when vectorizing using the `text2vec-palm` model.
@@ -772,6 +848,8 @@ class _Vectorizer:
                 The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
             `model_id`
                 The model ID to use. Defaults to `None`, which uses the server-defined default.
+            `title_property`
+                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
 
@@ -783,6 +861,7 @@ class _Vectorizer:
             apiEndpoint=api_endpoint,
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
+            titleProperty=title_property,
         )
 
     @staticmethod

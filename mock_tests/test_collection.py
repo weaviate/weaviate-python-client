@@ -1,15 +1,15 @@
-from datetime import datetime
 import json
 import time
 from typing import Any, Dict
-import grpc
-from werkzeug import Request, Response
 
+import grpc
 import pytest
 from pytest_httpserver import HTTPServer
+from werkzeug import Request, Response
 
 import weaviate
-from mock_tests.conftest import MOCK_SERVER_URL, MOCK_PORT, MOCK_IP, MOCK_PORT_GRPC, CLIENT_ID
+import weaviate.classes as wvc
+from mock_tests.conftest import MOCK_PORT, MOCK_IP, MOCK_PORT_GRPC, CLIENT_ID
 from weaviate.collections.classes.config import (
     CollectionConfig,
     VectorIndexConfigFlat,
@@ -24,33 +24,12 @@ from weaviate.collections.classes.config import (
     VectorIndexType,
     ShardingConfig,
 )
-
-from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
-import weaviate.classes as wvc
-
 from weaviate.connect.base import ConnectionParams, ProtocolParams
-
+from weaviate.connect.integrations import _IntegrationConfig
+from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
-
-
-@pytest.mark.skip(reason="Fails with gRPC not enabled error")
-def test_warning_old_weaviate(recwarn: pytest.WarningsRecorder, ready_mock: HTTPServer) -> None:
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.21.0"})
-    ready_mock.expect_request("/v1/objects").respond_with_json({})
-
-    client = weaviate.WeaviateClient(MOCK_SERVER_URL)
-    client.collections.get("Class").data.insert(
-        {
-            "date": datetime.now(),
-        }
-    )
-
-    assert len(recwarn) == 1
-    w = recwarn.pop()
-    assert issubclass(w.category, UserWarning)
-    assert str(w.message).startswith("Con002")
 
 
 def test_status_code_exception(weaviate_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
@@ -186,7 +165,7 @@ def test_missing_multi_tenancy_config(
             index_timestamps=False,
             stopwords=StopwordsConfig(preset=StopwordsPreset.NONE, additions=[], removals=[]),
         ),
-        multi_tenancy_config=MultiTenancyConfig(enabled=True),
+        multi_tenancy_config=MultiTenancyConfig(enabled=True, auto_tenant_creation=False),
         sharding_config=ShardingConfig(
             virtual_per_physical=0,
             desired_count=0,
@@ -276,3 +255,85 @@ def test_return_from_bind_module(
     assert conf.properties[0].vectorizer_config is not None
     assert not conf.properties[0].vectorizer_config.skip
     assert not conf.properties[0].vectorizer_config.vectorize_property_name
+
+
+@pytest.mark.parametrize(
+    "integrations,headers",
+    [
+        (wvc.config.Integrations.cohere(api_key="key"), {"X-Cohere-Api-Key": "key"}),
+        (
+            wvc.config.Integrations.cohere(
+                api_key="key", requests_per_minute_embeddings=50, base_url="http://some-url.com"
+            ),
+            {
+                "X-Cohere-Api-Key": "key",
+                "X-Cohere-Ratelimit-RequestPM-Embedding": "50",
+                "X-Cohere-Baseurl": "http://some-url.com",
+            },
+        ),
+        ([wvc.config.Integrations.cohere(api_key="key")], {"X-Cohere-Api-Key": "key"}),
+        (
+            [
+                wvc.config.Integrations.cohere(api_key="key"),
+                wvc.config.Integrations.openai(api_key="key2"),
+            ],
+            {"X-Cohere-Api-Key": "key", "X-Openai-Api-Key": "key2"},
+        ),
+        (
+            [
+                wvc.config.Integrations.voyageai(
+                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
+                )
+            ],
+            {
+                "X-Voyageai-Api-Key": "key",
+                "X-Voyageai-Ratelimit-RequestPM-Embedding": "50",
+                "X-Voyageai-Baseurl": "http://some-url.com",
+            },
+        ),
+        (
+            [
+                wvc.config.Integrations.jinaai(
+                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
+                )
+            ],
+            {
+                "X-Jinaai-Api-Key": "key",
+                "X-Jinaai-Ratelimit-RequestPM-Embedding": "50",
+                "X-Jinaai-Baseurl": "http://some-url.com",
+            },
+        ),
+        (
+            [
+                wvc.config.Integrations.octoai(
+                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
+                )
+            ],
+            {
+                "X-Octoai-Api-Key": "key",
+                "X-Octoai-Ratelimit-RequestPM-Embedding": "50",
+                "X-Octoai-Baseurl": "http://some-url.com",
+            },
+        ),
+    ],
+)
+def test_integration_config(
+    weaviate_no_auth_mock: HTTPServer,
+    start_grpc_server: grpc.Server,
+    integrations: _IntegrationConfig,
+    headers: Dict[str, Any],
+) -> None:
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+    )
+
+    client.integrations.configure(integrations)
+
+    weaviate_no_auth_mock.expect_request("/v1/schema", headers=headers).respond_with_json(
+        status=200, response_json={"classes": []}
+    )
+
+    client.collections.list_all()  # return is irrelevant
+    weaviate_no_auth_mock.check_assertions()

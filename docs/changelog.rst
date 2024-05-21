@@ -1,5 +1,60 @@
 Changelog
 =========
+Version 4.6.3
+--------------
+This patch version includes:
+    - Removal of top-level validation of ``vector`` in ``data.insert``, ``data.replace``, and ``data.update``. This validation occurs within the ``_get_vector_v4`` method now instead.
+
+Version 4.6.2
+--------------
+This patch version includes:
+  - Respect default vectorizer
+  - Wait for Weaviate 1.25 to be ready before starting the embedded client
+  - Add missing models for voyageai
+  - Rename WCS to Weaviate Cloud and add new helper function `weaviate.connect_to_weaviate_cloud`
+
+Version 4.6.1
+--------------
+This patch version includes:
+  - Fixes for ``client.integrations.configure``
+
+Version 4.6.0
+--------------
+This minor version includes:
+
+- Support for Weaviate 1.25.0:
+
+  - BM25/Hybrid support groupBy parameter
+  - Hybrid supports MoveTo/MoveAwayFrom in near_vector and near_text through HybridVector class
+  - Ollama text2vec and generative module
+  - Octoai text2vec and generative module
+  - multi2vev-palm module
+  - dynamic vector index type
+  - auto tenant creation
+  - improved batching with vectorization
+  - tenant exists endpoint
+  - get tenant by name
+
+- Added ``client.integrations.configure`` to configure api-keys and model provider parameters for integration/module-providers without setting headers.
+- Improved error messages and deprecation warnings.
+
+Version 4.5.7
+--------------
+This patch version includes:
+
+- Deprecation of the ``bit_compression`` field in the ``PQConfig`` class
+- Improvements to closing possibly open objects and connections
+- Enhances the ``WeaviateGRPCUnavailableError`` message with added context relevant to the user's environment
+- Relaxes the ``httpx`` requirements to aid compatability with other packages
+
+
+Version 4.5.6
+--------------
+This patch version includes:
+
+- Support for configuring collections with the new ``reranker-voyageai`` module
+- Providing an ``alpha`` parameter to ``collection.iterator()`` to control the beginning of the iteration
+- Update the default ``Timeout.init`` value from ``1s`` to ``2s``
 
 Version 4.5.5
 --------------

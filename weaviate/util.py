@@ -23,6 +23,7 @@ from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     ResponseCannotBeDecodedError,
     WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.warnings import _Warnings
 from weaviate.types import NUMBER, UUIDS, TIME
@@ -125,35 +126,40 @@ def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> 
 
     should_close_file = False
     use_buffering = True
+    file = None
 
-    if isinstance(file_or_file_path, str):
-        if not os.path.isfile(file_or_file_path):
-            raise ValueError("No file found at location " + file_or_file_path)
-        file = open(file_or_file_path, "br")
-        should_close_file = True
-        use_buffering = os.path.getsize(file_or_file_path) > BYTES_PER_CHUNK
-    elif isinstance(file_or_file_path, Path):
-        if not file_or_file_path.is_file():
-            raise ValueError("No file found at location " + str(file_or_file_path))
-        file = file_or_file_path.open("br")
-        should_close_file = True
-        use_buffering = file_or_file_path.stat().st_size > BYTES_PER_CHUNK
-    elif isinstance(file_or_file_path, io.BufferedReader):
-        file = file_or_file_path
-    else:
-        raise TypeError(
-            '"file_or_file_path" should be a file path or a binary read file' " (io.BufferedReader)"
-        )
+    try:
+        if isinstance(file_or_file_path, str):
+            if not os.path.isfile(file_or_file_path):
+                raise ValueError("No file found at location " + file_or_file_path)
+            file = open(file_or_file_path, "br")
+            should_close_file = True
+            use_buffering = os.path.getsize(file_or_file_path) > BYTES_PER_CHUNK
+        elif isinstance(file_or_file_path, Path):
+            if not file_or_file_path.is_file():
+                raise ValueError("No file found at location " + str(file_or_file_path))
+            file = file_or_file_path.open("br")
+            should_close_file = True
+            use_buffering = file_or_file_path.stat().st_size > BYTES_PER_CHUNK
+        elif isinstance(file_or_file_path, io.BufferedReader):
+            file = file_or_file_path
+        else:
+            raise TypeError(
+                '"file_or_file_path" should be a file path or a binary read file'
+                " (io.BufferedReader)"
+            )
 
-    if use_buffering:
-        encoded: str = ""
-        for chunk in _chunks(file, BYTES_PER_CHUNK):
-            encoded += base64.b64encode(chunk).decode("utf-8")
-    else:
-        encoded = base64.b64encode(file.read()).decode("utf-8")
+        if use_buffering:
+            encoded: str = ""
+            for chunk in _chunks(file, BYTES_PER_CHUNK):
+                encoded += base64.b64encode(chunk).decode("utf-8")
+        else:
+            encoded = base64.b64encode(file.read()).decode("utf-8")
 
-    if should_close_file:
-        file.close()
+    finally:
+        if should_close_file and file is not None:
+            file.close()
+
     return encoded
 
 
@@ -794,6 +800,14 @@ class _ServerVersion:
             raise ValueError(
                 f"Unable to parse a version from the input string: {initial}. Is it in the format '(v)x.y.z' (e.g. 'v1.18.2' or '1.18.0')?"
             )
+
+    def check_is_at_least_1_25_0(self, feature: str) -> None:
+        if not self >= _ServerVersion(1, 25, 0):
+            raise WeaviateUnsupportedFeatureError(feature, str(self), "1.25.0")
+
+    @property
+    def supports_tenants_get_grpc(self) -> bool:
+        return self >= _ServerVersion(1, 25, 0)
 
 
 def is_weaviate_too_old(current_version_str: str) -> bool:

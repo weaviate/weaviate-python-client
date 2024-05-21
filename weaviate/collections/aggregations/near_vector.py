@@ -113,7 +113,7 @@ class _NearVectorAsync(_AggregateAsync):
         )
         builder = self._base(return_metrics, filters, total_count)
         builder = self._add_groupby_to_builder(builder, group_by)
-        builder = self._add_near_vector(
+        builder = self._add_near_vector_to_builder(
             builder, near_vector, certainty, distance, object_limit, target_vector
         )
         res = await self._do(builder)

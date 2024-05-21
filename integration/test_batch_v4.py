@@ -99,6 +99,7 @@ def client_factory(
             ],
             references=[ReferenceProperty(name="test", target_collection=name_fixture)],
             multi_tenancy_config=Configure.multi_tenancy(multi_tenant),
+            vectorizer_config=Configure.Vectorizer.none(),
         )
         return client_fixture, name_fixture
 
@@ -404,7 +405,7 @@ def test_add_one_hundred_objects_and_references_between_all(client_factory: Clie
 def test_add_1000_objects_with_async_indexing_and_wait(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
-    client, name = client_factory(ports=(8090, 50060))
+    client, name = client_factory(ports=(8090, 50061))
 
     nr_objects = 1000
     with client.batch.dynamic() as batch:
@@ -424,12 +425,12 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] == 0
 
 
-@pytest.mark.skip("Difficult to find numbers that work reliable in the CI")
+@pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
 def test_add_10000_objects_with_async_indexing_and_dont_wait(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
     old_client = weaviate.Client("http://localhost:8090")
-    client, name = client_factory(ports=(8090, 50060))
+    client, name = client_factory(ports=(8090, 50061))
 
     nr_objects = 10000
     vec_length = 1000
@@ -453,7 +454,7 @@ def test_add_10000_objects_with_async_indexing_and_dont_wait(
 def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     client_factory: ClientFactory, request: SubRequest
 ) -> None:
-    client, name = client_factory(ports=(8090, 50060), multi_tenant=True)
+    client, name = client_factory(ports=(8090, 50061), multi_tenant=True)
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     collection = client.collections.get(name)
     collection.tenants.create(tenants)
@@ -478,10 +479,11 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
         assert shard["vectorQueueSize"] == 0
 
 
+@pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
 def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     client_factory: ClientFactory,
 ) -> None:
-    client, name = client_factory(ports=(8090, 50060), multi_tenant=True)
+    client, name = client_factory(ports=(8090, 50061), multi_tenant=True)
     tenants = [Tenant(name="tenant" + str(i)) for i in range(2)]
     collection = client.collections.get(name)
     collection.tenants.create(tenants)
@@ -537,3 +539,12 @@ def test_error_reset(client_factory: ClientFactory) -> None:
     assert len(errs) == 1
     assert errs[0].object_.properties is not None
     assert errs[0].object_.properties["name"] == 1
+
+
+def test_non_existant_collection(client_factory: ClientFactory) -> None:
+    client, _ = client_factory()
+    with client.batch.dynamic() as batch:
+        batch.add_object(properties={"name": 2}, collection="DoesNotExist")
+
+    # above should not throw - depending on the autoschema config this might create an error or
+    # not, so we do not check for errors here

@@ -12,6 +12,8 @@ from requests.exceptions import ConnectionError as RequestsConnectionError
 from weaviate.connect import Connection, ConnectionV4
 from weaviate.event_loop import _EventLoop
 from weaviate.exceptions import (
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
     BackupFailedException,
     EmptyResponseException,
 )
@@ -23,6 +25,14 @@ STORAGE_NAMES = {
     "gcs",
     "azure",
 }
+
+
+class BackupCompressionLevel(str, Enum):
+    """Which compression level should be used to compress the backup."""
+
+    DEFAULT = "DefaultCompression"
+    BEST_SPEED = "BestSpeed"
+    BEST_COMPRESSION = "BestCompression"
 
 
 class BackupStorage(str, Enum):
@@ -44,9 +54,27 @@ class BackupStatus(str, Enum):
     FAILED = "FAILED"
 
 
+class _BackupConfigBase(BaseModel):
+    CPUPercentage: Optional[int] = Field(default=None, alias="cpu_percentage")
+
+
+class BackupConfigCreate(_BackupConfigBase):
+    """Options to configure the backup when creating a backup."""
+
+    ChunkSize: Optional[int] = Field(default=None, alias="chunk_size")
+    CompressionLevel: Optional[BackupCompressionLevel] = Field(
+        default=None, alias="compression_level"
+    )
+
+
+class BackupConfigRestore(_BackupConfigBase):
+    """Options to configure the backup when restoring a backup."""
+
+
 class BackupStatusReturn(BaseModel):
     """Return type of the backup status methods."""
 
+    error: Optional[str] = Field(default=None)
     status: BackupStatus
     path: str
 
@@ -70,6 +98,7 @@ class _BackupAsync:
         include_collections: Optional[Union[List[str], str]] = None,
         exclude_collections: Optional[Union[List[str], str]] = None,
         wait_for_completion: bool = False,
+        config: Optional[BackupConfigCreate] = None,
     ) -> BackupReturn:
         """Create a backup of all/per collection Weaviate objects.
 
@@ -88,6 +117,8 @@ class _BackupAsync:
             Either `include_collections` or `exclude_collections` can be set. By default None.
         wait_for_completion : bool, optional
             Whether to wait until the backup is done. By default False.
+        config: BackupConfigCreate, optional
+            The configuration of the backup creation. By default None.
 
         Returns
         -------
@@ -115,11 +146,23 @@ class _BackupAsync:
             wait_for_completion=wait_for_completion,
         )
 
-        payload = {
+        payload: dict = {
             "id": backup_id,
             "include": include_collections,
             "exclude": exclude_collections,
         }
+
+        if config is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigCreate", str(self._connection._weaviate_version), "1.25.0"
+                )
+            if not isinstance(config, BackupConfigCreate):
+                raise WeaviateInvalidInputError(
+                    f"Expected 'config' to be of type 'BackupConfigCreate', but got {type(config)}."
+                )
+            payload["config"] = config.model_dump()
+
         path = f"/backups/{backend.value}"
 
         response = await self._connection.post(
@@ -140,7 +183,9 @@ class _BackupAsync:
                 if status.status == BackupStatus.SUCCESS:
                     break
                 if status.status == BackupStatus.FAILED:
-                    raise BackupFailedException(f"Backup failed: {create_status}")
+                    raise BackupFailedException(
+                        f"Backup failed: {create_status} with error: {status.error}"
+                    )
                 sleep(1)
         return BackupReturn(**create_status)
 
@@ -183,6 +228,7 @@ class _BackupAsync:
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
+        config: Optional[BackupConfigRestore] = None,
     ) -> BackupReturn:
         """
         Restore a backup of all/per collection Weaviate objects.
@@ -203,6 +249,8 @@ class _BackupAsync:
             Either `include_collections` or `exclude_collections` can be set. By default None.
         wait_for_completion : bool, optional
             Whether to wait until the backup restore is done.
+        config: BackupConfigRestore, optional
+            The configuration of the backup restoration. By default None.
 
         Returns
         -------
@@ -228,10 +276,22 @@ class _BackupAsync:
             wait_for_completion=wait_for_completion,
         )
 
-        payload = {
+        payload: dict = {
             "include": include_collections,
             "exclude": exclude_collections,
         }
+
+        if config is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigRestore", str(self._connection._weaviate_version), "1.25.0"
+                )
+            if not isinstance(config, BackupConfigRestore):
+                raise WeaviateInvalidInputError(
+                    f"Expected 'config' to be of type 'BackupConfigRestore', but got {type(config)}."
+                )
+            payload["config"] = config.model_dump()
+
         path = f"/backups/{backend.value}/{backup_id}/restore"
         response = await self._connection.post(
             path=path,
@@ -250,7 +310,9 @@ class _BackupAsync:
                 if status.status == BackupStatus.SUCCESS:
                     break
                 if status.status == BackupStatus.FAILED:
-                    raise BackupFailedException(f"Backup restore failed: {restore_status}")
+                    raise BackupFailedException(
+                        f"Backup restore failed: {restore_status} with error: {status.error}"
+                    )
                 sleep(1)
         return BackupReturn(**restore_status)
 

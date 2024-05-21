@@ -13,6 +13,7 @@ if typing.TYPE_CHECKING:
 import weaviate.proto.v1.batch_pb2
 import weaviate.proto.v1.batch_delete_pb2
 import weaviate.proto.v1.search_get_pb2
+import weaviate.proto.v1.tenants_pb2
 import weaviate.proto.v1.weaviate_pb2
 
 
@@ -38,6 +39,13 @@ class WeaviateBase(abc.ABC):
     ) -> None:
         pass
 
+    @abc.abstractmethod
+    async def TenantsGet(
+        self,
+        stream: "grpclib.server.Stream[weaviate.proto.v1.tenants_pb2.TenantsGetRequest, weaviate.proto.v1.tenants_pb2.TenantsGetReply]",
+    ) -> None:
+        pass
+
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
             "/weaviate.v1.Weaviate/Search": grpclib.const.Handler(
@@ -57,6 +65,12 @@ class WeaviateBase(abc.ABC):
                 grpclib.const.Cardinality.UNARY_UNARY,
                 weaviate.proto.v1.batch_delete_pb2.BatchDeleteRequest,
                 weaviate.proto.v1.batch_delete_pb2.BatchDeleteReply,
+            ),
+            "/weaviate.v1.Weaviate/TenantsGet": grpclib.const.Handler(
+                self.TenantsGet,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                weaviate.proto.v1.tenants_pb2.TenantsGetRequest,
+                weaviate.proto.v1.tenants_pb2.TenantsGetReply,
             ),
         }
 
@@ -80,4 +94,10 @@ class WeaviateStub:
             "/weaviate.v1.Weaviate/BatchDelete",
             weaviate.proto.v1.batch_delete_pb2.BatchDeleteRequest,
             weaviate.proto.v1.batch_delete_pb2.BatchDeleteReply,
+        )
+        self.TenantsGet = grpclib.client.UnaryUnaryMethod(
+            channel,
+            "/weaviate.v1.Weaviate/TenantsGet",
+            weaviate.proto.v1.tenants_pb2.TenantsGetRequest,
+            weaviate.proto.v1.tenants_pb2.TenantsGetReply,
         )

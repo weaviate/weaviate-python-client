@@ -1,5 +1,8 @@
+from typing import Optional
 from weaviate.backup.backup import (
     _BackupAsync,
+    BackupConfigCreate,
+    BackupConfigRestore,
     BackupStatusReturn,
     BackupStorage,
 )
@@ -15,7 +18,11 @@ class _CollectionBackupAsync:
         self.__backup = _BackupAsync(connection)
 
     async def create(
-        self, backup_id: str, backend: BackupStorage, wait_for_completion: bool = False
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        wait_for_completion: bool = False,
+        config: Optional[BackupConfigCreate] = None,
     ) -> BackupStatusReturn:
         """Create a backup of this collection.
 
@@ -26,6 +33,8 @@ class _CollectionBackupAsync:
                 The backend storage where to create the backup.
             `wait_for_completion`
                 Whether to wait until the backup is done. By default False.
+            `config`
+                The configuration for the backup creation. By default None.
 
         Returns:
             A `BackupStatusReturn` object that contains the backup creation response.
@@ -41,12 +50,16 @@ class _CollectionBackupAsync:
                 One of the arguments have a wrong type.
         """
         create = await self.__backup.create(
-            backup_id, backend, [self._name], None, wait_for_completion
+            backup_id, backend, [self._name], None, wait_for_completion, config
         )
-        return BackupStatusReturn(status=create.status, path=create.path)
+        return BackupStatusReturn(error=create.error, status=create.status, path=create.path)
 
     async def restore(
-        self, backup_id: str, backend: BackupStorage, wait_for_completion: bool = False
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        wait_for_completion: bool = False,
+        config: Optional[BackupConfigRestore] = None,
     ) -> BackupStatusReturn:
         """
         Restore a backup of all/per class Weaviate objects.
@@ -58,7 +71,10 @@ class _CollectionBackupAsync:
             `backend`
                 The backend storage from where to restore the backup.
             `wait_for_completion`
-                Whether to wait until the backup restore is done.
+                Whether to wait until the backup restore is done. By default False.
+            `config`
+                The configuration for the backup restoration. By default None.
+
 
         Returns:
             A `BackupStatusReturn` object that contains the backup restore response.
@@ -72,9 +88,9 @@ class _CollectionBackupAsync:
                 If the backup failed.
         """
         restore = await self.__backup.restore(
-            backup_id, backend, [self._name], None, wait_for_completion
+            backup_id, backend, [self._name], None, wait_for_completion, config
         )
-        return BackupStatusReturn(status=restore.status, path=restore.path)
+        return BackupStatusReturn(error=restore.error, status=restore.status, path=restore.path)
 
     async def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
         """Check if a started backup job has completed.

@@ -5,6 +5,7 @@ import grpc
 from weaviate.proto.v1 import batch_delete_pb2 as v1_dot_batch__delete__pb2
 from weaviate.proto.v1 import batch_pb2 as v1_dot_batch__pb2
 from weaviate.proto.v1 import search_get_pb2 as v1_dot_search__get__pb2
+from weaviate.proto.v1 import tenants_pb2 as v1_dot_tenants__pb2
 
 
 class WeaviateStub(object):
@@ -31,6 +32,11 @@ class WeaviateStub(object):
             request_serializer=v1_dot_batch__delete__pb2.BatchDeleteRequest.SerializeToString,
             response_deserializer=v1_dot_batch__delete__pb2.BatchDeleteReply.FromString,
         )
+        self.TenantsGet = channel.unary_unary(
+            "/weaviate.v1.Weaviate/TenantsGet",
+            request_serializer=v1_dot_tenants__pb2.TenantsGetRequest.SerializeToString,
+            response_deserializer=v1_dot_tenants__pb2.TenantsGetReply.FromString,
+        )
 
 
 class WeaviateServicer(object):
@@ -54,6 +60,12 @@ class WeaviateServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def TenantsGet(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
 
 def add_WeaviateServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -71,6 +83,11 @@ def add_WeaviateServicer_to_server(servicer, server):
             servicer.BatchDelete,
             request_deserializer=v1_dot_batch__delete__pb2.BatchDeleteRequest.FromString,
             response_serializer=v1_dot_batch__delete__pb2.BatchDeleteReply.SerializeToString,
+        ),
+        "TenantsGet": grpc.unary_unary_rpc_method_handler(
+            servicer.TenantsGet,
+            request_deserializer=v1_dot_tenants__pb2.TenantsGetRequest.FromString,
+            response_serializer=v1_dot_tenants__pb2.TenantsGetReply.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -160,6 +177,35 @@ class Weaviate(object):
             "/weaviate.v1.Weaviate/BatchDelete",
             v1_dot_batch__delete__pb2.BatchDeleteRequest.SerializeToString,
             v1_dot_batch__delete__pb2.BatchDeleteReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def TenantsGet(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/weaviate.v1.Weaviate/TenantsGet",
+            v1_dot_tenants__pb2.TenantsGetRequest.SerializeToString,
+            v1_dot_tenants__pb2.TenantsGetReply.FromString,
             options,
             channel_credentials,
             insecure,

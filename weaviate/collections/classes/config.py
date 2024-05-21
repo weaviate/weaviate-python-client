@@ -37,10 +37,12 @@ from weaviate.collections.classes.config_base import (
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
+    _VectorIndexConfigDynamicUpdate,
     _VectorIndexConfigHNSWCreate,
     _VectorIndexConfigFlatCreate,
     _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigDynamicCreate,
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
     VectorIndexType as VectorIndexTypeAlias,
@@ -53,11 +55,17 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.warnings import _Warnings
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
 VectorIndexType: TypeAlias = VectorIndexTypeAlias
 VectorDistances: TypeAlias = VectorDistancesAlias
+
+AWSService: TypeAlias = Literal[
+    "bedrock",
+    "sagemaker",
+]
 
 
 class ConsistencyLevel(str, Enum):
@@ -159,12 +167,14 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by AWS Bedrock generative models.
     """
 
-    OPENAI = "generative-openai"
-    COHERE = "generative-cohere"
-    PALM = "generative-palm"
     AWS = "generative-aws"
     ANYSCALE = "generative-anyscale"
+    COHERE = "generative-cohere"
     MISTRAL = "generative-mistral"
+    OCTOAI = "generative-octoai"
+    OLLAMA = "generative-ollama"
+    OPENAI = "generative-openai"
+    PALM = "generative-palm"
 
 
 class Rerankers(str, Enum):
@@ -252,7 +262,7 @@ class _PQEncoderConfigUpdate(_ConfigUpdateModel):
 
 
 class _PQConfigCreate(_QuantizerConfigCreate):
-    bitCompression: Optional[bool]
+    bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
     encoder: _PQEncoderConfigCreate
     segments: Optional[int]
@@ -273,7 +283,7 @@ class _BQConfigCreate(_QuantizerConfigCreate):
 
 
 class _PQConfigUpdate(_QuantizerConfigUpdate):
-    bitCompression: Optional[bool]
+    bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
     enabled: Optional[bool]
     segments: Optional[int]
@@ -296,9 +306,7 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 class _ShardingConfigCreate(_ConfigCreateModel):
     virtualPerPhysical: Optional[int]
     desiredCount: Optional[int]
-    actualCount: Optional[int]
     desiredVirtualCount: Optional[int]
-    actualVirtualCount: Optional[int]
     key: str = "_id"
     strategy: str = "hash"
     function: str = "murmur3"
@@ -351,10 +359,11 @@ class _InvertedIndexConfigUpdate(_ConfigUpdateModel):
 
 class _MultiTenancyConfigCreate(_ConfigCreateModel):
     enabled: bool
+    autoTenantCreation: Optional[bool]
 
 
 class _MultiTenancyConfigUpdate(_ConfigUpdateModel):
-    enabled: Optional[bool] = None
+    autoTenantCreation: Optional[bool] = None
 
 
 class _GenerativeConfigCreate(_ConfigCreateModel):
@@ -369,6 +378,16 @@ class _GenerativeAnyscale(_GenerativeConfigCreate):
     model: Optional[str]
 
 
+class _GenerativeOctoai(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.OCTOAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[str]
+    temperature: Optional[float]
+    maxTokens: Optional[int]
+    model: Optional[str]
+
+
 class _GenerativeMistral(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
@@ -376,6 +395,14 @@ class _GenerativeMistral(_GenerativeConfigCreate):
     temperature: Optional[float]
     model: Optional[str]
     maxTokens: Optional[int]
+
+
+class _GenerativeOllama(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    apiEndpoint: Optional[str]
 
 
 class _GenerativeOpenAIConfigBase(_GenerativeConfigCreate):
@@ -441,8 +468,10 @@ class _GenerativeAWSConfig(_GenerativeConfigCreate):
     generative: GenerativeSearches = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
-    model: str
     region: str
+    service: str
+    model: Optional[str]
+    endpoint: Optional[str]
 
 
 class _RerankerConfigCreate(_ConfigCreateModel):
@@ -490,6 +519,26 @@ class _Generative:
         max_tokens: Optional[int] = None,
     ) -> _GenerativeConfigCreate:
         return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
+
+    @staticmethod
+    def octoai(
+        *,
+        base_url: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeOctoai(
+            baseURL=base_url, maxTokens=max_tokens, model=model, temperature=temperature
+        )
+
+    @staticmethod
+    def ollama(
+        *,
+        api_endpoint: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeOllama(model=model, apiEndpoint=api_endpoint)
 
     @staticmethod
     def openai(
@@ -661,8 +710,10 @@ class _Generative:
 
     @staticmethod
     def aws(
-        model: str,
-        region: str,
+        model: Optional[str] = None,
+        region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC
+        endpoint: Optional[str] = None,
+        service: Union[AWSService, str] = "bedrock",
     ) -> _GenerativeConfigCreate:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
@@ -671,13 +722,19 @@ class _Generative:
 
         Arguments:
             `model`
-                The model to use, REQUIRED.
+                The model to use, REQUIRED for service "bedrock".
             `region`
                 The AWS region to run the model from, REQUIRED.
+            `endpoint`
+                The model to use, REQUIRED for service "sagemaker".
+            `service`
+                The AWS service to use, options are "bedrock" and "sagemaker".
         """
         return _GenerativeAWSConfig(
             model=model,
             region=region,
+            service=service,
+            endpoint=endpoint,
         )
 
 
@@ -802,6 +859,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     vectorizerConfig: Optional[
         Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]
     ] = Field(default=None, alias="vectorizer_config")
+    multiTenancyConfig: Optional[_MultiTenancyConfigUpdate] = Field(
+        default=None, alias="multi_tenancy_config"
+    )
 
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         if self.description is not None:
@@ -813,6 +873,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
         if self.replicationConfig is not None:
             schema["replicationConfig"] = self.replicationConfig.merge_with_existing(
                 schema["replicationConfig"]
+            )
+        if self.multiTenancyConfig is not None:
+            schema["multiTenancyConfig"] = self.multiTenancyConfig.merge_with_existing(
+                schema["multiTenancyConfig"]
             )
         if self.vectorIndexConfig is not None:
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
@@ -887,6 +951,7 @@ InvertedIndexConfig = _InvertedIndexConfig
 @dataclass
 class _MultiTenancyConfig(_ConfigBase):
     enabled: bool
+    auto_tenant_creation: bool
 
 
 MultiTenancyConfig = _MultiTenancyConfig
@@ -1016,11 +1081,16 @@ PQEncoderConfig = _PQEncoderConfig
 
 @dataclass
 class _PQConfig(_ConfigBase):
-    bit_compression: bool
+    internal_bit_compression: bool
     segments: int
     centroids: int
     training_limit: int
     encoder: PQEncoderConfig
+
+    @property
+    def bit_compression(self) -> bool:
+        _Warnings.bit_compression_in_pq_config()
+        return self.internal_bit_compression
 
 
 PQConfig = _PQConfig
@@ -1084,6 +1154,21 @@ VectorIndexConfigFlat = _VectorIndexConfigFlat
 
 
 @dataclass
+class _VectorIndexConfigDynamic(_ConfigBase):
+    distance_metric: VectorDistances
+    hnsw: Optional[VectorIndexConfigHNSW]
+    flat: Optional[VectorIndexConfigFlat]
+    threshold: Optional[int]
+
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.DYNAMIC.value
+
+
+VectorIndexConfigDynamic = _VectorIndexConfigDynamic
+
+
+@dataclass
 class _GenerativeConfig(_ConfigBase):
     generative: GenerativeSearches
     model: Dict[str, Any]
@@ -1126,7 +1211,9 @@ class _NamedVectorizerConfig(_ConfigBase):
 @dataclass
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
-    vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat]
+    vector_index_config: Union[
+        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic
+    ]
 
     def to_dict(self) -> Dict:
         ret_dict = super().to_dict()
@@ -1149,7 +1236,9 @@ class _CollectionConfig(_ConfigBase):
     replication_config: ReplicationConfig
     reranker_config: Optional[RerankerConfig]
     sharding_config: Optional[ShardingConfig]
-    vector_index_config: Union[VectorIndexConfigHNSW, VectorIndexConfigFlat, None]
+    vector_index_config: Union[
+        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, None
+    ]
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
     vectorizer: Optional[Vectorizers]
@@ -1490,8 +1579,9 @@ class _VectorIndexQuantizer:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
+        if bit_compression is not None:
+            _Warnings.bit_compression_in_pq_config()
         return _PQConfigCreate(
-            bitCompression=bit_compression,
             centroids=centroids,
             segments=segments,
             trainingLimit=training_limit,
@@ -1527,7 +1617,6 @@ class _VectorIndex:
         """
         return _VectorIndexConfigSkipCreate(
             distance=None,
-            vectorCacheMaxObjects=None,
             quantizer=None,
         )
 
@@ -1585,6 +1674,24 @@ class _VectorIndex:
             quantizer=quantizer,
         )
 
+    @staticmethod
+    def dynamic(
+        distance_metric: Optional[VectorDistances] = None,
+        threshold: Optional[int] = None,
+        hnsw: Optional[_VectorIndexConfigHNSWCreate] = None,
+        flat: Optional[_VectorIndexConfigFlatCreate] = None,
+    ) -> _VectorIndexConfigDynamicCreate:
+        """Create a `_VectorIndexConfigDynamicCreate` object to be used when defining the DYNAMIC vector index configuration of Weaviate.
+
+        Use this method when defining the `vector_index_config` argument in `collections.create()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexConfigDynamicCreate(
+            distance=distance_metric, threshold=threshold, hnsw=hnsw, flat=flat, quantizer=None
+        )
+
 
 class Configure:
     """Use this factory class to generate the correct object for use when using the `collections.create()` method. E.g., `.multi_tenancy()` will return a `MultiTenancyConfigCreate` object to be used in the `multi_tenancy_config` argument.
@@ -1637,14 +1744,18 @@ class Configure:
         )
 
     @staticmethod
-    def multi_tenancy(enabled: bool = True) -> _MultiTenancyConfigCreate:
+    def multi_tenancy(
+        enabled: bool = True, auto_tenant_creation: bool = False
+    ) -> _MultiTenancyConfigCreate:
         """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
 
         Arguments:
             `enabled`
                 Whether multi-tenancy is enabled. Defaults to `True`.
+            `auto_tenant_creation`
+                Automatically create nonexistent tenants during batch import. Defaults to `False`
         """
-        return _MultiTenancyConfigCreate(enabled=enabled)
+        return _MultiTenancyConfigCreate(enabled=enabled, autoTenantCreation=auto_tenant_creation)
 
     @staticmethod
     def replication(factor: Optional[int] = None) -> _ReplicationConfigCreate:
@@ -1675,19 +1786,23 @@ class Configure:
                 The number of virtual shards per physical shard.
             `desired_count`
                 The desired number of physical shards.
-            `actual_count`
-                The actual number of physical shards.
+            `actual_count` DEPRECATED
+                The actual number of physical shards. This is a read-only field so has no effect.
+                It is kept for backwards compatibility but will be removed in a future release.
             `desired_virtual_count`
                 The desired number of virtual shards.
-            `actual_virtual_count`
-                The actual number of virtual shards.
+            `actual_virtual_count` DEPRECATED
+                The actual number of virtual shards. This is a read-only field so has no effect.
+                It is kept for backwards compatibility but will be removed in a future release.
         """
+        if actual_count is not None:
+            _Warnings.sharding_actual_count_is_deprecated("actual_count")
+        if actual_virtual_count is not None:
+            _Warnings.sharding_actual_count_is_deprecated("actual_virtual_count")
         return _ShardingConfigCreate(
             virtualPerPhysical=virtual_per_physical,
             desiredCount=desired_count,
-            actualCount=actual_count,
             desiredVirtualCount=desired_virtual_count,
-            actualVirtualCount=actual_virtual_count,
         )
 
 
@@ -1709,9 +1824,11 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
+        if bit_compression is not None:
+            _Warnings.bit_compression_in_pq_config()
+
         return _PQConfigUpdate(
             enabled=enabled,
-            bitCompression=bit_compression,
             centroids=centroids,
             segments=segments,
             trainingLimit=training_limit,
@@ -1749,7 +1866,7 @@ class _VectorIndexUpdate:
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
-        Use this method when defining the `vector_index_config` argument in `collection.update()`.
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
@@ -1771,13 +1888,35 @@ class _VectorIndexUpdate:
     ) -> _VectorIndexConfigFlatUpdate:
         """Create an `_VectorIndexConfigFlatUpdate` object to update the configuration of the FLAT vector index.
 
-        Use this method when defining the `vector_index_config` argument in `collection.update()`.
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
 
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigFlatUpdate(
             vectorCacheMaxObjects=vector_cache_max_objects,
+            quantizer=quantizer,
+        )
+
+    @staticmethod
+    def dynamic(
+        *,
+        threshold: Optional[int] = None,
+        hnsw: Optional[_VectorIndexConfigHNSWUpdate] = None,
+        flat: Optional[_VectorIndexConfigFlatUpdate] = None,
+        quantizer: Optional[_BQConfigUpdate] = None,
+    ) -> _VectorIndexConfigDynamicUpdate:
+        """Create an `_VectorIndexConfigDynamicUpdate` object to update the configuration of the Dynamic vector index.
+
+        Use this method when defining the `vectorizer_config` argument in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#configure-the-inverted-index) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _VectorIndexConfigDynamicUpdate(
+            threshold=threshold,
+            hnsw=hnsw,
+            flat=flat,
             quantizer=quantizer,
         )
 
@@ -1831,3 +1970,15 @@ class Reconfigure:
                 The replication factor.
         """
         return _ReplicationConfigUpdate(factor=factor)
+
+    @staticmethod
+    def multi_tenancy(auto_tenant_creation: Optional[bool] = None) -> _MultiTenancyConfigUpdate:
+        """Create a `MultiTenancyConfigUpdate` object.
+
+        Use this method when defining the `multi_tenancy` argument in `collection.update()`.
+
+        Arguments:
+            `auto_tenant_creation`
+                When set, implicitly creates nonexisting tenants during batch imports
+        """
+        return _MultiTenancyConfigUpdate(autoTenantCreation=auto_tenant_creation)

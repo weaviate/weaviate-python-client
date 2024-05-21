@@ -14,8 +14,10 @@ on:
   pull_request:
 
 env:
-  OLD_WEAVIATE_VERSION: 1.23.14
-  NEW_WEAVIATE_VERSION: 1.24.8
+  WEAVIATE_123: 1.23.14
+  WEAVIATE_124: 1.24.10
+  WEAVIATE_125: preview--grpc-clean-up-target-vectors-in-hybrid-30c49be
+
 
 jobs:
   lint-and-format:
@@ -106,7 +108,7 @@ jobs:
         if: ${{ !github.event.pull_request.head.repo.fork }}
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-embedded.xml integration_embedded
       - name: Archive code coverage results
-        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
+        if: matrix.version == '3.10' && (github.ref_name != 'main')
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-integration-embedded
@@ -119,12 +121,13 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.9", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.10", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
-          { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
+          { py: "3.8", weaviate: $WEAVIATE_125},
+          { py: "3.9", weaviate: $WEAVIATE_125},
+          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_123},
+          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.12", weaviate: $WEAVIATE_125}
         ]
         optional_dependencies: [false]
     steps:
@@ -169,12 +172,13 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.9", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.10", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $NEW_WEAVIATE_VERSION},
-          { py: "3.11", weaviate: $OLD_WEAVIATE_VERSION},
-          { py: "3.12", weaviate: $NEW_WEAVIATE_VERSION}
+          { py: "3.8", weaviate: $WEAVIATE_125},
+          { py: "3.9", weaviate: $WEAVIATE_125},
+          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_123},
+          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.12", weaviate: $WEAVIATE_125}
         ]
         optional_dependencies: [false]
     steps:
@@ -278,8 +282,9 @@ jobs:
       fail-fast: false
       matrix:
         server: [
-          $OLD_WEAVIATE_VERSION,
-          $NEW_WEAVIATE_VERSION,
+          $WEAVIATE_123,
+          $WEAVIATE_124,
+          $WEAVIATE_125
         ]
     steps:
       - name: Download build artifact to append to release

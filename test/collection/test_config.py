@@ -195,6 +195,34 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_octoai(
+            vectorize_collection_name=False,
+            model="thenlper/gte-large",
+            base_url="https://text.octoai.com",
+        ),
+        {
+            "text2vec-octoai": {
+                "vectorizeClassName": False,
+                "model": "thenlper/gte-large",
+                "baseURL": "https://text.octoai.com",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_ollama(
+            vectorize_collection_name=False,
+            model="cool-model",
+            api_endpoint="https://123.0.0.4",
+        ),
+        {
+            "text2vec-ollama": {
+                "vectorizeClassName": False,
+                "model": "cool-model",
+                "apiEndpoint": "https://123.0.0.4",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_openai(),
         {
             "text2vec-openai": {
@@ -579,6 +607,34 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-mistral": {"temperature": 0.5, "maxTokens": 100, "model": "model"}},
     ),
     (
+        Configure.Generative.octoai(
+            model="mistral-7b-instruct",
+            temperature=0.5,
+            base_url="https://text.octoai.run",
+            max_tokens=123,
+        ),
+        {
+            "generative-octoai": {
+                "model": "mistral-7b-instruct",
+                "maxTokens": 123,
+                "temperature": 0.5,
+                "baseURL": "https://text.octoai.run",
+            }
+        },
+    ),
+    (
+        Configure.Generative.ollama(
+            model="cool-model",
+            api_endpoint="https://123.456.789.0",
+        ),
+        {
+            "generative-ollama": {
+                "model": "cool-model",
+                "apiEndpoint": "https://123.456.789.0",
+            }
+        },
+    ),
+    (
         Configure.Generative.openai(
             model="gpt-4",
             frequency_penalty=0.5,
@@ -659,6 +715,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             "generative-aws": {
                 "model": "cohere.command-light-text-v14",
                 "region": "us-east-1",
+                "service": "bedrock",
             }
         },
     ),
@@ -923,14 +980,14 @@ def test_vector_config_flat_pq() -> None:
     vector_index = Configure.VectorIndex.flat(
         distance_metric=VectorDistances.DOT,
         vector_cache_max_objects=456,
-        quantizer=Configure.VectorIndex.Quantizer.pq(bit_compression=True, segments=789),
+        quantizer=Configure.VectorIndex.Quantizer.pq(segments=789),
     )
 
     vi_dict = vector_index._to_dict()
 
     assert vi_dict["distance"] == "dot"
     assert vi_dict["vectorCacheMaxObjects"] == 456
-    assert vi_dict["pq"]["bitCompression"]
+    assert "bitCompression" not in vi_dict["pq"]
     assert vi_dict["pq"]["segments"] == 789
 
 
@@ -1028,6 +1085,48 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "vectorizeClassName": True,
                         "region": "us-east-1",
                         "service": "bedrock",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_octoai(
+                name="test", source_properties=["prop"], base_url="https://text.octoai.com"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-octoai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "baseURL": "https://text.octoai.com",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_ollama(
+                name="test",
+                source_properties=["prop"],
+                api_endpoint="https://123.0.0.4",
+                model="cool-model",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-ollama": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "apiEndpoint": "https://123.0.0.4",
+                        "model": "cool-model",
                     }
                 },
                 "vectorIndexType": "hnsw",

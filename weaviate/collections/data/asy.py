@@ -111,9 +111,6 @@ class _DataCollectionAsync(Generic[Properties], _Data):
                     _ValidateArgument(
                         expected=[Mapping, None], name="references", value=references
                     ),
-                    _ValidateArgument(
-                        expected=[Sequence, None, Mapping], name="vector", value=vector
-                    ),
                 ],
             )
         props = self._serialize_props(properties) if properties is not None else {}
@@ -216,9 +213,6 @@ class _DataCollectionAsync(Generic[Properties], _Data):
                     _ValidateArgument(
                         expected=[Mapping, None], name="references", value=references
                     ),
-                    _ValidateArgument(
-                        expected=[Sequence, None, Mapping], name="vector", value=vector
-                    ),
                 ]
             )
         props = self._serialize_props(properties) if properties is not None else {}
@@ -267,9 +261,6 @@ class _DataCollectionAsync(Generic[Properties], _Data):
                     ),
                     _ValidateArgument(
                         expected=[Mapping, None], name="references", value=references
-                    ),
-                    _ValidateArgument(
-                        expected=[Sequence, None, Mapping], name="vector", value=vector
                     ),
                 ],
             )
