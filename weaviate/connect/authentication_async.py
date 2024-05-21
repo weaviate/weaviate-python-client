@@ -122,9 +122,7 @@ class _Auth:
             scope=scope,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
-        token: dict = await session._fetch_token(
-            None, username=config.username, password=config.password
-        )
+        token: dict = await session.fetch_token(username=config.username, password=config.password)
         if "refresh_token" not in token:
             _Warnings.auth_no_refresh_token(token["expires_in"])
 
@@ -155,5 +153,5 @@ class _Auth:
             default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
         # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
-        await session._fetch_token(None)
+        await session.fetch_token()
         return session
