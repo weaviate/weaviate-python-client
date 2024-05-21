@@ -23,6 +23,7 @@ async def test_fetch_objects_async() -> None:
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
+        vectorizer_config=weaviate.Configure.Vectorizer.none(),
     )
     await collection.data.insert_many(
         [
