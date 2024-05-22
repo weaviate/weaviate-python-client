@@ -1,4 +1,3 @@
-import datetime
 import uuid
 from dataclasses import dataclass
 from typing import Generator, List, Optional, Protocol, Tuple, Callable
@@ -94,7 +93,6 @@ def client_factory(
         if client_fixture.collections.exists(name_fixture):
             client_fixture.collections.delete(name_fixture)
 
-        print("Creating collection", name_fixture, datetime.datetime.now())
         client_fixture.collections.create(
             name=name_fixture,
             properties=[
@@ -109,7 +107,6 @@ def client_factory(
 
     yield _factory
     if client_fixture is not None and name_fixture is not None:
-        print("Deleting collection", name_fixture, datetime.datetime.now())
         client_fixture.collections.delete(name_fixture)
     if client_fixture is not None:
         client_fixture.close()
@@ -117,8 +114,6 @@ def client_factory(
 
 def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
     client, name = client_factory()
-    print("Performing test on collection", name, datetime.datetime.now())
-    print(client.collections.exists(name))
     with client.batch.rate_limit(50) as batch:
         batch.add_object(collection=name, properties={})
     with client.batch.dynamic() as batch:
@@ -160,8 +155,6 @@ def test_add_object(
     vector: Optional[VECTORS],
 ) -> None:
     client, name = client_factory()
-    print("Performing test on collection", name, datetime.datetime.now())
-    print(len(client.collections.get(name)), datetime.datetime.now())
     with client.batch.fixed_size() as batch:
         batch.add_object(collection=name, properties={}, uuid=uid, vector=vector)
     objs = client.collections.get(name).query.fetch_objects().objects

@@ -269,7 +269,6 @@ class _BatchBase:
                 ):
                     time.sleep(1)
                     continue
-                self.__time_stamp_last_request = time.time()
                 refresh_time = 0
             elif isinstance(self.__batching_mode, _DynamicBatching) and self.__vectorizer_batching:
                 if self.__dynamic_batching_sleep_time > 0:
@@ -280,11 +279,12 @@ class _BatchBase:
                         time.sleep(1)
                         continue
 
+            if (
+                self.__active_requests < self.__concurrent_requests
+                and len(self.__batch_objects) + len(self.__batch_references) > 0
+            ):
                 self.__time_stamp_last_request = time.time()
 
-            if self.__active_requests < self.__concurrent_requests and (
-                len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
-            ):
                 self._batch_send = True
                 self.__active_requests_lock.acquire()
                 self.__active_requests += 1
@@ -335,7 +335,7 @@ class _BatchBase:
         demonDynamic = threading.Thread(
             target=dynamic_batch_rate_wrapper,
             daemon=True,
-            name="BgBatchScheduler",
+            name="BgDynamicBatchRate",
         )
         demonDynamic.start()
 
