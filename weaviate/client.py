@@ -163,6 +163,7 @@ class WeaviateClient:
             )
 
             embedded_db = EmbeddedV4(options=embedded_options)
+            embedded_db.start()
             return (
                 ConnectionParams(
                     http=ProtocolParams(
