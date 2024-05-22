@@ -3,6 +3,7 @@ import uuid
 
 import pytest
 import weaviate
+import weaviate.classes as wvc
 
 from weaviate.collections.classes.config import (
     DataType,
@@ -23,7 +24,7 @@ async def test_fetch_objects_async() -> None:
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=weaviate.Configure.Vectorizer.none(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
     )
     await collection.data.insert_many(
         [
