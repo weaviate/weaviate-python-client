@@ -135,8 +135,6 @@ class ConnectionV4(_ConnectionBase):
 
     async def connect(self, skip_init_checks: bool) -> None:
         self.__connected = True
-        if self.embedded_db is not None:
-            self.embedded_db.start()
 
         await self._open_connections(self._auth, skip_init_checks)
         self.__connected = True
