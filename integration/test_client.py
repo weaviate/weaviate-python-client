@@ -141,11 +141,11 @@ def test_fail_to_connect_with_bad_custom_wcs_setup_rest_and_grpc() -> None:
 
 
 def test_connect_to_wcs() -> None:
-    client = weaviate.connect_to_wcs(
+    with weaviate.connect_to_wcs(
         "https://piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud",
         auth_credentials=WCS_CREDS,
-    )
-    client.get_meta()
+    ) as client:
+        client.get_meta()
 
 
 def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequest) -> None:
@@ -440,21 +440,21 @@ def test_grpc_call_without_connect() -> None:
 
 
 def test_client_with_skip_init_check(request: SubRequest) -> None:
-    client = weaviate.connect_to_local(skip_init_checks=True)
-    client.collections.delete(request.node.name)
-    col = client.collections.create(
-        name=request.node.name,
-        vectorizer_config=Configure.Vectorizer.none(),
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
-        ],
-    )
+    with weaviate.connect_to_local(skip_init_checks=True) as client:
+        client.collections.delete(request.node.name)
+        col = client.collections.create(
+            name=request.node.name,
+            vectorizer_config=Configure.Vectorizer.none(),
+            properties=[
+                Property(name="name", data_type=DataType.TEXT),
+                Property(name="age", data_type=DataType.INT),
+            ],
+        )
 
-    col.data.insert(properties={"name": "Name"})
+        col.data.insert(properties={"name": "Name"})
 
-    obj = col.query.fetch_objects().objects[0]
-    assert obj.properties["name"] == "Name"
+        obj = col.query.fetch_objects().objects[0]
+        assert obj.properties["name"] == "Name"
 
 
 @pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
@@ -481,6 +481,7 @@ def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> 
         ),
     ]:
         assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
+        client.close()
 
 
 def test_client_error_for_wcs_without_auth() -> None:

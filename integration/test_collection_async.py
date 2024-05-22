@@ -35,3 +35,4 @@ async def test_fetch_objects_async() -> None:
     res = await collection.query.fetch_objects()
     assert len(res.objects) == 1
     assert res.objects[0].properties["name"] == "John Doe"
+    await client.close()

@@ -25,18 +25,18 @@ def test_raw_gql_v4() -> None:
     assert response.errors is None
     assert response.aggregate[name][0]["meta"]["count"] == number
     assert len(response.get[name]) == number
+    client.close()
 
 
 def test_raw_gql_v4_error() -> None:
-    client: WeaviateClient = weaviate.connect_to_local()
+    with weaviate.connect_to_local() as client:
+        response = client.graphql_raw_query(
+            """{
+                                            Get{IDoNotExist{name}}
+                                            }"""
+        )
 
-    response = client.graphql_raw_query(
-        """{
-                                        Get{IDoNotExist{name}}
-                                        }"""
-    )
-
-    assert response.errors is not None
-    assert len(response.get) == 0
-    assert len(response.aggregate) == 0
-    assert len(response.explore) == 0
+        assert response.errors is not None
+        assert len(response.get) == 0
+        assert len(response.aggregate) == 0
+        assert len(response.explore) == 0

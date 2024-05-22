@@ -526,37 +526,35 @@ def test_near_vector_generate_and_group_by_with_everything(
 
 
 def test_openai_invalid_key(request: SubRequest) -> None:
-    local_client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         port=8086, grpc_port=50057, headers={"X-OpenAI-Api-Key": "IamNotValid"}
-    )
-
-    local_client.collections.delete(request.node.name)
-    collection = local_client.collections.create(
-        name=request.node.name,
-        properties=[Property(name="text", data_type=DataType.TEXT)],
-        generative_config=Configure.Generative.openai(),
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-    collection.data.insert(properties={"text": "test"})
-    with pytest.raises(WeaviateQueryError):
-        collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
+    ) as client:
+        client.collections.delete(request.node.name)
+        collection = client.collections.create(
+            name=request.node.name,
+            properties=[Property(name="text", data_type=DataType.TEXT)],
+            generative_config=Configure.Generative.openai(),
+            vectorizer_config=Configure.Vectorizer.none(),
+        )
+        collection.data.insert(properties={"text": "test"})
+        with pytest.raises(WeaviateQueryError):
+            collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 
 def test_openai_no_module(request: SubRequest) -> None:
-    local_client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         port=8080, grpc_port=50051, headers={"X-OpenAI-Api-Key": "doesnt matter"}
-    )
-
-    local_client.collections.delete(request.node.name)
-    collection = local_client.collections.create(
-        name=request.node.name,
-        properties=[Property(name="text", data_type=DataType.TEXT)],
-        generative_config=Configure.Generative.openai(),
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-    collection.data.insert(properties={"text": "test"})
-    with pytest.raises(WeaviateQueryError):
-        collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
+    ) as client:
+        client.collections.delete(request.node.name)
+        collection = client.collections.create(
+            name=request.node.name,
+            properties=[Property(name="text", data_type=DataType.TEXT)],
+            generative_config=Configure.Generative.openai(),
+            vectorizer_config=Configure.Vectorizer.none(),
+        )
+        collection.data.insert(properties={"text": "test"})
+        with pytest.raises(WeaviateQueryError):
+            collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
 
 
 def test_openai_batch_upload(openai_collection: OpenAICollection, request: SubRequest) -> None:

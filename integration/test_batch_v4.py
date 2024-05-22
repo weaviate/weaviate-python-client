@@ -106,6 +106,7 @@ def client_factory(
     yield _factory
     if client_fixture is not None and name_fixture is not None:
         client_fixture.collections.delete(name_fixture)
+    if client_fixture is not None:
         client_fixture.close()
 
 

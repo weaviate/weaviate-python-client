@@ -676,7 +676,7 @@ def test_references_batch(collection_factory: CollectionFactory) -> None:
         assert [0, 1, 2] == refs
 
 
-def test_batch_reference_multi_taret(collection_factory: CollectionFactory) -> None:
+def test_batch_reference_multi_target(collection_factory: CollectionFactory) -> None:
     to_collection = collection_factory(
         name="To",
         vectorizer_config=Configure.Vectorizer.none(),
