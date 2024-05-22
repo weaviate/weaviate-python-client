@@ -94,6 +94,7 @@ def client_factory(
         if client_fixture.collections.exists(name_fixture):
             client_fixture.collections.delete(name_fixture)
 
+        print("Creating collection", name_fixture, datetime.datetime.now())
         client_fixture.collections.create(
             name=name_fixture,
             properties=[
@@ -116,6 +117,8 @@ def client_factory(
 
 def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
     client, name = client_factory()
+    print("Performing test on collection", name, datetime.datetime.now())
+    print(client.collections.exists(name))
     with client.batch.rate_limit(50) as batch:
         batch.add_object(collection=name, properties={})
     with client.batch.dynamic() as batch:
