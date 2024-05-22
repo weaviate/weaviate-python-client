@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from dataclasses import dataclass
 from typing import Generator, List, Optional, Protocol, Tuple, Callable
@@ -89,7 +90,9 @@ def client_factory(
         name_fixture = _sanitize_collection_name(request.node.name) + name
         if client_fixture is None:
             client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
-        client_fixture.collections.delete(name_fixture)
+
+        if client_fixture.collections.exists(name_fixture):
+            client_fixture.collections.delete(name_fixture)
 
         client_fixture.collections.create(
             name=name_fixture,
@@ -105,6 +108,7 @@ def client_factory(
 
     yield _factory
     if client_fixture is not None and name_fixture is not None:
+        print("Deleting collection", name_fixture, datetime.datetime.now())
         client_fixture.collections.delete(name_fixture)
     if client_fixture is not None:
         client_fixture.close()
@@ -153,6 +157,8 @@ def test_add_object(
     vector: Optional[VECTORS],
 ) -> None:
     client, name = client_factory()
+    print("Performing test on collection", name, datetime.datetime.now())
+    print(len(client.collections.get(name)), datetime.datetime.now())
     with client.batch.fixed_size() as batch:
         batch.add_object(collection=name, properties={}, uuid=uid, vector=vector)
     objs = client.collections.get(name).query.fetch_objects().objects
