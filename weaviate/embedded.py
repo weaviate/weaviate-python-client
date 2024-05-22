@@ -213,6 +213,7 @@ class _EmbeddedBase:
         my_env.setdefault("RAFT_PORT", str(get_random_port()))
         my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(get_random_port()))
         my_env.setdefault("PROFILING_PORT", str(get_random_port()))
+        my_env.setdefault("LIMIT_RESOURCES", "true")
 
         my_env.setdefault(
             "ENABLE_MODULES",
