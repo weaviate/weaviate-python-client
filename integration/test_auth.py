@@ -123,7 +123,8 @@ def test_authentication_user_pw(
             assert str(w.message).startswith("Auth002")
         else:
             if len(recwarn) != 0:
-                print(recwarn.list)
+                for rwarning in recwarn.list:
+                    print(rwarning.message)
             assert len(recwarn) == 0
 
 
