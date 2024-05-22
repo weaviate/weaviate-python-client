@@ -39,7 +39,7 @@ from .exceptions import (
 )
 from .gql import Query
 from .schema import Schema
-from weaviate.event_loop import _EventLoop
+from weaviate.event_loop import _EventLoopSingleton
 from .types import NUMBER
 from .util import _decode_json_response_dict, _get_valid_timeout_config, _type_request_response
 from .validator import _validate_input, _ValidateArgument
@@ -114,8 +114,7 @@ class WeaviateClient:
 
         self.__skip_init_checks = skip_init_checks
 
-        self._event_loop = _EventLoop()
-        self._event_loop.start()
+        self._event_loop = _EventLoopSingleton.get_instance()
         assert self._event_loop.loop is not None
 
         self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
@@ -196,7 +195,6 @@ class WeaviateClient:
         If you do not do this, memory leaks may occur due to stale connections.
         This method also closes the embedded database if one was started."""
         self._event_loop.run_until_complete(self._connection.close)
-        self._event_loop.shutdown()
 
     def connect(self) -> None:
         """Connect to the Weaviate instance performing all the necessary checks.

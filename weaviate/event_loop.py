@@ -79,3 +79,18 @@ class _EventLoop:
             time.sleep(0.01)
 
         return loop
+
+    def __del__(self) -> None:
+        self.shutdown()
+
+
+class _EventLoopSingleton:
+    _instance: Optional[_EventLoop] = None
+
+    @classmethod
+    def get_instance(cls) -> _EventLoop:
+        if cls._instance is not None:
+            return cls._instance
+        cls._instance = _EventLoop()
+        cls._instance.start()
+        return cls._instance
