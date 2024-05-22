@@ -1,6 +1,7 @@
 """
 Client class definition.
 """
+import asyncio
 from typing import Optional, Tuple, Union, Dict, Any
 
 from httpx import HTTPError as HttpxError
@@ -113,6 +114,10 @@ class WeaviateClient:
 
         self.__skip_init_checks = skip_init_checks
 
+        self._event_loop = _EventLoop()
+        self._event_loop.start()
+        assert self._event_loop.loop is not None
+
         self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
@@ -122,8 +127,8 @@ class WeaviateClient:
             connection_config=config.connection,
             proxies=config.proxies,
             trust_env=config.trust_env,
+            loop=self._event_loop.loop,
         )
-        self._event_loop = _EventLoop()
 
         collections = _Collections(self._event_loop, _CollectionsAsync(self._connection))
 
@@ -379,6 +384,7 @@ class WeaviateAsyncClient:
             connection_config=config.connection,
             proxies=config.proxies,
             trust_env=config.trust_env,
+            loop=asyncio.get_event_loop(),
         )
 
         self.backup = _BackupAsync(self._connection)

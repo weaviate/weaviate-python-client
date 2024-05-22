@@ -93,6 +93,7 @@ class ConnectionV4(_ConnectionBase):
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
+        loop: asyncio.AbstractEventLoop,  # required for background token refresh
         embedded_db: Optional[EmbeddedV4] = None,
     ):
         self.url = connection_params._http_url
@@ -109,6 +110,7 @@ class ConnectionV4(_ConnectionBase):
         self.__trust_env = trust_env
         self._weaviate_version = _ServerVersion.from_string("")
         self.__connected = False
+        self.__loop = loop
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -352,7 +354,7 @@ class ConnectionV4(_ConnectionBase):
         )  # use 1minute as token lifetime if not supplied
         self._shutdown_background_event = Event()
 
-        async def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
+        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
             time.sleep(max(refresh_time - 30, 1))
             while (
                 self._shutdown_background_event is not None
@@ -362,9 +364,10 @@ class ConnectionV4(_ConnectionBase):
                 try:
                     if "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
                         assert isinstance(self._client, AsyncOAuth2Client)
-                        self._client.token = await self._client._refresh_token(
-                            self._client.metadata["token_endpoint"]
-                        )
+                        self._client.token = asyncio.run_coroutine_threadsafe(
+                            self._client.refresh_token(self._client.metadata["token_endpoint"]),
+                            self.__loop,
+                        ).result()
                         expires_in = self._client.token.get("expires_in", 60)
                         assert isinstance(expires_in, int)
                         refresh_time = expires_in - 30
@@ -373,8 +376,12 @@ class ConnectionV4(_ConnectionBase):
                         # saved credentials
                         assert _auth is not None
                         assert isinstance(self._client, AsyncOAuth2Client)
-                        new_session = await _auth.get_auth_session()
-                        self._client.token = await new_session._fetch_token()
+                        new_session = asyncio.run_coroutine_threadsafe(
+                            _auth.get_auth_session(), self.__loop
+                        ).result()
+                        self._client.token = asyncio.run_coroutine_threadsafe(
+                            new_session.fetch_token(), self.__loop
+                        ).result()
                 except HTTPError as exc:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
