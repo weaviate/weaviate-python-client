@@ -109,6 +109,7 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
     finally:
         if client_fixture is not None and name_fixture is not None:
             client_fixture.collections.delete(name_fixture)
+        if client_fixture is not None:
             client_fixture.close()
 
 
@@ -202,8 +203,7 @@ def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
     try:
         yield _factory
     finally:
-        if client_fixture is not None and name_fixture is not None:
-            client_fixture.collections.delete(name_fixture)
+        if client_fixture is not None:
             client_fixture.close()
 
 
