@@ -35,7 +35,8 @@ class _EventLoop:
         """
         if self.loop is None or self.loop.is_closed():
             raise WeaviateClosedClientError()
-        return asyncio.run_coroutine_threadsafe(f(*args, **kwargs), self.loop).result()
+        fut = asyncio.run_coroutine_threadsafe(f(*args, **kwargs), self.loop)
+        return fut.result()
 
     def schedule(
         self, f: Callable[P, Coroutine[Any, Any, T]], *args: P.args, **kwargs: P.kwargs
