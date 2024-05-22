@@ -11,9 +11,10 @@ import urllib.request
 import warnings
 import zipfile
 from abc import abstractmethod
+from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import requests
 import validators
@@ -41,17 +42,19 @@ class EmbeddedOptions:
     grpc_port: int = DEFAULT_GRPC_PORT
 
 
-def get_random_port() -> int:
-    sock = socket.socket()
-    sock.bind(("", 0))
-    port_num = int(sock.getsockname()[1])
-    sock.close()
-    return port_num
+def get_random_ports(how_many: int) -> List[int]:
+    ports: List[int] = []
+    for _ in range(how_many):
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+            s.bind(("", 0))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            ports.append(s.getsockname()[1])
+    return ports
 
 
 class _EmbeddedBase:
     def __init__(self, options: EmbeddedOptions) -> None:
-        self.data_bind_port = get_random_port()
+        self.data_bind_port = get_random_ports(1)[0]
         self.options = options
         self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
@@ -199,6 +202,8 @@ class _EmbeddedBase:
             self.start()
 
     def start(self) -> None:
+        random_ports = get_random_ports(4)
+
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
 
@@ -206,13 +211,13 @@ class _EmbeddedBase:
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
         # Bug with weaviate requires setting gossip and data bind port
-        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
+        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(random_ports[0]))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
         my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
         my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
-        my_env.setdefault("RAFT_PORT", str(get_random_port()))
-        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(get_random_port()))
-        my_env.setdefault("PROFILING_PORT", str(get_random_port()))
+        my_env.setdefault("RAFT_PORT", str(random_ports[1]))
+        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(random_ports[2]))
+        my_env.setdefault("PROFILING_PORT", str(random_ports[3]))
         my_env.setdefault("LIMIT_RESOURCES", "true")
 
         my_env.setdefault(
