@@ -160,8 +160,8 @@ class _EmbeddedBase:
             )
 
     def wait_till_listening(self) -> None:
-        seconds = 30
-        sleep_interval = 0.1
+        seconds = 60
+        sleep_interval = 0.5
         retries = int(seconds / sleep_interval)
         while self.is_listening() is False and retries > 0:
             time.sleep(sleep_interval)
