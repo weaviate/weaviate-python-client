@@ -500,9 +500,10 @@ def test_client_is_not_ready() -> None:
 
 
 def test_client_is_ready() -> None:
-    assert weaviate.connect_to_wcs(
+    with weaviate.connect_to_wcs(
         cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
-    ).is_ready()
+    ) as client:
+        assert client.is_ready()
 
 
 @pytest.mark.skip("gRPC proxying is not supported by grpclib at this time")

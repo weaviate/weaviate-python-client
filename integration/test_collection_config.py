@@ -37,6 +37,7 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
+    client.close()
 
 
 def test_collections_list(client: weaviate.WeaviateClient) -> None:
