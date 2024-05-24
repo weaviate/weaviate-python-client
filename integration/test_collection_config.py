@@ -310,8 +310,11 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
     assert config.multi_tenancy_config.enabled is True
-    assert config.multi_tenancy_config.auto_tenant_activation is True
-    assert config.multi_tenancy_config.auto_tenant_creation is True
+    if collection._connection._weaviate_version.is_at_least(1, 25, 0):
+        assert config.multi_tenancy_config.auto_tenant_activation is True
+    # change to 1.25.2 after it is out
+    if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
+        assert config.multi_tenancy_config.auto_tenant_creation is True
 
     # assert config.replication_config.factor == 2
 
@@ -354,8 +357,11 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
     assert config.replication_config.factor == 1
     assert config.multi_tenancy_config.enabled is True
-    assert config.multi_tenancy_config.auto_tenant_activation is False
-    assert config.multi_tenancy_config.auto_tenant_creation is False
+    if collection._connection._weaviate_version.is_at_least(1, 25, 0):
+        assert config.multi_tenancy_config.auto_tenant_activation is False
+    # change to 1.25.2 after it is out
+    if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
+        assert config.multi_tenancy_config.auto_tenant_creation is False
 
     collection.config.update(
         description="Test",
@@ -418,8 +424,11 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_type == VectorIndexType.HNSW
 
     assert config.multi_tenancy_config.enabled is True
-    assert config.multi_tenancy_config.auto_tenant_activation is True
-    assert config.multi_tenancy_config.auto_tenant_creation is True
+    if collection._connection._weaviate_version.is_at_least(1, 25, 0):
+        assert config.multi_tenancy_config.auto_tenant_activation is True
+    # change to 1.25.2 after it is out
+    if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
+        assert config.multi_tenancy_config.auto_tenant_creation is True
 
     collection.config.update(
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
