@@ -245,6 +245,9 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             auto_tenant_creation=schema.get("multiTenancyConfig", {}).get(
                 "autoTenantCreation", False
             ),
+            auto_tenant_activation=schema.get("multiTenancyConfig", {}).get(
+                "autoTenantActivation", False
+            ),
         ),
         properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
