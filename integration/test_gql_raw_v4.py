@@ -32,13 +32,17 @@ def test_raw_gql_v4() -> None:
 
 def test_raw_gql_v4_error() -> None:
     with weaviate.connect_to_local() as client:
-        response = client.graphql_raw_query(
-            """{
-                                            Get{IDoNotExist{name}}
-                                            }"""
-        )
+        try:
+            client.collections.create(name="dummy")
+            response = client.graphql_raw_query(
+                """{
+                                                Get{IDoNotExist{name}}
+                                                }"""
+            )
 
-        assert response.errors is not None
-        assert len(response.get) == 0
-        assert len(response.aggregate) == 0
-        assert len(response.explore) == 0
+            assert response.errors is not None
+            assert len(response.get) == 0
+            assert len(response.aggregate) == 0
+            assert len(response.explore) == 0
+        finally:
+            client.collections.delete("dummy")
