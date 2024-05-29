@@ -72,12 +72,13 @@ def client_factory() -> Generator[ClientFactory, None, None]:
         ports: Tuple[int, int] = (8080, 50051),
     ) -> weaviate.WeaviateClient:
         nonlocal client_fixture
-        client_fixture = weaviate.connect_to_local(
-            headers=headers,
-            grpc_port=ports[1],
-            port=ports[0],
-            additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
-        )
+        if client_fixture is None:
+            client_fixture = weaviate.connect_to_local(
+                headers=headers,
+                grpc_port=ports[1],
+                port=ports[0],
+                additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
+            )
         return client_fixture
 
     try:
