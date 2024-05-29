@@ -1,13 +1,14 @@
 """Helper functions for creating a new WeaviateClient in common scenarios."""
 
+from typing import Awaitable, Dict, Literal, Optional, Union, overload
 from urllib.parse import urlparse
-from typing import Awaitable, Optional, Dict, Literal, Union, overload
 
 from weaviate.auth import AuthCredentials
-from weaviate.client import WeaviateClient, WeaviateAsyncClient
+from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions
+from weaviate.exceptions import WeaviateStartUpError
 from weaviate.validator import _validate_input, _ValidateArgument
 
 
@@ -445,7 +446,7 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
         return client
     except Exception as e:
         client.close()
-        raise e
+        raise WeaviateStartUpError("Failed to connect to Weaviate on initialisation") from e
 
 
 async def __aconnect(client: WeaviateAsyncClient) -> WeaviateAsyncClient:
@@ -454,4 +455,4 @@ async def __aconnect(client: WeaviateAsyncClient) -> WeaviateAsyncClient:
         return client
     except Exception as e:
         await client.close()
-        raise e
+        raise WeaviateStartUpError("Failed to connect to Weaviate on initialisation") from e
