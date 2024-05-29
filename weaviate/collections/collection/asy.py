@@ -5,16 +5,14 @@ from typing import Generic, List, Literal, Optional, Type, Union, overload
 from weaviate.collections.aggregate import _AggregateCollectionAsync
 from weaviate.collections.backups import _CollectionBackupAsync
 from weaviate.collections.classes.cluster import Shard
-from weaviate.collections.classes.config import (
-    ConsistencyLevel,
-)
+from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
+    CrossReferences,
     References,
-    TReferences,
     ReturnProperties,
     ReturnReferences,
-    CrossReferences,
+    TReferences,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
@@ -22,7 +20,7 @@ from weaviate.collections.cluster import _ClusterAsync
 from weaviate.collections.config import _ConfigCollectionAsync
 from weaviate.collections.data import _DataCollectionAsync
 from weaviate.collections.generate import _GenerateCollectionAsync
-from weaviate.collections.iterator import _ObjectAIterator, _IteratorInputs
+from weaviate.collections.iterator import _IteratorInputs, _ObjectAIterator
 from weaviate.collections.query import _QueryCollectionAsync
 from weaviate.collections.tenants import _TenantsAsync
 from weaviate.connect import ConnectionV4
@@ -196,6 +194,14 @@ class CollectionAsync(Generic[Properties, References]):
         config = await self.config.get()
         json_ = json.dumps(asdict(config), indent=2)
         return f"<weaviate.Collection config={json_}>"
+
+    async def exists(self) -> bool:
+        """Check if the collection exists in Weaviate."""
+        try:
+            await self.config.get(simple=True)
+            return True
+        except Exception:
+            return False
 
     @overload
     def iterator(

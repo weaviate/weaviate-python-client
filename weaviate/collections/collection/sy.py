@@ -6,26 +6,24 @@ from weaviate.collections.aggregate import _AggregateCollection
 from weaviate.collections.backups import _CollectionBackup
 from weaviate.collections.batch.collection import _BatchCollectionWrapper
 from weaviate.collections.classes.cluster import Shard
-from weaviate.collections.classes.config import (
-    ConsistencyLevel,
-)
+from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
+    CrossReferences,
     References,
-    TReferences,
     ReturnProperties,
     ReturnReferences,
-    CrossReferences,
+    TReferences,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
+from weaviate.collections.collection.asy import CollectionAsync
 from weaviate.collections.config import _ConfigCollection
 from weaviate.collections.data import _DataCollection
 from weaviate.collections.generate import _GenerateCollection
-from weaviate.collections.iterator import _ObjectIterator, _IteratorInputs
+from weaviate.collections.iterator import _IteratorInputs, _ObjectIterator
 from weaviate.collections.query import _QueryCollection
 from weaviate.collections.tenants import _Tenants
-from weaviate.collections.collection.asy import CollectionAsync
 from weaviate.event_loop import _EventLoop
 from weaviate.types import UUID
 
@@ -141,6 +139,14 @@ class Collection(Generic[Properties, References]):
         config = self.config.get()
         json_ = json.dumps(asdict(config), indent=2)
         return f"<weaviate.Collection config={json_}>"
+
+    def exists(self) -> bool:
+        """Check if the collection exists in Weaviate.
+
+        Returns:
+            `True` if the collection exists, otherwise `False`.
+        """
+        return self.__loop.run_until_complete(self.__collection.exists)
 
     @overload
     def iterator(
