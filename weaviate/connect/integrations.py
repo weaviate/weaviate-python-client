@@ -23,6 +23,14 @@ class _IntegrationConfigCohere(_IntegrationConfig):
     base_url: Optional[str] = Field(serialization_alias="X-Cohere-Baseurl")
 
 
+class _IntegrationConfigHuggingface(_IntegrationConfig):
+    api_key: str = Field(serialization_alias="X-Huggingface-Api-Key")
+    requests_per_minute_embeddings: Optional[int] = Field(
+        serialization_alias="X-Huggingface-Ratelimit-RequestPM-Embedding"
+    )
+    base_url: Optional[str] = Field(serialization_alias="X-Huggingface-Baseurl")
+
+
 class _IntegrationConfigOpenAi(_IntegrationConfig):
     api_key: str = Field(serialization_alias="X-Openai-Api-Key")
     organization: Optional[str] = Field(serialization_alias="X-Openai-Organization")
@@ -82,6 +90,19 @@ class Integrations:
         requests_per_minute_embeddings: Optional[int] = None
     ) -> _IntegrationConfig:
         return _IntegrationConfigCohere(
+            api_key=api_key,
+            requests_per_minute_embeddings=requests_per_minute_embeddings,
+            base_url=base_url,
+        )
+
+    @staticmethod
+    def huggingface(
+        *,
+        api_key: str,
+        requests_per_minute_embeddings: Optional[int] = None,
+        base_url: Optional[str] = None
+    ) -> _IntegrationConfig:
+        return _IntegrationConfigHuggingface(
             api_key=api_key,
             requests_per_minute_embeddings=requests_per_minute_embeddings,
             base_url=base_url,

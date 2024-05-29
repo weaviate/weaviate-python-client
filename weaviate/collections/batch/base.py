@@ -403,7 +403,6 @@ class _BatchBase:
                             current_step + 1
                         )
                 self._batch_send = False
-
         else:
             if batch_length == 0:  # scale up if queue is empty
                 self.__recommended_num_objects = min(
@@ -471,20 +470,24 @@ class _BatchBase:
             highest_retry_count = 0
             for i, err in response_obj.errors.items():
                 if (
-                    "support@cohere.com" in err.message
-                    and (
-                        "rate limit" in err.message
-                        or "500 error: internal server error" in err.message
+                    (
+                        "support@cohere.com" in err.message
+                        and (
+                            "rate limit" in err.message
+                            or "500 error: internal server error" in err.message
+                        )
                     )
-                ) or (
-                    "OpenAI" in err.message
-                    and (
-                        "Rate limit reached" in err.message
-                        or "on tokens per min (TPM)" in err.message
-                        or "503 error: Service Unavailable." in err.message
-                        or "500 error: The server had an error while processing your request."
-                        in err.message
+                    or (
+                        "OpenAI" in err.message
+                        and (
+                            "Rate limit reached" in err.message
+                            or "on tokens per min (TPM)" in err.message
+                            or "503 error: Service Unavailable." in err.message
+                            or "500 error: The server had an error while processing your request."
+                            in err.message
+                        )
                     )
+                    or ("failed with status: 503 error" in err.message)  # huggingface
                 ):
                     if err.object_.retry_count > highest_retry_count:
                         highest_retry_count = err.object_.retry_count
@@ -524,12 +527,16 @@ class _BatchBase:
                     elapsed_seconds=response_obj.elapsed_seconds,
                 )
                 if readd_rate_limit:
+                    # for rate limited batching the timing is handled by the outer loop => no sleep here
                     self.__time_stamp_last_request = (
                         time.time() + self.__fix_rate_batching_base_time * (highest_retry_count + 1)
                     )  # skip a full minute to recover from the rate limit
                     self.__fix_rate_batching_base_time += (
                         1  # increase the base time as the current one is too low
                     )
+                else:
+                    # sleep a bit to recover from the rate limit in other cases
+                    time.sleep(2**highest_retry_count)
             self.__uuid_lookup_lock.acquire()
             self.__uuid_lookup.difference_update(
                 obj.uuid for obj in objs if obj.uuid not in readded_uuids
