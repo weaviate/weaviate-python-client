@@ -4,13 +4,17 @@ import asyncio
 import time
 from copy import copy
 from dataclasses import dataclass, field
-from threading import Thread, Event
+from ssl import SSLZeroReturnError
+from threading import Event, Thread
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
 
-from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client  # type: ignore
+from authlib.integrations.httpx_client import (  # type: ignore
+    AsyncOAuth2Client,
+    OAuth2Client,
+)
+from grpc_health.v1 import health_pb2  # type: ignore
 from grpclib.client import Channel
 from grpclib.const import Cardinality
-from grpc_health.v1 import health_pb2  # type: ignore
 from httpx import (
     AsyncClient,
     AsyncHTTPTransport,
@@ -18,27 +22,24 @@ from httpx import (
     ConnectError,
     HTTPError,
     HTTPStatusError,
+    HTTPTransport,
     Limits,
     ReadError,
     RemoteProtocolError,
     RequestError,
     Response,
-    HTTPTransport,
     Timeout,
 )
 
 from weaviate import __version__ as client_version
-from weaviate.auth import (
-    AuthCredentials,
-    AuthApiKey,
-    AuthClientCredentials,
-)
-from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
+from weaviate.auth import AuthApiKey, AuthClientCredentials, AuthCredentials
+from weaviate.config import ConnectionConfig, Proxies
+from weaviate.config import Timeout as TimeoutConfig
 from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
-    _ConnectionBase,
     ConnectionParams,
     JSONPayload,
+    _ConnectionBase,
     _get_proxies,
 )
 from weaviate.connect.integrations import _IntegrationConfig
@@ -46,20 +47,20 @@ from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
     AuthenticationFailedError,
     UnexpectedStatusCodeError,
-    WeaviateGRPCUnavailableError,
-    WeaviateStartUpError,
     WeaviateClosedClientError,
     WeaviateConnectionError,
+    WeaviateGRPCUnavailableError,
+    WeaviateStartUpError,
 )
 from weaviate.proto.v1 import weaviate_grpc
 from weaviate.util import (
-    is_weaviate_domain,
-    is_weaviate_client_too_old,
     PYPI_PACKAGE_URL,
     _decode_json_response_dict,
     _ServerVersion,
+    is_weaviate_client_too_old,
+    is_weaviate_domain,
 )
-from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 Session = Union[Client, OAuth2Client]
@@ -150,7 +151,12 @@ class ConnectionV4(_ConnectionBase):
         try:
             meta = await self.get_meta()
             self._weaviate_version = _ServerVersion.from_string(meta["version"])
-        except (WeaviateConnectionError, ReadError, RemoteProtocolError) as e:
+        except (
+            WeaviateConnectionError,
+            ReadError,
+            RemoteProtocolError,
+            SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
+        ) as e:
             self.__connected = False
             raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
