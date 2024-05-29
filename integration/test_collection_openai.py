@@ -6,11 +6,7 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 from integration.conftest import CollectionFactory, OpenAICollection
-from weaviate.collections.classes.config import (
-    Configure,
-    DataType,
-    Property,
-)
+from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import GroupBy, Rerank
 from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
@@ -545,16 +541,18 @@ def test_openai_no_module(request: SubRequest) -> None:
     with weaviate.connect_to_local(
         port=8080, grpc_port=50051, headers={"X-OpenAI-Api-Key": "doesnt matter"}
     ) as client:
-        client.collections.delete(request.node.name)
         collection = client.collections.create(
             name=request.node.name,
             properties=[Property(name="text", data_type=DataType.TEXT)],
             generative_config=Configure.Generative.openai(),
             vectorizer_config=Configure.Vectorizer.none(),
         )
-        collection.data.insert(properties={"text": "test"})
-        with pytest.raises(WeaviateQueryError):
-            collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
+        try:
+            collection.data.insert(properties={"text": "test"})
+            with pytest.raises(WeaviateQueryError):
+                collection.generate.fetch_objects(single_prompt="tell a joke based on {text}")
+        finally:
+            client.collections.delete(request.node.name)
 
 
 def test_openai_batch_upload(openai_collection: OpenAICollection, request: SubRequest) -> None:

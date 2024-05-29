@@ -3,6 +3,7 @@ import threading
 import time
 from concurrent.futures import Future
 from typing import Any, Callable, Coroutine, Generic, Optional, TypeVar, cast
+
 from typing_extensions import ParamSpec
 
 from weaviate.exceptions import WeaviateClosedClientError
@@ -31,7 +32,7 @@ class _EventLoop:
         """This method runs the provided coroutine in a blocking manner by scheduling its execution
         in an event loop running in a parallel thread.
 
-        The result of the coroutine is returned.
+        The result of the coroutine is returned, either when the coroutine completes or raises an exception.
         """
         if self.loop is None or self.loop.is_closed():
             raise WeaviateClosedClientError()

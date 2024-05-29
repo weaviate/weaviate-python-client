@@ -2,13 +2,10 @@ import datetime
 import uuid
 
 import pytest
+
 import weaviate
 import weaviate.classes as wvc
-
-from weaviate.collections.classes.config import (
-    DataType,
-    Property,
-)
+from weaviate.collections.classes.config import DataType, Property
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 
@@ -18,9 +15,10 @@ DATE1 = datetime.datetime.strptime("2012-02-09", "%Y-%m-%d").replace(tzinfo=date
 @pytest.mark.asyncio
 async def test_fetch_objects_async() -> None:
     client = await weaviate.connect_to_local(use_async=True)
-    await client.collections.delete_all()
+    name = "test_fetch_objects_async"
+    await client.collections.delete(name)
     collection = await client.collections.create(
-        name="test_fetch_objects_async",
+        name=name,
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
@@ -35,4 +33,5 @@ async def test_fetch_objects_async() -> None:
     res = await collection.query.fetch_objects()
     assert len(res.objects) == 1
     assert res.objects[0].properties["name"] == "John Doe"
+    await client.collections.delete(name)
     await client.close()

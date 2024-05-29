@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional, List, Generator, Protocol, Type, Dict, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Protocol, Tuple, Type, Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -7,22 +7,21 @@ from _pytest.fixtures import SubRequest
 import weaviate
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
-    Property,
-    _VectorizerConfigCreate,
-    _InvertedIndexConfigCreate,
-    _ReferencePropertyBase,
     Configure,
-    _GenerativeConfigCreate,
-    _ReplicationConfigCreate,
     DataType,
+    Property,
+    _GenerativeConfigCreate,
+    _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
-    _VectorIndexConfigCreate,
+    _ReferencePropertyBase,
+    _ReplicationConfigCreate,
     _RerankerConfigCreate,
+    _VectorIndexConfigCreate,
+    _VectorizerConfigCreate,
 )
+from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.types import Properties
 from weaviate.config import AdditionalConfig
-
-from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 
 
 class CollectionFactory(Protocol):
@@ -52,9 +51,47 @@ class CollectionFactory(Protocol):
         ...
 
 
+class ClientFactory(Protocol):
+    """Typing for fixture."""
+
+    def __call__(
+        self,
+        headers: Optional[Dict[str, str]] = None,
+        ports: Tuple[int, int] = (8080, 50051),
+    ) -> weaviate.WeaviateClient:
+        """Typing for fixture."""
+        ...
+
+
 @pytest.fixture
-def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None, None]:
-    name_fixture: Optional[str] = None
+def client_factory() -> Generator[ClientFactory, None, None]:
+    client_fixture: Optional[weaviate.WeaviateClient] = None
+
+    def _factory(
+        headers: Optional[Dict[str, str]] = None,
+        ports: Tuple[int, int] = (8080, 50051),
+    ) -> weaviate.WeaviateClient:
+        nonlocal client_fixture
+        client_fixture = weaviate.connect_to_local(
+            headers=headers,
+            grpc_port=ports[1],
+            port=ports[0],
+            additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
+        )
+        return client_fixture
+
+    try:
+        yield _factory
+    finally:
+        if client_fixture is not None:
+            client_fixture.close()
+
+
+@pytest.fixture
+def collection_factory(
+    request: SubRequest, client_factory: ClientFactory
+) -> Generator[CollectionFactory, None, None]:
+    name_fixtures: List[str] = []
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
     def _factory(
@@ -76,41 +113,43 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerConfigCreate] = None,
     ) -> Collection[Any, Any]:
-        nonlocal client_fixture, name_fixture
-        name_fixture = _sanitize_collection_name(request.node.name) + name
-        if client_fixture is None:
-            client_fixture = weaviate.connect_to_local(
+        try:
+            nonlocal client_fixture, name_fixtures
+            name_fixture = _sanitize_collection_name(request.node.name) + name
+            name_fixtures.append(name_fixture)
+            client_fixture = client_factory(
                 headers=headers,
-                grpc_port=ports[1],
-                port=ports[0],
-                additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
+                ports=ports,
             )
-        client_fixture.collections.delete(name_fixture)
-
-        collection: Collection[Any, Any] = client_fixture.collections.create(
-            name=name_fixture,
-            description=description,
-            vectorizer_config=vectorizer_config or Configure.Vectorizer.none(),
-            properties=properties,
-            references=references,
-            inverted_index_config=inverted_index_config,
-            multi_tenancy_config=multi_tenancy_config,
-            generative_config=generative_config,
-            data_model_properties=data_model_properties,
-            data_model_references=data_model_refs,
-            replication_config=replication_config,
-            vector_index_config=vector_index_config,
-            reranker_config=reranker_config,
-        )
-        return collection
+            collection: Collection[Any, Any] = client_fixture.collections.create(
+                name=name_fixture,
+                description=description,
+                vectorizer_config=vectorizer_config or Configure.Vectorizer.none(),
+                properties=properties,
+                references=references,
+                inverted_index_config=inverted_index_config,
+                multi_tenancy_config=multi_tenancy_config,
+                generative_config=generative_config,
+                data_model_properties=data_model_properties,
+                data_model_references=data_model_refs,
+                replication_config=replication_config,
+                vector_index_config=vector_index_config,
+                reranker_config=reranker_config,
+            )
+            return collection
+        except Exception as e:
+            print("Got exception in _factory", e)
+            raise e
 
     try:
         yield _factory
+    except Exception as e:
+        print("Got exception in collection_factory", e)
+        raise e
     finally:
-        if client_fixture is not None and name_fixture is not None:
-            client_fixture.collections.delete(name_fixture)
-        if client_fixture is not None:
-            client_fixture.close()
+        if client_fixture is not None and name_fixtures is not None:
+            for name_fixture in name_fixtures:
+                client_fixture.collections.delete(name_fixture)
 
 
 class OpenAICollection(Protocol):
@@ -177,8 +216,9 @@ class CollectionFactoryGet(Protocol):
 
 
 @pytest.fixture
-def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
-    client_fixture: Optional[weaviate.WeaviateClient] = None
+def collection_factory_get(
+    client_factory: ClientFactory,
+) -> Generator[CollectionFactoryGet, None, None]:
     name_fixture: Optional[str] = None
 
     def _factory(
@@ -187,12 +227,9 @@ def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
         data_model_refs: Optional[Type[Properties]] = None,
         skip_argument_validation: bool = False,
     ) -> Collection[Any, Any]:
-        nonlocal client_fixture, name_fixture
+        nonlocal name_fixture
         name_fixture = _sanitize_collection_name(name)
-        if client_fixture is None:
-            client_fixture = weaviate.connect_to_local()
-
-        collection: Collection[Any, Any] = client_fixture.collections.get(
+        collection: Collection[Any, Any] = client_factory().collections.get(
             name=name_fixture,
             data_model_properties=data_model_props,
             data_model_references=data_model_refs,
@@ -200,11 +237,7 @@ def collection_factory_get() -> Generator[CollectionFactoryGet, None, None]:
         )
         return collection
 
-    try:
-        yield _factory
-    finally:
-        if client_fixture is not None:
-            client_fixture.close()
+    yield _factory
 
 
 def _sanitize_collection_name(name: str) -> str:

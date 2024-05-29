@@ -4,20 +4,19 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
+import weaviate.classes as wvc
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
     Configure,
-    _CollectionConfig,
     DataType,
     GenerativeSearches,
     Property,
     ReferenceProperty,
     Vectorizers,
+    _CollectionConfig,
 )
-from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
-import weaviate.classes as wvc
-
 from weaviate.config import Timeout
+from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
 WCS_URL = f"https://{WCS_HOST}"
@@ -309,8 +308,6 @@ def test_collection_name_capitalization(
 ) -> None:
     name_small = "collectionCapitalizationTest"
     name_big = "CollectionCapitalizationTest"
-    client.collections.delete(name_small)
-
     collection = client.collections.create(
         name=name_small,
         vectorizer_config=Configure.Vectorizer.none(),
@@ -323,47 +320,53 @@ def test_collection_name_capitalization(
 
 
 def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) -> None:
-    client.collections.delete(request.node.name)
-    collection = client.collections.create(
-        name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
-    )
+    try:
+        collection = client.collections.create(
+            name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+        )
 
-    nodes = client.cluster.nodes(collection.name, output="verbose")
-    assert len(nodes) == 1
-    assert len(nodes[0].shards) == 1
-    assert nodes[0].shards[0].collection == collection.name
-    assert nodes[0].shards[0].object_count == 0
-    assert nodes[0].shards[0].vector_indexing_status == "READY"
-    assert nodes[0].shards[0].vector_queue_length == 0
-    assert nodes[0].shards[0].compressed is False
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        assert nodes[0].shards[0].loaded is None
-    else:
-        assert nodes[0].shards[0].loaded is True
+        nodes = client.cluster.nodes(collection.name, output="verbose")
+        assert len(nodes) == 1
+        assert len(nodes[0].shards) == 1
+        assert nodes[0].shards[0].collection == collection.name
+        assert nodes[0].shards[0].object_count == 0
+        assert nodes[0].shards[0].vector_indexing_status == "READY"
+        assert nodes[0].shards[0].vector_queue_length == 0
+        assert nodes[0].shards[0].compressed is False
+        if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+            assert nodes[0].shards[0].loaded is None
+        else:
+            assert nodes[0].shards[0].loaded is True
+    finally:
+        client.collections.delete(request.node.name)
 
 
 def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: SubRequest) -> None:
-    client.collections.delete(request.node.name)
-    collection = client.collections.create(
-        name=request.node.name,
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
+    try:
+        collection = client.collections.create(
+            name=request.node.name,
+            multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+            vectorizer_config=Configure.Vectorizer.none(),
+        )
 
-    nodes = client.cluster.nodes(collection.name, output="verbose")
-    assert len(nodes) == 1
-    assert len(nodes[0].shards) == 0
+        nodes = client.cluster.nodes(collection.name, output="verbose")
+        assert len(nodes) == 1
+        assert len(nodes[0].shards) == 0
+    finally:
+        client.collections.delete(request.node.name)
 
 
 def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubRequest) -> None:
-    client.collections.delete(request.node.name)
-    collection = client.collections.create(
-        name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
-    )
+    try:
+        collection = client.collections.create(
+            name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+        )
 
-    nodes = client.cluster.nodes(collection.name, output="minimal")
-    assert len(nodes) == 1
-    assert nodes[0].shards is None
+        nodes = client.cluster.nodes(collection.name, output="minimal")
+        assert len(nodes) == 1
+        assert nodes[0].shards is None
+    finally:
+        client.collections.delete(request.node.name)
 
 
 def test_client_connect_and_close() -> None:
@@ -455,6 +458,7 @@ def test_client_with_skip_init_check(request: SubRequest) -> None:
 
         obj = col.query.fetch_objects().objects[0]
         assert obj.properties["name"] == "Name"
+        client.collections.delete(request.node.name)
 
 
 @pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])

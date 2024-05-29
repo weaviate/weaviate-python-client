@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Generator, List, Optional, Protocol, Tuple, Callable
+from typing import Callable, Generator, List, Optional, Protocol, Tuple
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -15,10 +15,7 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
 )
 from weaviate.collections.classes.grpc import QueryReference
-from weaviate.collections.classes.internal import (
-    _CrossReference,
-    ReferenceToMulti,
-)
+from weaviate.collections.classes.internal import ReferenceToMulti, _CrossReference
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID, VECTORS
 
@@ -79,14 +76,15 @@ def client_factory(
 ) -> Generator[
     Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
 ]:
-    name_fixture: Optional[str] = None
+    name_fixtures: List[str] = []
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
     def _factory(
         name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
-        nonlocal client_fixture, name_fixture
+        nonlocal client_fixture, name_fixtures
         name_fixture = _sanitize_collection_name(request.node.name) + name
+        name_fixtures.append(name_fixture)
         if client_fixture is None:
             client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
 
@@ -105,11 +103,14 @@ def client_factory(
         )
         return client_fixture, name_fixture
 
-    yield _factory
-    if client_fixture is not None and name_fixture is not None:
-        client_fixture.collections.delete(name_fixture)
-    if client_fixture is not None:
-        client_fixture.close()
+    try:
+        yield _factory
+    finally:
+        if client_fixture is not None and name_fixtures is not None:
+            for name_fixture in name_fixtures:
+                client_fixture.collections.delete(name_fixture)
+        if client_fixture is not None:
+            client_fixture.close()
 
 
 def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:

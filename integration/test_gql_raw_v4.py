@@ -1,31 +1,33 @@
 import weaviate
 from weaviate.client import WeaviateClient
-from weaviate.collections.classes.config import DataType, Property, Configure
+from weaviate.collections.classes.config import Configure, DataType, Property
 
 
 def test_raw_gql_v4() -> None:
     name = "RawGraphQlTest"
     number = 20
     client: WeaviateClient = weaviate.connect_to_local()
-    client.collections.delete(name)
     collection = client.collections.create(
         name=name,
         properties=[Property(name="Name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
-    collection.data.insert_many([{"Name": f"name {i}"} for i in range(number)])
+    try:
+        collection.data.insert_many([{"Name": f"name {i}"} for i in range(number)])
 
-    response = client.graphql_raw_query(
-        """{
-                                        Aggregate {RawGraphQlTest{meta {count}}}
-                                        Get{RawGraphQlTest{name}}
-                                        }"""
-    )
+        response = client.graphql_raw_query(
+            """{
+                                            Aggregate {RawGraphQlTest{meta {count}}}
+                                            Get{RawGraphQlTest{name}}
+                                            }"""
+        )
 
-    assert response.errors is None
-    assert response.aggregate[name][0]["meta"]["count"] == number
-    assert len(response.get[name]) == number
-    client.close()
+        assert response.errors is None
+        assert response.aggregate[name][0]["meta"]["count"] == number
+        assert len(response.get[name]) == number
+    finally:
+        client.collections.delete(name)
+        client.close()
 
 
 def test_raw_gql_v4_error() -> None:

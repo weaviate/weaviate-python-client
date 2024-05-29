@@ -7,51 +7,56 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Uni
 
 import pytest
 
-from integration.conftest import CollectionFactory, CollectionFactoryGet, _sanitize_collection_name
-from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
+import weaviate.classes as wvc
+from integration.conftest import (
+    CollectionFactory,
+    CollectionFactoryGet,
+    _sanitize_collection_name,
+)
+from integration.constants import WEAVIATE_LOGO_NEW_ENCODED, WEAVIATE_LOGO_OLD_ENCODED
 from weaviate.collections.classes.batch import ErrorObject
 from weaviate.collections.classes.config import (
     Configure,
+    ConsistencyLevel,
     DataType,
     Property,
     ReferenceProperty,
     Tokenization,
     Vectorizers,
-    ConsistencyLevel,
 )
-from weaviate.collections.classes.data import (
-    DataObject,
-)
+from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import (
-    QueryReference,
-    HybridFusion,
-    GroupBy,
-    MetadataQuery,
-    Move,
-    Sort,
-    _Sorting,
     PROPERTIES,
     PROPERTY,
     REFERENCE,
+    GroupBy,
+    HybridFusion,
+    MetadataQuery,
+    Move,
     NearMediaType,
+    QueryReference,
+    Sort,
+    _Sorting,
 )
 from weaviate.collections.classes.internal import (
-    _CrossReference,
     Object,
     ReferenceToMulti,
+    _CrossReference,
 )
-from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties, _PhoneNumber
+from weaviate.collections.classes.types import (
+    PhoneNumber,
+    WeaviateProperties,
+    _PhoneNumber,
+)
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
-    WeaviateInvalidInputError,
-    WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
+    WeaviateInvalidInputError,
+    WeaviateQueryError,
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import UUID, UUIDS
-
-import weaviate.classes as wvc
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
@@ -1560,7 +1565,6 @@ def test_near_media(
             Property(name="imageProp", data_type=DataType.BLOB),
         ],
     )
-
     uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
     uuid2 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
 

@@ -12,23 +12,26 @@ from weaviate.collections.classes.aggregate import (
     AggregateDate,
     AggregateInteger,
     AggregateNumber,
-    AggregateText,
     AggregateReturn,
-    Metrics,
+    AggregateText,
     GroupByAggregate,
+    Metrics,
 )
-from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
+from weaviate.collections.classes.config import (
+    Configure,
+    DataType,
+    Property,
+    ReferenceProperty,
+)
 from weaviate.collections.classes.filters import Filter, _Filters
+from weaviate.collections.classes.grpc import Move
+from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateQueryError,
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.util import file_encoder_b64
-
-from weaviate.collections.classes.grpc import Move
-
-from weaviate.collections.classes.tenants import Tenant
 
 UUID1 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
@@ -51,7 +54,6 @@ def test_collection_length_tenant(collection_factory: CollectionFactory, how_man
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
-
     collection.tenants.create(tenants=[Tenant(name="tenant1"), Tenant(name="tenant2")])
     collection.with_tenant("tenant1").data.insert_many([{} for _ in range(how_many)])
 
