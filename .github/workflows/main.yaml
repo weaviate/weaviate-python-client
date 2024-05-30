@@ -238,6 +238,10 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
       - run: pip install .
+      - name: free space
+        run: sudo rm -rf /usr/local/lib/android
+      - name: start weaviate
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
       - name: Run journey tests
         run: pytest journey_tests
 
