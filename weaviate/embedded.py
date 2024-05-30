@@ -35,7 +35,7 @@ DEFAULT_GRPC_PORT = 50060
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.23.7"
+    version: str = "1.25.1"
     port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
@@ -54,8 +54,8 @@ def get_random_ports(how_many: int) -> List[int]:
 
 class _EmbeddedBase:
     def __init__(self, options: EmbeddedOptions) -> None:
-        self.data_bind_port = get_random_ports(1)[0]
         self.options = options
+        self.port = options.port
         self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
         self.ensure_paths_exist()
@@ -163,8 +163,8 @@ class _EmbeddedBase:
             )
 
     def wait_till_listening(self) -> None:
-        seconds = 60
-        sleep_interval = 0.5
+        seconds = 30
+        sleep_interval = 0.1
         retries = int(seconds / sleep_interval)
         while self.is_listening() is False and retries > 0:
             time.sleep(sleep_interval)
@@ -211,14 +211,14 @@ class _EmbeddedBase:
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
         # Bug with weaviate requires setting gossip and data bind port
-        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(random_ports[0]))
+        my_env.setdefault("CLUSTER_JOIN", f"localhost:{random_ports[3]}")
+        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(random_ports[3]))
+        my_env.setdefault("CLUSTER_DATA_BIND_PORT", str(random_ports[3] + 1))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
         my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
-        my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
-        my_env.setdefault("RAFT_PORT", str(random_ports[1]))
-        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(random_ports[2]))
-        my_env.setdefault("PROFILING_PORT", str(random_ports[3]))
-        my_env.setdefault("LIMIT_RESOURCES", "true")
+        my_env.setdefault("RAFT_PORT", str(random_ports[2]))
+        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(random_ports[1]))
+        my_env.setdefault("PROFILING_PORT", str(random_ports[0]))
 
         my_env.setdefault(
             "ENABLE_MODULES",
@@ -228,7 +228,9 @@ class _EmbeddedBase:
 
         # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel
         # instances
-        my_env.setdefault("CLUSTER_HOSTNAME", f"Embedded_at_{self.options.port}")
+        hostname = f"Embedded_at_{self.port}"
+        my_env.setdefault("CLUSTER_HOSTNAME", hostname)
+        my_env.setdefault("RAFT_JOIN", f"{hostname}:{random_ports[1]}")
 
         if self.options.additional_env_vars is not None:
             my_env.update(self.options.additional_env_vars)
@@ -242,7 +244,7 @@ class _EmbeddedBase:
                     "--host",
                     self.options.hostname,
                     "--port",
-                    str(self.options.port),
+                    str(self.port),
                     "--scheme",
                     "http",
                 ],
@@ -287,7 +289,7 @@ class EmbeddedV4(_EmbeddedBase):
         http_listening, grpc_listening = False, False
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
-                s.connect((self.options.hostname, self.options.port))
+                s.connect((self.options.hostname, self.port))
                 http_listening = True
             except (socket.error, ConnectionRefusedError):
                 pass

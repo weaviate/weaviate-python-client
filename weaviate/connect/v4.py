@@ -533,15 +533,12 @@ class ConnectionV4(_ConnectionBase):
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
-        if self.embedded_db is not None:
-            self.embedded_db.ensure_running()
-        if params is None:
-            params = {}
-
-        request_url = self.url + self._api_version_path + path
-
         return await self.__send(
-            "GET", url=request_url, params=params, error_msg=error_msg, status_codes=status_codes
+            "GET",
+            url=self.url + self._api_version_path + path,
+            params=params if params is not None else {},
+            error_msg=error_msg,
+            status_codes=status_codes,
         )
 
     async def head(
@@ -609,7 +606,7 @@ class ConnectionV4(_ConnectionBase):
         try:
             (await self.get("/.well-known/ready")).raise_for_status()
             return
-        except (ConnectError, ReadError, TimeoutError) as error:
+        except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
