@@ -216,6 +216,31 @@ jobs:
           name: coverage-report-integration
           path: coverage-integration.xml
 
+  journey-tests:
+    name: Run Journey Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        versions: [
+          { py: "3.8", weaviate: $WEAVIATE_125},
+          { py: "3.9", weaviate: $WEAVIATE_125},
+          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.12", weaviate: $WEAVIATE_125}
+        ]
+        optional_dependencies: [false]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip' # caching pip dependencies
+      - run: pip install -r requirements-devel.txt
+      - run: pip install .
+      - name: Run journey tests
+        run: pytest journey_tests
+
   Codecov:
     needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]
     runs-on: ubuntu-latest
