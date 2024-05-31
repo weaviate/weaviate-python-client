@@ -11,6 +11,12 @@ repos:
     - id: no-commit-to-branch
     - id: trailing-whitespace
 
+- repo: https://github.com/myint/autoflake
+  rev: v1.4
+  hooks:
+      - id: autoflake
+        args: [--in-place, --remove-all-unused-imports]
+
 - repo: https://github.com/PyCQA/flake8
   rev: 6.1.0
   hooks:

@@ -7,7 +7,8 @@ from typing import Optional, Tuple, Union, Dict, Any
 from httpx import HTTPError as HttpxError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.backup.backup import _Backup, _BackupAsync
+from weaviate.backup.backup import _BackupAsync
+from weaviate.backup.sync import _Backup
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 
 from weaviate.integrations import _Integrations
@@ -17,8 +18,8 @@ from .backup import Backup
 from .batch import Batch
 from .classification import Classification
 from .cluster import Cluster
-from .collections.collections.asy import _CollectionsAsync
-from .collections.collections.sy import _Collections
+from weaviate.collections.collections.async_ import _CollectionsAsync
+from weaviate.collections.collections.sync import _Collections
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
 from .config import AdditionalConfig, Config
@@ -133,9 +134,9 @@ class WeaviateClient:
 
         self.batch = _BatchClientWrapper(self._event_loop, self._connection, config=collections)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
-        self.backup = _Backup(self._event_loop, _BackupAsync(self._connection))
+        self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
-        self.cluster = _Cluster(self._event_loop, _ClusterAsync(self._connection))
+        self.cluster = _Cluster(self._connection)
         """This namespace contains all functionality to inspect the connected Weaviate cluster."""
         self.collections = collections
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.

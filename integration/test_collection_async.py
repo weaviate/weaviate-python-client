@@ -35,3 +35,22 @@ async def test_fetch_objects_async() -> None:
     assert res.objects[0].properties["name"] == "John Doe"
     await client.collections.delete(name)
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_config_add_reference() -> None:
+    client = await weaviate.connect_to_local(use_async=True)
+    name = "test_config_add_reference"
+    await client.collections.delete(name)
+    collection = await client.collections.create(
+        name=name,
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+    )
+    await collection.config.add_reference(
+        wvc.config.ReferenceProperty(name="test", target_collection=collection.name)
+    )
+    await client.collections.delete(name)
+    await client.close()

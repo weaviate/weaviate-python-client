@@ -1,7 +1,5 @@
-from .asy.generate import _NearImageGenerateAsync
-from .asy.query import _NearImageQueryAsync
-from .sy.generate import _NearImageGenerate
-from .sy.query import _NearImageQuery
+from .generate import _NearImageGenerateAsync, _NearImageGenerate
+from .query import _NearImageQueryAsync, _NearImageQuery
 
 
 __all__ = [

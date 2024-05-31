@@ -1,5 +1,5 @@
-from .asy import _ClusterAsync
-from .sy import _Cluster
+from .async_ import _ClusterAsync
+from .sync import _Cluster
 
 __all__ = [
     "_ClusterAsync",

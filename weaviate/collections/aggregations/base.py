@@ -36,7 +36,6 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
 from weaviate.connect import ConnectionV4
 from weaviate.collections.filters import _FilterToREST
-from weaviate.event_loop import _EventLoop
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.util import file_encoder_b64, _decode_json_response_dict
@@ -44,7 +43,7 @@ from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.types import NUMBER, UUID
 
 if TYPE_CHECKING:
-    from weaviate.collections.aggregate import _AggregateCollectionAsync
+    pass
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -412,9 +411,3 @@ def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
             return media
     else:
         return file_encoder_b64(media)
-
-
-class _Aggregate:
-    def __init__(self, event_loop: _EventLoop, aggregate: "_AggregateCollectionAsync") -> None:
-        self._event_loop = event_loop
-        self._aggregate = aggregate

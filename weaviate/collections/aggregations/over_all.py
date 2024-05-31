@@ -1,6 +1,7 @@
-from typing import Literal, Optional, Union, overload
+from typing import Optional, Union
 
-from weaviate.collections.aggregations.base import _Aggregate, _AggregateAsync
+from weaviate import asyncify
+from weaviate.collections.aggregations.base import _AggregateAsync
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -11,39 +12,6 @@ from weaviate.collections.classes.filters import _Filters
 
 
 class _OverAllAsync(_AggregateAsync):
-    @overload
-    async def over_all(
-        self,
-        *,
-        filters: Optional[_Filters] = None,
-        group_by: Literal[None] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateReturn:
-        ...
-
-    @overload
-    async def over_all(
-        self,
-        *,
-        filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateGroupByReturn:
-        ...
-
-    @overload
-    async def over_all(
-        self,
-        *,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> Union[AggregateReturn, AggregateGroupByReturn]:
-        ...
-
     async def over_all(
         self,
         *,
@@ -88,73 +56,6 @@ class _OverAllAsync(_AggregateAsync):
         )
 
 
-class _OverAll(_Aggregate):
-    @overload
-    def over_all(
-        self,
-        *,
-        filters: Optional[_Filters] = None,
-        group_by: Literal[None] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateReturn:
-        ...
-
-    @overload
-    def over_all(
-        self,
-        *,
-        filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateGroupByReturn:
-        ...
-
-    @overload
-    def over_all(
-        self,
-        *,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> Union[AggregateReturn, AggregateGroupByReturn]:
-        ...
-
-    def over_all(
-        self,
-        *,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[Union[str, GroupByAggregate]] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> Union[AggregateReturn, AggregateGroupByReturn]:
-        """Aggregate metrics over all the objects in this collection without any vector search.
-
-        Arguments:
-            `filters`
-                The filters to apply to the search.
-            `group_by`
-                How to group the aggregation by.
-            `total_count`
-                Whether to include the total number of objects that match the query in the response.
-            `return_metrics`
-                A list of property metrics to aggregate together after the text search.
-
-        Returns:
-            Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
-
-        Raises:
-            `weaviate.exceptions.WeaviateQueryError`:
-                If an error occurs while performing the query against Weaviate.
-            `weaviate.exceptions.WeaviateInvalidInputError`:
-                If any of the input arguments are of the wrong type.
-        """
-        return self._event_loop.run_until_complete(
-            self._aggregate.over_all,
-            filters=filters,
-            group_by=group_by,
-            total_count=total_count,
-            return_metrics=return_metrics,
-        )
+@asyncify.convert
+class _OverAll(_OverAllAsync):
+    pass

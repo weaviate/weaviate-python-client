@@ -1,7 +1,4 @@
-from .asy import _TenantsAsync
-from .sy import _Tenants
+from .async_ import _TenantsAsync
+from .sync import _Tenants
 
-__all__ = [
-    "_TenantsAsync",
-    "_Tenants",
-]
+__all__ = ["_Tenants", "_TenantsAsync"]

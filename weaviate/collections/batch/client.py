@@ -24,7 +24,7 @@ from weaviate.connect.v4 import ConnectionV4
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from weaviate.collections.collections.sy import _Collections
+    from weaviate.collections.collections.sync import _Collections
 
 
 class _BatchClient(_BatchBase):

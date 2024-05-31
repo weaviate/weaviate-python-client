@@ -1,5 +1,5 @@
-from .asy import _ConfigCollectionAsync
-from .sy import _ConfigCollection
+from .async_ import _ConfigCollectionAsync
+from .sync import _ConfigCollection
 
 __all__ = [
     "_ConfigCollection",

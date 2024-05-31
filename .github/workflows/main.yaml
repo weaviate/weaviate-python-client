@@ -16,7 +16,7 @@ on:
 env:
   WEAVIATE_123: 1.23.14
   WEAVIATE_124: 1.24.15
-  WEAVIATE_125: preview--c57fecf
+  WEAVIATE_125: 1.25.2
 
 
 jobs:

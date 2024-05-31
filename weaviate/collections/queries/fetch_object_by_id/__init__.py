@@ -1,5 +1,4 @@
-from .asy.query import _FetchObjectByIDQueryAsync
-from .sy.query import _FetchObjectByIDQuery
+from .query import _FetchObjectByIDQueryAsync, _FetchObjectByIDQuery
 
 __all__ = [
     "_FetchObjectByIDQuery",

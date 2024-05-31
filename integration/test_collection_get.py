@@ -8,7 +8,7 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from integration.conftest import CollectionFactoryGet, CollectionFactory
 from weaviate.collections import Collection
-from weaviate.collections.data.sy import _DataCollection
+from weaviate.collections.data import _DataCollection
 from weaviate.exceptions import InvalidDataModelException
 
 

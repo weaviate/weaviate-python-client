@@ -1,7 +1,5 @@
-from .asy.generate import _BM25GenerateAsync
-from .asy.query import _BM25QueryAsync
-from .sy.generate import _BM25Generate
-from .sy.query import _BM25Query
+from .generate import _BM25GenerateAsync, _BM25Generate
+from .query import _BM25QueryAsync, _BM25Query
 
 __all__ = [
     "_BM25GenerateAsync",

@@ -1,16 +1,14 @@
 from dataclasses import dataclass
-from typing import AsyncIterable, AsyncIterator, Generic, Iterable, Iterator, List, Optional
+from typing import Any, AsyncIterable, AsyncIterator, Generic, Iterable, Iterator, List, Optional
 from uuid import UUID
 
 from weaviate.collections.classes.grpc import METADATA
 from weaviate.collections.classes.internal import (
-    Properties,
-    References,
     TReferences,
     TProperties,
     ReturnProperties,
     ReturnReferences,
-    IteratorReturnType,
+    Object,
 )
 from weaviate.collections.queries.fetch_objects import _FetchObjectsQuery, _FetchObjectsQueryAsync
 from weaviate.types import UUID as UUIDorStr
@@ -33,30 +31,28 @@ def _parse_after(after: Optional[UUIDorStr]) -> Optional[UUID]:
 
 
 class _ObjectIterator(
-    Generic[Properties, References, TProperties, TReferences],
-    Iterable[IteratorReturnType[Properties, References, TProperties, TReferences]],
+    Generic[TProperties, TReferences],
+    Iterable[Object[TProperties, TReferences]],
 ):
     def __init__(
         self,
-        query: _FetchObjectsQuery[Properties, References],
+        query: _FetchObjectsQuery[Any, Any],
         inputs: _IteratorInputs[TProperties, TReferences],
     ) -> None:
         self.__query = query
         self.__inputs = inputs
 
-        self.__iter_object_cache: List[
-            IteratorReturnType[Properties, References, TProperties, TReferences]
-        ] = []
+        self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
 
     def __iter__(
         self,
-    ) -> Iterator[IteratorReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> Iterator[Object[TProperties, TReferences]]:
         self.__iter_object_cache = []
         self.__iter_object_last_uuid = _parse_after(self.__inputs.after)
         return self
 
-    def __next__(self) -> IteratorReturnType[Properties, References, TProperties, TReferences]:
+    def __next__(self) -> Object[TProperties, TReferences]:
         if len(self.__iter_object_cache) == 0:
             res = self.__query.fetch_objects(
                 limit=ITERATOR_CACHE_SIZE,
@@ -79,32 +75,30 @@ class _ObjectIterator(
 
 
 class _ObjectAIterator(
-    Generic[Properties, References, TProperties, TReferences],
-    AsyncIterable[IteratorReturnType[Properties, References, TProperties, TReferences]],
+    Generic[TProperties, TReferences],
+    AsyncIterable[Object[TProperties, TReferences]],
 ):
     def __init__(
         self,
-        query: _FetchObjectsQueryAsync[Properties, References],
+        query: _FetchObjectsQueryAsync[Any, Any],
         inputs: _IteratorInputs[TProperties, TReferences],
     ) -> None:
         self.__query = query
         self.__inputs = inputs
 
-        self.__iter_object_cache: List[
-            IteratorReturnType[Properties, References, TProperties, TReferences]
-        ] = []
+        self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
 
     def __aiter__(
         self,
-    ) -> AsyncIterator[IteratorReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> AsyncIterator[Object[TProperties, TReferences]]:
         self.__iter_object_cache = []
         self.__iter_object_last_uuid = _parse_after(self.__inputs.after)
         return self
 
     async def __anext__(
         self,
-    ) -> IteratorReturnType[Properties, References, TProperties, TReferences]:
+    ) -> Object[TProperties, TReferences]:
         if len(self.__iter_object_cache) == 0:
             res = await self.__query.fetch_objects(
                 limit=ITERATOR_CACHE_SIZE,

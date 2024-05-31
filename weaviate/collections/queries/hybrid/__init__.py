@@ -1,7 +1,5 @@
-from .asy.generate import _HybridGenerateAsync
-from .asy.query import _HybridQueryAsync
-from .sy.generate import _HybridGenerate
-from .sy.query import _HybridQuery
+from .generate import _HybridGenerateAsync, _HybridGenerate
+from .query import _HybridQueryAsync, _HybridQuery
 
 __all__ = [
     "_HybridGenerate",

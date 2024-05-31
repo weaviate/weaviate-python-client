@@ -1,7 +1,5 @@
-from .asy.generate import _FetchObjectsGenerateAsync
-from .asy.query import _FetchObjectsQueryAsync
-from .sy.generate import _FetchObjectsGenerate
-from .sy.query import _FetchObjectsQuery
+from .generate import _FetchObjectsGenerateAsync, _FetchObjectsGenerate
+from .query import _FetchObjectsQueryAsync, _FetchObjectsQuery
 
 __all__ = [
     "_FetchObjectsGenerate",

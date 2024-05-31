@@ -1,7 +1,5 @@
-from .asy.generate import _NearVectorGenerateAsync
-from .asy.query import _NearVectorQueryAsync
-from .sy.generate import _NearVectorGenerate
-from .sy.query import _NearVectorQuery
+from .generate import _NearVectorGenerateAsync, _NearVectorGenerate
+from .query import _NearVectorQueryAsync, _NearVectorQuery
 
 __all__ = [
     "_NearVectorGenerate",

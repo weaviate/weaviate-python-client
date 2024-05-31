@@ -460,6 +460,8 @@ class ConnectionV4(_ConnectionBase):
             raise WeaviateClosedClientError() from e
         except ConnectError as conn_err:
             raise WeaviateConnectionError(error_msg) from conn_err
+        except Exception as e:
+            raise e
 
     async def delete(
         self,

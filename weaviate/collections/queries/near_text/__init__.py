@@ -1,7 +1,5 @@
-from .asy.generate import _NearTextGenerateAsync
-from .asy.query import _NearTextQueryAsync
-from .sy.generate import _NearTextGenerate
-from .sy.query import _NearTextQuery
+from .generate import _NearTextGenerateAsync, _NearTextGenerate
+from .query import _NearTextQueryAsync, _NearTextQuery
 
 __all__ = [
     "_NearTextGenerate",

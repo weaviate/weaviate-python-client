@@ -1,7 +1,5 @@
-from .asy.generate import _NearObjectGenerateAsync
-from .asy.query import _NearObjectQueryAsync
-from .sy.generate import _NearObjectGenerate
-from .sy.query import _NearObjectQuery
+from .generate import _NearObjectGenerateAsync, _NearObjectGenerate
+from .query import _NearObjectQueryAsync, _NearObjectQuery
 
 __all__ = [
     "_NearObjectGenerate",

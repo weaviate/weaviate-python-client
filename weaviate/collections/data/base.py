@@ -73,7 +73,7 @@ class _Data:
     async def _exists(self, uuid: str) -> bool:
         path = "/objects/" + self.name + "/" + uuid
 
-        params = self.__apply_context({})
+        params = self._apply_context({})
         request = await self._connection.head(
             path=path,
             params=params,
@@ -81,27 +81,6 @@ class _Data:
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="object existence"),
         )
         return request.status_code == 204
-
-    async def delete_by_id(self, uuid: UUID) -> bool:
-        """Delete an object from the collection based on its UUID.
-
-        Arguments:
-            `uuid`
-                The UUID of the object to delete, REQUIRED.
-        """
-        path = f"/objects/{self.name}/{uuid}"
-
-        response = await self._connection.delete(
-            path=path,
-            params=self.__apply_context({}),
-            error_msg="Object could not be deleted.",
-            status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
-        )
-        if response.status_code == 204:
-            return True  # Successfully deleted
-        else:
-            assert response.status_code == 404
-            return False  # did not exist
 
     async def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"
@@ -143,7 +122,7 @@ class _Data:
                 self._connection.post(
                     path=path,
                     weaviate_object=beacon,
-                    params=self.__apply_context(params),
+                    params=self._apply_context(params),
                     error_msg="Reference was not added.",
                     status_codes=_ExpectedStatusCodes(ok_in=200, error="add reference to object"),
                 )
@@ -178,7 +157,7 @@ class _Data:
                 self._connection.delete(
                     path=path,
                     weaviate_object=beacon,
-                    params=self.__apply_context(params),
+                    params=self._apply_context(params),
                     error_msg="Reference was not deleted.",
                     status_codes=_ExpectedStatusCodes(
                         ok_in=204, error="delete reference from object"
@@ -197,12 +176,12 @@ class _Data:
         await self._connection.put(
             path=path,
             weaviate_object=ref._to_beacons(),
-            params=self.__apply_context(params),
+            params=self._apply_context(params),
             error_msg="Reference was not replaced.",
             status_codes=_ExpectedStatusCodes(ok_in=200, error="replace reference on object"),
         )
 
-    def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
         if self._tenant is not None:
             params["tenant"] = self._tenant
         if self._consistency_level is not None:

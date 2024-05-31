@@ -1,5 +1,5 @@
-from .asy import _CollectionBackupAsync
-from .sy import _CollectionBackup
+from .async_ import _CollectionBackupAsync
+from .sync import _CollectionBackup
 
 __all__ = [
     "_CollectionBackup",
