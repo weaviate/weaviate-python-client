@@ -11,7 +11,7 @@ from weaviate.collections.classes.grpc import (
     Rerank,
 )
 from weaviate.collections.classes.internal import (
-    GenerativeReturnType,
+    GenerativeSearchReturnType,
     ReturnProperties,
     ReturnReferences,
 )
@@ -43,7 +43,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseGenerate[Properties,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of an object search in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/hybrid) for a more detailed explanation.
@@ -100,7 +100,7 @@ class _HybridGenerate(Generic[Properties, References], _BaseGenerate[Properties,
         """
         return self._loop.run_until_complete(
             self._generate.hybrid,
-            query=query,
+            query,
             single_prompt=single_prompt,
             grouped_task=grouped_task,
             grouped_properties=grouped_properties,

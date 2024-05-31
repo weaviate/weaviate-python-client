@@ -567,6 +567,15 @@ GenerativeSearchReturnType = Union[
     GenerativeGroupByReturnType[Properties, References, TProperties, TReferences],
 ]
 
+IteratorReturnType = Union[
+    Object[Properties, References],
+    Object[TProperties, TReferences],
+    Object[Properties, CrossReferences],
+    Object[Properties, TReferences],
+    Object[TProperties, References],
+    Object[TProperties, CrossReferences],
+]
+
 QueryReturnType = Union[
     QueryReturn[Properties, References],
     QueryReturn[TProperties, TReferences],

@@ -226,6 +226,7 @@ class Collection(Generic[Properties, References]):
         self,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         after: Optional[UUID] = None,

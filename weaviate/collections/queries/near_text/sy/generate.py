@@ -10,7 +10,7 @@ from weaviate.collections.classes.grpc import (
     Rerank,
 )
 from weaviate.collections.classes.internal import (
-    GenerativeNearMediaReturnType,
+    GenerativeSearchReturnType,
     ReturnProperties,
     ReturnReferences,
 )
@@ -42,7 +42,7 @@ class _NearTextGenerate(Generic[Properties, References], _BaseGenerate[Propertie
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> GenerativeNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a by-image object search in this collection using the image-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.

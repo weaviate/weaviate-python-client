@@ -15,6 +15,9 @@ from weaviate.collections.classes.internal import (
     GroupByReturn,
     QueryReturn,
     CrossReferences,
+    ReturnProperties,
+    ReturnReferences,
+    QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base_async import _BaseAsync
@@ -276,3 +279,26 @@ class _NearTextQueryAsync(Generic[Properties, References], _BaseAsync[Properties
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
     ) -> GroupByReturn[TProperties, TReferences]: ...
+
+    ### DEFAULT ###
+    @overload
+    async def near_text(
+        self,
+        query: Union[List[str], str],
+        *,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
+        rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+        return_references: Optional[ReturnReferences[TReferences]] = None,
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...

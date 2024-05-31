@@ -11,7 +11,7 @@ from weaviate.collections.classes.grpc import (
     Rerank,
 )
 from weaviate.collections.classes.internal import (
-    QueryReturnType,
+    QuerySearchReturnType,
     ReturnProperties,
     ReturnReferences,
 )
@@ -40,7 +40,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryReturnType[Properties, References, TProperties, TReferences]:
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/hybrid) for a more detailed explanation.

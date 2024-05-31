@@ -7,7 +7,7 @@ from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
 from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
-    QueryNearMediaReturnType,
+    QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base_sync import _BaseQuery
@@ -32,7 +32,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects by vector in this collection using and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/similarity) for a more detailed explanation.

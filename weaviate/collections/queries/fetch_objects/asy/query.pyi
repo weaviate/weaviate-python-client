@@ -1,7 +1,7 @@
 from typing import Generic, List, Literal, Optional, Union, Type, overload
 
 from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, _Sorting
+from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Sorting
 from weaviate.collections.classes.internal import (
     QueryReturn,
     CrossReferences,
@@ -22,7 +22,7 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _BaseAsync[Proper
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -36,7 +36,7 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _BaseAsync[Proper
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -50,7 +50,7 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _BaseAsync[Proper
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -64,7 +64,7 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _BaseAsync[Proper
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -78,7 +78,7 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _BaseAsync[Proper
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -92,7 +92,7 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _BaseAsync[Proper
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -106,7 +106,7 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _BaseAsync[Proper
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,

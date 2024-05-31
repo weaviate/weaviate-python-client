@@ -8,6 +8,9 @@ from weaviate.collections.classes.internal import (
     GroupByReturn,
     QueryReturn,
     CrossReferences,
+    ReturnReferences,
+    ReturnProperties,
+    QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base_sync import _BaseQuery
@@ -227,3 +230,20 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
     ) -> GroupByReturn[TProperties, TReferences]: ...
+    @overload
+    def bm25(
+        self,
+        query: Optional[str],
+        *,
+        query_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
+        rerank: Optional[Rerank] = None,
+        include_vector: INCLUDE_VECTOR = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+        return_references: Optional[ReturnReferences[TReferences]] = None,
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...

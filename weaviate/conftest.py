@@ -10,4 +10,4 @@ class MyScheduler(LoadScopeScheduling):
 
 
 def pytest_xdist_make_scheduler(config: object, log: object) -> MyScheduler:
-    return MyScheduler(config, log)
+    return MyScheduler(config, log)  # type: ignore # ignore pyright here, not important to codebase

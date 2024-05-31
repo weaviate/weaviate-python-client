@@ -5,11 +5,14 @@ from weaviate.collections.classes.grpc import (
     METADATA,
     PROPERTIES,
     REFERENCES,
-    Sort,
+    Sorting,
 )
 from weaviate.collections.classes.internal import (
     GenerativeReturn,
     CrossReferences,
+    ReturnProperties,
+    ReturnReferences,
+    GenerativeReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base_async import _BaseAsync
@@ -29,7 +32,7 @@ class _FetchObjectsGenerateAsync(
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[Sort, List[Sort]]] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -46,7 +49,7 @@ class _FetchObjectsGenerateAsync(
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[Sort, List[Sort]]] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -63,7 +66,7 @@ class _FetchObjectsGenerateAsync(
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[Sort, List[Sort]]] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -80,7 +83,7 @@ class _FetchObjectsGenerateAsync(
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[Sort, List[Sort]]] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -97,7 +100,7 @@ class _FetchObjectsGenerateAsync(
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[Sort, List[Sort]]] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -114,9 +117,26 @@ class _FetchObjectsGenerateAsync(
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[Union[Sort, List[Sort]]] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences]
     ) -> GenerativeReturn[TProperties, TReferences]: ...
+    @overload
+    async def fetch_objects(
+        self,
+        *,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        after: Optional[UUID] = None,
+        filters: Optional[_Filters] = None,
+        sort: Optional[Sorting] = None,
+        include_vector: INCLUDE_VECTOR = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+        return_references: Optional[ReturnReferences[TReferences]] = None
+    ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]: ...

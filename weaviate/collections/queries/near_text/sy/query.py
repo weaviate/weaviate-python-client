@@ -12,7 +12,7 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
-    QueryNearMediaReturnType,
+    QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base_sync import _BaseQuery
@@ -39,7 +39,7 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> QueryNearMediaReturnType[Properties, References, TProperties, TReferences]:
+    ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
         """Search for objects in this collection by text using text-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.

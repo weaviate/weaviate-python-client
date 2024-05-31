@@ -16,6 +16,9 @@ from weaviate.collections.classes.internal import (
     GenerativeReturn,
     GenerativeGroupByReturn,
     CrossReferences,
+    ReturnProperties,
+    ReturnReferences,
+    GenerativeSearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base_async import _BaseAsync
@@ -23,7 +26,7 @@ from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Properties, References]):
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -47,7 +50,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: Literal[None] = None,
     ) -> GenerativeReturn[Properties, References]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -71,7 +74,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: REFERENCES,
     ) -> GenerativeReturn[Properties, CrossReferences]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -95,7 +98,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: Type[TReferences],
     ) -> GenerativeReturn[Properties, TReferences]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -119,7 +122,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: Literal[None] = None,
     ) -> GenerativeReturn[TProperties, References]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -143,7 +146,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: REFERENCES,
     ) -> GenerativeReturn[TProperties, CrossReferences]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -170,7 +173,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
     ##### GROUP BY #####
 
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -194,7 +197,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: Literal[None] = None,
     ) -> GenerativeGroupByReturn[Properties, References]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -218,7 +221,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: REFERENCES,
     ) -> GenerativeGroupByReturn[Properties, CrossReferences]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -242,7 +245,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: Type[TReferences],
     ) -> GenerativeGroupByReturn[Properties, TReferences]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -266,7 +269,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: Literal[None] = None,
     ) -> GenerativeGroupByReturn[TProperties, References]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -290,7 +293,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_references: REFERENCES,
     ) -> GenerativeGroupByReturn[TProperties, CrossReferences]: ...
     @overload
-    def hybrid(
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -313,3 +316,28 @@ class _HybridGenerateAsync(Generic[Properties, References], _BaseAsync[Propertie
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
     ) -> GenerativeGroupByReturn[TProperties, TReferences]: ...
+    ### async defAULT ###
+    @overload
+    async def hybrid(
+        self,
+        query: Optional[str],
+        *,
+        single_prompt: Optional[str] = None,
+        grouped_task: Optional[str] = None,
+        grouped_properties: Optional[List[str]] = None,
+        alpha: NUMBER = 0.7,
+        vector: Optional[HybridVectorType] = None,
+        query_properties: Optional[List[str]] = None,
+        fusion_type: Optional[HybridFusion] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
+        rerank: Optional[Rerank] = None,
+        target_vector: Optional[str] = None,
+        include_vector: INCLUDE_VECTOR = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+        return_references: Optional[ReturnReferences[TReferences]] = None,
+    ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...

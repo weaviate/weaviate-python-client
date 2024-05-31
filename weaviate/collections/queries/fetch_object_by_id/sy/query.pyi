@@ -10,6 +10,9 @@ from weaviate.collections.classes.grpc import PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
     ObjectSingleReturn,
     CrossReferences,
+    ReturnProperties,
+    ReturnReferences,
+    QuerySingleReturn,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base_sync import _BaseQuery
@@ -70,3 +73,12 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
     ) -> ObjectSingleReturn[TProperties, TReferences]: ...
+    @overload
+    def fetch_object_by_id(
+        self,
+        uuid: UUID,
+        include_vector: INCLUDE_VECTOR = False,
+        *,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+        return_references: Optional[ReturnReferences[TReferences]] = None,
+    ) -> QuerySingleReturn[Properties, References, TProperties, TReferences]: ...

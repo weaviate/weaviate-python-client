@@ -1,7 +1,7 @@
 from typing import Generic, List, Optional
 
 from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.classes.grpc import METADATA, _Sorting
+from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
     GenerativeReturnType,
     _Generative,
@@ -27,7 +27,7 @@ class _FetchObjectsGenerateAsync(
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
