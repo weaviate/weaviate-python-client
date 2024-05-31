@@ -372,7 +372,9 @@ class ConnectionV4(_ConnectionBase):
                     if "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
                         assert isinstance(self._client, AsyncOAuth2Client)
                         self._client.token = asyncio.run_coroutine_threadsafe(
-                            self._client.refresh_token(self._client.metadata["token_endpoint"]),  # type: ignore # due to AsyncOAuth2Client not providing correct type
+                            self._client.refresh_token(
+                                self._client.metadata["token_endpoint"]
+                            ),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
                             self.__loop,
                         ).result()
                         expires_in = self._client.token.get("expires_in", 60)
@@ -387,7 +389,8 @@ class ConnectionV4(_ConnectionBase):
                             _auth.get_auth_session(), self.__loop
                         ).result()
                         self._client.token = asyncio.run_coroutine_threadsafe(
-                            new_session.fetch_token(), self.__loop  # type: ignore # due to AsyncOAuth2Client not providing correct type
+                            new_session.fetch_token(),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
+                            self.__loop,
                         ).result()
                 except HTTPError as exc:
                     # retry again after one second, might be an unstable connection

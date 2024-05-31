@@ -18,7 +18,7 @@ def convert(cls: C) -> C:
 
             # Create a new sync method that wraps the async method
             @wraps(method)  # type: ignore
-            def sync_method(self, *args, __new_name=new_name, **kwargs):  # type: ignore
+            def sync_method(self, *args, __new_name=new_name, **kwargs):
                 async_func = getattr(cls, __new_name)
                 return _EventLoopSingleton.get_instance().run_until_complete(
                     async_func, self, *args, **kwargs

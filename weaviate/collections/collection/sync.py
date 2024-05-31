@@ -332,7 +332,7 @@ class Collection(Generic[Properties, References]):
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        return _ObjectIterator(  # type: ignore
+        return _ObjectIterator(
             self.query,
             _IteratorInputs(
                 include_vector=include_vector,
