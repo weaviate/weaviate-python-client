@@ -16,7 +16,7 @@ on:
 env:
   WEAVIATE_123: 1.23.14
   WEAVIATE_124: 1.24.10
-  WEAVIATE_125: preview--grpc-clean-up-target-vectors-in-hybrid-30c49be
+  WEAVIATE_125: preview--c57fecf
 
 
 jobs:

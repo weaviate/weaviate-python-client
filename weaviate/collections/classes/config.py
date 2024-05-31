@@ -14,18 +14,8 @@ from typing import (
     cast,
 )
 
-from typing_extensions import TypeAlias
-
 from pydantic import AnyHttpUrl, Field, field_validator
-
-from weaviate.util import _capitalize_first_letter
-from weaviate.collections.classes.config_vectorizers import (
-    _Vectorizer,
-    _VectorizerConfigCreate,
-    CohereModel,
-    Vectorizers as VectorizersAlias,
-    VectorDistances as VectorDistancesAlias,
-)
+from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config_base import (
     _ConfigBase,
@@ -33,7 +23,12 @@ from weaviate.collections.classes.config_base import (
     _ConfigUpdateModel,
     _QuantizerConfigUpdate,
 )
-
+from weaviate.collections.classes.config_named_vectors import (
+    _NamedVectorConfigCreate,
+    _NamedVectorConfigUpdate,
+    _NamedVectors,
+    _NamedVectorsUpdate,
+)
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
@@ -47,14 +42,15 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigUpdate,
     VectorIndexType as VectorIndexTypeAlias,
 )
-
-from weaviate.collections.classes.config_named_vectors import (
-    _NamedVectorConfigCreate,
-    _NamedVectorConfigUpdate,
-    _NamedVectors,
-    _NamedVectorsUpdate,
+from weaviate.collections.classes.config_vectorizers import (
+    _Vectorizer,
+    _VectorizerConfigCreate,
+    CohereModel,
+    Vectorizers as VectorizersAlias,
+    VectorDistances as VectorDistancesAlias,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
 
 # BC for direct imports
@@ -360,10 +356,12 @@ class _InvertedIndexConfigUpdate(_ConfigUpdateModel):
 class _MultiTenancyConfigCreate(_ConfigCreateModel):
     enabled: bool
     autoTenantCreation: Optional[bool]
+    autoTenantActivation: Optional[bool]
 
 
 class _MultiTenancyConfigUpdate(_ConfigUpdateModel):
-    autoTenantCreation: Optional[bool] = None
+    autoTenantCreation: Optional[bool]
+    autoTenantActivation: Optional[bool]
 
 
 class _GenerativeConfigCreate(_ConfigCreateModel):
@@ -952,6 +950,7 @@ InvertedIndexConfig = _InvertedIndexConfig
 class _MultiTenancyConfig(_ConfigBase):
     enabled: bool
     auto_tenant_creation: bool
+    auto_tenant_activation: bool
 
 
 MultiTenancyConfig = _MultiTenancyConfig
@@ -1745,7 +1744,9 @@ class Configure:
 
     @staticmethod
     def multi_tenancy(
-        enabled: bool = True, auto_tenant_creation: bool = False
+        enabled: bool = True,
+        auto_tenant_creation: Optional[bool] = None,
+        auto_tenant_activation: Optional[bool] = None,
     ) -> _MultiTenancyConfigCreate:
         """Create a `MultiTenancyConfigCreate` object to be used when defining the multi-tenancy configuration of Weaviate.
 
@@ -1753,9 +1754,15 @@ class Configure:
             `enabled`
                 Whether multi-tenancy is enabled. Defaults to `True`.
             `auto_tenant_creation`
-                Automatically create nonexistent tenants during batch import. Defaults to `False`
+                Automatically create nonexistent tenants during batch import. Defaults to `None`, which uses the server-defined default.
+            `auto_tenant_activation`
+                Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
-        return _MultiTenancyConfigCreate(enabled=enabled, autoTenantCreation=auto_tenant_creation)
+        return _MultiTenancyConfigCreate(
+            enabled=enabled,
+            autoTenantCreation=auto_tenant_creation,
+            autoTenantActivation=auto_tenant_activation,
+        )
 
     @staticmethod
     def replication(factor: Optional[int] = None) -> _ReplicationConfigCreate:
@@ -1972,7 +1979,9 @@ class Reconfigure:
         return _ReplicationConfigUpdate(factor=factor)
 
     @staticmethod
-    def multi_tenancy(auto_tenant_creation: Optional[bool] = None) -> _MultiTenancyConfigUpdate:
+    def multi_tenancy(
+        auto_tenant_creation: Optional[bool] = None, auto_tenant_activation: Optional[bool] = None
+    ) -> _MultiTenancyConfigUpdate:
         """Create a `MultiTenancyConfigUpdate` object.
 
         Use this method when defining the `multi_tenancy` argument in `collection.update()`.
@@ -1980,5 +1989,9 @@ class Reconfigure:
         Arguments:
             `auto_tenant_creation`
                 When set, implicitly creates nonexisting tenants during batch imports
+            `auto_tenant_activation`
+                Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
-        return _MultiTenancyConfigUpdate(autoTenantCreation=auto_tenant_creation)
+        return _MultiTenancyConfigUpdate(
+            autoTenantCreation=auto_tenant_creation, autoTenantActivation=auto_tenant_activation
+        )

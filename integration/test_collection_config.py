@@ -238,7 +238,9 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
             stopwords_preset=StopwordsPreset.EN,
             stopwords_removals=["the"],
         ),
-        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+        multi_tenancy_config=Configure.multi_tenancy(
+            enabled=True, auto_tenant_activation=True, auto_tenant_creation=True
+        ),
         # replication_config=Configure.replication(factor=2), # currently not updateable in RAFT
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
@@ -308,6 +310,11 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
     assert config.multi_tenancy_config.enabled is True
+    if collection._connection._weaviate_version.is_at_least(1, 25, 0):
+        assert config.multi_tenancy_config.auto_tenant_activation is True
+    # change to 1.25.2 after it is out
+    if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
+        assert config.multi_tenancy_config.auto_tenant_creation is True
 
     # assert config.replication_config.factor == 2
 
@@ -342,10 +349,19 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             Property(name="age", data_type=DataType.INT),
         ],
         ports=(8087, 50058),
+        multi_tenancy_config=Configure.multi_tenancy(
+            enabled=True, auto_tenant_creation=False, auto_tenant_activation=False
+        ),
     )
     config = collection.config.get()
 
     assert config.replication_config.factor == 1
+    assert config.multi_tenancy_config.enabled is True
+    if collection._connection._weaviate_version.is_at_least(1, 25, 0):
+        assert config.multi_tenancy_config.auto_tenant_activation is False
+    # change to 1.25.2 after it is out
+    if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
+        assert config.multi_tenancy_config.auto_tenant_creation is False
 
     collection.config.update(
         description="Test",
@@ -367,6 +383,9 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
                 segments=4,
                 training_limit=100001,
             ),
+        ),
+        multi_tenancy_config=Reconfigure.multi_tenancy(
+            auto_tenant_creation=True, auto_tenant_activation=True
         ),
     )
 
@@ -403,6 +422,13 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
     assert config.vector_index_type == VectorIndexType.HNSW
+
+    assert config.multi_tenancy_config.enabled is True
+    if collection._connection._weaviate_version.is_at_least(1, 25, 0):
+        assert config.multi_tenancy_config.auto_tenant_activation is True
+    # change to 1.25.2 after it is out
+    if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
+        assert config.multi_tenancy_config.auto_tenant_creation is True
 
     collection.config.update(
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
