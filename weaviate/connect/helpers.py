@@ -1,7 +1,7 @@
 """Helper functions for creating a new WeaviateClient in common scenarios."""
 
-from typing import Awaitable, Dict, Literal, Optional, Union, overload
 from urllib.parse import urlparse
+from typing import Awaitable, Dict, Literal, Optional, Union, overload
 
 from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateAsyncClient, WeaviateClient

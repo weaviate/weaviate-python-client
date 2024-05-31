@@ -1,13 +1,12 @@
 # run:
 # - profiling: pytest -m profiling profiling/test_profiling.py --profile-svg
-# - benchmark: pytest -s profiling/test_profiling.py --benchmark-only --benchmark-disable-gc
+# - benchmark: pytest profiling/test_profiling.py --benchmark-only --benchmark-disable-gc
 
 import math
-import uuid
 from typing import Any, List
+import uuid
 
 import pytest
-import tqdm
 
 import weaviate
 from weaviate.collections.classes.config import Configure, DataType, Property
@@ -71,7 +70,7 @@ def test_get_vector(client: weaviate.WeaviateClient) -> None:
     obj = col.query.fetch_object_by_id(batchReturn.uuids[0], include_vector=True)
     assert obj is not None and "default" in obj.vector
 
-    for _ in tqdm.trange(100):
+    for _ in range(100):
         objs = col.query.fetch_objects(
             limit=1000, include_vector=True, return_properties=None, return_metadata=None
         )
@@ -103,7 +102,7 @@ def test_get_float_properties(client: weaviate.WeaviateClient) -> None:
     )
     assert len(batchReturn.uuids) == 1000
 
-    for _ in tqdm.trange(100):
+    for _ in range(100):
         objs = col.query.fetch_objects(
             limit=1000,
             include_vector=False,
@@ -135,7 +134,7 @@ def test_object_by_id(client: weaviate.WeaviateClient) -> None:
 
     batchReturn = col.data.insert_many([{"index": i} for i in range(1000)])
 
-    for i in tqdm.trange(1000):
+    for i in range(1000):
         obj = col.query.fetch_object_by_id(batchReturn.uuids[i])
         assert obj is not None
         assert obj.properties["index"] == i
@@ -159,7 +158,7 @@ def test_vector_search(client: weaviate.WeaviateClient) -> None:
     _ret = col.data.insert_many([DataObject(vector=shift_vector(i) * 128) for i in range(12)])
 
     vector_search = [math.fmod(i * 0.1, 1) for i in range(12)] * 128
-    for _ in tqdm.trange(10000):
+    for _ in range(10000):
         query_ret = col.query.near_vector(
             vector_search,
             limit=5,
@@ -187,7 +186,7 @@ def test_blob_properties(client: weaviate.WeaviateClient) -> None:
 
     col.data.insert_many([{"index": i, "blob": WEAVIATE_LOGO_OLD_ENCODED} for i in range(1000)])
 
-    for _i in tqdm.trange(1000):
+    for _i in range(1000):
         objs = col.query.fetch_objects(limit=100, return_properties=["blob"]).objects
         assert len(objs) == 100
 
@@ -213,7 +212,7 @@ def test_list_value_properties(client: weaviate.WeaviateClient) -> None:
     col = client.collections.get(name)
 
     with col.batch.dynamic() as batch:
-        for i in tqdm.trange(100):
+        for i in range(100):
             batch.add_object(
                 properties={
                     "bools": [True] * 10000,
@@ -225,7 +224,7 @@ def test_list_value_properties(client: weaviate.WeaviateClient) -> None:
                 }
             )
 
-    for _ in tqdm.trange(100):
+    for _ in range(100):
         objs = col.query.fetch_objects(
             limit=100, return_properties=["bools", "ints", "numbers", "texts"]
         ).objects

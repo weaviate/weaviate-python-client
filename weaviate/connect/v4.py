@@ -22,19 +22,22 @@ from httpx import (
     ConnectError,
     HTTPError,
     HTTPStatusError,
-    HTTPTransport,
     Limits,
     ReadError,
     RemoteProtocolError,
     RequestError,
     Response,
+    HTTPTransport,
     Timeout,
 )
 
 from weaviate import __version__ as client_version
-from weaviate.auth import AuthApiKey, AuthClientCredentials, AuthCredentials
-from weaviate.config import ConnectionConfig, Proxies
-from weaviate.config import Timeout as TimeoutConfig
+from weaviate.auth import (
+    AuthCredentials,
+    AuthApiKey,
+    AuthClientCredentials,
+)
+from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
 from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
     ConnectionParams,

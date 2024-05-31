@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Generator, List, Optional, Protocol, Tuple, Type, Union
+from typing import Any, Optional, List, Generator, Protocol, Type, Dict, Tuple, Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -7,21 +7,22 @@ from _pytest.fixtures import SubRequest
 import weaviate
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
-    Configure,
-    DataType,
     Property,
-    _GenerativeConfigCreate,
-    _InvertedIndexConfigCreate,
-    _MultiTenancyConfigCreate,
-    _ReferencePropertyBase,
-    _ReplicationConfigCreate,
-    _RerankerConfigCreate,
-    _VectorIndexConfigCreate,
     _VectorizerConfigCreate,
+    _InvertedIndexConfigCreate,
+    _ReferencePropertyBase,
+    Configure,
+    _GenerativeConfigCreate,
+    _ReplicationConfigCreate,
+    DataType,
+    _MultiTenancyConfigCreate,
+    _VectorIndexConfigCreate,
+    _RerankerConfigCreate,
 )
-from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.types import Properties
 from weaviate.config import AdditionalConfig
+
+from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 
 
 class CollectionFactory(Protocol):

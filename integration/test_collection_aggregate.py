@@ -12,26 +12,23 @@ from weaviate.collections.classes.aggregate import (
     AggregateDate,
     AggregateInteger,
     AggregateNumber,
-    AggregateReturn,
     AggregateText,
-    GroupByAggregate,
+    AggregateReturn,
     Metrics,
+    GroupByAggregate,
 )
-from weaviate.collections.classes.config import (
-    Configure,
-    DataType,
-    Property,
-    ReferenceProperty,
-)
+from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
 from weaviate.collections.classes.filters import Filter, _Filters
-from weaviate.collections.classes.grpc import Move
-from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateQueryError,
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.util import file_encoder_b64
+
+from weaviate.collections.classes.grpc import Move
+
+from weaviate.collections.classes.tenants import Tenant
 
 UUID1 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")

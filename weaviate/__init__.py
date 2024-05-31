@@ -3,7 +3,7 @@ Weaviate Python Client Library used to interact with a Weaviate instance.
 """
 
 import sys
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import version, PackageNotFoundError
 from typing import Any
 
 try:
@@ -11,6 +11,14 @@ try:
 except PackageNotFoundError:
     __version__ = "unknown version"
 
+from .client import Client, WeaviateAsyncClient, WeaviateClient
+from .connect.helpers import (
+    connect_to_custom,
+    connect_to_embedded,
+    connect_to_local,
+    connect_to_wcs,
+    connect_to_weaviate_cloud,
+)
 from . import (
     auth,
     backup,
@@ -27,14 +35,6 @@ from . import (
     outputs,
     schema,
     types,
-)
-from .client import Client, WeaviateAsyncClient, WeaviateClient
-from .connect.helpers import (
-    connect_to_custom,
-    connect_to_embedded,
-    connect_to_local,
-    connect_to_wcs,
-    connect_to_weaviate_cloud,
 )
 
 if not sys.warnoptions:

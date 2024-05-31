@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from typing import Callable, Generator, List, Optional, Protocol, Tuple
+from typing import Generator, List, Optional, Protocol, Tuple, Callable
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -15,7 +15,10 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
 )
 from weaviate.collections.classes.grpc import QueryReference
-from weaviate.collections.classes.internal import ReferenceToMulti, _CrossReference
+from weaviate.collections.classes.internal import (
+    _CrossReference,
+    ReferenceToMulti,
+)
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID, VECTORS
 

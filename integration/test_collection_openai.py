@@ -6,7 +6,11 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 from integration.conftest import CollectionFactory, OpenAICollection
-from weaviate.collections.classes.config import Configure, DataType, Property
+from weaviate.collections.classes.config import (
+    Configure,
+    DataType,
+    Property,
+)
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import GroupBy, Rerank
 from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
