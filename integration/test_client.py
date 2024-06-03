@@ -309,15 +309,17 @@ def test_collection_name_capitalization(
 ) -> None:
     name_small = "collectionCapitalizationTest"
     name_big = "CollectionCapitalizationTest"
-    collection = client.collections.create(
-        name=name_small,
-        vectorizer_config=Configure.Vectorizer.none(),
-    )
-
-    assert collection.name == name_big
-    client.collections.delete(name_small)
-    assert not client.collections.exists(name_small)
-    assert not client.collections.exists(name_big)
+    try:
+        collection = client.collections.create(
+            name=name_small,
+            vectorizer_config=Configure.Vectorizer.none(),
+        )
+        assert collection.name == name_big
+        client.collections.delete(name_small)
+        assert not client.collections.exists(name_small)
+        assert not client.collections.exists(name_big)
+    finally:
+        client.collections.delete(name_big)
 
 
 def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) -> None:
