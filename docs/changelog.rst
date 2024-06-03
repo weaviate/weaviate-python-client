@@ -1,5 +1,12 @@
 Changelog
 =========
+
+Version 4.6.4
+--------------
+
+This patch version includes:
+    - Add support for auto-tenant-activation (available in Weaviate 1.25.2)
+
 Version 4.6.3
 --------------
 This patch version includes:
