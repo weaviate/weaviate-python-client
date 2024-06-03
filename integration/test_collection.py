@@ -129,8 +129,7 @@ def test_insert_bad_input(collection_factory: CollectionFactory) -> None:
             self.name = "test"
 
     with pytest.raises(WeaviateInvalidInputError):
-        res = collection.data.insert({"name": BadInput})
-        print(res)
+        collection.data.insert({"name": BadInput})
 
 
 def test_delete_by_id(collection_factory: CollectionFactory) -> None:

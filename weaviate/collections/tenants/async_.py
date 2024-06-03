@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from weaviate import asyncify
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.validator import _validate_input, _ValidateArgument
 
@@ -288,8 +287,3 @@ class _TenantsAsync(_TenantsBase):
             ),  # allow 404 to perform bool check on response code
         )
         return response.status_code == 200
-
-
-@asyncify.convert
-class _Tenants(_TenantsAsync):
-    pass

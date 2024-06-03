@@ -129,4 +129,4 @@ def __getattr__(name: str) -> Any:
     if name in deprs:
         _Warnings.root_module_import(name, map_[name])
         return getattr(sys.modules[f"{__name__}.{map_[name]}"], name)
-    # raise AttributeError(f"module {__name__} has no attribute {name}")
+    raise AttributeError(f"module {__name__} has no attribute {name}")

@@ -3,7 +3,7 @@ import json
 import os
 import pathlib
 
-from typing import List, Optional, TypeVar, Union, cast, TYPE_CHECKING
+from typing import List, Optional, TypeVar, Union, cast
 from typing_extensions import ParamSpec
 
 from httpx import ConnectError
@@ -41,9 +41,6 @@ from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.util import file_encoder_b64, _decode_json_response_dict
 from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.types import NUMBER, UUID
-
-if TYPE_CHECKING:
-    pass
 
 P = ParamSpec("P")
 T = TypeVar("T")

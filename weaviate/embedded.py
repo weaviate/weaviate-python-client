@@ -11,10 +11,9 @@ import urllib.request
 import warnings
 import zipfile
 from abc import abstractmethod
-from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import requests
 import validators
@@ -35,27 +34,25 @@ DEFAULT_GRPC_PORT = 50060
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.25.1"
+    version: str = "1.23.7"
     port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
     grpc_port: int = DEFAULT_GRPC_PORT
 
 
-def get_random_ports(how_many: int) -> List[int]:
-    ports: List[int] = []
-    for _ in range(how_many):
-        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-            s.bind(("", 0))
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            ports.append(s.getsockname()[1])
-    return ports
+def get_random_port() -> int:
+    sock = socket.socket()
+    sock.bind(("", 0))
+    port_num = int(sock.getsockname()[1])
+    sock.close()
+    return port_num
 
 
 class _EmbeddedBase:
     def __init__(self, options: EmbeddedOptions) -> None:
+        self.data_bind_port = get_random_port()
         self.options = options
-        self.port = options.port
         self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
         self.ensure_paths_exist()
@@ -202,8 +199,6 @@ class _EmbeddedBase:
             self.start()
 
     def start(self) -> None:
-        random_ports = get_random_ports(4)
-
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
 
@@ -211,14 +206,13 @@ class _EmbeddedBase:
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
         # Bug with weaviate requires setting gossip and data bind port
-        my_env.setdefault("CLUSTER_JOIN", f"localhost:{random_ports[3]}")
-        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(random_ports[3]))
-        my_env.setdefault("CLUSTER_DATA_BIND_PORT", str(random_ports[3] + 1))
+        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
         my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
-        my_env.setdefault("RAFT_PORT", str(random_ports[2]))
-        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(random_ports[1]))
-        my_env.setdefault("PROFILING_PORT", str(random_ports[0]))
+        my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
+        my_env.setdefault("RAFT_PORT", str(get_random_port()))
+        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(get_random_port()))
+        my_env.setdefault("PROFILING_PORT", str(get_random_port()))
 
         my_env.setdefault(
             "ENABLE_MODULES",
@@ -228,9 +222,7 @@ class _EmbeddedBase:
 
         # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel
         # instances
-        hostname = f"Embedded_at_{self.port}"
-        my_env.setdefault("CLUSTER_HOSTNAME", hostname)
-        my_env.setdefault("RAFT_JOIN", f"{hostname}:{random_ports[1]}")
+        my_env.setdefault("CLUSTER_HOSTNAME", f"Embedded_at_{self.options.port}")
 
         if self.options.additional_env_vars is not None:
             my_env.update(self.options.additional_env_vars)
@@ -244,7 +236,7 @@ class _EmbeddedBase:
                     "--host",
                     self.options.hostname,
                     "--port",
-                    str(self.port),
+                    str(self.options.port),
                     "--scheme",
                     "http",
                 ],
@@ -289,7 +281,7 @@ class EmbeddedV4(_EmbeddedBase):
         http_listening, grpc_listening = False, False
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
-                s.connect((self.options.hostname, self.port))
+                s.connect((self.options.hostname, self.options.port))
                 http_listening = True
             except (socket.error, ConnectionRefusedError):
                 pass
