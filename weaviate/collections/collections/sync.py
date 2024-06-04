@@ -170,7 +170,6 @@ class _Collections:
             properties=data_model_properties,
             references=data_model_references,
             validate_arguments=not skip_argument_validation,
-            event_loop=self.__loop,
         )
 
     def delete(self, name: Union[str, List[str]]) -> None:

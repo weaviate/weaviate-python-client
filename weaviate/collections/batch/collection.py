@@ -117,14 +117,13 @@ class _BatchCollection(Generic[Properties], _BatchBase):
 class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
     def __init__(
         self,
-        event_loop: _EventLoop,
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         name: str,
         tenant: Optional[str],
         config: "_ConfigCollection",
     ) -> None:
-        super().__init__(event_loop, connection, consistency_level)
+        super().__init__(connection, consistency_level)
         self.__name = name
         self.__tenant = tenant
         self.__config = config

@@ -2,9 +2,10 @@ import json
 from dataclasses import asdict
 from typing import Generic, List, Literal, Optional, Type, Union, overload
 
+from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.aggregate import _AggregateCollectionAsync
 from weaviate.collections.backups import _CollectionBackupAsync
-from weaviate.collections.classes.cluster import Shard
+from weaviate.collections.cluster import _ClusterAsync
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
@@ -14,22 +15,18 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     TReferences,
 )
-from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
-from weaviate.collections.cluster import _ClusterAsync
-from weaviate.collections.config import _ConfigCollectionAsync
 from weaviate.collections.data import _DataCollectionAsync
 from weaviate.collections.generate import _GenerateCollectionAsync
 from weaviate.collections.iterator import _IteratorInputs, _ObjectAIterator
-from weaviate.collections.query import _QueryCollectionAsync
 from weaviate.collections.tenants import _TenantsAsync
 from weaviate.connect import ConnectionV4
 from weaviate.types import UUID
-from weaviate.util import _capitalize_first_letter
-from weaviate.validator import _validate_input, _ValidateArgument
+
+from .base import _CollectionBase
 
 
-class CollectionAsync(Generic[Properties, References]):
+class CollectionAsync(Generic[Properties, References], _CollectionBase[Properties, References]):
     """The collection class is the main entry point for interacting with a collection in Weaviate.
 
     This class is returned by the `client.collections.create` and `client.collections.get` methods. It provides
@@ -67,31 +64,31 @@ class CollectionAsync(Generic[Properties, References]):
         properties: Optional[Type[Properties]] = None,
         references: Optional[Type[References]] = None,
     ) -> None:
-        self._connection = connection
-        self.name = _capitalize_first_letter(name)
-        self.__cluster = _ClusterAsync(connection)
-        self._validate_arguments = validate_arguments
-
-        self.__tenant = tenant
-        self.__consistency_level = consistency_level
-        self.__properties = properties
-        self.__references = references
-
-        self.aggregate = _AggregateCollectionAsync(
-            self._connection, self.name, consistency_level, tenant
+        super().__init__(
+            connection,
+            name,
+            validate_arguments,
+            consistency_level,
+            tenant,
+            properties,
+            references,
         )
+
+        self.__cluster = _ClusterAsync(connection)
+
+        self.aggregate = _AggregateCollectionAsync(connection, name, consistency_level, tenant)
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
-        self.backup = _CollectionBackupAsync(connection, self.name)
+        self.backup = _CollectionBackupAsync(connection, name)
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
-        self.config = _ConfigCollectionAsync(self._connection, self.name, tenant)
+        self.config = self._config
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollectionAsync[Properties](
-            connection, self.name, consistency_level, tenant, validate_arguments, properties
+            connection, name, consistency_level, tenant, validate_arguments, properties
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
         self.generate = _GenerateCollectionAsync[Properties, References](
             connection,
-            self.name,
+            name,
             consistency_level,
             tenant,
             properties,
@@ -99,89 +96,10 @@ class CollectionAsync(Generic[Properties, References]):
             validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
-        self.query = _QueryCollectionAsync[Properties, References](
-            connection,
-            self.name,
-            consistency_level,
-            tenant,
-            properties,
-            references,
-            validate_arguments,
-        )
+        self.query = self._query
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
-        self.tenants = _TenantsAsync(connection, self.name)
+        self.tenants = _TenantsAsync(connection, name)
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
-
-    @property
-    def tenant(self) -> Optional[str]:
-        """The tenant of this collection object."""
-        return self.__tenant
-
-    @property
-    def consistency_level(self) -> Optional[ConsistencyLevel]:
-        """The consistency level of this collection object."""
-        return self.__consistency_level
-
-    def with_tenant(
-        self, tenant: Optional[Union[str, Tenant]] = None
-    ) -> "CollectionAsync[Properties, References]":
-        """Use this method to return a collection object specific to a single tenant.
-
-        If multi-tenancy is not configured for this collection then Weaviate will throw an error.
-
-        This method does not send a request to Weaviate. It only returns a new collection object that is specific
-        to the tenant you specify.
-
-        Arguments:
-            `tenant`
-                The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
-        """
-        _validate_input(
-            [_ValidateArgument(expected=[str, Tenant, None], name="tenant", value=tenant)]
-        )
-        return CollectionAsync[Properties, References](
-            self._connection,
-            self.name,
-            self._validate_arguments,
-            self.__consistency_level,
-            tenant.name if isinstance(tenant, Tenant) else tenant,
-            self.__properties,
-            self.__references,
-        )
-
-    def with_consistency_level(
-        self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> "CollectionAsync[Properties, References]":
-        """Use this method to return a collection object specific to a single consistency level.
-
-        If replication is not configured for this collection then Weaviate will throw an error.
-
-        This method does not send a request to Weaviate. It only returns a new collection object that is specific
-        to the consistency level you specify.
-
-        Arguments:
-            `consistency_level`
-                The consistency level to use.
-        """
-        if self._validate_arguments:
-            _validate_input(
-                [
-                    _ValidateArgument(
-                        expected=[ConsistencyLevel, None],
-                        name="consistency_level",
-                        value=consistency_level,
-                    )
-                ]
-            )
-        return CollectionAsync[Properties, References](
-            self._connection,
-            self.name,
-            self._validate_arguments,
-            consistency_level,
-            self.__tenant,
-            self.__properties,
-            self.__references,
-        )
 
     async def length(self) -> int:
         """Get the total number of objects in the collection."""
@@ -194,6 +112,35 @@ class CollectionAsync(Generic[Properties, References]):
         config = await self.config.get()
         json_ = json.dumps(asdict(config), indent=2)
         return f"<weaviate.Collection config={json_}>"
+
+    async def exists(self) -> bool:
+        """Check if the collection exists in Weaviate."""
+        try:
+            await self._config.get(simple=True)
+            return True
+        except Exception:
+            return False
+
+    async def shards(self) -> List[Shard]:
+        """
+        Get the statuses of all the shards of this collection.
+
+        Returns:
+            The list of shards belonging to this collection.
+
+        Raises
+            `weaviate.WeaviateConnectionError`
+                If the network connection to weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If weaviate reports a none OK status.
+            `weaviate.EmptyResponseError`
+                If the response is empty.
+        """
+        return [
+            shard
+            for node in await self.__cluster.nodes(self.name, output="verbose")
+            for shard in node.shards
+        ]
 
     @overload
     def iterator(
@@ -319,32 +266,3 @@ class CollectionAsync(Generic[Properties, References]):
                 after=after,
             ),
         )
-
-    async def exists(self) -> bool:
-        """Check if the collection exists in Weaviate."""
-        try:
-            await self.config.get(simple=True)
-            return True
-        except Exception:
-            return False
-
-    async def shards(self) -> List[Shard]:
-        """
-        Get the statuses of all the shards of this collection.
-
-        Returns:
-            The list of shards belonging to this collection.
-
-        Raises
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-            `weaviate.EmptyResponseError`
-                If the response is empty.
-        """
-        return [
-            shard
-            for node in await self.__cluster.nodes(self.name, output="verbose")
-            for shard in node.shards
-        ]

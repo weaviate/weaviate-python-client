@@ -16,7 +16,6 @@ from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.event_loop import _EventLoop
 from weaviate.types import UUID, VECTORS
 
 from weaviate.connect.v4 import ConnectionV4
@@ -119,12 +118,11 @@ class _BatchClient(_BatchBase):
 class _BatchClientWrapper(_BatchWrapper):
     def __init__(
         self,
-        event_loop: _EventLoop,
         connection: ConnectionV4,
         config: "_Collections",
         consistency_level: Optional[ConsistencyLevel] = None,
     ):
-        super().__init__(event_loop, connection, consistency_level)
+        super().__init__(connection, consistency_level)
         self.__config = config
         self._vectorizer_batching: Optional[bool] = None
 
