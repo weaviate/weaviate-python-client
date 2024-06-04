@@ -25,6 +25,7 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
+from weaviate.connect import ConnectionV4
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
@@ -36,7 +37,12 @@ from weaviate.connect.v4 import _ExpectedStatusCodes
 
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 
-from weaviate.collections.config.base import _ConfigCollectionBase
+
+class _ConfigCollectionBase:
+    def __init__(self, connection: ConnectionV4, name: str, tenant: Optional[str]) -> None:
+        self._connection = connection
+        self._name = name
+        self._tenant = tenant
 
 
 class _ConfigCollectionAsync(_ConfigCollectionBase):

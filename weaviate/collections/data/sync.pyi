@@ -27,10 +27,10 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import (
     Properties,
 )
-from weaviate.collections.data.base import _Data
+from weaviate.collections.data.data import _DataBase
 from weaviate.types import UUID, VECTORS
 
-class _DataCollection(Generic[Properties], _Data):
+class _DataCollection(Generic[Properties], _DataBase):
     def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]": ...
     def insert(
         self,

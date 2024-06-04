@@ -1,5 +1,5 @@
 from weaviate import asyncify
-from weaviate.collections.config.async_ import _ConfigCollectionAsync
+from weaviate.collections.config.config import _ConfigCollectionAsync
 
 
 @asyncify.convert

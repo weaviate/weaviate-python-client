@@ -5,7 +5,7 @@ from weaviate.backup.backup import (
     BackupStatusReturn,
     BackupStorage,
 )
-from weaviate.collections.backups.base import _CollectionBackupBase
+from weaviate.collections.backups.backups import _CollectionBackupBase
 
 class _CollectionBackup(_CollectionBackupBase):
     def create(

@@ -1,4 +1,4 @@
-from .async_ import _ConfigCollectionAsync
+from .config import _ConfigCollectionAsync
 from .sync import _ConfigCollection
 
 __all__ = [

@@ -1,5 +1,5 @@
 from weaviate import asyncify
-from weaviate.collections.backups.async_ import _CollectionBackupAsync
+from weaviate.collections.backups.backups import _CollectionBackupAsync
 
 
 @asyncify.convert

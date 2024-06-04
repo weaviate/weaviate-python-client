@@ -1,3 +1,6 @@
+from weaviate.connect import ConnectionV4
+
+
 from typing import List, Literal, Optional, Union, overload
 
 from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST, Stats
@@ -7,7 +10,10 @@ from weaviate.exceptions import (
 
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
-from weaviate.collections.cluster.base import _ClusterBase
+
+class _ClusterBase:
+    def __init__(self, connection: ConnectionV4):
+        self._connection = connection
 
 
 class _ClusterAsync(_ClusterBase):

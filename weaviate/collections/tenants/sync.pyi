@@ -1,15 +1,6 @@
-from typing import Any, Dict, List, Optional, Sequence, Union
-
-from weaviate import asyncify
-from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
-from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.grpc.tenants import _TenantsGRPC
-from weaviate.connect import ConnectionV4
-from weaviate.validator import _validate_input, _ValidateArgument
-
-from weaviate.connect.v4 import _ExpectedStatusCodes
-
-from weaviate.collections.tenants.base import _TenantsBase
+from typing import Dict, List, Optional, Sequence, Union
+from weaviate.collections.classes.tenants import Tenant
+from weaviate.collections.tenants.tenants import _TenantsBase
 
 class _Tenants(_TenantsBase):
     def create(self, tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]]) -> None: ...

@@ -2,7 +2,7 @@ from typing import Generic, Type
 from weaviate import asyncify
 from weaviate.collections.classes.internal import Properties
 from weaviate.collections.classes.types import TProperties, _check_properties_generic
-from weaviate.collections.data.async_ import _DataCollectionAsync
+from weaviate.collections.data.data import _DataCollectionAsync
 
 
 @asyncify.convert

@@ -1,3 +1,8 @@
+from weaviate.backup.backup import (
+    _BackupAsync,
+)
+from weaviate.connect import ConnectionV4
+
 from typing import Optional
 from weaviate.backup.backup import (
     BackupConfigCreate,
@@ -6,7 +11,14 @@ from weaviate.backup.backup import (
     BackupStorage,
 )
 
-from weaviate.collections.backups.base import _CollectionBackupBase
+
+class _CollectionBackupBase:
+    """Backup functionality for this collection."""
+
+    def __init__(self, connection: ConnectionV4, name: str):
+        self._connection = connection
+        self._name = name
+        self._backup = _BackupAsync(connection)
 
 
 class _CollectionBackupAsync(_CollectionBackupBase):

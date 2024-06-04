@@ -1,5 +1,5 @@
 from weaviate import asyncify
-from weaviate.collections.cluster.async_ import _ClusterAsync
+from weaviate.collections.cluster.cluster import _ClusterAsync
 
 
 @asyncify.convert

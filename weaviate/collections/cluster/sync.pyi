@@ -1,7 +1,7 @@
-from typing import List, Literal, Optional, Union, overload
+from typing import List, Literal, Optional, overload
 
 from weaviate.collections.classes.cluster import Node, Shards, Stats
-from weaviate.collections.cluster.base import _ClusterBase
+from weaviate.collections.cluster.cluster import _ClusterBase
 
 class _Cluster(_ClusterBase):
     @overload

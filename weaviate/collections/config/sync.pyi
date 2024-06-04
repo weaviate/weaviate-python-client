@@ -18,7 +18,7 @@ from weaviate.collections.classes.config import (
 
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 
-from weaviate.collections.config.base import _ConfigCollectionBase
+from weaviate.collections.config.config import _ConfigCollectionBase
 
 class _ConfigCollection(_ConfigCollectionBase):
     @overload

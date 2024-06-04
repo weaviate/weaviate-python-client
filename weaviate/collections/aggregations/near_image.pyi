@@ -2,7 +2,7 @@ from io import BufferedReader
 from pathlib import Path
 from typing import Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.base import _AggregateAsync
+from weaviate.collections.aggregations.aggregate import _AggregateAsync
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,

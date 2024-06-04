@@ -1,11 +1,32 @@
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.grpc.tenants import _TenantsGRPC
+
 from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
 from weaviate.validator import _validate_input, _ValidateArgument
 
 from weaviate.connect.v4 import _ExpectedStatusCodes
 
-from weaviate.collections.tenants.base import _TenantsBase
+from weaviate.connect import ConnectionV4
+
+
+class _TenantsBase:
+    def __init__(
+        self,
+        connection: ConnectionV4,
+        name: str,
+        consistency_level: Optional[ConsistencyLevel] = None,
+        validate_arguments: bool = True,
+    ) -> None:
+        self._connection = connection
+        self._name = name
+        self._grpc = _TenantsGRPC(
+            connection=connection,
+            name=name,
+            consistency_level=consistency_level,
+        )
+        self._validate_arguments = validate_arguments
 
 
 class _TenantsAsync(_TenantsBase):
