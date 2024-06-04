@@ -15,11 +15,24 @@ from typing import (
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class TargetVectorJoinMethod(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FUSION_TYPE_UNSPECIFIED: _ClassVar[TargetVectorJoinMethod]
+    FUSION_TYPE_SUM: _ClassVar[TargetVectorJoinMethod]
+    FUSION_TYPE_MIN: _ClassVar[TargetVectorJoinMethod]
+    FUSION_TYPE_AVERAGE: _ClassVar[TargetVectorJoinMethod]
+
+FUSION_TYPE_UNSPECIFIED: TargetVectorJoinMethod
+FUSION_TYPE_SUM: TargetVectorJoinMethod
+FUSION_TYPE_MIN: TargetVectorJoinMethod
+FUSION_TYPE_AVERAGE: TargetVectorJoinMethod
+
 class SearchRequest(_message.Message):
     __slots__ = (
         "collection",
         "tenant",
         "consistency_level",
+        "target_vector_join",
         "properties",
         "metadata",
         "group_by",
@@ -48,6 +61,7 @@ class SearchRequest(_message.Message):
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
+    TARGET_VECTOR_JOIN_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
     GROUP_BY_FIELD_NUMBER: _ClassVar[int]
@@ -75,6 +89,7 @@ class SearchRequest(_message.Message):
     collection: str
     tenant: str
     consistency_level: _base_pb2.ConsistencyLevel
+    target_vector_join: TargetVectorJoin
     properties: PropertiesRequest
     metadata: MetadataRequest
     group_by: GroupBy
@@ -104,6 +119,7 @@ class SearchRequest(_message.Message):
         collection: _Optional[str] = ...,
         tenant: _Optional[str] = ...,
         consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...,
+        target_vector_join: _Optional[_Union[TargetVectorJoin, _Mapping]] = ...,
         properties: _Optional[_Union[PropertiesRequest, _Mapping]] = ...,
         metadata: _Optional[_Union[MetadataRequest, _Mapping]] = ...,
         group_by: _Optional[_Union[GroupBy, _Mapping]] = ...,
@@ -251,6 +267,34 @@ class ObjectPropertiesRequest(_message.Message):
         prop_name: _Optional[str] = ...,
         primitive_properties: _Optional[_Iterable[str]] = ...,
         object_properties: _Optional[_Iterable[_Union[ObjectPropertiesRequest, _Mapping]]] = ...,
+    ) -> None: ...
+
+class TargetVectorJoin(_message.Message):
+    __slots__ = ("join", "manual_weights")
+
+    class ManualWeights(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: float
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
+
+    class ManualWeightsArrays(_message.Message):
+        __slots__ = ("val",)
+        VAL_FIELD_NUMBER: _ClassVar[int]
+        val: _containers.RepeatedCompositeFieldContainer[TargetVectorJoin.ManualWeights]
+        def __init__(
+            self, val: _Optional[_Iterable[_Union[TargetVectorJoin.ManualWeights, _Mapping]]] = ...
+        ) -> None: ...
+    JOIN_FIELD_NUMBER: _ClassVar[int]
+    MANUAL_WEIGHTS_FIELD_NUMBER: _ClassVar[int]
+    join: TargetVectorJoinMethod
+    manual_weights: TargetVectorJoin.ManualWeightsArrays
+    def __init__(
+        self,
+        join: _Optional[_Union[TargetVectorJoinMethod, str]] = ...,
+        manual_weights: _Optional[_Union[TargetVectorJoin.ManualWeightsArrays, _Mapping]] = ...,
     ) -> None: ...
 
 class Hybrid(_message.Message):

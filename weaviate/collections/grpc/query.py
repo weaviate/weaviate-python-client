@@ -25,7 +25,7 @@ from weaviate.collections.classes.grpc import (
     _Sorting,
     Rerank,
 )
-from weaviate.collections.classes.internal import _Generative, _GroupBy
+from weaviate.collections.classes.internal import _Generative, _GroupBy, TargetVectorJoinType
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
@@ -403,6 +403,7 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[Union[str, List[str]]] = None,
+        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -414,6 +415,9 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([Move, None], "move_away", move_away),
                     _ValidateArgument([Move, None], "move_to", move_to),
                     _ValidateArgument([str, List, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, dict], "multi_target_fusion_method", multi_target_fusion_method
+                    ),
                 ]
             )
 
@@ -445,6 +449,7 @@ class _QueryGRPC(_BaseGRPC):
             autocut=autocut,
             group_by=group_by,
             near_text=near_text_req,
+            multi_target_fusion_method=multi_target_fusion_method,
         )
 
         return self.__call(request)
@@ -545,6 +550,7 @@ class _QueryGRPC(_BaseGRPC):
         metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
+        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         autocut: Optional[int] = None,
@@ -620,6 +626,9 @@ class _QueryGRPC(_BaseGRPC):
             offset=offset,
             after=str(after) if after is not None else "",
             autocut=autocut,
+            target_vector_join=self._multi_target_to_grpc(multi_target_fusion_method)
+            if multi_target_fusion_method is not None
+            else None,
             properties=self._translate_properties_from_python_to_grpc(
                 return_properties_parsed, return_references_parsed
             ),
@@ -686,6 +695,31 @@ class _QueryGRPC(_BaseGRPC):
                 self.__resolve_property(p) for p in props if isinstance(p, QueryNested)
             ],
         )
+
+    def _multi_target_to_grpc(
+        self, join_method: TargetVectorJoinType
+    ) -> search_get_pb2.TargetVectorJoin:
+        if isinstance(join_method, dict):
+            weights = search_get_pb2.TargetVectorJoin.ManualWeightsArrays()
+            for key, val in join_method.items():
+                weights.val.append(
+                    search_get_pb2.TargetVectorJoin.ManualWeights(value=val, key=key)
+                )
+            return search_get_pb2.TargetVectorJoin(manual_weights=weights)
+        else:
+            if join_method == "Average":
+                return search_get_pb2.TargetVectorJoin(
+                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_MIN
+                )
+            elif join_method == "Sum":
+                return search_get_pb2.TargetVectorJoin(
+                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_SUM
+                )
+            else:
+                assert join_method == "Minimum"
+                return search_get_pb2.TargetVectorJoin(
+                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_MIN
+                )
 
     def _translate_properties_from_python_to_grpc(
         self, properties: Optional[Set[PROPERTY]], references: Optional[Set[REFERENCE]]

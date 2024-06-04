@@ -1,6 +1,8 @@
 import datetime
 import sys
+import uuid as uuid_package
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import (
     Any,
     Dict,
@@ -14,9 +16,8 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import TypeAlias
 
-import uuid as uuid_package
+from typing_extensions import TypeAlias
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin, get_args
@@ -594,3 +595,14 @@ QueryNearMediaReturnType = Union[
     GroupByReturnType[Properties, References, TProperties, TReferences],
 ]
 """@Deprecated: Use `QuerySearchReturnType` instead."""
+
+
+class _MultiTargetVectorJoin(Enum):
+    """Define how multi target vector searches should be combined."""
+
+    SUM = auto()
+    AVERAGE = auto()
+    MINIMUM = auto()
+
+
+TargetVectorJoinType = Union[_MultiTargetVectorJoin, Dict[str, float]]

@@ -15,6 +15,7 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     _QueryOptions,
     QuerySearchReturnType,
+    TargetVectorJoinType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
@@ -37,6 +38,7 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[Union[str, List[str]]] = None,
+        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -103,6 +105,7 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
             autocut=auto_limit,
             filters=filters,
             target_vector=target_vector,
+            multi_target_fusion_method=multi_target_fusion_method,
             group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
