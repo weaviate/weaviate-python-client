@@ -110,7 +110,7 @@ class _ObjectAIterator(
             )
             self.__iter_object_cache = res.objects  # type: ignore
             if len(self.__iter_object_cache) == 0:
-                raise StopIteration
+                raise StopAsyncIteration
 
         ret_object = self.__iter_object_cache.pop(0)
         self.__iter_object_last_uuid = ret_object.uuid

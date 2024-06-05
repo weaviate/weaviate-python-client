@@ -390,6 +390,25 @@ def test_client_connect_and_close() -> None:
         client.get_meta()
 
 
+@pytest.mark.asyncio
+async def test_async_client_connect_and_close() -> None:
+    client = weaviate.WeaviateAsyncClient(
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
+        skip_init_checks=False,
+    )
+    await client.connect()
+    assert client.is_connected()
+    await client.get_meta()
+    assert client.is_live()
+
+    await client.close()
+    assert not client.is_connected()
+    with pytest.raises(WeaviateClosedClientError):
+        await client.get_meta()
+
+
 def test_client_as_context_manager() -> None:
     with weaviate.WeaviateClient(
         connection_params=weaviate.connect.ConnectionParams.from_url(
@@ -404,6 +423,23 @@ def test_client_as_context_manager() -> None:
     assert not client.is_connected()
     with pytest.raises(WeaviateClosedClientError):
         client.get_meta()
+
+
+@pytest.mark.asyncio
+async def test_async_client_as_context_manager() -> None:
+    async with weaviate.WeaviateAsyncClient(
+        connection_params=weaviate.connect.ConnectionParams.from_url(
+            "http://localhost:8080", 50051
+        ),
+        skip_init_checks=False,
+    ) as client:
+        assert client.is_connected()
+        await client.get_meta()
+        assert client.is_live()
+
+    assert not client.is_connected()
+    with pytest.raises(WeaviateClosedClientError):
+        await client.get_meta()
 
 
 def test_connect_to_wrong_wcs() -> None:
@@ -491,6 +527,37 @@ def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> 
         client.close()
 
 
+@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
+@pytest.mark.asyncio
+async def test_async_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> None:
+    additional_config = wvc.init.AdditionalConfig(timeout=timeout, trust_env=True)
+
+    for client in [
+        weaviate.connect_to_weaviate_cloud(
+            cluster_url=WCS_URL,
+            auth_credentials=WCS_CREDS,
+            additional_config=additional_config,
+            use_async=True,
+        ),
+        weaviate.connect_to_local(additional_config=additional_config, use_async=True),
+        weaviate.connect_to_custom(
+            http_secure=True,
+            http_host=WCS_HOST,
+            http_port=443,
+            grpc_secure=True,
+            grpc_host=WCS_GRPC_HOST,
+            grpc_port=443,
+            auth_credentials=WCS_CREDS,
+            additional_config=additional_config,
+            use_async=True,
+        ),
+    ]:
+        await client.connect()
+        await client.get_meta()
+        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
+        await client.close()
+
+
 def test_client_error_for_wcs_without_auth() -> None:
     with pytest.raises(weaviate.exceptions.AuthenticationFailedError) as e:
         weaviate.connect_to_wcs(cluster_url=WCS_URL, auth_credentials=None)
@@ -509,6 +576,14 @@ def test_client_is_not_ready() -> None:
 def test_client_is_ready() -> None:
     with weaviate.connect_to_wcs(
         cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
+    ) as client:
+        assert client.is_ready()
+
+
+@pytest.mark.asyncio
+async def test_async_client_is_ready() -> None:
+    async with weaviate.connect_to_weaviate_cloud(
+        cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True, use_async=True
     ) as client:
         assert client.is_ready()
 

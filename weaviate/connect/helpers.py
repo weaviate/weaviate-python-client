@@ -1,7 +1,7 @@
-"""Helper functions for creating a new WeaviateClient in common scenarios."""
+"""Helper functions for creating new WeaviateClient or WeaviateAsyncClient instances in common scenarios."""
 
 from urllib.parse import urlparse
-from typing import Awaitable, Dict, Literal, Optional, Union, overload
+from typing import Dict, Literal, Optional, Union, overload
 
 from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
@@ -11,19 +11,48 @@ from weaviate.embedded import EmbeddedOptions
 from weaviate.validator import _validate_input, _ValidateArgument
 
 
+@overload
 def connect_to_weaviate_cloud(
     cluster_url: str,
     auth_credentials: Optional[AuthCredentials],
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
+    *,
+    use_async: Literal[False] = False,
 ) -> WeaviateClient:
+    ...
+
+
+@overload
+def connect_to_weaviate_cloud(
+    cluster_url: str,
+    auth_credentials: Optional[AuthCredentials],
+    headers: Optional[Dict[str, str]] = None,
+    additional_config: Optional[AdditionalConfig] = None,
+    skip_init_checks: bool = False,
+    *,
+    use_async: Literal[True],
+) -> WeaviateAsyncClient:
+    ...
+
+
+def connect_to_weaviate_cloud(
+    cluster_url: str,
+    auth_credentials: Optional[AuthCredentials],
+    headers: Optional[Dict[str, str]] = None,
+    additional_config: Optional[AdditionalConfig] = None,
+    skip_init_checks: bool = False,
+    use_async: bool = False,
+) -> Union[WeaviateClient, WeaviateAsyncClient]:
     """
     Connect to a Weaviate Cloud (WCD) instance.
 
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
+
+    If setting `use_async=True`, you must either use this as an async context manager or call `await client.connect()` manually yourself.
 
     Arguments:
         `cluster_url`
@@ -40,27 +69,50 @@ def connect_to_weaviate_cloud(
             Whether to skip the initialization checks when connecting to Weaviate.
 
     Returns
-        `weaviate.WeaviateClient`
+        `weaviate.WeaviateClient` or `weaviate.WeaviateAsyncClient` depending on the value of `use_async`
             The client connected to the cluster with the required parameters set appropriately.
 
     Examples:
+        >>> ################## Sync Without Context Manager #############################
         >>> import weaviate
-        >>> client = weaviate.connect_to_wcs(
+        >>> client = weaviate.connect_to_weaviate_cloud(
         ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
         ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
         ... )
         >>> client.is_ready()
         True
         >>> client.close() # Close the connection when you are done with it.
-        ################## With Context Manager #############################
+        >>> ################## Sync With Context Manager #############################
         >>> import weaviate
-        >>> with weaviate.connect_to_wcs(
+        >>> with weaviate.connect_to_weaviate_cloud(
         ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
         ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
         ... ) as client:
         ...     client.is_ready()
         True
         >>> # The connection is automatically closed when the context is exited.
+        >>> ################## Async Without Context Manager #############################
+        >>> import weaviate
+        >>> client = weaviate.connect_to_weaviate_cloud(
+        ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
+        ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
+        ...     use_async=True,
+        ... )
+        >>> client.is_ready()
+        False # The connection is not ready yet, you must call `await client.connect()` to connect.
+        ... await client.connect()
+        >>> client.is_ready()
+        True
+        >>> await client.close() # Close the connection when you are done with it.
+        >>> ################## Async With Context Manager #############################
+        >>> import weaviate
+        >>> async with weaviate.connect_to_weaviate_cloud(
+        ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
+        ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
+        ...     use_async=True,
+        ... ) as client:
+        ...     client.is_ready()
+        True
     """
     _validate_input(_ValidateArgument([str], "cluster_url", cluster_url))
     if cluster_url.startswith("http"):
@@ -72,17 +124,30 @@ def connect_to_weaviate_cloud(
     else:
         grpc_host = f"grpc-{cluster_url}"
 
-    client = WeaviateClient(
-        connection_params=ConnectionParams(
-            http=ProtocolParams(host=cluster_url, port=443, secure=True),
-            grpc=ProtocolParams(host=grpc_host, port=443, secure=True),
-        ),
-        auth_client_secret=auth_credentials,
-        additional_headers=headers,
-        additional_config=additional_config,
-        skip_init_checks=skip_init_checks,
-    )
-    return __connect(client)
+    if use_async:
+        return WeaviateAsyncClient(
+            connection_params=ConnectionParams(
+                http=ProtocolParams(host=cluster_url, port=443, secure=True),
+                grpc=ProtocolParams(host=grpc_host, port=443, secure=True),
+            ),
+            auth_client_secret=auth_credentials,
+            additional_headers=headers,
+            additional_config=additional_config,
+            skip_init_checks=skip_init_checks,
+        )
+    else:
+        return __connect(
+            WeaviateClient(
+                connection_params=ConnectionParams(
+                    http=ProtocolParams(host=cluster_url, port=443, secure=True),
+                    grpc=ProtocolParams(host=grpc_host, port=443, secure=True),
+                ),
+                auth_client_secret=auth_credentials,
+                additional_headers=headers,
+                additional_config=additional_config,
+                skip_init_checks=skip_init_checks,
+            )
+        )
 
 
 def connect_to_wcs(
@@ -93,7 +158,7 @@ def connect_to_wcs(
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
     """
-    Connect to a Weaviate Cloud (WCD) instance.
+    Connect to a Weaviate Cloud (WCD) instance. This method is deprecated and will be removed in a future release. Use `connect_to_weaviate_cloud` instead.
 
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
@@ -166,7 +231,7 @@ def connect_to_local(
     auth_credentials: Optional[AuthCredentials] = None,
     *,
     use_async: Literal[True],
-) -> Awaitable[WeaviateAsyncClient]:
+) -> WeaviateAsyncClient:
     ...
 
 
@@ -179,13 +244,15 @@ def connect_to_local(
     skip_init_checks: bool = False,
     auth_credentials: Optional[AuthCredentials] = None,
     use_async: bool = False,
-) -> Union[WeaviateClient, Awaitable[WeaviateAsyncClient]]:
+) -> Union[WeaviateClient, WeaviateAsyncClient]:
     """
     Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
 
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
+
+    If setting `use_async=True`, you must either use this as an async context manager or call `await client.connect()` manually yourself.
 
     Arguments:
         `host`
@@ -212,6 +279,7 @@ def connect_to_local(
             The client connected to the local instance with default parameters set as:
 
     Examples:
+        >>> ################## Sync Without Context Manager #############################
         >>> import weaviate
         >>> client = weaviate.connect_to_local(
         ...     host="localhost",
@@ -221,7 +289,7 @@ def connect_to_local(
         >>> client.is_ready()
         True
         >>> client.close() # Close the connection when you are done with it.
-        ################## With Context Manager #############################
+        >>> ################## Sync With Context Manager #############################
         >>> import weaviate
         >>> with weaviate.connect_to_local(
         ...     host="localhost",
@@ -231,20 +299,42 @@ def connect_to_local(
         ...     client.is_ready()
         True
         >>> # The connection is automatically closed when the context is exited.
+        >>> ################## Async Without Context Manager #############################
+        >>> import weaviate
+        >>> client = weaviate.connect_to_local(
+        ...     host="localhost",
+        ...     port=8080,
+        ...     grpc_port=50051,
+        ...     use_async=True,
+        ... )
+        ... await client.connect()
+        >>> client.is_ready()
+        True
+        >>> await client.close() # Close the connection when you are done with it.
+        >>> ################## Async With Context Manager #############################
+        >>> import weaviate
+        >>> async with weaviate.connect_to_local(
+        ...     host="localhost",
+        ...     port=8080,
+        ...     grpc_port=50051,
+        ...     use_async=True,
+        ... ) as client:
+        ...     client.is_ready()
+        True
+        >>> # The connection is automatically closed when the context is exited.
     """
     if use_async:
-        return __aconnect(
-            WeaviateAsyncClient(
-                connection_params=ConnectionParams(
-                    http=ProtocolParams(host=host, port=port, secure=False),
-                    grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
-                ),
-                additional_headers=headers,
-                additional_config=additional_config,
-                skip_init_checks=skip_init_checks,
-                auth_client_secret=auth_credentials,
-            )
+        return WeaviateAsyncClient(
+            connection_params=ConnectionParams(
+                http=ProtocolParams(host=host, port=port, secure=False),
+                grpc=ProtocolParams(host=host, port=grpc_port, secure=False),
+            ),
+            additional_headers=headers,
+            additional_config=additional_config,
+            skip_init_checks=skip_init_checks,
+            auth_client_secret=auth_credentials,
         )
+
     else:
         return __connect(
             WeaviateClient(
@@ -346,6 +436,7 @@ def connect_to_embedded(
     return __connect(client)
 
 
+@overload
 def connect_to_custom(
     http_host: str,
     http_port: int,
@@ -357,15 +448,54 @@ def connect_to_custom(
     additional_config: Optional[AdditionalConfig] = None,
     auth_credentials: Optional[AuthCredentials] = None,
     skip_init_checks: bool = False,
+    *,
+    use_async: Literal[False] = False,
 ) -> WeaviateClient:
+    ...
+
+
+@overload
+def connect_to_custom(
+    http_host: str,
+    http_port: int,
+    http_secure: bool,
+    grpc_host: str,
+    grpc_port: int,
+    grpc_secure: bool,
+    headers: Optional[Dict[str, str]] = None,
+    additional_config: Optional[AdditionalConfig] = None,
+    auth_credentials: Optional[AuthCredentials] = None,
+    skip_init_checks: bool = False,
+    *,
+    use_async: Literal[True],
+) -> WeaviateAsyncClient:
+    ...
+
+
+def connect_to_custom(
+    http_host: str,
+    http_port: int,
+    http_secure: bool,
+    grpc_host: str,
+    grpc_port: int,
+    grpc_secure: bool,
+    headers: Optional[Dict[str, str]] = None,
+    additional_config: Optional[AdditionalConfig] = None,
+    auth_credentials: Optional[AuthCredentials] = None,
+    skip_init_checks: bool = False,
+    *,
+    use_async: bool = False,
+) -> Union[WeaviateClient, WeaviateAsyncClient]:
     """
     Connect to a Weaviate instance with custom connection parameters.
 
-    If this is not sufficient for your customization needs then instantiate a `weaviate.WeaviateClient` directly.
+    If this is not sufficient for your customization needs then instantiate a `weaviate.WeaviateClient` or `weaviate.WeaviateAsyncClient` instance directly.
 
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
     in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
+
+    If setting `use_async=True`, you must either use this as an async context manager or call `await client.connect()` manually yourself.
 
     Arguments:
         `http_host`
@@ -396,6 +526,7 @@ def connect_to_custom(
             The client connected to the instance with the required parameters set appropriately.
 
     Examples:
+        >>> ################## Sync Without Context Manager #############################
         >>> import weaviate
         >>> client = weaviate.connect_to_custom(
         ...     http_host="localhost",
@@ -408,7 +539,7 @@ def connect_to_custom(
         >>> client.is_ready()
         True
         >>> client.close() # Close the connection when you are done with it.
-        ################## With Context Manager #############################
+        >>> ################## Sync With Context Manager #############################
         >>> import weaviate
         >>> with weaviate.connect_to_custom(
         ...     http_host="localhost",
@@ -421,22 +552,68 @@ def connect_to_custom(
         ...     client.is_ready()
         True
         >>> # The connection is automatically closed when the context is exited.
+        >>> ################## Async Without Context Manager #############################
+        >>> import weaviate
+        >>> client = weaviate.connect_to_custom(
+        ...     http_host="localhost",
+        ...     http_port=8080,
+        ...     http_secure=False,
+        ...     grpc_host="localhost",
+        ...     grpc_port=50051,
+        ...     grpc_secure=False,
+        ...     use_async=True,
+        ... )
+        ... await client.connect()
+        >>> client.is_ready()
+        True
+        >>> await client.close() # Close the connection when you are done with it.
+        >>> ################## Async With Context Manager #############################
+        >>> import weaviate
+        >>> async with weaviate.connect_to_custom(
+        ...     http_host="localhost",
+        ...     http_port=8080,
+        ...     http_secure=False,
+        ...     grpc_host="localhost",
+        ...     grpc_port=50051,
+        ...     grpc_secure=False,
+        ...     use_async=True,
+        ... ) as client:
+        ...     client.is_ready()
+        True
+        >>> # The connection is automatically closed when the context is exited.
     """
-    client = WeaviateClient(
-        ConnectionParams.from_params(
-            http_host=http_host,
-            http_port=http_port,
-            http_secure=http_secure,
-            grpc_host=grpc_host,
-            grpc_port=grpc_port,
-            grpc_secure=grpc_secure,
-        ),
-        auth_client_secret=auth_credentials,
-        additional_headers=headers,
-        additional_config=additional_config,
-        skip_init_checks=skip_init_checks,
-    )
-    return __connect(client)
+    if use_async:
+        return WeaviateAsyncClient(
+            ConnectionParams.from_params(
+                http_host=http_host,
+                http_port=http_port,
+                http_secure=http_secure,
+                grpc_host=grpc_host,
+                grpc_port=grpc_port,
+                grpc_secure=grpc_secure,
+            ),
+            auth_client_secret=auth_credentials,
+            additional_headers=headers,
+            additional_config=additional_config,
+            skip_init_checks=skip_init_checks,
+        )
+    else:
+        return __connect(
+            WeaviateClient(
+                ConnectionParams.from_params(
+                    http_host=http_host,
+                    http_port=http_port,
+                    http_secure=http_secure,
+                    grpc_host=grpc_host,
+                    grpc_port=grpc_port,
+                    grpc_secure=grpc_secure,
+                ),
+                auth_client_secret=auth_credentials,
+                additional_headers=headers,
+                additional_config=additional_config,
+                skip_init_checks=skip_init_checks,
+            )
+        )
 
 
 def __connect(client: WeaviateClient) -> WeaviateClient:
@@ -445,13 +622,4 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
         return client
     except Exception as e:
         client.close()
-        raise e
-
-
-async def __aconnect(client: WeaviateAsyncClient) -> WeaviateAsyncClient:
-    try:
-        await client.connect()
-        return client
-    except Exception as e:
-        await client.close()
         raise e

@@ -3,9 +3,10 @@ import uuid
 
 import pytest
 
-import weaviate
 import weaviate.classes as wvc
 from weaviate.collections.classes.config import DataType, Property
+
+from .conftest import AsyncCollectionFactory, AsyncOpenAICollectionFactory
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 
@@ -13,12 +14,8 @@ DATE1 = datetime.datetime.strptime("2012-02-09", "%Y-%m-%d").replace(tzinfo=date
 
 
 @pytest.mark.asyncio
-async def test_fetch_objects_async() -> None:
-    client = await weaviate.connect_to_local(use_async=True)
-    name = "test_fetch_objects_async"
-    await client.collections.delete(name)
-    collection = await client.collections.create(
-        name=name,
+async def test_fetch_objects(async_collection_factory: AsyncCollectionFactory) -> None:
+    collection = await async_collection_factory(
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
@@ -33,17 +30,11 @@ async def test_fetch_objects_async() -> None:
     res = await collection.query.fetch_objects()
     assert len(res.objects) == 1
     assert res.objects[0].properties["name"] == "John Doe"
-    await client.collections.delete(name)
-    await client.close()
 
 
 @pytest.mark.asyncio
-async def test_config_add_reference() -> None:
-    client = await weaviate.connect_to_local(use_async=True)
-    name = "test_config_add_reference"
-    await client.collections.delete(name)
-    collection = await client.collections.create(
-        name=name,
+async def test_config_add_reference(async_collection_factory: AsyncCollectionFactory) -> None:
+    collection = await async_collection_factory(
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
@@ -52,5 +43,127 @@ async def test_config_add_reference() -> None:
     await collection.config.add_reference(
         wvc.config.ReferenceProperty(name="test", target_collection=collection.name)
     )
-    await client.collections.delete(name)
-    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_references(async_collection_factory: AsyncCollectionFactory) -> None:
+    collection = await async_collection_factory(
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+    )
+    await collection.config.add_reference(
+        wvc.config.ReferenceProperty(name="marriage", target_collection=collection.name)
+    )
+    id1 = await collection.data.insert({"name": "John Doe"})
+    id2 = await collection.data.insert({"name": "Jane Doe"})
+
+    await collection.data.reference_add(id1, "marriage", id2)
+    await collection.data.reference_add(id2, "marriage", id1)
+
+    res = await collection.query.fetch_object_by_id(
+        id1, return_references=wvc.query.QueryReference(link_on="marriage")
+    )
+    assert res.references["marriage"].objects[0].uuid == id2
+    res = await collection.query.fetch_object_by_id(
+        id2, return_references=wvc.query.QueryReference(link_on="marriage")
+    )
+    assert res.references["marriage"].objects[0].uuid == id1
+
+    await collection.data.reference_delete(id1, "marriage", id2)
+    res = await collection.query.fetch_object_by_id(
+        id1, return_references=wvc.query.QueryReference(link_on="marriage")
+    )
+    assert len(res.references["marriage"].objects) == 0
+
+    await collection.data.reference_replace(id2, "marriage", id2)
+    res = await collection.query.fetch_object_by_id(
+        id2, return_references=wvc.query.QueryReference(link_on="marriage")
+    )
+    assert res.references["marriage"].objects[0].uuid == id2
+
+    await collection.data.reference_add_many(
+        [wvc.data.DataReference(from_property="marriage", from_uuid=id1, to_uuid=[id1, id2])]
+    )
+    res = await collection.query.fetch_object_by_id(
+        id1, return_references=wvc.query.QueryReference(link_on="marriage")
+    )
+    assert len(res.references["marriage"].objects) == 2
+
+
+@pytest.mark.asyncio
+async def test_aggregate(async_collection_factory: AsyncCollectionFactory) -> None:
+    collection = await async_collection_factory(
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+    )
+    await collection.data.insert_many(
+        [
+            {"name": "John Doe"},
+            {"name": "Jane Doe"},
+        ]
+    )
+    res = await collection.aggregate.over_all()
+    assert res.total_count == 2
+
+
+@pytest.mark.asyncio
+async def test_iterator(async_collection_factory: AsyncCollectionFactory) -> None:
+    collection = await async_collection_factory(
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+    )
+    await collection.data.insert_many(
+        [
+            {"name": "John Doe"},
+            {"name": "Jane Doe"},
+        ]
+    )
+    names = [obj.properties["name"] async for obj in collection.iterator()]
+    assert "John Doe" in names
+    assert "Jane Doe" in names
+
+
+@pytest.mark.asyncio
+async def test_delete_many(async_collection_factory: AsyncCollectionFactory) -> None:
+    collection = await async_collection_factory(
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+    )
+    ret = await collection.data.insert_many(
+        [
+            {"name": "John Doe"},
+            {"name": "Jane Doe"},
+        ]
+    )
+    await collection.data.delete_many(wvc.query.Filter.by_property("name").equal("John Doe"))
+    assert (await collection.query.fetch_object_by_id(ret.uuids[0])) is None
+    assert (await collection.query.fetch_object_by_id(ret.uuids[1])) is not None
+
+
+@pytest.mark.asyncio
+async def test_generate(async_openai_collection: AsyncOpenAICollectionFactory) -> None:
+    collection = await async_openai_collection(
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+    )
+    await collection.data.insert_many(
+        [
+            {"text": "John Doe"},
+            {"text": "Jane Doe"},
+        ]
+    )
+    res = await collection.generate.fetch_objects(
+        single_prompt="Who is this? {text}", grouped_task="Who are these people?"
+    )
+    assert res is not None
+    assert res.generated is not None
+    assert len(res.objects) == 2
+    for obj in res.objects:
+        assert obj.generated is not None
