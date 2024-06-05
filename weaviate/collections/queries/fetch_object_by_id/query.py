@@ -4,7 +4,7 @@ from typing import (
     cast,
 )
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     Filter,
 )
@@ -102,7 +102,7 @@ class _FetchObjectByIDQueryAsync(Generic[Properties, References], _Base[Properti
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _FetchObjectByIDQuery(
     Generic[Properties, References], _FetchObjectByIDQueryAsync[Properties, References]
 ):

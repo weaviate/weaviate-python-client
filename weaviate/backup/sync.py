@@ -1,7 +1,7 @@
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.backup.backup import _BackupAsync
 
 
-@asyncify.convert
+@syncify.convert
 class _Backup(_BackupAsync):
     pass

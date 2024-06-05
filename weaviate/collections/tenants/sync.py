@@ -1,7 +1,7 @@
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.tenants.tenants import _TenantsAsync
 
 
-@asyncify.convert
+@syncify.convert
 class _Tenants(_TenantsAsync):
     pass

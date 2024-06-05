@@ -1,6 +1,6 @@
 from typing import Generic, List, Optional
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -129,6 +129,6 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _BM25Generate(Generic[Properties, References], _BM25GenerateAsync[Properties, References]):
     pass

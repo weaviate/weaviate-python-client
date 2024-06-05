@@ -13,7 +13,7 @@ from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLRe
 
 from weaviate.integrations import _Integrations
 
-from weaviate import asyncify
+from weaviate import syncify
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch

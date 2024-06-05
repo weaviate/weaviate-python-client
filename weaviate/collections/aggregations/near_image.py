@@ -2,7 +2,7 @@ from io import BufferedReader
 from pathlib import Path
 from typing import Optional, Union
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.aggregations.aggregate import _AggregateAsync
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
@@ -79,6 +79,6 @@ class _NearImageAsync(_AggregateAsync):
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _NearImage(_NearImageAsync):
     pass

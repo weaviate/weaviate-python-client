@@ -1,6 +1,6 @@
 from typing import Generic, List, Optional, Union
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -126,6 +126,6 @@ class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, Ref
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _NearTextQuery(Generic[Properties, References], _NearTextQueryAsync[Properties, References]):
     pass

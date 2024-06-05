@@ -11,7 +11,7 @@ from weaviate.backup.backup import _BackupAsync
 from weaviate.backup.sync import _Backup
 
 
-from . import asyncify
+from weaviate import syncify
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
@@ -47,7 +47,7 @@ from .warnings import _Warnings
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
-@asyncify.convert
+@syncify.convert
 class WeaviateClient(_WeaviateClientBase):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
@@ -108,11 +108,11 @@ class WeaviateClient(_WeaviateClientBase):
         """
 
     def __enter__(self) -> "WeaviateClient":
-        self.connect()  # pyright: ignore # gets patched by asyncify.convert to be sync
+        self.connect()  # pyright: ignore # gets patched by syncify.convert to be sync
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        self.close()  # pyright: ignore # gets patched by asyncify.convert to be sync
+        self.close()  # pyright: ignore # gets patched by syncify.convert to be sync
 
 
 class WeaviateAsyncClient(_WeaviateClientBase):

@@ -1,6 +1,6 @@
 from typing import Generic, List, Optional
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -114,7 +114,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _NearVectorQuery(
     Generic[Properties, References], _NearVectorQueryAsync[Properties, References]
 ):

@@ -1,6 +1,6 @@
 from typing import Generic, List, Optional
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -123,7 +123,7 @@ class _NearObjectGenerateAsync(Generic[Properties, References], _Base[Properties
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _NearObjectGenerate(
     Generic[Properties, References], _NearObjectGenerateAsync[Properties, References]
 ):

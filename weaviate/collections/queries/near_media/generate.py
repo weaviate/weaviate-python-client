@@ -2,7 +2,7 @@ from io import BufferedReader
 from pathlib import Path
 from typing import Generic, List, Optional, Union
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -132,7 +132,7 @@ class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties,
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _NearMediaGenerate(
     Generic[Properties, References], _NearMediaGenerateAsync[Properties, References]
 ):

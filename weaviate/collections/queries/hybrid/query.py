@@ -1,6 +1,6 @@
 from typing import Generic, List, Optional
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -136,6 +136,6 @@ class _HybridQueryAsync(Generic[Properties, References], _Base[Properties, Refer
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _HybridQuery(Generic[Properties, References], _HybridQueryAsync[Properties, References]):
     pass

@@ -1,6 +1,6 @@
 from typing import Generic, Optional
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
@@ -86,7 +86,7 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _Base[Properties,
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _FetchObjectsQuery(
     Generic[Properties, References], _FetchObjectsQueryAsync[Properties, References]
 ):

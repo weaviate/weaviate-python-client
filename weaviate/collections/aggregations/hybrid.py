@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from weaviate import asyncify
+from weaviate import syncify
 from weaviate.collections.aggregations.aggregate import _AggregateAsync
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
@@ -81,6 +81,6 @@ class _HybridAsync(_AggregateAsync):
         )
 
 
-@asyncify.convert
+@syncify.convert
 class _Hybrid(_HybridAsync):
     pass
