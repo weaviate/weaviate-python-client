@@ -536,6 +536,16 @@ class _Generative:
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
     ) -> _GenerativeConfigCreate:
+        """
+        Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
+
+        Arguments:
+            `api_endpoint`
+                The API endpoint to use. Defaults to `None`, which uses the server-defined default
+                Docker users may need to specify an alias, such as `http://host.docker.internal:11434` so that the container can access the host machine.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeOllama(model=model, apiEndpoint=api_endpoint)
 
     @staticmethod
