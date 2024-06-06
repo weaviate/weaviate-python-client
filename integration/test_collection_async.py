@@ -33,6 +33,34 @@ async def test_fetch_objects(async_collection_factory: AsyncCollectionFactory) -
 
 
 @pytest.mark.asyncio
+async def test_config_update(async_collection_factory: AsyncCollectionFactory) -> None:
+    collection = await async_collection_factory(
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        multi_tenancy_config=wvc.config.Configure.multi_tenancy(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+    )
+    await collection.config.update(
+        multi_tenancy_config=wvc.config.Reconfigure.multi_tenancy(
+            auto_tenant_activation=True,
+            auto_tenant_creation=True,
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_config_add_property(async_collection_factory: AsyncCollectionFactory) -> None:
+    collection = await async_collection_factory(
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+    )
+    await collection.config.add_property(Property(name="age", data_type=DataType.INT))
+
+
+@pytest.mark.asyncio
 async def test_config_add_reference(async_collection_factory: AsyncCollectionFactory) -> None:
     collection = await async_collection_factory(
         properties=[
@@ -108,6 +136,9 @@ async def test_aggregate(async_collection_factory: AsyncCollectionFactory) -> No
     )
     res = await collection.aggregate.over_all()
     assert res.total_count == 2
+
+    res = await collection.aggregate.hybrid("John", alpha=0, object_limit=10)
+    assert res.total_count == 1
 
 
 @pytest.mark.asyncio
