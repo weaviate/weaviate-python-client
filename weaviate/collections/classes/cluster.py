@@ -73,7 +73,10 @@ class _ConvertFromREST:
                         shard_count=node["stats"]["shardCount"],
                     )
                     if "stats" in node
-                    else []
+                    else Stats(
+                        object_count=0,
+                        shard_count=0,
+                    )
                 ),
                 status=node["status"],
                 version=node["version"],
