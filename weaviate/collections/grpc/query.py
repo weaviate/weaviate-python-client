@@ -118,7 +118,7 @@ class _QueryGRPC(_BaseGRPC):
             _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
 
         if sort is not None:
-            sort_by: grpc.RepeatedCompositeFieldContainer[search_get_pb2.SortBy] = [
+            sort_by = [
                 search_get_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
                 for sort in sort.sorts
             ]
