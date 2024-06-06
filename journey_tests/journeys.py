@@ -41,7 +41,9 @@ class AsyncJourneys:
 
     @classmethod
     async def use(cls) -> "AsyncJourneys":
-        return cls(await connect_to_local(use_async=True))
+        client = connect_to_local(use_async=True)
+        await client.connect()
+        return cls(client)
 
     async def close(self) -> None:
         await self.__client.close()
