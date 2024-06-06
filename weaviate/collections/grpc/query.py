@@ -298,6 +298,7 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[Union[List[str], str]] = None,
+        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -327,6 +328,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
+            multi_target_fusion_method=multi_target_fusion_method,
             near_vector=search_get_pb2.NearVector(
                 certainty=certainty,
                 distance=distance,
@@ -350,6 +352,7 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[Union[str, List[str]]] = None,
+        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -378,6 +381,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
+            multi_target_fusion_method=multi_target_fusion_method,
             near_object=search_get_pb2.NearObject(
                 id=str(near_object),
                 certainty=certainty,
@@ -468,6 +472,7 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[Union[str, List[str]]] = None,
+        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -525,6 +530,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
+            multi_target_fusion_method=multi_target_fusion_method,
             **kwargs,
         )
         return self.__call(request)
@@ -709,7 +715,7 @@ class _QueryGRPC(_BaseGRPC):
         else:
             if join_method == "Average":
                 return search_get_pb2.TargetVectorJoin(
-                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_MIN
+                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_AVERAGE
                 )
             elif join_method == "Sum":
                 return search_get_pb2.TargetVectorJoin(
