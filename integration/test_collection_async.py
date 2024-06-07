@@ -126,7 +126,9 @@ async def test_aggregate(async_collection_factory: AsyncCollectionFactory) -> No
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+        vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
     )
     await collection.data.insert_many(
         [
