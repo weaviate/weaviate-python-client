@@ -1,3 +1,4 @@
+import concurrent.futures
 import uuid
 from dataclasses import dataclass
 from typing import Generator, List, Optional, Protocol, Tuple, Callable
@@ -6,6 +7,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
+from weaviate import BatchClient, ClientBatchingContextManager
 from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
@@ -20,7 +22,6 @@ from weaviate.collections.classes.internal import (
     ReferenceToMulti,
 )
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.outputs.batch import ClientBatchingContextManager
 from weaviate.types import UUID, VECTORS
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
@@ -573,6 +574,29 @@ def test_add_one_object_and_a_self_reference(
     )
     assert obj is not None
     assert obj.references["test"].objects[0].uuid == uuid
+
+
+def test_multi_threaded_batching(
+    client_factory: ClientFactory,
+) -> None:
+    client, name = client_factory()
+    nr_objects = 1000
+    nr_threads = 10
+
+    def batch_insert(batch: BatchClient) -> None:
+        for i in range(nr_objects):
+            batch.add_object(
+                collection=name,
+                properties={"name": "test" + str(i)},
+            )
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        with client.batch.dynamic() as batch:
+            futures = [executor.submit(batch_insert, batch) for _ in range(nr_threads)]
+    for future in concurrent.futures.as_completed(futures):
+        future.result()
+    objs = client.collections.get(name).query.fetch_objects(limit=nr_objects * nr_threads).objects
+    assert len(objs) == nr_objects * nr_threads
 
 
 def test_error_reset(client_factory: ClientFactory) -> None:

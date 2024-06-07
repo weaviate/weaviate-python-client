@@ -114,7 +114,8 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         )
 
 
-CollectionBatchingContextManager = _ContextManagerWrapper[_BatchCollection[Properties]]
+BatchCollection = _BatchCollection[Properties]
+CollectionBatchingContextManager = _ContextManagerWrapper[BatchCollection[Properties]]
 
 
 class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):

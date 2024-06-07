@@ -12,6 +12,7 @@ except PackageNotFoundError:
     __version__ = "unknown version"
 
 from .client import Client, WeaviateAsyncClient, WeaviateClient
+from .collections.batch.client import BatchClient, ClientBatchingContextManager
 from .connect.helpers import (
     connect_to_custom,
     connect_to_embedded,
@@ -45,6 +46,8 @@ if not sys.warnoptions:
 from .warnings import _Warnings
 
 __all__ = [
+    "BatchClient",
+    "ClientBatchingContextManager",
     "Client",
     "WeaviateClient",
     "WeaviateAsyncClient",

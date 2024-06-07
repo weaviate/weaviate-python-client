@@ -115,7 +115,8 @@ class _BatchClient(_BatchBase):
         )
 
 
-ClientBatchingContextManager = _ContextManagerWrapper[_BatchClient]
+BatchClient = _BatchClient
+ClientBatchingContextManager = _ContextManagerWrapper[BatchClient]
 
 
 class _BatchClientWrapper(_BatchWrapper):
