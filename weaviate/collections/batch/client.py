@@ -115,6 +115,9 @@ class _BatchClient(_BatchBase):
         )
 
 
+ClientBatchingContextManager = _ContextManagerWrapper[_BatchClient]
+
+
 class _BatchClientWrapper(_BatchWrapper):
     def __init__(
         self,
@@ -161,7 +164,7 @@ class _BatchClientWrapper(_BatchWrapper):
 
     def dynamic(
         self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> _ContextManagerWrapper[_BatchClient]:
+    ) -> ClientBatchingContextManager:
         """Configure dynamic batching.
 
         When you exit the context manager, the final batch will be sent automatically.
@@ -200,7 +203,7 @@ class _BatchClientWrapper(_BatchWrapper):
 
     def rate_limit(
         self, requests_per_minute: int, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> _ContextManagerWrapper[_BatchClient]:
+    ) -> ClientBatchingContextManager:
         """Configure batches with a rate limited vectorizer.
 
         When you exit the context manager, the final batch will be sent automatically.

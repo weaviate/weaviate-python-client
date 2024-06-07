@@ -5,6 +5,8 @@ from weaviate.collections.classes.batch import (
     ErrorObject,
     ErrorReference,
 )
+from weaviate.collections.batch.client import ClientBatchingContextManager
+from weaviate.collections.batch.collection import CollectionBatchingContextManager
 
 __all__ = [
     "BatchObjectReturn",
@@ -12,4 +14,6 @@ __all__ = [
     "BatchResult",
     "ErrorObject",
     "ErrorReference",
+    "ClientBatchingContextManager",
+    "CollectionBatchingContextManager",
 ]

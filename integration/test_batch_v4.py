@@ -20,6 +20,7 @@ from weaviate.collections.classes.internal import (
     ReferenceToMulti,
 )
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.outputs.batch import ClientBatchingContextManager
 from weaviate.types import UUID, VECTORS
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
@@ -351,12 +352,29 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
         assert ret_obj.references["test"].objects[0].uuid == obj[0]
 
 
-def test_add_ten_thousand_data_objects(client_factory: ClientFactory, request: SubRequest) -> None:
+@pytest.mark.parametrize(
+    "batching_method",
+    [
+        lambda client: client.batch.dynamic(),
+        lambda client: client.batch.fixed_size(),
+        lambda client: client.batch.rate_limit(9999),
+    ],
+    ids=[
+        "test_add_ten_thousand_data_objects_dynamic",
+        "test_add_ten_thousand_data_objects_fixed_size",
+        "test_add_ten_thousand_data_objects_rate_limit",
+    ],
+)
+def test_add_ten_thousand_data_objects(
+    client_factory: ClientFactory,
+    batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+    request: SubRequest,
+) -> None:
     """Test adding ten thousand data objects"""
     client, name = client_factory()
 
     nr_objects = 10000
-    with client.batch.dynamic() as batch:
+    with batching_method(client) as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
@@ -384,7 +402,9 @@ def make_refs(uuids: List[UUID], name: str) -> List[dict]:
     return refs
 
 
-def test_add_one_hundred_objects_and_references_between_all(client_factory: ClientFactory) -> None:
+def test_add_one_hundred_objects_and_references_between_all(
+    client_factory: ClientFactory,
+) -> None:
     """Test adding one hundred objects and references between all of them"""
     client, name = client_factory()
     nr_objects = 100
@@ -519,6 +539,40 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
         else:
             assert shard["status"] == "INDEXING"
             assert shard["vectorQueueSize"] > 0
+
+
+@pytest.mark.parametrize(
+    "batching_method",
+    [
+        lambda client: client.batch.dynamic(),
+        lambda client: client.batch.fixed_size(),
+        lambda client: client.batch.rate_limit(1000),
+    ],
+    ids=[
+        "test_add_one_hundred_objects_and_references_between_all_dynamic",
+        "test_add_one_hundred_objects_and_references_between_all_fixed_size",
+        "test_add_one_hundred_objects_and_references_between_all_rate_limit",
+    ],
+)
+def test_add_one_object_and_a_self_reference(
+    client_factory: ClientFactory,
+    batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+) -> None:
+    """Test adding one object and a self reference"""
+    client, name = client_factory()
+    with batching_method(client) as batch:
+        uuid = batch.add_object(collection=name, properties={})
+        batch.add_reference(
+            from_uuid=uuid,
+            from_collection=name,
+            from_property="test",
+            to=uuid,
+        )
+    obj = client.collections.get(name).query.fetch_object_by_id(
+        uuid, return_references=QueryReference(link_on="test")
+    )
+    assert obj is not None
+    assert obj.references["test"].objects[0].uuid == uuid
 
 
 def test_error_reset(client_factory: ClientFactory) -> None:
