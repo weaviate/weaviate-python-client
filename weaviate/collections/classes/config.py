@@ -488,7 +488,7 @@ class _RerankerTransformersConfig(_RerankerConfigCreate):
     reranker: Rerankers = Field(default=Rerankers.TRANSFORMERS, frozen=True, exclude=True)
 
 
-RerankerVoyageAIModel = Literal["rerank-lite-1"]
+RerankerVoyageAIModel = Literal["rerank-lite-1", "rerank-1"]
 
 
 class _RerankerVoyageAIConfig(_RerankerConfigCreate):
