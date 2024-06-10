@@ -30,6 +30,8 @@ VoyageModel: TypeAlias = Literal[
     "voyage-2",
     "voyage-law-2",
     "voyage-large-2-instruct",
+    "voyage-finance-2",
+    "voyage-multilingual-2",
 ]
 AWSModel: TypeAlias = Literal[
     "amazon.titan-embed-text-v1",
