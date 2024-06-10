@@ -2,7 +2,6 @@ import datetime
 import sys
 import uuid as uuid_package
 from dataclasses import dataclass, field
-from enum import Enum, auto
 from typing import (
     Any,
     Dict,
@@ -48,7 +47,7 @@ from weaviate.collections.classes.types import (
     _WeaviateInput,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import _to_beacons
+from weaviate.util import _to_beacons, BaseEnum
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
 
 from weaviate.proto.v1 import search_get_pb2
@@ -597,12 +596,13 @@ QueryNearMediaReturnType = Union[
 """@Deprecated: Use `QuerySearchReturnType` instead."""
 
 
-class _MultiTargetVectorJoin(Enum):
+class _MultiTargetVectorJoin(str, BaseEnum):
     """Define how multi target vector searches should be combined."""
 
-    SUM = auto()
-    AVERAGE = auto()
-    MINIMUM = auto()
+    SUM = "SUM"
+    AVERAGE = "AVERAGE"
+    MINIMUM = "MINIMUM"
+    SCORE_FUSION = "SCORE_FUSION"
 
 
 TargetVectorJoinType = Union[_MultiTargetVectorJoin, Dict[str, float]]

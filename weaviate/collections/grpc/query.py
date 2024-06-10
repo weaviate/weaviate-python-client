@@ -25,7 +25,12 @@ from weaviate.collections.classes.grpc import (
     _Sorting,
     Rerank,
 )
-from weaviate.collections.classes.internal import _Generative, _GroupBy, TargetVectorJoinType
+from weaviate.collections.classes.internal import (
+    _Generative,
+    _GroupBy,
+    TargetVectorJoinType,
+    _MultiTargetVectorJoin,
+)
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
@@ -713,16 +718,20 @@ class _QueryGRPC(_BaseGRPC):
                 )
             return search_get_pb2.TargetVectorJoin(manual_weights=weights)
         else:
-            if join_method == "Average":
+            if join_method.lower() == _MultiTargetVectorJoin.AVERAGE.value.lower():
                 return search_get_pb2.TargetVectorJoin(
                     join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_AVERAGE
                 )
-            elif join_method == "Sum":
+            elif join_method.lower() == _MultiTargetVectorJoin.SUM.value.lower():
                 return search_get_pb2.TargetVectorJoin(
                     join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_SUM
                 )
+            elif join_method.lower() == _MultiTargetVectorJoin.SCORE_FUSION.value.lower():
+                return search_get_pb2.TargetVectorJoin(
+                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_RELATIVE_SCORE
+                )
             else:
-                assert join_method == "Minimum"
+                assert join_method.lower() == _MultiTargetVectorJoin.MINIMUM.value.lower()
                 return search_get_pb2.TargetVectorJoin(
                     join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_MIN
                 )

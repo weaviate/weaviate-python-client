@@ -9,7 +9,8 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
-    QuerySearchReturnType, TargetVectorJoinType,
+    QuerySearchReturnType,
+    TargetVectorJoinType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
