@@ -533,14 +533,13 @@ async def test_async_client_with_extra_options(timeout: Union[Tuple[int, int], T
     additional_config = wvc.init.AdditionalConfig(timeout=timeout, trust_env=True)
 
     for client in [
-        weaviate.connect_to_weaviate_cloud(
+        weaviate.use_async_with_weaviate_cloud(
             cluster_url=WCS_URL,
             auth_credentials=WCS_CREDS,
             additional_config=additional_config,
-            use_async=True,
         ),
-        weaviate.connect_to_local(additional_config=additional_config, use_async=True),
-        weaviate.connect_to_custom(
+        weaviate.use_async_with_local(additional_config=additional_config),
+        weaviate.use_async_with_custom(
             http_secure=True,
             http_host=WCS_HOST,
             http_port=443,
@@ -549,7 +548,6 @@ async def test_async_client_with_extra_options(timeout: Union[Tuple[int, int], T
             grpc_port=443,
             auth_credentials=WCS_CREDS,
             additional_config=additional_config,
-            use_async=True,
         ),
     ]:
         await client.connect()
@@ -582,8 +580,8 @@ def test_client_is_ready() -> None:
 
 @pytest.mark.asyncio
 async def test_async_client_is_ready() -> None:
-    async with weaviate.connect_to_weaviate_cloud(
-        cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True, use_async=True
+    async with weaviate.use_async_with_weaviate_cloud(
+        cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
     ) as client:
         assert client.is_ready()
 

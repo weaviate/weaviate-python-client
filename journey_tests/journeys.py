@@ -1,6 +1,6 @@
 from typing import List
 
-from weaviate import WeaviateAsyncClient, WeaviateClient, connect_to_local
+from weaviate import WeaviateAsyncClient, WeaviateClient, connect_to_local, use_async_with_local
 from weaviate.classes.config import Configure, DataType, Property
 
 
@@ -10,7 +10,7 @@ class SyncJourneys:
 
     @classmethod
     def use(cls) -> "SyncJourneys":
-        return cls(connect_to_local(use_async=False))
+        return cls(connect_to_local())
 
     def close(self) -> None:
         self.__client.close()
@@ -41,7 +41,7 @@ class AsyncJourneys:
 
     @classmethod
     async def use(cls) -> "AsyncJourneys":
-        client = connect_to_local(use_async=True)
+        client = use_async_with_local()
         await client.connect()
         return cls(client)
 

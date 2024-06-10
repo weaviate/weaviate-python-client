@@ -19,6 +19,9 @@ from .connect.helpers import (
     connect_to_local,
     connect_to_wcs,
     connect_to_weaviate_cloud,
+    use_async_with_custom,
+    use_async_with_local,
+    use_async_with_weaviate_cloud,
 )
 from . import (
     auth,
@@ -71,6 +74,9 @@ __all__ = [
     "outputs",
     "schema",
     "types",
+    "use_async_with_custom",
+    "use_async_with_local",
+    "use_async_with_weaviate_cloud",
 ]
 
 deprs = [

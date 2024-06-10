@@ -215,12 +215,11 @@ async def async_client_factory() -> AsyncGenerator[AsyncClientFactory, None]:
     ) -> weaviate.WeaviateAsyncClient:
         nonlocal client_fixture
         if client_fixture is None:
-            client_fixture = weaviate.connect_to_local(
+            client_fixture = weaviate.use_async_with_local(
                 headers=headers,
                 grpc_port=ports[1],
                 port=ports[0],
                 additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
-                use_async=True,
             )
             await client_fixture.connect()
         return client_fixture
