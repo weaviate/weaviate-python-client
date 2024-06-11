@@ -17,17 +17,17 @@ DESCRIPTOR: _descriptor.FileDescriptor
 
 class TargetVectorJoinMethod(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
-    FUSION_TYPE_UNSPECIFIED: _ClassVar[TargetVectorJoinMethod]
-    FUSION_TYPE_SUM: _ClassVar[TargetVectorJoinMethod]
-    FUSION_TYPE_MIN: _ClassVar[TargetVectorJoinMethod]
-    FUSION_TYPE_AVERAGE: _ClassVar[TargetVectorJoinMethod]
-    FUSION_TYPE_RELATIVE_SCORE: _ClassVar[TargetVectorJoinMethod]
+    TARGET_VECTOR_JOIN_METHOD_UNSPECIFIED: _ClassVar[TargetVectorJoinMethod]
+    TARGET_VECTOR_JOIN_METHOD_TYPE_SUM: _ClassVar[TargetVectorJoinMethod]
+    TARGET_VECTOR_JOIN_METHOD_TYPE_MIN: _ClassVar[TargetVectorJoinMethod]
+    TARGET_VECTOR_JOIN_METHOD_TYPE_AVERAGE: _ClassVar[TargetVectorJoinMethod]
+    TARGET_VECTOR_JOIN_METHOD_TYPE_RELATIVE_SCORE: _ClassVar[TargetVectorJoinMethod]
 
-FUSION_TYPE_UNSPECIFIED: TargetVectorJoinMethod
-FUSION_TYPE_SUM: TargetVectorJoinMethod
-FUSION_TYPE_MIN: TargetVectorJoinMethod
-FUSION_TYPE_AVERAGE: TargetVectorJoinMethod
-FUSION_TYPE_RELATIVE_SCORE: TargetVectorJoinMethod
+TARGET_VECTOR_JOIN_METHOD_UNSPECIFIED: TargetVectorJoinMethod
+TARGET_VECTOR_JOIN_METHOD_TYPE_SUM: TargetVectorJoinMethod
+TARGET_VECTOR_JOIN_METHOD_TYPE_MIN: TargetVectorJoinMethod
+TARGET_VECTOR_JOIN_METHOD_TYPE_AVERAGE: TargetVectorJoinMethod
+TARGET_VECTOR_JOIN_METHOD_TYPE_RELATIVE_SCORE: TargetVectorJoinMethod
 
 class SearchRequest(_message.Message):
     __slots__ = (

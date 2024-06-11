@@ -720,20 +720,20 @@ class _QueryGRPC(_BaseGRPC):
         else:
             if join_method.lower() == _MultiTargetVectorJoin.AVERAGE.value.lower():
                 return search_get_pb2.TargetVectorJoin(
-                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_AVERAGE
+                    join=search_get_pb2.TargetVectorJoinMethod.TARGET_VECTOR_JOIN_METHOD_TYPE_AVERAGE
                 )
             elif join_method.lower() == _MultiTargetVectorJoin.SUM.value.lower():
                 return search_get_pb2.TargetVectorJoin(
-                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_SUM
+                    join=search_get_pb2.TargetVectorJoinMethod.TARGET_VECTOR_JOIN_METHOD_TYPE_SUM
                 )
             elif join_method.lower() == _MultiTargetVectorJoin.SCORE_FUSION.value.lower():
                 return search_get_pb2.TargetVectorJoin(
-                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_RELATIVE_SCORE
+                    join=search_get_pb2.TargetVectorJoinMethod.TARGET_VECTOR_JOIN_METHOD_TYPE_RELATIVE_SCORE
                 )
             else:
                 assert join_method.lower() == _MultiTargetVectorJoin.MINIMUM.value.lower()
                 return search_get_pb2.TargetVectorJoin(
-                    join=search_get_pb2.TargetVectorJoinMethod.FUSION_TYPE_MIN
+                    join=search_get_pb2.TargetVectorJoinMethod.TARGET_VECTOR_JOIN_METHOD_TYPE_MIN
                 )
 
     def _translate_properties_from_python_to_grpc(
