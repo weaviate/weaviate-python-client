@@ -283,11 +283,11 @@ class TargetVectorJoin(_message.Message):
         def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
 
     class ManualWeightsArrays(_message.Message):
-        __slots__ = ("val",)
-        VAL_FIELD_NUMBER: _ClassVar[int]
-        val: _containers.RepeatedCompositeFieldContainer[TargetVectorJoin.ManualWeights]
+        __slots__ = ("vals",)
+        VALS_FIELD_NUMBER: _ClassVar[int]
+        vals: _containers.RepeatedCompositeFieldContainer[TargetVectorJoin.ManualWeights]
         def __init__(
-            self, val: _Optional[_Iterable[_Union[TargetVectorJoin.ManualWeights, _Mapping]]] = ...
+            self, vals: _Optional[_Iterable[_Union[TargetVectorJoin.ManualWeights, _Mapping]]] = ...
         ) -> None: ...
     JOIN_FIELD_NUMBER: _ClassVar[int]
     MANUAL_WEIGHTS_FIELD_NUMBER: _ClassVar[int]

@@ -713,7 +713,7 @@ class _QueryGRPC(_BaseGRPC):
         if isinstance(join_method, dict):
             weights = search_get_pb2.TargetVectorJoin.ManualWeightsArrays()
             for key, val in join_method.items():
-                weights.val.append(
+                weights.vals.append(
                     search_get_pb2.TargetVectorJoin.ManualWeights(value=val, key=key)
                 )
             return search_get_pb2.TargetVectorJoin(manual_weights=weights)
