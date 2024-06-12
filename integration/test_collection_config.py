@@ -136,6 +136,7 @@ def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
     assert config.multi_tenancy_config.enabled is False
 
     assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is False
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
@@ -189,6 +190,7 @@ def test_collection_config_defaults(collection_factory: CollectionFactory) -> No
     assert config.multi_tenancy_config.enabled is True
 
     assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is False
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
@@ -241,7 +243,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         multi_tenancy_config=Configure.multi_tenancy(
             enabled=True, auto_tenant_activation=True, auto_tenant_creation=True
         ),
-        # replication_config=Configure.replication(factor=2), # currently not updateable in RAFT
+        # replication_config=Configure.replication(factor=2, async_enabled=True), # currently not updateable in RAFT
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
             distance_metric=VectorDistances.DOT,
@@ -373,7 +375,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             stopwords_preset=StopwordsPreset.EN,
             stopwords_removals=["the"],
         ),
-        # replication_config=Reconfigure.replication(factor=2), # currently not updateable in RAFT
+        # replication_config=Reconfigure.replication(factor=2, async_enabled=True), # currently not updateable in RAFT
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             vector_cache_max_objects=2000000,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(
@@ -711,7 +713,7 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
             Property(name="age", data_type=DataType.INT),
         ],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-        replication_config=Configure.replication(factor=1),
+        replication_config=Configure.replication(factor=1, async_enabled=False),
         vector_index_config=Configure.VectorIndex.hnsw(
             quantizer=Configure.VectorIndex.Quantizer.pq(centroids=256)
         ),

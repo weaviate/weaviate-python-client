@@ -310,10 +310,12 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
+    async_enabled: Optional[bool]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
+    async_enabled: Optional[bool]
 
 
 class _BM25ConfigCreate(_ConfigCreateModel):
@@ -1053,6 +1055,7 @@ ReferencePropertyConfig = _ReferenceProperty
 @dataclass
 class _ReplicationConfig(_ConfigBase):
     factor: int
+    async_enabled: bool
 
 
 ReplicationConfig = _ReplicationConfig
@@ -1775,14 +1778,18 @@ class Configure:
         )
 
     @staticmethod
-    def replication(factor: Optional[int] = None) -> _ReplicationConfigCreate:
+    def replication(
+        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+    ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
         Arguments:
             `factor`
                 The replication factor.
+            `async_enabled`
+                Enabled async replication.
         """
-        return _ReplicationConfigCreate(factor=factor)
+        return _ReplicationConfigCreate(factor=factor, async_enabled=async_enabled)
 
     @staticmethod
     def sharding(
@@ -1977,7 +1984,9 @@ class Reconfigure:
         )
 
     @staticmethod
-    def replication(factor: Optional[int] = None) -> _ReplicationConfigUpdate:
+    def replication(
+        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+    ) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
         Use this method when defining the `replication_config` argument in `collection.update()`.
@@ -1985,8 +1994,10 @@ class Reconfigure:
         Arguments:
             `factor`
                 The replication factor.
+            `async_enabled`
+                Enable async replication.
         """
-        return _ReplicationConfigUpdate(factor=factor)
+        return _ReplicationConfigUpdate(factor=factor, async_enabled=async_enabled)
 
     @staticmethod
     def multi_tenancy(

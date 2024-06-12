@@ -15,8 +15,9 @@ def client():
 
 
 @pytest.mark.parametrize("replicationFactor", [None, 1])
-def test_create_class_with_implicit_and_explicit_replication_factor(
-    client: weaviate.Client, replicationFactor: Optional[int]
+@pytest.mark.parametrize("asyncEnabled", [None, False])
+def test_create_class_with_implicit_and_explicit_replication_config(
+    client: weaviate.Client, replicationFactor: Optional[int], asyncEnabled: Optional[bool]
 ):
     single_class = {
         "class": "Barbecue",
@@ -31,16 +32,20 @@ def test_create_class_with_implicit_and_explicit_replication_factor(
     }
     if replicationFactor is None:
         expected_factor = 1
+    if asyncEnabled is None:
+        expected_async_enabled = False
     else:
         expected_factor = replicationFactor
         single_class["replicationConfig"] = {
             "factor": replicationFactor,
+            "async_enabled": asyncEnabled,
         }
 
     client.schema.create_class(single_class)
     created_class = client.schema.get("Barbecue")
     assert created_class["class"] == "Barbecue"
     assert created_class["replicationConfig"]["factor"] == expected_factor
+    assert created_class["replicationConfig"].get("async_enabled") == expected_async_enabled
 
     client.schema.delete_class("Barbecue")
 
