@@ -1345,9 +1345,9 @@ class Property(_ConfigCreateModel):
         `description`
             A description of the property.
         `index_filterable`
-            Whether the property should be filterable in the inverted index.
+            Whether the property should be filterable in the inverted index. Defaults to `True`.
         `index_searchable`
-            Whether the property should be searchable in the inverted index.
+            Whether the property should be searchable in the inverted index. Defaults to `True`.
         `nested_properties`
             nested properties for data type OBJECT and OBJECT_ARRAY`.
         `skip_vectorization`
@@ -1361,8 +1361,8 @@ class Property(_ConfigCreateModel):
     name: str
     dataType: DataType = Field(default=..., alias="data_type")
     description: Optional[str] = Field(default=None)
-    indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
-    indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
+    indexFilterable: Optional[bool] = Field(default=True, alias="index_filterable")
+    indexSearchable: Optional[bool] = Field(default=True, alias="index_searchable")
     nestedProperties: Optional[Union["Property", List["Property"]]] = Field(
         default=None, alias="nested_properties"
     )
