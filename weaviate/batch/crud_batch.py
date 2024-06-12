@@ -805,11 +805,19 @@ class Batch:
         new_batch = ObjectsBatchRequest()
         for obj in batch_request.get_request_body()["objects"]:
             class_name = obj["class"]
+            tenant = obj.get("tenant", None)
             uuid = obj["id"]
-            response_head = self._connection.head(
-                path="/objects/" + class_name + "/" + uuid,
-            )
-
+            
+            if tenant is None:
+                response_head = self._connection.head(
+                    path="/objects/" + class_name + "/" + uuid,
+                )
+            else:
+                response_head = self._connection.head(
+                    path="/objects/" + class_name + "/" + uuid,
+                    params={"tenant": tenant},
+                )
+            
             if response_head.status_code == 404:
                 new_batch.add(
                     class_name=_capitalize_first_letter(class_name),
@@ -819,13 +827,17 @@ class Batch:
                 )
                 continue
 
-            # object might already exist and needs to be overwritten in case of an update
-            response = self._connection.get(
-                path="/objects/" + class_name + "/" + uuid,
-            )
+            if tenant is None:
+                response = self._connection.get(
+                    path="/objects/" + class_name + "/" + uuid,
+                )
+            else:
+                response = self._connection.get(
+                    path="/objects/" + class_name + "/" + uuid,
+                    params={"tenant": tenant},
+                )
 
-            obj_weav = _decode_json_response_dict(response, "Re-add objects")
-            assert obj_weav is not None
+            obj_weav = response.json()
             if obj_weav["properties"] != obj["properties"] or obj.get(
                 "vector", None
             ) != obj_weav.get("vector", None):
@@ -834,6 +846,7 @@ class Batch:
                     data_object=obj["properties"],
                     uuid=uuid,
                     vector=obj.get("vector", None),
+                    tenant=tenant,
                 )
         return new_batch
 
