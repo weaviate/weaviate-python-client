@@ -813,7 +813,7 @@ class Batch:
                 path="/objects/" + class_name + "/" + uuid,
                 params=params,
             )
-        
+
             if response_head.status_code == 404:
                 new_batch.add(
                     class_name=_capitalize_first_letter(class_name),
