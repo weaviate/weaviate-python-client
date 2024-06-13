@@ -8,7 +8,7 @@ function ls_compose {
 
 function exec_all {
   for file in $(ls_compose); do
-    docker-compose -f $(echo "ci/${file} ${1}")
+    docker compose -f $(echo "ci/${file} ${1}")
   done
 }
 
