@@ -807,17 +807,13 @@ class Batch:
             class_name = obj["class"]
             tenant = obj.get("tenant", None)
             uuid = obj["id"]
-            
-            if tenant is None:
-                response_head = self._connection.head(
-                    path="/objects/" + class_name + "/" + uuid,
-                )
-            else:
-                response_head = self._connection.head(
-                    path="/objects/" + class_name + "/" + uuid,
-                    params={"tenant": tenant},
-                )
-            
+            params = {"tenant": tenant} if tenant is not None else None
+
+            response_head = self._connection.head(
+                path="/objects/" + class_name + "/" + uuid,
+                params=params,
+            )
+        
             if response_head.status_code == 404:
                 new_batch.add(
                     class_name=_capitalize_first_letter(class_name),
@@ -827,17 +823,13 @@ class Batch:
                 )
                 continue
 
-            if tenant is None:
-                response = self._connection.get(
-                    path="/objects/" + class_name + "/" + uuid,
-                )
-            else:
-                response = self._connection.get(
-                    path="/objects/" + class_name + "/" + uuid,
-                    params={"tenant": tenant},
-                )
-
-            obj_weav = response.json()
+            
+            response = self._connection.get(
+                path="/objects/" + class_name + "/" + uuid,
+                params=params,
+            )
+            obj_weav = _decode_json_response_dict(response, "Re-add objects")
+            assert obj_weav is not None
             if obj_weav["properties"] != obj["properties"] or obj.get(
                 "vector", None
             ) != obj_weav.get("vector", None):
