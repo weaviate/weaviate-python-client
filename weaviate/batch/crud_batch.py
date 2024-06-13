@@ -823,7 +823,7 @@ class Batch:
                 )
                 continue
 
-            
+            # object might already exist and needs to be overwritten in case of an update
             response = self._connection.get(
                 path="/objects/" + class_name + "/" + uuid,
                 params=params,
