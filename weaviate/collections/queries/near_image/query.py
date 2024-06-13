@@ -1,18 +1,17 @@
 from io import BufferedReader
 from pathlib import Path
-from typing import Generic, List, Optional, Union
+from typing import Generic, Optional, Union
 
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
+from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank, TargetVectorJoinType
 from weaviate.collections.classes.internal import (
     _GroupBy,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
     QuerySearchReturnType,
-    TargetVectorJoinType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
@@ -32,8 +31,7 @@ class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[Union[str, List[str]]] = None,
-        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -101,7 +99,6 @@ class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             group_by=_GroupBy.from_input(group_by),
             rerank=rerank,
             target_vector=target_vector,
-            multi_target_fusion_method=multi_target_fusion_method,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),

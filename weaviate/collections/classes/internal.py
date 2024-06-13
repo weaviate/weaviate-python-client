@@ -47,7 +47,7 @@ from weaviate.collections.classes.types import (
     _WeaviateInput,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import _to_beacons, BaseEnum
+from weaviate.util import _to_beacons
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
 
 from weaviate.proto.v1 import search_get_pb2
@@ -594,15 +594,3 @@ QueryNearMediaReturnType = Union[
     GroupByReturnType[Properties, References, TProperties, TReferences],
 ]
 """@Deprecated: Use `QuerySearchReturnType` instead."""
-
-
-class _MultiTargetVectorJoin(str, BaseEnum):
-    """Define how multi target vector searches should be combined."""
-
-    SUM = "SUM"
-    AVERAGE = "AVERAGE"
-    MINIMUM = "MINIMUM"
-    SCORE_FUSION = "SCORE_FUSION"
-
-
-TargetVectorJoinType = Union[_MultiTargetVectorJoin, Dict[str, float]]

@@ -9,6 +9,7 @@ from typing_extensions import TypeAlias
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
+    _MultiTargetVectorJoin,
     HybridFusion,
     _QueryReferenceMultiTarget,
     _MetadataQuery,
@@ -24,12 +25,11 @@ from weaviate.collections.classes.grpc import (
     REFERENCES,
     _Sorting,
     Rerank,
+    TargetVectorJoinType,
 )
 from weaviate.collections.classes.internal import (
     _Generative,
     _GroupBy,
-    TargetVectorJoinType,
-    _MultiTargetVectorJoin,
 )
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
@@ -155,7 +155,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[Union[str, List[str]]] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
     ) -> search_get_pb2.SearchReply:
         if self._connection._weaviate_version.is_lower_than(1, 25, 0) and (
             isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
@@ -175,7 +175,9 @@ class _QueryGRPC(_BaseGRPC):
                     ),
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
-                    _ValidateArgument([str, List, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
@@ -183,8 +185,7 @@ class _QueryGRPC(_BaseGRPC):
         if query is None:
             alpha = 1
 
-        if target_vector is not None and isinstance(target_vector, str):
-            target_vector = [target_vector]
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
 
         hybrid_search = (
             search_get_pb2.Hybrid(
@@ -200,6 +201,7 @@ class _QueryGRPC(_BaseGRPC):
                     else None
                 ),
                 target_vectors=target_vector,
+                targets=targets,
                 vector_bytes=(
                     struct.pack("{}f".format(len(vector)), *vector)
                     if vector is not None and isinstance(vector, list)
@@ -302,8 +304,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[Union[List[str], str]] = None,
-        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -312,15 +313,16 @@ class _QueryGRPC(_BaseGRPC):
             _validate_input(
                 [
                     _ValidateArgument([List], "near_vector", near_vector),
-                    _ValidateArgument([str, List, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
         near_vector = _get_vector_v4(near_vector)
         certainty, distance = self.__parse_near_options(certainty, distance)
 
-        if target_vector is not None and isinstance(target_vector, str):
-            target_vector = [target_vector]
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
 
         request = self.__create_request(
             limit=limit,
@@ -333,11 +335,11 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
-            multi_target_fusion_method=multi_target_fusion_method,
             near_vector=search_get_pb2.NearVector(
                 certainty=certainty,
                 distance=distance,
                 vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
+                targets=targets,
                 target_vectors=target_vector,
             ),
         )
@@ -357,7 +359,6 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[Union[str, List[str]]] = None,
-        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -366,14 +367,15 @@ class _QueryGRPC(_BaseGRPC):
             _validate_input(
                 [
                     _ValidateArgument([str, uuid_lib.UUID], "near_object", near_object),
-                    _ValidateArgument([str, List, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
         certainty, distance = self.__parse_near_options(certainty, distance)
 
-        if target_vector is not None and isinstance(target_vector, str):
-            target_vector = [target_vector]
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
 
         base_request = self.__create_request(
             limit=limit,
@@ -386,12 +388,12 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
-            multi_target_fusion_method=multi_target_fusion_method,
             near_object=search_get_pb2.NearObject(
                 id=str(near_object),
                 certainty=certainty,
                 distance=distance,
                 target_vectors=target_vector,
+                targets=targets,
             ),
         )
 
@@ -411,8 +413,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[Union[str, List[str]]] = None,
-        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -423,9 +424,8 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([List, str], "near_text", near_text),
                     _ValidateArgument([Move, None], "move_away", move_away),
                     _ValidateArgument([Move, None], "move_to", move_to),
-                    _ValidateArgument([str, List, None], "target_vector", target_vector),
                     _ValidateArgument(
-                        [str, None, dict], "multi_target_fusion_method", multi_target_fusion_method
+                        [str, List, _MultiTargetVectorJoin, None], "target_vector", target_vector
                     ),
                 ]
             )
@@ -433,17 +433,16 @@ class _QueryGRPC(_BaseGRPC):
         if isinstance(near_text, str):
             near_text = [near_text]
         certainty, distance = self.__parse_near_options(certainty, distance)
-
-        if target_vector is not None and isinstance(target_vector, str):
-            target_vector = [target_vector]
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
 
         near_text_req = search_get_pb2.NearTextSearch(
             query=near_text,
             certainty=certainty,
             distance=distance,
-            target_vectors=target_vector,
             move_away=self.__parse_move(move_away),
             move_to=self.__parse_move(move_to),
+            targets=targets,
+            target_vectors=target_vector,
         )
 
         request = self.__create_request(
@@ -458,7 +457,6 @@ class _QueryGRPC(_BaseGRPC):
             autocut=autocut,
             group_by=group_by,
             near_text=near_text_req,
-            multi_target_fusion_method=multi_target_fusion_method,
         )
 
         return self.__call(request)
@@ -476,8 +474,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[Union[str, List[str]]] = None,
-        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -486,39 +483,63 @@ class _QueryGRPC(_BaseGRPC):
             _validate_input(
                 [
                     _ValidateArgument([str], "media", media),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
         certainty, distance = self.__parse_near_options(certainty, distance)
 
         kwargs: Dict[str, Any] = {}
-        if target_vector is not None and isinstance(target_vector, str):
-            target_vector = [target_vector]
-
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
         if type_ == "audio":
             kwargs["near_audio"] = search_get_pb2.NearAudioSearch(
-                audio=media, distance=distance, certainty=certainty, target_vectors=target_vector
+                audio=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "depth":
             kwargs["near_depth"] = search_get_pb2.NearDepthSearch(
-                depth=media, distance=distance, certainty=certainty, target_vectors=target_vector
+                depth=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "image":
             kwargs["near_image"] = search_get_pb2.NearImageSearch(
-                image=media, distance=distance, certainty=certainty, target_vectors=target_vector
+                image=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "imu":
             kwargs["near_imu"] = search_get_pb2.NearIMUSearch(
-                imu=media, distance=distance, certainty=certainty, target_vectors=target_vector
+                imu=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "thermal":
             kwargs["near_thermal"] = search_get_pb2.NearThermalSearch(
-                thermal=media, distance=distance, certainty=certainty, target_vectors=target_vector
+                thermal=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "video":
             kwargs["near_video"] = search_get_pb2.NearVideoSearch(
-                video=media, distance=distance, certainty=certainty, target_vectors=target_vector
+                video=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         else:
             raise ValueError(
@@ -535,7 +556,6 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
-            multi_target_fusion_method=multi_target_fusion_method,
             **kwargs,
         )
         return self.__call(request)
@@ -561,7 +581,6 @@ class _QueryGRPC(_BaseGRPC):
         metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
-        multi_target_fusion_method: Optional[TargetVectorJoinType] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         autocut: Optional[int] = None,
@@ -637,9 +656,6 @@ class _QueryGRPC(_BaseGRPC):
             offset=offset,
             after=str(after) if after is not None else "",
             autocut=autocut,
-            target_vector_join=self._multi_target_to_grpc(multi_target_fusion_method)
-            if multi_target_fusion_method is not None
-            else None,
             properties=self._translate_properties_from_python_to_grpc(
                 return_properties_parsed, return_references_parsed
             ),
@@ -707,35 +723,6 @@ class _QueryGRPC(_BaseGRPC):
             ],
         )
 
-    def _multi_target_to_grpc(
-        self, join_method: TargetVectorJoinType
-    ) -> search_get_pb2.TargetVectorJoin:
-        if isinstance(join_method, dict):
-            weights = search_get_pb2.TargetVectorJoin.ManualWeightsArrays()
-            for key, val in join_method.items():
-                weights.vals.append(
-                    search_get_pb2.TargetVectorJoin.ManualWeights(value=val, key=key)
-                )
-            return search_get_pb2.TargetVectorJoin(manual_weights=weights)
-        else:
-            if join_method.lower() == _MultiTargetVectorJoin.AVERAGE.value.lower():
-                return search_get_pb2.TargetVectorJoin(
-                    join=search_get_pb2.TargetVectorJoinMethod.TARGET_VECTOR_JOIN_METHOD_TYPE_AVERAGE
-                )
-            elif join_method.lower() == _MultiTargetVectorJoin.SUM.value.lower():
-                return search_get_pb2.TargetVectorJoin(
-                    join=search_get_pb2.TargetVectorJoinMethod.TARGET_VECTOR_JOIN_METHOD_TYPE_SUM
-                )
-            elif join_method.lower() == _MultiTargetVectorJoin.SCORE_FUSION.value.lower():
-                return search_get_pb2.TargetVectorJoin(
-                    join=search_get_pb2.TargetVectorJoinMethod.TARGET_VECTOR_JOIN_METHOD_TYPE_RELATIVE_SCORE
-                )
-            else:
-                assert join_method.lower() == _MultiTargetVectorJoin.MINIMUM.value.lower()
-                return search_get_pb2.TargetVectorJoin(
-                    join=search_get_pb2.TargetVectorJoinMethod.TARGET_VECTOR_JOIN_METHOD_TYPE_MIN
-                )
-
     def _translate_properties_from_python_to_grpc(
         self, properties: Optional[Set[PROPERTY]], references: Optional[Set[REFERENCE]]
     ) -> Optional[search_get_pb2.PropertiesRequest]:
@@ -797,3 +784,28 @@ class _QueryGRPC(_BaseGRPC):
             return set(args)
         else:
             return {cast(A, args)}
+
+    def __target_vector_to_grpc(
+        self, target_vector: Optional[TargetVectorJoinType]
+    ) -> Tuple[Optional[search_get_pb2.Targets], Optional[List[str]]]:
+        if target_vector is None:
+            return None, None
+
+        if self._connection._weaviate_version.is_lower_than(1, 26, 0):
+            if isinstance(target_vector, str):
+                return None, [target_vector]
+            elif isinstance(target_vector, list) and len(target_vector) == 1:
+                return None, target_vector
+            else:
+                raise WeaviateUnsupportedFeatureError(
+                    "Multiple target vectors in search",
+                    str(self._connection._weaviate_version),
+                    "1.26.0",
+                )
+
+        if isinstance(target_vector, str):
+            return search_get_pb2.Targets(targets=[target_vector]), None
+        elif isinstance(target_vector, list):
+            return search_get_pb2.Targets(targets=target_vector), None
+        else:
+            return target_vector.to_grpc_target_vector(), None
