@@ -828,6 +828,7 @@ class Batch:
                 path="/objects/" + class_name + "/" + uuid,
                 params=params,
             )
+
             obj_weav = _decode_json_response_dict(response, "Re-add objects")
             assert obj_weav is not None
             if obj_weav["properties"] != obj["properties"] or obj.get(
