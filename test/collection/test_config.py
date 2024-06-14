@@ -975,6 +975,16 @@ def test_vector_config_hnsw_bq() -> None:
     assert vi_dict["efConstruction"] == 128
     assert vi_dict["bq"]["rescoreLimit"] == 123
 
+def test_vector_config_hnsw_sq() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        ef_construction=128, quantizer=Configure.VectorIndex.Quantizer.sq(rescore_limit=123)
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["efConstruction"] == 128
+    assert vi_dict["sq"]["rescoreLimit"] == 123
+
 
 def test_vector_config_flat_pq() -> None:
     vector_index = Configure.VectorIndex.flat(

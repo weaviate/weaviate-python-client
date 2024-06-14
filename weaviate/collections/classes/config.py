@@ -277,6 +277,14 @@ class _BQConfigCreate(_QuantizerConfigCreate):
     def quantizer_name() -> str:
         return "bq"
 
+class _SQConfigCreate(_QuantizerConfigCreate):
+    cache: Optional[bool]
+    rescoreLimit: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "sq"
+
 
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool] = Field(default=None)
@@ -298,6 +306,12 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
     def quantizer_name() -> str:
         return "bq"
 
+class _SQConfigUpdate(_QuantizerConfigUpdate):
+    rescoreLimit: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "sq"
 
 class _ShardingConfigCreate(_ConfigCreateModel):
     virtualPerPhysical: Optional[int]
@@ -1110,13 +1124,19 @@ class _BQConfig(_ConfigBase):
     cache: Optional[bool]
     rescore_limit: int
 
+@dataclass
+class _SQConfig(_ConfigBase):
+    cache: Optional[bool]
+    rescore_limit: int
+
 
 BQConfig = _BQConfig
+SQConfig = _SQConfig
 
 
 @dataclass
 class _VectorIndexConfig(_ConfigBase):
-    quantizer: Optional[Union[PQConfig, BQConfig]]
+    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -1124,6 +1144,8 @@ class _VectorIndexConfig(_ConfigBase):
             out["pq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _BQConfig):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
+        elif isinstance(self.quantizer, _SQConfig):
+            out["sq"] = {**out.pop("quantizer"), "enabled": True}
         return out
 
 
@@ -1614,6 +1636,22 @@ class _VectorIndexQuantizer:
             rescoreLimit=rescore_limit,
         )
 
+    @staticmethod
+    def sq(
+        cache: Optional[bool] = None,
+        rescore_limit: Optional[int] = None,
+    ) -> _BQConfigCreate:
+        """Create a `_SQConfigCreate` object to be used when defining the scalar quantization (SQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _SQConfigCreate(
+            cache=cache,
+            rescoreLimit=rescore_limit,
+        )
 
 class _VectorIndex:
     Quantizer = _VectorIndexQuantizer
@@ -1867,6 +1905,17 @@ class _VectorIndexQuantizerUpdate:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _BQConfigUpdate(rescoreLimit=rescore_limit)
 
+    @staticmethod
+    def sq(rescore_limit: Optional[int] = None) -> _BQConfigUpdate:
+        """Create a `_SQConfigUpdate` object to be used when updating the scalar quantization (SQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _SQConfigUpdate(rescoreLimit=rescore_limit)
+
 
 class _VectorIndexUpdate:
     Quantizer = _VectorIndexQuantizerUpdate
@@ -1879,7 +1928,7 @@ class _VectorIndexUpdate:
         ef: Optional[int] = None,
         flat_search_cutoff: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate]] = None,
+        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate]] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
