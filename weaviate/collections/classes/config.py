@@ -1644,7 +1644,7 @@ class _VectorIndexQuantizer:
     def sq(
         cache: Optional[bool] = None,
         rescore_limit: Optional[int] = None,
-    ) -> _BQConfigCreate:
+    ) -> _SQConfigCreate:
         """Create a `_SQConfigCreate` object to be used when defining the scalar quantization (SQ) configuration of Weaviate.
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
@@ -1911,7 +1911,7 @@ class _VectorIndexQuantizerUpdate:
         return _BQConfigUpdate(rescoreLimit=rescore_limit)
 
     @staticmethod
-    def sq(rescore_limit: Optional[int] = None) -> _BQConfigUpdate:
+    def sq(rescore_limit: Optional[int] = None) -> _SQConfigUpdate:
         """Create a `_SQConfigUpdate` object to be used when updating the scalar quantization (SQ) configuration of Weaviate.
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
