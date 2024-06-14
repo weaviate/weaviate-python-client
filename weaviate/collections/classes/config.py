@@ -277,6 +277,7 @@ class _BQConfigCreate(_QuantizerConfigCreate):
     def quantizer_name() -> str:
         return "bq"
 
+
 class _SQConfigCreate(_QuantizerConfigCreate):
     cache: Optional[bool]
     rescoreLimit: Optional[int]
@@ -306,12 +307,14 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
     def quantizer_name() -> str:
         return "bq"
 
+
 class _SQConfigUpdate(_QuantizerConfigUpdate):
     rescoreLimit: Optional[int]
 
     @staticmethod
     def quantizer_name() -> str:
         return "sq"
+
 
 class _ShardingConfigCreate(_ConfigCreateModel):
     virtualPerPhysical: Optional[int]
@@ -1124,6 +1127,7 @@ class _BQConfig(_ConfigBase):
     cache: Optional[bool]
     rescore_limit: int
 
+
 @dataclass
 class _SQConfig(_ConfigBase):
     cache: Optional[bool]
@@ -1652,6 +1656,7 @@ class _VectorIndexQuantizer:
             cache=cache,
             rescoreLimit=rescore_limit,
         )
+
 
 class _VectorIndex:
     Quantizer = _VectorIndexQuantizer

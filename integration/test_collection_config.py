@@ -481,6 +481,7 @@ def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _BQConfig)
 
+
 def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(

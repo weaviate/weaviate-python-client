@@ -100,7 +100,9 @@ def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]
         return None
 
 
-def __get_quantizer_config(config: Dict[str, Any]) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig]]:
+def __get_quantizer_config(
+    config: Dict[str, Any]
+) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig]]:
     quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig]] = None
     if "bq" in config and config["bq"]["enabled"]:
         # values are not present for bq+hnsw
