@@ -270,7 +270,7 @@ class ObjectPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class Targets(_message.Message):
-    __slots__ = ("targets", "combination", "weights")
+    __slots__ = ("targets_vectors", "combination", "weights")
 
     class WeightsEntry(_message.Message):
         __slots__ = ("key", "value")
@@ -279,15 +279,15 @@ class Targets(_message.Message):
         key: str
         value: float
         def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
-    TARGETS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_VECTORS_FIELD_NUMBER: _ClassVar[int]
     COMBINATION_FIELD_NUMBER: _ClassVar[int]
     WEIGHTS_FIELD_NUMBER: _ClassVar[int]
-    targets: _containers.RepeatedScalarFieldContainer[str]
+    targets_vectors: _containers.RepeatedScalarFieldContainer[str]
     combination: CombinationMethod
     weights: _containers.ScalarMap[str, float]
     def __init__(
         self,
-        targets: _Optional[_Iterable[str]] = ...,
+        targets_vectors: _Optional[_Iterable[str]] = ...,
         combination: _Optional[_Union[CombinationMethod, str]] = ...,
         weights: _Optional[_Mapping[str, float]] = ...,
     ) -> None: ...

@@ -804,8 +804,8 @@ class _QueryGRPC(_BaseGRPC):
                 )
 
         if isinstance(target_vector, str):
-            return search_get_pb2.Targets(targets=[target_vector]), None
+            return search_get_pb2.Targets(targets_vectors=[target_vector]), None
         elif isinstance(target_vector, list):
-            return search_get_pb2.Targets(targets=target_vector), None
+            return search_get_pb2.Targets(targets_vectors=target_vector), None
         else:
             return target_vector.to_grpc_target_vector(), None
