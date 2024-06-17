@@ -358,7 +358,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[Union[str, List[str]]] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -804,8 +804,8 @@ class _QueryGRPC(_BaseGRPC):
                 )
 
         if isinstance(target_vector, str):
-            return search_get_pb2.Targets(targets_vectors=[target_vector]), None
+            return search_get_pb2.Targets(target_vectors=[target_vector]), None
         elif isinstance(target_vector, list):
-            return search_get_pb2.Targets(targets_vectors=target_vector), None
+            return search_get_pb2.Targets(target_vectors=target_vector), None
         else:
             return target_vector.to_grpc_target_vector(), None

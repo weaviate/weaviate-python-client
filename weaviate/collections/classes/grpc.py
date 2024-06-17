@@ -278,7 +278,7 @@ class _MultiTargetVectorJoin:
             combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_MIN
 
         return search_get_pb2.Targets(
-            targets_vectors=self.target_vectors, weights=self.weights, combination=combination_grpc
+            target_vectors=self.target_vectors, weights=self.weights, combination=combination_grpc
         )
 
 
