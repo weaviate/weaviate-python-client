@@ -517,7 +517,7 @@ class Schema:
                 "vectorizer": "text2vec-contextionary",
                 "replicationConfig": {
                     "factor": 1,
-                    "async_enabled": false
+                    "asyncEnabled": false
                 }
                 }
             ]
@@ -547,7 +547,7 @@ class Schema:
             "vectorizer": "text2vec-contextionary",
             "replicationConfig": {
                 "factor": 1,
-                "async_enabled": false
+                "asyncEnabled": false
             }
         }
 

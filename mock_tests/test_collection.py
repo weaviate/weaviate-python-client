@@ -242,7 +242,7 @@ def test_return_from_bind_module(
         "invertedIndexConfig": ii_config,
         "multiTenancyConfig": config.multi_tenancy()._to_dict(),
         "vectorizer": "multi2vec-bind",
-        "replicationConfig": {"factor": 2, "async_enabled": False},
+        "replicationConfig": {"factor": 2, "asyncEnabled": False},
         "moduleConfig": {"multi2vec-bind": {}},
     }
     weaviate_auth_mock.expect_request("/v1/schema/TestBindCollection").respond_with_json(

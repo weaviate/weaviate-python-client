@@ -310,12 +310,12 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
-    async_enabled: Optional[bool]
+    asyncEnabled: Optional[bool]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
-    async_enabled: Optional[bool]
+    asyncEnabled: Optional[bool]
 
 
 class _BM25ConfigCreate(_ConfigCreateModel):
@@ -1789,7 +1789,7 @@ class Configure:
             `async_enabled`
                 Enabled async replication.
         """
-        return _ReplicationConfigCreate(factor=factor, async_enabled=async_enabled)
+        return _ReplicationConfigCreate(factor=factor, asyncEnabled=async_enabled)
 
     @staticmethod
     def sharding(
@@ -1997,7 +1997,7 @@ class Reconfigure:
             `async_enabled`
                 Enable async replication.
         """
-        return _ReplicationConfigUpdate(factor=factor, async_enabled=async_enabled)
+        return _ReplicationConfigUpdate(factor=factor, asyncEnabled=async_enabled)
 
     @staticmethod
     def multi_tenancy(
