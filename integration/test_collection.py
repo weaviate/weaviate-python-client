@@ -1122,6 +1122,33 @@ def test_add_property(collection_factory: CollectionFactory) -> None:
     assert "name" in obj2.properties
     assert "number" in obj2.properties
 
+def test_add_property_with_vectorizer(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.text2vec_openai(),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+    )
+    collection.config.add_property(Property(
+        name="new_property_all_true",
+        data_type=DataType.TEXT, 
+        skip_vectorization=True,
+        vectorize_property_name=True
+    ))
+    collection.config.add_property(Property(
+        name="new_property_all_false",
+        data_type=DataType.TEXT, 
+        skip_vectorization=False,
+        vectorize_property_name=False
+    ))    
+    new_property_true = [item for item in collection.config.get().to_dict()["properties"] if item['name'] == 'new_property_all_true'][0]
+    mconfig = new_property_true["moduleConfig"]["text2vec-openai"]
+    assert mconfig["skip"] == True
+    assert mconfig["vectorizePropertyName"] == True
+
+    new_property_false = [item for item in collection.config.get().to_dict()["properties"] if item['name'] == 'new_property_all_false'][0]
+    mconfig = new_property_false["moduleConfig"]["text2vec-openai"]
+    assert mconfig["skip"] == False
+    assert mconfig["vectorizePropertyName"] == False
+
 
 def test_add_reference(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(

@@ -164,6 +164,15 @@ class _ConfigBase:
     def _add_property(self, additional_property: PropertyType) -> None:
         path = f"/schema/{self._name}/properties"
         obj = additional_property._to_dict()
+        schema = self.__get()
+        if schema.get("moduleConfig"):
+            configured_module = list(schema.get("moduleConfig", {}).keys())[0]
+            obj["moduleConfig"] = {
+                configured_module: {
+                    'skip': obj["skip_vectorization"], 'vectorizePropertyName': obj["vectorize_property_name"]}
+            }
+            del obj["skip_vectorization"]
+            del obj["vectorize_property_name"]
         self.__connection.post(
             path=path,
             weaviate_object=obj,
