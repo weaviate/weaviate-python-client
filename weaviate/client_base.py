@@ -241,3 +241,18 @@ class _WeaviateClientBase(_WeaviateClientInit):
         """
 
         return await self._connection.get_meta()
+
+    async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the openid-configuration.
+
+        Returns
+            `dict`
+                The configuration or `None` if not configured.
+
+        Raises
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a none OK status.
+        """
+
+        return await self._connection.get_open_id_configuration()

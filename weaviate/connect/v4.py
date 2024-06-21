@@ -587,6 +587,18 @@ class ConnectionV4(_ConnectionBase):
         assert res is not None
         return res
 
+    async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the openid-configuration.
+        """
+
+        response = await self.get(path="/.well-known/openid-configuration")
+        if response.status_code == 200:
+            return _decode_json_response_dict(response, "OpenID Configuration")
+        if response.status_code == 404:
+            return None
+        raise UnexpectedStatusCodeError("Meta endpoint", response)
+
     def supports_groupby_in_bm25_and_hybrid(self) -> bool:
         return self._weaviate_version.is_at_least(1, 25, 0)
 
