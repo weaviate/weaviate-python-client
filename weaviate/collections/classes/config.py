@@ -1764,7 +1764,7 @@ class Configure:
             `enabled`
                 Whether multi-tenancy is enabled. Defaults to `True`.
             `auto_tenant_creation`
-                Automatically create nonexistent tenants during batch import. Defaults to `None`, which uses the server-defined default.
+                Automatically create nonexistent tenants during object creation. Defaults to `None`, which uses the server-defined default.
             `auto_tenant_activation`
                 Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
@@ -1998,7 +1998,7 @@ class Reconfigure:
 
         Arguments:
             `auto_tenant_creation`
-                When set, implicitly creates nonexisting tenants during batch imports
+                When set, implicitly creates nonexistent tenants during object creation
             `auto_tenant_activation`
                 Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
