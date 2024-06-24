@@ -1,6 +1,6 @@
 import pytest
 import uuid
-from typing import Union
+from typing import List, Union
 
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
@@ -315,3 +315,38 @@ def test_autotenant_toggling(collection_factory: CollectionFactory) -> None:
         multi_tenancy_config=Reconfigure.multi_tenancy(auto_tenant_creation=False)
     )
     assert not collection.config.get().multi_tenancy_config.auto_tenant_creation
+
+
+@pytest.mark.parametrize(
+    "tenants", ["tenant", Tenant(name="tenant"), ["tenant"], [Tenant(name="tenant")]]
+)
+def test_tenants_create(
+    collection_factory: CollectionFactory, tenants: Union[str, Tenant, List[Union[str, Tenant]]]
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(),
+    )
+
+    collection.tenants.create(tenants)
+    t = collection.tenants.get()
+    assert len(t) == 1
+    assert t["tenant"].name == "tenant"
+
+
+@pytest.mark.parametrize(
+    "tenants", ["tenant", Tenant(name="tenant"), ["tenant"], [Tenant(name="tenant")]]
+)
+def test_tenants_remove(
+    collection_factory: CollectionFactory, tenants: Union[str, Tenant, List[Union[str, Tenant]]]
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(),
+    )
+
+    collection.tenants.create(["tenant", "tenantt"])
+    collection.tenants.remove(tenants)
+    t = collection.tenants.get()
+    assert "tenant" not in t
+    assert "tenantt" in t
