@@ -9,7 +9,7 @@ def test_batch_object_return_add() -> None:
         elapsed_seconds=0.1,
         errors={},
         has_errors=False,
-        uuids={idx: v for idx, v in enumerate(lhs_uuids)},
+        uuids=dict(e for e in enumerate(lhs_uuids)),
     )
     rhs_uuids = [uuid.uuid4() for _ in range(2)]
     rhs = BatchObjectReturn(
@@ -17,7 +17,7 @@ def test_batch_object_return_add() -> None:
         elapsed_seconds=0.1,
         errors={},
         has_errors=False,
-        uuids={idx: v for idx, v in enumerate(rhs_uuids)},
+        uuids=dict(e for e in enumerate(rhs_uuids)),
     )
     result = lhs + rhs
     assert len(result.all_responses) == MAX_STORED_RESULTS
