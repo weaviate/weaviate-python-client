@@ -1,17 +1,15 @@
 import json
+from concurrent import futures
 
+import grpc
 import pytest
+from grpc import ServicerContext
+from grpc_health.v1.health_pb2 import HealthCheckResponse, HealthCheckRequest
+from grpc_health.v1.health_pb2_grpc import HealthServicer, add_HealthServicer_to_server
 from pytest_httpserver import HTTPServer, HeaderValueMatcher
 from werkzeug.wrappers import Response
 
 from weaviate.connect.base import ConnectionParams, ProtocolParams
-
-from concurrent import futures
-from grpc import ServicerContext
-import grpc
-
-from grpc_health.v1.health_pb2 import HealthCheckResponse, HealthCheckRequest
-from grpc_health.v1.health_pb2_grpc import HealthServicer, add_HealthServicer_to_server
 
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536
@@ -53,13 +51,13 @@ def weaviate_mock(ready_mock):
 
 
 @pytest.fixture(scope="function")
-def weaviate_no_auth_mock(ready_mock):
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.25"})
-    ready_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
+def weaviate_no_auth_mock(weaviate_mock):
+    weaviate_mock.expect_request("/v1/meta").respond_with_json({"version": "1.25"})
+    weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
         Response(json.dumps({}), status=404)
     )
 
-    yield ready_mock
+    yield weaviate_mock
 
 
 @pytest.fixture(scope="function")
