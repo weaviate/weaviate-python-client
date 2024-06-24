@@ -547,6 +547,9 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
 
 
 def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory("dummy")
+    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
     with pytest.raises(ValidationError) as e:
         collection_factory(
             vectorizer_config=[
