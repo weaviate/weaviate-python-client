@@ -805,9 +805,13 @@ class Batch:
         new_batch = ObjectsBatchRequest()
         for obj in batch_request.get_request_body()["objects"]:
             class_name = obj["class"]
+            tenant = obj.get("tenant", None)
             uuid = obj["id"]
+            params = {"tenant": tenant} if tenant is not None else None
+
             response_head = self._connection.head(
                 path="/objects/" + class_name + "/" + uuid,
+                params=params,
             )
 
             if response_head.status_code == 404:
@@ -822,6 +826,7 @@ class Batch:
             # object might already exist and needs to be overwritten in case of an update
             response = self._connection.get(
                 path="/objects/" + class_name + "/" + uuid,
+                params=params,
             )
 
             obj_weav = _decode_json_response_dict(response, "Re-add objects")
@@ -834,6 +839,7 @@ class Batch:
                     data_object=obj["properties"],
                     uuid=uuid,
                     vector=obj.get("vector", None),
+                    tenant=tenant,
                 )
         return new_batch
 
@@ -967,7 +973,9 @@ class Batch:
                 self._objects_throughput_frame
             )
 
-            self._recommended_num_objects = max(round(obj_per_second * self._creation_time), 1)
+            self._recommended_num_objects = max(
+                round(obj_per_second * float(self._creation_time)), 1
+            )
 
             res = _decode_json_response_list(response, "batch add objects")
             assert res is not None
@@ -1064,7 +1072,7 @@ class Batch:
                 self._references_throughput_frame
             )
 
-            self._recommended_num_references = round(ref_per_sec * self._creation_time)
+            self._recommended_num_references = round(ref_per_sec * float(self._creation_time))
 
             res = _decode_json_response_list(response, "Create references")
             assert res is not None
@@ -1171,7 +1179,7 @@ class Batch:
             )
             self._recommended_num_objects = max(
                 min(
-                    round(obj_per_second * self._creation_time),
+                    round(obj_per_second * float(self._creation_time)),
                     self._recommended_num_objects + 250,
                 ),
                 1,
@@ -1209,7 +1217,7 @@ class Batch:
                 self._references_throughput_frame
             )
             self._recommended_num_references = min(
-                round(ref_per_sec * self._creation_time),
+                round(ref_per_sec * float(self._creation_time)),
                 self._recommended_num_references * 2,
             )
 
@@ -1741,11 +1749,11 @@ class Batch:
         _check_positive_num(value, "creation_time", Real)
         if self._recommended_num_references is not None:
             self._recommended_num_references = round(
-                self._recommended_num_references * value / self._creation_time
+                self._recommended_num_references * float(value) / float(self._creation_time)
             )
         if self._recommended_num_objects is not None:
             self._recommended_num_objects = round(
-                self._recommended_num_objects * value / self._creation_time
+                self._recommended_num_objects * float(value) / float(self._creation_time)
             )
         self._creation_time = value
         if self._batching_type:

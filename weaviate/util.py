@@ -5,13 +5,13 @@ import base64
 import json
 import os
 import re
+import uuid as uuid_lib
 from enum import Enum, EnumMeta
 from io import BufferedReader
 from typing import Union, Sequence, Any, Optional, List, Dict, Tuple, cast
 
 import requests
-import uuid as uuid_lib
-import validators  # type: ignore
+import validators
 from requests.exceptions import JSONDecodeError
 
 from weaviate.exceptions import (
@@ -199,8 +199,10 @@ def generate_local_beacon(
         raise TypeError("Expected to_object_uuid of type str or uuid.UUID")
 
     if class_name is None:
-        return {"beacon": f"weaviate://localhost/{uuid}"}
-    return {"beacon": f"weaviate://localhost/{_capitalize_first_letter(class_name)}/{uuid}"}
+        return {"beacon": f"weaviate://localhost/{uuid}"}  # noqa: E231
+    return {
+        "beacon": f"weaviate://localhost/{_capitalize_first_letter(class_name)}/{uuid}"  # noqa: E231
+    }
 
 
 def _get_dict_from_object(object_: Union[str, dict]) -> dict:
