@@ -250,7 +250,7 @@ def test_bearer_token_without_refresh(recwarn):
     )
     client.schema.delete_all()  # no exception, client works
 
-    assert len(recwarn) == 1
+    assert len(recwarn) == 1, [wrn.message for wrn in recwarn]
     w = recwarn.pop()
     assert issubclass(w.category, UserWarning)
     assert str(w.message).startswith("Auth002")
