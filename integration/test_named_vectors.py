@@ -4,6 +4,8 @@ from integration.conftest import CollectionFactory, OpenAICollection
 import pytest
 import weaviate.classes as wvc
 
+from pydantic import ValidationError
+
 from weaviate.collections.classes.data import DataObject
 
 from weaviate.collections.classes.config import (
@@ -542,3 +544,18 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
 #                 )
 #             ]
 #         )
+
+
+def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
+    with pytest.raises(ValidationError) as e:
+        collection_factory(
+            vectorizer_config=[
+                wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                    "title", source_properties=["title"], vectorize_collection_name=False
+                ),
+                wvc.config.Configure.NamedVectors.text2vec_contextionary(
+                    "title", source_properties=["content"], vectorize_collection_name=False
+                ),
+            ],
+        )
+        assert "Vector config names must be unique. Found duplicates" in str(e)
