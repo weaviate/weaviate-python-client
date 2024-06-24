@@ -21,7 +21,7 @@ pytest==8.2.2
 pytest-cov==5.0.0
 pytest-benchmark==4.0.0
 pytest-profiling==1.7.0
-coverage==7.5.3
+coverage==7.5.4
 pytest-xdist==3.6.1
 werkzeug>=2.3.7
 pytest-httpserver>=1.0.8
