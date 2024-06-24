@@ -1,5 +1,6 @@
 import uuid as uuid_package
 from dataclasses import dataclass
+from heapq import merge
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union, cast
 
 from pydantic import BaseModel, Field, field_validator
@@ -154,6 +155,12 @@ class BatchObjectReturn:
 
     Since the individual objects within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
 
+    NOTE:
+        Due to concerns over memory usage, this object will only ever store the last `MAX_STORED_RESULTS` uuids in the `uuids` dictionary.
+        If more than `MAX_STORED_RESULTS` uuids are added to the dictionary, the oldest uuids will be removed.
+        This means that the keys of the `errors` and `uuids` dictionaries will not always be contiguous and that they apply only to the objects as they were added to the batch by the user.
+        They do not map the indices in the `all_responses` field!
+
     Attributes:
         `all_responses`
             A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
@@ -194,13 +201,20 @@ class BatchObjectReturn:
         if len(self.uuids.keys()) > MAX_STORED_RESULTS:
             new_max = max(self.uuids.keys())
             new_uuid_indices = range(new_max - MAX_STORED_RESULTS + 1, new_max + 1)
-            new_uuids = {index: self.uuids[index] for index in new_uuid_indices}
-            new_uuid_values = new_uuids.values()
-
-            self.all_responses = list(frozenset(self.all_responses) & set(new_uuid_values))
-            self.uuids = new_uuids
-
+            self.uuids = {index: self.uuids[index] for index in new_uuid_indices}
+            self.all_responses = [
+                self.__error_or_uuid(idx) for idx in merge(self.errors.keys(), self.uuids.keys())
+            ]
         return self
+
+    def __error_or_uuid(self, idx: int) -> Union[uuid_package.UUID, ErrorObject]:
+        if idx in self.errors:
+            return self.errors[idx]
+        if idx in self.uuids:
+            return self.uuids[idx]
+        raise KeyError(
+            f"Index {idx} not found in either errors or uuids, something went very wrong!"
+        )
 
 
 @dataclass
