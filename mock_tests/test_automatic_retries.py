@@ -1,8 +1,8 @@
 import json
+import uuid
 from typing import Optional
 
 import pytest
-import uuid
 from werkzeug.wrappers import Request, Response
 
 import weaviate
@@ -283,3 +283,33 @@ def test_callback_for_successful_responses(weaviate_mock, capfd):
     # callback output for each object
     print_output, err = capfd.readouterr()
     assert print_output.count("\n") == n
+
+
+def test_retries_with_tenant(weaviate_no_auth_mock):
+    tenant = "tenant"
+    first_try = True
+
+    def handler(request: Request):
+        nonlocal first_try
+        objects = request.json["objects"]
+        for obj in objects:
+            assert obj["tenant"] == tenant
+            obj["deprecations"] = None
+            if first_try == 0:
+                obj["result"] = {"errors": {"error": [{"message": "I'm an error message"}]}}
+                first_try = False
+            else:
+                obj["result"] = {}
+        return Response(json.dumps(objects))
+
+    weaviate_no_auth_mock.expect_request("/v1/batch/objects").respond_with_handler(handler)
+
+    client = weaviate.Client(url=MOCK_SERVER_URL)
+
+    n = 10
+    with client.batch(
+        weaviate_error_retries=WeaviateErrorRetryConf(number_retries=1),
+    ) as batch:
+        for i in range(n):
+            batch.add_data_object({"name": "test" + str(i)}, "test", uuid.uuid4(), tenant=tenant)
+    weaviate_no_auth_mock.check_assertions()

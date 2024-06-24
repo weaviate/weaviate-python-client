@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import requests
-import validators  # type: ignore
+import validators
 
 from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError
@@ -184,8 +184,8 @@ class EmbeddedDB:
     def check_supported_platform() -> None:
         if platform.system() in ["Windows"]:
             raise WeaviateStartUpError(
-                f"{platform.system()} is not supported with EmbeddedDB. Please upvote this feature request if "
-                f"you want this: https://github.com/weaviate/weaviate/issues/3315"
+                f"""{platform.system()} is not supported with EmbeddedDB. Please upvote this feature request if you want
+                 this: https://github.com/weaviate/weaviate/issues/3315"""  # noqa: E231
             )
 
     def start(self) -> None:
