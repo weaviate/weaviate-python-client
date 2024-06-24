@@ -171,31 +171,34 @@ class BatchObjectReturn:
     """A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object."""
     elapsed_seconds: float
     """The time taken to perform the batch operation."""
-
-    @property
-    def errors(self) -> Dict[int, ErrorObject]:
-        """Return a dictionary of all the failed responses from the batch operation."""
-        return {idx: v for idx, v in enumerate(self.all_responses) if isinstance(v, ErrorObject)}
-
-    @property
-    def uuids(self) -> Dict[int, uuid_package.UUID]:
-        """Return a dictionary of all the successful responses from the batch operation."""
-        return {
-            idx: v for idx, v in enumerate(self.all_responses) if isinstance(v, uuid_package.UUID)
-        }
-
-    @property
-    def has_errors(self) -> bool:
-        """Return a boolean indicating whether or not any of the objects in the batch failed to be inserted."""
-        if len(self.all_responses) == 0:
-            return False
-        return any(isinstance(v, ErrorObject) for v in self.all_responses)
+    errors: Dict[int, ErrorObject]
+    """A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects."""
+    uuids: Dict[int, uuid_package.UUID]
+    """A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects."""
+    has_errors: bool = False
+    """A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry."""
 
     def __add__(self, other: "BatchObjectReturn") -> "BatchObjectReturn":
         self.all_responses += other.all_responses
 
-        if len(self.all_responses) > MAX_STORED_RESULTS:
-            self.all_responses = self.all_responses[-MAX_STORED_RESULTS:]
+        prev_max = max(self.errors.keys()) if len(self.errors) > 0 else -1
+        for k1, v1 in other.errors.items():
+            self.errors[prev_max + k1 + 1] = v1
+
+        prev_max = max(self.uuids.keys()) if len(self.uuids) > 0 else -1
+        for k2, v2 in other.uuids.items():
+            self.uuids[prev_max + k2 + 1] = v2
+
+        self.has_errors = self.has_errors or other.has_errors
+
+        if len(self.uuids.keys()) > MAX_STORED_RESULTS:
+            new_max = max(self.uuids.keys())
+            new_uuid_indices = range(new_max - MAX_STORED_RESULTS + 1, new_max + 1)
+            new_uuids = {index: self.uuids[index] for index in new_uuid_indices}
+            new_uuid_values = new_uuids.values()
+
+            self.all_responses = list(frozenset(self.all_responses) & set(new_uuid_values))
+            self.uuids = new_uuids
 
         return self
 
@@ -242,7 +245,7 @@ class BatchResult:
     """
 
     def __init__(self) -> None:
-        self.objs: BatchObjectReturn = BatchObjectReturn([], 0.0)
+        self.objs: BatchObjectReturn = BatchObjectReturn([], 0.0, {}, {})
         self.refs: BatchReferenceReturn = BatchReferenceReturn(0.0, {})
 
 

@@ -502,6 +502,9 @@ class _BatchBase:
                 response_obj = BatchObjectReturn(
                     all_responses=list(errors_obj.values()),
                     elapsed_seconds=time.time() - start,
+                    errors=errors_obj,
+                    has_errors=True,
+                    uuids={},
                 )
 
             readded_uuids = set()
@@ -549,7 +552,15 @@ class _BatchBase:
 
                 self.__batch_objects.prepend(readd_objects)
 
+                new_errors = {
+                    i: err for i, err in response_obj.errors.items() if i not in readded_objects
+                }
                 response_obj = BatchObjectReturn(
+                    uuids={
+                        i: uid for i, uid in response_obj.uuids.items() if i not in readded_objects
+                    },
+                    errors=new_errors,
+                    has_errors=len(new_errors) > 0,
                     all_responses=[
                         err
                         for i, err in enumerate(response_obj.all_responses)
