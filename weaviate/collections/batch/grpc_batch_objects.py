@@ -2,7 +2,7 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, cast
 
 import grpc  # type: ignore
 from google.protobuf.struct_pb2 import Struct
@@ -105,27 +105,13 @@ class _BatchGRPC(_BaseGRPC):
                 )
             )
 
-        all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
-            List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
-        )
-        return_success: Dict[int, uuid_package.UUID] = {}
-        return_errors: Dict[int, ErrorObject] = {}
-
-        for idx, obj in enumerate(weaviate_objs):
-            if idx in errors:
-                error = ErrorObject(errors[idx], objects[idx], original_uuid=objects[idx].uuid)
-                return_errors[idx] = error
-                all_responses[idx] = error
-            else:
-                success = uuid_package.UUID(obj.uuid)
-                return_success[idx] = success
-                all_responses[idx] = success
-
         return BatchObjectReturn(
-            uuids=return_success,
-            errors=return_errors,
-            has_errors=len(errors) > 0,
-            all_responses=all_responses,
+            all_responses=[
+                ErrorObject(errors[idx], objects[idx], original_uuid=objects[idx].uuid)
+                if idx in errors
+                else uuid_package.UUID(obj.uuid)
+                for idx, obj in enumerate(weaviate_objs)
+            ],
             elapsed_seconds=elapsed_time,
         )
 
@@ -168,27 +154,13 @@ class _BatchGRPC(_BaseGRPC):
         errors = await self.__send_batch_async(weaviate_objs, timeout=timeout)
         elapsed_time = time.time() - start
 
-        all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
-            List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
-        )
-        return_success: Dict[int, uuid_package.UUID] = {}
-        return_errors: Dict[int, ErrorObject] = {}
-
-        for idx, obj in enumerate(weaviate_objs):
-            if idx in errors:
-                error = ErrorObject(errors[idx], objects[idx], original_uuid=objects[idx].uuid)
-                return_errors[idx] = error
-                all_responses[idx] = error
-            else:
-                success = uuid_package.UUID(obj.uuid)
-                return_success[idx] = success
-                all_responses[idx] = success
-
         return BatchObjectReturn(
-            uuids=return_success,
-            errors=return_errors,
-            has_errors=len(errors) > 0,
-            all_responses=all_responses,
+            all_responses=[
+                ErrorObject(errors[idx], objects[idx], original_uuid=objects[idx].uuid)
+                if idx in errors
+                else uuid_package.UUID(obj.uuid)
+                for idx, obj in enumerate(weaviate_objs)
+            ],
             elapsed_seconds=elapsed_time,
         )
 

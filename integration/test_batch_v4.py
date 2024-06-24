@@ -546,3 +546,24 @@ def test_non_existant_collection(client_factory: ClientFactory) -> None:
 
     # above should not throw - depending on the autoschema config this might create an error or
     # not, so we do not check for errors here
+
+
+def test_number_of_stored_results_in_batch(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    with client.batch.dynamic() as batch:
+        for i in range(99999):
+            batch.add_object(properties={"name": str(i)}, collection=name)
+
+    assert len(client.batch.results.objs.all_responses) == 99999
+    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.batch.results.objs.uuids) == 99999
+    assert list(client.batch.results.objs.uuids.keys()) == list(range(99999))
+
+    with client.batch.dynamic() as batch:
+        for i in range(100001):
+            batch.add_object(properties={"name": str(i)}, collection=name)
+
+    assert len(client.batch.results.objs.all_responses) == 100000
+    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.batch.results.objs.uuids) == 100000
+    assert list(client.batch.results.objs.uuids.keys()) == list(range(100000))

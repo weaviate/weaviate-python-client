@@ -9,6 +9,8 @@ from weaviate.collections.classes.types import WeaviateField
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _capitalize_first_letter, get_valid_uuid, _get_vector_v4
 
+MAX_STORED_RESULTS = 100000
+
 
 @dataclass
 class _BatchObject:
@@ -166,23 +168,35 @@ class BatchObjectReturn:
     """
 
     all_responses: List[Union[uuid_package.UUID, ErrorObject]]
+    """A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object."""
     elapsed_seconds: float
-    errors: Dict[int, ErrorObject]
-    uuids: Dict[int, uuid_package.UUID]
-    has_errors: bool = False
+    """The time taken to perform the batch operation."""
+
+    @property
+    def errors(self) -> Dict[int, ErrorObject]:
+        """Return a dictionary of all the failed responses from the batch operation."""
+        return {idx: v for idx, v in enumerate(self.all_responses) if isinstance(v, ErrorObject)}
+
+    @property
+    def uuids(self) -> Dict[int, uuid_package.UUID]:
+        """Return a dictionary of all the successful responses from the batch operation."""
+        return {
+            idx: v for idx, v in enumerate(self.all_responses) if isinstance(v, uuid_package.UUID)
+        }
+
+    @property
+    def has_errors(self) -> bool:
+        """Return a boolean indicating whether or not any of the objects in the batch failed to be inserted."""
+        if len(self.all_responses) == 0:
+            return False
+        return any(isinstance(v, ErrorObject) for v in self.all_responses)
 
     def __add__(self, other: "BatchObjectReturn") -> "BatchObjectReturn":
         self.all_responses += other.all_responses
 
-        prev_max = max(self.errors.keys()) if len(self.errors) > 0 else -1
-        for k1, v1 in other.errors.items():
-            self.errors[prev_max + k1] = v1
+        if len(self.all_responses) > MAX_STORED_RESULTS:
+            self.all_responses = self.all_responses[-MAX_STORED_RESULTS:]
 
-        prev_max = max(self.uuids.keys()) if len(self.uuids) > 0 else -1
-        for k1, v2 in other.uuids.items():
-            self.uuids[prev_max + k1] = v2
-
-        self.has_errors = self.has_errors or other.has_errors
         return self
 
 
@@ -228,7 +242,7 @@ class BatchResult:
     """
 
     def __init__(self) -> None:
-        self.objs: BatchObjectReturn = BatchObjectReturn([], 0.0, {}, {})
+        self.objs: BatchObjectReturn = BatchObjectReturn([], 0.0)
         self.refs: BatchReferenceReturn = BatchReferenceReturn(0.0, {})
 
 
