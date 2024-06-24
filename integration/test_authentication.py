@@ -122,7 +122,7 @@ def test_authentication_user_pw(
     """Test authentication using Resource Owner Password Credentials Grant (User + PW)."""
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
-    warnings.filterwarnings(action="ignore", message="upgrading", category=DeprecationWarning)
+    warnings.filterwarnings(action="ignore", message="Dep005", category=DeprecationWarning)
 
     url = "http://127.0.0.1:" + port
     assert is_auth_enabled(url)
@@ -212,7 +212,7 @@ def test_client_with_authentication_with_anon_weaviate(recwarn):
     """Test that we warn users when their client has auth enabled, but weaviate has only anon access."""
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
-    warnings.filterwarnings(action="ignore", message="upgrading", category=DeprecationWarning)
+    warnings.filterwarnings(action="ignore", message="Dep005", category=DeprecationWarning)
 
     url = "http://127.0.0.1:" + ANON_PORT
     assert not is_auth_enabled(url)
@@ -236,7 +236,7 @@ def test_bearer_token_without_refresh(recwarn):
 
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
-    warnings.filterwarnings(action="ignore", message="upgrading", category=DeprecationWarning)
+    warnings.filterwarnings(action="ignore", message="Dep005", category=DeprecationWarning)
 
     url = "http://127.0.0.1:" + WCS_PORT
     assert is_auth_enabled(url)
