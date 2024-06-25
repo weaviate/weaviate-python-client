@@ -401,7 +401,7 @@ async def test_async_client_connect_and_close() -> None:
     await client.connect()
     assert client.is_connected()
     await client.get_meta()
-    assert client.is_live()
+    assert await client.is_live()
 
     await client.close()
     assert not client.is_connected()
@@ -435,7 +435,7 @@ async def test_async_client_as_context_manager() -> None:
     ) as client:
         assert client.is_connected()
         await client.get_meta()
-        assert client.is_live()
+        assert await client.is_live()
 
     assert not client.is_connected()
     with pytest.raises(WeaviateClosedClientError):
@@ -583,7 +583,7 @@ async def test_async_client_is_ready() -> None:
     async with weaviate.use_async_with_weaviate_cloud(
         cluster_url=WCS_URL, auth_credentials=WCS_CREDS, skip_init_checks=True
     ) as client:
-        assert client.is_ready()
+        assert await client.is_ready()
 
 
 @pytest.mark.skip("gRPC proxying is not supported by grpclib at this time")

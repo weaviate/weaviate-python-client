@@ -4,7 +4,7 @@ import time
 import uuid as uuid_package
 from typing import Any, Dict, List, Optional, Union, cast
 
-from grpclib.exceptions import GRPCError
+from grpc.aio import AioRpcError  # type: ignore
 from google.protobuf.struct_pb2 import Struct
 
 from weaviate.collections.classes.batch import (
@@ -143,13 +143,14 @@ class _BatchGRPC(_BaseGRPC):
                 metadata=metadata,
                 timeout=timeout,
             )
+            res = cast(batch_pb2.BatchObjectsReply, res)
 
             objects: Dict[int, str] = {}
             for result in res.errors:
                 objects[result.index] = result.error
             return objects
-        except GRPCError as e:
-            raise WeaviateBatchError(e.message or str(e)) from e
+        except AioRpcError as e:
+            raise WeaviateBatchError(str(e)) from e
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], refs: ReferenceInputs

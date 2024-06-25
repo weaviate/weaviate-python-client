@@ -1,6 +1,6 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
 
-from grpclib.exceptions import GRPCError
+from grpc.aio import AioRpcError  # type: ignore
 
 
 from weaviate.collections.classes.batch import (
@@ -41,6 +41,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
                 metadata=metadata,
                 timeout=self._connection.timeout_config.insert,
             )
+            res = cast(batch_delete_pb2.BatchDeleteReply, res)
 
             if verbose:
                 objects: List[DeleteManyObject] = [
@@ -62,5 +63,5 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     failed=res.failed, successful=res.successful, matches=res.matches, objects=None
                 )
 
-        except GRPCError as e:
-            raise WeaviateDeleteManyError(e.message or str(e))
+        except AioRpcError as e:
+            raise WeaviateDeleteManyError(str(e))
