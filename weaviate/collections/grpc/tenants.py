@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Optional, Sequence, cast
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import TenantActivityStatus
@@ -31,7 +31,7 @@ class _TenantsGRPC(_BaseGRPC):
             metadata=self._connection.grpc_headers(),
             timeout=self._connection.timeout_config.query,
         )
-        return res
+        return cast(tenants_pb2.TenantsGetReply, res)
 
     def map_activity_status(self, status: tenants_pb2.TenantActivityStatus) -> TenantActivityStatus:
         if status == tenants_pb2.TENANT_ACTIVITY_STATUS_COLD:

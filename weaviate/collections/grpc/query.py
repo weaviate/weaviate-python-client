@@ -17,7 +17,7 @@ from typing import (
 
 from typing_extensions import TypeAlias
 
-from grpclib.exceptions import GRPCError
+from grpc.aio import AioRpcError  # type: ignore
 import uuid as uuid_lib
 
 from weaviate.collections.classes.config import ConsistencyLevel
@@ -658,13 +658,14 @@ class _QueryGRPC(_BaseGRPC):
     async def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
         try:
             assert self._connection.grpc_stub is not None
-            return await self._connection.grpc_stub.Search(
+            res = await self._connection.grpc_stub.Search(
                 request,
                 metadata=self._connection.grpc_headers(),
                 timeout=self._connection.timeout_config.query,
             )
-        except GRPCError as e:
-            raise WeaviateQueryError(e.message or str(e), "GRPC search")  # pyright: ignore
+            return cast(search_get_pb2.SearchReply, res)
+        except AioRpcError as e:
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:
         return search_get_pb2.MetadataRequest(

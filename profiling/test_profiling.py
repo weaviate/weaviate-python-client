@@ -231,6 +231,7 @@ def test_list_value_properties(client: weaviate.WeaviateClient) -> None:
         assert len(objs) == 100
 
 
+@pytest.mark.profiling
 def test_multithreaded_queries(client: weaviate.WeaviateClient) -> None:
     name = "TestProfileMultithreadedQueries"
     client.collections.delete(name)

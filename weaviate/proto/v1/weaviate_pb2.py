@@ -13,12 +13,6 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-from weaviate.proto.v1 import batch_pb2 as v1_dot_batch__pb2
-from weaviate.proto.v1 import batch_delete_pb2 as v1_dot_batch__delete__pb2
-from weaviate.proto.v1 import search_get_pb2 as v1_dot_search__get__pb2
-from weaviate.proto.v1 import tenants_pb2 as v1_dot_tenants__pb2
-
-
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
     b'\n\x11v1/weaviate.proto\x12\x0bweaviate.v1\x1a\x0ev1/batch.proto\x1a\x15v1/batch_delete.proto\x1a\x13v1/search_get.proto\x1a\x10v1/tenants.proto2\xbf\x02\n\x08Weaviate\x12@\n\x06Search\x12\x1a.weaviate.v1.SearchRequest\x1a\x18.weaviate.v1.SearchReply"\x00\x12R\n\x0c\x42\x61tchObjects\x12 .weaviate.v1.BatchObjectsRequest\x1a\x1e.weaviate.v1.BatchObjectsReply"\x00\x12O\n\x0b\x42\x61tchDelete\x12\x1f.weaviate.v1.BatchDeleteRequest\x1a\x1d.weaviate.v1.BatchDeleteReply"\x00\x12L\n\nTenantsGet\x12\x1e.weaviate.v1.TenantsGetRequest\x1a\x1c.weaviate.v1.TenantsGetReply"\x00\x42j\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3'
 )

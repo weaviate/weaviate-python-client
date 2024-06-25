@@ -12,9 +12,10 @@ from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
+from grpc.aio import Channel  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
-from grpclib.client import Channel
-from grpclib.const import Cardinality
+
+# from grpclib.client import Channel
 from httpx import (
     AsyncClient,
     AsyncHTTPTransport,
@@ -55,7 +56,7 @@ from weaviate.exceptions import (
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
 )
-from weaviate.proto.v1 import weaviate_grpc
+from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.util import (
     PYPI_PACKAGE_URL,
     _decode_json_response_dict,
@@ -107,7 +108,7 @@ class ConnectionV4(_ConnectionBase):
         self.__additional_headers = {}
         self._auth = auth_client_secret
         self._connection_params = connection_params
-        self._grpc_stub: Optional[weaviate_grpc.WeaviateStub] = None
+        self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_channel: Optional[Channel] = None
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
@@ -260,7 +261,7 @@ class ConnectionV4(_ConnectionBase):
     ) -> None:
         self._grpc_channel = self._connection_params._grpc_channel(proxies=self._proxies)
         assert self._grpc_channel is not None
-        self._grpc_stub = weaviate_grpc.WeaviateStub(self._grpc_channel)
+        self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
 
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
@@ -413,7 +414,7 @@ class ConnectionV4(_ConnectionBase):
             self._client = None
         if self._grpc_stub is not None:
             assert self._grpc_channel is not None
-            self._grpc_channel.close()
+            await self._grpc_channel.close()
             self._grpc_stub = None
             self._grpc_channel = None
         if self.embedded_db is not None:
@@ -661,36 +662,56 @@ class ConnectionV4(_ConnectionBase):
         self.__metadata_list[len(self.__metadata_list) - 1] = ("authorization", access_token)
         return tuple(self.__metadata_list)
 
+    # async def _ping_grpc(self) -> None:
+    #     """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
+    #     if not self.is_connected():
+    #         raise WeaviateClosedClientError()
+    #     assert self._grpc_channel is not None
+    #     try:
+    #         request = self._grpc_channel.request(
+    #             "/grpc.health.v1.Health/Check",
+    #             Cardinality.UNARY_UNARY,
+    #             health_pb2.HealthCheckRequest,
+    #             health_pb2.HealthCheckResponse,
+    #             timeout=self.timeout_config.init,
+    #         )
+    #         async with request as stream:
+    #             await stream.send_message(health_pb2.HealthCheckRequest())
+    #             res = await stream.recv_message()
+    #             await stream.end()
+    #         if res is None or res.status != health_pb2.HealthCheckResponse.SERVING:
+    #             self.__connected = False
+    #             raise WeaviateGRPCUnavailableError(
+    #                 f"v{self.server_version}", self._connection_params._grpc_address
+    #             )
+    #     except Exception as e:
+    #         self.__connected = False
+    #         raise WeaviateGRPCUnavailableError(
+    #             f"v{self.server_version}", self._connection_params._grpc_address
+    #         ) from e
+
     async def _ping_grpc(self) -> None:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         if not self.is_connected():
             raise WeaviateClosedClientError()
         assert self._grpc_channel is not None
         try:
-            request = self._grpc_channel.request(
+            res: health_pb2.HealthCheckResponse = await self._grpc_channel.unary_unary(
                 "/grpc.health.v1.Health/Check",
-                Cardinality.UNARY_UNARY,
-                health_pb2.HealthCheckRequest,
-                health_pb2.HealthCheckResponse,
-                timeout=self.timeout_config.init,
-            )
-            async with request as stream:
-                await stream.send_message(health_pb2.HealthCheckRequest())
-                res = await stream.recv_message()
-                await stream.end()
-            if res is None or res.status != health_pb2.HealthCheckResponse.SERVING:
-                self.__connected = False
+                request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
+                response_deserializer=health_pb2.HealthCheckResponse.FromString,
+            )(health_pb2.HealthCheckRequest(), timeout=self.timeout_config.init)
+            if res.status != health_pb2.HealthCheckResponse.SERVING:
                 raise WeaviateGRPCUnavailableError(
                     f"v{self.server_version}", self._connection_params._grpc_address
                 )
         except Exception as e:
-            self.__connected = False
             raise WeaviateGRPCUnavailableError(
                 f"v{self.server_version}", self._connection_params._grpc_address
             ) from e
 
     @property
-    def grpc_stub(self) -> Optional[weaviate_grpc.WeaviateStub]:
+    def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
         if not self.is_connected():
             raise WeaviateClosedClientError()
         return self._grpc_stub
