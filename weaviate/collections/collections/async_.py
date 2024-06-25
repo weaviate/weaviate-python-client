@@ -126,7 +126,9 @@ class _CollectionsAsync(_CollectionsBase):
                 vector_index_config=vector_index_config,
             )
         except ValidationError as e:
-            raise WeaviateInvalidInputError("Invalid collection config create parameters.") from e
+            raise WeaviateInvalidInputError(
+                f"Invalid collection config create parameters: {e}"
+            ) from e
         name = await super()._create(config._to_dict())
         assert (
             config.name == name
