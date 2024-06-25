@@ -448,9 +448,9 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     ret = client.collections.get(name).aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
 
-    old_client = weaviate.Client("http://localhost:8090")
-    assert old_client.schema.get_class_shards(name)[0]["status"] == "READY"
-    assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] == 0
+    shards = client.collections.get(name).config.get_shards()
+    assert shards[0].status == "READY"
+    assert shards[0].vector_queue_size == 0
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -501,10 +501,11 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
         assert ret.total_count == nr_objects / len(tenants)
-    old_client = weaviate.Client("http://localhost:8090")
-    for shard in old_client.schema.get_class_shards(name):
-        assert shard["status"] == "READY"
-        assert shard["vectorQueueSize"] == 0
+
+    shards = client.collections.get(name).config.get_shards()
+    for shard in shards:
+        assert shard.status == "READY"
+        assert shard.vector_queue_size == 0
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -532,14 +533,15 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
         assert ret.total_count == 1000 if tenant.name == tenants[0].name else 1
-    old_client = weaviate.Client("http://localhost:8090")
-    for shard in old_client.schema.get_class_shards(name):
-        if shard["name"] == tenants[0].name:
-            assert shard["status"] == "READY"
-            assert shard["vectorQueueSize"] == 0
+
+    shards = client.collections.get(name).config.get_shards()
+    for shard in shards:
+        if shard.name == tenants[0].name:
+            assert shard.status == "READY"
+            assert shard.vector_queue_size == 0
         else:
-            assert shard["status"] == "INDEXING"
-            assert shard["vectorQueueSize"] > 0
+            assert shard.status == "INDEXING"
+            assert shard.vector_queue_size > 0
 
 
 @pytest.mark.parametrize(
