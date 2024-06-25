@@ -125,7 +125,7 @@ class _BatchGRPC(_BaseGRPC):
             uuids=return_success,
             errors=return_errors,
             has_errors=len(errors) > 0,
-            all_responses=all_responses,
+            _all_responses=all_responses,
             elapsed_seconds=elapsed_time,
         )
 
@@ -188,7 +188,7 @@ class _BatchGRPC(_BaseGRPC):
             uuids=return_success,
             errors=return_errors,
             has_errors=len(errors) > 0,
-            all_responses=all_responses,
+            _all_responses=all_responses,
             elapsed_seconds=elapsed_time,
         )
 

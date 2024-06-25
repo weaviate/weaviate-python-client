@@ -9,6 +9,7 @@ from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.types import WeaviateField
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _capitalize_first_letter, get_valid_uuid, _get_vector_v4
+from weaviate.warnings import _Warnings
 
 MAX_STORED_RESULTS = 100000
 
@@ -174,19 +175,27 @@ class BatchObjectReturn:
             A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
-    all_responses: List[Union[uuid_package.UUID, ErrorObject]]
-    """A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object."""
+    _all_responses: List[Union[uuid_package.UUID, ErrorObject]]
     elapsed_seconds: float
     """The time taken to perform the batch operation."""
     errors: Dict[int, ErrorObject]
-    """A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects."""
+    """A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the overall batch, and the values are the `Error` objects."""
     uuids: Dict[int, uuid_package.UUID]
-    """A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects."""
+    """A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the overall batch, and the values are the `uuid_package.UUID` objects."""
     has_errors: bool = False
     """A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry."""
 
+    @property
+    def all_responses(self) -> List[Union[uuid_package.UUID, ErrorObject]]:
+        """@deprecated: A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
+
+        WARNING: Now that only the last `MAX_STORED_RESULTS` uuids are stored in the `uuids` dictionary, the keys of the `errors` and `uuids` dictionaries can no longer be used to map the indices in the `all_responses` field!
+        """
+        _Warnings.batch_results_objects_all_responses_attribute()
+        return self._all_responses
+
     def __add__(self, other: "BatchObjectReturn") -> "BatchObjectReturn":
-        self.all_responses += other.all_responses
+        self._all_responses += other._all_responses
 
         prev_max = max(self.errors.keys()) if len(self.errors) > 0 else -1
         for k1, v1 in other.errors.items():
@@ -202,7 +211,7 @@ class BatchObjectReturn:
             new_max = max(self.uuids.keys())
             new_uuid_indices = range(new_max - MAX_STORED_RESULTS + 1, new_max + 1)
             self.uuids = {index: self.uuids[index] for index in new_uuid_indices}
-            self.all_responses = [
+            self._all_responses = [
                 self.__error_or_uuid(idx) for idx in merge(self.errors.keys(), self.uuids.keys())
             ]
         return self

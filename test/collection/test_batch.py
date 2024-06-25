@@ -5,7 +5,7 @@ from weaviate.collections.classes.batch import BatchObjectReturn, MAX_STORED_RES
 def test_batch_object_return_add() -> None:
     lhs_uuids = [uuid.uuid4() for _ in range(MAX_STORED_RESULTS - 1)]
     lhs = BatchObjectReturn(
-        all_responses=lhs_uuids,
+        _all_responses=lhs_uuids,
         elapsed_seconds=0.1,
         errors={},
         has_errors=False,
@@ -13,7 +13,7 @@ def test_batch_object_return_add() -> None:
     )
     rhs_uuids = [uuid.uuid4() for _ in range(2)]
     rhs = BatchObjectReturn(
-        all_responses=rhs_uuids,
+        _all_responses=rhs_uuids,
         elapsed_seconds=0.1,
         errors={},
         has_errors=False,

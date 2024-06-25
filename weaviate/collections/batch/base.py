@@ -500,7 +500,7 @@ class _BatchBase:
                     idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
                 }
                 response_obj = BatchObjectReturn(
-                    all_responses=list(errors_obj.values()),
+                    _all_responses=list(errors_obj.values()),
                     elapsed_seconds=time.time() - start,
                     errors=errors_obj,
                     has_errors=True,
@@ -561,7 +561,7 @@ class _BatchBase:
                     },
                     errors=new_errors,
                     has_errors=len(new_errors) > 0,
-                    all_responses=[
+                    _all_responses=[
                         err
                         for i, err in enumerate(response_obj.all_responses)
                         if i not in readded_objects
