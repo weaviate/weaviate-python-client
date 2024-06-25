@@ -10,6 +10,7 @@ pydantic>=2.5.0,<3.0.0
 build
 twine
 wheel
+importlib_metadata==7.2.1
 setuptools_scm
 Sphinx>=7.0.0
 sphinx-rtd-theme==2.0.0
