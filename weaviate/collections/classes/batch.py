@@ -207,7 +207,9 @@ class BatchObjectReturn:
             old_min = next(iter(self.uuids))
             for k in range(old_min, new_min):
                 del self.uuids[k]
+        if len(self._all_responses) > MAX_STORED_RESULTS:
             self._all_responses = self._all_responses[-MAX_STORED_RESULTS:]
+
         return self
 
 
