@@ -1,6 +1,7 @@
 import uuid as uuid_package
 from collections import OrderedDict
 from dataclasses import dataclass, field
+from copy import copy
 from heapq import merge
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union, cast
 
@@ -210,7 +211,7 @@ class BatchObjectReturn:
         if len(self.uuids.keys()) > MAX_STORED_RESULTS:
             new_max = max(self.uuids.keys())
             new_uuid_indices = range(new_max - MAX_STORED_RESULTS + 1, new_max + 1)
-            for key in self.uuids.keys():
+            for key in copy(list(self.uuids.keys())):
                 if key not in new_uuid_indices:
                     del self.uuids[key]
             self._all_responses = [
