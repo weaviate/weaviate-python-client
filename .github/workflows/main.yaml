@@ -14,10 +14,9 @@ on:
   pull_request:
 
 env:
-  WEAVIATE_123: 1.23.14
-  WEAVIATE_124: 1.24.10
-  WEAVIATE_125: preview--c57fecf
-
+  WEAVIATE_123: 1.23.15
+  WEAVIATE_124: 1.24.19
+  WEAVIATE_125: 1.25.5
 
 jobs:
   lint-and-format:

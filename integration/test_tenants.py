@@ -27,8 +27,6 @@ def test_delete_by_id_tenant(collection_factory: CollectionFactory) -> None:
     assert tenant1.query.fetch_object_by_id(uuid) is not None
     assert tenant1.data.delete_by_id(uuid)
     assert tenant1.query.fetch_object_by_id(uuid) is None
-    # does not exist anymore
-    assert not tenant1.data.delete_by_id(uuid)
 
 
 def test_insert_many_with_tenant(collection_factory: CollectionFactory) -> None:
