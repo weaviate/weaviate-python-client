@@ -190,6 +190,8 @@ class _BatchBase:
         self.__batching_mode: _BatchMode = batch_mode
         self.__max_batch_size: int = 1000
 
+        self.__objs_count = 0
+
         if isinstance(self.__batching_mode, _FixedSizeBatching):
             self.__recommended_num_objects = self.__batching_mode.batch_size
             self.__concurrent_requests = self.__batching_mode.concurrent_requests
@@ -643,7 +645,9 @@ class _BatchBase:
                 uuid=uuid,
                 vector=vector,
                 tenant=tenant,
+                index=self.__objs_count,
             )
+            self.__objs_count += 1
             self.__results_for_wrapper.imported_shards.add(
                 Shard(collection=collection, tenant=tenant)
             )

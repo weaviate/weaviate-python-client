@@ -21,6 +21,7 @@ class _BatchObject:
     properties: Optional[Dict[str, WeaviateField]]
     tenant: Optional[str]
     references: Optional[ReferenceInputs]
+    index: int
     retry_count: int = 0
 
 
@@ -46,6 +47,7 @@ class BatchObject(BaseModel):
     uuid: Optional[UUID] = Field(default=None)
     vector: Optional[VECTORS] = Field(default=None)
     tenant: Optional[str] = Field(default=None)
+    index: int
 
     def __init__(self, **data: Any) -> None:
         v = data.get("vector")
@@ -70,6 +72,7 @@ class BatchObject(BaseModel):
             properties=self.properties,
             tenant=self.tenant,
             references=self.references,
+            index=self.index,
         )
 
     @field_validator("collection")
@@ -195,19 +198,14 @@ class BatchObjectReturn:
     def __add__(self, other: "BatchObjectReturn") -> "BatchObjectReturn":
         self._all_responses += other._all_responses
 
-        prev_max = max(self.errors.keys()) if len(self.errors) > 0 else -1
-        for k1, v1 in other.errors.items():
-            self.errors[prev_max + k1 + 1] = v1
-
-        prev_max = max(self.uuids.keys()) if len(self.uuids) > 0 else -1
-        for k2, v2 in other.uuids.items():
-            self.uuids[prev_max + k2 + 1] = v2
-
+        self.errors.update(other.errors)
+        self.uuids.update(other.uuids)
         self.has_errors = self.has_errors or other.has_errors
 
         if len(self.uuids.keys()) > MAX_STORED_RESULTS:
             new_min = max(self.uuids.keys()) - MAX_STORED_RESULTS + 1
-            for k in range(next(iter(self.uuids)), new_min):
+            old_min = next(iter(self.uuids))
+            for k in range(old_min, new_min):
                 del self.uuids[k]
             self._all_responses = self._all_responses[-MAX_STORED_RESULTS:]
         return self

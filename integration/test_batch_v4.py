@@ -566,7 +566,10 @@ def test_number_of_stored_results_in_batch(client_factory: ClientFactory) -> Non
     assert len(client.batch.results.objs.all_responses) == 100000
     assert len(client.batch.results.objs.errors) == 0
     assert len(client.batch.results.objs.uuids) == 100000
-    assert list(client.batch.results.objs.uuids.keys()) == list(range(1, 100001))
+    assert sorted(client.batch.results.objs.uuids.keys()) == list(range(1, 100001))
+    # depending on timings in the event loop, some batches may end before others
+    # as such the keys of the uuids dict may not be in order but they are still unique
+    # and correspond to the original indices within the batch
 
 
 def test_uuids_keys_and_original_index(client_factory: ClientFactory) -> None:
