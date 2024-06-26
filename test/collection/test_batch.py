@@ -25,5 +25,5 @@ def test_batch_object_return_add() -> None:
     assert len(result.all_responses) == MAX_STORED_RESULTS
     assert len(result.uuids) == MAX_STORED_RESULTS
     assert result.uuids == {
-        idx + 2: v for idx, v in enumerate(lhs_uuids[1:MAX_STORED_RESULTS] + rhs_uuids)
+        idx + 1: v for idx, v in enumerate(lhs_uuids[1:MAX_STORED_RESULTS] + rhs_uuids)
     }
