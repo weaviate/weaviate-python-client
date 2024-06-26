@@ -1,5 +1,6 @@
 import uuid as uuid_package
-from dataclasses import dataclass
+from collections import OrderedDict
+from dataclasses import dataclass, field
 from heapq import merge
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union, cast
 
@@ -159,8 +160,7 @@ class BatchObjectReturn:
     NOTE:
         Due to concerns over memory usage, this object will only ever store the last `MAX_STORED_RESULTS` uuids in the `uuids` dictionary.
         If more than `MAX_STORED_RESULTS` uuids are added to the dictionary, the oldest uuids will be removed.
-        This means that the keys of the `errors` and `uuids` dictionaries will not always be contiguous and that they apply only to the objects as they were added to the batch by the user.
-        They do not map the indices in the `all_responses` field!
+        The keys of the `errors` and `uuids` dictionaries will always be equivalent to the `original_index` of the objects as you added them to the batching loop.
 
     Attributes:
         `all_responses`
@@ -175,12 +175,12 @@ class BatchObjectReturn:
             A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
-    _all_responses: List[Union[uuid_package.UUID, ErrorObject]]
-    elapsed_seconds: float
+    _all_responses: List[Union[uuid_package.UUID, ErrorObject]] = field(default_factory=list)
+    elapsed_seconds: float = 0.0
     """The time taken to perform the batch operation."""
-    errors: Dict[int, ErrorObject]
+    errors: Dict[int, ErrorObject] = field(default_factory=OrderedDict)
     """A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the overall batch, and the values are the `Error` objects."""
-    uuids: Dict[int, uuid_package.UUID]
+    uuids: Dict[int, uuid_package.UUID] = field(default_factory=OrderedDict)
     """A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the overall batch, and the values are the `uuid_package.UUID` objects."""
     has_errors: bool = False
     """A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry."""
@@ -210,7 +210,9 @@ class BatchObjectReturn:
         if len(self.uuids.keys()) > MAX_STORED_RESULTS:
             new_max = max(self.uuids.keys())
             new_uuid_indices = range(new_max - MAX_STORED_RESULTS + 1, new_max + 1)
-            self.uuids = {index: self.uuids[index] for index in new_uuid_indices}
+            for key in self.uuids.keys():
+                if key not in new_uuid_indices:
+                    del self.uuids[key]
             self._all_responses = [
                 self.__error_or_uuid(idx) for idx in merge(self.errors.keys(), self.uuids.keys())
             ]
@@ -241,15 +243,15 @@ class BatchReferenceReturn:
             A boolean indicating whether or not any of the references in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
-    elapsed_seconds: float
-    errors: Dict[int, ErrorReference]
+    elapsed_seconds: float = 0.0
+    errors: Dict[int, ErrorReference] = field(default_factory=OrderedDict)
     has_errors: bool = False
 
     def __add__(self, other: "BatchReferenceReturn") -> "BatchReferenceReturn":
         self.elapsed_seconds += other.elapsed_seconds
         prev_max = max(self.errors.keys()) if len(self.errors) > 0 else -1
         for key, value in other.errors.items():
-            self.errors[prev_max + key] = value
+            self.errors[prev_max + key + 1] = value
         self.has_errors = self.has_errors or other.has_errors
         return self
 
@@ -268,8 +270,8 @@ class BatchResult:
     """
 
     def __init__(self) -> None:
-        self.objs: BatchObjectReturn = BatchObjectReturn([], 0.0, {}, {})
-        self.refs: BatchReferenceReturn = BatchReferenceReturn(0.0, {})
+        self.objs: BatchObjectReturn = BatchObjectReturn()
+        self.refs: BatchReferenceReturn = BatchReferenceReturn()
 
 
 @dataclass

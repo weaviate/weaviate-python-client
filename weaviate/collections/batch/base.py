@@ -504,7 +504,6 @@ class _BatchBase:
                     elapsed_seconds=time.time() - start,
                     errors=errors_obj,
                     has_errors=True,
-                    uuids={},
                 )
 
             readded_uuids = set()

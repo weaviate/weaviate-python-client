@@ -567,3 +567,18 @@ def test_number_of_stored_results_in_batch(client_factory: ClientFactory) -> Non
     assert len(client.batch.results.objs.errors) == 0
     assert len(client.batch.results.objs.uuids) == 100000
     assert list(client.batch.results.objs.uuids.keys()) == list(range(1, 100001))
+
+
+def test_uuids_keys_and_original_index(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    objs = [(uuid.uuid4(), {"name": str(i)}) for i in range(100)]
+    with client.batch.dynamic() as batch:
+        for obj in objs:
+            batch.add_object(uuid=obj[0], properties=obj[1], collection=name)
+
+    assert len(client.batch.results.objs.all_responses) == 100
+    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.batch.results.objs.uuids) == 100
+
+    for k, v in client.batch.results.objs.uuids.items():
+        assert objs[k][0] == v
