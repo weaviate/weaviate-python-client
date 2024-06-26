@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional
+from typing import Generic, List, Optional, Union, Dict
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -19,7 +19,7 @@ from weaviate.types import NUMBER, INCLUDE_VECTOR
 class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
     def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: Union[List[float], Dict[str, float], List[List[float]]],
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,

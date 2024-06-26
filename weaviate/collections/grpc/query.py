@@ -1,7 +1,20 @@
 import struct
 import uuid as uuid_lib
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Sequence, Set, TypeVar, Union, cast, Tuple
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+    Union,
+    cast,
+    Tuple,
+    get_args,
+)
 
 import grpc  # type: ignore
 from typing_extensions import TypeAlias
@@ -294,7 +307,7 @@ class _QueryGRPC(_BaseGRPC):
 
     def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: Union[List[float], Dict[str, float], List[List[float]]],
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -312,17 +325,74 @@ class _QueryGRPC(_BaseGRPC):
         if self._validate_arguments:
             _validate_input(
                 [
-                    _ValidateArgument([List], "near_vector", near_vector),
+                    _ValidateArgument([List, Dict], "near_vector", near_vector),
                     _ValidateArgument(
                         [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
                     ),
                 ]
             )
 
-        near_vector = _get_vector_v4(near_vector)
         certainty, distance = self.__parse_near_options(certainty, distance)
 
-        targets, target_vector = self.__target_vector_to_grpc(target_vector)
+        targets, target_vectors = self.__target_vector_to_grpc(target_vector)
+
+        if isinstance(near_vector, dict):
+            vector_per_target: Dict[str, bytes] = {}
+            for key, value in near_vector.items():
+                if (
+                    not isinstance(value, list)
+                    or len(value) == 0
+                    or not isinstance(value[0], get_args(NUMBER))
+                ):
+                    raise WeaviateQueryError(
+                        "The value of the near_vector dict must be a lists of numbers",
+                        "GRPC",
+                    )
+
+                nv = _get_vector_v4(value)
+                vector_per_target[key] = struct.pack("{}f".format(len(nv)), *nv)
+            near_vector_grpc = search_get_pb2.NearVector(
+                certainty=certainty,
+                distance=distance,
+                targets=targets,
+                target_vectors=target_vectors,
+                vectorPerTarget=vector_per_target,
+            )
+        elif isinstance(near_vector, get_args(List[NUMBER])):
+            near_vector = _get_vector_v4(near_vector)
+            near_vector_grpc = search_get_pb2.NearVector(
+                certainty=certainty,
+                distance=distance,
+                vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
+                targets=targets,
+                target_vectors=target_vectors,
+            )
+        else:
+            assert isinstance(near_vector, get_args(List[List[NUMBER]]))
+            vector_per_target_tmp: Dict[str, bytes] = {}
+            if target_vectors is None or len(target_vectors) != len(near_vector):
+                raise WeaviateQueryError(
+                    "The number of target vectors must be equal to the number of vectors.", "GRPC"
+                )
+            for i, vector in enumerate(near_vector):
+                if (
+                    not isinstance(vector, list)
+                    or len(vector) == 0
+                    or not isinstance(vector[0], get_args(NUMBER))
+                ):
+                    raise WeaviateQueryError(
+                        "The value of the near_vector entry must be a lists of numbers",
+                        "GRPC",
+                    )
+                nv = _get_vector_v4(vector)
+                vector_per_target_tmp[target_vectors[i]] = struct.pack("{}f".format(len(nv)), *nv)
+            near_vector_grpc = search_get_pb2.NearVector(
+                certainty=certainty,
+                distance=distance,
+                targets=targets,
+                target_vectors=target_vectors,
+                vectorPerTarget=vector_per_target_tmp,
+            )
 
         request = self.__create_request(
             limit=limit,
@@ -335,13 +405,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
-            near_vector=search_get_pb2.NearVector(
-                certainty=certainty,
-                distance=distance,
-                vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
-                targets=targets,
-                target_vectors=target_vector,
-            ),
+            near_vector=near_vector_grpc,
         )
 
         return self.__call(request)

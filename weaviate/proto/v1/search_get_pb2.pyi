@@ -553,19 +553,37 @@ class RefPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class NearVector(_message.Message):
-    __slots__ = ("vector", "certainty", "distance", "vector_bytes", "target_vectors", "targets")
+    __slots__ = (
+        "vector",
+        "certainty",
+        "distance",
+        "vector_bytes",
+        "target_vectors",
+        "targets",
+        "vectorPerTarget",
+    )
+
+    class VectorPerTargetEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: bytes
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[bytes] = ...) -> None: ...
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     TARGETS_FIELD_NUMBER: _ClassVar[int]
+    VECTORPERTARGET_FIELD_NUMBER: _ClassVar[int]
     vector: _containers.RepeatedScalarFieldContainer[float]
     certainty: float
     distance: float
     vector_bytes: bytes
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
     targets: Targets
+    vectorPerTarget: _containers.ScalarMap[str, bytes]
     def __init__(
         self,
         vector: _Optional[_Iterable[float]] = ...,
@@ -574,6 +592,7 @@ class NearVector(_message.Message):
         vector_bytes: _Optional[bytes] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
         targets: _Optional[_Union[Targets, _Mapping]] = ...,
+        vectorPerTarget: _Optional[_Mapping[str, bytes]] = ...,
     ) -> None: ...
 
 class NearObject(_message.Message):
