@@ -580,7 +580,4 @@ def test_uuids_keys_and_original_index(client_factory: ClientFactory) -> None:
     assert len(client.batch.results.objs.errors) == 0
     assert len(client.batch.results.objs.uuids) == 100
 
-    for k, v in client.batch.results.objs.uuids.items():
-        assert (
-            objs[k][0] == v
-        ), f"Index {k} did not match original uuid {objs[k][0]}. Origs: {[obj[0] for obj in objs]}, uuids: {list(client.batch.results.objs.uuids.values())}"
+    assert [str(obj[0]) for obj in objs] == list(client.batch.results.objs.uuids.keys())

@@ -4,7 +4,7 @@ import threading
 import time
 import uuid as uuid_package
 from abc import ABC
-from collections import deque
+from collections import deque, OrderedDict
 from copy import copy
 from dataclasses import dataclass, field
 from typing import (
@@ -496,9 +496,9 @@ class _BatchBase:
                     objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
             except Exception as e:
-                errors_obj = {
-                    idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
-                }
+                errors_obj = OrderedDict(
+                    (idx, ErrorObject(message=repr(e), object_=obj)) for idx, obj in enumerate(objs)
+                )
                 response_obj = BatchObjectReturn(
                     _all_responses=list(errors_obj.values()),
                     elapsed_seconds=time.time() - start,
@@ -551,13 +551,15 @@ class _BatchBase:
 
                 self.__batch_objects.prepend(readd_objects)
 
-                new_errors = {
-                    i: err for i, err in response_obj.errors.items() if i not in readded_objects
-                }
+                new_errors = OrderedDict(
+                    (i, err) for i, err in response_obj.errors.items() if i not in readded_objects
+                )
                 response_obj = BatchObjectReturn(
-                    uuids={
-                        i: uid for i, uid in response_obj.uuids.items() if i not in readded_objects
-                    },
+                    uuids=OrderedDict(
+                        (i, uid)
+                        for i, uid in response_obj.uuids.items()
+                        if i not in readded_objects
+                    ),
                     errors=new_errors,
                     has_errors=len(new_errors) > 0,
                     _all_responses=[

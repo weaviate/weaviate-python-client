@@ -179,9 +179,9 @@ class BatchObjectReturn:
     _all_responses: List[Union[uuid_package.UUID, ErrorObject]] = field(default_factory=list)
     elapsed_seconds: float = 0.0
     """The time taken to perform the batch operation."""
-    errors: Dict[int, ErrorObject] = field(default_factory=OrderedDict)
+    errors: OrderedDict[int, ErrorObject] = field(default_factory=OrderedDict)
     """A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the overall batch, and the values are the `Error` objects."""
-    uuids: Dict[int, uuid_package.UUID] = field(default_factory=OrderedDict)
+    uuids: OrderedDict[int, uuid_package.UUID] = field(default_factory=OrderedDict)
     """A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the overall batch, and the values are the `uuid_package.UUID` objects."""
     has_errors: bool = False
     """A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry."""

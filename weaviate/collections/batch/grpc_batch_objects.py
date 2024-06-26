@@ -2,6 +2,7 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
+from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union, cast
 
 import grpc  # type: ignore
@@ -108,8 +109,8 @@ class _BatchGRPC(_BaseGRPC):
         all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
             List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
         )
-        return_success: Dict[int, uuid_package.UUID] = {}
-        return_errors: Dict[int, ErrorObject] = {}
+        return_success: OrderedDict[int, uuid_package.UUID] = OrderedDict()
+        return_errors: OrderedDict[int, ErrorObject] = OrderedDict()
 
         for idx, obj in enumerate(weaviate_objs):
             if idx in errors:
@@ -171,8 +172,8 @@ class _BatchGRPC(_BaseGRPC):
         all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
             List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
         )
-        return_success: Dict[int, uuid_package.UUID] = {}
-        return_errors: Dict[int, ErrorObject] = {}
+        return_success: OrderedDict[int, uuid_package.UUID] = OrderedDict()
+        return_errors: OrderedDict[int, ErrorObject] = OrderedDict()
 
         for idx, obj in enumerate(weaviate_objs):
             if idx in errors:
