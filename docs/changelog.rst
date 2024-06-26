@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 4.6.5
+--------------
+
+This patch version includes:
+    - Addition of new voyageai embedding and rerank models as string literal types
+    - Added missing exports of submodules in ``weaviate.outputs`` to aid usage
+    - Updated ollama modules docstrings
+    - Added missing ``py.typed`` file for use by static type checkers
+
+
 Version 4.6.4
 --------------
 

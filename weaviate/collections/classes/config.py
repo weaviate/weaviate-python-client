@@ -14,7 +14,7 @@ from typing import (
     cast,
 )
 
-from pydantic import AnyHttpUrl, Field, field_validator
+from pydantic import AnyHttpUrl, Field, ValidationInfo, field_validator
 from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config_base import (
@@ -1498,6 +1498,18 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
 
+    @field_validator("vectorizerConfig", mode="after")
+    @classmethod
+    def validate_vector_names(
+        cls, v: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]], info: ValidationInfo
+    ) -> Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]:
+        if isinstance(v, list):
+            names = [vc.name for vc in v]
+            if len(names) != len(set(names)):
+                dups = {name for name in names if names.count(name) > 1}
+                raise ValueError(f"Vector config names must be unique. Found duplicates: {dups}")
+        return v
+
     @staticmethod
     def __add_to_module_config(
         return_dict: Dict[str, Any], addition_key: str, addition_val: Dict[str, Any]
@@ -1767,7 +1779,7 @@ class Configure:
             `enabled`
                 Whether multi-tenancy is enabled. Defaults to `True`.
             `auto_tenant_creation`
-                Automatically create nonexistent tenants during batch import. Defaults to `None`, which uses the server-defined default.
+                Automatically create nonexistent tenants during object creation. Defaults to `None`, which uses the server-defined default.
             `auto_tenant_activation`
                 Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
@@ -2011,7 +2023,7 @@ class Reconfigure:
 
         Arguments:
             `auto_tenant_creation`
-                When set, implicitly creates nonexisting tenants during batch imports
+                When set, implicitly creates nonexistent tenants during object creation
             `auto_tenant_activation`
                 Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
