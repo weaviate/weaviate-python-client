@@ -1,7 +1,5 @@
 import uuid as uuid_package
 from dataclasses import dataclass, field
-from copy import copy
-from heapq import merge
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union, cast
 
 from pydantic import BaseModel, Field, field_validator
@@ -158,9 +156,9 @@ class BatchObjectReturn:
     Since the individual objects within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
 
     NOTE:
-        Due to concerns over memory usage, this object will only ever store the last `MAX_STORED_RESULTS` uuids in the `uuids` dictionary.
-        If more than `MAX_STORED_RESULTS` uuids are added to the dictionary, the oldest uuids will be removed.
-        The keys of the `errors` and `uuids` dictionaries will always be equivalent to the `original_index` of the objects as you added them to the batching loop.
+        Due to concerns over memory usage, this object will only ever store the last `MAX_STORED_RESULTS` uuids in the `uuids` dictionary and `MAX_STORED_RESULTS` in the `all_responses` list.
+        If more than `MAX_STORED_RESULTS` uuids are added to the dictionary, the oldest uuids will be removed. If the number of objects inserted in this batch exceeds `MAX_STORED_RESULTS`, the `all_responses` list will only contain the last `MAX_STORED_RESULTS` objects.
+        The keys of the `errors` and `uuids` dictionaries will always be equivalent to the `original_index` of the objects as you added them to the batching loop but won't necessarily be the same as the indices in the `all_responses` list because of this.
 
     Attributes:
         `all_responses`
@@ -189,7 +187,7 @@ class BatchObjectReturn:
     def all_responses(self) -> List[Union[uuid_package.UUID, ErrorObject]]:
         """@deprecated: A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
 
-        WARNING: Now that only the last `MAX_STORED_RESULTS` uuids are stored in the `uuids` dictionary, the keys of the `errors` and `uuids` dictionaries can no longer be used to map the indices in the `all_responses` field!
+        WARNING: This only stores the last `MAX_STORED_RESULTS` objects. If more than `MAX_STORED_RESULTS` objects are added to the batch, the oldest objects will be removed from this list.
         """
         _Warnings.batch_results_objects_all_responses_attribute()
         return self._all_responses
@@ -208,24 +206,11 @@ class BatchObjectReturn:
         self.has_errors = self.has_errors or other.has_errors
 
         if len(self.uuids.keys()) > MAX_STORED_RESULTS:
-            new_max = max(self.uuids.keys())
-            new_uuid_indices = range(new_max - MAX_STORED_RESULTS + 1, new_max + 1)
-            for key in copy(list(self.uuids.keys())):
-                if key not in new_uuid_indices:
-                    del self.uuids[key]
-            self._all_responses = [
-                self.__error_or_uuid(idx) for idx in merge(self.errors.keys(), self.uuids.keys())
-            ]
+            new_min = max(self.uuids.keys()) - MAX_STORED_RESULTS + 1
+            for k in range(next(iter(self.uuids)), new_min):
+                del self.uuids[k]
+            self._all_responses = self._all_responses[-MAX_STORED_RESULTS:]
         return self
-
-    def __error_or_uuid(self, idx: int) -> Union[uuid_package.UUID, ErrorObject]:
-        if idx in self.errors:
-            return self.errors[idx]
-        if idx in self.uuids:
-            return self.uuids[idx]
-        raise KeyError(
-            f"Index {idx} not found in either errors or uuids, something went very wrong!"
-        )
 
 
 @dataclass
