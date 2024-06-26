@@ -203,8 +203,10 @@ class BatchObjectReturn:
         self.has_errors = self.has_errors or other.has_errors
 
         if len(self.uuids.keys()) > MAX_STORED_RESULTS:
-            new_min = len(self.uuids.keys()) - MAX_STORED_RESULTS
-            self.uuids = {k: v for k, v in self.uuids.items() if k >= new_min}
+            new_min = max(self.uuids.keys()) - MAX_STORED_RESULTS + 1
+            old_min = next(iter(self.uuids))
+            for k in range(old_min, new_min):
+                del self.uuids[k]
         if len(self._all_responses) > MAX_STORED_RESULTS:
             self._all_responses = self._all_responses[-MAX_STORED_RESULTS:]
 
