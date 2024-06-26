@@ -580,4 +580,6 @@ def test_uuids_keys_and_original_index(client_factory: ClientFactory) -> None:
     assert len(client.batch.results.objs.errors) == 0
     assert len(client.batch.results.objs.uuids) == 100
 
-    assert [str(obj[0]) for obj in objs] == list(client.batch.results.objs.uuids.keys())
+    assert [objs[k] for k in client.batch.results.objs.uuids.keys()] == list(
+        client.batch.results.objs.uuids.values()
+    )
