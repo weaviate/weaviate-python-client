@@ -63,20 +63,18 @@ class _Tenants:
                 ]
             )
 
-        loaded_tenants = (
-            [
+        loaded_tenants: List[dict] = []
+        if isinstance(tenants, str):
+            loaded_tenants = [{"name": tenants, "activityStatus": TenantActivityStatus.HOT}]
+        elif isinstance(tenants, Tenant):
+            loaded_tenants = [tenants.model_dump()]
+        else:
+            loaded_tenants = [
                 tenant.model_dump()
                 if isinstance(tenant, Tenant)
                 else {"name": tenant, "activityStatus": TenantActivityStatus.HOT}
                 for tenant in tenants
             ]
-            if isinstance(tenants, Sequence)
-            else [
-                {"name": tenants, "activityStatus": TenantActivityStatus.HOT}
-                if isinstance(tenants, str)
-                else tenants.model_dump()
-            ]
-        )
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.post(
@@ -117,11 +115,15 @@ class _Tenants:
                 ]
             )
 
-        loaded_tenants = (
-            [tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
-            if isinstance(tenants, Sequence)
-            else [tenants if isinstance(tenants, str) else tenants.name]
-        )
+        loaded_tenants: List[str] = []
+        if isinstance(tenants, str):
+            loaded_tenants = [tenants]
+        elif isinstance(tenants, Tenant):
+            loaded_tenants = [tenants.name]
+        else:
+            loaded_tenants = [
+                tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants
+            ]
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.delete(
