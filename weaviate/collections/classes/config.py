@@ -1783,6 +1783,8 @@ class Configure:
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
+        NOTE: `async_enabled` is only available with WeaviateDB `>=v1.26.0`
+
         Arguments:
             `factor`
                 The replication factor.

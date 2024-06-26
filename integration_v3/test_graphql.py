@@ -94,7 +94,7 @@ def client(request):
         if opts.get("cluster"):
             port = 8087
             for _, c in enumerate(schema["classes"]):
-                c["replicationConfig"] = {"factor": 2, "asyncEnabled": False}
+                c["replicationConfig"] = {"factor": 2}
 
     client = weaviate.Client(f"http://localhost:{port}")
     client.schema.delete_all()

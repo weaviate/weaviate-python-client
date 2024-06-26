@@ -1,6 +1,6 @@
 from typing import Generator
 
-import pytest as pytest
+import pytest
 
 import weaviate
 from integration.conftest import OpenAICollection, CollectionFactory
@@ -243,7 +243,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         multi_tenancy_config=Configure.multi_tenancy(
             enabled=True, auto_tenant_activation=True, auto_tenant_creation=True
         ),
-        # replication_config=Configure.replication(factor=2, async_enabled=True), # currently not updateable in RAFT
+        replication_config=Configure.replication(factor=2, async_enabled=True),
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
             distance_metric=VectorDistances.DOT,
@@ -314,11 +314,18 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.multi_tenancy_config.enabled is True
     if collection._connection._weaviate_version.is_at_least(1, 25, 0):
         assert config.multi_tenancy_config.auto_tenant_activation is True
-    # change to 1.25.2 after it is out
+    else:
+        assert config.multi_tenancy_config.auto_tenant_activation is False
     if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
         assert config.multi_tenancy_config.auto_tenant_creation is True
+    else:
+        assert config.multi_tenancy_config.auto_tenant_creation is False
 
-    # assert config.replication_config.factor == 2
+    assert config.replication_config.factor == 2
+    if collection._connection._weaviate_version.is_at_least(1, 26, 0):
+        assert config.replication_config.async_enabled is True
+    else:
+        assert config.replication_config.async_enabled is False
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -393,7 +400,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
     config = collection.config.get()
 
-    # assert config.description == "Test"
+    assert config.description == "Test"
 
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.25
@@ -402,6 +409,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
     # assert config.replication_config.factor == 2
+    # assert config.replication_config.async_enabled is True
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -641,14 +649,12 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
     ],
 )
 def test_config_reranker_module(
-    client: weaviate.WeaviateClient,
+    collection_factory: CollectionFactory,
     reranker_config: _RerankerConfigCreate,
     expected_reranker: Rerankers,
     expected_model: dict,
 ) -> None:
-    client.collections.delete("TestCollectionConfigRerankerModule")
-    collection = client.collections.create(
-        name="TestCollectionConfigRerankerModule",
+    collection = collection_factory(
         reranker_config=reranker_config,
         vectorizer_config=Configure.Vectorizer.none(),
     )
