@@ -18,16 +18,6 @@ env:
   WEAVIATE_124: 1.24.10
   WEAVIATE_125: 1.25.5
   WEAVIATE_126: 1.26.0-preview0-b97790d
-  INTEGRATION_TEST_VERSIONS: [
-    { py: "3.8", weaviate: $WEAVIATE_126},
-    { py: "3.9", weaviate: $WEAVIATE_126},
-    { py: "3.10", weaviate: $WEAVIATE_126},
-    { py: "3.11", weaviate: $WEAVIATE_123},
-    { py: "3.11", weaviate: $WEAVIATE_124},
-    { py: "3.11", weaviate: $WEAVIATE_125},
-    { py: "3.11", weaviate: $WEAVIATE_126},
-    { py: "3.12", weaviate: $WEAVIATE_126}
-  ]
 
 
 jobs:
@@ -131,7 +121,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        versions: $INTEGRATION_TEST_VERSIONS
+        versions: [
+          { py: "3.8", weaviate: $WEAVIATE_126},
+          { py: "3.9", weaviate: $WEAVIATE_126},
+          { py: "3.10", weaviate: $WEAVIATE_126},
+          { py: "3.11", weaviate: $WEAVIATE_123},
+          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_126},
+          { py: "3.12", weaviate: $WEAVIATE_126}
+        ]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -174,7 +173,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        versions: $INTEGRATION_TEST_VERSIONS
+        versions: [
+          { py: "3.8", weaviate: $WEAVIATE_126},
+          { py: "3.9", weaviate: $WEAVIATE_126},
+          { py: "3.10", weaviate: $WEAVIATE_126},
+          { py: "3.11", weaviate: $WEAVIATE_123},
+          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_126},
+          { py: "3.12", weaviate: $WEAVIATE_126}
+        ]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
