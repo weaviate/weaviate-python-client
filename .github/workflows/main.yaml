@@ -17,7 +17,7 @@ env:
   WEAVIATE_123: 1.23.15
   WEAVIATE_124: 1.24.19
   WEAVIATE_125: 1.25.5
-  WEAVIATE_126: 1.26.0-preview0-b97790d
+  WEAVIATE_126: preview-replace-if-targetvectors-nil-with-if-vectorsearch-when-extracting-metadata-certainty-ea8d536
 
 
 jobs:
