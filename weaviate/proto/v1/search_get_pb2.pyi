@@ -560,7 +560,7 @@ class NearVector(_message.Message):
         "vector_bytes",
         "target_vectors",
         "targets",
-        "vectorPerTarget",
+        "vector_per_target",
     )
 
     class VectorPerTargetEntry(_message.Message):
@@ -576,14 +576,14 @@ class NearVector(_message.Message):
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     TARGETS_FIELD_NUMBER: _ClassVar[int]
-    VECTORPERTARGET_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_PER_TARGET_FIELD_NUMBER: _ClassVar[int]
     vector: _containers.RepeatedScalarFieldContainer[float]
     certainty: float
     distance: float
     vector_bytes: bytes
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
     targets: Targets
-    vectorPerTarget: _containers.ScalarMap[str, bytes]
+    vector_per_target: _containers.ScalarMap[str, bytes]
     def __init__(
         self,
         vector: _Optional[_Iterable[float]] = ...,
@@ -592,7 +592,7 @@ class NearVector(_message.Message):
         vector_bytes: _Optional[bytes] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
         targets: _Optional[_Union[Targets, _Mapping]] = ...,
-        vectorPerTarget: _Optional[_Mapping[str, bytes]] = ...,
+        vector_per_target: _Optional[_Mapping[str, bytes]] = ...,
     ) -> None: ...
 
 class NearObject(_message.Message):

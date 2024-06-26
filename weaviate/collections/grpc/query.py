@@ -356,9 +356,18 @@ class _QueryGRPC(_BaseGRPC):
                 distance=distance,
                 targets=targets,
                 target_vectors=target_vectors,
-                vectorPerTarget=vector_per_target,
+                vector_per_target=vector_per_target,
             )
-        elif isinstance(near_vector, get_args(List[NUMBER])):
+        elif isinstance(near_vector, list):
+            if (
+                    not isinstance(near_vector, list)
+                    or len(near_vector) == 0
+                    or not isinstance(near_vector[0], get_args(NUMBER))
+            ):
+                raise WeaviateQueryError(
+                    "The value of the near_vector dict must be a lists of numbers",
+                    "GRPC",
+                )
             near_vector = _get_vector_v4(near_vector)
             near_vector_grpc = search_get_pb2.NearVector(
                 certainty=certainty,
@@ -391,7 +400,7 @@ class _QueryGRPC(_BaseGRPC):
                 distance=distance,
                 targets=targets,
                 target_vectors=target_vectors,
-                vectorPerTarget=vector_per_target_tmp,
+                vector_per_target=vector_per_target_tmp,
             )
 
         request = self.__create_request(

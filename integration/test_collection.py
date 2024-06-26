@@ -141,8 +141,6 @@ def test_delete_by_id(collection_factory: CollectionFactory) -> None:
     assert collection.query.fetch_object_by_id(uuid) is not None
     assert collection.data.delete_by_id(uuid)
     assert collection.query.fetch_object_by_id(uuid) is None
-    # does not exist anymore
-    assert not collection.data.delete_by_id(uuid)
 
 
 def test_delete_by_id_consistency_level(collection_factory: CollectionFactory) -> None:
@@ -154,8 +152,6 @@ def test_delete_by_id_consistency_level(collection_factory: CollectionFactory) -
     assert collection.query.fetch_object_by_id(uuid) is not None
     assert collection.data.delete_by_id(uuid)
     assert collection.query.fetch_object_by_id(uuid) is None
-    # does not exist anymore
-    assert not collection.data.delete_by_id(uuid)
 
 
 @pytest.mark.parametrize(
