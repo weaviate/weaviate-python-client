@@ -17,13 +17,11 @@ class TenantActivityStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TENANT_ACTIVITY_STATUS_UNSPECIFIED: _ClassVar[TenantActivityStatus]
     TENANT_ACTIVITY_STATUS_HOT: _ClassVar[TenantActivityStatus]
     TENANT_ACTIVITY_STATUS_COLD: _ClassVar[TenantActivityStatus]
-    TENANT_ACTIVITY_STATUS_WARM: _ClassVar[TenantActivityStatus]
     TENANT_ACTIVITY_STATUS_FROZEN: _ClassVar[TenantActivityStatus]
 
 TENANT_ACTIVITY_STATUS_UNSPECIFIED: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_HOT: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_COLD: TenantActivityStatus
-TENANT_ACTIVITY_STATUS_WARM: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_FROZEN: TenantActivityStatus
 
 class TenantsGetRequest(_message.Message):
