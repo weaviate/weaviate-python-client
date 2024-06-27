@@ -173,11 +173,11 @@ class _Tenants:
         if isinstance(tenant, Tenant):
             if tenant.activity_status in [
                 TenantActivityStatus.FREEZING,
-                TenantActivityStatus.FROZEN,
+                TenantActivityStatus.UNFROZEN,
                 TenantActivityStatus.UNFREEZING,
             ]:
                 raise WeaviateInvalidInputError(
-                    "Tenant activity status must be either 'HOT' or 'COLD'. Other statuses are read-only and cannot be set."
+                    f"Tenant activity status must be either 'HOT' or 'COLD'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
                 )
             activity_status = TenantActivityStatusInput(tenant.activity_status)
             return TenantInput(name=tenant.name, activity_status=activity_status)
