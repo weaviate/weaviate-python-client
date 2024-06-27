@@ -400,7 +400,9 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
     config = collection.config.get()
 
-    if collection._connection._weaviate_version.is_at_least(1, 25, 2):
+    if collection._connection._weaviate_version.is_at_least(
+        1, 25, 2
+    ) or collection._connection._weaviate_version.is_lower_than(1, 25, 0):
         assert config.description == "Test"
     else:
         assert config.description is None
@@ -459,7 +461,9 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     )
     config = collection.config.get()
 
-    if collection._connection._weaviate_version.is_at_least(1, 25, 2):
+    if collection._connection._weaviate_version.is_at_least(
+        1, 25, 2
+    ) or collection._connection._weaviate_version.is_lower_than(1, 25, 0):
         assert config.description == "Test"
     else:
         assert config.description is None
