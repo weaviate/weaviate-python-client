@@ -5,6 +5,7 @@ import pytest
 from pytest_httpserver import HTTPServer, HeaderValueMatcher
 from werkzeug.wrappers import Response
 
+import weaviate
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.proto.v1 import tenants_pb2, weaviate_pb2_grpc
 from concurrent import futures
@@ -128,3 +129,17 @@ def start_grpc_server() -> Generator[grpc.Server, None, None]:
 
     # Teardown - stop the server
     server.stop(0)
+
+
+@pytest.fixture(scope="function")
+def weaviate_client(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> Generator[weaviate.WeaviateClient, None, None]:
+    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="function")
+def tenants_collection(weaviate_client: weaviate.WeaviateClient) -> weaviate.collections.Collection:
+    return weaviate_client.collections.get(TENANTS_GET_COLLECTION_NAME)

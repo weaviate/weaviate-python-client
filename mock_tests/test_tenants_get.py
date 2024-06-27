@@ -1,16 +1,9 @@
-import grpc
-from pytest_httpserver import HTTPServer
-
 import weaviate
 from weaviate.classes.tenants import TenantActivityStatus
 
-from .conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
 
-
-def test_tenants_get(weaviate_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
-    client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
-    collection = client.collections.get("Doesn'tMatter")
-    tenants = list(collection.tenants.get().values())
+def test_tenants_get(tenants_collection: weaviate.collections.Collection) -> None:
+    tenants = list(tenants_collection.tenants.get().values())
     assert len(tenants) == 6
 
     assert tenants[0].name == "tenant1"
