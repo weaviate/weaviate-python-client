@@ -1,11 +1,12 @@
 import json
+from typing import Generator
 
 import pytest
 from pytest_httpserver import HTTPServer, HeaderValueMatcher
 from werkzeug.wrappers import Response
 
 from weaviate.connect.base import ConnectionParams, ProtocolParams
-
+from weaviate.proto.v1 import tenants_pb2, weaviate_pb2_grpc
 from concurrent import futures
 from grpc import ServicerContext
 import grpc
@@ -24,7 +25,7 @@ MOCK_SERVER_CONNECTION_PARAMS = ConnectionParams(
     http=ProtocolParams(host=MOCK_IP, port=MOCK_PORT, secure=False),
     grpc=ProtocolParams(host=MOCK_IP, port=MOCK_PORT + 1, secure=False),
 )
-
+TENANTS_GET_COLLECTION_NAME = "TenantsGetCollectionName"
 
 # pytest_httpserver 'Authorization' HeaderValueMatcher does not work with Bearer tokens.
 # Hence, overwrite it with the default header value matcher that just compares for equality.
@@ -45,15 +46,15 @@ def ready_mock(httpserver: HTTPServer):
 
 
 @pytest.fixture(scope="function")
-def weaviate_mock(ready_mock):
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
+def weaviate_mock(ready_mock: HTTPServer):
+    ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.25"})
     ready_mock.expect_request("/v1/nodes").respond_with_json({"nodes": [{"gitHash": "ABC"}]})
 
     yield ready_mock
 
 
 @pytest.fixture(scope="function")
-def weaviate_no_auth_mock(ready_mock):
+def weaviate_no_auth_mock(ready_mock: HTTPServer):
     ready_mock.expect_request("/v1/meta").respond_with_json({"version": "1.25"})
     ready_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
         Response(json.dumps({}), status=404)
@@ -63,7 +64,7 @@ def weaviate_no_auth_mock(ready_mock):
 
 
 @pytest.fixture(scope="function")
-def weaviate_auth_mock(weaviate_mock):
+def weaviate_auth_mock(weaviate_mock: HTTPServer):
     weaviate_mock.expect_request("/v1/.well-known/openid-configuration").respond_with_json(
         {
             "href": MOCK_SERVER_URL + "/endpoints",
@@ -82,13 +83,42 @@ class MockHealthServicer(HealthServicer):
         return HealthCheckResponse(status=HealthCheckResponse.SERVING)
 
 
+class MockWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    def TenantsGet(
+        self, request: tenants_pb2.TenantsGetRequest, context: ServicerContext
+    ) -> tenants_pb2.TenantsGetReply:
+        return tenants_pb2.TenantsGetReply(
+            tenants=[
+                tenants_pb2.Tenant(
+                    name="tenant1", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_HOT
+                ),
+                tenants_pb2.Tenant(
+                    name="tenant2", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_COLD
+                ),
+                tenants_pb2.Tenant(
+                    name="tenant3", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_FROZEN
+                ),
+                tenants_pb2.Tenant(
+                    name="tenant4", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_FREEZING
+                ),
+                tenants_pb2.Tenant(
+                    name="tenant5", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_UNFREEZING
+                ),
+                tenants_pb2.Tenant(
+                    name="tenant6", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_UNFROZEN
+                ),
+            ]
+        )
+
+
 @pytest.fixture(scope="module")
-def start_grpc_server() -> grpc.Server:
+def start_grpc_server() -> Generator[grpc.Server, None, None]:
     # Create a gRPC server
     server: grpc.Server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
     # Add the health check service to the server
     add_HealthServicer_to_server(MockHealthServicer(), server)
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), server)
 
     # Listen on a specific port
     server.add_insecure_port(f"[::]:{MOCK_PORT_GRPC}")
