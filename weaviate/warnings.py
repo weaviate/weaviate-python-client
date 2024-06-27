@@ -198,6 +198,14 @@ class _Warnings:
         )
 
     @staticmethod
+    def batch_results_objects_all_responses_attribute() -> None:
+        warnings.warn(
+            message="""Dep020: The `all_responses` attribute in the `BatchResults` object is deprecated and will be removed by Q4 2024. Please instead use the `errors` and `uuids` attributes.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.

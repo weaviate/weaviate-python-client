@@ -111,21 +111,22 @@ class _BatchGRPC(_BaseGRPC):
         return_success: Dict[int, uuid_package.UUID] = {}
         return_errors: Dict[int, ErrorObject] = {}
 
-        for idx, obj in enumerate(weaviate_objs):
+        for idx, weav_obj in enumerate(weaviate_objs):
+            obj = objects[idx]
             if idx in errors:
-                error = ErrorObject(errors[idx], objects[idx], original_uuid=objects[idx].uuid)
-                return_errors[idx] = error
+                error = ErrorObject(errors[idx], obj, original_uuid=obj.uuid)
+                return_errors[obj.index] = error
                 all_responses[idx] = error
             else:
-                success = uuid_package.UUID(obj.uuid)
-                return_success[idx] = success
+                success = uuid_package.UUID(weav_obj.uuid)
+                return_success[obj.index] = success
                 all_responses[idx] = success
 
         return BatchObjectReturn(
             uuids=return_success,
             errors=return_errors,
             has_errors=len(errors) > 0,
-            all_responses=all_responses,
+            _all_responses=all_responses,
             elapsed_seconds=elapsed_time,
         )
 

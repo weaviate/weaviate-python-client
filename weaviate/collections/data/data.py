@@ -367,6 +367,7 @@ class _DataCollectionAsync(Generic[Properties], _Data):
                         properties=cast(dict, obj.properties),
                         tenant=self._tenant,
                         references=obj.references,
+                        index=idx,
                     )
                     if isinstance(obj, DataObject)
                     else _BatchObject(
@@ -376,9 +377,10 @@ class _DataCollectionAsync(Generic[Properties], _Data):
                         properties=cast(dict, obj),
                         tenant=self._tenant,
                         references=None,
+                        index=idx,
                     )
                 )
-                for obj in objects
+                for idx, obj in enumerate(objects)
             ],
             timeout=self._connection.timeout_config.insert,
         )

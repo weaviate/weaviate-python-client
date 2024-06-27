@@ -186,6 +186,7 @@ class _BatchBase:
         self.__max_batch_size: int = 1000
 
         self.__loop = event_loop
+        self.__objs_count = 0
 
         if isinstance(self.__batching_mode, _FixedSizeBatching):
             self.__recommended_num_objects = self.__batching_mode.batch_size
@@ -458,11 +459,10 @@ class _BatchBase:
                     idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
                 }
                 response_obj = BatchObjectReturn(
-                    all_responses=list(errors_obj.values()),
+                    _all_responses=list(errors_obj.values()),
                     elapsed_seconds=time.time() - start,
                     errors=errors_obj,
                     has_errors=True,
-                    uuids={},
                 )
 
             readded_uuids = set()
@@ -519,7 +519,7 @@ class _BatchBase:
                     },
                     errors=new_errors,
                     has_errors=len(new_errors) > 0,
-                    all_responses=[
+                    _all_responses=[
                         err
                         for i, err in enumerate(response_obj.all_responses)
                         if i not in readded_objects
@@ -602,7 +602,9 @@ class _BatchBase:
                 uuid=uuid,
                 vector=vector,
                 tenant=tenant,
+                index=self.__objs_count,
             )
+            self.__objs_count += 1
             self.__results_for_wrapper.imported_shards.add(
                 Shard(collection=collection, tenant=tenant)
             )
