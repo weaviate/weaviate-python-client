@@ -251,7 +251,10 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         ),
         properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
-        replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
+        replication_config=_ReplicationConfig(
+            factor=schema["replicationConfig"]["factor"],
+            async_enabled=schema["replicationConfig"].get("asyncEnabled", False),
+        ),
         reranker_config=__get_rerank_config(schema),
         sharding_config=(
             None
