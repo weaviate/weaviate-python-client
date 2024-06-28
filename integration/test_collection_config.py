@@ -490,7 +490,7 @@ def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
         ),
     )
     if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.26.0")
+        pytest.skip("SQ+HNSW is not supported in Weaviate versions lower than 1.26.0")
 
     config = collection.config.get()
     assert config.vector_index_type == VectorIndexType.HNSW
