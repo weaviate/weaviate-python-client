@@ -18,11 +18,17 @@ class TenantActivityStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TENANT_ACTIVITY_STATUS_HOT: _ClassVar[TenantActivityStatus]
     TENANT_ACTIVITY_STATUS_COLD: _ClassVar[TenantActivityStatus]
     TENANT_ACTIVITY_STATUS_FROZEN: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_UNFREEZING: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_FREEZING: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_UNFROZEN: _ClassVar[TenantActivityStatus]
 
 TENANT_ACTIVITY_STATUS_UNSPECIFIED: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_HOT: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_COLD: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_FROZEN: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_UNFREEZING: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_FREEZING: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_UNFROZEN: TenantActivityStatus
 
 class TenantsGetRequest(_message.Message):
     __slots__ = ("collection", "names")

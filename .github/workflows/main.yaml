@@ -17,6 +17,8 @@ env:
   WEAVIATE_123: 1.23.15
   WEAVIATE_124: 1.24.19
   WEAVIATE_125: 1.25.5
+  WEAVIATE_126: 1.26.0-preview0-87c34a9
+
 
 jobs:
   lint-and-format:
@@ -120,13 +122,14 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_125},
-          { py: "3.9", weaviate: $WEAVIATE_125},
-          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.8", weaviate: $WEAVIATE_126},
+          { py: "3.9", weaviate: $WEAVIATE_126},
+          { py: "3.10", weaviate: $WEAVIATE_126},
           { py: "3.11", weaviate: $WEAVIATE_123},
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.12", weaviate: $WEAVIATE_125}
+          { py: "3.11", weaviate: $WEAVIATE_126},
+          { py: "3.12", weaviate: $WEAVIATE_126}
         ]
         optional_dependencies: [false]
     steps:
@@ -171,13 +174,14 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_125},
-          { py: "3.9", weaviate: $WEAVIATE_125},
-          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.8", weaviate: $WEAVIATE_126},
+          { py: "3.9", weaviate: $WEAVIATE_126},
+          { py: "3.10", weaviate: $WEAVIATE_126},
           { py: "3.11", weaviate: $WEAVIATE_123},
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.12", weaviate: $WEAVIATE_125}
+          { py: "3.11", weaviate: $WEAVIATE_126},
+          { py: "3.12", weaviate: $WEAVIATE_126}
         ]
         optional_dependencies: [false]
     steps:
@@ -283,7 +287,8 @@ jobs:
         server: [
           $WEAVIATE_123,
           $WEAVIATE_124,
-          $WEAVIATE_125
+          $WEAVIATE_125,
+          $WEAVIATE_126
         ]
     steps:
       - name: Download build artifact to append to release

@@ -8,13 +8,13 @@ import io
 import json
 import os
 import re
+import uuid as uuid_lib
 from enum import Enum, EnumMeta
 from pathlib import Path
 from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
 
-import requests
 import httpx
-import uuid as uuid_lib
+import requests
 import validators
 from requests.exceptions import JSONDecodeError
 
@@ -25,8 +25,8 @@ from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
-from weaviate.warnings import _Warnings
 from weaviate.types import NUMBER, UUIDS, TIME
+from weaviate.warnings import _Warnings
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
 MAXIMUM_MINOR_VERSION_DELTA = 3  # The maximum delta between minor versions of Weaviate Client that will not trigger an upgrade warning.
@@ -240,8 +240,10 @@ def generate_local_beacon(
         raise TypeError("Expected to_object_uuid of type str or uuid.UUID")
 
     if class_name is None:
-        return {"beacon": f"weaviate://localhost/{uuid}"}
-    return {"beacon": f"weaviate://localhost/{_capitalize_first_letter(class_name)}/{uuid}"}
+        return {"beacon": f"weaviate://localhost/{uuid}"}  # noqa: E231
+    return {
+        "beacon": f"weaviate://localhost/{_capitalize_first_letter(class_name)}/{uuid}"  # noqa: E231
+    }
 
 
 def _get_dict_from_object(object_: Union[str, dict]) -> dict:
