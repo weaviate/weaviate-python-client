@@ -486,7 +486,7 @@ def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
-            quantizer=Configure.VectorIndex.Quantizer.sq(rescore_limit=10),
+            quantizer=Configure.VectorIndex.Quantizer.sq(rescore_limit=10, training_limit=1000000),
         ),
     )
     if collection._connection._weaviate_version.is_lower_than(1, 26, 0):

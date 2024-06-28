@@ -281,6 +281,7 @@ class _BQConfigCreate(_QuantizerConfigCreate):
 class _SQConfigCreate(_QuantizerConfigCreate):
     cache: Optional[bool]
     rescoreLimit: Optional[int]
+    trainingLimit: Optional[int]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -310,6 +311,7 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 
 class _SQConfigUpdate(_QuantizerConfigUpdate):
     rescoreLimit: Optional[int]
+    trainingLimit: Optional[int]
 
     @staticmethod
     def quantizer_name() -> str:
@@ -1132,6 +1134,7 @@ class _BQConfig(_ConfigBase):
 class _SQConfig(_ConfigBase):
     cache: Optional[bool]
     rescore_limit: int
+    training_limit: int
 
 
 BQConfig = _BQConfig
@@ -1644,6 +1647,7 @@ class _VectorIndexQuantizer:
     def sq(
         cache: Optional[bool] = None,
         rescore_limit: Optional[int] = None,
+        training_limit: Optional[int] = None,
     ) -> _SQConfigCreate:
         """Create a `_SQConfigCreate` object to be used when defining the scalar quantization (SQ) configuration of Weaviate.
 
@@ -1655,6 +1659,7 @@ class _VectorIndexQuantizer:
         return _SQConfigCreate(
             cache=cache,
             rescoreLimit=rescore_limit,
+            trainingLimit=training_limit,
         )
 
 
@@ -1911,7 +1916,9 @@ class _VectorIndexQuantizerUpdate:
         return _BQConfigUpdate(rescoreLimit=rescore_limit)
 
     @staticmethod
-    def sq(rescore_limit: Optional[int] = None) -> _SQConfigUpdate:
+    def sq(
+        rescore_limit: Optional[int] = None, training_limit: Optional[int] = None
+    ) -> _SQConfigUpdate:
         """Create a `_SQConfigUpdate` object to be used when updating the scalar quantization (SQ) configuration of Weaviate.
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
@@ -1919,7 +1926,7 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _SQConfigUpdate(rescoreLimit=rescore_limit)
+        return _SQConfigUpdate(rescoreLimit=rescore_limit, trainingLimit=training_limit)
 
 
 class _VectorIndexUpdate:
