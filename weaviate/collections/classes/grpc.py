@@ -386,7 +386,7 @@ class HybridVector:
         return _HybridNearVector(vector=vector, distance=distance, certainty=certainty)
 
 
-_NearVectorInputType = Union[List[float], Dict[str, List[float]], List[List[float]]]
+NearVectorInputType = Union[List[float], Dict[str, List[float]], List[List[float]]]
 
 
 class _QueryReference(_WeaviateInput):

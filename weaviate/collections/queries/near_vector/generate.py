@@ -8,7 +8,7 @@ from weaviate.collections.classes.grpc import (
     GroupBy,
     Rerank,
     TargetVectorJoinType,
-    _NearVectorInputType,
+    NearVectorInputType,
 )
 from weaviate.collections.classes.internal import (
     _Generative,
@@ -26,7 +26,7 @@ from weaviate.types import NUMBER, INCLUDE_VECTOR
 class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,

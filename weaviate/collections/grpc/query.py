@@ -39,7 +39,7 @@ from weaviate.collections.classes.grpc import (
     _Sorting,
     Rerank,
     TargetVectorJoinType,
-    _NearVectorInputType,
+    NearVectorInputType,
 )
 from weaviate.collections.classes.internal import (
     _Generative,
@@ -312,7 +312,7 @@ class _QueryGRPC(_BaseGRPC):
 
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,

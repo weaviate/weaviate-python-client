@@ -10,7 +10,7 @@ from weaviate.collections.classes.grpc import (
     GroupBy,
     Rerank,
     TargetVectorJoinType,
-    _NearVectorInputType,
+    NearVectorInputType,
 )
 from weaviate.collections.classes.internal import (
     GroupByReturn,
@@ -25,7 +25,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -44,7 +44,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -63,7 +63,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -82,7 +82,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -101,7 +101,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -120,7 +120,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -142,7 +142,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -161,7 +161,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -180,7 +180,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -199,7 +199,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -218,7 +218,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -237,7 +237,7 @@ class _NearVectorQuery(Generic[Properties, References], _BaseQuery[Properties, R
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,

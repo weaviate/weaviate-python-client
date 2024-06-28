@@ -10,7 +10,7 @@ from weaviate.collections.classes.grpc import (
     GroupBy,
     Rerank,
     TargetVectorJoinType,
-    _NearVectorInputType,
+    NearVectorInputType,
 )
 from weaviate.collections.classes.internal import (
     GenerativeReturn,
@@ -25,7 +25,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -47,7 +47,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -69,7 +69,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -91,7 +91,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -113,7 +113,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -135,7 +135,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -158,7 +158,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -180,7 +180,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -202,7 +202,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -224,7 +224,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -246,7 +246,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -268,7 +268,7 @@ class _NearVectorGenerate(Generic[Properties, References], _BaseQuery[Properties
     @overload
     def near_vector(
         self,
-        near_vector: _NearVectorInputType,
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
