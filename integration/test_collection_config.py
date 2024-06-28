@@ -500,14 +500,16 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
 
 def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
         ),
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
 
     config = collection.config.get()
     assert config.vector_index_type == VectorIndexType.HNSW
@@ -517,14 +519,16 @@ def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
 
 
 def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("SQ+HNSW is not supported in Weaviate versions lower than 1.26.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
             quantizer=Configure.VectorIndex.Quantizer.sq(rescore_limit=10, training_limit=1000000),
         ),
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip("SQ+HNSW is not supported in Weaviate versions lower than 1.26.0")
 
     config = collection.config.get()
     assert config.vector_index_type == VectorIndexType.HNSW
