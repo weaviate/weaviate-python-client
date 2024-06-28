@@ -584,6 +584,9 @@ def test_named_vector_multi_target(
         ],
     )
 
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
+
     uuid1 = collection.data.insert({}, vector={"first": [1, 0, 0], "second": [0, 1, 0]})
     uuid2 = collection.data.insert({}, vector={"first": [0, 1, 0], "second": [1, 0, 0]})
 
@@ -609,6 +612,9 @@ def test_named_vector_multi_target_vector_per_target(
         ],
     )
 
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
+
     uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
     uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
 
@@ -624,6 +630,9 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
             wvc.config.Configure.NamedVectors.none("second"),
         ],
     )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
 
     with pytest.raises(WeaviateInvalidInputError):
         collection.query.near_vector([[1.0, 0.0], [1.0, 0.0, 0.0]])
