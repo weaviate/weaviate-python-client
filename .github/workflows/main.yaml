@@ -50,7 +50,7 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
       - name: Run mypy
-        run: mypy --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
+        run: mypy --config-file ./pyproject.toml --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
 
   unit-tests:
     name: Run Unit Tests
