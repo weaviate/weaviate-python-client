@@ -11,7 +11,7 @@ from io import BufferedReader
 from typing import Union, Sequence, Any, Optional, List, Dict, Tuple, cast
 
 import requests
-import validators
+import validators  # type: ignore
 from requests.exceptions import JSONDecodeError
 
 from weaviate.exceptions import (
