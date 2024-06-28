@@ -39,6 +39,7 @@ from weaviate.collections.classes.grpc import (
     _Sorting,
     Rerank,
     TargetVectorJoinType,
+    _NearVectorInputType,
 )
 from weaviate.collections.classes.internal import (
     _Generative,
@@ -47,7 +48,11 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
+from weaviate.exceptions import (
+    WeaviateQueryError,
+    WeaviateUnsupportedFeatureError,
+    WeaviateInvalidInputError,
+)
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4
@@ -307,7 +312,7 @@ class _QueryGRPC(_BaseGRPC):
 
     def near_vector(
         self,
-        near_vector: Union[List[float], Dict[str, float], List[List[float]]],
+        near_vector: _NearVectorInputType,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -337,6 +342,11 @@ class _QueryGRPC(_BaseGRPC):
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
         if isinstance(near_vector, dict):
+            if targets is None or len(targets.target_vectors) != len(near_vector):
+                raise WeaviateInvalidInputError(
+                    "The number of target vectors must be equal to the number of vectors."
+                )
+
             vector_per_target: Dict[str, bytes] = {}
             for key, value in near_vector.items():
                 if (
@@ -358,50 +368,50 @@ class _QueryGRPC(_BaseGRPC):
                 target_vectors=target_vectors,
                 vector_per_target=vector_per_target,
             )
-        elif isinstance(near_vector, list):
-            if (
-                    not isinstance(near_vector, list)
-                    or len(near_vector) == 0
-                    or not isinstance(near_vector[0], get_args(NUMBER))
-            ):
-                raise WeaviateQueryError(
-                    "The value of the near_vector dict must be a lists of numbers",
-                    "GRPC",
-                )
-            near_vector = _get_vector_v4(near_vector)
-            near_vector_grpc = search_get_pb2.NearVector(
-                certainty=certainty,
-                distance=distance,
-                vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
-                targets=targets,
-                target_vectors=target_vectors,
-            )
         else:
-            assert isinstance(near_vector, get_args(List[List[NUMBER]]))
-            vector_per_target_tmp: Dict[str, bytes] = {}
-            if target_vectors is None or len(target_vectors) != len(near_vector):
-                raise WeaviateQueryError(
-                    "The number of target vectors must be equal to the number of vectors.", "GRPC"
+            if not isinstance(near_vector, list) or len(near_vector) == 0:
+                raise WeaviateInvalidInputError(
+                    """near vector argument can be:
+                                - a list of numbers
+                                - a list of lists of numbers for multi target search
+                                - a dictionary with target names as keys and lists of numbers as values"""
                 )
-            for i, vector in enumerate(near_vector):
-                if (
-                    not isinstance(vector, list)
-                    or len(vector) == 0
-                    or not isinstance(vector[0], get_args(NUMBER))
-                ):
-                    raise WeaviateQueryError(
-                        "The value of the near_vector entry must be a lists of numbers",
-                        "GRPC",
+
+            if isinstance(near_vector[0], get_args(NUMBER)):
+                near_vector = _get_vector_v4(near_vector)
+                near_vector_grpc = search_get_pb2.NearVector(
+                    certainty=certainty,
+                    distance=distance,
+                    vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
+                    targets=targets,
+                    target_vectors=target_vectors,
+                )
+            else:
+                vector_per_target_tmp: Dict[str, bytes] = {}
+                if targets is None or len(targets.target_vectors) != len(near_vector):
+                    raise WeaviateInvalidInputError(
+                        "The number of target vectors must be equal to the number of vectors."
                     )
-                nv = _get_vector_v4(vector)
-                vector_per_target_tmp[target_vectors[i]] = struct.pack("{}f".format(len(nv)), *nv)
-            near_vector_grpc = search_get_pb2.NearVector(
-                certainty=certainty,
-                distance=distance,
-                targets=targets,
-                target_vectors=target_vectors,
-                vector_per_target=vector_per_target_tmp,
-            )
+                for i, vector in enumerate(near_vector):
+                    if (
+                        not isinstance(vector, list)
+                        or len(vector) == 0
+                        or not isinstance(vector[0], get_args(NUMBER))
+                    ):
+                        raise WeaviateInvalidInputError(
+                            "The value of the near_vector entry must be a lists of numbers"
+                        )
+                    nv = _get_vector_v4(vector)
+                    vector_per_target_tmp[targets.target_vectors[i]] = struct.pack(
+                        "{}f".format(len(nv)), *nv
+                    )
+                near_vector_grpc = search_get_pb2.NearVector(
+                    certainty=certainty,
+                    distance=distance,
+                    targets=targets,
+                    target_vectors=target_vectors,
+                    vector_per_target=vector_per_target_tmp,
+                )
 
         request = self.__create_request(
             limit=limit,
