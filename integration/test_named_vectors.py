@@ -591,7 +591,7 @@ def test_named_vector_multi_target(
     uuid1 = collection.data.insert({}, vector={"first": [1, 0, 0], "second": [0, 1, 0]})
     uuid2 = collection.data.insert({}, vector={"first": [0, 1, 0], "second": [1, 0, 0]})
 
-    objs = collection.query.near_vector([1.0, 0.0, 0.0], target_vector=["first", "second"]).objects
+    objs = collection.query.near_vector([1.0, 0.0, 0.0], target_vector=target_vector).objects
     assert sorted([obj.uuid for obj in objs]) == sorted([uuid1, uuid2])  # order is not guaranteed
 
 
