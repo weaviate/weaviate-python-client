@@ -310,6 +310,7 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
 
 
 class _SQConfigUpdate(_QuantizerConfigUpdate):
+    enabled: Optional[bool]
     rescoreLimit: Optional[int]
     trainingLimit: Optional[int]
 
@@ -1917,7 +1918,9 @@ class _VectorIndexQuantizerUpdate:
 
     @staticmethod
     def sq(
-        rescore_limit: Optional[int] = None, training_limit: Optional[int] = None
+        rescore_limit: Optional[int] = None,
+        training_limit: Optional[int] = None,
+        enabled: bool = True,
     ) -> _SQConfigUpdate:
         """Create a `_SQConfigUpdate` object to be used when updating the scalar quantization (SQ) configuration of Weaviate.
 
@@ -1926,7 +1929,9 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _SQConfigUpdate(rescoreLimit=rescore_limit, trainingLimit=training_limit)
+        return _SQConfigUpdate(
+            enabled=enabled, rescoreLimit=rescore_limit, trainingLimit=training_limit
+        )
 
 
 class _VectorIndexUpdate:
