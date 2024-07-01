@@ -1,7 +1,7 @@
 Changelog
 =========
 
-Version 3.26.3
+Version 3.26.4
 --------------
 This patch version includes
 
