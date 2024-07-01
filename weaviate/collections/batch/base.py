@@ -192,6 +192,8 @@ class _BatchBase:
         self.__max_batch_size: int = 1000
 
         self.__objs_count = 0
+        self.__objs_logs_count = 0
+        self.__refs_logs_count = 0
 
         if isinstance(self.__batching_mode, _FixedSizeBatching):
             self.__recommended_num_objects = self.__batching_mode.batch_size
@@ -499,7 +501,7 @@ class _BatchBase:
                     objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
             except Exception as e:
-                logger.error(
+                logger.warn(
                     {
                         "message": "Failed to insert objects in batch. Inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects.",
                         "error": repr(e),
@@ -593,11 +595,17 @@ class _BatchBase:
             )
             self.__uuid_lookup_lock.release()
 
-            if (n_obj_errs := len(response_obj.errors)) > 0:
+            if (n_obj_errs := len(response_obj.errors)) > 0 and n_obj_errs < 30:
                 logger.error(
                     {
                         "message": f"Failed to send {n_obj_errs} objects in a batch of {n_objs}. Please inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects.",
-                        "errors": response_obj.errors,
+                    }
+                )
+                self.__objs_logs_count += 1
+            if self.__objs_logs_count > 30:
+                logger.error(
+                    {
+                        "message": "There have been more than 30 failed object batches. Further errors will not be logged.",
                     }
                 )
             self.__results_lock.acquire()
@@ -620,11 +628,18 @@ class _BatchBase:
                     errors=errors_ref,
                     has_errors=True,
                 )
-            if (n_ref_errs := len(response_ref.errors)) > 0:
+            if (n_ref_errs := len(response_ref.errors)) > 0 and n_ref_errs < 30:
                 logger.error(
                     {
                         "message": f"Failed to send {n_ref_errs} references in a batch of {n_refs}. Please inspect client.batch.failed_references or collection.batch.failed_references for the failed references.",
                         "errors": response_ref.errors,
+                    }
+                )
+                self.__refs_logs_count += 1
+            if self.__refs_logs_count > 30:
+                logger.error(
+                    {
+                        "message": "There have been more than 30 failed reference batches. Further errors will not be logged.",
                     }
                 )
             self.__results_lock.acquire()
