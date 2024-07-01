@@ -147,6 +147,7 @@ class Tokenization(str, Enum):
     FIELD = "field"
     GSE = "gse"
     TRIGRAM = "trigram"
+    KAGOME_KR = "kagome_kr"
 
 
 class GenerativeSearches(str, Enum):
