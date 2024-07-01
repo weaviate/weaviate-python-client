@@ -6,7 +6,9 @@ from weaviate.collections.classes.filters import (
     FilterByRef,
     FilterReturn,
 )
-from weaviate.collections.classes.grpc import Sorting
+from weaviate.collections.classes.grpc import Sorting, NearVectorInputType, TargetVectorJoinType
+
+
 from weaviate.collections.classes.internal import (
     GenerativeNearMediaReturnType,
     GenerativeReturnType,
@@ -50,6 +52,7 @@ __all__ = [
     "GenerativeGroupByReturnType",
     "GenerativeSearchReturnType",
     "GeoCoordinate",
+    "NearVectorInputType",
     "MetadataReturn",
     "MetadataSingleObjectReturn",
     "Object",
@@ -70,6 +73,7 @@ __all__ = [
     "ReferenceInput",
     "ReferenceInputs",
     "Sorting",
+    "TargetVectorJoinType",
     "WeaviateField",
     "WeaviateProperties",
 ]

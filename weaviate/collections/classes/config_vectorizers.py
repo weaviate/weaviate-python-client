@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
+import warnings
 
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 from typing_extensions import TypeAlias
@@ -458,6 +459,7 @@ class _Vectorizer:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         interference_url: Optional[str] = None,
+        inference_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecClipConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
@@ -478,11 +480,23 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `image_fields` or `text_fields` are not `None` or a `list`.
         """
+        if interference_url is not None:
+            if inference_url is not None:
+                raise ValueError(
+                    "You have provided `interference_url` as well as `inference_url`. Please only provide `inference_url`, as `interference_url` is deprecated."
+                )
+            else:
+                warnings.warn(
+                    message="""This parameter is deprecated and will be removed in a future release. Please use `inference_url` instead.""",
+                    category=DeprecationWarning,
+                    stacklevel=1,
+                )
+
         return _Multi2VecClipConfigCreate(
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             vectorizeClassName=vectorize_collection_name,
-            inferenceUrl=interference_url,
+            inferenceUrl=inference_url,
         )
 
     @staticmethod

@@ -6,7 +6,7 @@ from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank
+from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank, TargetVectorJoinType
 from weaviate.collections.classes.internal import (
     _Generative,
     _GroupBy,
@@ -36,7 +36,7 @@ class _NearImageGenerateAsync(Generic[Properties, References], _Base[Properties,
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,

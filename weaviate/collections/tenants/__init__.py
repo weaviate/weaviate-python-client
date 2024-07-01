@@ -1,4 +1,4 @@
-from .tenants import _TenantsAsync
+from .tenants import _TenantsAsync, TenantInputType, TenantOutputType
 from .sync import _Tenants
 
-__all__ = ["_Tenants", "_TenantsAsync"]
+__all__ = ["_Tenants", "_TenantsAsync", "TenantInputType", "TenantOutputType"]
