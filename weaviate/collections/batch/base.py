@@ -45,6 +45,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateBatchValidationError
+from weaviate.logger import logger
 from weaviate.types import UUID, VECTORS
 from weaviate.warnings import _Warnings
 
@@ -189,6 +190,10 @@ class _BatchBase:
 
         self.__batching_mode: _BatchMode = batch_mode
         self.__max_batch_size: int = 1000
+
+        self.__objs_count = 0
+        self.__objs_logs_count = 0
+        self.__refs_logs_count = 0
 
         if isinstance(self.__batching_mode, _FixedSizeBatching):
             self.__recommended_num_objects = self.__batching_mode.batch_size
@@ -489,22 +494,27 @@ class _BatchBase:
     async def __send_batch_async(
         self, objs: List[_BatchObject], refs: List[_BatchReference], readd_rate_limit: bool
     ) -> None:
-        if len(objs) > 0:
+        if (n_objs := len(objs)) > 0:
             start = time.time()
             try:
                 response_obj = await self.__batch_grpc.aobjects(
                     objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
             except Exception as e:
+                logger.warn(
+                    {
+                        "message": "Failed to insert objects in batch. Inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects.",
+                        "error": repr(e),
+                    }
+                )
                 errors_obj = {
                     idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
                 }
                 response_obj = BatchObjectReturn(
-                    all_responses=list(errors_obj.values()),
+                    _all_responses=list(errors_obj.values()),
                     elapsed_seconds=time.time() - start,
                     errors=errors_obj,
                     has_errors=True,
-                    uuids={},
                 )
 
             readded_uuids = set()
@@ -561,7 +571,7 @@ class _BatchBase:
                     },
                     errors=new_errors,
                     has_errors=len(new_errors) > 0,
-                    all_responses=[
+                    _all_responses=[
                         err
                         for i, err in enumerate(response_obj.all_responses)
                         if i not in readded_objects
@@ -585,17 +595,29 @@ class _BatchBase:
             )
             self.__uuid_lookup_lock.release()
 
+            if (n_obj_errs := len(response_obj.errors)) > 0 and n_obj_errs < 30:
+                logger.error(
+                    {
+                        "message": f"Failed to send {n_obj_errs} objects in a batch of {n_objs}. Please inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects.",
+                    }
+                )
+                self.__objs_logs_count += 1
+            if self.__objs_logs_count > 30:
+                logger.error(
+                    {
+                        "message": "There have been more than 30 failed object batches. Further errors will not be logged.",
+                    }
+                )
             self.__results_lock.acquire()
             self.__results_for_wrapper.results.objs += response_obj
             self.__results_for_wrapper.failed_objects.extend(response_obj.errors.values())
             self.__results_lock.release()
             self.__took_queue.append(time.time() - start)
 
-        if len(refs) > 0:
+        if (n_refs := len(refs)) > 0:
             start = time.time()
             try:
                 response_ref = await self.__batch_rest.references(references=refs)
-
             except Exception as e:
                 errors_ref = {
                     idx: ErrorReference(message=repr(e), reference=ref)
@@ -605,6 +627,20 @@ class _BatchBase:
                     elapsed_seconds=time.time() - start,
                     errors=errors_ref,
                     has_errors=True,
+                )
+            if (n_ref_errs := len(response_ref.errors)) > 0 and n_ref_errs < 30:
+                logger.error(
+                    {
+                        "message": f"Failed to send {n_ref_errs} references in a batch of {n_refs}. Please inspect client.batch.failed_references or collection.batch.failed_references for the failed references.",
+                        "errors": response_ref.errors,
+                    }
+                )
+                self.__refs_logs_count += 1
+            if self.__refs_logs_count > 30:
+                logger.error(
+                    {
+                        "message": "There have been more than 30 failed reference batches. Further errors will not be logged.",
+                    }
                 )
             self.__results_lock.acquire()
             self.__results_for_wrapper.results.refs += response_ref
@@ -644,7 +680,9 @@ class _BatchBase:
                 uuid=uuid,
                 vector=vector,
                 tenant=tenant,
+                index=self.__objs_count,
             )
+            self.__objs_count += 1
             self.__results_for_wrapper.imported_shards.add(
                 Shard(collection=collection, tenant=tenant)
             )
