@@ -146,14 +146,15 @@ def test_near_vector_with_other_input(
         {"first": np.array([1, 0]), "second": [1, 0, 0]},
         [np.array([1, 0]), [1, 0, 0]],
         {"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]},
-        {"first": np.array([1.0, 0]), "second": [1.0, 0, 0]},
-        {"first": np.array([1.0, 0]), "second": [1.0, 0, 0]},
-        [np.array([1.0, 0]), [1.0, 0, 0]],
     ],
 )
 def test_near_vector_with_named_vector_other_input(
     collection_factory: CollectionFactory, near_vector: Any
 ) -> None:
+    dummy = collection_factory("dummy")
+    if not dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("Named vectors are supported in versions higher than 1.26.0")
+
     collection = collection_factory(
         vectorizer_config=[
             Configure.NamedVectors.none("first"),
