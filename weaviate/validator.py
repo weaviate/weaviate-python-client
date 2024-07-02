@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any, List, Sequence, Union, get_args, get_origin
 
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.util import BaseEnum
 
 
 @dataclass
@@ -9,6 +10,13 @@ class _ValidateArgument:
     expected: List[Any]
     name: str
     value: Any
+
+
+class _ExtraTypes(str, BaseEnum):
+    NUMPY = "numpy"
+    PANDAS = "pandas"
+    POLARS = "polars"
+    TF = "tensorflow"
 
 
 def _validate_input(inputs: Union[List[_ValidateArgument], _ValidateArgument]) -> None:
@@ -29,6 +37,9 @@ def _validate_input(inputs: Union[List[_ValidateArgument], _ValidateArgument]) -
 def __is_valid(expected: Any, value: Any) -> bool:
     if expected is None:
         return value is None
+    if isinstance(expected, _ExtraTypes):
+        return expected.value in type(value).__module__
+
     expected_origin = get_origin(expected)
     if expected_origin is Union:
         args = get_args(expected)

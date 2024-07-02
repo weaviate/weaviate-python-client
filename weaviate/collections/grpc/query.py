@@ -56,7 +56,7 @@ from weaviate.exceptions import (
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4
-from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.validator import _ValidateArgument, _validate_input, _ExtraTypes
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
 _PyValue: TypeAlias = Union[
@@ -330,7 +330,18 @@ class _QueryGRPC(_BaseGRPC):
         if self._validate_arguments:
             _validate_input(
                 [
-                    _ValidateArgument([List, Dict], "near_vector", near_vector),
+                    _ValidateArgument(
+                        [
+                            List,
+                            Dict,
+                            _ExtraTypes.PANDAS,
+                            _ExtraTypes.POLARS,
+                            _ExtraTypes.NUMPY,
+                            _ExtraTypes.TF,
+                        ],
+                        "near_vector",
+                        near_vector,
+                    ),
                     _ValidateArgument(
                         [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
                     ),
