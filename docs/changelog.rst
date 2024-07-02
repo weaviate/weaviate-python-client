@@ -6,6 +6,7 @@ Version 3.26.5
 This patch version includes
 
 - Fixes GraphQL query injection vulnerability caused by incorrect escaping of backslashes in plain text input builder methods
+- Many thanks to `@adamleko <https://github.com/adamleko>`_, `@bismuthsalamander <https://github.com/bismuthsalamander>`_, and `@tardigrade-9 <https://github.com/tardigrade-9>`_ for their help in fixing this issue
 
 Version 3.26.4
 --------------
