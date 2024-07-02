@@ -291,6 +291,10 @@ jobs:
           $WEAVIATE_126
         ]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Download build artifact to append to release
         uses: actions/download-artifact@v4
         with:
@@ -298,10 +302,6 @@ jobs:
       - run: |
           pip install weaviate_client-*.whl
           pip install -r requirements-devel.txt  # install test dependencies
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - name: free space
         run: sudo rm -rf /usr/local/lib/android
       - run: rm -r weaviate
