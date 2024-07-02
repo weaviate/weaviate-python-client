@@ -1,19 +1,20 @@
 exclude: ^proto/
 repos:
 -   repo: https://github.com/psf/black
-    rev: 23.9.1
+    rev: 24.4.2
     hooks:
     -   id: black
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v4.6.0
   hooks:
     - id: no-commit-to-branch
     - id: trailing-whitespace
 
-- repo: https://github.com/PyCQA/flake8
-  rev: 6.1.0
-  hooks:
+
+-   repo: https://github.com/PyCQA/flake8
+    rev: 7.1.0
+    hooks:
     - id: flake8
       name: linting
       additional_dependencies: [
