@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 3.26.4
+--------------
+This patch version includes
+
+- Fixes batch retry with tenants
+
 Version 3.26.2
 --------------
 This patch version includes
