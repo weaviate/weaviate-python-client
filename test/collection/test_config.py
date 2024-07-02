@@ -764,9 +764,9 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {
             "generative-anthropic": {
                 "model": "model",
-                "maxTokensProperty": 100,
-                "stopSequencesProperty": ["stop"],
-                "temperatureProperty": 0.5,
+                "maxTokens": 100,
+                "stopSequences": ["stop"],
+                "temperature": 0.5,
                 "topK": 10,
                 "topP": 0.5,
             }
