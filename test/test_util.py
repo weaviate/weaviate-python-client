@@ -22,6 +22,7 @@ from weaviate.util import (
     is_weaviate_too_old,
     is_weaviate_client_too_old,
     MINIMUM_NO_WARNING_VERSION,
+    _sanitize_str,
 )
 
 schema_set = {
@@ -576,3 +577,19 @@ def test_is_weaviate_too_old(version: str, too_old: bool):
 )
 def test_is_weaviate_client_too_old(current_version: str, latest_version: str, too_old: bool):
     assert is_weaviate_client_too_old(current_version, latest_version) is too_old
+
+
+@pytest.mark.parametrize(
+    "in_str, out_str",
+    [
+        ('"', '\\"'),
+        ('"', '\\"'),
+        ('\\"', '\\"'),
+        ('\\"', '\\"'),
+        ('\\\\"', '\\\\\\"'),
+        ('\\\\"', '\\\\\\"'),
+        ('\\\\\\"', '\\\\\\"'),
+    ],
+)
+def test_sanitize_str(in_str: str, out_str: str) -> None:
+    assert _sanitize_str(in_str) == f'"{out_str}"'
