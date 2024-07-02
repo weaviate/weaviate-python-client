@@ -752,6 +752,26 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.anthropic(
+            model="model",
+            max_tokens=100,
+            stop_sequences=["stop"],
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-anthropic": {
+                "model": "model",
+                "maxTokens": 100,
+                "stopSequences": ["stop"],
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
 ]
 
 
