@@ -29,26 +29,23 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectors,
     _NamedVectorsUpdate,
 )
+from weaviate.collections.classes.config_vector_index import VectorIndexType as VectorIndexTypeAlias
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
-    _VectorIndexConfigDynamicUpdate,
-    _VectorIndexConfigHNSWCreate,
-    _VectorIndexConfigFlatCreate,
-    _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigDynamicCreate,
+    _VectorIndexConfigDynamicUpdate,
+    _VectorIndexConfigFlatCreate,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWCreate,
+    _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
-    VectorIndexType as VectorIndexTypeAlias,
 )
-from weaviate.collections.classes.config_vectorizers import (
-    _Vectorizer,
-    _VectorizerConfigCreate,
-    CohereModel,
-    Vectorizers as VectorizersAlias,
-    VectorDistances as VectorDistancesAlias,
-)
+from weaviate.collections.classes.config_vectorizers import CohereModel
+from weaviate.collections.classes.config_vectorizers import VectorDistances as VectorDistancesAlias
+from weaviate.collections.classes.config_vectorizers import Vectorizers as VectorizersAlias
+from weaviate.collections.classes.config_vectorizers import _Vectorizer, _VectorizerConfigCreate
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -161,9 +158,12 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by PaLM generative models.
         `AWS`
             Weaviate module backed by AWS Bedrock generative models.
+        `ANTHROPIC`
+            Weaviate module backed by Anthropic generative models.
     """
 
     AWS = "generative-aws"
+    ANTHROPIC = "generative-anthropic"
     ANYSCALE = "generative-anyscale"
     COHERE = "generative-cohere"
     MISTRAL = "generative-mistral"
@@ -494,6 +494,18 @@ class _GenerativeAWSConfig(_GenerativeConfigCreate):
     endpoint: Optional[str]
 
 
+class _GenerativeAnthropicConfig(_GenerativeConfigCreate):
+    generative: GenerativeSearches = Field(
+        default=GenerativeSearches.ANTHROPIC, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    maxTokens: Optional[int]
+    stopSequences: Optional[List[str]]
+    temperature: Optional[float]
+    topK: Optional[int]
+    topP: Optional[float]
+
+
 class _RerankerConfigCreate(_ConfigCreateModel):
     reranker: Rerankers
 
@@ -765,6 +777,41 @@ class _Generative:
             region=region,
             service=service,
             endpoint=endpoint,
+        )
+
+    @staticmethod
+    def anthropic(
+        model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        stop_sequences: Optional[List[str]] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeConfigCreate:
+        """
+        Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `stop_sequences`
+                The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_k`
+                The top K to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAnthropicConfig(
+            model=model,
+            maxTokens=max_tokens,
+            stopSequences=stop_sequences,
+            temperature=temperature,
+            topK=top_k,
+            topP=top_p,
         )
 
 
