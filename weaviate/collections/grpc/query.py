@@ -55,7 +55,7 @@ from weaviate.exceptions import (
 )
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.util import _get_vector_v4
+from weaviate.util import _get_vector_v4, _is_1d_vector
 from weaviate.validator import _ValidateArgument, _validate_input, _ExtraTypes
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
@@ -351,7 +351,13 @@ class _QueryGRPC(_BaseGRPC):
         certainty, distance = self.__parse_near_options(certainty, distance)
 
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
-
+        invalid_nv_exception = WeaviateInvalidInputError(
+            f"""near vector argument can be:
+                                - a list of numbers
+                                - a list of lists of numbers for multi target search
+                                - a dictionary with target names as keys and lists of numbers as values
+                        received: {near_vector}"""
+        )
         if isinstance(near_vector, dict):
             if targets is None or len(targets.target_vectors) != len(near_vector):
                 raise WeaviateInvalidInputError(
@@ -360,17 +366,15 @@ class _QueryGRPC(_BaseGRPC):
 
             vector_per_target: Dict[str, bytes] = {}
             for key, value in near_vector.items():
-                if (
-                    not isinstance(value, list)
-                    or len(value) == 0
-                    or not isinstance(value[0], get_args(NUMBER))
-                ):
-                    raise WeaviateQueryError(
-                        "The value of the near_vector dict must be a lists of numbers",
-                        "GRPC",
-                    )
-
                 nv = _get_vector_v4(value)
+
+                if (
+                    not isinstance(nv, list)
+                    or len(nv) == 0
+                    or not isinstance(nv[0], get_args(NUMBER))
+                ):
+                    raise invalid_nv_exception
+
                 vector_per_target[key] = struct.pack("{}f".format(len(nv)), *nv)
             near_vector_grpc = search_get_pb2.NearVector(
                 certainty=certainty,
@@ -380,16 +384,13 @@ class _QueryGRPC(_BaseGRPC):
                 vector_per_target=vector_per_target,
             )
         else:
-            if not isinstance(near_vector, list) or len(near_vector) == 0:
-                raise WeaviateInvalidInputError(
-                    """near vector argument can be:
-                                - a list of numbers
-                                - a list of lists of numbers for multi target search
-                                - a dictionary with target names as keys and lists of numbers as values"""
-                )
+            if len(near_vector) == 0:
+                raise invalid_nv_exception
 
-            if isinstance(near_vector[0], get_args(NUMBER)):
+            if _is_1d_vector(near_vector):
                 near_vector = _get_vector_v4(near_vector)
+                if not isinstance(near_vector, list):
+                    raise invalid_nv_exception
                 near_vector_grpc = search_get_pb2.NearVector(
                     certainty=certainty,
                     distance=distance,
@@ -404,15 +405,13 @@ class _QueryGRPC(_BaseGRPC):
                         "The number of target vectors must be equal to the number of vectors."
                     )
                 for i, vector in enumerate(near_vector):
-                    if (
-                        not isinstance(vector, list)
-                        or len(vector) == 0
-                        or not isinstance(vector[0], get_args(NUMBER))
-                    ):
-                        raise WeaviateInvalidInputError(
-                            "The value of the near_vector entry must be a lists of numbers"
-                        )
                     nv = _get_vector_v4(vector)
+                    if (
+                        not isinstance(nv, list)
+                        or len(nv) == 0
+                        or not isinstance(nv[0], get_args(NUMBER))
+                    ):
+                        raise invalid_nv_exception
                     vector_per_target_tmp[targets.target_vectors[i]] = struct.pack(
                         "{}f".format(len(nv)), *nv
                     )

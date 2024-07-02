@@ -6,8 +6,8 @@ from pydantic import ConfigDict, Field
 
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.proto.v1 import search_get_pb2
+from weaviate.str_enum import BaseEnum
 from weaviate.types import INCLUDE_VECTOR, UUID
-from weaviate.util import BaseEnum
 
 
 class HybridFusion(str, BaseEnum):

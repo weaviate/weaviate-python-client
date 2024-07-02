@@ -9,7 +9,6 @@ import json
 import os
 import re
 import uuid as uuid_lib
-from enum import Enum, EnumMeta
 from pathlib import Path
 from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
 
@@ -26,6 +25,7 @@ from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import NUMBER, UUIDS, TIME
+from weaviate.validator import _is_valid, _ExtraTypes
 from weaviate.warnings import _Warnings
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
@@ -34,23 +34,6 @@ MINIMUM_NO_WARNING_VERSION = (
     "v1.16.0"  # The minimum version of Weaviate that will not trigger an upgrade warning.
 )
 BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding files ~ 64kb
-
-
-# MetaEnum and BaseEnum are required to support `in` statements:
-#    'ALL' in ConsistencyLevel == True
-#    12345 in ConsistencyLevel == False
-class MetaEnum(EnumMeta):
-    def __contains__(cls, item: Any) -> bool:
-        try:
-            # when item is type ConsistencyLevel
-            return item.name in cls.__members__.keys()
-        except AttributeError:
-            # when item is type str
-            return item in cls.__members__.keys()
-
-
-class BaseEnum(Enum, metaclass=MetaEnum):
-    pass
 
 
 def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str:
@@ -461,7 +444,7 @@ def get_vector(vector: Sequence) -> List[float]:
     ) from None
 
 
-def _get_vector_v4(vector: Sequence) -> List[float]:
+def _get_vector_v4(vector: Any) -> List[float]:
     try:
         return get_vector(vector)
     except TypeError as e:
@@ -978,3 +961,33 @@ def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
             "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
             "%Y-%m-%dT%H:%M:%S%z",
         )
+
+
+def __is_list_type(inputs: Any) -> bool:
+    try:
+        if len(inputs) == 0:
+            return False
+    except TypeError:
+        return False
+
+    return any(
+        _is_valid(types, inputs)
+        for types in [
+            List,
+            _ExtraTypes.TF,
+            _ExtraTypes.PANDAS,
+            _ExtraTypes.NUMPY,
+            _ExtraTypes.POLARS,
+        ]
+    )
+
+
+def _is_1d_vector(inputs: Any) -> bool:
+    try:
+        if len(inputs) == 0:
+            return False
+    except TypeError:
+        return False
+    if __is_list_type(inputs):
+        return not __is_list_type(inputs[0])  # 2D vectors are not 1D vectors
+    return False

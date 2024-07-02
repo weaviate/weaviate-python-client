@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, List, Sequence, Union, get_args, get_origin
 
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import BaseEnum
+from weaviate.str_enum import BaseEnum
 
 
 @dataclass
@@ -28,13 +28,13 @@ def _validate_input(inputs: Union[List[_ValidateArgument], _ValidateArgument]) -
     if isinstance(inputs, _ValidateArgument):
         inputs = [inputs]
     for validate in inputs:
-        if not any(__is_valid(exp, validate.value) for exp in validate.expected):
+        if not any(_is_valid(exp, validate.value) for exp in validate.expected):
             raise WeaviateInvalidInputError(
                 f"Argument '{validate.name}' must be one of: {validate.expected}, but got {type(validate.value)}"
             )
 
 
-def __is_valid(expected: Any, value: Any) -> bool:
+def _is_valid(expected: Any, value: Any) -> bool:
     if expected is None:
         return value is None
     if isinstance(expected, _ExtraTypes):
