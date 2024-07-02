@@ -41,6 +41,10 @@ class _TenantsGRPC(_BaseGRPC):
             return TenantActivityStatus.HOT
         if status == tenants_pb2.TENANT_ACTIVITY_STATUS_FROZEN:
             return TenantActivityStatus.FROZEN
-        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_WARM:
-            return TenantActivityStatus.WARM
+        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_FREEZING:
+            return TenantActivityStatus.FREEZING
+        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_UNFREEZING:
+            return TenantActivityStatus.UNFREEZING
+        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_UNFROZEN:
+            return TenantActivityStatus.UNFROZEN
         raise ValueError(f"Unknown TenantActivityStatus: {status}")

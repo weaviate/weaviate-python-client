@@ -1,16 +1,28 @@
-from dataclasses import dataclass
 import struct
-from typing import Any, Dict, List, Literal, Optional, Sequence, Set, TypeVar, Union, cast, Tuple
-
-from typing_extensions import TypeAlias
+import uuid as uuid_lib
+from dataclasses import dataclass
+from typing import (
+    Any,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+    Union,
+    cast,
+    Tuple,
+    get_args,
+)
 
 import grpc  # type: ignore
-import uuid as uuid_lib
+from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config import ConsistencyLevel
-
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
+    _MultiTargetVectorJoin,
     HybridFusion,
     _QueryReferenceMultiTarget,
     _MetadataQuery,
@@ -26,21 +38,25 @@ from weaviate.collections.classes.grpc import (
     REFERENCES,
     _Sorting,
     Rerank,
+    TargetVectorJoinType,
+    NearVectorInputType,
 )
-from weaviate.collections.classes.internal import _Generative, _GroupBy
+from weaviate.collections.classes.internal import (
+    _Generative,
+    _GroupBy,
+)
 from weaviate.collections.filters import _FilterToGRPC
-
 from weaviate.collections.grpc.shared import _BaseGRPC
-
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
+from weaviate.exceptions import (
+    WeaviateQueryError,
+    WeaviateUnsupportedFeatureError,
+    WeaviateInvalidInputError,
+)
+from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4
-
-from weaviate.proto.v1 import search_get_pb2
-
 from weaviate.validator import _ValidateArgument, _validate_input
-
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
 _PyValue: TypeAlias = Union[
@@ -157,7 +173,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
     ) -> search_get_pb2.SearchReply:
         if self._connection._weaviate_version.is_lower_than(1, 25, 0) and (
             isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
@@ -177,13 +193,17 @@ class _QueryGRPC(_BaseGRPC):
                     ),
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
         # Set hybrid search to only query the other search-type if one of the two is not set
         if query is None:
             alpha = 1
+
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
 
         hybrid_search = (
             search_get_pb2.Hybrid(
@@ -198,7 +218,8 @@ class _QueryGRPC(_BaseGRPC):
                     if fusion_type is not None
                     else None
                 ),
-                target_vectors=[target_vector] if target_vector is not None else None,
+                target_vectors=target_vector,
+                targets=targets,
                 vector_bytes=(
                     struct.pack("{}f".format(len(vector)), *vector)
                     if vector is not None and isinstance(vector, list)
@@ -291,7 +312,7 @@ class _QueryGRPC(_BaseGRPC):
 
     def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -301,7 +322,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -309,13 +330,88 @@ class _QueryGRPC(_BaseGRPC):
         if self._validate_arguments:
             _validate_input(
                 [
-                    _ValidateArgument([List], "near_vector", near_vector),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument([List, Dict], "near_vector", near_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
-        near_vector = _get_vector_v4(near_vector)
         certainty, distance = self.__parse_near_options(certainty, distance)
+
+        targets, target_vectors = self.__target_vector_to_grpc(target_vector)
+
+        if isinstance(near_vector, dict):
+            if targets is None or len(targets.target_vectors) != len(near_vector):
+                raise WeaviateInvalidInputError(
+                    "The number of target vectors must be equal to the number of vectors."
+                )
+
+            vector_per_target: Dict[str, bytes] = {}
+            for key, value in near_vector.items():
+                if (
+                    not isinstance(value, list)
+                    or len(value) == 0
+                    or not isinstance(value[0], get_args(NUMBER))
+                ):
+                    raise WeaviateQueryError(
+                        "The value of the near_vector dict must be a lists of numbers",
+                        "GRPC",
+                    )
+
+                nv = _get_vector_v4(value)
+                vector_per_target[key] = struct.pack("{}f".format(len(nv)), *nv)
+            near_vector_grpc = search_get_pb2.NearVector(
+                certainty=certainty,
+                distance=distance,
+                targets=targets,
+                target_vectors=target_vectors,
+                vector_per_target=vector_per_target,
+            )
+        else:
+            if not isinstance(near_vector, list) or len(near_vector) == 0:
+                raise WeaviateInvalidInputError(
+                    """near vector argument can be:
+                                - a list of numbers
+                                - a list of lists of numbers for multi target search
+                                - a dictionary with target names as keys and lists of numbers as values"""
+                )
+
+            if isinstance(near_vector[0], get_args(NUMBER)):
+                near_vector = _get_vector_v4(near_vector)
+                near_vector_grpc = search_get_pb2.NearVector(
+                    certainty=certainty,
+                    distance=distance,
+                    vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
+                    targets=targets,
+                    target_vectors=target_vectors,
+                )
+            else:
+                vector_per_target_tmp: Dict[str, bytes] = {}
+                if targets is None or len(targets.target_vectors) != len(near_vector):
+                    raise WeaviateInvalidInputError(
+                        "The number of target vectors must be equal to the number of vectors."
+                    )
+                for i, vector in enumerate(near_vector):
+                    if (
+                        not isinstance(vector, list)
+                        or len(vector) == 0
+                        or not isinstance(vector[0], get_args(NUMBER))
+                    ):
+                        raise WeaviateInvalidInputError(
+                            "The value of the near_vector entry must be a lists of numbers"
+                        )
+                    nv = _get_vector_v4(vector)
+                    vector_per_target_tmp[targets.target_vectors[i]] = struct.pack(
+                        "{}f".format(len(nv)), *nv
+                    )
+                near_vector_grpc = search_get_pb2.NearVector(
+                    certainty=certainty,
+                    distance=distance,
+                    targets=targets,
+                    target_vectors=target_vectors,
+                    vector_per_target=vector_per_target_tmp,
+                )
 
         request = self.__create_request(
             limit=limit,
@@ -328,12 +424,7 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
-            near_vector=search_get_pb2.NearVector(
-                certainty=certainty,
-                distance=distance,
-                vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
-                target_vectors=[target_vector] if target_vector is not None else None,
-            ),
+            near_vector=near_vector_grpc,
         )
 
         return self.__call(request)
@@ -350,7 +441,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -359,11 +450,15 @@ class _QueryGRPC(_BaseGRPC):
             _validate_input(
                 [
                     _ValidateArgument([str, uuid_lib.UUID], "near_object", near_object),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
         certainty, distance = self.__parse_near_options(certainty, distance)
+
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
 
         base_request = self.__create_request(
             limit=limit,
@@ -380,7 +475,8 @@ class _QueryGRPC(_BaseGRPC):
                 id=str(near_object),
                 certainty=certainty,
                 distance=distance,
-                target_vectors=[target_vector] if target_vector is not None else None,
+                target_vectors=target_vector,
+                targets=targets,
             ),
         )
 
@@ -400,7 +496,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -411,21 +507,25 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([List, str], "near_text", near_text),
                     _ValidateArgument([Move, None], "move_away", move_away),
                     _ValidateArgument([Move, None], "move_to", move_to),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, List, _MultiTargetVectorJoin, None], "target_vector", target_vector
+                    ),
                 ]
             )
 
         if isinstance(near_text, str):
             near_text = [near_text]
         certainty, distance = self.__parse_near_options(certainty, distance)
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
 
         near_text_req = search_get_pb2.NearTextSearch(
             query=near_text,
             certainty=certainty,
             distance=distance,
-            target_vectors=[target_vector] if target_vector is not None else None,
             move_away=self.__parse_move(move_away),
             move_to=self.__parse_move(move_to),
+            targets=targets,
+            target_vectors=target_vector,
         )
 
         request = self.__create_request(
@@ -457,7 +557,7 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
@@ -466,38 +566,63 @@ class _QueryGRPC(_BaseGRPC):
             _validate_input(
                 [
                     _ValidateArgument([str], "media", media),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
         certainty, distance = self.__parse_near_options(certainty, distance)
 
         kwargs: Dict[str, Any] = {}
-        target_vectors = [target_vector] if target_vector is not None else None
-
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
         if type_ == "audio":
             kwargs["near_audio"] = search_get_pb2.NearAudioSearch(
-                audio=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                audio=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "depth":
             kwargs["near_depth"] = search_get_pb2.NearDepthSearch(
-                depth=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                depth=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "image":
             kwargs["near_image"] = search_get_pb2.NearImageSearch(
-                image=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                image=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "imu":
             kwargs["near_imu"] = search_get_pb2.NearIMUSearch(
-                imu=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                imu=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "thermal":
             kwargs["near_thermal"] = search_get_pb2.NearThermalSearch(
-                thermal=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                thermal=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "video":
             kwargs["near_video"] = search_get_pb2.NearVideoSearch(
-                video=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                video=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         else:
             raise ValueError(
@@ -742,3 +867,28 @@ class _QueryGRPC(_BaseGRPC):
             return set(args)
         else:
             return {cast(A, args)}
+
+    def __target_vector_to_grpc(
+        self, target_vector: Optional[TargetVectorJoinType]
+    ) -> Tuple[Optional[search_get_pb2.Targets], Optional[List[str]]]:
+        if target_vector is None:
+            return None, None
+
+        if self._connection._weaviate_version.is_lower_than(1, 26, 0):
+            if isinstance(target_vector, str):
+                return None, [target_vector]
+            elif isinstance(target_vector, list) and len(target_vector) == 1:
+                return None, target_vector
+            else:
+                raise WeaviateUnsupportedFeatureError(
+                    "Multiple target vectors in search",
+                    str(self._connection._weaviate_version),
+                    "1.26.0",
+                )
+
+        if isinstance(target_vector, str):
+            return search_get_pb2.Targets(target_vectors=[target_vector]), None
+        elif isinstance(target_vector, list):
+            return search_get_pb2.Targets(target_vectors=target_vector), None
+        else:
+            return target_vector.to_grpc_target_vector(), None

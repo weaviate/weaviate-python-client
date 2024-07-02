@@ -278,6 +278,16 @@ class _BQConfigCreate(_QuantizerConfigCreate):
         return "bq"
 
 
+class _SQConfigCreate(_QuantizerConfigCreate):
+    cache: Optional[bool]
+    rescoreLimit: Optional[int]
+    trainingLimit: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "sq"
+
+
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
@@ -299,6 +309,16 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
         return "bq"
 
 
+class _SQConfigUpdate(_QuantizerConfigUpdate):
+    enabled: Optional[bool]
+    rescoreLimit: Optional[int]
+    trainingLimit: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "sq"
+
+
 class _ShardingConfigCreate(_ConfigCreateModel):
     virtualPerPhysical: Optional[int]
     desiredCount: Optional[int]
@@ -310,10 +330,12 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
+    asyncEnabled: Optional[bool]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
+    asyncEnabled: Optional[bool]
 
 
 class _BM25ConfigCreate(_ConfigCreateModel):
@@ -1100,6 +1122,7 @@ ReferencePropertyConfig = _ReferenceProperty
 @dataclass
 class _ReplicationConfig(_ConfigBase):
     factor: int
+    async_enabled: bool
 
 
 ReplicationConfig = _ReplicationConfig
@@ -1158,12 +1181,20 @@ class _BQConfig(_ConfigBase):
     rescore_limit: int
 
 
+@dataclass
+class _SQConfig(_ConfigBase):
+    cache: Optional[bool]
+    rescore_limit: int
+    training_limit: int
+
+
 BQConfig = _BQConfig
+SQConfig = _SQConfig
 
 
 @dataclass
 class _VectorIndexConfig(_ConfigBase):
-    quantizer: Optional[Union[PQConfig, BQConfig]]
+    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -1171,6 +1202,8 @@ class _VectorIndexConfig(_ConfigBase):
             out["pq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _BQConfig):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
+        elif isinstance(self.quantizer, _SQConfig):
+            out["sq"] = {**out.pop("quantizer"), "enabled": True}
         return out
 
 
@@ -1673,6 +1706,25 @@ class _VectorIndexQuantizer:
             rescoreLimit=rescore_limit,
         )
 
+    @staticmethod
+    def sq(
+        cache: Optional[bool] = None,
+        rescore_limit: Optional[int] = None,
+        training_limit: Optional[int] = None,
+    ) -> _SQConfigCreate:
+        """Create a `_SQConfigCreate` object to be used when defining the scalar quantization (SQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _SQConfigCreate(
+            cache=cache,
+            rescoreLimit=rescore_limit,
+            trainingLimit=training_limit,
+        )
+
 
 class _VectorIndex:
     Quantizer = _VectorIndexQuantizer
@@ -1834,14 +1886,20 @@ class Configure:
         )
 
     @staticmethod
-    def replication(factor: Optional[int] = None) -> _ReplicationConfigCreate:
+    def replication(
+        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+    ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
+
+        NOTE: `async_enabled` is only available with WeaviateDB `>=v1.26.0`
 
         Arguments:
             `factor`
                 The replication factor.
+            `async_enabled`
+                Enabled async replication.
         """
-        return _ReplicationConfigCreate(factor=factor)
+        return _ReplicationConfigCreate(factor=factor, asyncEnabled=async_enabled)
 
     @staticmethod
     def sharding(
@@ -1926,6 +1984,23 @@ class _VectorIndexQuantizerUpdate:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _BQConfigUpdate(rescoreLimit=rescore_limit)
 
+    @staticmethod
+    def sq(
+        rescore_limit: Optional[int] = None,
+        training_limit: Optional[int] = None,
+        enabled: bool = True,
+    ) -> _SQConfigUpdate:
+        """Create a `_SQConfigUpdate` object to be used when updating the scalar quantization (SQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _SQConfigUpdate(
+            enabled=enabled, rescoreLimit=rescore_limit, trainingLimit=training_limit
+        )
+
 
 class _VectorIndexUpdate:
     Quantizer = _VectorIndexQuantizerUpdate
@@ -1938,7 +2013,7 @@ class _VectorIndexUpdate:
         ef: Optional[int] = None,
         flat_search_cutoff: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate]] = None,
+        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate]] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
@@ -2036,7 +2111,9 @@ class Reconfigure:
         )
 
     @staticmethod
-    def replication(factor: Optional[int] = None) -> _ReplicationConfigUpdate:
+    def replication(
+        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+    ) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
         Use this method when defining the `replication_config` argument in `collection.update()`.
@@ -2044,8 +2121,10 @@ class Reconfigure:
         Arguments:
             `factor`
                 The replication factor.
+            `async_enabled`
+                Enable async replication.
         """
-        return _ReplicationConfigUpdate(factor=factor)
+        return _ReplicationConfigUpdate(factor=factor, asyncEnabled=async_enabled)
 
     @staticmethod
     def multi_tenancy(
