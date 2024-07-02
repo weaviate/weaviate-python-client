@@ -56,10 +56,13 @@ class TenantActivityStatusInput(str, Enum):
             The tenant is fully active and can be used.
         `COLD`
             The tenant is not active, files stored locally.
+        `FROZEN`
+            The tenant is not active, files stored on the cloud.
     """
 
     HOT = "HOT"
     COLD = "COLD"
+    FROZEN = "FROZEN"
 
 
 class TenantInput(BaseModel):
