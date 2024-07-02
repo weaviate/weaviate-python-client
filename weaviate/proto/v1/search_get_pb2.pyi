@@ -312,7 +312,6 @@ class Hybrid(_message.Message):
         FUSION_TYPE_UNSPECIFIED: _ClassVar[Hybrid.FusionType]
         FUSION_TYPE_RANKED: _ClassVar[Hybrid.FusionType]
         FUSION_TYPE_RELATIVE_SCORE: _ClassVar[Hybrid.FusionType]
-
     FUSION_TYPE_UNSPECIFIED: Hybrid.FusionType
     FUSION_TYPE_RANKED: Hybrid.FusionType
     FUSION_TYPE_RELATIVE_SCORE: Hybrid.FusionType

@@ -22,9 +22,9 @@ _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "v1.tenants_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
     _globals["DESCRIPTOR"]._options = None
-    _globals["DESCRIPTOR"]._serialized_options = (
-        b"\n#io.weaviate.client.grpc.protocol.v1B\024WeaviateProtoTenantsZ4github.com/weaviate/weaviate/grpc/generated;protocol"
-    )
+    _globals[
+        "DESCRIPTOR"
+    ]._serialized_options = b"\n#io.weaviate.client.grpc.protocol.v1B\024WeaviateProtoTenantsZ4github.com/weaviate/weaviate/grpc/generated;protocol"
     _globals["_TENANTACTIVITYSTATUS"]._serialized_start = 314
     _globals["_TENANTACTIVITYSTATUS"]._serialized_end = 595
     _globals["_TENANTSGETREQUEST"]._serialized_start = 33

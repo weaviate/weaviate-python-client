@@ -310,7 +310,9 @@ class Collection(_CollectionBase, Generic[Properties, References]):
                 return_properties=return_properties,
                 return_references=return_references,
             ).objects,
-            after
-            if after is None or isinstance(after, uuid_package.UUID)
-            else uuid_package.UUID(after),
+            (
+                after
+                if after is None or isinstance(after, uuid_package.UUID)
+                else uuid_package.UUID(after)
+            ),
         )
