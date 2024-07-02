@@ -1386,8 +1386,8 @@ class Property(_ConfigCreateModel):
                     "vectorizePropertyName": self.vectorize_property_name,
                 }
             }
-        del ret_dict["skip_vectorization"]
-        del ret_dict["vectorize_property_name"]
+            del ret_dict["skip_vectorization"]
+            del ret_dict["vectorize_property_name"]
         if self.nestedProperties is not None:
             ret_dict["nestedProperties"] = (
                 [prop._to_dict() for prop in self.nestedProperties]
