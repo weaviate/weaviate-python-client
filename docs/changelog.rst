@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 3.26.5
+--------------
+This patch version includes
+
+- Fixes GraphQL query injection vulnerability caused by incorrect escaping of backslashes in plain text input builder methods
+
 Version 3.26.4
 --------------
 This patch version includes
