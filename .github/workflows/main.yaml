@@ -297,7 +297,7 @@ jobs:
           name: weaviate-python-client-wheel
       - run: |
           pip install weaviate_client-*.whl
-          pip install -r requirement-devel.txt  # install test dependencies
+          pip install -r requirements-devel.txt  # install test dependencies
       - name: Checkout
         uses: actions/checkout@v4
         with:
