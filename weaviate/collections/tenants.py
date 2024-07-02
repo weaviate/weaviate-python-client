@@ -177,7 +177,7 @@ class _Tenants:
                 TenantActivityStatus.UNFREEZING,
             ]:
                 raise WeaviateInvalidInputError(
-                    f"Tenant activity status must be either 'HOT' or 'COLD'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
+                    f"Tenant activity status must be one of 'HOT', 'COLD' or 'FROZEN'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
                 )
             activity_status = TenantActivityStatusInput(tenant.activity_status)
             return TenantInput(name=tenant.name, activity_status=activity_status)
