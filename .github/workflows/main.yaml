@@ -297,7 +297,7 @@ jobs:
           name: weaviate-python-client-wheel
       - run: |
           pip install weaviate_client-*.whl
-          pip install pytest pytest-benchmark pytest-profiling grpcio grpcio-tools pytest-xdist
+          pip install -r requirement-devel.txt  # install test dependencies
       - name: Checkout
         uses: actions/checkout@v4
         with:
