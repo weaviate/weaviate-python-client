@@ -102,8 +102,6 @@ class _Object(Generic[P, R, M]):
 class Object(Generic[P, R], _Object[P, R, MetadataReturn]):
     """A single Weaviate object returned by a query within the `.query` namespace of a collection."""
 
-    pass
-
 
 @dataclass
 class MetadataSingleObjectReturn:
@@ -117,8 +115,6 @@ class MetadataSingleObjectReturn:
 @dataclass
 class ObjectSingleReturn(Generic[P, R], _Object[P, R, MetadataSingleObjectReturn]):
     """A single Weaviate object returned by the `fetch_object_by_id` query."""
-
-    pass
 
 
 @dataclass
@@ -531,6 +527,7 @@ QuerySingleReturn = Union[
     ObjectSingleReturn[Properties, TReferences],
     ObjectSingleReturn[TProperties, References],
     ObjectSingleReturn[TProperties, CrossReferences],
+    None,
 ]
 
 GenerativeGroupByReturnType = Union[

@@ -1,5 +1,6 @@
 from typing import Generic, List, Optional
 
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -12,13 +13,13 @@ from weaviate.collections.classes.internal import (
     _GroupBy,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.base import _Base
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import INCLUDE_VECTOR
 
 
-class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def bm25(
+class _BM25QueryAsync(Generic[Properties, References], _Base[Properties, References]):
+    async def bm25(
         self,
         query: Optional[str],
         *,
@@ -81,7 +82,7 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
             raise WeaviateUnsupportedFeatureError(
                 "BM25 group by", self._connection.server_version, "1.25.0"
             )
-        res = self._query.bm25(
+        res = await self._query.bm25(
             query=query,
             properties=query_properties,
             limit=limit,
@@ -108,3 +109,8 @@ class _BM25Query(Generic[Properties, References], _BaseQuery[Properties, Referen
             return_properties,
             return_references,
         )
+
+
+@syncify.convert
+class _BM25Query(Generic[Properties, References], _BM25QueryAsync[Properties, References]):
+    pass

@@ -122,6 +122,9 @@ def test_authentication_user_pw(
             assert issubclass(w.category, UserWarning)
             assert str(w.message).startswith("Auth002")
         else:
+            if len(recwarn) != 0:
+                for rwarning in recwarn.list:
+                    print(rwarning.message)
             assert len(recwarn) == 0
 
 

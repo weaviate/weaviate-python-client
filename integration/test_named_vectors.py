@@ -2,7 +2,6 @@ import uuid
 from typing import List, Union
 
 import pytest
-from pydantic import ValidationError
 
 import weaviate.classes as wvc
 from integration.conftest import CollectionFactory, OpenAICollection
@@ -548,7 +547,7 @@ def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
     collection = collection_factory("dummy")
     if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
         pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(WeaviateInvalidInputError) as e:
         collection_factory(
             vectorizer_config=[
                 wvc.config.Configure.NamedVectors.text2vec_contextionary(

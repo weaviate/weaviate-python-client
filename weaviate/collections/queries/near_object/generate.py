@@ -1,5 +1,6 @@
 from typing import Generic, List, Optional
 
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -13,12 +14,12 @@ from weaviate.collections.classes.internal import (
     _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.base import _Base
 from weaviate.types import NUMBER, INCLUDE_VECTOR, UUID
 
 
-class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def near_object(
+class _NearObjectGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
+    async def near_object(
         self,
         near_object: UUID,
         *,
@@ -86,7 +87,7 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query.near_object(
+        res = await self._query.near_object(
             near_object=near_object,
             certainty=certainty,
             distance=distance,
@@ -120,3 +121,10 @@ class _NearObjectGenerate(Generic[Properties, References], _BaseQuery[Properties
             return_properties,
             return_references,
         )
+
+
+@syncify.convert
+class _NearObjectGenerate(
+    Generic[Properties, References], _NearObjectGenerateAsync[Properties, References]
+):
+    pass

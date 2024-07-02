@@ -4,6 +4,7 @@ from typing import (
     cast,
 )
 
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     Filter,
 )
@@ -17,19 +18,19 @@ from weaviate.collections.classes.internal import (
     _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.base import _Base
 from weaviate.types import INCLUDE_VECTOR, UUID
 
 
-class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def fetch_object_by_id(
+class _FetchObjectByIDQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+    async def fetch_object_by_id(
         self,
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Optional[QuerySingleReturn[Properties, References, TProperties, TReferences]]:
+    ) -> QuerySingleReturn[Properties, References, TProperties, TReferences]:
         """Retrieve an object from the server by its UUID.
 
         Arguments:
@@ -56,7 +57,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
         return_metadata = MetadataQuery(
             creation_time=True, last_update_time=True, is_consistent=True
         )
-        res = self._query.get(
+        res = await self._query.get(
             limit=1,
             filters=Filter.by_id().equal(uuid),
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
@@ -99,3 +100,10 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _BaseQuery[Properti
                 collection=obj.collection,
             ),
         )
+
+
+@syncify.convert
+class _FetchObjectByIDQuery(
+    Generic[Properties, References], _FetchObjectByIDQueryAsync[Properties, References]
+):
+    pass

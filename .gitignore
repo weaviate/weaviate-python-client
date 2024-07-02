@@ -24,3 +24,4 @@ image.png
 scratch/
 
 *-test.sh
+*.hdf5

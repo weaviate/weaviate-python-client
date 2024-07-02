@@ -4,5 +4,5 @@ Module for backup/restore operations
 
 __all__ = ["Backup", "BackupStorage"]
 
-from .backup import Backup
-from .backup import BackupStorage
+from weaviate.backup.backup import Backup
+from weaviate.backup.backup import BackupStorage

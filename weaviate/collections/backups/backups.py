@@ -1,23 +1,30 @@
+from weaviate.backup.backup import (
+    _BackupAsync,
+)
+from weaviate.connect import ConnectionV4
+
 from typing import Optional
 from weaviate.backup.backup import (
-    _Backup,
     BackupConfigCreate,
     BackupConfigRestore,
     BackupStatusReturn,
     BackupStorage,
 )
-from weaviate.connect import ConnectionV4
 
 
-class _CollectionBackup:
+class _CollectionBackupBase:
     """Backup functionality for this collection."""
 
     def __init__(self, connection: ConnectionV4, name: str):
         self._connection = connection
         self._name = name
-        self._backup = _Backup(connection)
+        self._backup = _BackupAsync(connection)
 
-    def create(
+
+class _CollectionBackupAsync(_CollectionBackupBase):
+    """Backup functionality for this collection."""
+
+    async def create(
         self,
         backup_id: str,
         backend: BackupStorage,
@@ -49,12 +56,12 @@ class _CollectionBackup:
             `TypeError`
                 One of the arguments have a wrong type.
         """
-        create = self._backup.create(
+        create = await self._backup.create(
             backup_id, backend, [self._name], None, wait_for_completion, config
         )
         return BackupStatusReturn(error=create.error, status=create.status, path=create.path)
 
-    def restore(
+    async def restore(
         self,
         backup_id: str,
         backend: BackupStorage,
@@ -87,12 +94,12 @@ class _CollectionBackup:
             `weaviate.BackupFailedError`
                 If the backup failed.
         """
-        restore = self._backup.restore(
+        restore = await self._backup.restore(
             backup_id, backend, [self._name], None, wait_for_completion, config
         )
         return BackupStatusReturn(error=restore.error, status=restore.status, path=restore.path)
 
-    def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+    async def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
         """Check if a started backup job has completed.
 
         Arguments:
@@ -105,9 +112,11 @@ class _CollectionBackup:
         Returns:
             A `BackupStatusReturn` object that contains the backup creation status response.
         """
-        return self._backup.get_create_status(backup_id, backend)
+        return await self._backup.get_create_status(backup_id, backend)
 
-    def get_restore_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+    async def get_restore_status(
+        self, backup_id: str, backend: BackupStorage
+    ) -> BackupStatusReturn:
         """Check if a started classification job has completed.
 
         Arguments:
@@ -120,4 +129,4 @@ class _CollectionBackup:
         Returns:
             A `BackupStatusReturn` object that contains the backup restore status response.
         """
-        return self._backup.get_restore_status(backup_id, backend)
+        return await self._backup.get_restore_status(backup_id, backend)

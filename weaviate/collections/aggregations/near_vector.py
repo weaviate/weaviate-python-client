@@ -1,6 +1,7 @@
-from typing import List, Literal, Optional, Union, overload
+from typing import List, Optional, Union
 
-from weaviate.collections.aggregations.base import _Aggregate
+from weaviate import syncify
+from weaviate.collections.aggregations.aggregate import _AggregateAsync
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -11,40 +12,8 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.types import NUMBER
 
 
-class _NearVector(_Aggregate):
-    @overload
-    def near_vector(
-        self,
-        near_vector: List[float],
-        *,
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
-        object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Literal[None] = None,
-        target_vector: Optional[str] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateReturn:
-        ...
-
-    @overload
-    def near_vector(
-        self,
-        near_vector: List[float],
-        *,
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
-        object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
-        target_vector: Optional[str] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateGroupByReturn:
-        ...
-
-    def near_vector(
+class _NearVectorAsync(_AggregateAsync):
+    async def near_vector(
         self,
         near_vector: List[float],
         *,
@@ -100,9 +69,14 @@ class _NearVector(_Aggregate):
         builder = self._add_near_vector_to_builder(
             builder, near_vector, certainty, distance, object_limit, target_vector
         )
-        res = self._do(builder)
+        res = await self._do(builder)
         return (
             self._to_aggregate_result(res, return_metrics)
             if group_by is None
             else self._to_group_by_result(res, return_metrics)
         )
+
+
+@syncify.convert
+class _NearVector(_NearVectorAsync):
+    pass

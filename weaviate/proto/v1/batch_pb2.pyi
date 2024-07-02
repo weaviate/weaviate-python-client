@@ -129,7 +129,6 @@ class BatchObject(_message.Message):
             prop_name: _Optional[str] = ...,
             target_collection: _Optional[str] = ...,
         ) -> None: ...
-
     UUID_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
@@ -165,7 +164,6 @@ class BatchObjectsReply(_message.Message):
         index: int
         error: str
         def __init__(self, index: _Optional[int] = ..., error: _Optional[str] = ...) -> None: ...
-
     TOOK_FIELD_NUMBER: _ClassVar[int]
     ERRORS_FIELD_NUMBER: _ClassVar[int]
     took: float
