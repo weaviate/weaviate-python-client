@@ -1,5 +1,6 @@
 import datetime
 import sys
+import uuid as uuid_package
 from dataclasses import dataclass, field
 from typing import (
     Any,
@@ -14,9 +15,8 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import TypeAlias
 
-import uuid as uuid_package
+from typing_extensions import TypeAlias
 
 if sys.version_info < (3, 9):
     from typing_extensions import Annotated, get_type_hints, get_origin, get_args

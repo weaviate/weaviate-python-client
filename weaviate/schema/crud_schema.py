@@ -516,7 +516,7 @@ class Schema:
                 "vectorIndexType": "hnsw",
                 "vectorizer": "text2vec-contextionary",
                 "replicationConfig": {
-                    "factor": 1
+                    "factor": 1,
                 }
                 }
             ]
@@ -545,7 +545,7 @@ class Schema:
             "vectorIndexType": "hnsw",
             "vectorizer": "text2vec-contextionary",
             "replicationConfig": {
-                "factor": 1
+                "factor": 1,
             }
         }
 
