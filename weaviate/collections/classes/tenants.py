@@ -48,8 +48,8 @@ class Tenant(BaseModel):
         return self.activityStatus
 
 
-class TenantActivityStatusInput(str, Enum):
-    """TenantActivityStatus class used to describe the activity status of a tenant in Weaviate.
+class TenantCreateActivityStatus(str, Enum):
+    """TenantActivityStatus class used to describe the activity status of a tenant to create in Weaviate.
 
     Attributes:
         `HOT`
@@ -62,11 +62,25 @@ class TenantActivityStatusInput(str, Enum):
 
     HOT = "HOT"
     COLD = "COLD"
+
+
+class TenantUpdateActivityStatus(str, Enum):
+    """TenantActivityStatus class used to describe the activity status of a tenant to update in Weaviate.
+
+    Attributes:
+        `HOT`
+            The tenant is fully active and can be used.
+        `COLD`
+            The tenant is not active, files stored locally.
+    """
+
+    HOT = "HOT"
+    COLD = "COLD"
     FROZEN = "FROZEN"
 
 
-class TenantInput(BaseModel):
-    """Tenant class used to describe a tenant in Weaviate.
+class TenantCreate(BaseModel):
+    """Tenant class used to describe a tenant to create in Weaviate.
 
     Attributes:
         `name`
@@ -77,11 +91,33 @@ class TenantInput(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
     name: str
-    activityStatus: TenantActivityStatusInput = Field(
-        default=TenantActivityStatusInput.HOT, alias="activity_status"
+    activityStatus: TenantCreateActivityStatus = Field(
+        default=TenantCreateActivityStatus.HOT, alias="activity_status"
     )
 
     @property
-    def activity_status(self) -> TenantActivityStatusInput:
+    def activity_status(self) -> TenantCreateActivityStatus:
+        """Getter for the activity status of the tenant."""
+        return self.activityStatus
+
+
+class TenantUpdate(BaseModel):
+    """Tenant class used to describe a tenant to create in Weaviate.
+
+    Attributes:
+        `name`
+            the name of the tenant.
+        `activity_status`
+            TenantActivityStatusInput, default: "HOT"
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+    name: str
+    activityStatus: TenantUpdateActivityStatus = Field(
+        default=TenantUpdateActivityStatus.HOT, alias="activity_status"
+    )
+
+    @property
+    def activity_status(self) -> TenantUpdateActivityStatus:
         """Getter for the activity status of the tenant."""
         return self.activityStatus

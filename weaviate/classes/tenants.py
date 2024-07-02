@@ -1,15 +1,20 @@
 from weaviate.collections.classes.tenants import (
     Tenant,
-    TenantInput,
+    TenantCreate,
+    TenantUpdate,
     TenantActivityStatus,
-    TenantActivityStatusInput,
+    TenantCreateActivityStatus,
+    TenantUpdateActivityStatus,
 )
-from weaviate.collections.tenants import TenantInputType
+from weaviate.collections.tenants import TenantCreateInputType, TenantUpdateInputType
 
 __all__ = [
     "Tenant",
-    "TenantInput",
+    "TenantCreate",
+    "TenantUpdate",
     "TenantActivityStatus",
-    "TenantActivityStatusInput",
-    "TenantInputType",
+    "TenantCreateActivityStatus",
+    "TenantUpdateActivityStatus",
+    "TenantCreateInputType",
+    "TenantUpdateInputType",
 ]
