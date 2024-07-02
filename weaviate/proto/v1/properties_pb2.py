@@ -25,9 +25,9 @@ _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "v1.properties_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
     _globals["DESCRIPTOR"]._options = None
-    _globals["DESCRIPTOR"]._serialized_options = (
-        b"\n#io.weaviate.client.grpc.protocol.v1B\027WeaviateProtoPropertiesZ4github.com/weaviate/weaviate/grpc/generated;protocol"
-    )
+    _globals[
+        "DESCRIPTOR"
+    ]._serialized_options = b"\n#io.weaviate.client.grpc.protocol.v1B\027WeaviateProtoPropertiesZ4github.com/weaviate/weaviate/grpc/generated;protocol"
     _globals["_PROPERTIES_FIELDSENTRY"]._options = None
     _globals["_PROPERTIES_FIELDSENTRY"]._serialized_options = b"8\001"
     _globals["_VALUE"].fields_by_name["string_value"]._options = None

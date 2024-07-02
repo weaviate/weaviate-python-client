@@ -149,14 +149,18 @@ class _Tenants:
         self, tenants: Optional[Sequence[TenantInputType]] = None
     ) -> Dict[str, TenantOutputType]:
         response = self.__grpc.get(
-            names=[
-                tenant.name
-                if isinstance(tenant, Tenant) or isinstance(tenant, TenantInput)
-                else tenant
-                for tenant in tenants
-            ]
-            if tenants is not None
-            else tenants
+            names=(
+                [
+                    (
+                        tenant.name
+                        if isinstance(tenant, Tenant) or isinstance(tenant, TenantInput)
+                        else tenant
+                    )
+                    for tenant in tenants
+                ]
+                if tenants is not None
+                else tenants
+            )
         )
 
         return {
@@ -268,9 +272,11 @@ class _Tenants:
             )
         response = self.__grpc.get(
             names=[
-                tenant.name
-                if isinstance(tenant, Tenant) or isinstance(tenant, TenantInput)
-                else tenant
+                (
+                    tenant.name
+                    if isinstance(tenant, Tenant) or isinstance(tenant, TenantInput)
+                    else tenant
+                )
             ]
         )
         if len(response.tenants) == 0:
