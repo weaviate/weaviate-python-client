@@ -1,18 +1,18 @@
 exclude: ^proto/
 repos:
 -   repo: https://github.com/psf/black
-    rev: 22.10.0
+    rev: 24.4.2
     hooks:
     -   id: black
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.3.0
+  rev: v4.6.0
   hooks:
     - id: no-commit-to-branch
     - id: trailing-whitespace
 
 -   repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4
+    rev: 7.1.0
     hooks:
     - id: flake8
       additional_dependencies: [
@@ -26,7 +26,7 @@ repos:
     - id: mypy
       name: mypy
       entry: ./run-mypy.sh
-      language: python
+      language: system
       # use require_serial so that script
       # is only called once per commit
       require_serial: true

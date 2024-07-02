@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import requests
-import validators  # type: ignore
+import validators
 
 from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError

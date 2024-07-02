@@ -1,6 +1,7 @@
 """
 Helper functions!
 """
+
 import base64
 import json
 import os
@@ -11,7 +12,7 @@ from io import BufferedReader
 from typing import Union, Sequence, Any, Optional, List, Dict, Tuple, cast
 
 import requests
-import validators  # type: ignore
+import validators
 from requests.exceptions import JSONDecodeError
 
 from weaviate.exceptions import (
