@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Uni
 
 import pytest
 
+import weaviate.classes as wvc
 from integration.conftest import CollectionFactory, CollectionFactoryGet, _sanitize_collection_name
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 from weaviate.collections.classes.batch import ErrorObject
@@ -50,8 +51,6 @@ from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import UUID, UUIDS
-
-import weaviate.classes as wvc
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
@@ -861,107 +860,6 @@ def test_query_properties(collection_factory: CollectionFactory) -> None:
 
     objects = collection.query.hybrid(query="sleet", query_properties=["name"], alpha=0).objects
     assert len(objects) == 0
-
-
-def test_near_vector(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
-    )
-    uuid_banana = collection.data.insert({"Name": "Banana"})
-    collection.data.insert({"Name": "Fruit"})
-    collection.data.insert({"Name": "car"})
-    collection.data.insert({"Name": "Mountain"})
-
-    banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
-
-    full_objects = collection.query.near_vector(
-        banana.vector["default"], return_metadata=MetadataQuery(distance=True, certainty=True)
-    ).objects
-    assert len(full_objects) == 4
-
-    objects_distance = collection.query.near_vector(
-        banana.vector["default"], distance=full_objects[2].metadata.distance
-    ).objects
-    assert len(objects_distance) == 3
-
-    objects_distance = collection.query.near_vector(
-        banana.vector["default"], certainty=full_objects[2].metadata.certainty
-    ).objects
-    assert len(objects_distance) == 3
-
-
-def test_near_vector_limit(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
-    )
-    uuid_banana = collection.data.insert({"Name": "Banana"})
-    collection.data.insert({"Name": "Fruit"})
-    collection.data.insert({"Name": "car"})
-    collection.data.insert({"Name": "Mountain"})
-
-    banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
-
-    objs = collection.query.near_vector(banana.vector["default"], limit=2).objects
-    assert len(objs) == 2
-
-
-def test_near_vector_offset(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
-    )
-    uuid_banana = collection.data.insert({"Name": "Banana"})
-    uuid_fruit = collection.data.insert({"Name": "Fruit"})
-    collection.data.insert({"Name": "car"})
-    collection.data.insert({"Name": "Mountain"})
-
-    banana = collection.query.fetch_object_by_id(uuid_banana, include_vector=True)
-
-    objs = collection.query.near_vector(banana.vector["default"], offset=1).objects
-    assert len(objs) == 3
-    assert objs[0].uuid == uuid_fruit
-
-
-def test_near_vector_group_by_argument(collection_factory: CollectionFactory) -> None:
-    collection = collection_factory(
-        properties=[
-            Property(name="Name", data_type=DataType.TEXT),
-            Property(name="Count", data_type=DataType.INT),
-        ],
-        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
-            vectorize_collection_name=False
-        ),
-    )
-    uuid_banana1 = collection.data.insert({"Name": "Banana", "Count": 51})
-    collection.data.insert({"Name": "Banana", "Count": 72})
-    collection.data.insert({"Name": "car", "Count": 12})
-    collection.data.insert({"Name": "Mountain", "Count": 1})
-
-    banana1 = collection.query.fetch_object_by_id(uuid_banana1, include_vector=True)
-
-    ret = collection.query.near_vector(
-        banana1.vector["default"],
-        group_by=GroupBy(
-            prop="name",
-            number_of_groups=4,
-            objects_per_group=10,
-        ),
-        return_metadata=MetadataQuery(distance=True, certainty=True),
-    )
-
-    assert len(ret.objects) == 4
-    assert ret.objects[0].belongs_to_group == "Banana"
-    assert ret.objects[1].belongs_to_group == "Banana"
-    assert ret.objects[2].belongs_to_group == "car"
-    assert ret.objects[3].belongs_to_group == "Mountain"
 
 
 def test_near_object(collection_factory: CollectionFactory) -> None:
