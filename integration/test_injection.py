@@ -4,9 +4,7 @@ import json
 
 
 def test_gql_injection() -> None:
-    client = weaviate.Client(
-        url="http://localhost:8080",  # Replace with your Weaviate endpoint
-    )
+    client = weaviate.Client(url="http://localhost:8080")
     client.schema.delete_class("Question")
     client.schema.delete_class("Hacked")
     class_obj = {
@@ -34,12 +32,11 @@ def test_gql_injection() -> None:
     resp = requests.get(
         "https://raw.githubusercontent.com/weaviate-tutorials/quickstart/main/data/jeopardy_tiny.json"
     )
-    data = json.loads(resp.text)  # Load data
+    data = json.loads(resp.text)
 
-    client.batch.configure(batch_size=100)  # Configure batch
-    with client.batch as batch:  # Initialize a batch process
-        for i, d in enumerate(data):  # Batch import data
-            print(f"importing question: {i+1}")
+    client.batch.configure(batch_size=100)
+    with client.batch as batch:
+        for _, d in enumerate(data):
             properties = {
                 "answer": d["Answer"],
                 "question": d["Question"],
@@ -49,11 +46,7 @@ def test_gql_injection() -> None:
             batch.add_data_object(data_object=properties, class_name="Hacked")
 
     injection_payload = client.query.get("Hacked", ["answer"]).build()
-    print(injection_payload)
-
-    injection_template = """
-    Liver\\"}}){{answer}}}}{payload}#
-    """
+    injection_template = 'Liver\\\\"}}){{answer}}}}{payload}#'
     query = client.query.get("Question", ["question", "answer", "category"]).with_where(
         {
             "path": ["answer"],
@@ -62,4 +55,4 @@ def test_gql_injection() -> None:
         }
     )
     res = query.do()
-    assert "Hacked" in res["data"]["Get"]
+    assert "Hacked" not in res["data"]["Get"]
