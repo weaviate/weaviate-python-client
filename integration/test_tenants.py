@@ -14,10 +14,10 @@ from weaviate.collections.classes.data import (
 )
 from weaviate.collections.classes.tenants import (
     Tenant,
-    TenantInput,
+    TenantCreate,
     TenantActivityStatus,
 )
-from weaviate.collections.tenants import TenantInputType
+from weaviate.collections.tenants import TenantCreateInputType
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 
 
@@ -325,14 +325,15 @@ def test_autotenant_toggling(collection_factory: CollectionFactory) -> None:
     [
         "tenant",
         Tenant(name="tenant"),
-        TenantInput(name="tenant"),
+        TenantCreate(name="tenant"),
         ["tenant"],
         [Tenant(name="tenant")],
-        [TenantInput(name="tenant")],
+        [TenantCreate(name="tenant")],
     ],
 )
 def test_tenants_create(
-    collection_factory: CollectionFactory, tenants: Union[TenantInputType, List[TenantInputType]]
+    collection_factory: CollectionFactory,
+    tenants: Union[TenantCreateInputType, List[TenantCreateInputType]],
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -350,14 +351,12 @@ def test_tenants_create(
     [
         "tenant",
         Tenant(name="tenant"),
-        TenantInput(name="tenant"),
         ["tenant"],
         [Tenant(name="tenant")],
-        [TenantInput(name="tenant")],
     ],
 )
 def test_tenants_remove(
-    collection_factory: CollectionFactory, tenants: Union[TenantInputType, List[TenantInputType]]
+    collection_factory: CollectionFactory, tenants: Union[str, Tenant, List[Union[str, Tenant]]]
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -377,10 +376,12 @@ def test_tenants_remove(
         Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
         Tenant(name="1", activity_status=TenantActivityStatus.UNFREEZING),
         Tenant(name="1", activity_status=TenantActivityStatus.UNFROZEN),
+        Tenant(name="1", activity_status=TenantActivityStatus.FROZEN),
         [
             Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
             Tenant(name="2", activity_status=TenantActivityStatus.UNFREEZING),
             Tenant(name="3", activity_status=TenantActivityStatus.UNFROZEN),
+            Tenant(name="4", activity_status=TenantActivityStatus.FROZEN),
         ],
     ],
 )
