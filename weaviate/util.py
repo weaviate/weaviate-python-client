@@ -1,6 +1,7 @@
 """
 Helper functions!
 """
+
 import base64
 import json
 import os
@@ -646,7 +647,9 @@ def _sanitize_str(value: str) -> str:
         The sanitized string.
     """
     value = strip_newlines(value)
-    value = re.sub(r'(?<!\\)"', '\\"', value)  # only replaces unescaped double quotes
+    value = re.sub(
+        r'(?<!\\)((?:\\{2})*)"', r"\1\"", value
+    )  # only replaces unescaped double quotes without permitting query injection
     return f'"{value}"'
 
 
