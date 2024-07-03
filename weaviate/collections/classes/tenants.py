@@ -16,6 +16,8 @@ class TenantActivityStatus(str, Enum):
             The tenant is in the process of being frozen.
         `UNFREEZING`
             The tenant is in the process of being unfrozen.
+        `UNFROZEN`
+            The tenant has been pulled from the cloud and is not yet active nor inactive.
     """
 
     HOT = "HOT"
@@ -56,8 +58,6 @@ class TenantCreateActivityStatus(str, Enum):
             The tenant is fully active and can be used.
         `COLD`
             The tenant is not active, files stored locally.
-        `FROZEN`
-            The tenant is not active, files stored on the cloud.
     """
 
     HOT = "HOT"
@@ -72,6 +72,8 @@ class TenantUpdateActivityStatus(str, Enum):
             The tenant is fully active and can be used.
         `COLD`
             The tenant is not active, files stored locally.
+        `FROZEN`
+            The tenant is not active, files stored on the cloud.
     """
 
     HOT = "HOT"
@@ -86,7 +88,7 @@ class TenantCreate(BaseModel):
         `name`
             the name of the tenant.
         `activity_status`
-            TenantActivityStatusInput, default: "HOT"
+            TenantCreateActivityStatus, default: "HOT"
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -108,7 +110,7 @@ class TenantUpdate(BaseModel):
         `name`
             the name of the tenant.
         `activity_status`
-            TenantActivityStatusInput, default: "HOT"
+            TenantUpdateActivityStatus, default: "HOT"
     """
 
     model_config = ConfigDict(populate_by_name=True)
