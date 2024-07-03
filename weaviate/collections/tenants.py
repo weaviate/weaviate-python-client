@@ -179,11 +179,9 @@ class _Tenants:
         if isinstance(tenant, str):
             return TenantCreate(name=tenant)
         if isinstance(tenant, Tenant):
-            if tenant.activity_status in [
-                TenantActivityStatus.FREEZING,
-                TenantActivityStatus.UNFROZEN,
-                TenantActivityStatus.UNFREEZING,
-                TenantActivityStatus.FROZEN,
+            if tenant.activity_status not in [
+                TenantActivityStatus.HOT,
+                TenantActivityStatus.COLD,
             ]:
                 raise WeaviateInvalidInputError(
                     f"Tenant activity status must be either 'HOT' or 'COLD'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
@@ -196,10 +194,10 @@ class _Tenants:
         if isinstance(tenant, str):
             return TenantUpdate(name=tenant)
         if isinstance(tenant, Tenant):
-            if tenant.activity_status in [
-                TenantActivityStatus.FREEZING,
-                TenantActivityStatus.UNFROZEN,
-                TenantActivityStatus.UNFREEZING,
+            if tenant.activity_status not in [
+                TenantActivityStatus.HOT,
+                TenantActivityStatus.COLD,
+                TenantActivityStatus.FROZEN,
             ]:
                 raise WeaviateInvalidInputError(
                     f"Tenant activity status must be one of 'HOT', 'COLD' or 'FROZEN'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
