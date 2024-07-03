@@ -951,7 +951,9 @@ def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
             Configure.NamedVectors.custom(
-                "name", "text2vec-contextionary", module_config={"vectorizeClassName": False}
+                "name",
+                module_name="text2vec-contextionary",
+                module_config={"vectorizeClassName": False},
             )
         ],
     )

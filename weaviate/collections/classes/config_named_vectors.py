@@ -115,8 +115,8 @@ class _NamedVectors:
     @staticmethod
     def custom(
         name: str,
-        module_name: str,
         *,
+        module_name: str,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         module_config: Optional[Dict[str, Any]] = None,
@@ -126,6 +126,12 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
+            `module_name`
+                The name of the custom module to use.
+            `module_config`
+                The configuration of the custom module to use.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
         """
