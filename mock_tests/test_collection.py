@@ -1,7 +1,7 @@
 import datetime
 import json
 import time
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
 
 import grpc
 import pytest
@@ -28,7 +28,6 @@ from weaviate.collections.classes.config import (
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
-from weaviate.proto.v1 import weaviate_pb2_grpc, search_get_pb2, properties_pb2
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
@@ -343,43 +342,9 @@ def test_integration_config(
     weaviate_no_auth_mock.check_assertions()
 
 
-def test_year_zero(weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
-    zero_date: properties_pb2.Value.date_value = properties_pb2.Value(
-        date_value="0000-01-30T00:00:00Z"
-    )
-    date_prop: Mapping[str, properties_pb2.Value.date_value] = {"date": zero_date}
-
-    class MockWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
-        def Search(
-            self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
-        ) -> search_get_pb2.SearchReply:
-            return search_get_pb2.SearchReply(
-                results=[
-                    search_get_pb2.SearchResult(
-                        properties=search_get_pb2.PropertiesResult(
-                            non_ref_props=properties_pb2.Properties(fields=date_prop)
-                        )
-                    ),
-                ]
-            )
-
-    weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
-    schema = {
-        "class": "Test",
-        "properties": [],
-        "vectorizer": "none",
-    }
-    weaviate_no_auth_mock.expect_request("/v1/schema/Test").respond_with_json(
-        response_json=schema, status=200
-    )
-
-    client = weaviate.connect_to_local(
-        port=MOCK_PORT,
-        host=MOCK_IP,
-        grpc_port=MOCK_PORT_GRPC,
-    )
+def test_year_zero(year_zero_collection: weaviate.collections.Collection) -> None:
     with pytest.warns(UserWarning) as recwarn:
-        objs = client.collections.get("Test").query.fetch_objects().objects
+        objs = year_zero_collection.query.fetch_objects().objects
         assert objs[0].properties["date"] == datetime.datetime.min
 
         assert str(recwarn[0].message).startswith("Con004")
