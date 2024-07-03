@@ -942,14 +942,15 @@ def test_config_unknown_module(request: SubRequest) -> None:
 
 def test_create_custom_module(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
+        name="one",
         generative_config=Configure.Generative.custom(
             "generative-anyscale", module_config={"temperature": 0.5}
-        )
+        ),
     )
     config = collection.config.get()
 
     collection2 = collection_factory(
-        generative_config=Configure.Generative.anyscale(temperature=0.5)
+        name="two", generative_config=Configure.Generative.anyscale(temperature=0.5)
     )
     config2 = collection2.config.get()
 
@@ -961,14 +962,15 @@ def test_create_custom_module(collection_factory: CollectionFactory) -> None:
 
 def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
+        name="one",
         reranker_config=Configure.Reranker.custom(
             "reranker-cohere", module_config={"model": "rerank-english-v2.0"}
-        )
+        ),
     )
     config = collection.config.get()
 
     collection2 = collection_factory(
-        reranker_config=Configure.Reranker.cohere(model="rerank-english-v2.0")
+        name="two", reranker_config=Configure.Reranker.cohere(model="rerank-english-v2.0")
     )
     config2 = collection2.config.get()
 
@@ -980,6 +982,7 @@ def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
 
 def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
+        name="one",
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.custom(
             "text2vec-contextionary", module_config={"vectorizeClassName": False}
@@ -988,6 +991,7 @@ def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None
     config = collection.config.get()
 
     collection2 = collection_factory(
+        name="two",
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False
@@ -1007,6 +1011,7 @@ def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -
         pytest.skip("Named index is not supported in Weaviate versions lower than 1.24.0")
 
     collection = collection_factory(
+        name="one",
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
             Configure.NamedVectors.custom(
@@ -1019,6 +1024,7 @@ def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -
     config = collection.config.get()
 
     collection2 = collection_factory(
+        name="two",
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary("name", vectorize_collection_name=False)
