@@ -1,12 +1,13 @@
 from dataclasses import dataclass
-from enum import Enum
-from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union
+from enum import Enum, auto
+from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union, Dict
 
 from pydantic import ConfigDict, Field
 
 from weaviate.collections.classes.types import _WeaviateInput
+from weaviate.proto.v1 import search_get_pb2
+from weaviate.str_enum import BaseEnum
 from weaviate.types import INCLUDE_VECTOR, UUID
-from weaviate.util import BaseEnum
 
 
 class HybridFusion(str, BaseEnum):
@@ -246,6 +247,87 @@ class _HybridNearVector(_HybridNearBase):
 HybridVectorType = Union[List[float], _HybridNearText, _HybridNearVector]
 
 
+class _MultiTargetVectorJoinEnum(BaseEnum):
+    """Define how multi target vector searches should be combined."""
+
+    SUM = auto()
+    AVERAGE = auto()
+    MINIMUM = auto()
+    RELATIVE_SCORE = auto()
+    MANUAL_WEIGHTS = auto()
+
+
+@dataclass
+class _MultiTargetVectorJoin:
+    combination: _MultiTargetVectorJoinEnum
+    target_vectors: List[str]
+    weights: Optional[Dict[str, float]] = None
+
+    def to_grpc_target_vector(self) -> search_get_pb2.Targets:
+        combination = self.combination
+        if combination == _MultiTargetVectorJoinEnum.AVERAGE:
+            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_AVERAGE
+        elif combination == _MultiTargetVectorJoinEnum.SUM:
+            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_SUM
+        elif combination == _MultiTargetVectorJoinEnum.RELATIVE_SCORE:
+            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_RELATIVE_SCORE
+        elif combination == _MultiTargetVectorJoinEnum.MANUAL_WEIGHTS:
+            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_MANUAL
+        else:
+            assert combination == _MultiTargetVectorJoinEnum.MINIMUM
+            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_MIN
+
+        return search_get_pb2.Targets(
+            target_vectors=self.target_vectors, weights=self.weights, combination=combination_grpc
+        )
+
+
+TargetVectorJoinType = Union[str, List[str], _MultiTargetVectorJoin]
+
+
+class TargetVectors:
+    """Define how the distances from different target vectors should be combined using the available methods."""
+
+    @staticmethod
+    def sum(target_vectors: List[str]) -> _MultiTargetVectorJoin:  # noqa: A003
+        """Combine the distance from different target vectors by summing them."""
+        return _MultiTargetVectorJoin(
+            combination=_MultiTargetVectorJoinEnum.SUM, target_vectors=target_vectors
+        )
+
+    @staticmethod
+    def average(target_vectors: List[str]) -> _MultiTargetVectorJoin:
+        """Combine the distance from different target vectors by averaging them."""
+        return _MultiTargetVectorJoin(
+            combination=_MultiTargetVectorJoinEnum.AVERAGE, target_vectors=target_vectors
+        )
+
+    @staticmethod
+    def minimum(target_vectors: List[str]) -> _MultiTargetVectorJoin:
+        """Combine the distance from different target vectors by using the minimum distance."""
+        return _MultiTargetVectorJoin(
+            combination=_MultiTargetVectorJoinEnum.MINIMUM, target_vectors=target_vectors
+        )
+
+    @staticmethod
+    def manual_weights(weights: Dict[str, float]) -> _MultiTargetVectorJoin:
+        """Combine the distance from different target vectors by summing them using manual weights."""
+        return _MultiTargetVectorJoin(
+            combination=_MultiTargetVectorJoinEnum.MANUAL_WEIGHTS,
+            target_vectors=list(weights.keys()),
+            weights=weights,
+        )
+
+    @staticmethod
+    def relative_score(weights: Dict[str, float]) -> _MultiTargetVectorJoin:
+        """Combine the distance from different target vectors using score fusion."""
+        return _MultiTargetVectorJoin(
+            combination=_MultiTargetVectorJoinEnum.RELATIVE_SCORE,
+            target_vectors=list(weights.keys()),
+            weights=weights,
+        )
+
+
 class HybridVector:
     """Use this factory class to define the appropriate classes needed when defining near text and near vector sub-searches in hybrid queries."""
 
@@ -302,6 +384,9 @@ class HybridVector:
             A `_HybridNearVector` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
         """
         return _HybridNearVector(vector=vector, distance=distance, certainty=certainty)
+
+
+NearVectorInputType = Union[List[float], Dict[str, List[float]], List[List[float]]]
 
 
 class _QueryReference(_WeaviateInput):

@@ -1,12 +1,25 @@
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
+from weaviate.collections.classes.tenants import (
+    Tenant,
+    TenantCreate,
+    TenantUpdate,
+    TenantActivityStatus,
+    TenantCreateActivityStatus,
+    TenantUpdateActivityStatus,
+)
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.grpc.tenants import _TenantsGRPC
 from weaviate.connect import ConnectionV4
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.validator import _validate_input, _ValidateArgument
 
 from weaviate.connect.v4 import _ExpectedStatusCodes
+
+
+TenantCreateInputType = Union[str, Tenant, TenantCreate]
+TenantUpdateInputType = Union[str, Tenant, TenantUpdate]
+TenantOutputType = Tenant
 
 
 class _Tenants:
@@ -33,14 +46,16 @@ class _Tenants:
         )
         self.__validate_arguments = validate_arguments
 
-    def create(self, tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]]) -> None:
+    def create(
+        self, tenants: Union[TenantCreateInputType, Sequence[TenantCreateInputType]]
+    ) -> None:
         """Create the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
 
         Arguments:
             `tenants`
-                A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+                A tenant name, `wvc.config.tenants.Tenant`, `wvc.config.tenants.TenantCreateInput` object, or a list of tenants names
                 and/or `wvc.config.tenants.Tenant` objects to add to the given collection.
                 If a string is provided, the tenant will be added with the default activity status of `HOT`.
 
@@ -56,30 +71,22 @@ class _Tenants:
             _validate_input(
                 [
                     _ValidateArgument(
-                        expected=[str, Tenant, Sequence[Union[str, Tenant]]],
+                        expected=[
+                            str,
+                            Tenant,
+                            TenantCreate,
+                            Sequence[Union[str, Tenant, TenantCreate]],
+                        ],
                         name="tenants",
                         value=tenants,
                     )
                 ]
             )
 
-        loaded_tenants: List[dict] = []
-        if isinstance(tenants, str):
-            loaded_tenants = [{"name": tenants, "activityStatus": TenantActivityStatus.HOT}]
-        elif isinstance(tenants, Tenant):
-            loaded_tenants = [tenants.model_dump()]
-        else:
-            loaded_tenants = [
-                tenant.model_dump()
-                if isinstance(tenant, Tenant)
-                else {"name": tenant, "activityStatus": TenantActivityStatus.HOT}
-                for tenant in tenants
-            ]
-
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.post(
             path=path,
-            weaviate_object=loaded_tenants,
+            weaviate_object=self.__map_create_tenants(tenants),
             error_msg=f"Collection tenants may not have been added properly for {self.__name}",
             status_codes=_ExpectedStatusCodes(
                 ok_in=200, error=f"Add collection tenants for {self.__name}"
@@ -108,34 +115,35 @@ class _Tenants:
             _validate_input(
                 [
                     _ValidateArgument(
-                        expected=[str, Tenant, Sequence[Union[str, Tenant]]],
+                        expected=[
+                            str,
+                            Tenant,
+                            Sequence[Union[str, Tenant]],
+                        ],
                         name="tenants",
                         value=tenants,
                     )
                 ]
             )
 
-        loaded_tenants: List[str] = []
-        if isinstance(tenants, str):
-            loaded_tenants = [tenants]
-        elif isinstance(tenants, Tenant):
-            loaded_tenants = [tenants.name]
+        tenant_names: List[str] = []
+        if isinstance(tenants, str) or isinstance(tenants, Tenant):
+            tenant_names = [tenants.name if isinstance(tenants, Tenant) else tenants]
         else:
-            loaded_tenants = [
-                tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants
-            ]
+            for tenant in tenants:
+                tenant_names.append(tenant.name if isinstance(tenant, Tenant) else tenant)
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.delete(
             path=path,
-            weaviate_object=loaded_tenants,
+            weaviate_object=tenant_names,
             error_msg=f"Collection tenants may not have been deleted for {self.__name}",
             status_codes=_ExpectedStatusCodes(
                 ok_in=200, error=f"Delete collection tenants for {self.__name}"
             ),
         )
 
-    def __get_with_rest(self) -> Dict[str, Tenant]:
+    def __get_with_rest(self) -> Dict[str, TenantOutputType]:
         path = "/schema/" + self.__name + "/tenants"
         response = self.__connection.get(
             path=path,
@@ -150,11 +158,13 @@ class _Tenants:
 
     def __get_with_grpc(
         self, tenants: Optional[Sequence[Union[str, Tenant]]] = None
-    ) -> Dict[str, Tenant]:
+    ) -> Dict[str, TenantOutputType]:
         response = self.__grpc.get(
-            names=[tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
-            if tenants is not None
-            else tenants
+            names=(
+                [tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
+                if tenants is not None
+                else tenants
+            )
         )
 
         return {
@@ -165,7 +175,62 @@ class _Tenants:
             for tenant in response.tenants
         }
 
-    def get(self) -> Dict[str, Tenant]:
+    def __map_create_tenant(self, tenant: TenantCreateInputType) -> TenantCreate:
+        if isinstance(tenant, str):
+            return TenantCreate(name=tenant)
+        if isinstance(tenant, Tenant):
+            if tenant.activity_status not in [
+                TenantActivityStatus.HOT,
+                TenantActivityStatus.COLD,
+            ]:
+                raise WeaviateInvalidInputError(
+                    f"Tenant activity status must be either 'HOT' or 'COLD'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
+                )
+            activity_status = TenantCreateActivityStatus(tenant.activity_status)
+            return TenantCreate(name=tenant.name, activity_status=activity_status)
+        return tenant
+
+    def __map_update_tenant(self, tenant: TenantUpdateInputType) -> TenantUpdate:
+        if isinstance(tenant, str):
+            return TenantUpdate(name=tenant)
+        if isinstance(tenant, Tenant):
+            if tenant.activity_status not in [
+                TenantActivityStatus.HOT,
+                TenantActivityStatus.COLD,
+                TenantActivityStatus.FROZEN,
+            ]:
+                raise WeaviateInvalidInputError(
+                    f"Tenant activity status must be one of 'HOT', 'COLD' or 'FROZEN'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
+                )
+            activity_status = TenantUpdateActivityStatus(tenant.activity_status)
+            return TenantUpdate(name=tenant.name, activity_status=activity_status)
+        return tenant
+
+    def __map_create_tenants(
+        self, tenant: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]]
+    ) -> List[dict]:
+        if (
+            isinstance(tenant, str)
+            or isinstance(tenant, Tenant)
+            or isinstance(tenant, TenantCreate)
+        ):
+            return [self.__map_create_tenant(tenant).model_dump()]
+        else:
+            return [self.__map_create_tenant(t).model_dump() for t in tenant]
+
+    def __map_update_tenants(
+        self, tenant: Union[str, Tenant, TenantUpdate, Sequence[Union[str, Tenant, TenantUpdate]]]
+    ) -> List[dict]:
+        if (
+            isinstance(tenant, str)
+            or isinstance(tenant, Tenant)
+            or isinstance(tenant, TenantUpdate)
+        ):
+            return [self.__map_update_tenant(tenant).model_dump()]
+        else:
+            return [self.__map_update_tenant(t).model_dump() for t in tenant]
+
+    def get(self) -> Dict[str, TenantOutputType]:
         """Return all tenants currently associated with a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
@@ -181,7 +246,7 @@ class _Tenants:
         else:
             return self.__get_with_rest()
 
-    def get_by_names(self, tenants: Sequence[Union[str, Tenant]]) -> Dict[str, Tenant]:
+    def get_by_names(self, tenants: Sequence[Union[str, Tenant]]) -> Dict[str, TenantOutputType]:
         """Return named tenants currently associated with a collection in Weaviate.
 
         If the tenant does not exist, it will not be included in the response.
@@ -202,12 +267,14 @@ class _Tenants:
         if self.__validate_arguments:
             _validate_input(
                 _ValidateArgument(
-                    expected=[Sequence[Union[str, Tenant]]], name="names", value=tenants
+                    expected=[Sequence[Union[str, Tenant]]],
+                    name="names",
+                    value=tenants,
                 )
             )
         return self.__get_with_grpc(tenants=tenants)
 
-    def get_by_name(self, tenant: Union[str, Tenant]) -> Optional[Tenant]:
+    def get_by_name(self, tenant: Union[str, Tenant]) -> Optional[TenantOutputType]:
         """Return a specific tenant associated with a collection in Weaviate.
 
         If the tenant does not exist, `None` will be returned.
@@ -225,6 +292,10 @@ class _Tenants:
                 If Weaviate reports a non-OK status.
         """
         self.__connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_name' method")
+        if self.__validate_arguments:
+            _validate_input(
+                _ValidateArgument(expected=[Union[str, Tenant]], name="tenant", value=tenant)
+            )
         response = self.__grpc.get(names=[tenant.name if isinstance(tenant, Tenant) else tenant])
         if len(response.tenants) == 0:
             return None
@@ -233,7 +304,9 @@ class _Tenants:
             activity_status=self.__grpc.map_activity_status(response.tenants[0].activity_status),
         )
 
-    def update(self, tenants: Union[Tenant, List[Tenant]]) -> None:
+    def update(
+        self, tenants: Union[Tenant, TenantUpdate, Sequence[Union[Tenant, TenantUpdate]]]
+    ) -> None:
         """Update the specified tenants for a collection in Weaviate.
 
         The collection must have been created with multi-tenancy enabled.
@@ -253,19 +326,17 @@ class _Tenants:
         """
         if self.__validate_arguments:
             _validate_input(
-                _ValidateArgument(expected=[Tenant, List[Tenant]], name="tenants", value=tenants)
+                _ValidateArgument(
+                    expected=[Tenant, TenantUpdate, Sequence[Union[Tenant, TenantUpdate]]],
+                    name="tenants",
+                    value=tenants,
+                )
             )
-
-        loaded_tenants = (
-            [tenants.model_dump()]
-            if isinstance(tenants, Tenant)
-            else [tenant.model_dump() for tenant in tenants]
-        )
 
         path = "/schema/" + self.__name + "/tenants"
         self.__connection.put(
             path=path,
-            weaviate_object=loaded_tenants,
+            weaviate_object=self.__map_update_tenants(tenants),
             error_msg=f"Collection tenants may not have been updated properly for {self.__name}",
             status_codes=_ExpectedStatusCodes(
                 ok_in=200, error=f"Update collection tenants for {self.__name}"
@@ -292,9 +363,16 @@ class _Tenants:
                 If Weaviate reports a non-OK status.
         """
         self.__connection._weaviate_version.check_is_at_least_1_25_0("The 'exists' method")
+        if self.__validate_arguments:
+            _validate_input(
+                _ValidateArgument(
+                    expected=[str, Tenant, Sequence[Union[str, Tenant]]],
+                    name="tenant",
+                    value=tenant,
+                )
+            )
 
         tenant_name = tenant.name if isinstance(tenant, Tenant) else tenant
-
         path = "/schema/" + self.__name + "/tenants/" + tenant_name
         response = self.__connection.head(
             path=path,

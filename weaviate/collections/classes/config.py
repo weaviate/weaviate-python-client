@@ -30,26 +30,23 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectors,
     _NamedVectorsUpdate,
 )
+from weaviate.collections.classes.config_vector_index import VectorIndexType as VectorIndexTypeAlias
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
-    _VectorIndexConfigDynamicUpdate,
-    _VectorIndexConfigHNSWCreate,
-    _VectorIndexConfigFlatCreate,
-    _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigDynamicCreate,
+    _VectorIndexConfigDynamicUpdate,
+    _VectorIndexConfigFlatCreate,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWCreate,
+    _VectorIndexConfigHNSWUpdate,
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
-    VectorIndexType as VectorIndexTypeAlias,
 )
-from weaviate.collections.classes.config_vectorizers import (
-    _Vectorizer,
-    _VectorizerConfigCreate,
-    CohereModel,
-    Vectorizers as VectorizersAlias,
-    VectorDistances as VectorDistancesAlias,
-)
+from weaviate.collections.classes.config_vectorizers import CohereModel
+from weaviate.collections.classes.config_vectorizers import VectorDistances as VectorDistancesAlias
+from weaviate.collections.classes.config_vectorizers import Vectorizers as VectorizersAlias
+from weaviate.collections.classes.config_vectorizers import _Vectorizer, _VectorizerConfigCreate
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
@@ -162,9 +159,14 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by Cohere generative models.
         `PALM`
             Weaviate module backed by PaLM generative models.
+        `AWS`
+            Weaviate module backed by AWS Bedrock generative models.
+        `ANTHROPIC`
+            Weaviate module backed by Anthropic generative models.
     """
 
     AWS = "generative-aws"
+    ANTHROPIC = "generative-anthropic"
     ANYSCALE = "generative-anyscale"
     COHERE = "generative-cohere"
     MISTRAL = "generative-mistral"
@@ -279,6 +281,16 @@ class _BQConfigCreate(_QuantizerConfigCreate):
         return "bq"
 
 
+class _SQConfigCreate(_QuantizerConfigCreate):
+    cache: Optional[bool]
+    rescoreLimit: Optional[int]
+    trainingLimit: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "sq"
+
+
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
@@ -300,6 +312,16 @@ class _BQConfigUpdate(_QuantizerConfigUpdate):
         return "bq"
 
 
+class _SQConfigUpdate(_QuantizerConfigUpdate):
+    enabled: Optional[bool]
+    rescoreLimit: Optional[int]
+    trainingLimit: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "sq"
+
+
 class _ShardingConfigCreate(_ConfigCreateModel):
     virtualPerPhysical: Optional[int]
     desiredCount: Optional[int]
@@ -311,10 +333,12 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
+    asyncEnabled: Optional[bool]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
+    asyncEnabled: Optional[bool]
 
 
 class _BM25ConfigCreate(_ConfigCreateModel):
@@ -478,6 +502,18 @@ class _GenerativeAWSConfig(_GenerativeConfigCreate):
     service: str
     model: Optional[str]
     endpoint: Optional[str]
+
+
+class _GenerativeAnthropicConfig(_GenerativeConfigCreate):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.ANTHROPIC, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    maxTokens: Optional[int]
+    stopSequences: Optional[List[str]]
+    temperature: Optional[float]
+    topK: Optional[int]
+    topP: Optional[float]
 
 
 class _RerankerConfigCreate(_ConfigCreateModel):
@@ -779,6 +815,41 @@ class _Generative:
             region=region,
             service=service,
             endpoint=endpoint,
+        )
+
+    @staticmethod
+    def anthropic(
+        model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        stop_sequences: Optional[List[str]] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeConfigCreate:
+        """
+        Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `stop_sequences`
+                The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_k`
+                The top K to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeAnthropicConfig(
+            model=model,
+            maxTokens=max_tokens,
+            stopSequences=stop_sequences,
+            temperature=temperature,
+            topK=top_k,
+            topP=top_p,
         )
 
 
@@ -1103,6 +1174,7 @@ ReferencePropertyConfig = _ReferenceProperty
 @dataclass
 class _ReplicationConfig(_ConfigBase):
     factor: int
+    async_enabled: bool
 
 
 ReplicationConfig = _ReplicationConfig
@@ -1161,12 +1233,20 @@ class _BQConfig(_ConfigBase):
     rescore_limit: int
 
 
+@dataclass
+class _SQConfig(_ConfigBase):
+    cache: Optional[bool]
+    rescore_limit: int
+    training_limit: int
+
+
 BQConfig = _BQConfig
+SQConfig = _SQConfig
 
 
 @dataclass
 class _VectorIndexConfig(_ConfigBase):
-    quantizer: Optional[Union[PQConfig, BQConfig]]
+    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -1174,6 +1254,8 @@ class _VectorIndexConfig(_ConfigBase):
             out["pq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _BQConfig):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
+        elif isinstance(self.quantizer, _SQConfig):
+            out["sq"] = {**out.pop("quantizer"), "enabled": True}
         return out
 
 
@@ -1678,6 +1760,25 @@ class _VectorIndexQuantizer:
             rescoreLimit=rescore_limit,
         )
 
+    @staticmethod
+    def sq(
+        cache: Optional[bool] = None,
+        rescore_limit: Optional[int] = None,
+        training_limit: Optional[int] = None,
+    ) -> _SQConfigCreate:
+        """Create a `_SQConfigCreate` object to be used when defining the scalar quantization (SQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _SQConfigCreate(
+            cache=cache,
+            rescoreLimit=rescore_limit,
+            trainingLimit=training_limit,
+        )
+
 
 class _VectorIndex:
     Quantizer = _VectorIndexQuantizer
@@ -1839,14 +1940,20 @@ class Configure:
         )
 
     @staticmethod
-    def replication(factor: Optional[int] = None) -> _ReplicationConfigCreate:
+    def replication(
+        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+    ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
+
+        NOTE: `async_enabled` is only available with WeaviateDB `>=v1.26.0`
 
         Arguments:
             `factor`
                 The replication factor.
+            `async_enabled`
+                Enabled async replication.
         """
-        return _ReplicationConfigCreate(factor=factor)
+        return _ReplicationConfigCreate(factor=factor, asyncEnabled=async_enabled)
 
     @staticmethod
     def sharding(
@@ -1931,6 +2038,23 @@ class _VectorIndexQuantizerUpdate:
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _BQConfigUpdate(rescoreLimit=rescore_limit)
 
+    @staticmethod
+    def sq(
+        rescore_limit: Optional[int] = None,
+        training_limit: Optional[int] = None,
+        enabled: bool = True,
+    ) -> _SQConfigUpdate:
+        """Create a `_SQConfigUpdate` object to be used when updating the scalar quantization (SQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _SQConfigUpdate(
+            enabled=enabled, rescoreLimit=rescore_limit, trainingLimit=training_limit
+        )
+
 
 class _VectorIndexUpdate:
     Quantizer = _VectorIndexQuantizerUpdate
@@ -1943,7 +2067,7 @@ class _VectorIndexUpdate:
         ef: Optional[int] = None,
         flat_search_cutoff: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate]] = None,
+        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate]] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 
@@ -2041,7 +2165,9 @@ class Reconfigure:
         )
 
     @staticmethod
-    def replication(factor: Optional[int] = None) -> _ReplicationConfigUpdate:
+    def replication(
+        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+    ) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
         Use this method when defining the `replication_config` argument in `collection.update()`.
@@ -2049,8 +2175,10 @@ class Reconfigure:
         Arguments:
             `factor`
                 The replication factor.
+            `async_enabled`
+                Enable async replication.
         """
-        return _ReplicationConfigUpdate(factor=factor)
+        return _ReplicationConfigUpdate(factor=factor, asyncEnabled=async_enabled)
 
     @staticmethod
     def multi_tenancy(

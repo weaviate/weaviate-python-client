@@ -12,8 +12,13 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.data import (
     DataObject,
 )
-from weaviate.collections.classes.tenants import Tenant, TenantActivityStatus
-from weaviate.exceptions import WeaviateUnsupportedFeatureError
+from weaviate.collections.classes.tenants import (
+    Tenant,
+    TenantCreate,
+    TenantActivityStatus,
+)
+from weaviate.collections.tenants import TenantCreateInputType
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 
 
 def test_delete_by_id_tenant(collection_factory: CollectionFactory) -> None:
@@ -316,10 +321,19 @@ def test_autotenant_toggling(collection_factory: CollectionFactory) -> None:
 
 
 @pytest.mark.parametrize(
-    "tenants", ["tenant", Tenant(name="tenant"), ["tenant"], [Tenant(name="tenant")]]
+    "tenants",
+    [
+        "tenant",
+        Tenant(name="tenant"),
+        TenantCreate(name="tenant"),
+        ["tenant"],
+        [Tenant(name="tenant")],
+        [TenantCreate(name="tenant")],
+    ],
 )
 def test_tenants_create(
-    collection_factory: CollectionFactory, tenants: Union[str, Tenant, List[Union[str, Tenant]]]
+    collection_factory: CollectionFactory,
+    tenants: Union[TenantCreateInputType, List[TenantCreateInputType]],
 ) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
@@ -333,7 +347,13 @@ def test_tenants_create(
 
 
 @pytest.mark.parametrize(
-    "tenants", ["tenant", Tenant(name="tenant"), ["tenant"], [Tenant(name="tenant")]]
+    "tenants",
+    [
+        "tenant",
+        Tenant(name="tenant"),
+        ["tenant"],
+        [Tenant(name="tenant")],
+    ],
 )
 def test_tenants_remove(
     collection_factory: CollectionFactory, tenants: Union[str, Tenant, List[Union[str, Tenant]]]
@@ -348,3 +368,53 @@ def test_tenants_remove(
     t = collection.tenants.get()
     assert "tenant" not in t
     assert "tenantt" in t
+
+
+@pytest.mark.parametrize(
+    "tenants",
+    [
+        Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
+        Tenant(name="1", activity_status=TenantActivityStatus.UNFREEZING),
+        Tenant(name="1", activity_status=TenantActivityStatus.UNFROZEN),
+        Tenant(name="1", activity_status=TenantActivityStatus.FROZEN),
+        [
+            Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
+            Tenant(name="2", activity_status=TenantActivityStatus.UNFREEZING),
+            Tenant(name="3", activity_status=TenantActivityStatus.UNFROZEN),
+            Tenant(name="4", activity_status=TenantActivityStatus.FROZEN),
+        ],
+    ],
+)
+def test_tenants_create_with_read_only_activity_status(
+    collection_factory: CollectionFactory, tenants: Union[Tenant, List[Tenant]]
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(),
+    )
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.tenants.create(tenants)
+
+
+@pytest.mark.parametrize(
+    "tenants",
+    [
+        Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
+        Tenant(name="1", activity_status=TenantActivityStatus.UNFREEZING),
+        Tenant(name="1", activity_status=TenantActivityStatus.UNFROZEN),
+        [
+            Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
+            Tenant(name="2", activity_status=TenantActivityStatus.UNFREEZING),
+            Tenant(name="3", activity_status=TenantActivityStatus.UNFROZEN),
+        ],
+    ],
+)
+def test_tenants_update_with_read_only_activity_status(
+    collection_factory: CollectionFactory, tenants: Union[Tenant, List[Tenant]]
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(),
+    )
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.tenants.update(tenants)

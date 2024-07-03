@@ -17,6 +17,8 @@ env:
   WEAVIATE_123: 1.23.15
   WEAVIATE_124: 1.24.19
   WEAVIATE_125: 1.25.5
+  WEAVIATE_126: 1.26.0-rc.0
+
 
 jobs:
   lint-and-format:
@@ -120,13 +122,14 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_125},
-          { py: "3.9", weaviate: $WEAVIATE_125},
-          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.8", weaviate: $WEAVIATE_126},
+          { py: "3.9", weaviate: $WEAVIATE_126},
+          { py: "3.10", weaviate: $WEAVIATE_126},
           { py: "3.11", weaviate: $WEAVIATE_123},
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.12", weaviate: $WEAVIATE_125}
+          { py: "3.11", weaviate: $WEAVIATE_126},
+          { py: "3.12", weaviate: $WEAVIATE_126}
         ]
         optional_dependencies: [false]
     steps:
@@ -171,13 +174,14 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_125},
-          { py: "3.9", weaviate: $WEAVIATE_125},
-          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.8", weaviate: $WEAVIATE_126},
+          { py: "3.9", weaviate: $WEAVIATE_126},
+          { py: "3.10", weaviate: $WEAVIATE_126},
           { py: "3.11", weaviate: $WEAVIATE_123},
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.12", weaviate: $WEAVIATE_125}
+          { py: "3.11", weaviate: $WEAVIATE_126},
+          { py: "3.12", weaviate: $WEAVIATE_126}
         ]
         optional_dependencies: [false]
     steps:
@@ -283,20 +287,21 @@ jobs:
         server: [
           $WEAVIATE_123,
           $WEAVIATE_124,
-          $WEAVIATE_125
+          $WEAVIATE_125,
+          $WEAVIATE_126
         ]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Download build artifact to append to release
         uses: actions/download-artifact@v4
         with:
           name: weaviate-python-client-wheel
       - run: |
           pip install weaviate_client-*.whl
-          pip install pytest pytest-benchmark pytest-profiling grpcio grpcio-tools pytest-xdist
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+          pip install -r requirements-devel.txt  # install test dependencies
       - name: free space
         run: sudo rm -rf /usr/local/lib/android
       - run: rm -r weaviate

@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
     _BQConfig,
+    _SQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _NamedVectorConfig,
@@ -112,13 +113,22 @@ def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]
         return None
 
 
-def __get_quantizer_config(config: Dict[str, Any]) -> Optional[Union[_PQConfig, _BQConfig]]:
-    quantizer: Optional[Union[_PQConfig, _BQConfig]] = None
+def __get_quantizer_config(
+    config: Dict[str, Any]
+) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig]]:
+    quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig]] = None
     if "bq" in config and config["bq"]["enabled"]:
         # values are not present for bq+hnsw
         quantizer = _BQConfig(
             cache=config["bq"].get("cache"),
             rescore_limit=config["bq"].get("rescoreLimit"),
+        )
+    elif "sq" in config and config["sq"]["enabled"]:
+        # values are not present for bq+hnsw
+        quantizer = _SQConfig(
+            cache=config["sq"].get("cache"),
+            rescore_limit=config["sq"].get("rescoreLimit"),
+            training_limit=config["sq"].get("trainingLimit"),
         )
     elif "pq" in config and config["pq"].get("enabled"):
         quantizer = _PQConfig(
@@ -279,7 +289,10 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
         ),
         properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
-        replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
+        replication_config=_ReplicationConfig(
+            factor=schema["replicationConfig"]["factor"],
+            async_enabled=schema["replicationConfig"].get("asyncEnabled", False),
+        ),
         reranker_config=__get_rerank_config(schema),
         sharding_config=(
             None
