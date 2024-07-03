@@ -1,6 +1,6 @@
+import warnings
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
-import warnings
 
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 from typing_extensions import TypeAlias

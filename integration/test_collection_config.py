@@ -1,6 +1,7 @@
 from typing import Generator
 
 import pytest as pytest
+from _pytest.fixtures import SubRequest
 
 import weaviate
 from integration.conftest import OpenAICollection, CollectionFactory
@@ -843,3 +844,29 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.flat.vector_cache_max_objects == 9876
     assert isinstance(config.vector_index_config.flat.quantizer, _BQConfig)
     assert config.vector_index_config.flat.quantizer.rescore_limit == 11
+
+
+def test_config_unknown_module(request: SubRequest) -> None:
+    client = weaviate.connect_to_local()
+    collection_name = _sanitize_collection_name(request.node.name)
+    client.collections.delete(name=collection_name)
+    collection = client.collections.create_from_dict(
+        {
+            "class": collection_name,
+            "vectorizer": "none",
+            "moduleConfig": {"generative-dummy": {}, "reranker-dummy": {}},
+            "properties": [
+                {"name": "prop", "dataType": ["text"]},
+            ],
+        }
+    )
+    config = collection.config.get()
+    assert config.generative_config is not None
+    assert isinstance(config.generative_config.generative, str)
+    assert config.generative_config.generative == "generative-dummy"
+
+    assert config.reranker_config is not None
+    assert isinstance(config.reranker_config.reranker, str)
+    assert config.reranker_config.reranker == "reranker-dummy"
+
+    client.collections.delete(name=collection_name)

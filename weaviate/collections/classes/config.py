@@ -153,14 +153,14 @@ class GenerativeSearches(str, Enum):
     See the [docs](https://weaviate.io/developers/weaviate/modules/reader-generator-modules) for more details.
 
     Attributes:
+        `AWS`
+            Weaviate module backed by AWS Bedrock generative models.
         `OPENAI`
             Weaviate module backed by OpenAI and Azure-OpenAI generative models.
         `COHERE`
             Weaviate module backed by Cohere generative models.
         `PALM`
             Weaviate module backed by PaLM generative models.
-        `AWS`
-            Weaviate module backed by AWS Bedrock generative models.
     """
 
     AWS = "generative-aws"
@@ -864,9 +864,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigUpdate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[
-        Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]
-    ] = Field(default=None, alias="vectorizer_config")
+    vectorizerConfig: Optional[Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]] = (
+        Field(default=None, alias="vectorizer_config")
+    )
     multiTenancyConfig: Optional[_MultiTenancyConfigUpdate] = Field(
         default=None, alias="multi_tenancy_config"
     )
@@ -913,10 +913,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                         raise WeaviateInvalidInputError(
                             f"Cannot update vector index config with name {vc.name} to change its quantizer"
                         )
-                    schema["vectorConfig"][vc.name][
-                        "vectorIndexConfig"
-                    ] = vc.vectorIndexConfig.merge_with_existing(
-                        schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+                    schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
+                        vc.vectorIndexConfig.merge_with_existing(
+                            schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+                        )
                     )
                     schema["vectorConfig"][vc.name][
                         "vectorIndexType"
@@ -1179,7 +1179,7 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 
 @dataclass
 class _GenerativeConfig(_ConfigBase):
-    generative: GenerativeSearches
+    generative: Union[GenerativeSearches, str]
     model: Dict[str, Any]
 
 
@@ -1188,7 +1188,7 @@ GenerativeConfig = _GenerativeConfig
 
 @dataclass
 class _VectorizerConfig(_ConfigBase):
-    vectorizer: Vectorizers
+    vectorizer: Union[Vectorizers, str]
     model: Dict[str, Any]
     vectorize_collection_name: bool
 
@@ -1199,7 +1199,7 @@ VectorizerConfig = _VectorizerConfig
 @dataclass
 class _RerankerConfig(_ConfigBase):
     model: Dict[str, Any]
-    reranker: Rerankers
+    reranker: Union[Rerankers, str]
 
 
 RerankerConfig = _RerankerConfig
@@ -1207,7 +1207,7 @@ RerankerConfig = _RerankerConfig
 
 @dataclass
 class _NamedVectorizerConfig(_ConfigBase):
-    vectorizer: Vectorizers
+    vectorizer: Union[Vectorizers, str]
     model: Dict[str, Any]
     source_properties: Optional[List[str]]
 
@@ -1250,7 +1250,7 @@ class _CollectionConfig(_ConfigBase):
     ]
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
-    vectorizer: Optional[Vectorizers]
+    vectorizer: Optional[Union[Vectorizers, str]]
     vector_config: Optional[Dict[str, _NamedVectorConfig]]
 
     def to_dict(self) -> dict:
@@ -1308,7 +1308,7 @@ class _CollectionConfigSimple(_ConfigBase):
     references: List[ReferencePropertyConfig]
     reranker_config: Optional[RerankerConfig]
     vectorizer_config: Optional[VectorizerConfig]
-    vectorizer: Optional[Vectorizers]
+    vectorizer: Optional[Union[Vectorizers, str]]
     vector_config: Optional[Dict[str, _NamedVectorConfig]]
 
 
@@ -1484,9 +1484,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[
-        Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
-    ] = Field(default=_Vectorizer.none(), alias="vectorizer_config")
+    vectorizerConfig: Optional[Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]] = (
+        Field(default=_Vectorizer.none(), alias="vectorizer_config")
+    )
     generativeSearch: Optional[_GenerativeConfigCreate] = Field(
         default=None, alias="generative_config"
     )
