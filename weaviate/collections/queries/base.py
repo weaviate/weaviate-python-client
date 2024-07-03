@@ -48,19 +48,18 @@ from weaviate.collections.classes.types import (
     References,
     TReferences,
 )
-from weaviate.collections.queries.byteops import _ByteOps
 from weaviate.collections.grpc.query import _QueryGRPC
+from weaviate.collections.queries.byteops import _ByteOps
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import search_get_pb2, properties_pb2
+from weaviate.types import INCLUDE_VECTOR
 from weaviate.util import (
     file_encoder_b64,
     _datetime_from_weaviate_str,
 )
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
-
-from weaviate.types import INCLUDE_VECTOR
 
 
 class _WeaviateUUIDInt(uuid_lib.UUID):
@@ -200,7 +199,15 @@ class _Base(Generic[Properties, References]):
         if value.HasField("uuid_value"):
             return uuid_lib.UUID(value.uuid_value)
         if value.HasField("date_value"):
-            return _datetime_from_weaviate_str(value.date_value)
+            try:
+                return _datetime_from_weaviate_str(value.date_value)
+            except ValueError as e:
+                # note that the year 9999 is valid and does not need to be handled. for 5 digit years only the first
+                # 4 digits are considered and it wrapps around
+                if "year 0 is out of range" in str(e):
+                    _Warnings.datetime_year_zero(value.date_value)
+                    return datetime.datetime.min
+
         if value.HasField("string_value"):
             return str(value.string_value)
         if value.HasField("text_value"):
