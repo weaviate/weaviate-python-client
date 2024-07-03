@@ -2,6 +2,8 @@ import uuid
 from typing import Any
 
 import numpy as np
+import pandas as pd
+import polars as pl
 import pytest
 
 from integration.conftest import CollectionFactory
@@ -121,7 +123,9 @@ def test_near_vector_group_by_argument(collection_factory: CollectionFactory) ->
     assert ret.objects[3].belongs_to_group == "Mountain"
 
 
-@pytest.mark.parametrize("near_vector", [[1, 0], [1.0, 0.0], np.array([1, 0])])
+@pytest.mark.parametrize(
+    "near_vector", [[1, 0], [1.0, 0.0], np.array([1, 0]), pl.Series([1, 0]), pd.Series([1, 0])]
+)
 def test_near_vector_with_other_input(
     collection_factory: CollectionFactory, near_vector: Any
 ) -> None:
@@ -143,8 +147,11 @@ def test_near_vector_with_other_input(
     [
         {"first": [1, 0], "second": [1, 0, 0]},
         {"first": np.array([1, 0]), "second": [1, 0, 0]},
-        {"first": np.array([1, 0]), "second": [1, 0, 0]},
+        {"first": pl.Series([1, 0]), "second": [1, 0, 0]},
+        {"first": pd.Series([1, 0]), "second": [1, 0, 0]},
         [np.array([1, 0]), [1, 0, 0]],
+        [pl.Series([1, 0]), [1, 0, 0]],
+        [pd.Series([1, 0]), [1, 0, 0]],
         {"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]},
     ],
 )

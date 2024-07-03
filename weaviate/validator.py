@@ -37,6 +37,9 @@ def _validate_input(inputs: Union[List[_ValidateArgument], _ValidateArgument]) -
 def _is_valid(expected: Any, value: Any) -> bool:
     if expected is None:
         return value is None
+
+    # check for types that are not installed
+    # https://stackoverflow.com/questions/12569452/how-to-identify-numpy-types-in-python
     if isinstance(expected, _ExtraTypes):
         return expected.value in type(value).__module__
 
