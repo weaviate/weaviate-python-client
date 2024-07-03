@@ -2,6 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, cast
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -68,3 +69,12 @@ class _QuantizerConfigUpdate(_ConfigUpdateModel):
     @abstractmethod
     def quantizer_name() -> str:
         ...
+
+
+@dataclass
+class _EnumLikeStr:
+    string: str
+
+    @property
+    def value(self) -> str:
+        return self.string
