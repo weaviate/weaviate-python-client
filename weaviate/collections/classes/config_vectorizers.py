@@ -693,7 +693,14 @@ class _Vectorizer:
     def custom(
         module_name: str, module_config: Optional[Dict[str, Any]] = None
     ) -> _VectorizerConfigCreate:
-        """Create a `_VectorizerCustomConfig` object for use when vectorizing using a custom model."""
+        """Create a `_VectorizerCustomConfig` object for use when vectorizing using a custom module.
+
+        Arguments:
+            `module_name`
+                The name of the custom module to use, REQUIRED.
+            `module_config`
+                The configuration to use for the custom module. Defaults to `None`, which uses the server-defined default.
+        """
         return _VectorizerCustomConfig(
             vectorizer=_EnumLikeStr(module_name), module_config=module_config
         )
