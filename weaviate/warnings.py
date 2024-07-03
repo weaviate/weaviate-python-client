@@ -230,7 +230,7 @@ class _Warnings:
     @staticmethod
     def datetime_year_zero(date: str) -> None:
         warnings.warn(
-            message=f"""Con004: Received a date {date} with year 0. The year 0 does not exist in the Gregorian calendar.
+            message=f"""Con004: Received a date {date} with year 0. The year 0 does not exist in the Gregorian calendar
             and cannot be parsed by the datetime library. The year will be set to {datetime.min}.
             See https://en.wikipedia.org/wiki/Year_zero for more information.""",
             category=UserWarning,
