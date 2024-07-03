@@ -133,7 +133,7 @@ class VectorDistances(str, Enum):
 
 
 class _VectorizerConfigCreate(_ConfigCreateModel):
-    vectorizer: Union[Vectorizers, _EnumLikeStr]
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(default=..., exclude=True)
 
 
 class _Text2VecContextionaryConfig(_ConfigCreateModel):
