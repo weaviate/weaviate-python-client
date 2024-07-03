@@ -847,26 +847,39 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
 
 
 def test_config_unknown_module(request: SubRequest) -> None:
-    client = weaviate.connect_to_local()
-    collection_name = _sanitize_collection_name(request.node.name)
-    client.collections.delete(name=collection_name)
-    collection = client.collections.create_from_dict(
-        {
-            "class": collection_name,
-            "vectorizer": "none",
-            "moduleConfig": {"generative-dummy": {}, "reranker-dummy": {}},
-            "properties": [
-                {"name": "prop", "dataType": ["text"]},
-            ],
-        }
-    )
-    config = collection.config.get()
-    assert config.generative_config is not None
-    assert isinstance(config.generative_config.generative, str)
-    assert config.generative_config.generative == "generative-dummy"
+    with weaviate.connect_to_local() as client:
+        collection_name = _sanitize_collection_name(request.node.name)
+        client.collections.delete(name=collection_name)
+        collection = client.collections.create_from_dict(
+            {
+                "class": collection_name,
+                "vectorizer": "none",
+                "moduleConfig": {"generative-dummy": {}, "reranker-dummy": {}},
+                "properties": [
+                    {"name": "prop", "dataType": ["text"]},
+                ],
+            }
+        )
+        config = collection.config.get()
+        assert config.generative_config is not None
+        assert isinstance(config.generative_config.generative, str)
+        assert config.generative_config.generative == "generative-dummy"
 
-    assert config.reranker_config is not None
-    assert isinstance(config.reranker_config.reranker, str)
-    assert config.reranker_config.reranker == "reranker-dummy"
+        assert config.reranker_config is not None
+        assert isinstance(config.reranker_config.reranker, str)
+        assert config.reranker_config.reranker == "reranker-dummy"
 
-    client.collections.delete(name=collection_name)
+        client.collections.delete(name=collection_name)
+
+        collection = client.collections.create_from_config(config)
+        config2 = collection.config.get()
+        assert config == config2
+        assert config2.generative_config is not None
+        assert isinstance(config2.generative_config.generative, str)
+        assert config2.generative_config.generative == "generative-dummy"
+
+        assert config2.reranker_config is not None
+        assert isinstance(config2.reranker_config.reranker, str)
+        assert config2.reranker_config.reranker == "reranker-dummy"
+
+        client.collections.delete(name=collection_name)
