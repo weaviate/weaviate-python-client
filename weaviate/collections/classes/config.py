@@ -494,7 +494,7 @@ class _RerankerCohereConfig(_RerankerConfigCreate):
     model: Optional[Union[RerankerCohereModel, str]] = Field(default=None)
 
 
-class _RerankerCohereCustom(_RerankerConfigCreate):
+class _RerankerCustomConfig(_RerankerConfigCreate):
     module_config: Dict[str, Any]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -536,6 +536,14 @@ class _Generative:
         module_name: str,
         module_config: Dict[str, Any],
     ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeCustom` object for use when generating using a custom module.
+
+        Arguments:
+            `module_name`
+                The name of the custom module to use, REQUIRED.
+            `module_config`
+                The configuration to use for the custom module. Defaults to `None`, which uses the server-defined default.
+        """
         return _GenerativeCustom(generative=_EnumLikeStr(module_name), module_config=module_config)
 
     @staticmethod
@@ -792,8 +800,15 @@ class _Reranker:
 
     @staticmethod
     def custom(module_name: str, module_config: Dict[str, Any]) -> _RerankerConfigCreate:
-        """Create a `_RerankerCohereCustom` object for use when reranking using a custom module."""
-        return _RerankerCohereCustom(
+        """Create a `_RerankerCustomConfig` object for use when reranking using a custom module.
+
+        Arguments:
+            `module_name`
+                The name of the custom module to use, REQUIRED.
+            `module_config`
+                The configuration to use for the custom module. Defaults to `None`, which uses the server-defined default.
+        """
+        return _RerankerCustomConfig(
             reranker=_EnumLikeStr(module_name), module_config=module_config
         )
 
