@@ -46,6 +46,7 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
+from weaviate.logger import logger
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _datetime_to_string, _get_vector_v4
 from weaviate.validator import _validate_input, _ValidateArgument
@@ -357,33 +358,39 @@ class _DataCollectionAsync(Generic[Properties], _Data):
             `weaviate.exceptions.WeaviateInsertManyAllFailedError`:
                 If every object in the batch fails to be inserted. The exception message contains details about the failure.
         """
-        return await self._batch_grpc.objects(
-            [
-                (
-                    _BatchObject(
-                        collection=self.name,
-                        vector=obj.vector,
-                        uuid=str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
-                        properties=cast(dict, obj.properties),
-                        tenant=self._tenant,
-                        references=obj.references,
-                        index=idx,
-                    )
-                    if isinstance(obj, DataObject)
-                    else _BatchObject(
-                        collection=self.name,
-                        vector=None,
-                        uuid=str(uuid_package.uuid4()),
-                        properties=cast(dict, obj),
-                        tenant=self._tenant,
-                        references=None,
-                        index=idx,
-                    )
+        objs = [
+            (
+                _BatchObject(
+                    collection=self.name,
+                    vector=obj.vector,
+                    uuid=str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
+                    properties=cast(dict, obj.properties),
+                    tenant=self._tenant,
+                    references=obj.references,
+                    index=idx,
                 )
-                for idx, obj in enumerate(objects)
-            ],
-            timeout=self._connection.timeout_config.insert,
-        )
+                if isinstance(obj, DataObject)
+                else _BatchObject(
+                    collection=self.name,
+                    vector=None,
+                    uuid=str(uuid_package.uuid4()),
+                    properties=cast(dict, obj),
+                    tenant=self._tenant,
+                    references=None,
+                    index=idx,
+                )
+            )
+            for idx, obj in enumerate(objects)
+        ]
+        res = await self._batch_grpc.objects(objs, timeout=self._connection.timeout_config.insert)
+        if (n_obj_errs := len(res.errors)) > 0:
+            logger.error(
+                {
+                    "message": f"Failed to send {n_obj_errs} objects in a batch of {len(objs)}. Please inspect the errors variable of the returned object for more information.",
+                    "errors": res.errors,
+                }
+            )
+        return res
 
     async def replace(
         self,

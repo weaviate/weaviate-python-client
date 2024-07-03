@@ -6,7 +6,7 @@ repos:
     -   id: black
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v4.6.0
   hooks:
     - id: no-commit-to-branch
     - id: trailing-whitespace
@@ -19,7 +19,7 @@ repos:
 
 
 - repo: https://github.com/PyCQA/flake8
-  rev: 6.1.0
+  rev: 7.1.0
   hooks:
     - id: flake8
       name: linting

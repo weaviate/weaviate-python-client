@@ -12,6 +12,7 @@ from weaviate.collections.classes.batch import BatchResult, ErrorObject, ErrorRe
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.connect import ConnectionV4
 from weaviate.event_loop import _EventLoopSingleton
+from weaviate.logger import logger
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 
 
@@ -62,7 +63,7 @@ class _BatchWrapper:
                 )
                 return all(all(readiness) for readiness in readinesses)
             except Exception as e:
-                print(
+                logger.warn(
                     f"Error while getting class shards statuses: {e}, trying again with 2**n={2**how_many}s exponential backoff with n={how_many}"
                 )
                 if how_many_failures == how_many:
@@ -73,10 +74,10 @@ class _BatchWrapper:
         count = 0
         while not self._event_loop.run_until_complete(is_ready, count):
             if count % 20 == 0:  # print every 5s
-                print("Waiting for async indexing to finish...")
+                logger.debug("Waiting for async indexing to finish...")
             time.sleep(0.25)
             count += 1
-        print("Async indexing finished!")
+        logger.debug("Async indexing finished!")
 
     async def __get_shards_readiness(self, shard: Shard) -> List[bool]:
         path = f"/schema/{_capitalize_first_letter(shard.collection)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"

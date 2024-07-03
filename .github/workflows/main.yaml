@@ -58,7 +58,7 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
       - name: Run mypy
-        run: mypy --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
+        run: mypy --config-file ./pyproject.toml --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
       - uses: jakebailey/pyright-action@v2
         with:
           version: 1.1.347
@@ -321,17 +321,17 @@ jobs:
           $WEAVIATE_126
         ]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Download build artifact to append to release
         uses: actions/download-artifact@v4
         with:
           name: weaviate-python-client-wheel
       - run: |
           pip install weaviate_client-*.whl
-          pip install pytest pytest-asyncio pytest-benchmark pytest-profiling grpcio grpcio-tools pytest-xdist
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+          pip install -r requirements-devel.txt  # install test dependencies
       - name: free space
         run: sudo rm -rf /usr/local/lib/android
       - run: rm -r weaviate
