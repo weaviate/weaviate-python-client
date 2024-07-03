@@ -1,11 +1,12 @@
-from typing import Any, Dict, List, Literal, Optional, Union
 import warnings
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import AnyHttpUrl, Field
 
 from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
     _ConfigUpdateModel,
+    _EnumLikeStr,
 )
 from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigCreate,
@@ -46,6 +47,7 @@ from weaviate.collections.classes.config_vectorizers import (
     Vectorizers,
     VoyageModel,
     _map_multi2vec_fields,
+    _VectorizerCustomConfig,
 )
 
 
@@ -107,6 +109,32 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def custom(
+        name: str,
+        module_name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        module_config: Optional[Dict[str, Any]] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using no vectorizer. You will need to provide the vectors yourself.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_VectorizerCustomConfig(
+                vectorizer=_EnumLikeStr(module_name), module_config=module_config
+            ),
             vector_index_config=vector_index_config,
         )
 
