@@ -947,6 +947,10 @@ def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None
 
 
 def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named index is not supported in Weaviate versions lower than 1.24.0")
+
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
