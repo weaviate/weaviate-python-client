@@ -136,6 +136,8 @@ class Tokenization(str, Enum):
             Tokenize using GSE (for Chinese and Japanese).
         `TRIGRAM`
             Tokenize into trigrams.
+        `KAGOME_KR`
+            Tokenize using the 'Kagome' tokenizer and a Korean MeCab dictionary (for Korean).
     """
 
     WORD = "word"
