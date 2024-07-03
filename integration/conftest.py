@@ -107,6 +107,7 @@ def collection_factory(
 ) -> Generator[CollectionFactory, None, None]:
     name_fixtures: List[str] = []
     client_fixture: Optional[weaviate.WeaviateClient] = None
+    call_counter: int = 0
 
     def _factory(
         name: str = "",
@@ -128,8 +129,11 @@ def collection_factory(
         reranker_config: Optional[_RerankerConfigCreate] = None,
     ) -> Collection[Any, Any]:
         try:
-            nonlocal client_fixture, name_fixtures
-            name_fixture = _sanitize_collection_name(request.node.name) + name
+            nonlocal client_fixture, name_fixtures, call_counter
+            call_counter += 1
+            name_fixture = (
+                _sanitize_collection_name(request.node.name) + name + "_" + str(call_counter)
+            )
             name_fixtures.append(name_fixture)
             client_fixture = client_factory(
                 headers=headers,
