@@ -22,6 +22,7 @@ from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
     _ConfigUpdateModel,
     _QuantizerConfigUpdate,
+    _EnumLikeStr,
 )
 from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorConfigCreate,
@@ -153,14 +154,14 @@ class GenerativeSearches(str, Enum):
     See the [docs](https://weaviate.io/developers/weaviate/modules/reader-generator-modules) for more details.
 
     Attributes:
+        `AWS`
+            Weaviate module backed by AWS Bedrock generative models.
         `OPENAI`
             Weaviate module backed by OpenAI and Azure-OpenAI generative models.
         `COHERE`
             Weaviate module backed by Cohere generative models.
         `PALM`
             Weaviate module backed by PaLM generative models.
-        `AWS`
-            Weaviate module backed by AWS Bedrock generative models.
     """
 
     AWS = "generative-aws"
@@ -365,19 +366,26 @@ class _MultiTenancyConfigUpdate(_ConfigUpdateModel):
 
 
 class _GenerativeConfigCreate(_ConfigCreateModel):
-    generative: GenerativeSearches
+    generative: Union[GenerativeSearches, _EnumLikeStr]
 
 
 class _GenerativeAnyscale(_GenerativeConfigCreate):
-    generative: GenerativeSearches = Field(
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
     temperature: Optional[float]
     model: Optional[str]
 
 
+class _GenerativeCustom(_GenerativeConfigCreate):
+    module_config: Dict[str, Any]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        return self.module_config
+
+
 class _GenerativeOctoai(_GenerativeConfigCreate):
-    generative: GenerativeSearches = Field(
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OCTOAI, frozen=True, exclude=True
     )
     baseURL: Optional[str]
@@ -387,7 +395,7 @@ class _GenerativeOctoai(_GenerativeConfigCreate):
 
 
 class _GenerativeMistral(_GenerativeConfigCreate):
-    generative: GenerativeSearches = Field(
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
     )
     temperature: Optional[float]
@@ -396,7 +404,7 @@ class _GenerativeMistral(_GenerativeConfigCreate):
 
 
 class _GenerativeOllama(_GenerativeConfigCreate):
-    generative: GenerativeSearches = Field(
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
     )
     model: Optional[str]
@@ -404,7 +412,7 @@ class _GenerativeOllama(_GenerativeConfigCreate):
 
 
 class _GenerativeOpenAIConfigBase(_GenerativeConfigCreate):
-    generative: GenerativeSearches = Field(
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
@@ -431,7 +439,7 @@ class _GenerativeAzureOpenAIConfig(_GenerativeOpenAIConfigBase):
 
 
 class _GenerativeCohereConfig(_GenerativeConfigCreate):
-    generative: GenerativeSearches = Field(
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
@@ -450,7 +458,7 @@ class _GenerativeCohereConfig(_GenerativeConfigCreate):
 
 
 class _GenerativePaLMConfig(_GenerativeConfigCreate):
-    generative: GenerativeSearches = Field(
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
     apiEndpoint: Optional[str]
@@ -463,7 +471,7 @@ class _GenerativePaLMConfig(_GenerativeConfigCreate):
 
 
 class _GenerativeAWSConfig(_GenerativeConfigCreate):
-    generative: GenerativeSearches = Field(
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
     region: str
@@ -473,26 +481,39 @@ class _GenerativeAWSConfig(_GenerativeConfigCreate):
 
 
 class _RerankerConfigCreate(_ConfigCreateModel):
-    reranker: Rerankers
+    reranker: Union[Rerankers, _EnumLikeStr]
 
 
 RerankerCohereModel = Literal["rerank-english-v2.0", "rerank-multilingual-v2.0"]
 
 
 class _RerankerCohereConfig(_RerankerConfigCreate):
-    reranker: Rerankers = Field(default=Rerankers.COHERE, frozen=True, exclude=True)
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.COHERE, frozen=True, exclude=True
+    )
     model: Optional[Union[RerankerCohereModel, str]] = Field(default=None)
 
 
+class _RerankerCohereCustom(_RerankerConfigCreate):
+    module_config: Dict[str, Any]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        return self.module_config
+
+
 class _RerankerTransformersConfig(_RerankerConfigCreate):
-    reranker: Rerankers = Field(default=Rerankers.TRANSFORMERS, frozen=True, exclude=True)
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.TRANSFORMERS, frozen=True, exclude=True
+    )
 
 
 RerankerVoyageAIModel = Literal["rerank-lite-1", "rerank-1"]
 
 
 class _RerankerVoyageAIConfig(_RerankerConfigCreate):
-    reranker: Rerankers = Field(default=Rerankers.VOYAGEAI, frozen=True, exclude=True)
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.VOYAGEAI, frozen=True, exclude=True
+    )
     model: Optional[Union[RerankerVoyageAIModel, str]] = Field(default=None)
 
 
@@ -509,6 +530,13 @@ class _Generative:
         temperature: Optional[float] = None,
     ) -> _GenerativeConfigCreate:
         return _GenerativeAnyscale(model=model, temperature=temperature)
+
+    @staticmethod
+    def custom(
+        module_name: str,
+        module_config: Dict[str, Any],
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeCustom(generative=_EnumLikeStr(module_name), module_config=module_config)
 
     @staticmethod
     def mistral(
@@ -761,6 +789,13 @@ class _Reranker:
         for detailed usage.
         """
         return _RerankerTransformersConfig(reranker=Rerankers.TRANSFORMERS)
+
+    @staticmethod
+    def custom(module_name: str, module_config: Dict[str, Any]) -> _RerankerConfigCreate:
+        """Create a `_RerankerCohereCustom` object for use when reranking using a custom module."""
+        return _RerankerCohereCustom(
+            reranker=_EnumLikeStr(module_name), module_config=module_config
+        )
 
     @staticmethod
     def cohere(
@@ -1179,7 +1214,7 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 
 @dataclass
 class _GenerativeConfig(_ConfigBase):
-    generative: GenerativeSearches
+    generative: Union[GenerativeSearches, str]
     model: Dict[str, Any]
 
 
@@ -1188,7 +1223,7 @@ GenerativeConfig = _GenerativeConfig
 
 @dataclass
 class _VectorizerConfig(_ConfigBase):
-    vectorizer: Vectorizers
+    vectorizer: Union[Vectorizers, str]
     model: Dict[str, Any]
     vectorize_collection_name: bool
 
@@ -1199,7 +1234,7 @@ VectorizerConfig = _VectorizerConfig
 @dataclass
 class _RerankerConfig(_ConfigBase):
     model: Dict[str, Any]
-    reranker: Rerankers
+    reranker: Union[Rerankers, str]
 
 
 RerankerConfig = _RerankerConfig
@@ -1207,7 +1242,7 @@ RerankerConfig = _RerankerConfig
 
 @dataclass
 class _NamedVectorizerConfig(_ConfigBase):
-    vectorizer: Vectorizers
+    vectorizer: Union[Vectorizers, str]
     model: Dict[str, Any]
     source_properties: Optional[List[str]]
 
@@ -1250,7 +1285,7 @@ class _CollectionConfig(_ConfigBase):
     ]
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
-    vectorizer: Optional[Vectorizers]
+    vectorizer: Optional[Union[Vectorizers, str]]
     vector_config: Optional[Dict[str, _NamedVectorConfig]]
 
     def to_dict(self) -> dict:
@@ -1308,7 +1343,7 @@ class _CollectionConfigSimple(_ConfigBase):
     references: List[ReferencePropertyConfig]
     reranker_config: Optional[RerankerConfig]
     vectorizer_config: Optional[VectorizerConfig]
-    vectorizer: Optional[Vectorizers]
+    vectorizer: Optional[Union[Vectorizers, str]]
     vector_config: Optional[Dict[str, _NamedVectorConfig]]
 
 
@@ -1376,7 +1411,9 @@ class Property(_ConfigCreateModel):
             raise ValueError(f"Property name '{v}' is reserved and cannot be used")
         return v
 
-    def _to_dict(self, vectorizer: Optional[Vectorizers] = None) -> Dict[str, Any]:
+    def _to_dict(
+        self, vectorizer: Optional[Union[Vectorizers, _EnumLikeStr]] = None
+    ) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
         if vectorizer is not None and vectorizer != Vectorizers.NONE:

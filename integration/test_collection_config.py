@@ -1,6 +1,7 @@
 from typing import Generator
 
 import pytest as pytest
+from _pytest.fixtures import SubRequest
 
 import weaviate
 from integration.conftest import OpenAICollection, CollectionFactory
@@ -843,3 +844,134 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.flat.vector_cache_max_objects == 9876
     assert isinstance(config.vector_index_config.flat.quantizer, _BQConfig)
     assert config.vector_index_config.flat.quantizer.rescore_limit == 11
+
+
+def test_config_unknown_module(request: SubRequest) -> None:
+    with weaviate.connect_to_local() as client:
+        collection_name = _sanitize_collection_name(request.node.name)
+        client.collections.delete(name=collection_name)
+        collection = client.collections.create_from_dict(
+            {
+                "class": collection_name,
+                "vectorizer": "none",
+                "moduleConfig": {"generative-dummy": {}, "reranker-dummy": {}},
+                "properties": [
+                    {"name": "prop", "dataType": ["text"]},
+                ],
+            }
+        )
+        config = collection.config.get()
+        assert config.generative_config is not None
+        assert isinstance(config.generative_config.generative, str)
+        assert config.generative_config.generative == "generative-dummy"
+
+        assert config.reranker_config is not None
+        assert isinstance(config.reranker_config.reranker, str)
+        assert config.reranker_config.reranker == "reranker-dummy"
+
+        client.collections.delete(name=collection_name)
+
+        collection2 = client.collections.create_from_config(config)
+        config2 = collection2.config.get()
+        assert config == config2
+        assert config2.generative_config is not None
+        assert isinstance(config2.generative_config.generative, str)
+        assert config2.generative_config.generative == "generative-dummy"
+
+        assert config2.reranker_config is not None
+        assert isinstance(config2.reranker_config.reranker, str)
+        assert config2.reranker_config.reranker == "reranker-dummy"
+
+        client.collections.delete(name=collection_name)
+
+
+def test_create_custom_module(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        generative_config=Configure.Generative.custom(
+            "generative-anyscale", module_config={"temperature": 0.5}
+        )
+    )
+    config = collection.config.get()
+
+    collection2 = collection_factory(
+        generative_config=Configure.Generative.anyscale(temperature=0.5)
+    )
+    config2 = collection2.config.get()
+
+    assert config.generative_config == config2.generative_config
+    assert isinstance(config.generative_config.generative, str)
+    assert config.generative_config.generative == "generative-anyscale"
+    assert config.generative_config.model == {"temperature": 0.5}
+
+
+def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        reranker_config=Configure.Reranker.custom(
+            "reranker-cohere", module_config={"model": "rerank-english-v2.0"}
+        )
+    )
+    config = collection.config.get()
+
+    collection2 = collection_factory(
+        reranker_config=Configure.Reranker.cohere(model="rerank-english-v2.0")
+    )
+    config2 = collection2.config.get()
+
+    assert config.reranker_config == config2.reranker_config
+    assert isinstance(config.reranker_config.reranker, str)
+    assert config.reranker_config.reranker == "reranker-cohere"
+    assert config.reranker_config.model == {"model": "rerank-english-v2.0"}
+
+
+def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.custom(
+            "text2vec-contextionary", module_config={"vectorizeClassName": False}
+        ),
+    )
+    config = collection.config.get()
+
+    collection2 = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    config2 = collection2.config.get()
+
+    assert config.vectorizer_config == config2.vectorizer_config
+    assert isinstance(config.vectorizer_config.vectorizer, str)
+    assert config.vectorizer_config.vectorizer == "text2vec-contextionary"
+    assert not config.vectorizer_config.vectorize_collection_name
+
+
+def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named index is not supported in Weaviate versions lower than 1.24.0")
+
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.custom(
+                "name",
+                module_name="text2vec-contextionary",
+                module_config={"vectorizeClassName": False},
+            )
+        ],
+    )
+    config = collection.config.get()
+
+    collection2 = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary("name", vectorize_collection_name=False)
+        ],
+    )
+    config2 = collection2.config.get()
+
+    assert config.vector_config == config2.vector_config
+    assert len(config.vector_config) == 1
+    assert config.vector_config["name"].vectorizer.vectorizer == "text2vec-contextionary"
+    assert config.vector_config["name"].vectorizer.model == {"vectorizeClassName": False}
