@@ -20,6 +20,7 @@ import validators
 
 from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError
+from weaviate.logger import logger
 from weaviate.util import _decode_json_response_dict
 
 DEFAULT_BINARY_PATH = str(Path.home() / ".cache/weaviate-embedded/")
@@ -136,7 +137,7 @@ class _EmbeddedBase:
             + str(hashlib.sha256(self.options.version.encode("utf-8")).hexdigest()),
         )
         if not self._weaviate_binary_path.exists():
-            print(
+            logger.info(
                 f"Binary {self.options.binary_path} did not exist. Downloading binary from {self._download_url}"
             )
             if self._download_url.endswith(".tar.gz"):
@@ -185,7 +186,7 @@ class _EmbeddedBase:
                 self.process.terminate()
                 self.process.wait()
             except ProcessLookupError:
-                print(
+                logger.info(
                     f"""Tried to stop embedded weaviate process {self.process.pid}. Process was not found. So not doing
                     anything"""
                 )
@@ -193,7 +194,7 @@ class _EmbeddedBase:
 
     def ensure_running(self) -> None:
         if self.is_listening() is False:
-            print(
+            logger.info(
                 f"Embedded weaviate wasn't listening on ports http:{self.options.port} & grpc:{self.options.grpc_port}, so starting embedded weaviate again"
             )
             self.start()
@@ -243,7 +244,7 @@ class _EmbeddedBase:
                 env=my_env,
             )
             self.process = process
-        print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
+        logger.info(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
 
     @abstractmethod
@@ -264,7 +265,7 @@ class EmbeddedV3(_EmbeddedBase):
 
     def start(self) -> None:
         if self.is_listening():
-            print(f"embedded weaviate is already listening on port {self.options.port}")
+            logger.info(f"embedded weaviate is already listening on port {self.options.port}")
             return
         super().start()
 

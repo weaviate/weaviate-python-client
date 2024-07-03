@@ -1,12 +1,14 @@
 from typing import Generator
 
 import pytest as pytest
+from _pytest.fixtures import SubRequest
 
 import weaviate
 from integration.conftest import OpenAICollection, CollectionFactory
 from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.config import (
     _BQConfig,
+    _SQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
@@ -136,6 +138,7 @@ def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
     assert config.multi_tenancy_config.enabled is False
 
     assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is False
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
@@ -189,6 +192,7 @@ def test_collection_config_defaults(collection_factory: CollectionFactory) -> No
     assert config.multi_tenancy_config.enabled is True
 
     assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is False
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
@@ -241,7 +245,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         multi_tenancy_config=Configure.multi_tenancy(
             enabled=True, auto_tenant_activation=True, auto_tenant_creation=True
         ),
-        # replication_config=Configure.replication(factor=2), # currently not updateable in RAFT
+        replication_config=Configure.replication(factor=2, async_enabled=True),
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
             distance_metric=VectorDistances.DOT,
@@ -310,13 +314,20 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
     assert config.multi_tenancy_config.enabled is True
-    if collection._connection._weaviate_version.is_at_least(1, 25, 0):
+    if collection._connection._weaviate_version.is_at_least(1, 25, 2):
         assert config.multi_tenancy_config.auto_tenant_activation is True
-    # change to 1.25.2 after it is out
-    if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
+    else:
+        assert config.multi_tenancy_config.auto_tenant_activation is False
+    if collection._connection._weaviate_version.is_at_least(1, 25, 1):
         assert config.multi_tenancy_config.auto_tenant_creation is True
+    else:
+        assert config.multi_tenancy_config.auto_tenant_creation is False
 
-    # assert config.replication_config.factor == 2
+    assert config.replication_config.factor == 2
+    if collection._connection._weaviate_version.is_at_least(1, 26, 0):
+        assert config.replication_config.async_enabled is True
+    else:
+        assert config.replication_config.async_enabled is False
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -356,12 +367,10 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     config = collection.config.get()
 
     assert config.replication_config.factor == 1
+    assert config.replication_config.async_enabled is False
     assert config.multi_tenancy_config.enabled is True
-    if collection._connection._weaviate_version.is_at_least(1, 25, 0):
-        assert config.multi_tenancy_config.auto_tenant_activation is False
-    # change to 1.25.2 after it is out
-    if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
-        assert config.multi_tenancy_config.auto_tenant_creation is False
+    assert config.multi_tenancy_config.auto_tenant_activation is False
+    assert config.multi_tenancy_config.auto_tenant_creation is False
 
     collection.config.update(
         description="Test",
@@ -373,7 +382,9 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             stopwords_preset=StopwordsPreset.EN,
             stopwords_removals=["the"],
         ),
-        # replication_config=Reconfigure.replication(factor=2), # currently not updateable in RAFT
+        replication_config=Reconfigure.replication(
+            factor=2, async_enabled=True
+        ),  # currently not updateable in RAFT
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             vector_cache_max_objects=2000000,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(
@@ -391,7 +402,12 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
     config = collection.config.get()
 
-    # assert config.description == "Test"
+    if collection._connection._weaviate_version.is_at_least(
+        1, 25, 2
+    ) or collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        assert config.description == "Test"
+    else:
+        assert config.description is None
 
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.25
@@ -399,7 +415,12 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
-    # assert config.replication_config.factor == 2
+    assert config.replication_config.factor == 2
+
+    if collection._connection._weaviate_version.is_at_least(1, 26, 0):
+        assert config.replication_config.async_enabled is True
+    else:
+        assert config.replication_config.async_enabled is False
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -424,11 +445,16 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_type == VectorIndexType.HNSW
 
     assert config.multi_tenancy_config.enabled is True
-    if collection._connection._weaviate_version.is_at_least(1, 25, 0):
+
+    if collection._connection._weaviate_version.is_at_least(1, 25, 2):
         assert config.multi_tenancy_config.auto_tenant_activation is True
-    # change to 1.25.2 after it is out
-    if collection._connection._weaviate_version.is_at_least(1, 25, patch=1):
+    else:
+        assert config.multi_tenancy_config.auto_tenant_activation is False
+
+    if collection._connection._weaviate_version.is_at_least(1, 25, 1):
         assert config.multi_tenancy_config.auto_tenant_creation is True
+    else:
+        assert config.multi_tenancy_config.auto_tenant_creation is False
 
     collection.config.update(
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
@@ -437,7 +463,12 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     )
     config = collection.config.get()
 
-    # assert config.description == "Test"
+    if collection._connection._weaviate_version.is_at_least(
+        1, 25, 2
+    ) or collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        assert config.description == "Test"
+    else:
+        assert config.description is None
 
     assert config.inverted_index_config.bm25.b == 0.8
     assert config.inverted_index_config.bm25.k1 == 1.25
@@ -445,7 +476,12 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     # assert config.inverted_index_config.stopwords.additions is ["a"] # potential weaviate bug, this returns as None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
-    # assert config.replication_config.factor == 2
+    assert config.replication_config.factor == 2
+
+    if collection._connection._weaviate_version.is_at_least(1, 26, 0):
+        assert config.replication_config.async_enabled is True
+    else:
+        assert config.replication_config.async_enabled is False
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.cleanup_interval_seconds == 300
@@ -465,20 +501,41 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
 
 def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
+
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
         ),
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
 
     config = collection.config.get()
     assert config.vector_index_type == VectorIndexType.HNSW
     assert config.vector_index_config is not None
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _BQConfig)
+
+
+def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("SQ+HNSW is not supported in Weaviate versions lower than 1.26.0")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.sq(rescore_limit=10, training_limit=1000000),
+        ),
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _SQConfig)
 
 
 def test_update_flat(collection_factory: CollectionFactory) -> None:
@@ -639,14 +696,12 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
     ],
 )
 def test_config_reranker_module(
-    client: weaviate.WeaviateClient,
+    collection_factory: CollectionFactory,
     reranker_config: _RerankerConfigCreate,
     expected_reranker: Rerankers,
     expected_model: dict,
 ) -> None:
-    client.collections.delete("TestCollectionConfigRerankerModule")
-    collection = client.collections.create(
-        name="TestCollectionConfigRerankerModule",
+    collection = collection_factory(
         reranker_config=reranker_config,
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -711,7 +766,7 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
             Property(name="age", data_type=DataType.INT),
         ],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-        replication_config=Configure.replication(factor=1),
+        replication_config=Configure.replication(factor=1, async_enabled=False),
         vector_index_config=Configure.VectorIndex.hnsw(
             quantizer=Configure.VectorIndex.Quantizer.pq(centroids=256)
         ),
@@ -843,3 +898,134 @@ def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.flat.vector_cache_max_objects == 9876
     assert isinstance(config.vector_index_config.flat.quantizer, _BQConfig)
     assert config.vector_index_config.flat.quantizer.rescore_limit == 11
+
+
+def test_config_unknown_module(request: SubRequest) -> None:
+    with weaviate.connect_to_local() as client:
+        collection_name = _sanitize_collection_name(request.node.name)
+        client.collections.delete(name=collection_name)
+        collection = client.collections.create_from_dict(
+            {
+                "class": collection_name,
+                "vectorizer": "none",
+                "moduleConfig": {"generative-dummy": {}, "reranker-dummy": {}},
+                "properties": [
+                    {"name": "prop", "dataType": ["text"]},
+                ],
+            }
+        )
+        config = collection.config.get()
+        assert config.generative_config is not None
+        assert isinstance(config.generative_config.generative, str)
+        assert config.generative_config.generative == "generative-dummy"
+
+        assert config.reranker_config is not None
+        assert isinstance(config.reranker_config.reranker, str)
+        assert config.reranker_config.reranker == "reranker-dummy"
+
+        client.collections.delete(name=collection_name)
+
+        collection2 = client.collections.create_from_config(config)
+        config2 = collection2.config.get()
+        assert config == config2
+        assert config2.generative_config is not None
+        assert isinstance(config2.generative_config.generative, str)
+        assert config2.generative_config.generative == "generative-dummy"
+
+        assert config2.reranker_config is not None
+        assert isinstance(config2.reranker_config.reranker, str)
+        assert config2.reranker_config.reranker == "reranker-dummy"
+
+        client.collections.delete(name=collection_name)
+
+
+def test_create_custom_module(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        generative_config=Configure.Generative.custom(
+            "generative-anyscale", module_config={"temperature": 0.5}
+        )
+    )
+    config = collection.config.get()
+
+    collection2 = collection_factory(
+        generative_config=Configure.Generative.anyscale(temperature=0.5)
+    )
+    config2 = collection2.config.get()
+
+    assert config.generative_config == config2.generative_config
+    assert isinstance(config.generative_config.generative, str)
+    assert config.generative_config.generative == "generative-anyscale"
+    assert config.generative_config.model == {"temperature": 0.5}
+
+
+def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        reranker_config=Configure.Reranker.custom(
+            "reranker-cohere", module_config={"model": "rerank-english-v2.0"}
+        )
+    )
+    config = collection.config.get()
+
+    collection2 = collection_factory(
+        reranker_config=Configure.Reranker.cohere(model="rerank-english-v2.0")
+    )
+    config2 = collection2.config.get()
+
+    assert config.reranker_config == config2.reranker_config
+    assert isinstance(config.reranker_config.reranker, str)
+    assert config.reranker_config.reranker == "reranker-cohere"
+    assert config.reranker_config.model == {"model": "rerank-english-v2.0"}
+
+
+def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.custom(
+            "text2vec-contextionary", module_config={"vectorizeClassName": False}
+        ),
+    )
+    config = collection.config.get()
+
+    collection2 = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+    config2 = collection2.config.get()
+
+    assert config.vectorizer_config == config2.vectorizer_config
+    assert isinstance(config.vectorizer_config.vectorizer, str)
+    assert config.vectorizer_config.vectorizer == "text2vec-contextionary"
+    assert not config.vectorizer_config.vectorize_collection_name
+
+
+def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
+        pytest.skip("Named index is not supported in Weaviate versions lower than 1.24.0")
+
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.custom(
+                "name",
+                module_name="text2vec-contextionary",
+                module_config={"vectorizeClassName": False},
+            )
+        ],
+    )
+    config = collection.config.get()
+
+    collection2 = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary("name", vectorize_collection_name=False)
+        ],
+    )
+    config2 = collection2.config.get()
+
+    assert config.vector_config == config2.vector_config
+    assert len(config.vector_config) == 1
+    assert config.vector_config["name"].vectorizer.vectorizer == "text2vec-contextionary"
+    assert config.vector_config["name"].vectorizer.model == {"vectorizeClassName": False}

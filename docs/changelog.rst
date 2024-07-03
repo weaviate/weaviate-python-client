@@ -1,6 +1,23 @@
 Changelog
 =========
 
+Version 4.6.6
+--------------
+
+This patch version includes:
+
+- Log batch errors
+- Only the last 100k successfully added UUIDs are kept in memory to prevent OOM situations.
+- Fix tenant creation with string input
+
+In the v3 copy that is part of v4:
+
+- Fixes GraphQL query injection vulnerability caused by incorrect escaping of backslashes in plain text input builder methods. Many thanks to `@adamleko <https://github.com/adamleko>`_, `@bismuthsalamander <https://github.com/bismuthsalamander>`_, and `@tardigrade-9 <https://github.com/tardigrade-9>`_ for their help in fixing this issue
+- Fixes batch retry with tenants
+
+
+
+
 Version 4.6.5
 --------------
 
@@ -96,7 +113,7 @@ This patch version includes:
 - Support for new modules in Weaviate 1.24.2:
   - ``text2vec-voyageai``
   - ``generative-mistral``
-  - Support new parameters for interference URLs in ``text2vec-transformers`` and ``multi2vec-clip``
+  - Support new parameters for inference URLs in ``text2vec-transformers`` and ``multi2vec-clip``
 - Support for new modules in Weaviate 1.24.3:
   - ``multi2vec-palm``
 
@@ -528,6 +545,19 @@ This beta version includes:
     - Python-native dataclasses for easy data manipulation
     - No more builder methods or raw dictionaries
 - Join the discussion and contribute your feedback `here <https://forum.weaviate.io/t/python-v4-client-feedback-megathread/892>`_
+
+Version 3.26.5
+--------------
+This patch version includes
+
+- Fixes GraphQL query injection vulnerability caused by incorrect escaping of backslashes in plain text input builder methods
+- Many thanks to `@adamleko <https://github.com/adamleko>`_, `@bismuthsalamander <https://github.com/bismuthsalamander>`_, and `@tardigrade-9 <https://github.com/tardigrade-9>`_ for their help in fixing this issue
+
+Version 3.26.4
+--------------
+This patch version includes
+
+- Fixes batch retry with tenants
 
 Version 3.26.2
 --------------
