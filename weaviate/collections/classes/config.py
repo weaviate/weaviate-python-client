@@ -1127,6 +1127,7 @@ class _PropertyBase(_ConfigBase):
 class _Property(_PropertyBase):
     data_type: DataType
     index_filterable: bool
+    index_range_filters: bool
     index_searchable: bool
     nested_properties: Optional[List[NestedProperty]]
     tokenization: Optional[Tokenization]
@@ -1478,6 +1479,8 @@ class Property(_ConfigCreateModel):
             A description of the property.
         `index_filterable`
             Whether the property should be filterable in the inverted index.
+        `index_range_filters`
+            Whether the property should support range filters in the inverted index.
         `index_searchable`
             Whether the property should be searchable in the inverted index.
         `nested_properties`
@@ -1495,6 +1498,7 @@ class Property(_ConfigCreateModel):
     description: Optional[str] = Field(default=None)
     indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
+    indexRangeable: Optional[bool] = Field(default=None, alias="index_range_filters")
     nestedProperties: Optional[Union["Property", List["Property"]]] = Field(
         default=None, alias="nested_properties"
     )

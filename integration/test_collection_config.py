@@ -1029,3 +1029,18 @@ def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -
     assert len(config.vector_config) == 1
     assert config.vector_config["name"].vectorizer.vectorizer == "text2vec-contextionary"
     assert config.vector_config["name"].vectorizer.model == {"vectorizeClassName": False}
+
+
+@pytest.mark.parametrize("index_range_filters", [True, False])
+def test_range_filters(collection_factory: CollectionFactory, index_range_filters: bool) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("range filters are not supported in Weaviate versions lower than 1.26.0")
+
+    collection = collection_factory(
+        properties=[
+            Property(name="text", data_type=DataType.INT, index_range_filters=index_range_filters)
+        ],
+    )
+    config = collection.config.get()
+    assert config.properties[0].index_range_filters == index_range_filters
