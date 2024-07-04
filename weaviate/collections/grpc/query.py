@@ -198,6 +198,7 @@ class _QueryGRPC(_BaseGRPC):
                             _ExtraTypes.TF,
                             _HybridNearText,
                             _HybridNearVector,
+                            None,
                         ],
                         "vector",
                         vector,
