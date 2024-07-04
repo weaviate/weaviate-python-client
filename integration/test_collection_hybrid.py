@@ -402,19 +402,24 @@ def test_vector_per_target(
         pytest.skip("No multi target search below 1.26")
 
     collection = collection_factory(
-        properties=[
-            Property(name="text", data_type=DataType.TEXT),
-        ],
+        properties=[],
         vectorizer_config=[
             Configure.NamedVectors.none("first"),
             Configure.NamedVectors.none("second"),
         ],
     )
 
-    uuid1 = collection.data.insert(
-        {"text": "banana"}, vector={"first": [1, 0], "second": [1, 0, 0]}
-    )
-    collection.data.insert({"text": "apple"}, vector={"first": [0, 1], "second": [0, 0, 1]})
+    uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [1, 0, 0]})
+    uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [0, 0, 1]})
+
+    objs = collection.query.hybrid(
+        query=None,
+        vector=vector,
+        target_vector=["first", "second"],
+    ).objects
+    assert len(objs) == 2
+    assert objs[0].uuid == uuid1
+    assert objs[1].uuid == uuid2
 
     objs = collection.query.hybrid(
         query=None,

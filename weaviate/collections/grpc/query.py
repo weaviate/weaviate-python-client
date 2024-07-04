@@ -189,7 +189,18 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([None, str], "query", query),
                     _ValidateArgument([float, int, None], "alpha", alpha),
                     _ValidateArgument(
-                        [List, _HybridNearText, _HybridNearVector, None], "vector", vector
+                        [
+                            List,
+                            Dict,
+                            _ExtraTypes.PANDAS,
+                            _ExtraTypes.POLARS,
+                            _ExtraTypes.NUMPY,
+                            _ExtraTypes.TF,
+                            _HybridNearText,
+                            _HybridNearVector,
+                        ],
+                        "vector",
+                        vector,
                     ),
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
@@ -209,6 +220,9 @@ class _QueryGRPC(_BaseGRPC):
 
         if vector is None:
             pass
+        elif isinstance(vector, list) and len(vector) > 0 and isinstance(vector[0], float):
+            # fast path for simple vector
+            vector_bytes = struct.pack("{}f".format(len(vector)), *vector)
         elif isinstance(vector, _HybridNearText):
             near_text = search_get_pb2.NearTextSearch(
                 query=[vector.text] if isinstance(vector.text, str) else vector.text,
@@ -228,8 +242,16 @@ class _QueryGRPC(_BaseGRPC):
                 vector_per_target=vector_per_target,
             )
         else:
-            vector = _get_vector_v4(vector)
-            vector_bytes = struct.pack("{}f".format(len(vector)), *vector)
+            vector_per_target, vector_bytes_tmp = self.__vector_per_target(
+                vector, targets, "vector"
+            )
+            if vector_per_target is not None:
+                near_vector = search_get_pb2.NearVector(
+                    vector_bytes=vector_bytes_tmp,
+                    vector_per_target=vector_per_target,
+                )
+            else:
+                vector_bytes = vector_bytes_tmp
 
         hybrid_search = (
             search_get_pb2.Hybrid(
