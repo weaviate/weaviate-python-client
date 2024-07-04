@@ -1498,7 +1498,7 @@ class Property(_ConfigCreateModel):
     description: Optional[str] = Field(default=None)
     indexFilterable: Optional[bool] = Field(default=None, alias="index_filterable")
     indexSearchable: Optional[bool] = Field(default=None, alias="index_searchable")
-    indexRangeable: Optional[bool] = Field(default=None, alias="index_range_filters")
+    indexRangeFilters: Optional[bool] = Field(default=None, alias="index_range_filters")
     nestedProperties: Optional[Union["Property", List["Property"]]] = Field(
         default=None, alias="nested_properties"
     )
