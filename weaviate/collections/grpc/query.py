@@ -378,9 +378,20 @@ class _QueryGRPC(_BaseGRPC):
 
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
-        vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
-            near_vector, targets, "near_vector"
-        )
+        if (
+            isinstance(near_vector, list)
+            and len(near_vector) > 0
+            and isinstance(near_vector[0], float)
+        ):
+            # fast path for simple vector
+            near_vector_grpc: Optional[bytes] = struct.pack(
+                "{}f".format(len(near_vector)), *near_vector
+            )
+            vector_per_target_tmp = None
+        else:
+            vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
+                near_vector, targets, "near_vector"
+            )
         request = self.__create_request(
             limit=limit,
             offset=offset,
