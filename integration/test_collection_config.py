@@ -149,7 +149,10 @@ def test_collection_config_empty(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    assert config.vector_index_config.max_connections == 64
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
+        assert config.vector_index_config.max_connections == 64
+    else:
+        assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
@@ -203,7 +206,10 @@ def test_collection_config_defaults(collection_factory: CollectionFactory) -> No
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    assert config.vector_index_config.max_connections == 64
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
+        assert config.vector_index_config.max_connections == 64
+    else:
+        assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
@@ -432,7 +438,10 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    assert config.vector_index_config.max_connections == 64
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
+        assert config.vector_index_config.max_connections == 64
+    else:
+        assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer.bit_compression is False
     assert config.vector_index_config.quantizer.centroids == 128
     assert config.vector_index_config.quantizer.encoder.type_ == PQEncoderType.TILE
@@ -492,7 +501,10 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    assert config.vector_index_config.max_connections == 64
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
+        assert config.vector_index_config.max_connections == 64
+    else:
+        assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 2000000
@@ -826,7 +838,10 @@ def test_config_skip_vector_index(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.ef == -1
     assert config.vector_index_config.ef_construction == 128
     assert config.vector_index_config.flat_search_cutoff == 40000
-    assert config.vector_index_config.max_connections == 64
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 0):
+        assert config.vector_index_config.max_connections == 64
+    else:
+        assert config.vector_index_config.max_connections == 32
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is True
     assert config.vector_index_config.vector_cache_max_objects == 1000000000000
