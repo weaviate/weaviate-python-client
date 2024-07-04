@@ -572,13 +572,13 @@ class _Generative:
         module_name: str,
         module_config: Dict[str, Any],
     ) -> _GenerativeConfigCreate:
-        """Create a `_GenerativeCustom` object for use when generating using a custom module.
+        """Create a `_GenerativeCustom` object for use when generating using a custom specification.
 
         Arguments:
             `module_name`
-                The name of the custom module to use, REQUIRED.
+                The name of the module to use, REQUIRED.
             `module_config`
-                The configuration to use for the custom module. Defaults to `None`, which uses the server-defined default.
+                The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
         """
         return _GenerativeCustom(generative=_EnumLikeStr(module_name), module_config=module_config)
 
@@ -871,13 +871,13 @@ class _Reranker:
 
     @staticmethod
     def custom(module_name: str, module_config: Dict[str, Any]) -> _RerankerConfigCreate:
-        """Create a `_RerankerCustomConfig` object for use when reranking using a custom module.
+        """Create a `_RerankerCustomConfig` object for use when reranking using a custom specification.
 
         Arguments:
             `module_name`
-                The name of the custom module to use, REQUIRED.
+                The name of the module to use, REQUIRED.
             `module_config`
-                The configuration to use for the custom module. Defaults to `None`, which uses the server-defined default.
+                The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
         """
         return _RerankerCustomConfig(
             reranker=_EnumLikeStr(module_name), module_config=module_config
