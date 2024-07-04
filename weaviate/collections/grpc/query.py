@@ -376,7 +376,7 @@ class _QueryGRPC(_BaseGRPC):
                 targets=targets,
                 target_vectors=target_vectors,
                 vector_per_target=vector_per_target_tmp,
-                vector=near_vector_grpc,
+                vector_bytes=near_vector_grpc,
             ),
         )
 

@@ -19,10 +19,9 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigCreate,
     _RerankerConfigCreate,
 )
+from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.types import Properties
 from weaviate.config import AdditionalConfig
-
-from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 
 
 class CollectionFactory(Protocol):
@@ -77,7 +76,9 @@ def collection_factory(request: SubRequest) -> Generator[CollectionFactory, None
         reranker_config: Optional[_RerankerConfigCreate] = None,
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
-        name_fixture = _sanitize_collection_name(request.node.name) + name
+        name_fixture = (
+            _sanitize_collection_name(request.node.fspath.basename + "_" + request.node.name) + name
+        )
         client_fixture = weaviate.connect_to_local(
             headers=headers,
             grpc_port=ports[1],
