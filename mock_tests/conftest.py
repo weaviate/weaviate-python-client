@@ -137,7 +137,21 @@ def tenants_collection(
                         activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_UNFREEZING,
                     ),
                     tenants_pb2.Tenant(
-                        name="tenant6", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_UNFROZEN
+                        name="tenant6", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_ACTIVE
+                    ),
+                    tenants_pb2.Tenant(
+                        name="tenant7", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_INACTIVE
+                    ),
+                    tenants_pb2.Tenant(
+                        name="tenant8", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_OFFLOADED
+                    ),
+                    tenants_pb2.Tenant(
+                        name="tenant9",
+                        activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_OFFLOADING,
+                    ),
+                    tenants_pb2.Tenant(
+                        name="tenant10",
+                        activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_ACTIVATING,
                     ),
                 ]
             )

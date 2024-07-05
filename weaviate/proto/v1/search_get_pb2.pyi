@@ -279,7 +279,6 @@ class Targets(_message.Message):
         key: str
         value: float
         def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
-
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     COMBINATION_FIELD_NUMBER: _ClassVar[int]
     WEIGHTS_FIELD_NUMBER: _ClassVar[int]
@@ -374,7 +373,6 @@ class NearTextSearch(_message.Message):
             concepts: _Optional[_Iterable[str]] = ...,
             uuids: _Optional[_Iterable[str]] = ...,
         ) -> None: ...
-
     QUERY_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
@@ -572,7 +570,6 @@ class NearVector(_message.Message):
         key: str
         value: bytes
         def __init__(self, key: _Optional[str] = ..., value: _Optional[bytes] = ...) -> None: ...
-
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]

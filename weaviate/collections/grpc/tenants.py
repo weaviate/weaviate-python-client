@@ -33,14 +33,29 @@ class _TenantsGRPC(_BaseGRPC):
         return res
 
     def map_activity_status(self, status: tenants_pb2.TenantActivityStatus) -> TenantActivityStatus:
-        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_COLD:
+        if (
+            status == tenants_pb2.TENANT_ACTIVITY_STATUS_COLD
+            or status == tenants_pb2.TENANT_ACTIVITY_STATUS_INACTIVE
+        ):
             return TenantActivityStatus.INACTIVE
-        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_HOT:
+        if (
+            status == tenants_pb2.TENANT_ACTIVITY_STATUS_HOT
+            or status == tenants_pb2.TENANT_ACTIVITY_STATUS_ACTIVE
+        ):
             return TenantActivityStatus.ACTIVE
-        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_FROZEN:
+        if (
+            status == tenants_pb2.TENANT_ACTIVITY_STATUS_FROZEN
+            or status == tenants_pb2.TENANT_ACTIVITY_STATUS_OFFLOADED
+        ):
             return TenantActivityStatus.OFFLOADED
-        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_FREEZING:
+        if (
+            status == tenants_pb2.TENANT_ACTIVITY_STATUS_FREEZING
+            or status == tenants_pb2.TENANT_ACTIVITY_STATUS_OFFLOADING
+        ):
             return TenantActivityStatus.OFFLOADING
-        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_UNFREEZING:
+        if (
+            status == tenants_pb2.TENANT_ACTIVITY_STATUS_UNFREEZING
+            or status == tenants_pb2.TENANT_ACTIVITY_STATUS_ACTIVATING
+        ):
             return TenantActivityStatus.ACTIVATING
         raise ValueError(f"Unknown TenantActivityStatus: {status}")
