@@ -51,6 +51,7 @@ class TestWeaviateClient(unittest.TestCase):
                 embedded_db=None,
                 grcp_port=None,
                 connection_config=ConnectionConfig(),
+                verify=True,
             )
 
         with patch(
@@ -75,6 +76,7 @@ class TestWeaviateClient(unittest.TestCase):
                 embedded_db=None,
                 grcp_port=None,
                 connection_config=ConnectionConfig(),
+                verify=True,
             )
 
         with patch(
@@ -95,6 +97,7 @@ class TestWeaviateClient(unittest.TestCase):
                 embedded_db=None,
                 grcp_port=None,
                 connection_config=ConnectionConfig(),
+                verify=True,
             )
 
         with patch(
@@ -121,6 +124,7 @@ class TestWeaviateClient(unittest.TestCase):
                 embedded_db=None,
                 grcp_port=None,
                 connection_config=ConnectionConfig(),
+                verify=True,
             )
 
         if platform == "linux":

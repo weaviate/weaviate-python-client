@@ -61,6 +61,7 @@ class Connection(_ConnectionBase):
         timeout_config: TIMEOUT_TYPE_RETURN,
         proxies: Union[dict, str, None],
         trust_env: bool,
+        verify: bool,
         additional_headers: Optional[Dict[str, Any]],
         startup_period: Optional[int],
         connection_config: ConnectionConfig,
@@ -92,6 +93,8 @@ class Connection(_ConnectionBase):
             or https_proxy).
             NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None,
             'trust_env' is ignored.
+        verify : bool, optional
+            Whether to enable SSL verification
         additional_headers : Dict[str, Any] or None
             Additional headers to include in the requests, used to set OpenAI key. OpenAI key looks
             like this: {'X-OpenAI-Api-Key': 'KEY'}.
@@ -112,6 +115,7 @@ class Connection(_ConnectionBase):
         self.embedded_db = embedded_db
 
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
+        self._verify = verify
 
         # create GRPC channel. If weaviate does not support GRPC, fallback to GraphQL is used.
         if grcp_port is not None:
@@ -379,6 +383,7 @@ class Connection(_ConnectionBase):
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
+            verify=self._verify,
         )
 
     def patch(
@@ -420,6 +425,7 @@ class Connection(_ConnectionBase):
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
+            verify=self._verify,
         )
 
     def post(
@@ -463,6 +469,7 @@ class Connection(_ConnectionBase):
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
+            verify=self._verify,
         )
 
     def put(
@@ -504,6 +511,7 @@ class Connection(_ConnectionBase):
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
+            verify=self._verify,
         )
 
     def get(
@@ -546,6 +554,7 @@ class Connection(_ConnectionBase):
             timeout=self._timeout_config,
             params=params,
             proxies=self._proxies,
+            verify=self._verify,
         )
 
     def head(
@@ -584,6 +593,7 @@ class Connection(_ConnectionBase):
             timeout=self._timeout_config,
             proxies=self._proxies,
             params=params,
+            verify=self._verify,
         )
 
     @property

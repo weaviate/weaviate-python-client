@@ -91,6 +91,7 @@ class _Connection(_ConnectionBase):
         timeout_config: TimeoutConfig,
         proxies: Union[str, Proxies, None],
         trust_env: bool,
+        verify: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedV4] = None,
@@ -110,6 +111,7 @@ class _Connection(_ConnectionBase):
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
+        self.verify = verify
         self._weaviate_version = _ServerVersion.from_string("")
         self.__connected = False
 
@@ -209,6 +211,7 @@ class _Connection(_ConnectionBase):
                     proxy=proxy,
                     retries=self.__connection_config.session_pool_max_retries,
                     trust_env=self.__trust_env,
+                    verify=self.verify,
                 )
                 for key, proxy in self._proxies.items()
                 if key != "grpc"
@@ -221,6 +224,7 @@ class _Connection(_ConnectionBase):
                 None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
             mounts=self.__make_mounts("sync"),
+            verify=self.verify,
         )
 
     def __make_async_client(self) -> AsyncClient:
@@ -230,6 +234,7 @@ class _Connection(_ConnectionBase):
                 None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
             mounts=self.__make_mounts("async"),
+            verify=self.verify,
         )
 
     def __make_clients(self) -> None:
@@ -641,6 +646,7 @@ class ConnectionV4(_Connection):
         timeout_config: TimeoutConfig,
         proxies: Union[str, Proxies, None],
         trust_env: bool,
+        verify: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
         embedded_db: Optional[EmbeddedV4] = None,
@@ -651,6 +657,7 @@ class ConnectionV4(_Connection):
             timeout_config,
             proxies,
             trust_env,
+            verify,
             additional_headers,
             connection_config,
             embedded_db,

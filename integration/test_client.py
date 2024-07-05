@@ -483,6 +483,23 @@ def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> 
         assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
 
 
+def test_client_with_verify() -> None:
+    additional_config = wvc.init.AdditionalConfig(
+        timeout=Timeout(query=1, insert=2, init=2), trust_env=True, verify=False
+    )
+    client = weaviate.connect_to_custom(
+        http_secure=True,
+        http_host=WCS_HOST,
+        http_port=443,
+        grpc_secure=True,
+        grpc_host=WCS_GRPC_HOST,
+        grpc_port=443,
+        auth_credentials=WCS_CREDS,
+        additional_config=additional_config,
+    )
+    assert not client._connection.verify
+
+
 def test_client_error_for_wcs_without_auth() -> None:
     with pytest.raises(weaviate.exceptions.AuthenticationFailedError) as e:
         weaviate.connect_to_wcs(cluster_url=WCS_URL, auth_credentials=None)
