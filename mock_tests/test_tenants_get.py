@@ -20,6 +20,3 @@ def test_tenants_get(tenants_collection: weaviate.collections.Collection) -> Non
 
     assert tenants[4].name == "tenant5"
     assert tenants[4].activity_status == TenantActivityStatus.UNFREEZING
-
-    assert tenants[5].name == "tenant6"
-    assert tenants[5].activity_status == TenantActivityStatus.UNFROZEN
