@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import (
     Tenant,
     TenantCreate,
@@ -7,15 +8,13 @@ from weaviate.collections.classes.tenants import (
     TenantActivityStatus,
     TenantCreateActivityStatus,
     TenantUpdateActivityStatus,
+    TenantOutput,
 )
-from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.grpc.tenants import _TenantsGRPC
 from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.validator import _validate_input, _ValidateArgument
-
-from weaviate.connect.v4 import _ExpectedStatusCodes
-
 
 TenantCreateInputType = Union[str, Tenant, TenantCreate]
 TenantUpdateInputType = Union[str, Tenant, TenantUpdate]
@@ -154,7 +153,10 @@ class _Tenants:
         )
 
         tenant_resp: List[Dict[str, Any]] = response.json()
-        return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
+        for tenant in tenant_resp:
+            tenant["activityStatusInternal"] = tenant["activityStatus"]
+            del tenant["activityStatus"]
+        return {tenant["name"]: TenantOutput(**tenant) for tenant in tenant_resp}
 
     def __get_with_grpc(
         self, tenants: Optional[Sequence[Union[str, Tenant]]] = None
@@ -180,11 +182,11 @@ class _Tenants:
             return TenantCreate(name=tenant)
         if isinstance(tenant, Tenant):
             if tenant.activity_status not in [
-                TenantActivityStatus.HOT,
-                TenantActivityStatus.COLD,
+                TenantActivityStatus.ACTIVE,
+                TenantActivityStatus.INACTIVE,
             ]:
                 raise WeaviateInvalidInputError(
-                    f"Tenant activity status must be either 'HOT' or 'COLD'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
+                    f"Tenant activity status must be either 'ACTIVE' or 'INACTIVE'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
                 )
             activity_status = TenantCreateActivityStatus(tenant.activity_status)
             return TenantCreate(name=tenant.name, activity_status=activity_status)
@@ -195,12 +197,12 @@ class _Tenants:
             return TenantUpdate(name=tenant)
         if isinstance(tenant, Tenant):
             if tenant.activity_status not in [
-                TenantActivityStatus.HOT,
-                TenantActivityStatus.COLD,
-                TenantActivityStatus.FROZEN,
+                TenantActivityStatus.ACTIVE,
+                TenantActivityStatus.INACTIVE,
+                TenantActivityStatus.OFFLOADED,
             ]:
                 raise WeaviateInvalidInputError(
-                    f"Tenant activity status must be one of 'HOT', 'COLD' or 'FROZEN'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
+                    f"Tenant activity status must be one of 'ACTIVE', 'INACTIVE' or 'OFFLOADED'. Other statuses are read-only and cannot be set. Tenant: {tenant.name} had status: {tenant.activity_status}"
                 )
             activity_status = TenantUpdateActivityStatus(tenant.activity_status)
             return TenantUpdate(name=tenant.name, activity_status=activity_status)
