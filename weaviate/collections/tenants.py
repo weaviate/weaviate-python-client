@@ -8,6 +8,7 @@ from weaviate.collections.classes.tenants import (
     TenantActivityStatus,
     TenantCreateActivityStatus,
     TenantUpdateActivityStatus,
+    TenantOutput,
 )
 from weaviate.collections.grpc.tenants import _TenantsGRPC
 from weaviate.connect import ConnectionV4
@@ -152,7 +153,10 @@ class _Tenants:
         )
 
         tenant_resp: List[Dict[str, Any]] = response.json()
-        return {tenant["name"]: Tenant(**tenant) for tenant in tenant_resp}
+        for tenant in tenant_resp:
+            tenant["activityStatusInternal"] = tenant["activityStatus"]
+            del tenant["activityStatus"]
+        return {tenant["name"]: TenantOutput(**tenant) for tenant in tenant_resp}
 
     def __get_with_grpc(
         self, tenants: Optional[Sequence[Union[str, Tenant]]] = None

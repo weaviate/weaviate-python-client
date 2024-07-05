@@ -117,15 +117,15 @@ def test_tenants(collection_factory: CollectionFactory) -> None:
 
     tenants = collection.tenants.get()
     assert len(tenants) == 2
-    assert type(tenants["tenant1"]) is Tenant
-    assert type(tenants["tenant2"]) is Tenant
+    assert isinstance(tenants["tenant1"], Tenant)
+    assert isinstance(tenants["tenant2"], Tenant)
     assert tenants["tenant1"].name == "tenant1"
     assert tenants["tenant2"].name == "tenant2"
 
     if collection._connection._weaviate_version.supports_tenants_get_grpc:
         tenants = collection.tenants.get_by_names(tenants=["tenant2"])
         assert len(tenants) == 1
-        assert type(tenants["tenant2"]) is Tenant
+        assert isinstance(tenants["tenant2"], Tenant)
         assert tenants["tenant2"].name == "tenant2"
     else:
         pytest.raises(

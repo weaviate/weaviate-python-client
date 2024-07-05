@@ -84,18 +84,32 @@ class Tenant(BaseModel):
         return self.activityStatusInternal
 
     def model_post_init(self, __context: Any) -> None:  # noqa: D102
+        self._model_post_init(user_input=True)
+
+    def _model_post_init(self, user_input: bool) -> None:  # noqa: D102
         if self.activityStatusInternal == TenantActivityStatus.HOT:
-            _Warnings.deprecated_tenant_type("HOT", "ACTIVE")
+            if user_input:
+                _Warnings.deprecated_tenant_type("HOT", "ACTIVE")
             self.activityStatusInternal = TenantActivityStatus.ACTIVE
         elif self.activityStatusInternal == TenantUpdateActivityStatus.COLD:
-            _Warnings.deprecated_tenant_type("COLD", "INACTIVE")
+            if user_input:
+                _Warnings.deprecated_tenant_type("COLD", "INACTIVE")
             self.activityStatusInternal = TenantActivityStatus.INACTIVE
         elif self.activityStatusInternal == TenantUpdateActivityStatus.FROZEN:
-            _Warnings.deprecated_tenant_type("FROZEN", "OFFLOADED")
+            if user_input:
+                _Warnings.deprecated_tenant_type("FROZEN", "OFFLOADED")
             self.activityStatusInternal = TenantActivityStatus.OFFLOADED
-        self.activityStatus = _TenantActivistatusServerValues.from_string(
-            self.activityStatusInternal.value
-        )
+        if user_input:
+            self.activityStatus = _TenantActivistatusServerValues.from_string(
+                self.activityStatusInternal.value
+            )
+
+
+class TenantOutput(Tenant):  # noqa: D101
+    """Wrapper around Tenant for output purposes."""
+
+    def model_post_init(self, __context: Any) -> None:  # noqa: D102
+        self._model_post_init(user_input=False)
 
 
 class TenantCreateActivityStatus(str, Enum):
