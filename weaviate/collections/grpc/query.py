@@ -191,7 +191,19 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([None, str], "query", query),
                     _ValidateArgument([float, int, None], "alpha", alpha),
                     _ValidateArgument(
-                        [list, _HybridNearText, _HybridNearVector, None], "vector", vector
+                        [
+                            List,
+                            Dict,
+                            _ExtraTypes.PANDAS,
+                            _ExtraTypes.POLARS,
+                            _ExtraTypes.NUMPY,
+                            _ExtraTypes.TF,
+                            _HybridNearText,
+                            _HybridNearVector,
+                            None,
+                        ],
+                        "vector",
+                        vector,
                     ),
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
@@ -206,6 +218,43 @@ class _QueryGRPC(_BaseGRPC):
             alpha = 1
 
         targets, target_vector = self.__target_vector_to_grpc(target_vector)
+
+        near_text, near_vector, vector_bytes = None, None, None
+
+        if vector is None:
+            pass
+        elif isinstance(vector, list) and len(vector) > 0 and isinstance(vector[0], float):
+            # fast path for simple vector
+            vector_bytes = struct.pack("{}f".format(len(vector)), *vector)
+        elif isinstance(vector, _HybridNearText):
+            near_text = search_get_pb2.NearTextSearch(
+                query=[vector.text] if isinstance(vector.text, str) else vector.text,
+                certainty=vector.certainty,
+                distance=vector.distance,
+                move_away=self.__parse_move(vector.move_away),
+                move_to=self.__parse_move(vector.move_to),
+            )
+        elif isinstance(vector, _HybridNearVector):
+            vector_per_target, vector_bytes_tmp = self.__vector_per_target(
+                vector.vector, targets, "vector"
+            )
+            near_vector = search_get_pb2.NearVector(
+                vector_bytes=vector_bytes_tmp,
+                certainty=vector.certainty,
+                distance=vector.distance,
+                vector_per_target=vector_per_target,
+            )
+        else:
+            vector_per_target, vector_bytes_tmp = self.__vector_per_target(
+                vector, targets, "vector"
+            )
+            if vector_per_target is not None:
+                near_vector = search_get_pb2.NearVector(
+                    vector_bytes=vector_bytes_tmp,
+                    vector_per_target=vector_per_target,
+                )
+            else:
+                vector_bytes = vector_bytes_tmp
 
         hybrid_search = (
             search_get_pb2.Hybrid(
@@ -222,31 +271,9 @@ class _QueryGRPC(_BaseGRPC):
                 ),
                 target_vectors=target_vector,
                 targets=targets,
-                vector_bytes=(
-                    struct.pack("{}f".format(len(vector)), *vector)
-                    if vector is not None and isinstance(vector, list)
-                    else None
-                ),
-                near_text=(
-                    search_get_pb2.NearTextSearch(
-                        query=[vector.text] if isinstance(vector.text, str) else vector.text,
-                        certainty=vector.certainty,
-                        distance=vector.distance,
-                        move_away=self.__parse_move(vector.move_away),
-                        move_to=self.__parse_move(vector.move_to),
-                    )
-                    if vector is not None and isinstance(vector, _HybridNearText)
-                    else None
-                ),
-                near_vector=(
-                    search_get_pb2.NearVector(
-                        vector_bytes=struct.pack("{}f".format(len(vector.vector)), *vector.vector),
-                        certainty=vector.certainty,
-                        distance=vector.distance,
-                    )
-                    if vector is not None and isinstance(vector, _HybridNearVector)
-                    else None
-                ),
+                near_text=near_text,
+                near_vector=near_vector,
+                vector_bytes=vector_bytes,
             )
             if query is not None or vector is not None
             else None
@@ -353,78 +380,21 @@ class _QueryGRPC(_BaseGRPC):
         certainty, distance = self.__parse_near_options(certainty, distance)
 
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
-        invalid_nv_exception = WeaviateInvalidInputError(
-            f"""near vector argument can be:
-                                - a list of numbers
-                                - a list of lists of numbers for multi target search
-                                - a dictionary with target names as keys and lists of numbers as values
-                        received: {near_vector}"""
-        )
-        if isinstance(near_vector, dict):
-            if targets is None or len(targets.target_vectors) != len(near_vector):
-                raise WeaviateInvalidInputError(
-                    "The number of target vectors must be equal to the number of vectors."
-                )
 
-            vector_per_target: Dict[str, bytes] = {}
-            for key, value in near_vector.items():
-                nv = _get_vector_v4(value)
-
-                if (
-                    not isinstance(nv, list)
-                    or len(nv) == 0
-                    or not isinstance(nv[0], get_args(NUMBER))
-                ):
-                    raise invalid_nv_exception
-
-                vector_per_target[key] = struct.pack("{}f".format(len(nv)), *nv)
-            near_vector_grpc = search_get_pb2.NearVector(
-                certainty=certainty,
-                distance=distance,
-                targets=targets,
-                target_vectors=target_vectors,
-                vector_per_target=vector_per_target,
+        if (
+            isinstance(near_vector, list)
+            and len(near_vector) > 0
+            and isinstance(near_vector[0], float)
+        ):
+            # fast path for simple vector
+            near_vector_grpc: Optional[bytes] = struct.pack(
+                "{}f".format(len(near_vector)), *near_vector
             )
+            vector_per_target_tmp = None
         else:
-            if len(near_vector) == 0:
-                raise invalid_nv_exception
-
-            if _is_1d_vector(near_vector):
-                near_vector = _get_vector_v4(near_vector)
-                if not isinstance(near_vector, list):
-                    raise invalid_nv_exception
-                near_vector_grpc = search_get_pb2.NearVector(
-                    certainty=certainty,
-                    distance=distance,
-                    vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
-                    targets=targets,
-                    target_vectors=target_vectors,
-                )
-            else:
-                vector_per_target_tmp: Dict[str, bytes] = {}
-                if targets is None or len(targets.target_vectors) != len(near_vector):
-                    raise WeaviateInvalidInputError(
-                        "The number of target vectors must be equal to the number of vectors."
-                    )
-                for i, vector in enumerate(near_vector):
-                    nv = _get_vector_v4(vector)
-                    if (
-                        not isinstance(nv, list)
-                        or len(nv) == 0
-                        or not isinstance(nv[0], get_args(NUMBER))
-                    ):
-                        raise invalid_nv_exception
-                    vector_per_target_tmp[targets.target_vectors[i]] = struct.pack(
-                        "{}f".format(len(nv)), *nv
-                    )
-                near_vector_grpc = search_get_pb2.NearVector(
-                    certainty=certainty,
-                    distance=distance,
-                    targets=targets,
-                    target_vectors=target_vectors,
-                    vector_per_target=vector_per_target_tmp,
-                )
-
+            vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
+                near_vector, targets, "near_vector"
+            )
         request = self.__create_request(
             limit=limit,
             offset=offset,
@@ -436,7 +406,14 @@ class _QueryGRPC(_BaseGRPC):
             rerank=rerank,
             autocut=autocut,
             group_by=group_by,
-            near_vector=near_vector_grpc,
+            near_vector=search_get_pb2.NearVector(
+                certainty=certainty,
+                distance=distance,
+                targets=targets,
+                target_vectors=target_vectors,
+                vector_per_target=vector_per_target_tmp,
+                vector_bytes=near_vector_grpc,
+            ),
         )
 
         return self.__call(request)
@@ -901,3 +878,62 @@ class _QueryGRPC(_BaseGRPC):
             return search_get_pb2.Targets(target_vectors=target_vector), None
         else:
             return target_vector.to_grpc_target_vector(), None
+
+    @staticmethod
+    def __vector_per_target(
+        vector: NearVectorInputType, targets: Optional[search_get_pb2.Targets], argument_name: str
+    ) -> Tuple[Optional[Dict[str, bytes]], Optional[bytes]]:
+        invalid_nv_exception = WeaviateInvalidInputError(
+            f"""{argument_name} argument can be:
+                                - a list of numbers
+                                - a list of lists of numbers for multi target search
+                                - a dictionary with target names as keys and lists of numbers as values
+                        received: {vector}"""
+        )
+        if isinstance(vector, dict):
+            if targets is None or len(targets.target_vectors) != len(vector):
+                raise WeaviateInvalidInputError(
+                    "The number of target vectors must be equal to the number of vectors."
+                )
+
+            vector_per_target: Dict[str, bytes] = {}
+            for key, value in vector.items():
+                nv = _get_vector_v4(value)
+
+                if (
+                    not isinstance(nv, list)
+                    or len(nv) == 0
+                    or not isinstance(nv[0], get_args(NUMBER))
+                ):
+                    raise invalid_nv_exception
+
+                vector_per_target[key] = struct.pack("{}f".format(len(nv)), *nv)
+
+            return vector_per_target, None
+        else:
+            if len(vector) == 0:
+                raise invalid_nv_exception
+
+            if _is_1d_vector(vector):
+                near_vector = _get_vector_v4(vector)
+                if not isinstance(near_vector, list):
+                    raise invalid_nv_exception
+                return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
+            else:
+                vector_per_target = {}
+                if targets is None or len(targets.target_vectors) != len(vector):
+                    raise WeaviateInvalidInputError(
+                        "The number of target vectors must be equal to the number of vectors."
+                    )
+                for i, inner_vector in enumerate(vector):
+                    nv = _get_vector_v4(inner_vector)
+                    if (
+                        not isinstance(nv, list)
+                        or len(nv) == 0
+                        or not isinstance(nv[0], get_args(NUMBER))
+                    ):
+                        raise invalid_nv_exception
+                    vector_per_target[targets.target_vectors[i]] = struct.pack(
+                        "{}f".format(len(nv)), *nv
+                    )
+                return vector_per_target, None

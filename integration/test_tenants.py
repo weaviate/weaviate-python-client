@@ -1,6 +1,7 @@
-import pytest
 import uuid
 from typing import List, Union
+
+import pytest
 
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
@@ -116,15 +117,15 @@ def test_tenants(collection_factory: CollectionFactory) -> None:
 
     tenants = collection.tenants.get()
     assert len(tenants) == 2
-    assert type(tenants["tenant1"]) is Tenant
-    assert type(tenants["tenant2"]) is Tenant
+    assert isinstance(tenants["tenant1"], Tenant)
+    assert isinstance(tenants["tenant2"], Tenant)
     assert tenants["tenant1"].name == "tenant1"
     assert tenants["tenant2"].name == "tenant2"
 
     if collection._connection._weaviate_version.supports_tenants_get_grpc:
         tenants = collection.tenants.get_by_names(tenants=["tenant2"])
         assert len(tenants) == 1
-        assert type(tenants["tenant2"]) is Tenant
+        assert isinstance(tenants["tenant2"], Tenant)
         assert tenants["tenant2"].name == "tenant2"
     else:
         pytest.raises(
@@ -228,17 +229,26 @@ def test_tenant_with_activity(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
-    collection.tenants.create(
-        [
-            Tenant(name="1", activity_status=TenantActivityStatus.HOT),
-            Tenant(name="2", activity_status=TenantActivityStatus.COLD),
-            Tenant(name="3"),
-        ]
-    )
+
+    with pytest.warns(DeprecationWarning) as recwarn:
+        collection.tenants.create(
+            [
+                Tenant(name="1", activity_status=TenantActivityStatus.HOT),
+                Tenant(name="2", activity_status=TenantActivityStatus.COLD),
+                Tenant(name="3", activity_status=TenantActivityStatus.ACTIVE),
+                Tenant(name="4", activity_status=TenantActivityStatus.INACTIVE),
+                Tenant(name="5"),
+            ]
+        )
+        assert len(recwarn) == 2
+        assert any("HOT is deprecated" in warn.message.args[0] for warn in recwarn.list)
+        assert any("COLD is deprecated" in warn.message.args[0] for warn in recwarn.list)
     tenants = collection.tenants.get()
-    assert tenants["1"].activity_status == TenantActivityStatus.HOT
-    assert tenants["2"].activity_status == TenantActivityStatus.COLD
-    assert tenants["3"].activity_status == TenantActivityStatus.HOT
+    assert tenants["1"].activity_status == TenantActivityStatus.ACTIVE
+    assert tenants["2"].activity_status == TenantActivityStatus.INACTIVE
+    assert tenants["3"].activity_status == TenantActivityStatus.ACTIVE
+    assert tenants["4"].activity_status == TenantActivityStatus.INACTIVE
+    assert tenants["5"].activity_status == TenantActivityStatus.ACTIVE
 
 
 def test_update_tenant(collection_factory: CollectionFactory) -> None:
@@ -246,13 +256,27 @@ def test_update_tenant(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
-    collection.tenants.create(Tenant(name="1", activity_status=TenantActivityStatus.HOT))
+    with pytest.warns(DeprecationWarning) as recwarn:
+        collection.tenants.create(Tenant(name="1", activity_status=TenantActivityStatus.HOT))
+        assert len(recwarn) == 1
+        assert any("HOT is deprecated" in warn.message.args[0] for warn in recwarn.list)
     tenants = collection.tenants.get()
-    assert tenants["1"].activity_status == TenantActivityStatus.HOT
+    assert tenants["1"].activity_status == TenantActivityStatus.ACTIVE
 
-    collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.COLD))
+    with pytest.warns(DeprecationWarning) as recwarn:
+        collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.COLD))
+        assert len(recwarn) == 1
+        assert any("COLD is deprecated" in warn.message.args[0] for warn in recwarn.list)
     tenants = collection.tenants.get()
-    assert tenants["1"].activity_status == TenantActivityStatus.COLD
+    assert tenants["1"].activity_status == TenantActivityStatus.INACTIVE
+
+    collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.ACTIVE))
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.ACTIVE
+
+    collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.INACTIVE))
+    tenants = collection.tenants.get()
+    assert tenants["1"].activity_status == TenantActivityStatus.INACTIVE
 
 
 def test_tenant_exists(collection_factory: CollectionFactory) -> None:
@@ -373,14 +397,8 @@ def test_tenants_remove(
 @pytest.mark.parametrize(
     "tenants",
     [
-        Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
-        Tenant(name="1", activity_status=TenantActivityStatus.UNFREEZING),
-        Tenant(name="1", activity_status=TenantActivityStatus.UNFROZEN),
         Tenant(name="1", activity_status=TenantActivityStatus.FROZEN),
         [
-            Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
-            Tenant(name="2", activity_status=TenantActivityStatus.UNFREEZING),
-            Tenant(name="3", activity_status=TenantActivityStatus.UNFROZEN),
             Tenant(name="4", activity_status=TenantActivityStatus.FROZEN),
         ],
     ],
@@ -399,13 +417,11 @@ def test_tenants_create_with_read_only_activity_status(
 @pytest.mark.parametrize(
     "tenants",
     [
-        Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
-        Tenant(name="1", activity_status=TenantActivityStatus.UNFREEZING),
-        Tenant(name="1", activity_status=TenantActivityStatus.UNFROZEN),
+        Tenant(name="1", activity_status=TenantActivityStatus.OFFLOADING),
+        Tenant(name="1", activity_status=TenantActivityStatus.ONLOADING),
         [
-            Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
-            Tenant(name="2", activity_status=TenantActivityStatus.UNFREEZING),
-            Tenant(name="3", activity_status=TenantActivityStatus.UNFROZEN),
+            Tenant(name="1", activity_status=TenantActivityStatus.OFFLOADING),
+            Tenant(name="2", activity_status=TenantActivityStatus.ONLOADING),
         ],
     ],
 )

@@ -17,8 +17,7 @@ env:
   WEAVIATE_123: 1.23.16
   WEAVIATE_124: 1.24.19
   WEAVIATE_125: 1.25.5
-  WEAVIATE_126: 1.26.0-rc.0
-
+  WEAVIATE_126: preview-allow-new-tenant-names-as-input-for-add-and-update-b6f5b8e
 
 
 jobs:

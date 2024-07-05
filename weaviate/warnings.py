@@ -206,6 +206,14 @@ class _Warnings:
         )
 
     @staticmethod
+    def deprecated_tenant_type(old: str, new: str) -> None:
+        warnings.warn(
+            message=f"""Dep020: The tenant status {old} is deprecated and will be removed by Q1 2025. Please use {new} instead.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.

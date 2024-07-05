@@ -31,10 +31,9 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigCreate,
     _RerankerConfigCreate,
 )
+from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.types import Properties
 from weaviate.config import AdditionalConfig
-
-from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 
 
 class CollectionFactory(Protocol):
@@ -132,7 +131,10 @@ def collection_factory(
             nonlocal client_fixture, name_fixtures, call_counter
             call_counter += 1
             name_fixture = (
-                _sanitize_collection_name(request.node.name) + name + "_" + str(call_counter)
+                _sanitize_collection_name(request.node.fspath.basename + "_" + request.node.name)
+                + name
+                + "_"
+                + str(call_counter)
             )
             name_fixtures.append(name_fixture)
             client_fixture = client_factory(

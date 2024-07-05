@@ -355,6 +355,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
             data_type=DataType(prop["dataType"][0]),
             description=prop.get("description"),
             index_filterable=prop["indexFilterable"],
+            index_range_filters=prop.get("indexRangeFilters", False),
             index_searchable=prop["indexSearchable"],
             name=prop["name"],
             nested_properties=(
