@@ -227,6 +227,9 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+NearVectorInputType = Union[List[float], Dict[str, List[float]], List[List[float]]]
+
+
 class _HybridNearBase(_WeaviateInput):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
@@ -241,10 +244,10 @@ class _HybridNearText(_HybridNearBase):
 
 
 class _HybridNearVector(_HybridNearBase):
-    vector: List[float]
+    vector: NearVectorInputType
 
 
-HybridVectorType = Union[List[float], _HybridNearText, _HybridNearVector]
+HybridVectorType = Union[NearVectorInputType, _HybridNearText, _HybridNearVector]
 
 
 class _MultiTargetVectorJoinEnum(BaseEnum):
@@ -367,7 +370,7 @@ class HybridVector:
 
     @staticmethod
     def near_vector(
-        vector: List[float],
+        vector: NearVectorInputType,
         *,
         certainty: Optional[float] = None,
         distance: Optional[float] = None,
@@ -384,9 +387,6 @@ class HybridVector:
             A `_HybridNearVector` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
         """
         return _HybridNearVector(vector=vector, distance=distance, certainty=certainty)
-
-
-NearVectorInputType = Union[List[float], Dict[str, List[float]], List[List[float]]]
 
 
 class _QueryReference(_WeaviateInput):
