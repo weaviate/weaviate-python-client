@@ -229,15 +229,20 @@ def test_tenant_with_activity(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
-    collection.tenants.create(
-        [
-            Tenant(name="1", activity_status=TenantActivityStatus.HOT),
-            Tenant(name="2", activity_status=TenantActivityStatus.COLD),
-            Tenant(name="3", activity_status=TenantActivityStatus.ACTIVE),
-            Tenant(name="4", activity_status=TenantActivityStatus.INACTIVE),
-            Tenant(name="5"),
-        ]
-    )
+
+    with pytest.warns(DeprecationWarning) as recwarn:
+        collection.tenants.create(
+            [
+                Tenant(name="1", activity_status=TenantActivityStatus.HOT),
+                Tenant(name="2", activity_status=TenantActivityStatus.COLD),
+                Tenant(name="3", activity_status=TenantActivityStatus.ACTIVE),
+                Tenant(name="4", activity_status=TenantActivityStatus.INACTIVE),
+                Tenant(name="5"),
+            ]
+        )
+        assert len(recwarn) == 2
+        assert any("HOT is deprecated" in warn.message.args[0] for warn in recwarn.list)
+        assert any("COLD is deprecated" in warn.message.args[0] for warn in recwarn.list)
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.ACTIVE
     assert tenants["2"].activity_status == TenantActivityStatus.INACTIVE
@@ -251,11 +256,17 @@ def test_update_tenant(collection_factory: CollectionFactory) -> None:
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
-    collection.tenants.create(Tenant(name="1", activity_status=TenantActivityStatus.HOT))
+    with pytest.warns(DeprecationWarning) as recwarn:
+        collection.tenants.create(Tenant(name="1", activity_status=TenantActivityStatus.HOT))
+        assert len(recwarn) == 1
+        assert any("HOT is deprecated" in warn.message.args[0] for warn in recwarn.list)
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.ACTIVE
 
-    collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.COLD))
+    with pytest.warns(DeprecationWarning) as recwarn:
+        collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.COLD))
+        assert len(recwarn) == 1
+        assert any("COLD is deprecated" in warn.message.args[0] for warn in recwarn.list)
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.INACTIVE
 
