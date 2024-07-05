@@ -386,12 +386,8 @@ def test_tenants_remove(
 @pytest.mark.parametrize(
     "tenants",
     [
-        Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
-        Tenant(name="1", activity_status=TenantActivityStatus.UNFREEZING),
         Tenant(name="1", activity_status=TenantActivityStatus.FROZEN),
         [
-            Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
-            Tenant(name="2", activity_status=TenantActivityStatus.UNFREEZING),
             Tenant(name="4", activity_status=TenantActivityStatus.FROZEN),
         ],
     ],
@@ -407,23 +403,23 @@ def test_tenants_create_with_read_only_activity_status(
         collection.tenants.create(tenants)
 
 
-# @pytest.mark.parametrize(
-#     "tenants",
-#     [
-#         Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
-#         Tenant(name="1", activity_status=TenantActivityStatus.UNFREEZING),
-#         [
-#             Tenant(name="1", activity_status=TenantActivityStatus.FREEZING),
-#             Tenant(name="2", activity_status=TenantActivityStatus.UNFREEZING),
-#         ],
-#     ],
-# )
-# def test_tenants_update_with_read_only_activity_status(
-#     collection_factory: CollectionFactory, tenants: Union[Tenant, List[Tenant]]
-# ) -> None:
-#     collection = collection_factory(
-#         vectorizer_config=Configure.Vectorizer.none(),
-#         multi_tenancy_config=Configure.multi_tenancy(),
-#     )
-#     with pytest.raises(WeaviateInvalidInputError):
-#         collection.tenants.update(tenants)
+@pytest.mark.parametrize(
+    "tenants",
+    [
+        Tenant(name="1", activity_status=TenantActivityStatus.OFFLOADING),
+        Tenant(name="1", activity_status=TenantActivityStatus.ACTIVATING),
+        [
+            Tenant(name="1", activity_status=TenantActivityStatus.OFFLOADING),
+            Tenant(name="2", activity_status=TenantActivityStatus.ACTIVATING),
+        ],
+    ],
+)
+def test_tenants_update_with_read_only_activity_status(
+    collection_factory: CollectionFactory, tenants: Union[Tenant, List[Tenant]]
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(),
+    )
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.tenants.update(tenants)

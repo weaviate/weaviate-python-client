@@ -6,6 +6,25 @@ from pydantic import BaseModel, ConfigDict, Field
 from weaviate.warnings import _Warnings
 
 
+class _TenantActivistatusServerValues(str, Enum):
+    """Values to be used when sending tenants to weaviate. Needed for BC."""
+
+    HOT = "HOT"
+    COLD = "COLD"
+    FROZEN = "FROZEN"
+    OTHER = "OTHER"  # placeholder for values that we receive from the server but do not send
+
+    @staticmethod
+    def from_string(value: str) -> "_TenantActivistatusServerValues":
+        if value == "ACTIVE" or value == "HOT":
+            return _TenantActivistatusServerValues.HOT
+        if value == "INACTIVE" or value == "COLD":
+            return _TenantActivistatusServerValues.COLD
+        if value == "OFFLOADED" or value == "FROZEN":
+            return _TenantActivistatusServerValues.FROZEN
+        return _TenantActivistatusServerValues.OTHER
+
+
 class TenantActivityStatus(str, Enum):
     """TenantActivityStatus class used to describe the activity status of a tenant in Weaviate.
 
@@ -26,10 +45,6 @@ class TenantActivityStatus(str, Enum):
             DEPRECATED, please use INACTIVE. The tenant is not active, files stored locally.
         `FROZEN`
             DEPRECATED, please use OFFLOADED. The tenant is not active, files stored on the cloud.
-        `FREEZING`
-            DEPRECATED, please use OFFLOADING. The tenant is in the process of being frozen.
-        `UNFREEZING`
-            DEPRECATED, please use ACTIVATING. The tenant is in the process of being unfrozen.
     """
 
     ACTIVE = "ACTIVE"
@@ -40,8 +55,6 @@ class TenantActivityStatus(str, Enum):
     HOT = "HOT"
     COLD = "COLD"
     FROZEN = "FROZEN"
-    FREEZING = "FREEZING"
-    UNFREEZING = "UNFREEZING"
 
 
 class Tenant(BaseModel):
@@ -56,25 +69,33 @@ class Tenant(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
     name: str
-    activityStatus: TenantActivityStatus = Field(
-        default=TenantActivityStatus.ACTIVE, alias="activity_status"
+    activityStatusInternal: TenantActivityStatus = Field(
+        default=TenantActivityStatus.ACTIVE,
+        alias="activity_status",
+        exclude=True,
+    )
+    activityStatus: _TenantActivistatusServerValues = Field(
+        init=False, default=_TenantActivistatusServerValues.HOT
     )
 
     @property
     def activity_status(self) -> TenantActivityStatus:
         """Getter for the activity status of the tenant."""
-        return self.activityStatus
+        return self.activityStatusInternal
 
     def model_post_init(self, __context: Any) -> None:  # noqa: D102
-        if self.activityStatus == TenantActivityStatus.HOT:
+        if self.activityStatusInternal == TenantActivityStatus.HOT:
             _Warnings.deprecated_tenant_type("HOT", "ACTIVE")
-            self.activityStatus = TenantActivityStatus.ACTIVE
-        elif self.activityStatus == TenantUpdateActivityStatus.COLD:
+            self.activityStatusInternal = TenantActivityStatus.ACTIVE
+        elif self.activityStatusInternal == TenantUpdateActivityStatus.COLD:
             _Warnings.deprecated_tenant_type("COLD", "INACTIVE")
-            self.activityStatus = TenantActivityStatus.INACTIVE
-        elif self.activityStatus == TenantUpdateActivityStatus.FROZEN:
+            self.activityStatusInternal = TenantActivityStatus.INACTIVE
+        elif self.activityStatusInternal == TenantUpdateActivityStatus.FROZEN:
             _Warnings.deprecated_tenant_type("FROZEN", "OFFLOADED")
-            self.activityStatus = TenantActivityStatus.OFFLOADED
+            self.activityStatusInternal = TenantActivityStatus.OFFLOADED
+        self.activityStatus = _TenantActivistatusServerValues.from_string(
+            self.activityStatusInternal.value
+        )
 
 
 class TenantCreateActivityStatus(str, Enum):
@@ -135,22 +156,30 @@ class TenantCreate(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
     name: str
-    activityStatus: TenantCreateActivityStatus = Field(
-        default=TenantCreateActivityStatus.ACTIVE, alias="activity_status"
+    activityStatusInternal: TenantCreateActivityStatus = Field(
+        default=TenantCreateActivityStatus.ACTIVE,
+        alias="activity_status",
+        exclude=True,
+    )
+    activityStatus: _TenantActivistatusServerValues = Field(
+        init=False, default=_TenantActivistatusServerValues.HOT
     )
 
     @property
     def activity_status(self) -> TenantCreateActivityStatus:
         """Getter for the activity status of the tenant."""
-        return self.activityStatus
+        return self.activityStatusInternal
 
     def model_post_init(self, __context: Any) -> None:  # noqa: D102
-        if self.activityStatus == TenantCreateActivityStatus.HOT:
+        if self.activityStatusInternal == TenantCreateActivityStatus.HOT:
             _Warnings.deprecated_tenant_type("HOT", "ACTIVE")
-            self.activityStatus = TenantCreateActivityStatus.ACTIVE
-        elif self.activityStatus == TenantCreateActivityStatus.COLD:
+            self.activityStatusInternal = TenantCreateActivityStatus.ACTIVE
+        elif self.activityStatusInternal == TenantCreateActivityStatus.COLD:
             _Warnings.deprecated_tenant_type("COLD", "INACTIVE")
-            self.activityStatus = TenantCreateActivityStatus.INACTIVE
+            self.activityStatusInternal = TenantCreateActivityStatus.INACTIVE
+        self.activityStatus = _TenantActivistatusServerValues.from_string(
+            self.activityStatusInternal.value
+        )
 
 
 class TenantUpdate(BaseModel):
@@ -165,22 +194,28 @@ class TenantUpdate(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
     name: str
-    activityStatus: TenantUpdateActivityStatus = Field(
-        default=TenantUpdateActivityStatus.ACTIVE, alias="activity_status"
+    activityStatusInternal: TenantUpdateActivityStatus = Field(
+        default=TenantUpdateActivityStatus.ACTIVE, alias="activity_status", exclude=True
+    )
+    activityStatus: _TenantActivistatusServerValues = Field(
+        init=False, default=_TenantActivistatusServerValues.HOT
     )
 
     @property
     def activity_status(self) -> TenantUpdateActivityStatus:
         """Getter for the activity status of the tenant."""
-        return self.activityStatus
+        return self.activityStatusInternal
 
     def model_post_init(self, __context: Any) -> None:  # noqa: D102
-        if self.activityStatus == TenantUpdateActivityStatus.HOT:
+        if self.activityStatusInternal == TenantUpdateActivityStatus.HOT:
             _Warnings.deprecated_tenant_type("HOT", "ACTIVE")
-            self.activityStatus = TenantUpdateActivityStatus.ACTIVE
-        elif self.activityStatus == TenantUpdateActivityStatus.COLD:
+            self.activityStatusInternal = TenantUpdateActivityStatus.ACTIVE
+        elif self.activityStatusInternal == TenantUpdateActivityStatus.COLD:
             _Warnings.deprecated_tenant_type("COLD", "INACTIVE")
-            self.activityStatus = TenantUpdateActivityStatus.INACTIVE
-        elif self.activityStatus == TenantUpdateActivityStatus.FROZEN:
+            self.activityStatusInternal = TenantUpdateActivityStatus.INACTIVE
+        elif self.activityStatusInternal == TenantUpdateActivityStatus.FROZEN:
             _Warnings.deprecated_tenant_type("FROZEN", "OFFLOADED")
-            self.activityStatus = TenantUpdateActivityStatus.OFFLOADED
+            self.activityStatusInternal = TenantUpdateActivityStatus.OFFLOADED
+        self.activityStatus = _TenantActivistatusServerValues.from_string(
+            self.activityStatusInternal.value
+        )
