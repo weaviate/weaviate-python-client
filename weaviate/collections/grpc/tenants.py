@@ -3,9 +3,7 @@ from typing import Optional, Sequence
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import TenantActivityStatus
 from weaviate.collections.grpc.shared import _BaseGRPC
-
 from weaviate.connect import ConnectionV4
-
 from weaviate.proto.v1 import tenants_pb2
 
 
@@ -36,15 +34,13 @@ class _TenantsGRPC(_BaseGRPC):
 
     def map_activity_status(self, status: tenants_pb2.TenantActivityStatus) -> TenantActivityStatus:
         if status == tenants_pb2.TENANT_ACTIVITY_STATUS_COLD:
-            return TenantActivityStatus.COLD
+            return TenantActivityStatus.INACTIVE
         if status == tenants_pb2.TENANT_ACTIVITY_STATUS_HOT:
-            return TenantActivityStatus.HOT
+            return TenantActivityStatus.ACTIVE
         if status == tenants_pb2.TENANT_ACTIVITY_STATUS_FROZEN:
-            return TenantActivityStatus.FROZEN
+            return TenantActivityStatus.OFFLOADED
         if status == tenants_pb2.TENANT_ACTIVITY_STATUS_FREEZING:
-            return TenantActivityStatus.FREEZING
+            return TenantActivityStatus.OFFLOADING
         if status == tenants_pb2.TENANT_ACTIVITY_STATUS_UNFREEZING:
-            return TenantActivityStatus.UNFREEZING
-        if status == tenants_pb2.TENANT_ACTIVITY_STATUS_UNFROZEN:
-            return TenantActivityStatus.UNFROZEN
+            return TenantActivityStatus.ACTIVATING
         raise ValueError(f"Unknown TenantActivityStatus: {status}")
