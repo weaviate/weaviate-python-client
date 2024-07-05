@@ -19,7 +19,7 @@ def test_tenants_get(tenants_collection: weaviate.collections.Collection) -> Non
     assert tenants[3].activity_status == TenantActivityStatus.OFFLOADING
 
     assert tenants[4].name == "tenant5"
-    assert tenants[4].activity_status == TenantActivityStatus.ACTIVATING
+    assert tenants[4].activity_status == TenantActivityStatus.ONLOADING
 
     assert tenants[5].name == "tenant6"
     assert tenants[5].activity_status == TenantActivityStatus.ACTIVE
@@ -34,4 +34,4 @@ def test_tenants_get(tenants_collection: weaviate.collections.Collection) -> Non
     assert tenants[8].activity_status == TenantActivityStatus.OFFLOADING
 
     assert tenants[9].name == "tenant10"
-    assert tenants[9].activity_status == TenantActivityStatus.ACTIVATING
+    assert tenants[9].activity_status == TenantActivityStatus.ONLOADING

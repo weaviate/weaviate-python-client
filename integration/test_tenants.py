@@ -407,10 +407,10 @@ def test_tenants_create_with_read_only_activity_status(
     "tenants",
     [
         Tenant(name="1", activity_status=TenantActivityStatus.OFFLOADING),
-        Tenant(name="1", activity_status=TenantActivityStatus.ACTIVATING),
+        Tenant(name="1", activity_status=TenantActivityStatus.ONLOADING),
         [
             Tenant(name="1", activity_status=TenantActivityStatus.OFFLOADING),
-            Tenant(name="2", activity_status=TenantActivityStatus.ACTIVATING),
+            Tenant(name="2", activity_status=TenantActivityStatus.ONLOADING),
         ],
     ],
 )

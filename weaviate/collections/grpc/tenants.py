@@ -55,7 +55,7 @@ class _TenantsGRPC(_BaseGRPC):
             return TenantActivityStatus.OFFLOADING
         if (
             status == tenants_pb2.TENANT_ACTIVITY_STATUS_UNFREEZING
-            or status == tenants_pb2.TENANT_ACTIVITY_STATUS_ACTIVATING
+            or status == tenants_pb2.TENANT_ACTIVITY_STATUS_ONLOADING
         ):
-            return TenantActivityStatus.ACTIVATING
+            return TenantActivityStatus.ONLOADING
         raise ValueError(f"Unknown TenantActivityStatus: {status}")

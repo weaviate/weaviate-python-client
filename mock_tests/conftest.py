@@ -151,7 +151,7 @@ def tenants_collection(
                     ),
                     tenants_pb2.Tenant(
                         name="tenant10",
-                        activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_ACTIVATING,
+                        activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_ONLOADING,
                     ),
                 ]
             )

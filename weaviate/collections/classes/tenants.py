@@ -37,7 +37,7 @@ class TenantActivityStatus(str, Enum):
             The tenant is not active, files stored on the cloud.
         `OFFLOADING`
             The tenant is in the process of being offloaded.
-        `ACTIVATING`
+        `ONLOADING`
             The tenant is in the process of being activated.
         `HOT`
             DEPRECATED, please use ACTIVE. The tenant is fully active and can be used.
@@ -51,7 +51,7 @@ class TenantActivityStatus(str, Enum):
     INACTIVE = "INACTIVE"
     OFFLOADED = "OFFLOADED"
     OFFLOADING = "OFFLOADING"
-    ACTIVATING = "ACTIVATING"
+    ONLOADING = "ONLOADING"
     HOT = "HOT"
     COLD = "COLD"
     FROZEN = "FROZEN"
