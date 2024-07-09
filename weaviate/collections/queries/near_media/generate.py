@@ -2,6 +2,7 @@ from io import BufferedReader
 from pathlib import Path
 from typing import Generic, List, Optional, Union
 
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -21,12 +22,12 @@ from weaviate.collections.classes.internal import (
     _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.base import _Base
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _NearMediaGenerate(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def near_media(
+class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
+    async def near_media(
         self,
         media: Union[str, Path, BufferedReader],
         media_type: NearMediaType,
@@ -100,7 +101,7 @@ class _NearMediaGenerate(Generic[Properties, References], _BaseQuery[Properties,
             `weaviate.exceptions.WeaviateQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query.near_media(
+        res = await self._query.near_media(
             media=self._parse_media(media),
             type_=media_type.value,
             certainty=certainty,
@@ -135,3 +136,10 @@ class _NearMediaGenerate(Generic[Properties, References], _BaseQuery[Properties,
             return_properties,
             return_references,
         )
+
+
+@syncify.convert
+class _NearMediaGenerate(
+    Generic[Properties, References], _NearMediaGenerateAsync[Properties, References]
+):
+    pass

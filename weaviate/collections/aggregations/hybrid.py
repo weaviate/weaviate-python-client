@@ -1,6 +1,7 @@
-from typing import List, Literal, Optional, Union, overload
+from typing import List, Optional, Union
 
-from weaviate.collections.aggregations.base import _Aggregate
+from weaviate import syncify
+from weaviate.collections.aggregations.aggregate import _AggregateAsync
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -12,42 +13,8 @@ from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import NUMBER
 
 
-class _Hybrid(_Aggregate):
-    @overload
-    def hybrid(
-        self,
-        query: Optional[str],
-        *,
-        alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
-        object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Literal[None] = None,
-        target_vector: Optional[str] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateReturn:
-        ...
-
-    @overload
-    def hybrid(
-        self,
-        query: Optional[str],
-        *,
-        alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
-        object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
-        target_vector: Optional[str] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateGroupByReturn:
-        ...
-
-    def hybrid(
+class _HybridAsync(_AggregateAsync):
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -106,9 +73,14 @@ class _Hybrid(_Aggregate):
             builder, query, alpha, vector, query_properties, object_limit, target_vector
         )
         builder = self._add_groupby_to_builder(builder, group_by)
-        res = self._do(builder)
+        res = await self._do(builder)
         return (
             self._to_aggregate_result(res, return_metrics)
             if group_by is None
             else self._to_group_by_result(res, return_metrics)
         )
+
+
+@syncify.convert
+class _Hybrid(_HybridAsync):
+    pass

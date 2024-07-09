@@ -1,4 +1,3 @@
-import asyncio
 import math
 import threading
 import time
@@ -7,23 +6,16 @@ from abc import ABC
 from collections import deque
 from copy import copy
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    TypeVar,
-    Union,
-)
+from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, Union, cast
 
 from pydantic import ValidationError
 from typing_extensions import TypeAlias
 
-from weaviate.cluster import Cluster
+from httpx import ConnectError
+
+from weaviate.cluster.types import Node
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
-from weaviate.collections.batch.rest import _BatchRESTAsync
+from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
     _BatchReference,
     BatchObject,
@@ -44,9 +36,11 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateBatchValidationError
+from weaviate.event_loop import _EventLoop
+from weaviate.exceptions import WeaviateBatchValidationError, EmptyResponseException
 from weaviate.logger import logger
 from weaviate.types import UUID, VECTORS
+from weaviate.util import _decode_json_response_dict
 from weaviate.warnings import _Warnings
 
 BatchResponse = List[Dict[str, Any]]
@@ -163,6 +157,7 @@ class _BatchBase:
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
         batch_mode: _BatchMode,
+        event_loop: _EventLoop,
         vectorizer_batching: bool,
         objects_: Optional[ObjectsBatchRequest] = None,
         references: Optional[ReferencesBatchRequest] = None,
@@ -174,7 +169,7 @@ class _BatchBase:
         self.__vectorizer_batching = vectorizer_batching
 
         self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
-        self.__batch_rest = _BatchRESTAsync(connection, self.__consistency_level)
+        self.__batch_rest = _BatchREST(connection, self.__consistency_level)
 
         # lookup table for objects that are currently being processed - is used to not send references from objects that have not been added yet
         self.__uuid_lookup_lock = threading.Lock()
@@ -186,11 +181,12 @@ class _BatchBase:
 
         self.__results_lock = threading.Lock()
 
-        self.__cluster = Cluster(self.__connection)
+        self.__cluster = _ClusterBatch(self.__connection)
 
         self.__batching_mode: _BatchMode = batch_mode
         self.__max_batch_size: int = 1000
 
+        self.__loop = event_loop
         self.__objs_count = 0
         self.__objs_logs_count = 0
         self.__refs_logs_count = 0
@@ -245,30 +241,6 @@ class _BatchBase:
             self.__results_for_wrapper.failed_references
         )
 
-    def __run_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
-        try:
-            loop.run_forever()
-        finally:
-            # This is entered when loop.stop is scheduled from the main thread
-            loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.close()
-
-    def __start_new_event_loop(self) -> asyncio.AbstractEventLoop:
-        loop = asyncio.new_event_loop()
-
-        event_loop = threading.Thread(
-            target=self.__run_event_loop,
-            daemon=True,
-            args=(loop,),
-            name="eventLoop",
-        )
-        event_loop.start()
-
-        while not loop.is_running():
-            time.sleep(0.01)
-
-        return loop
-
     def _shutdown(self) -> None:
         """Shutdown the current batch and wait for all requests to be finished."""
         self.flush()
@@ -289,69 +261,54 @@ class _BatchBase:
         )
 
     def __batch_send(self) -> None:
-        loop = self.__start_new_event_loop()
-        future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
-        future.result()  # Wait for self._connection.aopen() to finish
         refresh_time: float = 0.01
-
-        try:
-            while (
-                self.__shut_background_thread_down is not None
-                and not self.__shut_background_thread_down.is_set()
-            ):
-                if isinstance(self.__batching_mode, _RateLimitedBatching):
+        while (
+            self.__shut_background_thread_down is not None
+            and not self.__shut_background_thread_down.is_set()
+        ):
+            if isinstance(self.__batching_mode, _RateLimitedBatching):
+                if (
+                    time.time() - self.__time_stamp_last_request
+                    < self.__fix_rate_batching_base_time // self.__concurrent_requests
+                ):
+                    time.sleep(1)
+                    continue
+                refresh_time = 0
+            elif isinstance(self.__batching_mode, _DynamicBatching) and self.__vectorizer_batching:
+                if self.__dynamic_batching_sleep_time > 0:
                     if (
                         time.time() - self.__time_stamp_last_request
-                        < self.__fix_rate_batching_base_time // self.__concurrent_requests
+                        < self.__dynamic_batching_sleep_time
                     ):
                         time.sleep(1)
                         continue
-                    self.__time_stamp_last_request = time.time()
-                    refresh_time = 0
-                elif (
-                    isinstance(self.__batching_mode, _DynamicBatching)
-                    and self.__vectorizer_batching
-                ):
-                    if self.__dynamic_batching_sleep_time > 0:
-                        if (
-                            time.time() - self.__time_stamp_last_request
-                            < self.__dynamic_batching_sleep_time
-                        ):
-                            time.sleep(1)
-                            continue
 
-                    self.__time_stamp_last_request = time.time()
+            if (
+                self.__active_requests < self.__concurrent_requests
+                and len(self.__batch_objects) + len(self.__batch_references) > 0
+            ):
+                self.__time_stamp_last_request = time.time()
 
-                if self.__active_requests < self.__concurrent_requests and (
-                    len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
-                ):
-                    self._batch_send = True
-                    self.__active_requests_lock.acquire()
-                    self.__active_requests += 1
-                    self.__active_requests_lock.release()
+                self._batch_send = True
+                self.__active_requests_lock.acquire()
+                self.__active_requests += 1
+                self.__active_requests_lock.release()
 
-                    objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
-                    self.__uuid_lookup_lock.acquire()
-                    refs = self.__batch_references.pop_items(
-                        self.__recommended_num_refs, uuid_lookup=self.__uuid_lookup
-                    )
-                    self.__uuid_lookup_lock.release()
-                    # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
-                    asyncio.run_coroutine_threadsafe(
-                        self.__send_batch_async(
-                            objs,
-                            refs,
-                            readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
-                        ),
-                        loop,
-                    )
+                objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
+                self.__uuid_lookup_lock.acquire()
+                refs = self.__batch_references.pop_items(
+                    self.__recommended_num_refs, uuid_lookup=self.__uuid_lookup
+                )
+                self.__uuid_lookup_lock.release()
+                # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
+                self.__loop.schedule(
+                    self.__send_batch,
+                    objs,
+                    refs,
+                    readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
+                )
 
-                time.sleep(refresh_time)
-
-        finally:
-            future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
-            future.result()  # Wait for self._connection.aclose() to finish
-            loop.call_soon_threadsafe(loop.stop)
+            time.sleep(refresh_time)
 
     def __dynamic_batch_rate_loop(self) -> None:
         refresh_time = 1
@@ -382,7 +339,7 @@ class _BatchBase:
         demonDynamic = threading.Thread(
             target=dynamic_batch_rate_wrapper,
             daemon=True,
-            name="BgBatchScheduler",
+            name="BgDynamicBatchRate",
         )
         demonDynamic.start()
 
@@ -401,7 +358,7 @@ class _BatchBase:
         return demonBatchSend
 
     def __dynamic_batching(self) -> None:
-        status = self.__cluster.get_nodes_status()
+        status = self.__loop.run_until_complete(self.__cluster.get_nodes_status)
         if "batchStats" not in status[0] or "queueLength" not in status[0]["batchStats"]:
             # async indexing - just send a lot
             self.__batching_mode = _FixedSizeBatching(1000, 10)
@@ -491,13 +448,13 @@ class _BatchBase:
                     self.__recommended_num_objects = 0
                     self.__concurrent_requests = 2
 
-    async def __send_batch_async(
+    async def __send_batch(
         self, objs: List[_BatchObject], refs: List[_BatchReference], readd_rate_limit: bool
     ) -> None:
         if (n_objs := len(objs)) > 0:
             start = time.time()
             try:
-                response_obj = await self.__batch_grpc.aobjects(
+                response_obj = await self.__batch_grpc.objects(
                     objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
             except Exception as e:
@@ -747,3 +704,23 @@ class _BatchBase:
             return
 
         raise self.__bg_thread_exception or Exception("Batch thread died unexpectedly")
+
+
+class _ClusterBatch:
+    def __init__(self, connection: ConnectionV4):
+        self._connection = connection
+
+    async def get_nodes_status(
+        self,
+    ) -> List[Node]:
+        try:
+            response = await self._connection.get(path="/nodes")
+        except ConnectError as conn_err:
+            raise ConnectError("Get nodes status failed due to connection error") from conn_err
+
+        response_typed = _decode_json_response_dict(response, "Nodes status")
+        assert response_typed is not None
+        nodes = response_typed.get("nodes")
+        if nodes is None or nodes == []:
+            raise EmptyResponseException("Nodes status response returned empty")
+        return cast(List[Node], nodes)

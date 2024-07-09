@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Optional, Sequence, cast
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import TenantActivityStatus
@@ -17,20 +17,19 @@ class _TenantsGRPC(_BaseGRPC):
         super().__init__(connection, consistency_level)
         self._name: str = name
 
-    def get(self, names: Optional[Sequence[str]]) -> tenants_pb2.TenantsGetReply:
+    async def get(self, names: Optional[Sequence[str]]) -> tenants_pb2.TenantsGetReply:
         assert self._connection.grpc_stub is not None, "gRPC stub is not initialized"
 
         request = tenants_pb2.TenantsGetRequest(
             collection=self._name,
             names=tenants_pb2.TenantNames(values=names) if names is not None else None,
         )
-        res: tenants_pb2.TenantsGetReply  # According to PEP-0526
-        res, _ = self._connection.grpc_stub.TenantsGet.with_call(
+        res = await self._connection.grpc_stub.TenantsGet(
             request,
             metadata=self._connection.grpc_headers(),
             timeout=self._connection.timeout_config.query,
         )
-        return res
+        return cast(tenants_pb2.TenantsGetReply, res)
 
     def map_activity_status(self, status: tenants_pb2.TenantActivityStatus) -> TenantActivityStatus:
         if (

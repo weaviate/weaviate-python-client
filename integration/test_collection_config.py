@@ -39,6 +39,7 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client.collections.delete_all()
     yield client
     client.collections.delete_all()
+    client.close()
 
 
 def test_collections_list(client: weaviate.WeaviateClient) -> None:
@@ -848,7 +849,7 @@ def test_config_skip_vector_index(collection_factory: CollectionFactory) -> None
 
 
 def test_dynamic_collection(collection_factory: CollectionFactory) -> None:
-    collection_dummy = collection_factory("dummy")
+    collection_dummy = collection_factory("dummy", ports=(8090, 50061))
     if collection_dummy._connection._weaviate_version.is_lower_than(1, 25, 0):
         pytest.skip("Dynamic index is not supported in Weaviate versions lower than 1.25.0")
 
@@ -958,7 +959,7 @@ def test_create_custom_module(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         generative_config=Configure.Generative.custom(
             "generative-anyscale", module_config={"temperature": 0.5}
-        )
+        ),
     )
     config = collection.config.get()
 
@@ -977,7 +978,7 @@ def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         reranker_config=Configure.Reranker.custom(
             "reranker-cohere", module_config={"model": "rerank-english-v2.0"}
-        )
+        ),
     )
     config = collection.config.get()
 

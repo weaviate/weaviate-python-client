@@ -5,7 +5,7 @@ ignore = D100, D104, D105, D107, E203, E266, E501, E704, E731, W503
 per-file-ignores =
     weaviate/cluster/types.py:A005
     weaviate/collections/classes/types.py:A005
-    weaviate/collections/collections.py:A005
+    weaviate/collections/collections/__init__.py:A005
     weaviate/collections/__init__.py:A005
     weaviate/types.py:A005
     weaviate/warnings.py:A005

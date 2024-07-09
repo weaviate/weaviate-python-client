@@ -2,6 +2,7 @@ from io import BufferedReader
 from pathlib import Path
 from typing import Generic, Optional, Union
 
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -14,12 +15,12 @@ from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.base import _Base
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def near_image(
+class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+    async def near_image(
         self,
         near_image: Union[str, Path, BufferedReader],
         *,
@@ -87,7 +88,7 @@ class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             `weaviate.exceptions.WeaviateQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query.near_media(
+        res = await self._query.near_media(
             media=self._parse_media(near_image),
             type_="image",
             certainty=certainty,
@@ -117,3 +118,10 @@ class _NearImageQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             return_properties,
             return_references,
         )
+
+
+@syncify.convert
+class _NearImageQuery(
+    Generic[Properties, References], _NearImageQueryAsync[Properties, References]
+):
+    pass

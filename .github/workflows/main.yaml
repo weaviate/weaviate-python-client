@@ -14,10 +14,11 @@ on:
   pull_request:
 
 env:
-  WEAVIATE_123: 1.23.15
+  WEAVIATE_123: 1.23.16
   WEAVIATE_124: 1.24.19
   WEAVIATE_125: 1.25.5
   WEAVIATE_126: preview-allow-new-tenant-names-as-input-for-add-and-update-b6f5b8e
+
 
 jobs:
   lint-and-format:
@@ -217,6 +218,35 @@ jobs:
         with:
           name: coverage-report-integration
           path: coverage-integration.xml
+
+  journey-tests:
+    name: Run Journey Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        versions: [
+          { py: "3.8", weaviate: $WEAVIATE_125},
+          { py: "3.9", weaviate: $WEAVIATE_125},
+          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.12", weaviate: $WEAVIATE_125}
+        ]
+        optional_dependencies: [false]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip' # caching pip dependencies
+      - run: pip install -r requirements-devel.txt
+      - run: pip install .
+      - name: free space
+        run: sudo rm -rf /usr/local/lib/android
+      - name: start weaviate
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
+      - name: Run journey tests
+        run: pytest journey_tests
 
   Codecov:
     needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]

@@ -1,3 +1,4 @@
+import concurrent.futures
 import uuid
 from dataclasses import dataclass
 from typing import Generator, List, Optional, Protocol, Tuple, Callable
@@ -6,6 +7,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
+from weaviate import BatchClient, ClientBatchingContextManager
 from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
@@ -79,16 +81,20 @@ def client_factory(
 ) -> Generator[
     Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
 ]:
-    name_fixture: Optional[str] = None
+    name_fixtures: List[str] = []
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
     def _factory(
         name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
-        nonlocal client_fixture, name_fixture
+        nonlocal client_fixture, name_fixtures
         name_fixture = _sanitize_collection_name(request.node.name) + name
-        client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
-        client_fixture.collections.delete(name_fixture)
+        name_fixtures.append(name_fixture)
+        if client_fixture is None:
+            client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
+
+        if client_fixture.collections.exists(name_fixture):
+            client_fixture.collections.delete(name_fixture)
 
         client_fixture.collections.create(
             name=name_fixture,
@@ -102,9 +108,14 @@ def client_factory(
         )
         return client_fixture, name_fixture
 
-    yield _factory
-    if client_fixture is not None and name_fixture is not None:
-        client_fixture.collections.delete(name_fixture)
+    try:
+        yield _factory
+    finally:
+        if client_fixture is not None and name_fixtures is not None:
+            for name_fixture in name_fixtures:
+                client_fixture.collections.delete(name_fixture)
+        if client_fixture is not None:
+            client_fixture.close()
 
 
 def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
@@ -342,12 +353,29 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
         assert ret_obj.references["test"].objects[0].uuid == obj[0]
 
 
-def test_add_ten_thousand_data_objects(client_factory: ClientFactory, request: SubRequest) -> None:
+@pytest.mark.parametrize(
+    "batching_method",
+    [
+        lambda client: client.batch.dynamic(),
+        lambda client: client.batch.fixed_size(),
+        lambda client: client.batch.rate_limit(9999),
+    ],
+    ids=[
+        "test_add_ten_thousand_data_objects_dynamic",
+        "test_add_ten_thousand_data_objects_fixed_size",
+        "test_add_ten_thousand_data_objects_rate_limit",
+    ],
+)
+def test_add_ten_thousand_data_objects(
+    client_factory: ClientFactory,
+    batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+    request: SubRequest,
+) -> None:
     """Test adding ten thousand data objects"""
     client, name = client_factory()
 
     nr_objects = 10000
-    with client.batch.dynamic() as batch:
+    with batching_method(client) as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
@@ -375,7 +403,9 @@ def make_refs(uuids: List[UUID], name: str) -> List[dict]:
     return refs
 
 
-def test_add_one_hundred_objects_and_references_between_all(client_factory: ClientFactory) -> None:
+def test_add_one_hundred_objects_and_references_between_all(
+    client_factory: ClientFactory,
+) -> None:
     """Test adding one hundred objects and references between all of them"""
     client, name = client_factory()
     nr_objects = 100
@@ -418,9 +448,9 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     ret = client.collections.get(name).aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
 
-    old_client = weaviate.Client("http://localhost:8090")
-    assert old_client.schema.get_class_shards(name)[0]["status"] == "READY"
-    assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] == 0
+    shards = client.collections.get(name).config.get_shards()
+    assert shards[0].status == "READY"
+    assert shards[0].vector_queue_size == 0
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -471,10 +501,11 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
         assert ret.total_count == nr_objects / len(tenants)
-    old_client = weaviate.Client("http://localhost:8090")
-    for shard in old_client.schema.get_class_shards(name):
-        assert shard["status"] == "READY"
-        assert shard["vectorQueueSize"] == 0
+
+    shards = client.collections.get(name).config.get_shards()
+    for shard in shards:
+        assert shard.status == "READY"
+        assert shard.vector_queue_size == 0
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -502,14 +533,72 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
         assert ret.total_count == 1000 if tenant.name == tenants[0].name else 1
-    old_client = weaviate.Client("http://localhost:8090")
-    for shard in old_client.schema.get_class_shards(name):
-        if shard["name"] == tenants[0].name:
-            assert shard["status"] == "READY"
-            assert shard["vectorQueueSize"] == 0
+
+    shards = client.collections.get(name).config.get_shards()
+    for shard in shards:
+        if shard.name == tenants[0].name:
+            assert shard.status == "READY"
+            assert shard.vector_queue_size == 0
         else:
-            assert shard["status"] == "INDEXING"
-            assert shard["vectorQueueSize"] > 0
+            assert shard.status == "INDEXING"
+            assert shard.vector_queue_size > 0
+
+
+@pytest.mark.parametrize(
+    "batching_method",
+    [
+        lambda client: client.batch.dynamic(),
+        lambda client: client.batch.fixed_size(),
+        lambda client: client.batch.rate_limit(1000),
+    ],
+    ids=[
+        "test_add_one_hundred_objects_and_references_between_all_dynamic",
+        "test_add_one_hundred_objects_and_references_between_all_fixed_size",
+        "test_add_one_hundred_objects_and_references_between_all_rate_limit",
+    ],
+)
+def test_add_one_object_and_a_self_reference(
+    client_factory: ClientFactory,
+    batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+) -> None:
+    """Test adding one object and a self reference"""
+    client, name = client_factory()
+    with batching_method(client) as batch:
+        uuid = batch.add_object(collection=name, properties={})
+        batch.add_reference(
+            from_uuid=uuid,
+            from_collection=name,
+            from_property="test",
+            to=uuid,
+        )
+    obj = client.collections.get(name).query.fetch_object_by_id(
+        uuid, return_references=QueryReference(link_on="test")
+    )
+    assert obj is not None
+    assert obj.references["test"].objects[0].uuid == uuid
+
+
+def test_multi_threaded_batching(
+    client_factory: ClientFactory,
+) -> None:
+    client, name = client_factory()
+    nr_objects = 1000
+    nr_threads = 10
+
+    def batch_insert(batch: BatchClient) -> None:
+        for i in range(nr_objects):
+            batch.add_object(
+                collection=name,
+                properties={"name": "test" + str(i)},
+            )
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        with client.batch.dynamic() as batch:
+            futures = [executor.submit(batch_insert, batch) for _ in range(nr_threads)]
+    for future in concurrent.futures.as_completed(futures):
+        future.result()
+    objs = client.collections.get(name).query.fetch_objects(limit=nr_objects * nr_threads).objects
+    assert len(objs) == nr_objects * nr_threads
 
 
 def test_error_reset(client_factory: ClientFactory) -> None:

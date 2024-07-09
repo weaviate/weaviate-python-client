@@ -40,7 +40,7 @@ from weaviate.collections.classes.internal import (
     Object,
     ReferenceToMulti,
 )
-from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties
+from weaviate.collections.classes.types import PhoneNumber, _PhoneNumber, WeaviateProperties
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     WeaviateInvalidInputError,
@@ -1314,7 +1314,6 @@ def test_near_media(
             Property(name="imageProp", data_type=DataType.BLOB),
         ],
     )
-
     uuid1 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_OLD_ENCODED})
     uuid2 = collection.data.insert(properties={"imageProp": WEAVIATE_LOGO_NEW_ENCODED})
 
@@ -1639,9 +1638,11 @@ def test_return_phone_number_property(collection_factory: CollectionFactory) -> 
     objs = collection.query.fetch_objects(return_properties=["phone"]).objects
     obj2 = [obj for obj in objs if obj.uuid == uuid2][0]
     assert len(objs) == 2
+    assert isinstance(obj1.properties["phone"], _PhoneNumber)
     assert obj1.properties["phone"].number == "+441612345000"
     assert obj1.properties["phone"].valid
     assert obj1.properties["phone"].international_formatted == "+44 161 234 5000"
+    assert isinstance(obj2.properties["phone"], _PhoneNumber)
     assert obj2.properties["phone"].number == "01612345000"
     assert obj2.properties["phone"].valid
     assert obj2.properties["phone"].international_formatted == "+44 161 234 5000"
