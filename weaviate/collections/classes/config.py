@@ -1005,7 +1005,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             (
                 isinstance(quantizer, _PQConfigUpdate)
                 and (
-                    vector_index_config.get("sq", {"enabled": False})["enabled"]
+                    vector_index_config.get("bq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                 )
             )
