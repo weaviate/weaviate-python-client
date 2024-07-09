@@ -179,8 +179,6 @@ def connect_to_local(
             The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
-        `use_async`
-            Whether to return an asynchronous client. If set to True, an asynchronous client is returned, otherwise a synchronous client is returned.
 
     Returns
         `weaviate.WeaviateClient`
@@ -512,8 +510,6 @@ def use_async_with_local(
             The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
-        `use_async`
-            Whether to return an asynchronous client. If set to True, an asynchronous client is returned, otherwise a synchronous client is returned.
 
     Returns
         `weaviate.WeaviateAsyncClient`
