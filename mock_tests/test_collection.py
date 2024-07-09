@@ -383,3 +383,25 @@ def test_year_zero(weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Se
         assert objs[0].properties["date"] == datetime.datetime.min
 
         assert str(recwarn[0].message).startswith("Con004")
+
+
+@pytest.mark.parametrize("output", ["minimal", "verbose"])
+def test_node_with_timeout(
+    httpserver: HTTPServer, start_grpc_server: grpc.Server, output: str
+) -> None:
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
+
+    httpserver.expect_request("/v1/nodes").respond_with_json(
+        status=200,
+        response_json={"nodes": [{"status": "TIMEOUT", "shards": None, "name": "node1"}]},
+    )
+
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+    )
+
+    nodes = client.cluster.nodes(output=output)
+    assert nodes[0].status == "TIMEOUT"
