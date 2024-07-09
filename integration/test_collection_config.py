@@ -31,6 +31,7 @@ from weaviate.collections.classes.config import (
     _RerankerConfigCreate,
 )
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.exceptions import UnexpectedStatusCodeError
 
 
 @pytest.fixture(scope="module")
@@ -551,6 +552,34 @@ def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.vector_index_config.quantizer, _SQConfig)
 
 
+def test_update_from_pq_to_sq_with_hnsw(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("SQ+HNSW is not supported in Weaviate versions lower than 1.26.0")
+
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.pq(
+                centroids=128,
+            ),
+        ),
+    )
+    collection.config.update(
+        vector_index_config=Reconfigure.VectorIndex.hnsw(
+            quantizer=Reconfigure.VectorIndex.Quantizer.sq(
+                rescore_limit=10,
+            )
+        )
+    )
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _SQConfig)
+
+
 def test_update_flat(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
@@ -581,14 +610,14 @@ def test_update_flat(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.vector_index_config.quantizer, _BQConfig)
     assert config.vector_index_config.quantizer.rescore_limit == 20
 
-    # Cannot currently disabled BQ after it has been enabled
-    # collection.config.update(
-    #     vectorizer_config=Reconfigure.VectorIndex.flat(
-    #         quantizer=Reconfigure.VectorIndex.Quantizer.bq(enabled=False),
-    #     )
-    # )
-    # config = collection.config.get()
-    # assert config.vector_index_config.quantizer is None
+    with pytest.raises(UnexpectedStatusCodeError):
+        # cannot enable/disable BQ after flat index was created
+        # must only do this on creation
+        collection.config.update(
+            vectorizer_config=Reconfigure.VectorIndex.flat(
+                quantizer=Reconfigure.VectorIndex.Quantizer.bq(enabled=False),
+            )
+        )
 
 
 def test_collection_config_get_shards(collection_factory: CollectionFactory) -> None:
