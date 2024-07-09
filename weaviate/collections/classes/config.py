@@ -1005,7 +1005,7 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             (
                 isinstance(quantizer, _PQConfigUpdate)
                 and (
-                    vector_index_config["bq"]["enabled"]
+                    vector_index_config.get("sq", {"enabled": False})["enabled"]
                     or vector_index_config.get("sq", {"enabled": False})["enabled"]
                 )
             )
@@ -1018,7 +1018,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             )
             or (
                 isinstance(quantizer, _SQConfigUpdate)
-                and (vector_index_config["pq"]["enabled"] or vector_index_config["bq"]["enabled"])
+                and (
+                    vector_index_config["pq"]["enabled"]
+                    or vector_index_config.get("bq", {"enabled": False})["enabled"]
+                )
             )
         ):
             raise WeaviateInvalidInputError(
