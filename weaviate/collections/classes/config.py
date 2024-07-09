@@ -996,6 +996,39 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
         default=None, alias="multi_tenancy_config"
     )
 
+    def __check_quantizers(
+        self,
+        quantizer: Optional[_QuantizerConfigUpdate],
+        vector_index_config: dict,
+    ) -> None:
+        if (
+            (
+                isinstance(quantizer, _PQConfigUpdate)
+                and (
+                    vector_index_config["bq"]["enabled"]
+                    or vector_index_config.get("sq", {"enabled": False})["enabled"]
+                )
+                is True
+            )
+            or (
+                isinstance(quantizer, _BQConfigUpdate)
+                and (
+                    vector_index_config["pq"]["enabled"]
+                    or vector_index_config.get("sq", {"enabled": False})["enabled"]
+                )
+                is True
+            )
+            or (
+                isinstance(quantizer, _SQConfigUpdate)
+                and (vector_index_config["pq"]["enabled"] or vector_index_config["bq"]["enabled"])
+                is True
+            )
+        ):
+            raise WeaviateInvalidInputError(
+                f"Cannot update vector index config {vector_index_config} to change its quantizer. To do this, you must recreate the collection."
+            )
+        return None
+
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         if self.description is not None:
             schema["description"] = self.description
@@ -1012,11 +1045,15 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 schema["multiTenancyConfig"]
             )
         if self.vectorIndexConfig is not None:
+            self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
                 schema["vectorIndexConfig"]
             )
         if self.vectorizerConfig is not None:
             if isinstance(self.vectorizerConfig, _VectorIndexConfigUpdate):
+                self.__check_quantizers(
+                    self.vectorizerConfig.quantizer, schema["vectorIndexConfig"]
+                )
                 schema["vectorIndexConfig"] = self.vectorizerConfig.merge_with_existing(
                     schema["vectorIndexConfig"]
                 )
@@ -1026,6 +1063,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                         raise WeaviateInvalidInputError(
                             f"Vector config with name {vc.name} does not exist in the existing vector config"
                         )
+                    self.__check_quantizers(
+                        vc.vectorIndexConfig.quantizer,
+                        schema["vectorConfig"][vc.name]["vectorIndexConfig"],
+                    )
                     schema["vectorConfig"][vc.name][
                         "vectorIndexConfig"
                     ] = vc.vectorIndexConfig.merge_with_existing(

@@ -15,6 +15,7 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
+    _VectorIndexConfigHNSWUpdate,
     Configure,
     Reconfigure,
     Property,
@@ -31,7 +32,7 @@ from weaviate.collections.classes.config import (
     _RerankerConfigCreate,
 )
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.exceptions import UnexpectedStatusCodeError
+from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
 
 
 @pytest.fixture(scope="module")
@@ -552,11 +553,16 @@ def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.vector_index_config.quantizer, _SQConfig)
 
 
-def test_update_from_pq_to_sq_with_hnsw(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
-        pytest.skip("SQ+HNSW is not supported in Weaviate versions lower than 1.26.0")
-
+@pytest.mark.parametrize(
+    "vector_index_config",
+    [
+        Reconfigure.VectorIndex.hnsw(quantizer=Reconfigure.VectorIndex.Quantizer.bq()),
+        Reconfigure.VectorIndex.hnsw(quantizer=Reconfigure.VectorIndex.Quantizer.sq()),
+    ],
+)
+def test_update_from_pq_with_hnsw(
+    collection_factory: CollectionFactory, vector_index_config: _VectorIndexConfigHNSWUpdate
+) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
@@ -565,19 +571,8 @@ def test_update_from_pq_to_sq_with_hnsw(collection_factory: CollectionFactory) -
             ),
         ),
     )
-    collection.config.update(
-        vector_index_config=Reconfigure.VectorIndex.hnsw(
-            quantizer=Reconfigure.VectorIndex.Quantizer.sq(
-                rescore_limit=10,
-            )
-        )
-    )
-
-    config = collection.config.get()
-    assert config.vector_index_type == VectorIndexType.HNSW
-    assert config.vector_index_config is not None
-    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
-    assert isinstance(config.vector_index_config.quantizer, _SQConfig)
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.config.update(vector_index_config=vector_index_config)
 
 
 def test_update_flat(collection_factory: CollectionFactory) -> None:
