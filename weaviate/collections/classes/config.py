@@ -308,6 +308,7 @@ class _PQConfigUpdate(_QuantizerConfigUpdate):
 
 
 class _BQConfigUpdate(_QuantizerConfigUpdate):
+    enabled: Optional[bool]
     rescoreLimit: Optional[int]
 
     @staticmethod
@@ -995,6 +996,39 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
         default=None, alias="multi_tenancy_config"
     )
 
+    def __check_quantizers(
+        self,
+        quantizer: Optional[_QuantizerConfigUpdate],
+        vector_index_config: dict,
+    ) -> None:
+        if (
+            (
+                isinstance(quantizer, _PQConfigUpdate)
+                and (
+                    vector_index_config.get("bq", {"enabled": False})["enabled"]
+                    or vector_index_config.get("sq", {"enabled": False})["enabled"]
+                )
+            )
+            or (
+                isinstance(quantizer, _BQConfigUpdate)
+                and (
+                    vector_index_config["pq"]["enabled"]
+                    or vector_index_config.get("sq", {"enabled": False})["enabled"]
+                )
+            )
+            or (
+                isinstance(quantizer, _SQConfigUpdate)
+                and (
+                    vector_index_config["pq"]["enabled"]
+                    or vector_index_config.get("bq", {"enabled": False})["enabled"]
+                )
+            )
+        ):
+            raise WeaviateInvalidInputError(
+                f"Cannot update vector index config {vector_index_config} to change its quantizer. To do this, you must recreate the collection."
+            )
+        return None
+
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         if self.description is not None:
             schema["description"] = self.description
@@ -1011,11 +1045,15 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                 schema["multiTenancyConfig"]
             )
         if self.vectorIndexConfig is not None:
+            self.__check_quantizers(self.vectorIndexConfig.quantizer, schema["vectorIndexConfig"])
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
                 schema["vectorIndexConfig"]
             )
         if self.vectorizerConfig is not None:
             if isinstance(self.vectorizerConfig, _VectorIndexConfigUpdate):
+                self.__check_quantizers(
+                    self.vectorizerConfig.quantizer, schema["vectorIndexConfig"]
+                )
                 schema["vectorIndexConfig"] = self.vectorizerConfig.merge_with_existing(
                     schema["vectorIndexConfig"]
                 )
@@ -1025,18 +1063,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                         raise WeaviateInvalidInputError(
                             f"Vector config with name {vc.name} does not exist in the existing vector config"
                         )
-                    if (
-                        isinstance(vc.vectorIndexConfig.quantizer, _PQConfigUpdate)
-                        and schema["vectorConfig"][vc.name]["vectorIndexConfig"]["bq"]["enabled"]
-                        is True
-                    ) or (
-                        isinstance(vc.vectorIndexConfig.quantizer, _BQConfigUpdate)
-                        and schema["vectorConfig"][vc.name]["vectorIndexConfig"]["pq"]["enabled"]
-                        is True
-                    ):
-                        raise WeaviateInvalidInputError(
-                            f"Cannot update vector index config with name {vc.name} to change its quantizer"
-                        )
+                    self.__check_quantizers(
+                        vc.vectorIndexConfig.quantizer,
+                        schema["vectorConfig"][vc.name]["vectorIndexConfig"],
+                    )
                     schema["vectorConfig"][vc.name][
                         "vectorIndexConfig"
                     ] = vc.vectorIndexConfig.merge_with_existing(
@@ -2035,7 +2065,7 @@ class _VectorIndexQuantizerUpdate:
         )
 
     @staticmethod
-    def bq(rescore_limit: Optional[int] = None) -> _BQConfigUpdate:
+    def bq(rescore_limit: Optional[int] = None, enabled: bool = True) -> _BQConfigUpdate:
         """Create a `_BQConfigUpdate` object to be used when updating the binary quantization (BQ) configuration of Weaviate.
 
         Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
@@ -2043,7 +2073,7 @@ class _VectorIndexQuantizerUpdate:
         Arguments:
             See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
-        return _BQConfigUpdate(rescoreLimit=rescore_limit)
+        return _BQConfigUpdate(rescoreLimit=rescore_limit, enabled=enabled)
 
     @staticmethod
     def sq(
