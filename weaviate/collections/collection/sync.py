@@ -1,6 +1,6 @@
 import json
 from dataclasses import asdict
-from typing import Generic, List, Literal, Optional, Type, Union, overload
+from typing import Dict, Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.aggregate import _AggregateCollection
 from weaviate.collections.backups import _CollectionBackup
@@ -178,6 +178,82 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             for shard in node.shards
         ]
 
+    def _build_info(self, include_properties: bool) -> str:
+        config = self.config.get()
+
+        property_configs = config.properties
+
+        collection_info = [
+            ("Length", len(self)),
+            ("Multi-tenancy", config.multi_tenancy_config.enabled),
+            ("Index type", config.vector_index_type),
+            ("Properties", len(property_configs)),
+        ]
+
+        DISPLAY_SPACER = "=" * 40 + "\n"
+        output_str = f"{DISPLAY_SPACER}Collection summary: '{self.name}'\n{DISPLAY_SPACER}"
+        for n, p in collection_info:
+            output_str += f"{n}: {p}\n"
+
+        if include_properties:
+            properties_list = []
+            for prop in property_configs:
+                if prop.vectorizer_config is not None:
+                    skip_vectorization = prop.vectorizer_config.skip
+                else:
+                    skip_vectorization = None
+
+                tokenization = None if prop.tokenization is None else prop.tokenization.value
+
+                name_col = "Property Name"
+
+                property_info = [
+                    (name_col, prop.name),
+                    ("DataType", prop.data_type.value),
+                    ("Tokenization", tokenization),
+                    ("Skip vectorization", skip_vectorization),
+                    ("Searchable", prop.index_searchable),
+                    ("Filterable", prop.index_filterable),
+                    ("Range filter", prop.index_range_filters),
+                ]
+
+                properties = {}
+                for prop_name, prop_val in property_info:
+                    properties[prop_name] = str(prop_val)
+                properties_list.append(properties)
+
+            output_str += _tabularise(properties_list)
+        return output_str
+
+    def info(self, include_properties: bool = False) -> None:
+        """
+        Display a summary of the collection.
+
+        Parameters:
+            include_properties (bool): Display a summary of each property
+        """
+        print(self._build_info(include_properties))
+
+    def head(self, n: int = 5) -> None:
+        """
+        Display the first n objects from Weaviate.
+
+        Parameters:
+            n (int, default: 5): The number of objects to display
+        """
+        if n <= 0:
+            raise ValueError(f"n of {n} entered; n must be a positive integer")
+
+        response = self.query.fetch_objects(limit=n)
+
+        if not response.objects or len(response.objects) == 0:
+            print(f"No objects found in collection '{self.name}'")
+            return
+
+        print(f"Displaying the first {n} objects in collection '{self.name}'")
+        properties_list = [o.properties for o in response.objects]
+        print(_tabularise(properties_list))
+
     @overload
     def iterator(
         self,
@@ -304,3 +380,44 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
                 after=after,
             ),
         )
+
+
+def _tabularise(properties_list: Union[List[Dict[str, str]], List[Properties]]) -> str:
+    MAX_COL_WIDTH = 20
+    MIN_COL_WIDTH = 3
+    SEPARATOR = " | "
+
+    table_str = ""
+
+    # Get all property names and their maximum lengths
+    property_names = list(properties_list[0].keys())
+    max_lengths = {p: len(p) for p in property_names}
+
+    for properties in properties_list:
+        for p, v in properties.items():
+            max_lengths[p] = max(max_lengths[p], len(str(v)))
+
+    # Adjust column widths
+    col_widths = {
+        p: min(max(len(p), min_len, MIN_COL_WIDTH), MAX_COL_WIDTH)
+        for p, min_len in max_lengths.items()
+    }
+
+    # Construct the header
+    header = SEPARATOR.join(p.ljust(col_widths[p]) for p in property_names) + SEPARATOR
+    table_str += ("-" * len(header)) + "\n"
+    table_str += header + "\n"
+    table_str += ("-" * len(header)) + "\n"
+
+    # Construct the body
+    for properties in properties_list:
+        row = ""
+        for p in property_names:
+            v = properties[p]
+            if len(str(v)) <= col_widths[p]:
+                row += str(v)[: col_widths[p]].ljust(col_widths[p]) + SEPARATOR
+            else:
+                row += str(v)[: col_widths[p] - 3] + "..." + SEPARATOR
+        table_str += f"{row}\n"
+
+    return table_str + "\n"
