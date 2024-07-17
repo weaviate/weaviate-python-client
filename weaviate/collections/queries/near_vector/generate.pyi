@@ -28,7 +28,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -41,7 +41,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -50,7 +50,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -63,7 +63,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -72,7 +72,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -85,7 +85,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -94,7 +94,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -107,7 +107,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -116,7 +116,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -129,7 +129,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -138,7 +138,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -151,7 +151,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -161,7 +161,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -174,7 +174,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -183,7 +183,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -196,7 +196,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -205,7 +205,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -218,7 +218,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -227,7 +227,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -240,7 +240,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -249,7 +249,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -262,7 +262,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -271,7 +271,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -284,7 +284,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -295,7 +295,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -308,7 +308,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -586,7 +586,7 @@ class _NearVectorGenerate(Generic[Properties, References], _Base[Properties, Ref
     @overload
     def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -599,7 +599,7 @@ class _NearVectorGenerate(Generic[Properties, References], _Base[Properties, Ref
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
