@@ -338,8 +338,12 @@ def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) ->
         assert nodes[0].shards[0].compressed is False
         if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
             assert nodes[0].shards[0].loaded is None
-        else:
+        elif collection._connection._weaviate_version.is_at_least(
+            1, 24, 0
+        ) and collection._connection._weaviate_version.is_lower_than(1, 26, 0):
             assert nodes[0].shards[0].loaded is True
+        else:
+            assert nodes[0].shards[0].loaded is False
     finally:
         client.collections.delete(request.node.name)
 
