@@ -2,7 +2,7 @@ import asyncio
 import threading
 import time
 from concurrent.futures import Future
-from typing import Any, Callable, Coroutine, Generic, Optional, TypeVar, cast
+from typing import Any, Callable, Coroutine, Dict, Generic, Optional, TypeVar, cast
 
 from typing_extensions import ParamSpec
 
@@ -96,7 +96,7 @@ class _EventLoop:
             - https://github.com/grpc/grpc/pull/36096
         """
 
-        def exception_handler(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+        def exception_handler(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -> None:
             if "exception" in context:
                 err = f"{type(context['exception']).__name__}: {context['exception']}"
                 if "BlockingIOError: [Errno 35] Resource temporarily unavailable" == err:
