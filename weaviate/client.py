@@ -39,7 +39,7 @@ from .exceptions import (
 )
 from .gql import Query
 from .schema import Schema
-from weaviate.event_loop import _EventLoopSingleton
+from weaviate.event_loop import _EventLoopSingleton, _EventLoop
 from .types import NUMBER
 from .util import _get_valid_timeout_config, _type_request_response
 from .warnings import _Warnings
@@ -83,6 +83,7 @@ class WeaviateClient(_WeaviateClientBase):
         self._event_loop = _EventLoopSingleton.get_instance()
         assert self._event_loop.loop is not None
         self._loop = self._event_loop.loop
+        _EventLoop.patch_exception_handler(self._loop)
 
         super().__init__(
             connection_params=connection_params,
@@ -144,6 +145,8 @@ class WeaviateAsyncClient(_WeaviateClientBase):
         skip_init_checks: bool = False,
     ) -> None:
         self._loop = asyncio.get_event_loop()
+        _EventLoop.patch_exception_handler(self._loop)
+
         super().__init__(
             connection_params=connection_params,
             embedded_options=embedded_options,

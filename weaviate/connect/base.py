@@ -111,14 +111,6 @@ class ConnectionParams(BaseModel):
     def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
 
-    # @overload
-    # def _grpc_channel(self, async_channel: Literal[False], proxies: Dict[str, str]) -> Channel:
-    #     ...
-
-    # @overload
-    # def _grpc_channel(self, async_channel: Literal[True], proxies: Dict[str, str]) -> AsyncChannel:
-    #     ...
-
     def _grpc_channel(self, proxies: Dict[str, str]) -> Channel:
         if (p := proxies.get("grpc")) is not None:
             options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
@@ -135,18 +127,6 @@ class ConnectionParams(BaseModel):
                 target=self._grpc_target,
                 options=options,
             )
-
-    # def _grpc_channel(self, proxies: Dict[str, str]) -> Channel:
-    #     # if (p := proxies.get("grpc")) is not None:
-    #     #     options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
-    #     # else:
-    #     #     options = GRPC_DEFAULT_OPTIONS
-    #     return Channel(
-    #         host=self._grpc_address[0],
-    #         port=self._grpc_address[1],
-    #         # options=options,
-    #         ssl=self.grpc.secure,
-    #     )
 
     @property
     def _http_scheme(self) -> str:

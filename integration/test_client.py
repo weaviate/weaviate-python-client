@@ -586,7 +586,6 @@ async def test_async_client_is_ready() -> None:
         assert await client.is_ready()
 
 
-@pytest.mark.skip("gRPC proxying is not supported by grpclib at this time")
 def test_local_proxies() -> None:
     with weaviate.connect_to_local(
         additional_config=wvc.init.AdditionalConfig(
@@ -604,3 +603,21 @@ def test_local_proxies() -> None:
         )
         collection.data.insert({"name": "Test"})
         assert collection.query.fetch_objects().objects[0].properties["name"] == "Test"
+
+
+@pytest.mark.asyncio
+async def test_async_client_inside_sync_client(caplog: pytest.LogCaptureFixture) -> None:
+    with weaviate.connect_to_local() as client:
+        async with weaviate.use_async_with_local() as aclient:
+            assert client.is_ready()
+            assert await aclient.is_ready()
+            assert "BlockingIOError: [Errno 35] Resource temporarily unavailable" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_sync_client_inside_async_client(caplog: pytest.LogCaptureFixture) -> None:
+    async with weaviate.use_async_with_local() as aclient:
+        with weaviate.connect_to_local() as client:
+            assert client.is_ready()
+            assert await aclient.is_ready()
+            assert "BlockingIOError: [Errno 35] Resource temporarily unavailable" not in caplog.text

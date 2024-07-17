@@ -6,7 +6,7 @@ from copy import copy
 from dataclasses import dataclass, field
 from ssl import SSLZeroReturnError
 from threading import Event, Thread
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
@@ -28,7 +28,6 @@ from httpx import (
     RemoteProtocolError,
     RequestError,
     Response,
-    HTTPTransport,
     Timeout,
 )
 
@@ -199,50 +198,22 @@ class ConnectionV4(_ConnectionBase):
             self._headers.update(integration._to_header())
             self.__additional_headers.update(integration._to_header())
 
-    @overload
-    def __make_mounts(self, type_: Literal["sync"]) -> Dict[str, HTTPTransport]:
-        ...
-
-    @overload
-    def __make_mounts(self, type_: Literal["async"]) -> Dict[str, AsyncHTTPTransport]:
-        ...
-
-    def __make_mounts(
-        self, type_: Literal["sync", "async"]
-    ) -> Union[Dict[str, HTTPTransport], Dict[str, AsyncHTTPTransport]]:
-        if type_ == "async":
-            return {
-                f"{key}://"
-                if key == "http" or key == "https"
-                else key: AsyncHTTPTransport(
-                    limits=Limits(
-                        max_connections=self.__connection_config.session_pool_maxsize,
-                        max_keepalive_connections=self.__connection_config.session_pool_connections,
-                    ),
-                    proxy=proxy,
-                    retries=self.__connection_config.session_pool_max_retries,
-                    trust_env=self.__trust_env,
-                )
-                for key, proxy in self._proxies.items()
-                if key != "grpc"
-            }
-        else:
-            assert type_ == "sync"
-            return {
-                f"{key}://"
-                if key == "http" or key == "https"
-                else key: HTTPTransport(
-                    limits=Limits(
-                        max_connections=self.__connection_config.session_pool_maxsize,
-                        max_keepalive_connections=self.__connection_config.session_pool_connections,
-                    ),
-                    proxy=proxy,
-                    retries=self.__connection_config.session_pool_max_retries,
-                    trust_env=self.__trust_env,
-                )
-                for key, proxy in self._proxies.items()
-                if key != "grpc"
-            }
+    def __make_mounts(self) -> Dict[str, AsyncHTTPTransport]:
+        return {
+            f"{key}://"
+            if key == "http" or key == "https"
+            else key: AsyncHTTPTransport(
+                limits=Limits(
+                    max_connections=self.__connection_config.session_pool_maxsize,
+                    max_keepalive_connections=self.__connection_config.session_pool_connections,
+                ),
+                proxy=proxy,
+                retries=self.__connection_config.session_pool_max_retries,
+                trust_env=self.__trust_env,
+            )
+            for key, proxy in self._proxies.items()
+            if key != "grpc"
+        }
 
     def __make_async_client(self) -> AsyncClient:
         return AsyncClient(
@@ -250,7 +221,7 @@ class ConnectionV4(_ConnectionBase):
             timeout=Timeout(
                 None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
-            mounts=self.__make_mounts("async"),
+            mounts=self.__make_mounts(),
         )
 
     def __make_clients(self) -> None:

@@ -2,7 +2,7 @@ import asyncio
 import threading
 import time
 from concurrent.futures import Future
-from typing import Any, Callable, Coroutine, Generic, Optional, TypeVar, cast
+from typing import Any, Callable, Coroutine, Dict, Generic, Optional, TypeVar, cast
 
 from typing_extensions import ParamSpec
 
@@ -81,6 +81,30 @@ class _EventLoop:
 
         return loop
 
+    @staticmethod
+    def patch_exception_handler(loop: asyncio.AbstractEventLoop) -> None:
+        """
+        This patches the asyncio exception handler to ignore the `BlockingIOError: [Errno 35] Resource temporarily unavailable` error
+        that is emitted by `aio.grpc` when multiple event loops are used in separate threads. This error is not actually an implementation/call error,
+        it's just a problem with grpc's cython implementation of `aio.Channel.__init__` whereby a `socket.recv(1)` call only works on the first call with
+        all subsequent calls to `aio.Channel.__init__` throwing the above error.
+
+        This call within the `aio.Channel.__init__` method does not affect the functionality of the library and can be safely ignored.
+
+        Context:
+            - https://github.com/grpc/grpc/issues/25364
+            - https://github.com/grpc/grpc/pull/36096
+        """
+
+        def exception_handler(loop: asyncio.AbstractEventLoop, context: Dict[str, Any]) -> None:
+            if "exception" in context:
+                err = f"{type(context['exception']).__name__}: {context['exception']}"
+                if "BlockingIOError: [Errno 35] Resource temporarily unavailable" == err:
+                    return
+            loop.default_exception_handler(context)
+
+        loop.set_exception_handler(exception_handler)
+
     def __del__(self) -> None:
         self.shutdown()
 
@@ -95,3 +119,8 @@ class _EventLoopSingleton:
         cls._instance = _EventLoop()
         cls._instance.start()
         return cls._instance
+
+    def __del__(self) -> None:
+        if self._instance is not None:
+            self._instance.shutdown()
+            self._instance = None
