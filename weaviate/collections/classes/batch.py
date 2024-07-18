@@ -31,6 +31,7 @@ class _BatchReference:
     to: str
     tenant: Optional[str]
     from_uuid: str
+    to_uuid: Optional[str] = None
 
 
 class BatchObject(BaseModel):
@@ -131,6 +132,7 @@ class BatchReference(BaseModel):
             from_uuid=str(self.from_object_uuid),
             from_=f"{BEACON}{self.from_object_collection}/{self.from_object_uuid}/{self.from_property_name}",
             to=f"{BEACON}{self.to_object_collection}{str(self.to_object_uuid)}",
+            to_uuid=str(self.to_object_uuid),
             tenant=self.tenant,
         )
 

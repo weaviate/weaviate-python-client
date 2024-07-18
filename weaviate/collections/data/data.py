@@ -157,6 +157,7 @@ class _Data(_DataBase):
                 to=beacon,
                 tenant=self._tenant,
                 from_uuid=str(ref.from_uuid),
+                to_uuid=None,  # not relevant here, this entry is only needed for the batch module
             )
             for ref in refs
             for beacon in ref._to_beacons()
