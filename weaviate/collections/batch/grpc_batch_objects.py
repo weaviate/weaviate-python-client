@@ -57,7 +57,7 @@ class _BatchGRPC(_BaseGRPC):
                 collection=obj.collection,
                 vector_bytes=(
                     pack_vector(obj.vector)
-                    if obj.vector is not None and isinstance(obj.vector, list)
+                    if obj.vector is not None
                     else None
                 ),
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
