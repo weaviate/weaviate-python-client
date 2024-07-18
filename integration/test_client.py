@@ -1,4 +1,4 @@
-from typing import Generator, Tuple, Union
+from typing import Callable, Generator, Tuple, Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -24,20 +24,34 @@ WCS_URL = f"https://{WCS_HOST}"
 WCS_GRPC_HOST = f"grpc-{WCS_HOST}"
 WCS_CREDS = wvc.init.Auth.api_key("cy4ua772mBlMdfw3YnclqAWzFhQt0RLIN0sl")
 
+ClientFactory = Callable[[int, int], weaviate.WeaviateClient]
+
 
 @pytest.fixture(scope="module")
-def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.WeaviateClient(
-        connection_params=weaviate.connect.ConnectionParams.from_url(
-            "http://localhost:8080", 50051
-        ),
-        skip_init_checks=False,
-    )
-    client.connect()
+def client_factory() -> Generator[Callable[[int, int], weaviate.WeaviateClient], None, None]:
+    client: weaviate.WeaviateClient = None
+
+    def maker(http: int, grpc: int) -> weaviate.WeaviateClient:
+        nonlocal client
+        client = weaviate.WeaviateClient(
+            connection_params=weaviate.connect.ConnectionParams.from_url(
+                f"http://localhost:{http}", grpc
+            ),
+            skip_init_checks=False,
+        )
+        client.connect()
+        return client
+
     try:
-        yield client
+        yield maker
     finally:
+        assert client is not None
         client.close()
+
+
+@pytest.fixture(scope="module")
+def client(client_factory: ClientFactory) -> Generator[weaviate.WeaviateClient, None, None]:
+    yield client_factory(8080, 50051)
 
 
 def test_fail_to_connect_to_inactive_grpc_port() -> None:
@@ -322,7 +336,9 @@ def test_collection_name_capitalization(
         client.collections.delete(name_big)
 
 
-def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) -> None:
+def test_client_cluster_with_lazy_shard_loading(
+    client: weaviate.WeaviateClient, request: SubRequest
+) -> None:
     try:
         collection = client.collections.create(
             name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
@@ -338,10 +354,31 @@ def test_client_cluster(client: weaviate.WeaviateClient, request: SubRequest) ->
         assert nodes[0].shards[0].compressed is False
         if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
             assert nodes[0].shards[0].loaded is None
-        elif collection._connection._weaviate_version.is_at_least(
-            1, 24, 0
-        ) and collection._connection._weaviate_version.is_lower_than(1, 26, 0):
+        else:
             assert nodes[0].shards[0].loaded is True
+    finally:
+        client.collections.delete(request.node.name)
+
+
+def test_client_cluster_without_lazy_shard_loading(
+    client_factory: ClientFactory, request: SubRequest
+) -> None:
+    client = client_factory(8090, 50061)
+    try:
+        collection = client.collections.create(
+            name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+        )
+
+        nodes = client.cluster.nodes(collection.name, output="verbose")
+        assert len(nodes) == 1
+        assert len(nodes[0].shards) == 1
+        assert nodes[0].shards[0].collection == collection.name
+        assert nodes[0].shards[0].object_count == 0
+        assert nodes[0].shards[0].vector_indexing_status == "READY"
+        assert nodes[0].shards[0].vector_queue_length == 0
+        assert nodes[0].shards[0].compressed is False
+        if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
+            assert nodes[0].shards[0].loaded is None
         else:
             assert nodes[0].shards[0].loaded is False
     finally:
