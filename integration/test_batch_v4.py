@@ -6,6 +6,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
+import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
@@ -587,3 +588,37 @@ def test_uuids_keys_and_original_index(client_factory: ClientFactory) -> None:
     assert [objs[k][0] for k in client.batch.results.objs.uuids.keys()] == list(
         client.batch.results.objs.uuids.values()
     )
+
+
+def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
+    """Test that batch waits until the to object is created."""
+    client, name = client_factory()
+
+    client.collections.delete(["target", "source"])
+    target = client.collections.create(
+        "target", multi_tenancy_config=wvc.config.Configure.multi_tenancy(enabled=True)
+    )
+    source = client.collections.create(
+        "source",
+        references=[wvc.config.ReferenceProperty(name="to", target_collection="target")],
+        multi_tenancy_config=wvc.config.Configure.multi_tenancy(enabled=True),
+    )
+
+    target.tenants.create("tenant-1")
+    source.tenants.create("tenant-1")
+    from_uuid = source.with_tenant("tenant-1").data.insert(properties={})
+    objs = 20
+
+    with client.batch.fixed_size(batch_size=10, concurrent_requests=1) as batch:
+        for _ in range(objs):
+            to = batch.add_object(collection="target", properties={}, tenant="tenant-1")
+            batch.add_reference(
+                from_uuid=from_uuid,
+                from_property="to",
+                to=to,
+                from_collection="source",
+                tenant="tenant-1",
+            )
+
+    assert len(client.batch.failed_references) == 0, client.batch.failed_references
+    client.collections.delete(["target", "source"])
