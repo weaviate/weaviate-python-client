@@ -676,3 +676,16 @@ def test_uuids_keys_and_original_index(client_factory: ClientFactory) -> None:
     assert [objs[k][0] for k in client.batch.results.objs.uuids.keys()] == list(
         client.batch.results.objs.uuids.values()
     )
+
+
+def test_batching_error_logs(
+    client_factory: ClientFactory, caplog: pytest.LogCaptureFixture
+) -> None:
+    client, name = client_factory()
+    with client.batch.fixed_size() as batch:
+        for obj in [{"name": i} for i in range(100)]:
+            batch.add_object(properties=obj, collection=name)
+    assert (
+        "Failed to send 100 objects in a batch of 100. Please inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects."
+        in caplog.text
+    )
