@@ -379,6 +379,8 @@ def test_client_cluster_without_lazy_shard_loading(
         assert nodes[0].shards[0].compressed is False
         if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
             assert nodes[0].shards[0].loaded is None
+        elif collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+            assert nodes[0].shards[0].loaded is True
         else:
             assert nodes[0].shards[0].loaded is False
     finally:
