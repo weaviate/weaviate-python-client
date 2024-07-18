@@ -458,7 +458,7 @@ class _BatchBase:
                     objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
             except Exception as e:
-                logger.warn(
+                logger.warning(
                     {
                         "message": "Failed to insert objects in batch. Inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects.",
                         "error": repr(e),
