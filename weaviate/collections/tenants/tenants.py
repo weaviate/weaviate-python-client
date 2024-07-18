@@ -17,7 +17,7 @@ from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.validator import _validate_input, _ValidateArgument
 
 TenantCreateInputType = Union[str, Tenant, TenantCreate]
-TenantUpdateInputType = Union[str, Tenant, TenantUpdate]
+TenantUpdateInputType = Union[Tenant, TenantUpdate]
 TenantOutputType = Tenant
 
 
@@ -195,8 +195,6 @@ class _TenantsAsync(_TenantsBase):
         return tenant
 
     def __map_update_tenant(self, tenant: TenantUpdateInputType) -> TenantUpdate:
-        if isinstance(tenant, str):
-            return TenantUpdate(name=tenant)
         if isinstance(tenant, Tenant):
             if tenant.activity_status not in [
                 TenantActivityStatus.ACTIVE,
@@ -223,7 +221,7 @@ class _TenantsAsync(_TenantsBase):
             return [self.__map_create_tenant(t).model_dump() for t in tenant]
 
     def __map_update_tenants(
-        self, tenant: Union[str, Tenant, TenantUpdate, Sequence[Union[str, Tenant, TenantUpdate]]]
+        self, tenant: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
     ) -> List[dict]:
         if (
             isinstance(tenant, str)
@@ -313,7 +311,7 @@ class _TenantsAsync(_TenantsBase):
         )
 
     async def update(
-        self, tenants: Union[Tenant, TenantUpdate, Sequence[Union[Tenant, TenantUpdate]]]
+        self, tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
     ) -> None:
         """Update the specified tenants for a collection in Weaviate.
 

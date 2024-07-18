@@ -5,7 +5,6 @@ __all__ = [
     "_Tenants",
     "_TenantsAsync",
     "TenantCreateInputType",
-    "TenantInputType",
     "TenantOutputType",
     "TenantUpdateInputType",
 ]

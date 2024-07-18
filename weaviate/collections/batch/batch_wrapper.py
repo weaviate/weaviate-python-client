@@ -63,7 +63,7 @@ class _BatchWrapper:
                 )
                 return all(all(readiness) for readiness in readinesses)
             except Exception as e:
-                logger.warn(
+                logger.warning(
                     f"Error while getting class shards statuses: {e}, trying again with 2**n={2**how_many}s exponential backoff with n={how_many}"
                 )
                 if how_many_failures == how_many:

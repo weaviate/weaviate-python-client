@@ -28,7 +28,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -38,7 +38,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -47,7 +47,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -57,7 +57,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -66,7 +66,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -76,7 +76,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -85,7 +85,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -95,7 +95,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -104,7 +104,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -114,7 +114,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -123,7 +123,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -133,7 +133,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -145,7 +145,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -155,7 +155,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -164,7 +164,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -174,7 +174,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -183,7 +183,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -193,7 +193,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[PROPERTIES] = None,
@@ -202,7 +202,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -212,7 +212,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -221,7 +221,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -231,7 +231,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -240,7 +240,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -250,7 +250,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: GroupBy,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
@@ -261,7 +261,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
     @overload
     async def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -271,7 +271,7 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -515,7 +515,7 @@ class _NearVectorQuery(Generic[Properties, References], _Base[Properties, Refere
     @overload
     def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -525,7 +525,7 @@ class _NearVectorQuery(Generic[Properties, References], _Base[Properties, Refere
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
