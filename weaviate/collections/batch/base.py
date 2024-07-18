@@ -100,7 +100,9 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
         i = 0
         self._lock.acquire()
         while len(ret) < pop_amount and len(self._items) > 0 and i < len(self._items):
-            if self._items[i].from_uuid not in uuid_lookup and self._items[i].to not in uuid_lookup:
+            if self._items[i].from_uuid not in uuid_lookup and (
+                self._items[i].to_uuid is None or self._items[i].to_uuid not in uuid_lookup
+            ):
                 ret.append(self._items.pop(i))
             else:
                 i += 1

@@ -125,20 +125,17 @@ class _Data:
     @overload
     def delete_many(
         self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
-    ) -> DeleteManyReturn[None]:
-        ...
+    ) -> DeleteManyReturn[None]: ...
 
     @overload
     def delete_many(
         self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
-    ) -> DeleteManyReturn[List[DeleteManyObject]]:
-        ...
+    ) -> DeleteManyReturn[List[DeleteManyObject]]: ...
 
     @overload
     def delete_many(
         self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
-    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
-        ...
+    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...
 
     def delete_many(
         self, where: _Filters, verbose: bool = False, *, dry_run: bool = False
@@ -215,6 +212,7 @@ class _Data:
                 to=beacon,
                 tenant=self._tenant,
                 from_uuid=str(ref.from_uuid),
+                to_uuid=None,  # not relevant here, this entry is only needed for the batch module
             )
             for ref in refs
             for beacon in ref._to_beacons()
