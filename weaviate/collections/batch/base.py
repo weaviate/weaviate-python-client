@@ -458,12 +458,6 @@ class _BatchBase:
                     objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
             except Exception as e:
-                logger.warning(
-                    {
-                        "message": "Failed to insert objects in batch. Inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects.",
-                        "error": repr(e),
-                    }
-                )
                 errors_obj = {
                     idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
                 }
@@ -552,7 +546,7 @@ class _BatchBase:
             )
             self.__uuid_lookup_lock.release()
 
-            if (n_obj_errs := len(response_obj.errors)) > 0 and n_obj_errs < 30:
+            if (n_obj_errs := len(response_obj.errors)) > 0 and self.__objs_logs_count < 30:
                 logger.error(
                     {
                         "message": f"Failed to send {n_obj_errs} objects in a batch of {n_objs}. Please inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects.",
@@ -585,7 +579,7 @@ class _BatchBase:
                     errors=errors_ref,
                     has_errors=True,
                 )
-            if (n_ref_errs := len(response_ref.errors)) > 0 and n_ref_errs < 30:
+            if (n_ref_errs := len(response_ref.errors)) > 0 and self.__refs_logs_count < 30:
                 logger.error(
                     {
                         "message": f"Failed to send {n_ref_errs} references in a batch of {n_refs}. Please inspect client.batch.failed_references or collection.batch.failed_references for the failed references.",
