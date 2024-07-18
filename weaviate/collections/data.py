@@ -125,17 +125,20 @@ class _Data:
     @overload
     def delete_many(
         self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
-    ) -> DeleteManyReturn[None]: ...
+    ) -> DeleteManyReturn[None]:
+        ...
 
     @overload
     def delete_many(
         self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
-    ) -> DeleteManyReturn[List[DeleteManyObject]]: ...
+    ) -> DeleteManyReturn[List[DeleteManyObject]]:
+        ...
 
     @overload
     def delete_many(
         self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
-    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...
+    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
+        ...
 
     def delete_many(
         self, where: _Filters, verbose: bool = False, *, dry_run: bool = False
