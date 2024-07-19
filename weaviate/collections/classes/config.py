@@ -378,9 +378,11 @@ class _GenerativeAnyscale(_GenerativeConfigCreate):
 
 
 class _GenerativeCustom(_GenerativeConfigCreate):
-    module_config: Dict[str, Any]
+    module_config: Optional[Dict[str, Any]]
 
     def _to_dict(self) -> Dict[str, Any]:
+        if self.module_config is None:
+            return {}
         return self.module_config
 
 
@@ -495,9 +497,11 @@ class _RerankerCohereConfig(_RerankerConfigCreate):
 
 
 class _RerankerCustomConfig(_RerankerConfigCreate):
-    module_config: Dict[str, Any]
+    module_config: Optional[Dict[str, Any]]
 
     def _to_dict(self) -> Dict[str, Any]:
+        if self.module_config is None:
+            return {}
         return self.module_config
 
 
@@ -534,7 +538,7 @@ class _Generative:
     @staticmethod
     def custom(
         module_name: str,
-        module_config: Dict[str, Any],
+        module_config: Optional[Dict[str, Any]] = None,
     ) -> _GenerativeConfigCreate:
         """Create a `_GenerativeCustom` object for use when generating using a custom module.
 
@@ -799,7 +803,9 @@ class _Reranker:
         return _RerankerTransformersConfig(reranker=Rerankers.TRANSFORMERS)
 
     @staticmethod
-    def custom(module_name: str, module_config: Dict[str, Any]) -> _RerankerConfigCreate:
+    def custom(
+        module_name: str, module_config: Optional[Dict[str, Any]] = None
+    ) -> _RerankerConfigCreate:
         """Create a `_RerankerCustomConfig` object for use when reranking using a custom module.
 
         Arguments:
@@ -914,9 +920,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigUpdate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[
-        Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]
-    ] = Field(default=None, alias="vectorizer_config")
+    vectorizerConfig: Optional[Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]] = (
+        Field(default=None, alias="vectorizer_config")
+    )
     multiTenancyConfig: Optional[_MultiTenancyConfigUpdate] = Field(
         default=None, alias="multi_tenancy_config"
     )
@@ -963,10 +969,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                         raise WeaviateInvalidInputError(
                             f"Cannot update vector index config with name {vc.name} to change its quantizer"
                         )
-                    schema["vectorConfig"][vc.name][
-                        "vectorIndexConfig"
-                    ] = vc.vectorIndexConfig.merge_with_existing(
-                        schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+                    schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
+                        vc.vectorIndexConfig.merge_with_existing(
+                            schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+                        )
                     )
                     schema["vectorConfig"][vc.name][
                         "vectorIndexType"
@@ -1536,9 +1542,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[
-        Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
-    ] = Field(default=_Vectorizer.none(), alias="vectorizer_config")
+    vectorizerConfig: Optional[Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]] = (
+        Field(default=_Vectorizer.none(), alias="vectorizer_config")
+    )
     generativeSearch: Optional[_GenerativeConfigCreate] = Field(
         default=None, alias="generative_config"
     )
