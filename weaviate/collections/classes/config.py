@@ -378,9 +378,11 @@ class _GenerativeAnyscale(_GenerativeConfigCreate):
 
 
 class _GenerativeCustom(_GenerativeConfigCreate):
-    module_config: Dict[str, Any]
+    module_config: Optional[Dict[str, Any]]
 
     def _to_dict(self) -> Dict[str, Any]:
+        if self.module_config is None:
+            return {}
         return self.module_config
 
 
@@ -495,9 +497,11 @@ class _RerankerCohereConfig(_RerankerConfigCreate):
 
 
 class _RerankerCustomConfig(_RerankerConfigCreate):
-    module_config: Dict[str, Any]
+    module_config: Optional[Dict[str, Any]]
 
     def _to_dict(self) -> Dict[str, Any]:
+        if self.module_config is None:
+            return {}
         return self.module_config
 
 
@@ -534,7 +538,7 @@ class _Generative:
     @staticmethod
     def custom(
         module_name: str,
-        module_config: Dict[str, Any],
+        module_config: Optional[Dict[str, Any]] = None,
     ) -> _GenerativeConfigCreate:
         """Create a `_GenerativeCustom` object for use when generating using a custom module.
 
@@ -799,7 +803,9 @@ class _Reranker:
         return _RerankerTransformersConfig(reranker=Rerankers.TRANSFORMERS)
 
     @staticmethod
-    def custom(module_name: str, module_config: Dict[str, Any]) -> _RerankerConfigCreate:
+    def custom(
+        module_name: str, module_config: Optional[Dict[str, Any]] = None
+    ) -> _RerankerConfigCreate:
         """Create a `_RerankerCustomConfig` object for use when reranking using a custom module.
 
         Arguments:
