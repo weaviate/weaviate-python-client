@@ -1,10 +1,12 @@
 import datetime
 import io
 import pathlib
+import struct
 import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Union
 
+import numpy as np
 import pytest
 
 from integration.conftest import CollectionFactory, CollectionFactoryGet, _sanitize_collection_name
@@ -291,6 +293,54 @@ def test_insert_many_with_typed_dict(
     obj2 = collection.query.fetch_object_by_id(ret.uuids[1])
     assert obj1.properties["name"] == "some name"
     assert obj2.properties["name"] == "some other name"
+
+
+@pytest.mark.parametrize(
+    "objects, should_error",
+    [
+        (
+            [
+                DataObject(properties={"name": "some numpy one"}, vector=np.array([1, 2, 3])),
+            ],
+            False,
+        ),
+        (
+            [
+                DataObject(properties={"name": "some numpy one"}, vector=np.array([1, 2, 3])),
+                DataObject(properties={"name": "some numpy two"}, vector=np.array([11, 12, 13])),
+            ],
+            False,
+        ),
+        (
+            [
+                DataObject(
+                    properties={"name": "some numpy 2d"}, vector=np.array([[1, 2, 3], [11, 12, 13]])
+                ),
+            ],
+            True,
+        ),
+    ],
+)
+def test_insert_many_with_numpy(
+    collection_factory: CollectionFactory,
+    objects: Sequence[DataObject[WeaviateProperties, Any]],
+    should_error: bool,
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    if not should_error:
+        ret = collection.data.insert_many(objects)
+        for idx, uuid_ in ret.uuids.items():
+            obj1 = collection.query.fetch_object_by_id(uuid_, include_vector=True)
+            inserted = objects[idx]
+            assert inserted.properties["name"] == obj1.properties["name"]
+            assert inserted.vector.tolist() == obj1.vector["default"]  # type: ignore[union-attr]
+    else:
+        with pytest.raises(struct.error) as e:
+            collection.data.insert_many(objects)
+        assert str(e.value) == "required argument is not a float"
 
 
 def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
