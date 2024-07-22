@@ -1,4 +1,3 @@
-import asyncio
 from math import ceil
 from typing import Any, Dict, List, Optional, Sequence, Union
 
@@ -89,19 +88,15 @@ class _TenantsAsync(_TenantsBase):
             )
 
         path = "/schema/" + self._name + "/tenants"
-        await asyncio.gather(
-            *[
-                self._connection.post(
-                    path=path,
-                    weaviate_object=mapped_tenants,
-                    error_msg=f"Collection tenants may not have been added properly for {self._name}",
-                    status_codes=_ExpectedStatusCodes(
-                        ok_in=200, error=f"Add collection tenants for {self._name}"
-                    ),
-                )
-                for mapped_tenants in self.__map_create_tenants(tenants)
-            ]
-        )
+        for mapped_tenants in self.__map_create_tenants(tenants):
+            await self._connection.post(
+                path=path,
+                weaviate_object=mapped_tenants,
+                error_msg=f"Collection tenants may not have been added properly for {self._name}",
+                status_codes=_ExpectedStatusCodes(
+                    ok_in=200, error=f"Add collection tenants for {self._name}"
+                ),
+            )
 
     async def remove(self, tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
@@ -367,19 +362,15 @@ class _TenantsAsync(_TenantsBase):
             )
 
         path = "/schema/" + self._name + "/tenants"
-        await asyncio.gather(
-            *[
-                self._connection.put(
-                    path=path,
-                    weaviate_object=mapped_tenants,
-                    error_msg=f"Collection tenants may not have been updated properly for {self._name}",
-                    status_codes=_ExpectedStatusCodes(
-                        ok_in=200, error=f"Update collection tenants for {self._name}"
-                    ),
-                )
-                for mapped_tenants in self.__map_update_tenants(tenants)
-            ]
-        )
+        for mapped_tenants in self.__map_update_tenants(tenants):
+            await self._connection.put(
+                path=path,
+                weaviate_object=mapped_tenants,
+                error_msg=f"Collection tenants may not have been updated properly for {self._name}",
+                status_codes=_ExpectedStatusCodes(
+                    ok_in=200, error=f"Update collection tenants for {self._name}"
+                ),
+            )
 
     async def exists(self, tenant: Union[str, Tenant]) -> bool:
         """Check if a tenant exists for a collection in Weaviate.
