@@ -434,3 +434,28 @@ def test_tenants_update_with_read_only_activity_status(
     )
     with pytest.raises(WeaviateInvalidInputError):
         collection.tenants.update(tenants)
+
+
+def test_tenants_create_and_update_1001_tenants(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(),
+    )
+
+    tenants = [TenantCreate(name=f"tenant{i}") for i in range(1001)]
+
+    collection.tenants.create(tenants)
+    t = collection.tenants.get()
+    assert len(t) == 1001
+    assert all(tenant.activity_status == TenantActivityStatus.ACTIVE for tenant in t.values())
+
+    tenants = [
+        Tenant(name=f"tenant{i}", activity_status=TenantActivityStatus.INACTIVE)
+        for i in range(1001)
+    ]
+    collection.tenants.update(tenants)
+    t = collection.tenants.get()
+    assert len(t) == 1001
+    assert all(tenant.activity_status == TenantActivityStatus.INACTIVE for tenant in t.values())
