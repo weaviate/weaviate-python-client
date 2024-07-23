@@ -20,6 +20,7 @@ from .connect.helpers import (
     connect_to_wcs,
     connect_to_weaviate_cloud,
     use_async_with_custom,
+    use_async_with_embedded,
     use_async_with_local,
     use_async_with_weaviate_cloud,
 )
@@ -75,6 +76,7 @@ __all__ = [
     "schema",
     "types",
     "use_async_with_custom",
+    "use_async_with_embedded",
     "use_async_with_local",
     "use_async_with_weaviate_cloud",
 ]

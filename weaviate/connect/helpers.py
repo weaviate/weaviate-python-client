@@ -6,7 +6,7 @@ from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
-from weaviate.embedded import EmbeddedOptions
+from weaviate.embedded import EmbeddedOptions, WEAVIATE_VERSION
 from weaviate.validator import _validate_input, _ValidateArgument
 
 
@@ -226,7 +226,7 @@ def connect_to_embedded(
     grpc_port: int = 50050,
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
-    version: str = "1.23.7",
+    version: str = WEAVIATE_VERSION,
     persistence_data_path: Optional[str] = None,
     binary_path: Optional[str] = None,
     environment_variables: Optional[Dict[str, str]] = None,
@@ -449,10 +449,10 @@ def use_async_with_weaviate_cloud(
         ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
         ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
         ... )
-        >>> client.is_ready()
+        >>> await client.is_ready()
         False # The connection is not ready yet, you must call `await client.connect()` to connect.
         ... await client.connect()
-        >>> client.is_ready()
+        >>> await client.is_ready()
         True
         >>> await client.close() # Close the connection when you are done with it.
         >>> ################## With Context Manager #############################
@@ -461,7 +461,7 @@ def use_async_with_weaviate_cloud(
         ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
         ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
         ... ) as client:
-        ...     client.is_ready()
+        ...     await client.is_ready()
         True
     """
     cluster_url, grpc_host = __parse_weaviate_cloud_cluster_url(cluster_url)
@@ -523,10 +523,10 @@ def use_async_with_local(
         ...     port=8080,
         ...     grpc_port=50051,
         ... )
-        >>> client.is_ready()
+        >>> await client.is_ready()
         False # The connection is not ready yet, you must call `await client.connect()` to connect.
         ... await client.connect()
-        >>> client.is_ready()
+        >>> await client.is_ready()
         True
         >>> await client.close() # Close the connection when you are done with it.
         >>> ################## With Context Manager #############################
@@ -536,7 +536,7 @@ def use_async_with_local(
         ...     port=8080,
         ...     grpc_port=50051,
         ... ) as client:
-        ...     client.is_ready()
+        ...     await client.is_ready()
         True
         >>> # The connection is automatically closed when the context is exited.
     """
@@ -550,6 +550,96 @@ def use_async_with_local(
         skip_init_checks=skip_init_checks,
         auth_client_secret=auth_credentials,
     )
+
+
+def use_async_with_embedded(
+    hostname: str = "127.0.0.1",
+    port: int = 8079,
+    grpc_port: int = 50050,
+    headers: Optional[Dict[str, str]] = None,
+    additional_config: Optional[AdditionalConfig] = None,
+    version: str = WEAVIATE_VERSION,
+    persistence_data_path: Optional[str] = None,
+    binary_path: Optional[str] = None,
+    environment_variables: Optional[Dict[str, str]] = None,
+) -> WeaviateAsyncClient:
+    """
+    Create an async client object ready to connect to an embedded Weaviate instance.
+
+    If this is not sufficient for your customization needs then instantiate a `weaviate.WeaviateAsyncClient` instance directly.
+
+    This method handles creating the `WeaviateAsyncClient` instance with relevant options to Weaviate Cloud connections but you must manually call `await client.connect()`.
+    Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
+    in an `async with` statement, which will automatically open/close the connection when the context is entered/exited. See the examples below for details.
+
+    See [the docs](https://weaviate.io/developers/weaviate/installation/embedded#embedded-options) for more details.
+
+    Arguments:
+        `hostname`
+            The hostname to use for the underlying REST & GraphQL API calls.
+        `port`
+            The port to use for the underlying REST and GraphQL API calls.
+        `grpc_port`
+            The port to use for the underlying gRPC API.
+        `headers`
+            Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
+        `additional_config`
+            This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
+        `version`
+            Weaviate version to be used for the embedded instance.
+        `persistence_data_path`
+            Directory where the files making up the database are stored.
+            When the XDG_DATA_HOME env variable is set, the default value is: `XDG_DATA_HOME/weaviate/`
+            Otherwise it is: `~/.local/share/weaviate`
+        `binary_path`
+            Directory where to download the binary. If deleted, the client will download the binary again.
+            When the XDG_CACHE_HOME env variable is set, the default value is: `XDG_CACHE_HOME/weaviate-embedded/`
+            Otherwise it is: `~/.cache/weaviate-embedded`
+        `environment_variables`
+            Additional environment variables to be passed to the embedded instance for configuration.
+
+    Returns
+        `weaviate.WeaviateClient`
+            The client connected to the embedded instance with the required parameters set appropriately.
+
+    Examples:
+        >>> import weaviate
+        >>> client = weaviate.use_async_with_embedded(
+        ...     port=8080,
+        ...     grpc_port=50051,
+        ... )
+        >>> await client.is_ready()
+        False # The connection is not ready yet, you must call `await client.connect()` to connect.
+        ... await client.connect()
+        >>> await client.is_ready()
+        True
+        ################## With Context Manager #############################
+        >>> import weaviate
+        >>> async with weaviate.use_async_with_embedded(
+        ...     port=8080,
+        ...     grpc_port=50051,
+        ... ) as client:
+        ...     await client.is_ready()
+        True
+        >>> # The connection is automatically closed when the context is exited.
+    """
+    options = EmbeddedOptions(
+        hostname=hostname,
+        port=port,
+        grpc_port=grpc_port,
+        version=version,
+        additional_env_vars=environment_variables,
+    )
+    if persistence_data_path is not None:
+        options.persistence_data_path = persistence_data_path
+    if binary_path is not None:
+        options.binary_path = binary_path
+    client = WeaviateAsyncClient(
+        embedded_options=options,
+        additional_headers=headers,
+        additional_config=additional_config,
+    )
+    return client
 
 
 def use_async_with_custom(
@@ -612,10 +702,10 @@ def use_async_with_custom(
         ...     grpc_port=50051,
         ...     grpc_secure=False,
         ... )
-        >>> client.is_ready()
+        >>> await client.is_ready()
         False # The connection is not ready yet, you must call `await client.connect()` to connect.
         ... await client.connect()
-        >>> client.is_ready()
+        >>> await client.is_ready()
         True
         >>> await client.close() # Close the connection when you are done with it.
         >>> ################## Async With Context Manager #############################
@@ -628,7 +718,7 @@ def use_async_with_custom(
         ...     grpc_port=50051,
         ...     grpc_secure=False,
         ... ) as client:
-        ...     client.is_ready()
+        ...     await client.is_ready()
         True
         >>> # The connection is automatically closed when the context is exited.
     """

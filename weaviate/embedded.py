@@ -30,12 +30,14 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 DEFAULT_PORT = 8079
 DEFAULT_GRPC_PORT = 50060
 
+WEAVIATE_VERSION = "1.26.1"
+
 
 @dataclass
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.25.8"
+    version: str = WEAVIATE_VERSION
     port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
@@ -52,7 +54,6 @@ def get_random_port() -> int:
 
 class _EmbeddedBase:
     def __init__(self, options: EmbeddedOptions) -> None:
-        self.data_bind_port = get_random_port()
         self.options = options
         self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
