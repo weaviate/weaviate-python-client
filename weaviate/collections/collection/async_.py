@@ -214,7 +214,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
     ) -> _ObjectAIterator[TProperties, TReferences]:
         ...
 
-    def iterator(  # type: ignore
+    def iterator(
         self,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,

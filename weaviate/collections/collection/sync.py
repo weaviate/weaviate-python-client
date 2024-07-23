@@ -250,9 +250,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
     ) -> _ObjectIterator[TProperties, TReferences]:
         ...
 
-    # weaviate/collections/collection.py:263: error: Overloaded function implementation does not accept all possible arguments of signature 3  [misc]
-    # weaviate/collections/collection.py:263: error: Overloaded function implementation cannot produce return type of signature 3  [misc]
-    def iterator(  # type: ignore
+    def iterator(
         self,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,

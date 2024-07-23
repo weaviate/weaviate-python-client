@@ -75,7 +75,7 @@ class _CollectionBase(Generic[Properties, References]):
             name=cast(_CollectionBase, self).name,
             validate_arguments=cast(_CollectionBase, self)._validate_arguments,
             consistency_level=cast(_CollectionBase, self).consistency_level,
-            tenant=tenant,
+            tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
             properties=cast(_CollectionBase, self).__properties,
             references=cast(_CollectionBase, self).__references,
         )
