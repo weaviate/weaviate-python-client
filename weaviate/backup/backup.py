@@ -84,13 +84,13 @@ class BackupReturn(BackupStatusReturn):
     collections: List[str] = Field(default_factory=list, alias="classes")
 
 
-class _Backup:
+class _BackupAsync:
     """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
 
     def __init__(self, connection: ConnectionV4):
         self._connection = connection
 
-    def create(
+    async def create(
         self,
         backup_id: str,
         backend: BackupStorage,
@@ -164,7 +164,7 @@ class _Backup:
 
         path = f"/backups/{backend.value}"
 
-        response = self._connection.post(
+        response = await self._connection.post(
             path=path,
             weaviate_object=payload,
             error_msg="Backup creation failed due to connection error.",
@@ -174,7 +174,7 @@ class _Backup:
         assert create_status is not None
         if wait_for_completion:
             while True:
-                status = self.get_create_status(
+                status = await self.__get_create_status(
                     backup_id=backup_id,
                     backend=backend,
                 )
@@ -188,7 +188,26 @@ class _Backup:
                 sleep(1)
         return BackupReturn(**create_status)
 
-    def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+    async def __get_create_status(
+        self, backup_id: str, backend: BackupStorage
+    ) -> BackupStatusReturn:
+        backup_id, backend = _get_and_validate_get_status(
+            backup_id=backup_id,
+            backend=backend,  # this check can be removed when we remove the old backup class
+        )
+
+        path = f"/backups/{backend.value}/{backup_id}"
+
+        response = await self._connection.get(
+            path=path, error_msg="Backup creation status failed due to connection error."
+        )
+
+        typed_response = _decode_json_response_dict(response, "Backup status check")
+        if typed_response is None:
+            raise EmptyResponseException()
+        return BackupStatusReturn(**typed_response)
+
+    async def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
         """
         Checks if a started backup job has completed.
 
@@ -204,23 +223,9 @@ class _Backup:
         -------
          A `BackupStatusReturn` object that contains the backup creation status response.
         """
-        backup_id, backend = _get_and_validate_get_status(
-            backup_id=backup_id,
-            backend=backend,  # this check can be removed when we remove the old backup class
-        )
+        return await self.__get_create_status(backup_id, backend)
 
-        path = f"/backups/{backend.value}/{backup_id}"
-
-        response = self._connection.get(
-            path=path, error_msg="Backup creation status failed due to connection error."
-        )
-
-        typed_response = _decode_json_response_dict(response, "Backup status check")
-        if typed_response is None:
-            raise EmptyResponseException()
-        return BackupStatusReturn(**typed_response)
-
-    def restore(
+    async def restore(
         self,
         backup_id: str,
         backend: BackupStorage,
@@ -292,7 +297,7 @@ class _Backup:
             payload["config"] = config.model_dump()
 
         path = f"/backups/{backend.value}/{backup_id}/restore"
-        response = self._connection.post(
+        response = await self._connection.post(
             path=path,
             weaviate_object=payload,
             error_msg="Backup restore failed due to connection error.",
@@ -301,7 +306,7 @@ class _Backup:
         assert restore_status is not None
         if wait_for_completion:
             while True:
-                status = self.get_restore_status(
+                status = await self.__get_restore_status(
                     backup_id=backup_id,
                     backend=backend,
                 )
@@ -315,7 +320,26 @@ class _Backup:
                 sleep(1)
         return BackupReturn(**restore_status)
 
-    def get_restore_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+    async def __get_restore_status(
+        self, backup_id: str, backend: BackupStorage
+    ) -> BackupStatusReturn:
+        backup_id, backend = _get_and_validate_get_status(
+            backup_id=backup_id,
+            backend=backend,
+        )
+        path = f"/backups/{backend.value}/{backup_id}/restore"
+
+        response = await self._connection.get(
+            path=path, error_msg="Backup restore status failed due to connection error."
+        )
+        typed_response = _decode_json_response_dict(response, "Backup restore status check")
+        if typed_response is None:
+            raise EmptyResponseException()
+        return BackupStatusReturn(**typed_response)
+
+    async def get_restore_status(
+        self, backup_id: str, backend: BackupStorage
+    ) -> BackupStatusReturn:
         """
         Checks if a started classification job has completed.
 
@@ -331,20 +355,7 @@ class _Backup:
         -------
          A `BackupStatusReturn` object that contains the backup restore status response.
         """
-
-        backup_id, backend = _get_and_validate_get_status(
-            backup_id=backup_id,
-            backend=backend,
-        )
-        path = f"/backups/{backend.value}/{backup_id}/restore"
-
-        response = self._connection.get(
-            path=path, error_msg="Backup restore status failed due to connection error."
-        )
-        typed_response = _decode_json_response_dict(response, "Backup restore status check")
-        if typed_response is None:
-            raise EmptyResponseException()
-        return BackupStatusReturn(**typed_response)
+        return await self.__get_restore_status(backup_id, backend)
 
 
 class Backup:

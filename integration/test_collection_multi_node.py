@@ -22,7 +22,7 @@ def test_consistency_on_multinode(
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        replication_config=Configure.replication(factor=2),
+        replication_config=Configure.replication(factor=2, async_enabled=False),
         ports=(8087, 50058),
     ).with_consistency_level(level)
 

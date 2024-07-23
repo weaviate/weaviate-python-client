@@ -11,15 +11,19 @@ try:
 except PackageNotFoundError:
     __version__ = "unknown version"
 
-from .client import Client, WeaviateClient
+from .client import Client, WeaviateAsyncClient, WeaviateClient
+from .collections.batch.client import BatchClient, ClientBatchingContextManager
 from .connect.helpers import (
     connect_to_custom,
     connect_to_embedded,
     connect_to_local,
     connect_to_wcs,
     connect_to_weaviate_cloud,
+    use_async_with_custom,
+    use_async_with_embedded,
+    use_async_with_local,
+    use_async_with_weaviate_cloud,
 )
-
 from . import (
     auth,
     backup,
@@ -46,8 +50,11 @@ if not sys.warnoptions:
 from .warnings import _Warnings
 
 __all__ = [
+    "BatchClient",
+    "ClientBatchingContextManager",
     "Client",
     "WeaviateClient",
+    "WeaviateAsyncClient",
     "connect_to_custom",
     "connect_to_embedded",
     "connect_to_local",
@@ -68,6 +75,10 @@ __all__ = [
     "outputs",
     "schema",
     "types",
+    "use_async_with_custom",
+    "use_async_with_embedded",
+    "use_async_with_local",
+    "use_async_with_weaviate_cloud",
 ]
 
 deprs = [

@@ -1,6 +1,7 @@
-from typing import Literal, Optional, Union, overload
+from typing import Optional, Union
 
-from weaviate.collections.aggregations.base import _Aggregate
+from weaviate import syncify
+from weaviate.collections.aggregations.aggregate import _AggregateAsync
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -11,40 +12,8 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.types import NUMBER, UUID
 
 
-class _NearObject(_Aggregate):
-    @overload
-    def near_object(
-        self,
-        near_object: UUID,
-        *,
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
-        object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Literal[None] = None,
-        target_vector: Optional[str] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateReturn:
-        ...
-
-    @overload
-    def near_object(
-        self,
-        near_object: UUID,
-        *,
-        certainty: Optional[NUMBER] = None,
-        distance: Optional[NUMBER] = None,
-        object_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Union[str, GroupByAggregate],
-        target_vector: Optional[str] = None,
-        total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> AggregateGroupByReturn:
-        ...
-
-    def near_object(
+class _NearObjectAsync(_AggregateAsync):
+    async def near_object(
         self,
         near_object: UUID,
         *,
@@ -100,9 +69,14 @@ class _NearObject(_Aggregate):
         builder = self._add_near_object_to_builder(
             builder, near_object, certainty, distance, object_limit, target_vector
         )
-        res = self._do(builder)
+        res = await self._do(builder)
         return (
             self._to_aggregate_result(res, return_metrics)
             if group_by is None
             else self._to_group_by_result(res, return_metrics)
         )
+
+
+@syncify.convert
+class _NearObject(_NearObjectAsync):
+    pass
