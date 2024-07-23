@@ -21,7 +21,7 @@ TenantCreateInputType = Union[str, Tenant, TenantCreate]
 TenantUpdateInputType = Union[Tenant, TenantUpdate]
 TenantOutputType = Tenant
 
-MUTATE_TENANT_BATCH_SIZE = 100
+UPDATE_TENANT_BATCH_SIZE = 100
 
 
 class _TenantsBase:
@@ -88,15 +88,14 @@ class _TenantsAsync(_TenantsBase):
             )
 
         path = "/schema/" + self._name + "/tenants"
-        for mapped_tenants in self.__map_create_tenants(tenants):
-            await self._connection.post(
-                path=path,
-                weaviate_object=mapped_tenants,
-                error_msg=f"Collection tenants may not have been added properly for {self._name}",
-                status_codes=_ExpectedStatusCodes(
-                    ok_in=200, error=f"Add collection tenants for {self._name}"
-                ),
-            )
+        await self._connection.post(
+            path=path,
+            weaviate_object=self.__map_create_tenants(tenants),
+            error_msg=f"Collection tenants may not have been added properly for {self._name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=200, error=f"Add collection tenants for {self._name}"
+            ),
+        )
 
     async def remove(self, tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
@@ -213,42 +212,33 @@ class _TenantsAsync(_TenantsBase):
         return tenant
 
     def __map_create_tenants(
-        self, tenant: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]]
-    ) -> List[List[dict]]:
+        self, tenants: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]]
+    ) -> List[dict]:
         if (
-            isinstance(tenant, str)
-            or isinstance(tenant, Tenant)
-            or isinstance(tenant, TenantCreate)
+            isinstance(tenants, str)
+            or isinstance(tenants, Tenant)
+            or isinstance(tenants, TenantCreate)
         ):
-            return [[self.__map_create_tenant(tenant).model_dump()]]
+            return [self.__map_create_tenant(tenants).model_dump()]
         else:
-            batches = ceil(len(tenant) / MUTATE_TENANT_BATCH_SIZE)
-            return [
-                [
-                    self.__map_create_tenant(tenant[i + b * MUTATE_TENANT_BATCH_SIZE]).model_dump()
-                    for i in range(
-                        min(len(tenant) - b * MUTATE_TENANT_BATCH_SIZE, MUTATE_TENANT_BATCH_SIZE)
-                    )
-                ]
-                for b in range(batches)
-            ]
+            return [self.__map_create_tenant(tenant).model_dump() for tenant in tenants]
 
     def __map_update_tenants(
-        self, tenant: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
+        self, tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
     ) -> List[List[dict]]:
         if (
-            isinstance(tenant, str)
-            or isinstance(tenant, Tenant)
-            or isinstance(tenant, TenantUpdate)
+            isinstance(tenants, str)
+            or isinstance(tenants, Tenant)
+            or isinstance(tenants, TenantUpdate)
         ):
-            return [[self.__map_update_tenant(tenant).model_dump()]]
+            return [[self.__map_update_tenant(tenants).model_dump()]]
         else:
-            batches = ceil(len(tenant) / MUTATE_TENANT_BATCH_SIZE)
+            batches = ceil(len(tenants) / UPDATE_TENANT_BATCH_SIZE)
             return [
                 [
-                    self.__map_update_tenant(tenant[i + b * MUTATE_TENANT_BATCH_SIZE]).model_dump()
+                    self.__map_update_tenant(tenants[i + b * UPDATE_TENANT_BATCH_SIZE]).model_dump()
                     for i in range(
-                        min(len(tenant) - b * MUTATE_TENANT_BATCH_SIZE, MUTATE_TENANT_BATCH_SIZE)
+                        min(len(tenants) - b * UPDATE_TENANT_BATCH_SIZE, UPDATE_TENANT_BATCH_SIZE)
                     )
                 ]
                 for b in range(batches)
