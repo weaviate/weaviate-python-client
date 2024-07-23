@@ -1,6 +1,18 @@
 Changelog
 =========
 
+Version 4.6.7
+--------------
+
+This patch version includes:
+
+- Fix batching with references. Under some circumstances a reference could be added before its ``to``-object and the reference would be lost.
+- Fix node status for timed out nodes
+- Fix parsing the year 0. While weaviate allows to add dates with year zero ("0000-01-30T00:00:00Z"), the datetime library is based on the gregorian calendar which does not have a year zero. The client will years with 0 as the minimum date that is possible in datetime (``datetime.datetime(1, 1, 1, 0, 0)``) and emit a warning
+- Support for custom rerankers and generative modules using ``Configure.Generative.custom()`` and ``Configure.Reranker.custom()``
+- Add support for kagome_kr tokenizer. Requires Weaviate 1.25.8
+- Increase default embedded version to 1.25.8
+
 Version 4.6.6
 --------------
 
