@@ -269,8 +269,7 @@ def test_latest(tmp_path_factory: pytest.TempPathFactory):
             port=30668,
             additional_env_vars={"GRPC_PORT": "50060"},
             grpc_port=50060,
-        ),
-        startup_period=60,
+        )
     )
     try:
         meta = client.get_meta()
@@ -310,8 +309,7 @@ def test_embedded_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             grpc_port=50061,
-        ),
-        startup_period=60,
+        )
     )
     try:
         assert client.is_ready()
@@ -331,8 +329,7 @@ def test_embedded_v4_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             grpc_port=50061,
-        ),
-        startup_period=60,
+        )
     )
     try:
         client.connect()
@@ -352,8 +349,7 @@ def test_embedded_with_grpc_port_default(tmp_path_factory: pytest.TempPathFactor
             binary_path=tmp_path_factory.mktemp("bin"),
             version="latest",
             port=30669,
-        ),
-        startup_period=60,
+        )
     )
     try:
         assert client.is_ready()
@@ -373,8 +369,7 @@ def test_embedded_stop(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             grpc_port=50060,
-        ),
-        startup_period=60,
+        )
     )
     try:
         assert client.is_ready()
