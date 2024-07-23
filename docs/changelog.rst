@@ -8,10 +8,16 @@ This minor version includes:
 
 - The introduction of the ``WeaviateAsyncClient`` class to support I/O requests to Weaviate using the ``async/await`` syntax with `asyncio <https://docs.python.org/3/library/asyncio.html>`
     - All methods that perform CRUD and search actions are now ``async def`` functions
-    - To instantiate a client quickly, using the ``weaviate.use_async_with_x`` methods in an async context manager pattern, e.g.:
+    - To instantiate a client quickly, use the ``weaviate.use_async_with_x`` methods in an async context manager pattern, e.g.:
         .. code-block:: python
             async with weaviate.use_async_with_local() as client:
                 # Your code
+    - Note, you cannot do ``await weaviate.use_async_with_x`` if not using the context manager pattern. You have to create the client first and then connect manually:
+        .. code-block:: python
+            client = weaviate.use_async_with_local()
+            await client.connect()
+            # Your code
+            await client.close()
 - A refactoring of the underlying implementation of the ``WeaviateClient`` to use the ``WeaviateAsyncClient`` under-the-hood scheduling the necessary coroutines to run in a side-car event-loop thread
 - Support for new core Weaviate features in both the sync and async clients:
     - Multi-vector search in the ``.near_x`` and ``.hybrid`` methods within the ``.generate`` and ``.query`` collection namespaces
