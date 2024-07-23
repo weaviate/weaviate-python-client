@@ -56,6 +56,7 @@ from weaviate.client_base import _WeaviateClientInit
 # Must therefore duplicate the interface for all clients hiding their methods inside client.py
 
 class WeaviateAsyncClient(_WeaviateClientInit):
+    _connection: ConnectionV4
     collections: _CollectionsAsync
     backup: _BackupAsync
     cluster: _ClusterAsync
@@ -71,6 +72,7 @@ class WeaviateAsyncClient(_WeaviateClientInit):
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None: ...
 
 class WeaviateClient(_WeaviateClientInit):
+    _connection: ConnectionV4
     collections: _Collections
     batch: _BatchClientWrapper
     backup: _Backup
@@ -87,6 +89,7 @@ class WeaviateClient(_WeaviateClientInit):
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None: ...
 
 class Client:
+    _connection: Connection
     classification: Classification
     schema: Schema
     contextionary: Contextionary
