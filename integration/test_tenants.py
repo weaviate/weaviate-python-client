@@ -3,7 +3,7 @@ from typing import List, Union
 
 import pytest
 
-from integration.conftest import CollectionFactory
+from integration.conftest import ClientFactory, CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -462,3 +462,25 @@ def test_tenants_create_and_update_1001_tenants(
     t = collection.tenants.get()
     assert len(t) == 1001
     assert all(tenant.activity_status == TenantActivityStatus.INACTIVE for tenant in t.values())
+
+
+def test_tenants_auto_tenant_creation(
+    client_factory: ClientFactory, collection_factory: CollectionFactory
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(auto_tenant_creation=True),
+    )
+
+    collection.with_tenant("tenant").data.insert_many(
+        [DataObject(properties={"name": "some name"}) for _ in range(101)]
+    )
+
+    client = client_factory()
+    with client.batch.fixed_size(batch_size=101) as batch:
+        for i in range(101):
+            batch.add_object(
+                collection=collection.name, properties={"name": "some name"}, tenant=f"tenant-{i}"
+            )
+    assert len(client.batch.failed_objects) == 0
