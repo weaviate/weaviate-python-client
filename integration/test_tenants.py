@@ -332,7 +332,7 @@ def test_autotenant_toggling(collection_factory: CollectionFactory) -> None:
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        return
+        pytest.skip("Auto-tenant creation is not supported in this version")
 
     assert not collection.config.get().multi_tenancy_config.auto_tenant_creation
 
@@ -467,6 +467,10 @@ def test_tenants_create_and_update_1001_tenants(
 def test_tenants_auto_tenant_creation(
     client_factory: ClientFactory, collection_factory: CollectionFactory
 ) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 25, 0):
+        pytest.skip("Auto-tenant creation is not supported in this version")
+
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
