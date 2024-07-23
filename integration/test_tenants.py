@@ -3,7 +3,7 @@ from typing import List, Union
 
 import pytest
 
-from integration.conftest import CollectionFactory
+from integration.conftest import ClientFactory, CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -332,7 +332,7 @@ def test_autotenant_toggling(collection_factory: CollectionFactory) -> None:
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
-        return
+        pytest.skip("Auto-tenant creation is not supported in this version")
 
     assert not collection.config.get().multi_tenancy_config.auto_tenant_creation
 
@@ -437,3 +437,54 @@ def test_tenants_update_with_read_only_activity_status(
     )
     with pytest.raises(WeaviateInvalidInputError):
         collection.tenants.update(tenants)
+
+
+def test_tenants_create_and_update_1001_tenants(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(),
+    )
+
+    tenants = [TenantCreate(name=f"tenant{i}") for i in range(1001)]
+
+    collection.tenants.create(tenants)
+    t = collection.tenants.get()
+    assert len(t) == 1001
+    assert all(tenant.activity_status == TenantActivityStatus.ACTIVE for tenant in t.values())
+
+    tenants = [
+        Tenant(name=f"tenant{i}", activity_status=TenantActivityStatus.INACTIVE)
+        for i in range(1001)
+    ]
+    collection.tenants.update(tenants)
+    t = collection.tenants.get()
+    assert len(t) == 1001
+    assert all(tenant.activity_status == TenantActivityStatus.INACTIVE for tenant in t.values())
+
+
+def test_tenants_auto_tenant_creation(
+    client_factory: ClientFactory, collection_factory: CollectionFactory
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 25, 0):
+        pytest.skip("Auto-tenant creation is not supported in this version")
+
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(auto_tenant_creation=True),
+    )
+
+    collection.with_tenant("tenant").data.insert_many(
+        [DataObject(properties={"name": "some name"}) for _ in range(101)]
+    )
+
+    client = client_factory()
+    with client.batch.fixed_size(batch_size=101) as batch:
+        for i in range(101):
+            batch.add_object(
+                collection=collection.name, properties={"name": "some name"}, tenant=f"tenant-{i}"
+            )
+    assert len(client.batch.failed_objects) == 0

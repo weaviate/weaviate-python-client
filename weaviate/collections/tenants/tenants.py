@@ -1,3 +1,4 @@
+from math import ceil
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from weaviate.collections.classes.config import ConsistencyLevel
@@ -19,6 +20,8 @@ from weaviate.validator import _validate_input, _ValidateArgument
 TenantCreateInputType = Union[str, Tenant, TenantCreate]
 TenantUpdateInputType = Union[Tenant, TenantUpdate]
 TenantOutputType = Tenant
+
+UPDATE_TENANT_BATCH_SIZE = 100
 
 
 class _TenantsBase:
@@ -209,28 +212,37 @@ class _TenantsAsync(_TenantsBase):
         return tenant
 
     def __map_create_tenants(
-        self, tenant: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]]
+        self, tenants: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]]
     ) -> List[dict]:
         if (
-            isinstance(tenant, str)
-            or isinstance(tenant, Tenant)
-            or isinstance(tenant, TenantCreate)
+            isinstance(tenants, str)
+            or isinstance(tenants, Tenant)
+            or isinstance(tenants, TenantCreate)
         ):
-            return [self.__map_create_tenant(tenant).model_dump()]
+            return [self.__map_create_tenant(tenants).model_dump()]
         else:
-            return [self.__map_create_tenant(t).model_dump() for t in tenant]
+            return [self.__map_create_tenant(tenant).model_dump() for tenant in tenants]
 
     def __map_update_tenants(
-        self, tenant: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
-    ) -> List[dict]:
+        self, tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
+    ) -> List[List[dict]]:
         if (
-            isinstance(tenant, str)
-            or isinstance(tenant, Tenant)
-            or isinstance(tenant, TenantUpdate)
+            isinstance(tenants, str)
+            or isinstance(tenants, Tenant)
+            or isinstance(tenants, TenantUpdate)
         ):
-            return [self.__map_update_tenant(tenant).model_dump()]
+            return [[self.__map_update_tenant(tenants).model_dump()]]
         else:
-            return [self.__map_update_tenant(t).model_dump() for t in tenant]
+            batches = ceil(len(tenants) / UPDATE_TENANT_BATCH_SIZE)
+            return [
+                [
+                    self.__map_update_tenant(tenants[i + b * UPDATE_TENANT_BATCH_SIZE]).model_dump()
+                    for i in range(
+                        min(len(tenants) - b * UPDATE_TENANT_BATCH_SIZE, UPDATE_TENANT_BATCH_SIZE)
+                    )
+                ]
+                for b in range(batches)
+            ]
 
     async def get(self) -> Dict[str, TenantOutputType]:
         """Return all tenants currently associated with a collection in Weaviate.
@@ -340,14 +352,15 @@ class _TenantsAsync(_TenantsBase):
             )
 
         path = "/schema/" + self._name + "/tenants"
-        await self._connection.put(
-            path=path,
-            weaviate_object=self.__map_update_tenants(tenants),
-            error_msg=f"Collection tenants may not have been updated properly for {self._name}",
-            status_codes=_ExpectedStatusCodes(
-                ok_in=200, error=f"Update collection tenants for {self._name}"
-            ),
-        )
+        for mapped_tenants in self.__map_update_tenants(tenants):
+            await self._connection.put(
+                path=path,
+                weaviate_object=mapped_tenants,
+                error_msg=f"Collection tenants may not have been updated properly for {self._name}",
+                status_codes=_ExpectedStatusCodes(
+                    ok_in=200, error=f"Update collection tenants for {self._name}"
+                ),
+            )
 
     async def exists(self, tenant: Union[str, Tenant]) -> bool:
         """Check if a tenant exists for a collection in Weaviate.
