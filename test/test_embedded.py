@@ -309,7 +309,7 @@ def test_embedded_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             grpc_port=50061,
-        ),
+        )
     )
     try:
         assert client.is_ready()
@@ -329,7 +329,7 @@ def test_embedded_v4_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             grpc_port=50061,
-        ),
+        )
     )
     try:
         client.connect()
@@ -369,7 +369,7 @@ def test_embedded_stop(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             grpc_port=50060,
-        ),
+        )
     )
     try:
         assert client.is_ready()
