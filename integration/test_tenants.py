@@ -22,13 +22,16 @@ from weaviate.collections.tenants import TenantCreateInputType
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 
 
-def test_delete_by_id_tenant(collection_factory: CollectionFactory) -> None:
+@pytest.mark.parametrize("tenant", ["tenant1", Tenant(name="tenant1")])
+def test_delete_by_id_tenant(
+    collection_factory: CollectionFactory, tenant: Union[str, Tenant]
+) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
-    collection.tenants.create(Tenant(name="tenant1"))
-    tenant1 = collection.with_tenant("tenant1")
+    collection.tenants.create(tenant)
+    tenant1 = collection.with_tenant(tenant)
     uuid = tenant1.data.insert(properties={})
     assert tenant1.query.fetch_object_by_id(uuid) is not None
     assert tenant1.data.delete_by_id(uuid)
