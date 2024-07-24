@@ -28,10 +28,10 @@ werkzeug==3.0.3
 pytest-httpserver==1.0.12
 py-spy==0.3.14
 
-numpy==1.24.4
-pandas==2.0.3
-pandas-stubs==2.0.3.230814
-polars==1.2.1
+numpy>=1.24.4,<2.0.0
+pandas>=2.0.3,<3.0.0
+pandas-stubs>=2.0.3,<3.0.0
+polars>=0.20.26,<0.21.0
 
 fastapi==0.111.1
 flask[async]==3.0.3
