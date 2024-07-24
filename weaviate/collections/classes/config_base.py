@@ -2,6 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, cast
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -25,7 +26,15 @@ class _ConfigUpdateModel(BaseModel):
             elif isinstance(val, (int, float, bool, str, list)):
                 schema[cls_field] = val
             elif isinstance(val, _QuantizerConfigUpdate):
+                quantizers = ["pq", "bq", "sq"]
                 schema[val.quantizer_name()] = val.merge_with_existing(schema[val.quantizer_name()])
+                for quantizer in quantizers:
+                    if quantizer == val.quantizer_name() or quantizer not in schema:
+                        continue
+                    assert (
+                        "enabled" in schema[quantizer]
+                    ), f"Quantizer {quantizer} does not have the enabled field: {schema}"
+                    schema[quantizer]["enabled"] = False
             elif isinstance(val, _ConfigUpdateModel):
                 schema[cls_field] = val.merge_with_existing(schema[cls_field])
             else:
@@ -68,3 +77,12 @@ class _QuantizerConfigUpdate(_ConfigUpdateModel):
     @abstractmethod
     def quantizer_name() -> str:
         ...
+
+
+@dataclass
+class _EnumLikeStr:
+    string: str
+
+    @property
+    def value(self) -> str:
+        return self.string

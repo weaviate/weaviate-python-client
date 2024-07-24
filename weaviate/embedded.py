@@ -20,6 +20,7 @@ import validators
 
 from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError
+from weaviate.logger import logger
 from weaviate.util import _decode_json_response_dict
 
 DEFAULT_BINARY_PATH = str(Path.home() / ".cache/weaviate-embedded/")
@@ -29,12 +30,14 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 DEFAULT_PORT = 8079
 DEFAULT_GRPC_PORT = 50060
 
+WEAVIATE_VERSION = "1.26.1"
+
 
 @dataclass
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.23.7"
+    version: str = WEAVIATE_VERSION
     port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
@@ -51,7 +54,6 @@ def get_random_port() -> int:
 
 class _EmbeddedBase:
     def __init__(self, options: EmbeddedOptions) -> None:
-        self.data_bind_port = get_random_port()
         self.options = options
         self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
@@ -136,7 +138,7 @@ class _EmbeddedBase:
             + str(hashlib.sha256(self.options.version.encode("utf-8")).hexdigest()),
         )
         if not self._weaviate_binary_path.exists():
-            print(
+            logger.info(
                 f"Binary {self.options.binary_path} did not exist. Downloading binary from {self._download_url}"
             )
             if self._download_url.endswith(".tar.gz"):
@@ -185,7 +187,7 @@ class _EmbeddedBase:
                 self.process.terminate()
                 self.process.wait()
             except ProcessLookupError:
-                print(
+                logger.info(
                     f"""Tried to stop embedded weaviate process {self.process.pid}. Process was not found. So not doing
                     anything"""
                 )
@@ -193,7 +195,7 @@ class _EmbeddedBase:
 
     def ensure_running(self) -> None:
         if self.is_listening() is False:
-            print(
+            logger.info(
                 f"Embedded weaviate wasn't listening on ports http:{self.options.port} & grpc:{self.options.grpc_port}, so starting embedded weaviate again"
             )
             self.start()
@@ -210,8 +212,10 @@ class _EmbeddedBase:
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
         my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
         my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
-        my_env.setdefault("RAFT_PORT", str(get_random_port()))
-        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(get_random_port()))
+
+        raft_port = get_random_port()
+        my_env.setdefault("RAFT_PORT", str(raft_port))
+        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(raft_port + 1))
         my_env.setdefault("PROFILING_PORT", str(get_random_port()))
 
         my_env.setdefault(
@@ -222,7 +226,9 @@ class _EmbeddedBase:
 
         # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel
         # instances
-        my_env.setdefault("CLUSTER_HOSTNAME", f"Embedded_at_{self.options.port}")
+        cluster_hostname = f"Embedded_at_{self.options.port}"
+        my_env.setdefault("CLUSTER_HOSTNAME", cluster_hostname)
+        my_env.setdefault("RAFT_JOIN", f"{cluster_hostname}:{raft_port}")
 
         if self.options.additional_env_vars is not None:
             my_env.update(self.options.additional_env_vars)
@@ -243,7 +249,7 @@ class _EmbeddedBase:
                 env=my_env,
             )
             self.process = process
-        print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
+        logger.info(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
 
     @abstractmethod
@@ -264,7 +270,7 @@ class EmbeddedV3(_EmbeddedBase):
 
     def start(self) -> None:
         if self.is_listening():
-            print(f"embedded weaviate is already listening on port {self.options.port}")
+            logger.info(f"embedded weaviate is already listening on port {self.options.port}")
             return
         super().start()
 

@@ -118,7 +118,7 @@ def test_embedded_end_to_end(options: EmbeddedDB, tmp_path):
 
         embedded_db.ensure_running()
         assert embedded_db.is_listening() is True
-        with patch("builtins.print") as mocked_print:
+        with patch("weaviate.logger.logger.info") as mocked_print:
             embedded_db.start()
             mocked_print.assert_called_once_with(
                 f"embedded weaviate is already listening on port {options.port}"
@@ -309,7 +309,7 @@ def test_embedded_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             grpc_port=50061,
-        ),
+        )
     )
     try:
         assert client.is_ready()
@@ -329,7 +329,7 @@ def test_embedded_v4_with_grpc_port(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             grpc_port=50061,
-        ),
+        )
     )
     try:
         client.connect()
@@ -369,7 +369,7 @@ def test_embedded_stop(tmp_path_factory: pytest.TempPathFactory):
             version="latest",
             port=30668,
             grpc_port=50060,
-        ),
+        )
     )
     try:
         assert client.is_ready()
