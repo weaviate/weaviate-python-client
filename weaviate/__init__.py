@@ -1,7 +1,7 @@
 """
 Weaviate Python Client Library used to interact with a Weaviate instance.
 """
-
+import os
 import sys
 from importlib.metadata import version, PackageNotFoundError
 from typing import Any
@@ -48,6 +48,8 @@ if not sys.warnoptions:
     simplefilter("default")
 
 from .warnings import _Warnings
+
+os.environ["GRPC_VERBOSITY"] = "ERROR"  # https://github.com/danielmiessler/fabric/discussions/754
 
 __all__ = [
     "BatchClient",
