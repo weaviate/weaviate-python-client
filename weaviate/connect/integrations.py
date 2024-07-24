@@ -110,7 +110,7 @@ class Integrations:
         *,
         api_key: str,
         requests_per_minute_embeddings: Optional[int] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigHuggingface(
             api_key=api_key,
