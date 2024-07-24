@@ -73,6 +73,16 @@ class _IntegrationConfigJina(_IntegrationConfig):
     base_url: Optional[str] = Field(serialization_alias="X-Jinaai-Baseurl")
 
 
+class _IntegrationConfigMistral(_IntegrationConfig):
+    api_key: str = Field(serialization_alias="X-Mistral-Api-Key")
+    request_per_minute_embeddings: Optional[int] = Field(
+        serialization_alias="X-Mistral-Ratelimit-RequestPM-Embedding"
+    )
+    tokens_per_minute_embeddings: Optional[int] = Field(
+        serialization_alias="X-Mistral-Ratelimit-TokenPM-Embedding"
+    )
+
+
 class _IntegrationConfigOcto(_IntegrationConfig):
     api_key: str = Field(serialization_alias="X-OctoAI-Api-Key")
     requests_per_minute_embeddings: Optional[int] = Field(
@@ -87,7 +97,7 @@ class Integrations:
         *,
         api_key: str,
         base_url: Optional[str] = None,
-        requests_per_minute_embeddings: Optional[int] = None
+        requests_per_minute_embeddings: Optional[int] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigCohere(
             api_key=api_key,
@@ -100,7 +110,7 @@ class Integrations:
         *,
         api_key: str,
         requests_per_minute_embeddings: Optional[int] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigHuggingface(
             api_key=api_key,
@@ -115,7 +125,7 @@ class Integrations:
         requests_per_minute_embeddings: Optional[int] = None,
         tokens_per_minute_embeddings: Optional[int] = None,
         organization: Optional[str] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigOpenAi(
             api_key=api_key,
@@ -147,7 +157,7 @@ class Integrations:
         api_key: str,
         requests_per_minute_embeddings: Optional[int] = None,
         tokens_per_minute_embeddings: Optional[int] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigVoyage(
             api_key=api_key,
@@ -161,7 +171,7 @@ class Integrations:
         *,
         api_key: str,
         requests_per_minute_embeddings: Optional[int] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigJina(
             api_key=api_key,
@@ -174,10 +184,23 @@ class Integrations:
         *,
         api_key: str,
         requests_per_minute_embeddings: Optional[int] = None,
-        base_url: Optional[str] = None
+        base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigOcto(
             api_key=api_key,
             requests_per_minute_embeddings=requests_per_minute_embeddings,
             base_url=base_url,
+        )
+
+    @staticmethod
+    def mistral(
+        *,
+        api_key: str,
+        request_per_minute_embeddings: Optional[int] = None,
+        tokens_per_minute_embeddings: Optional[int] = None,
+    ) -> _IntegrationConfig:
+        return _IntegrationConfigMistral(
+            api_key=api_key,
+            request_per_minute_embeddings=request_per_minute_embeddings,
+            tokens_per_minute_embeddings=tokens_per_minute_embeddings,
         )
