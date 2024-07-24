@@ -220,7 +220,10 @@ class ConnectionV4(_ConnectionBase):
         return AsyncClient(
             headers=self._headers,
             timeout=Timeout(
-                None, connect=self.timeout_config.query, read=self.timeout_config.insert
+                None,
+                connect=self.timeout_config.init,
+                read=self.timeout_config.query,
+                write=self.timeout_config.insert,
             ),
             mounts=self.__make_mounts(),
         )
