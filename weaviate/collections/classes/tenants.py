@@ -75,7 +75,7 @@ class Tenant(BaseModel):
         exclude=True,
     )
     activityStatus: _TenantActivistatusServerValues = Field(
-        init=False, default=_TenantActivistatusServerValues.HOT
+        init_var=False, default=_TenantActivistatusServerValues.HOT
     )
 
     @property
@@ -176,7 +176,7 @@ class TenantCreate(BaseModel):
         exclude=True,
     )
     activityStatus: _TenantActivistatusServerValues = Field(
-        init=False, default=_TenantActivistatusServerValues.HOT
+        init_var=False, default=_TenantActivistatusServerValues.HOT
     )
 
     @property
@@ -212,7 +212,7 @@ class TenantUpdate(BaseModel):
         default=TenantUpdateActivityStatus.ACTIVE, alias="activity_status", exclude=True
     )
     activityStatus: _TenantActivistatusServerValues = Field(
-        init=False, default=_TenantActivistatusServerValues.HOT
+        init_var=False, default=_TenantActivistatusServerValues.HOT
     )
 
     @property

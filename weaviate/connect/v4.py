@@ -28,6 +28,7 @@ from httpx import (
     RemoteProtocolError,
     RequestError,
     Response,
+    Proxy,
     Timeout,
 )
 
@@ -207,7 +208,7 @@ class ConnectionV4(_ConnectionBase):
                     max_connections=self.__connection_config.session_pool_maxsize,
                     max_keepalive_connections=self.__connection_config.session_pool_connections,
                 ),
-                proxy=proxy,
+                proxy=Proxy(url=proxy),
                 retries=self.__connection_config.session_pool_max_retries,
                 trust_env=self.__trust_env,
             )
