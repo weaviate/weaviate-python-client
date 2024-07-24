@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 3.26.6
+--------------
+This patch version includes
+
+- Version bumps for the ``requests`` and ``authlib`` dependencies to avoid known security issues
+
 Version 3.26.5
 --------------
 This patch version includes
