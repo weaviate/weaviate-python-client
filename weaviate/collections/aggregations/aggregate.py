@@ -6,6 +6,8 @@ import pathlib
 from typing import List, Optional, TypeVar, Union, cast
 from typing_extensions import ParamSpec
 
+from httpx import ConnectError
+
 from weaviate.collections.classes.aggregate import (
     AProperties,
     AggregateResult,
@@ -36,7 +38,7 @@ from weaviate.connect import ConnectionV4
 from weaviate.collections.filters import _FilterToREST
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
-from weaviate.util import file_encoder_b64
+from weaviate.util import file_encoder_b64, _decode_json_response_dict
 from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.types import NUMBER, UUID
 
@@ -44,7 +46,7 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-class _Aggregate:
+class _AggregateAsync:
     def __init__(
         self,
         connection: ConnectionV4,
@@ -58,7 +60,10 @@ class _Aggregate:
         self._consistency_level = consistency_level
 
     def _query(self) -> AggregateBuilder:
-        return AggregateBuilder(self.__name, self._connection)
+        return AggregateBuilder(
+            self.__name,
+            self._connection,  # type: ignore # not being used since we query manually in _do
+        )
 
     def _to_aggregate_result(
         self, response: dict, metrics: Optional[List[_Metrics]]
@@ -205,9 +210,16 @@ class _Aggregate:
             builder = builder.with_tenant(self._tenant)
         return builder
 
-    @staticmethod
-    def _do(query: AggregateBuilder) -> dict:
-        res = query.do()
+    async def _do(self, query: AggregateBuilder) -> dict:
+        try:
+            response = await self._connection.post(
+                path="/graphql", weaviate_object={"query": query.build()}
+            )
+        except ConnectError as conn_err:
+            raise ConnectError("Query was not successful.") from conn_err
+
+        res = _decode_json_response_dict(response, "Query was not successful")
+        assert res is not None
         if (errs := res.get("errors")) is not None:
             if "Unexpected empty IN" in errs[0]["message"]:
                 raise WeaviateQueryError(
@@ -276,7 +288,7 @@ class _Aggregate:
         _validate_input(
             _ValidateArgument([str, pathlib.Path, io.BufferedReader], "near_image", near_image)
         )
-        _Aggregate._parse_near_options(certainty, distance, object_limit)
+        _AggregateAsync._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["image"] = _parse_media(near_image)
         if certainty is not None:
@@ -304,7 +316,7 @@ class _Aggregate:
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
         _validate_input(_ValidateArgument([UUID], "near_object", near_object))
-        _Aggregate._parse_near_options(certainty, distance, object_limit)
+        _AggregateAsync._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["id"] = str(near_object)
         if certainty is not None:
@@ -341,7 +353,7 @@ class _Aggregate:
                 _ValidateArgument([str, None], "target_vector", target_vector),
             ]
         )
-        _Aggregate._parse_near_options(certainty, distance, object_limit)
+        _AggregateAsync._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["concepts"] = query if isinstance(query, list) else [query]
         if certainty is not None:
@@ -373,7 +385,7 @@ class _Aggregate:
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
         _validate_input(_ValidateArgument([list], "near_vector", near_vector))
-        _Aggregate._parse_near_options(certainty, distance, object_limit)
+        _AggregateAsync._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["vector"] = near_vector
         if certainty is not None:

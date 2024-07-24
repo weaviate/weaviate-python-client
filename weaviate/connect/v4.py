@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import asyncio
 import time
 from copy import copy
 from dataclasses import dataclass, field
-from threading import Thread, Event
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
+from ssl import SSLZeroReturnError
+from threading import Event, Thread
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
-from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client  # type: ignore
-from grpc import _channel, Channel  # type: ignore
-from grpc.aio import Channel as AsyncChannel  # type: ignore
+from authlib.integrations.httpx_client import (  # type: ignore
+    AsyncOAuth2Client,
+    OAuth2Client,
+)
+from grpc.aio import Channel  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
+
+# from grpclib.client import Channel
 from httpx import (
     AsyncClient,
     AsyncHTTPTransport,
@@ -22,8 +28,7 @@ from httpx import (
     RemoteProtocolError,
     RequestError,
     Response,
-    HTTPTransport,
-    get,
+    Proxy,
     Timeout,
 )
 
@@ -34,11 +39,11 @@ from weaviate.auth import (
     AuthClientCredentials,
 )
 from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
-from weaviate.connect.authentication import _Auth
+from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
-    _ConnectionBase,
     ConnectionParams,
     JSONPayload,
+    _ConnectionBase,
     _get_proxies,
 )
 from weaviate.connect.integrations import _IntegrationConfig
@@ -46,20 +51,20 @@ from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
     AuthenticationFailedError,
     UnexpectedStatusCodeError,
-    WeaviateGRPCUnavailableError,
-    WeaviateStartUpError,
     WeaviateClosedClientError,
     WeaviateConnectionError,
+    WeaviateGRPCUnavailableError,
+    WeaviateStartUpError,
 )
 from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.util import (
-    is_weaviate_domain,
-    is_weaviate_client_too_old,
     PYPI_PACKAGE_URL,
     _decode_json_response_dict,
     _ServerVersion,
+    is_weaviate_client_too_old,
+    is_weaviate_domain,
 )
-from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 Session = Union[Client, OAuth2Client]
@@ -79,7 +84,7 @@ class _ExpectedStatusCodes:
             self.ok = self.ok_in
 
 
-class _Connection(_ConnectionBase):
+class ConnectionV4(_ConnectionBase):
     """
     Connection class used to communicate to a weaviate instance.
     """
@@ -93,25 +98,24 @@ class _Connection(_ConnectionBase):
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
+        loop: asyncio.AbstractEventLoop,  # required for background token refresh
         embedded_db: Optional[EmbeddedV4] = None,
     ):
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
         self._api_version_path = "/v1"
-        self._aclient: Optional[AsyncSession] = None
-        self._client: Session
+        self._client: Optional[AsyncSession] = None
         self.__additional_headers = {}
         self._auth = auth_client_secret
         self._connection_params = connection_params
         self._grpc_stub: Optional[weaviate_pb2_grpc.WeaviateStub] = None
-        self._grpc_stub_async: Optional[weaviate_pb2_grpc.WeaviateStub] = None
         self._grpc_channel: Optional[Channel] = None
-        self._grpc_channel_async: Optional[AsyncChannel] = None
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
         self._weaviate_version = _ServerVersion.from_string("")
         self.__connected = False
+        self.__loop = loop
 
         self._headers = {"content-type": "application/json"}
         if additional_headers is not None:
@@ -132,14 +136,16 @@ class _Connection(_ConnectionBase):
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
-    def connect(self, skip_init_checks: bool) -> None:
-        if self.embedded_db is not None:
-            self.embedded_db.start()
-        self._create_clients(self._auth, skip_init_checks)
+        self._prepare_grpc_headers()
+
+    async def connect(self, skip_init_checks: bool) -> None:
+        self.__connected = True
+
+        await self._open_connections(self._auth, skip_init_checks)
         self.__connected = True
         if self.embedded_db is not None:
             try:
-                self.wait_for_weaviate(10)
+                await self.wait_for_weaviate(10)
             except WeaviateStartUpError as e:
                 self.embedded_db.stop()
                 self.__connected = False
@@ -147,19 +153,43 @@ class _Connection(_ConnectionBase):
 
         # need this to get the version of weaviate for version checks
         try:
-            self._weaviate_version = _ServerVersion.from_string(self.get_meta()["version"])
-        except (WeaviateConnectionError, ReadError, RemoteProtocolError) as e:
+            meta = await self.get_meta()
+            self._weaviate_version = _ServerVersion.from_string(meta["version"])
+        except (
+            WeaviateConnectionError,
+            ReadError,
+            RemoteProtocolError,
+            SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
+        ) as e:
+            self.__connected = False
             raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
+
+        # do it after all other init checks so as not to break all the tests
+        if self._weaviate_version.is_lower_than(1, 23, 7):
+            self.__connected = False
+            raise WeaviateStartUpError(
+                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
+            )
 
         if not skip_init_checks:
             try:
-                pkg_info = get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init).json()
-                pkg_info = pkg_info.get("info", {})
-                latest_version = pkg_info.get("version", "unknown version")
-                if is_weaviate_client_too_old(client_version, latest_version):
-                    _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-            except RequestError:
-                pass  # ignore any errors related to requests, it is a best-effort warning
+                await asyncio.gather(self._ping_grpc(), self.__check_package_version())
+            except Exception as e:
+                self.__connected = False
+                raise e
+
+        self.__connected = True
+
+    async def __check_package_version(self) -> None:
+        try:
+            async with AsyncClient() as client:
+                res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
+            pkg_info: dict = res.json().get("info", {})
+            latest_version = pkg_info.get("version", "unknown version")
+            if is_weaviate_client_too_old(client_version, latest_version):
+                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
+        except RequestError:
+            pass  # ignore any errors related to requests, it is a best-effort warning
 
     def is_connected(self) -> bool:
         return self.__connected
@@ -169,59 +199,22 @@ class _Connection(_ConnectionBase):
             self._headers.update(integration._to_header())
             self.__additional_headers.update(integration._to_header())
 
-    @overload
-    def __make_mounts(self, type_: Literal["sync"]) -> Dict[str, HTTPTransport]:
-        ...
-
-    @overload
-    def __make_mounts(self, type_: Literal["async"]) -> Dict[str, AsyncHTTPTransport]:
-        ...
-
-    def __make_mounts(
-        self, type_: Literal["sync", "async"]
-    ) -> Union[Dict[str, HTTPTransport], Dict[str, AsyncHTTPTransport]]:
-        if type_ == "async":
-            return {
-                f"{key}://"
-                if key == "http" or key == "https"
-                else key: AsyncHTTPTransport(
-                    limits=Limits(
-                        max_connections=self.__connection_config.session_pool_maxsize,
-                        max_keepalive_connections=self.__connection_config.session_pool_connections,
-                    ),
-                    proxy=proxy,
-                    retries=self.__connection_config.session_pool_max_retries,
-                    trust_env=self.__trust_env,
-                )
-                for key, proxy in self._proxies.items()
-                if key != "grpc"
-            }
-        else:
-            assert type_ == "sync"
-            return {
-                f"{key}://"
-                if key == "http" or key == "https"
-                else key: HTTPTransport(
-                    limits=Limits(
-                        max_connections=self.__connection_config.session_pool_maxsize,
-                        max_keepalive_connections=self.__connection_config.session_pool_connections,
-                    ),
-                    proxy=proxy,
-                    retries=self.__connection_config.session_pool_max_retries,
-                    trust_env=self.__trust_env,
-                )
-                for key, proxy in self._proxies.items()
-                if key != "grpc"
-            }
-
-    def __make_sync_client(self) -> Client:
-        return Client(
-            headers=self._headers,
-            timeout=Timeout(
-                None, connect=self.timeout_config.query, read=self.timeout_config.insert
-            ),
-            mounts=self.__make_mounts("sync"),
-        )
+    def __make_mounts(self) -> Dict[str, AsyncHTTPTransport]:
+        return {
+            f"{key}://"
+            if key == "http" or key == "https"
+            else key: AsyncHTTPTransport(
+                limits=Limits(
+                    max_connections=self.__connection_config.session_pool_maxsize,
+                    max_keepalive_connections=self.__connection_config.session_pool_connections,
+                ),
+                proxy=Proxy(url=proxy),
+                retries=self.__connection_config.session_pool_max_retries,
+                trust_env=self.__trust_env,
+            )
+            for key, proxy in self._proxies.items()
+            if key != "grpc"
+        }
 
     def __make_async_client(self) -> AsyncClient:
         return AsyncClient(
@@ -229,15 +222,19 @@ class _Connection(_ConnectionBase):
             timeout=Timeout(
                 None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
-            mounts=self.__make_mounts("async"),
+            mounts=self.__make_mounts(),
         )
 
     def __make_clients(self) -> None:
-        self._client = self.__make_sync_client()
+        self._client = self.__make_async_client()
 
-    def _create_clients(
+    async def _open_connections(
         self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool
     ) -> None:
+        self._grpc_channel = self._connection_params._grpc_channel(proxies=self._proxies)
+        assert self._grpc_channel is not None
+        self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
+
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self.__make_clients()
@@ -253,9 +250,9 @@ class _Connection(_ConnectionBase):
             return
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
-        with self.__make_sync_client() as client:
+        async with self.__make_async_client() as client:
             try:
-                response = client.get(oidc_url)
+                response = await client.get(oidc_url)
             except Exception as e:
                 raise WeaviateConnectionError(
                     f"Error: {e}. \nIs Weaviate running and reachable at {self.url}?"
@@ -273,14 +270,13 @@ class _Connection(_ConnectionBase):
                 return
 
             if auth_client_secret is not None:
-                _auth = _Auth(
-                    session_type=OAuth2Client,
+                _auth = await _Auth.use(
                     oidc_config=resp,
                     credentials=auth_client_secret,
                     connection=self,
                 )
                 try:
-                    self._client = _auth.get_auth_session()
+                    self._client = await _auth.get_auth_session()
                 except HTTPError as e:
                     raise AuthenticationFailedError(f"Failed to authenticate with OIDC: {repr(e)}")
 
@@ -319,7 +315,7 @@ class _Connection(_ConnectionBase):
 
         if "authorization" in self._headers:
             return self._headers["authorization"]
-        elif isinstance(self._client, OAuth2Client):
+        elif isinstance(self._client, AsyncOAuth2Client):
             return f"Bearer {self._client.token['access_token']}"
         return ""
 
@@ -329,7 +325,7 @@ class _Connection(_ConnectionBase):
         While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
         X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
         expire. Therefore, refresh manually shortly before expiration time is up."""
-        assert isinstance(self._client, OAuth2Client)
+        assert isinstance(self._client, AsyncOAuth2Client)
         if "refresh_token" not in self._client.token and _auth is None:
             return
 
@@ -338,7 +334,7 @@ class _Connection(_ConnectionBase):
         )  # use 1minute as token lifetime if not supplied
         self._shutdown_background_event = Event()
 
-        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth[OAuth2Client]]) -> None:
+        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
             time.sleep(max(refresh_time - 30, 1))
             while (
                 self._shutdown_background_event is not None
@@ -346,11 +342,14 @@ class _Connection(_ConnectionBase):
             ):
                 # use refresh token when available
                 try:
-                    if "refresh_token" in cast(OAuth2Client, self._client).token:
-                        assert isinstance(self._client, OAuth2Client)
-                        self._client.token = self._client.refresh_token(
-                            self._client.metadata["token_endpoint"]
-                        )
+                    if "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
+                        assert isinstance(self._client, AsyncOAuth2Client)
+                        self._client.token = asyncio.run_coroutine_threadsafe(
+                            self._client.refresh_token(
+                                self._client.metadata["token_endpoint"]
+                            ),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
+                            self.__loop,
+                        ).result()
                         expires_in = self._client.token.get("expires_in", 60)
                         assert isinstance(expires_in, int)
                         refresh_time = expires_in - 30
@@ -358,9 +357,14 @@ class _Connection(_ConnectionBase):
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
                         assert _auth is not None
-                        assert isinstance(self._client, OAuth2Client)
-                        new_session = _auth.get_auth_session()
-                        self._client.token = new_session.fetch_token()
+                        assert isinstance(self._client, AsyncOAuth2Client)
+                        new_session = asyncio.run_coroutine_threadsafe(
+                            _auth.get_auth_session(), self.__loop
+                        ).result()
+                        self._client.token = asyncio.run_coroutine_threadsafe(
+                            new_session.fetch_token(),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
+                            self.__loop,
+                        ).result()
                 except HTTPError as exc:
                     # retry again after one second, might be an unstable connection
                     refresh_time = 1
@@ -376,38 +380,15 @@ class _Connection(_ConnectionBase):
         )
         demon.start()
 
-    async def aopen(self) -> None:
-        if self._aclient is None:
-            self._aclient = await self.__make_async_client().__aenter__()
-        if self._grpc_stub_async is None:
-            self._grpc_channel_async = self._connection_params._grpc_channel(
-                async_channel=True, proxies=self._proxies
-            )
-            assert self._grpc_channel_async is not None
-            self._grpc_stub_async = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel_async)
-
-    async def aclose(self) -> None:
-        if self._aclient is not None:
-            await self._aclient.__aexit__()
-            self._aclient = None
-        if self._grpc_stub_async is not None:
-            assert self._grpc_channel_async is not None
-            await self._grpc_channel_async.close()
-            self._grpc_stub_async = None
-
-    def close(self) -> None:
-        """Shutdown connection class gracefully."""
-        # in case an exception happens before definition of these members
-        if (
-            hasattr(self, "_shutdown_background_event")
-            and self._shutdown_background_event is not None
-        ):
-            self._shutdown_background_event.set()
-
-        if hasattr(self, "_client"):
-            self._client.close()
-        if self._grpc_channel is not None:
-            self._grpc_channel.close()
+    async def close(self) -> None:
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
+        if self._grpc_stub is not None:
+            assert self._grpc_channel is not None
+            await self._grpc_channel.close()
+            self._grpc_stub = None
+            self._grpc_channel = None
         if self.embedded_db is not None:
             self.embedded_db.stop()
         self.__connected = False
@@ -425,7 +406,7 @@ class _Connection(_ConnectionBase):
         copied_headers.update({"authorization": self.get_current_bearer_token()})
         return copied_headers
 
-    def __send(
+    async def __send(
         self,
         method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
         url: str,
@@ -438,6 +419,7 @@ class _Connection(_ConnectionBase):
             raise WeaviateClosedClientError()
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
+        assert self._client is not None
         try:
             req = self._client.build_request(
                 method,
@@ -446,7 +428,7 @@ class _Connection(_ConnectionBase):
                 params=params,
                 headers=self.__get_latest_headers(),
             )
-            res = self._client.send(req)
+            res = await self._client.send(req)
             if status_codes is not None and res.status_code not in status_codes.ok:
                 raise UnexpectedStatusCodeError(error_msg, response=res)
             return cast(Response, res)
@@ -454,8 +436,10 @@ class _Connection(_ConnectionBase):
             raise WeaviateClosedClientError() from e
         except ConnectError as conn_err:
             raise WeaviateConnectionError(error_msg) from conn_err
+        except Exception as e:
+            raise e
 
-    def delete(
+    async def delete(
         self,
         path: str,
         weaviate_object: Optional[JSONPayload] = None,
@@ -463,7 +447,7 @@ class _Connection(_ConnectionBase):
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
-        return self.__send(
+        return await self.__send(
             "DELETE",
             url=self.url + self._api_version_path + path,
             weaviate_object=weaviate_object,
@@ -472,7 +456,7 @@ class _Connection(_ConnectionBase):
             status_codes=status_codes,
         )
 
-    def patch(
+    async def patch(
         self,
         path: str,
         weaviate_object: JSONPayload,
@@ -480,7 +464,7 @@ class _Connection(_ConnectionBase):
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
-        return self.__send(
+        return await self.__send(
             "PATCH",
             url=self.url + self._api_version_path + path,
             weaviate_object=weaviate_object,
@@ -489,7 +473,7 @@ class _Connection(_ConnectionBase):
             status_codes=status_codes,
         )
 
-    def post(
+    async def post(
         self,
         path: str,
         weaviate_object: JSONPayload,
@@ -497,7 +481,7 @@ class _Connection(_ConnectionBase):
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
-        return self.__send(
+        return await self.__send(
             "POST",
             url=self.url + self._api_version_path + path,
             weaviate_object=weaviate_object,
@@ -506,28 +490,7 @@ class _Connection(_ConnectionBase):
             status_codes=status_codes,
         )
 
-    async def apost(
-        self,
-        path: str,
-        weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Response:
-        if not self.is_connected():
-            raise WeaviateClosedClientError()
-        assert self._aclient is not None
-
-        if self.embedded_db is not None:
-            self.embedded_db.ensure_running()
-        request_url = self.url + self._api_version_path + path
-
-        return await self._aclient.post(
-            url=request_url,
-            json=weaviate_object,
-            params=params,
-            headers=self.__get_latest_headers(),
-        )
-
-    def put(
+    async def put(
         self,
         path: str,
         weaviate_object: JSONPayload,
@@ -535,7 +498,7 @@ class _Connection(_ConnectionBase):
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
-        return self.__send(
+        return await self.__send(
             "PUT",
             url=self.url + self._api_version_path + path,
             weaviate_object=weaviate_object,
@@ -544,32 +507,29 @@ class _Connection(_ConnectionBase):
             status_codes=status_codes,
         )
 
-    def get(
+    async def get(
         self,
         path: str,
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
-        if self.embedded_db is not None:
-            self.embedded_db.ensure_running()
-        if params is None:
-            params = {}
-
-        request_url = self.url + self._api_version_path + path
-
-        return self.__send(
-            "GET", url=request_url, params=params, error_msg=error_msg, status_codes=status_codes
+        return await self.__send(
+            "GET",
+            url=self.url + self._api_version_path + path,
+            params=params if params is not None else {},
+            error_msg=error_msg,
+            status_codes=status_codes,
         )
 
-    def head(
+    async def head(
         self,
         path: str,
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
     ) -> Response:
-        return self.__send(
+        return await self.__send(
             "HEAD",
             url=self.url + self._api_version_path + path,
             params=params,
@@ -591,19 +551,31 @@ class _Connection(_ConnectionBase):
     def additional_headers(self) -> Dict[str, str]:
         return self.__additional_headers
 
-    def get_meta(self) -> Dict[str, str]:
+    async def get_meta(self) -> Dict[str, str]:
         """
         Returns the meta endpoint.
         """
-        response = self.get(path="/meta")
+        response = await self.get(path="/meta")
         res = _decode_json_response_dict(response, "Meta endpoint")
         assert res is not None
         return res
 
+    async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the openid-configuration.
+        """
+
+        response = await self.get(path="/.well-known/openid-configuration")
+        if response.status_code == 200:
+            return _decode_json_response_dict(response, "OpenID Configuration")
+        if response.status_code == 404:
+            return None
+        raise UnexpectedStatusCodeError("Meta endpoint", response)
+
     def supports_groupby_in_bm25_and_hybrid(self) -> bool:
         return self._weaviate_version.is_at_least(1, 25, 0)
 
-    def wait_for_weaviate(self, startup_period: int) -> None:
+    async def wait_for_weaviate(self, startup_period: int) -> None:
         """
         Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
 
@@ -619,43 +591,18 @@ class _Connection(_ConnectionBase):
         """
         for _i in range(startup_period):
             try:
-                self.get("/.well-known/ready").raise_for_status()
+                (await self.get("/.well-known/ready")).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
-            self.get("/.well-known/ready").raise_for_status()
+            (await self.get("/.well-known/ready")).raise_for_status()
             return
-        except (ConnectError, ReadError, TimeoutError) as error:
+        except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
-
-
-class ConnectionV4(_Connection):
-    def __init__(
-        self,
-        connection_params: ConnectionParams,
-        auth_client_secret: Optional[AuthCredentials],
-        timeout_config: TimeoutConfig,
-        proxies: Union[str, Proxies, None],
-        trust_env: bool,
-        additional_headers: Optional[Dict[str, Any]],
-        connection_config: ConnectionConfig,
-        embedded_db: Optional[EmbeddedV4] = None,
-    ):
-        super().__init__(
-            connection_params,
-            auth_client_secret,
-            timeout_config,
-            proxies,
-            trust_env,
-            additional_headers,
-            connection_config,
-            embedded_db,
-        )
-        self._prepare_grpc_headers()
 
     def _prepare_grpc_headers(self) -> None:
         self.__metadata_list: List[Tuple[str, str]] = []
@@ -687,13 +634,41 @@ class ConnectionV4(_Connection):
         self.__metadata_list[len(self.__metadata_list) - 1] = ("authorization", access_token)
         return tuple(self.__metadata_list)
 
-    def _ping_grpc(self) -> None:
+    # async def _ping_grpc(self) -> None:
+    #     """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
+    #     if not self.is_connected():
+    #         raise WeaviateClosedClientError()
+    #     assert self._grpc_channel is not None
+    #     try:
+    #         request = self._grpc_channel.request(
+    #             "/grpc.health.v1.Health/Check",
+    #             Cardinality.UNARY_UNARY,
+    #             health_pb2.HealthCheckRequest,
+    #             health_pb2.HealthCheckResponse,
+    #             timeout=self.timeout_config.init,
+    #         )
+    #         async with request as stream:
+    #             await stream.send_message(health_pb2.HealthCheckRequest())
+    #             res = await stream.recv_message()
+    #             await stream.end()
+    #         if res is None or res.status != health_pb2.HealthCheckResponse.SERVING:
+    #             self.__connected = False
+    #             raise WeaviateGRPCUnavailableError(
+    #                 f"v{self.server_version}", self._connection_params._grpc_address
+    #             )
+    #     except Exception as e:
+    #         self.__connected = False
+    #         raise WeaviateGRPCUnavailableError(
+    #             f"v{self.server_version}", self._connection_params._grpc_address
+    #         ) from e
+
+    async def _ping_grpc(self) -> None:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         if not self.is_connected():
             raise WeaviateClosedClientError()
         assert self._grpc_channel is not None
         try:
-            res: health_pb2.HealthCheckResponse = self._grpc_channel.unary_unary(
+            res: health_pb2.HealthCheckResponse = await self._grpc_channel.unary_unary(
                 "/grpc.health.v1.Health/Check",
                 request_serializer=health_pb2.HealthCheckRequest.SerializeToString,
                 response_deserializer=health_pb2.HealthCheckResponse.FromString,
@@ -702,27 +677,10 @@ class ConnectionV4(_Connection):
                 raise WeaviateGRPCUnavailableError(
                     f"v{self.server_version}", self._connection_params._grpc_address
                 )
-        except _channel._InactiveRpcError as e:
+        except Exception as e:
             raise WeaviateGRPCUnavailableError(
                 f"v{self.server_version}", self._connection_params._grpc_address
             ) from e
-
-    def connect(self, skip_init_checks: bool) -> None:
-        super().connect(skip_init_checks)
-        # create GRPC channel. If Weaviate does not support GRPC then error now.
-        self._grpc_channel = self._connection_params._grpc_channel(
-            async_channel=False, proxies=self._proxies
-        )
-        assert self._grpc_channel is not None
-        self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
-        if not skip_init_checks:
-            self._ping_grpc()
-
-        # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 23, 7):
-            raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
-            )
 
     @property
     def grpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
@@ -730,8 +688,6 @@ class ConnectionV4(_Connection):
             raise WeaviateClosedClientError()
         return self._grpc_stub
 
-    @property
-    def agrpc_stub(self) -> Optional[weaviate_pb2_grpc.WeaviateStub]:
-        if not self.is_connected():
-            raise WeaviateClosedClientError()
-        return self._grpc_stub_async
+    def __del__(self) -> None:
+        if self._client is not None or self._grpc_channel is not None:
+            _Warnings.unclosed_connection()

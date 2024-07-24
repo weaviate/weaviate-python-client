@@ -2,10 +2,17 @@ from io import BufferedReader
 from pathlib import Path
 from typing import Generic, Optional, Union
 
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.grpc import GroupBy, METADATA, NearMediaType, Rerank
+from weaviate.collections.classes.grpc import (
+    GroupBy,
+    METADATA,
+    NearMediaType,
+    Rerank,
+    TargetVectorJoinType,
+)
 from weaviate.collections.classes.internal import (
     _GroupBy,
     ReturnProperties,
@@ -14,12 +21,12 @@ from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.base import _Base
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def near_media(
+class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+    async def near_media(
         self,
         media: Union[str, Path, BufferedReader],
         media_type: NearMediaType,
@@ -32,7 +39,7 @@ class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, Re
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -90,7 +97,7 @@ class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             `weaviate.exceptions.WeaviateQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query.near_media(
+        res = await self._query.near_media(
             media=self._parse_media(media),
             type_=media_type.value,
             certainty=certainty,
@@ -119,3 +126,10 @@ class _NearMediaQuery(Generic[Properties, References], _BaseQuery[Properties, Re
             return_properties,
             return_references,
         )
+
+
+@syncify.convert
+class _NearMediaQuery(
+    Generic[Properties, References], _NearMediaQueryAsync[Properties, References]
+):
+    pass

@@ -1,22 +1,19 @@
-from typing import List, Union
 import uuid
-from integration.conftest import CollectionFactory, OpenAICollection
+from typing import List, Union
+
 import pytest
+
 import weaviate.classes as wvc
-
-from pydantic import ValidationError
-
-from weaviate.collections.classes.data import DataObject
-
+from integration.conftest import CollectionFactory, OpenAICollection
+from weaviate.collections.classes.aggregate import AggregateInteger
 from weaviate.collections.classes.config import (
     PQConfig,
     _VectorIndexConfigHNSW,
     _VectorIndexConfigFlat,
     Vectorizers,
 )
-
-from weaviate.collections.classes.aggregate import AggregateInteger
-
+from weaviate.collections.classes.data import DataObject
+from weaviate.collections.classes.grpc import _MultiTargetVectorJoin
 from weaviate.exceptions import WeaviateInvalidInputError
 
 
@@ -550,7 +547,7 @@ def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
     collection = collection_factory("dummy")
     if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
         pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(WeaviateInvalidInputError) as e:
         collection_factory(
             vectorizer_config=[
                 wvc.config.Configure.NamedVectors.text2vec_contextionary(
@@ -562,3 +559,85 @@ def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
             ],
         )
         assert "Vector config names must be unique. Found duplicates" in str(e)
+
+
+@pytest.mark.parametrize(
+    "target_vector",
+    [
+        ["first", "second"],
+        wvc.query.TargetVectors.sum(["first", "second"]),
+        wvc.query.TargetVectors.minimum(["first", "second"]),
+        wvc.query.TargetVectors.average(["first", "second"]),
+        wvc.query.TargetVectors.manual_weights({"first": 1.2, "second": 0.7}),
+        wvc.query.TargetVectors.relative_score({"first": 1.2, "second": 0.7}),
+    ],
+)
+def test_named_vector_multi_target(
+    collection_factory: CollectionFactory, target_vector: Union[List[str], _MultiTargetVectorJoin]
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
+
+    collection = collection_factory(
+        properties=[],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none("first"),
+            wvc.config.Configure.NamedVectors.none("second"),
+        ],
+    )
+
+    uuid1 = collection.data.insert({}, vector={"first": [1, 0, 0], "second": [0, 1, 0]})
+    uuid2 = collection.data.insert({}, vector={"first": [0, 1, 0], "second": [1, 0, 0]})
+
+    objs = collection.query.near_vector([1.0, 0.0, 0.0], target_vector=target_vector).objects
+    assert sorted([obj.uuid for obj in objs]) == sorted([uuid1, uuid2])  # order is not guaranteed
+
+
+@pytest.mark.parametrize(
+    "near_vector",
+    [
+        {"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]},
+        [[1.0, 0.0], [1.0, 0.0, 0.0]],
+    ],
+)
+def test_named_vector_multi_target_vector_per_target(
+    collection_factory: CollectionFactory, near_vector: Union[List[float], List[List[float]]]
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
+
+    collection = collection_factory(
+        properties=[],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none("first"),
+            wvc.config.Configure.NamedVectors.none("second"),
+        ],
+    )
+
+    uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
+    uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
+
+    objs = collection.query.near_vector(near_vector, target_vector=["first", "second"]).objects
+    assert sorted([obj.uuid for obj in objs]) == sorted([uuid1, uuid2])  # order is not guaranteed
+
+
+def test_multi_query_error_no_target_vector(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
+
+    collection = collection_factory(
+        properties=[],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none("first"),
+            wvc.config.Configure.NamedVectors.none("second"),
+        ],
+    )
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.near_vector([[1.0, 0.0], [1.0, 0.0, 0.0]])
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.near_vector({"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]})
