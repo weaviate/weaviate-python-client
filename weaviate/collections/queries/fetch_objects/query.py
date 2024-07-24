@@ -1,9 +1,8 @@
 from typing import Generic, Optional
 
-from weaviate.collections.classes.filters import (
-    _Filters,
-)
-from weaviate.collections.classes.grpc import METADATA, _Sorting
+from weaviate import syncify
+from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
     QueryReturnType,
     ReturnProperties,
@@ -11,19 +10,19 @@ from weaviate.collections.classes.internal import (
     _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.base import _Base
 from weaviate.types import UUID, INCLUDE_VECTOR
 
 
-class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def fetch_objects(
+class _FetchObjectsQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+    async def fetch_objects(
         self,
         *,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
-        sort: Optional[_Sorting] = None,
+        sort: Optional[Sorting] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -63,7 +62,7 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
         """
-        res = self._query.get(
+        res = await self._query.get(
             limit=limit,
             offset=offset,
             after=after,
@@ -85,3 +84,10 @@ class _FetchObjectsQuery(Generic[Properties, References], _BaseQuery[Properties,
             return_properties,
             return_references,
         )
+
+
+@syncify.convert
+class _FetchObjectsQuery(
+    Generic[Properties, References], _FetchObjectsQueryAsync[Properties, References]
+):
+    pass

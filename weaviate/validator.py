@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any, List, Sequence, Union, get_args, get_origin
 
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.str_enum import BaseEnum
 
 
 @dataclass
@@ -9,6 +10,13 @@ class _ValidateArgument:
     expected: List[Any]
     name: str
     value: Any
+
+
+class _ExtraTypes(str, BaseEnum):
+    NUMPY = "numpy"
+    PANDAS = "pandas"
+    POLARS = "polars"
+    TF = "tensorflow"
 
 
 def _validate_input(inputs: Union[List[_ValidateArgument], _ValidateArgument]) -> None:
@@ -20,15 +28,21 @@ def _validate_input(inputs: Union[List[_ValidateArgument], _ValidateArgument]) -
     if isinstance(inputs, _ValidateArgument):
         inputs = [inputs]
     for validate in inputs:
-        if not any(__is_valid(exp, validate.value) for exp in validate.expected):
+        if not any(_is_valid(exp, validate.value) for exp in validate.expected):
             raise WeaviateInvalidInputError(
                 f"Argument '{validate.name}' must be one of: {validate.expected}, but got {type(validate.value)}"
             )
 
 
-def __is_valid(expected: Any, value: Any) -> bool:
+def _is_valid(expected: Any, value: Any) -> bool:
     if expected is None:
         return value is None
+
+    # check for types that are not installed
+    # https://stackoverflow.com/questions/12569452/how-to-identify-numpy-types-in-python
+    if isinstance(expected, _ExtraTypes):
+        return expected.value in type(value).__module__
+
     expected_origin = get_origin(expected)
     if expected_origin is Union:
         args = get_args(expected)

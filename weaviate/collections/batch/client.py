@@ -23,7 +23,7 @@ from weaviate.connect.v4 import ConnectionV4
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from weaviate.collections.collections import _Collections
+    from weaviate.collections.collections.sync import _Collections
 
 
 class _BatchClient(_BatchBase):
@@ -115,9 +115,18 @@ class _BatchClient(_BatchBase):
         )
 
 
+BatchClient = _BatchClient
+ClientBatchingContextManager = _ContextManagerWrapper[BatchClient]
+
+
 class _BatchClientWrapper(_BatchWrapper):
-    def __init__(self, connection: ConnectionV4, config: "_Collections"):
-        super().__init__(connection, None)
+    def __init__(
+        self,
+        connection: ConnectionV4,
+        config: "_Collections",
+        consistency_level: Optional[ConsistencyLevel] = None,
+    ):
+        super().__init__(connection, consistency_level)
         self.__config = config
         self._vectorizer_batching: Optional[bool] = None
 
@@ -149,13 +158,14 @@ class _BatchClientWrapper(_BatchWrapper):
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
                 batch_mode=self._batch_mode,
+                event_loop=self._event_loop,
                 vectorizer_batching=self._vectorizer_batching,
             )
         )
 
     def dynamic(
         self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> _ContextManagerWrapper[_BatchClient]:
+    ) -> ClientBatchingContextManager:
         """Configure dynamic batching.
 
         When you exit the context manager, the final batch will be sent automatically.
@@ -194,7 +204,7 @@ class _BatchClientWrapper(_BatchWrapper):
 
     def rate_limit(
         self, requests_per_minute: int, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> _ContextManagerWrapper[_BatchClient]:
+    ) -> ClientBatchingContextManager:
         """Configure batches with a rate limited vectorizer.
 
         When you exit the context manager, the final batch will be sent automatically.

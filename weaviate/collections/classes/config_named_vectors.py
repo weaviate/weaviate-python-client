@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import AnyHttpUrl, Field
@@ -5,6 +6,7 @@ from pydantic import AnyHttpUrl, Field
 from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
     _ConfigUpdateModel,
+    _EnumLikeStr,
 )
 from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigCreate,
@@ -46,6 +48,7 @@ from weaviate.collections.classes.config_vectorizers import (
     Vectorizers,
     VoyageModel,
     _map_multi2vec_fields,
+    _VectorizerCustomConfig,
 )
 
 
@@ -107,6 +110,38 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def custom(
+        name: str,
+        *,
+        module_name: str,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        module_config: Optional[Dict[str, Any]] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using no vectorizer. You will need to provide the vectors yourself.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `module_name`
+                The name of the custom module to use.
+            `module_config`
+                The configuration of the custom module to use.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_VectorizerCustomConfig(
+                vectorizer=_EnumLikeStr(module_name), module_config=module_config
+            ),
             vector_index_config=vector_index_config,
         )
 
@@ -302,6 +337,7 @@ class _NamedVectors:
                 Whether to vectorize the collection name. Defaults to `True`.
             `api_endpoint`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+                Docker users may need to specify an alias, such as `http://host.docker.internal:11434` so that the container can access the host machine.
 
         """
         return _NamedVectorConfigCreate(
@@ -455,6 +491,7 @@ class _NamedVectors:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         interference_url: Optional[str] = None,
+        inference_url: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_clip` model.
 
@@ -475,13 +512,25 @@ class _NamedVectors:
             `inference_url`
                 The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
         """
+        if interference_url is not None:
+            if inference_url is not None:
+                raise ValueError(
+                    "You have provided `interference_url` as well as `inference_url`. Please only provide `inference_url`, as `interference_url` is deprecated."
+                )
+            else:
+                warnings.warn(
+                    message="""This parameter is deprecated and will be removed in a future release. Please use `inference_url` instead.""",
+                    category=DeprecationWarning,
+                    stacklevel=1,
+                )
+
         return _NamedVectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecClipConfigCreate(
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
                 vectorizeClassName=vectorize_collection_name,
-                inferenceUrl=interference_url,
+                inferenceUrl=inference_url,
             ),
             vector_index_config=vector_index_config,
         )

@@ -121,6 +121,7 @@ def test_authentication_user_pw(
     """Test authentication using Resource Owner Password Credentials Grant (User + PW)."""
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
+    warnings.filterwarnings(action="ignore", message="Dep005", category=DeprecationWarning)
 
     url = f"http://localhost:{port}"
     assert is_auth_enabled(url)
@@ -207,6 +208,7 @@ def test_client_with_authentication_with_anon_weaviate(recwarn):
     """Test that we warn users when their client has auth enabled, but weaviate has only anon access."""
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
+    warnings.filterwarnings(action="ignore", message="Dep005", category=DeprecationWarning)
 
     url = f"http://localhost:{ANON_PORT}"
     assert not is_auth_enabled(url)
@@ -227,6 +229,7 @@ def test_bearer_token_without_refresh(recwarn):
 
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
+    warnings.filterwarnings(action="ignore", message="Dep005", category=DeprecationWarning)
 
     url = f"http://localhost:{WCS_PORT}"
     assert is_auth_enabled(url)

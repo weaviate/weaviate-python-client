@@ -1,36 +1,35 @@
 import json
-import uuid as uuid_package
 from dataclasses import asdict
-from typing import Generic, Literal, Optional, Type, Union, overload
+from typing import Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.aggregate import _AggregateCollection
 from weaviate.collections.backups import _CollectionBackup
-from weaviate.collections.base import _CollectionBase
 from weaviate.collections.batch.collection import _BatchCollectionWrapper
-from weaviate.collections.classes.config import (
-    ConsistencyLevel,
-)
+from weaviate.collections.classes.cluster import Shard
+from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
+    CrossReferences,
     References,
-    TReferences,
     ReturnProperties,
     ReturnReferences,
-    CrossReferences,
+    TReferences,
 )
-from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
+from weaviate.collections.cluster import _Cluster
 from weaviate.collections.config import _ConfigCollection
 from weaviate.collections.data import _DataCollection
-from weaviate.collections.iterator import _ObjectIterator
-from weaviate.collections.query import _GenerateCollection, _QueryCollection
+from weaviate.collections.generate import _GenerateCollection
+from weaviate.collections.iterator import _IteratorInputs, _ObjectIterator
+from weaviate.collections.query import _QueryCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.connect import ConnectionV4
 from weaviate.types import UUID
-from weaviate.validator import _validate_input, _ValidateArgument
+
+from .base import _CollectionBase
 
 
-class Collection(_CollectionBase, Generic[Properties, References]):
+class Collection(Generic[Properties, References], _CollectionBase[Properties, References]):
     """The collection class is the main entry point for interacting with a collection in Weaviate.
 
     This class is returned by the `client.collections.create` and `client.collections.get` methods. It provides
@@ -68,113 +67,77 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         properties: Optional[Type[Properties]] = None,
         references: Optional[Type[References]] = None,
     ) -> None:
-        super().__init__(connection, name, validate_arguments)
-
-        self.aggregate = _AggregateCollection(
-            self._connection, self.name, consistency_level, tenant
-        )
-        """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
-        self.config = _ConfigCollection(self._connection, self.name, tenant)
-        """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
-        self.batch = _BatchCollectionWrapper[Properties](
-            connection, consistency_level, self.name, tenant, self.config
-        )
-        """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
-        self.data = _DataCollection[Properties](
-            connection, self.name, consistency_level, tenant, validate_arguments, properties
-        )
-        """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
-        self.generate = _GenerateCollection(
+        super().__init__(
             connection,
-            self.name,
+            name,
+            validate_arguments,
             consistency_level,
             tenant,
             properties,
             references,
-            validate_arguments,
+        )
+
+        self.__cluster = _Cluster(connection)
+
+        config = _ConfigCollection(
+            connection=connection,
+            name=name,
+            tenant=tenant,
+        )
+
+        self.aggregate = _AggregateCollection(
+            connection=connection,
+            name=name,
+            consistency_level=consistency_level,
+            tenant=tenant,
+        )
+        """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
+        self.backup = _CollectionBackup(
+            connection=connection,
+            name=name,
+        )
+        """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
+        self.batch = _BatchCollectionWrapper[Properties](
+            connection,
+            consistency_level,
+            name,
+            tenant,
+            config,
+        )
+        """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
+        self.config = config
+        """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
+        self.data = _DataCollection[Properties](
+            connection, name, consistency_level, tenant, validate_arguments
+        )
+        """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
+        self.generate = _GenerateCollection[Properties, References](
+            connection=connection,
+            name=name,
+            consistency_level=consistency_level,
+            tenant=tenant,
+            properties=properties,
+            references=references,
+            validate_arguments=validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
         self.query = _QueryCollection[Properties, References](
-            connection,
-            self.name,
-            consistency_level,
-            tenant,
-            properties,
-            references,
-            validate_arguments,
+            connection=connection,
+            name=name,
+            consistency_level=consistency_level,
+            tenant=tenant,
+            properties=properties,
+            references=references,
+            validate_arguments=validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
-        self.tenants = _Tenants(connection, self.name, consistency_level, validate_arguments)
+        self.tenants = _Tenants(
+            connection=connection,
+            name=name,
+            consistency_level=consistency_level,
+            validate_arguments=validate_arguments,
+        )
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
-
-        self.backup = _CollectionBackup(connection, self.name)
-        """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
-
-        self.__tenant = tenant
-        self.__consistency_level = consistency_level
-        self.__properties = properties
-        self.__references = references
-
-    def with_tenant(
-        self, tenant: Optional[Union[str, Tenant]] = None
-    ) -> "Collection[Properties, References]":
-        """Use this method to return a collection object specific to a single tenant.
-
-        If multi-tenancy is not configured for this collection then Weaviate will throw an error.
-
-        This method does not send a request to Weaviate. It only returns a new collection object that is specific
-        to the tenant you specify.
-
-        Arguments:
-            `tenant`
-                The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
-        """
-        _validate_input(
-            [_ValidateArgument(expected=[str, Tenant, None], name="tenant", value=tenant)]
-        )
-        return Collection[Properties, References](
-            self._connection,
-            self.name,
-            self._validate_arguments,
-            self.__consistency_level,
-            tenant.name if isinstance(tenant, Tenant) else tenant,
-            self.__properties,
-            self.__references,
-        )
-
-    def with_consistency_level(
-        self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> "Collection[Properties, References]":
-        """Use this method to return a collection object specific to a single consistency level.
-
-        If replication is not configured for this collection then Weaviate will throw an error.
-
-        This method does not send a request to Weaviate. It only returns a new collection object that is specific
-        to the consistency level you specify.
-
-        Arguments:
-            `consistency_level`
-                The consistency level to use.
-        """
-        if self._validate_arguments:
-            _validate_input(
-                [
-                    _ValidateArgument(
-                        expected=[ConsistencyLevel, None],
-                        name="consistency_level",
-                        value=consistency_level,
-                    )
-                ]
-            )
-        return Collection[Properties, References](
-            self._connection,
-            self.name,
-            self._validate_arguments,
-            consistency_level,
-            self.__tenant,
-            self.__properties,
-            self.__references,
-        )
 
     def __len__(self) -> int:
         total = self.aggregate.over_all(total_count=True).total_count
@@ -185,6 +148,35 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         config = self.config.get()
         json_ = json.dumps(asdict(config), indent=2)
         return f"<weaviate.Collection config={json_}>"
+
+    def exists(self) -> bool:
+        """Check if the collection exists in Weaviate."""
+        try:
+            self.config.get(simple=True)
+            return True
+        except Exception:
+            return False
+
+    def shards(self) -> List[Shard]:
+        """
+        Get the statuses of all the shards of this collection.
+
+        Returns:
+            The list of shards belonging to this collection.
+
+        Raises
+            `weaviate.WeaviateConnectionError`
+                If the network connection to weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If weaviate reports a none OK status.
+            `weaviate.EmptyResponseError`
+                If the response is empty.
+        """
+        return [
+            shard
+            for node in self.__cluster.nodes(self.name, output="verbose")
+            for shard in node.shards
+        ]
 
     @overload
     def iterator(
@@ -258,12 +250,11 @@ class Collection(_CollectionBase, Generic[Properties, References]):
     ) -> _ObjectIterator[TProperties, TReferences]:
         ...
 
-    # weaviate/collections/collection.py:263: error: Overloaded function implementation does not accept all possible arguments of signature 3  [misc]
-    # weaviate/collections/collection.py:263: error: Overloaded function implementation cannot produce return type of signature 3  [misc]
-    def iterator(  # type: ignore
+    def iterator(
         self,
         include_vector: bool = False,
         return_metadata: Optional[METADATA] = None,
+        *,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         after: Optional[UUID] = None,
@@ -301,16 +292,13 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        return _ObjectIterator(  # type: ignore
-            lambda limit, after: self.query.fetch_objects(  # pyright: ignore # problems with invariance of list
-                limit=limit,
-                after=after,
+        return _ObjectIterator(
+            self.query,
+            _IteratorInputs(
                 include_vector=include_vector,
                 return_metadata=return_metadata,
                 return_properties=return_properties,
                 return_references=return_references,
-            ).objects,
-            after
-            if after is None or isinstance(after, uuid_package.UUID)
-            else uuid_package.UUID(after),
+                after=after,
+            ),
         )

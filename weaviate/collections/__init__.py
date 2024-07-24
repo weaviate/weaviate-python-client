@@ -1,3 +1,4 @@
-__all__ = ["Collection"]
+from weaviate.collections.batch.collection import BatchCollection, CollectionBatchingContextManager
+from weaviate.collections.collection import Collection, CollectionAsync
 
-from weaviate.collections.collections import Collection
+__all__ = ["BatchCollection", "Collection", "CollectionAsync", "CollectionBatchingContextManager"]

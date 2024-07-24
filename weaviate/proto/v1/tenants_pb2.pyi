@@ -17,14 +17,26 @@ class TenantActivityStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TENANT_ACTIVITY_STATUS_UNSPECIFIED: _ClassVar[TenantActivityStatus]
     TENANT_ACTIVITY_STATUS_HOT: _ClassVar[TenantActivityStatus]
     TENANT_ACTIVITY_STATUS_COLD: _ClassVar[TenantActivityStatus]
-    TENANT_ACTIVITY_STATUS_WARM: _ClassVar[TenantActivityStatus]
     TENANT_ACTIVITY_STATUS_FROZEN: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_UNFREEZING: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_FREEZING: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_ACTIVE: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_INACTIVE: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_OFFLOADED: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_OFFLOADING: _ClassVar[TenantActivityStatus]
+    TENANT_ACTIVITY_STATUS_ONLOADING: _ClassVar[TenantActivityStatus]
 
 TENANT_ACTIVITY_STATUS_UNSPECIFIED: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_HOT: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_COLD: TenantActivityStatus
-TENANT_ACTIVITY_STATUS_WARM: TenantActivityStatus
 TENANT_ACTIVITY_STATUS_FROZEN: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_UNFREEZING: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_FREEZING: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_ACTIVE: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_INACTIVE: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_OFFLOADED: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_OFFLOADING: TenantActivityStatus
+TENANT_ACTIVITY_STATUS_ONLOADING: TenantActivityStatus
 
 class TenantsGetRequest(_message.Message):
     __slots__ = ("collection", "names")

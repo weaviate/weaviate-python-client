@@ -48,7 +48,7 @@ class _ConvertFromREST:
     def nodes_verbose(nodes: List[NodeREST]) -> List[Node[Shards, Stats]]:
         return [
             Node(
-                git_hash=node["gitHash"],
+                git_hash=node.get("gitHash", "None"),
                 name=node["name"],
                 shards=(
                     [
@@ -73,10 +73,13 @@ class _ConvertFromREST:
                         shard_count=node["stats"]["shardCount"],
                     )
                     if "stats" in node
-                    else []
+                    else Stats(
+                        object_count=0,
+                        shard_count=0,
+                    )
                 ),
                 status=node["status"],
-                version=node["version"],
+                version=node.get("version", ""),
             )
             for node in nodes
         ]
@@ -85,12 +88,12 @@ class _ConvertFromREST:
     def nodes_minimal(nodes: List[NodeREST]) -> List[Node[None, None]]:
         return [
             Node(
-                git_hash=node["gitHash"],
+                git_hash=node.get("gitHash", "None"),
                 name=node["name"],
                 shards=None,
                 stats=None,
                 status=node["status"],
-                version=node["version"],
+                version=node.get("version", ""),
             )
             for node in nodes
         ]

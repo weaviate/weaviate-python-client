@@ -1,4 +1,3 @@
-import asyncio
 import math
 import threading
 import time
@@ -7,23 +6,16 @@ from abc import ABC
 from collections import deque
 from copy import copy
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    TypeVar,
-    Union,
-)
+from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, Union, cast
 
 from pydantic import ValidationError
 from typing_extensions import TypeAlias
 
-from weaviate.cluster import Cluster
+from httpx import ConnectError
+
+from weaviate.cluster.types import Node
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
-from weaviate.collections.batch.rest import _BatchRESTAsync
+from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
     _BatchReference,
     BatchObject,
@@ -44,8 +36,11 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateBatchValidationError
+from weaviate.event_loop import _EventLoop
+from weaviate.exceptions import WeaviateBatchValidationError, EmptyResponseException
+from weaviate.logger import logger
 from weaviate.types import UUID, VECTORS
+from weaviate.util import _decode_json_response_dict
 from weaviate.warnings import _Warnings
 
 BatchResponse = List[Dict[str, Any]]
@@ -99,7 +94,9 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
         i = 0
         self._lock.acquire()
         while len(ret) < pop_amount and len(self._items) > 0 and i < len(self._items):
-            if self._items[i].from_uuid not in uuid_lookup:
+            if self._items[i].from_uuid not in uuid_lookup and (
+                self._items[i].to_uuid is None or self._items[i].to_uuid not in uuid_lookup
+            ):
                 ret.append(self._items.pop(i))
             else:
                 i += 1
@@ -162,6 +159,7 @@ class _BatchBase:
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
         batch_mode: _BatchMode,
+        event_loop: _EventLoop,
         vectorizer_batching: bool,
         objects_: Optional[ObjectsBatchRequest] = None,
         references: Optional[ReferencesBatchRequest] = None,
@@ -173,7 +171,7 @@ class _BatchBase:
         self.__vectorizer_batching = vectorizer_batching
 
         self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
-        self.__batch_rest = _BatchRESTAsync(connection, self.__consistency_level)
+        self.__batch_rest = _BatchREST(connection, self.__consistency_level)
 
         # lookup table for objects that are currently being processed - is used to not send references from objects that have not been added yet
         self.__uuid_lookup_lock = threading.Lock()
@@ -185,10 +183,15 @@ class _BatchBase:
 
         self.__results_lock = threading.Lock()
 
-        self.__cluster = Cluster(self.__connection)
+        self.__cluster = _ClusterBatch(self.__connection)
 
         self.__batching_mode: _BatchMode = batch_mode
         self.__max_batch_size: int = 1000
+
+        self.__loop = event_loop
+        self.__objs_count = 0
+        self.__objs_logs_count = 0
+        self.__refs_logs_count = 0
 
         if isinstance(self.__batching_mode, _FixedSizeBatching):
             self.__recommended_num_objects = self.__batching_mode.batch_size
@@ -240,30 +243,6 @@ class _BatchBase:
             self.__results_for_wrapper.failed_references
         )
 
-    def __run_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
-        try:
-            loop.run_forever()
-        finally:
-            # This is entered when loop.stop is scheduled from the main thread
-            loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.close()
-
-    def __start_new_event_loop(self) -> asyncio.AbstractEventLoop:
-        loop = asyncio.new_event_loop()
-
-        event_loop = threading.Thread(
-            target=self.__run_event_loop,
-            daemon=True,
-            args=(loop,),
-            name="eventLoop",
-        )
-        event_loop.start()
-
-        while not loop.is_running():
-            time.sleep(0.01)
-
-        return loop
-
     def _shutdown(self) -> None:
         """Shutdown the current batch and wait for all requests to be finished."""
         self.flush()
@@ -284,69 +263,54 @@ class _BatchBase:
         )
 
     def __batch_send(self) -> None:
-        loop = self.__start_new_event_loop()
-        future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
-        future.result()  # Wait for self._connection.aopen() to finish
         refresh_time: float = 0.01
-
-        try:
-            while (
-                self.__shut_background_thread_down is not None
-                and not self.__shut_background_thread_down.is_set()
-            ):
-                if isinstance(self.__batching_mode, _RateLimitedBatching):
+        while (
+            self.__shut_background_thread_down is not None
+            and not self.__shut_background_thread_down.is_set()
+        ):
+            if isinstance(self.__batching_mode, _RateLimitedBatching):
+                if (
+                    time.time() - self.__time_stamp_last_request
+                    < self.__fix_rate_batching_base_time // self.__concurrent_requests
+                ):
+                    time.sleep(1)
+                    continue
+                refresh_time = 0
+            elif isinstance(self.__batching_mode, _DynamicBatching) and self.__vectorizer_batching:
+                if self.__dynamic_batching_sleep_time > 0:
                     if (
                         time.time() - self.__time_stamp_last_request
-                        < self.__fix_rate_batching_base_time // self.__concurrent_requests
+                        < self.__dynamic_batching_sleep_time
                     ):
                         time.sleep(1)
                         continue
-                    self.__time_stamp_last_request = time.time()
-                    refresh_time = 0
-                elif (
-                    isinstance(self.__batching_mode, _DynamicBatching)
-                    and self.__vectorizer_batching
-                ):
-                    if self.__dynamic_batching_sleep_time > 0:
-                        if (
-                            time.time() - self.__time_stamp_last_request
-                            < self.__dynamic_batching_sleep_time
-                        ):
-                            time.sleep(1)
-                            continue
 
-                    self.__time_stamp_last_request = time.time()
+            if (
+                self.__active_requests < self.__concurrent_requests
+                and len(self.__batch_objects) + len(self.__batch_references) > 0
+            ):
+                self.__time_stamp_last_request = time.time()
 
-                if self.__active_requests < self.__concurrent_requests and (
-                    len(self.__batch_objects) > 0 or len(self.__batch_references) > 0
-                ):
-                    self._batch_send = True
-                    self.__active_requests_lock.acquire()
-                    self.__active_requests += 1
-                    self.__active_requests_lock.release()
+                self._batch_send = True
+                self.__active_requests_lock.acquire()
+                self.__active_requests += 1
+                self.__active_requests_lock.release()
 
-                    objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
-                    self.__uuid_lookup_lock.acquire()
-                    refs = self.__batch_references.pop_items(
-                        self.__recommended_num_refs, uuid_lookup=self.__uuid_lookup
-                    )
-                    self.__uuid_lookup_lock.release()
-                    # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
-                    asyncio.run_coroutine_threadsafe(
-                        self.__send_batch_async(
-                            objs,
-                            refs,
-                            readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
-                        ),
-                        loop,
-                    )
+                objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
+                self.__uuid_lookup_lock.acquire()
+                refs = self.__batch_references.pop_items(
+                    self.__recommended_num_refs, uuid_lookup=self.__uuid_lookup
+                )
+                self.__uuid_lookup_lock.release()
+                # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
+                self.__loop.schedule(
+                    self.__send_batch,
+                    objs,
+                    refs,
+                    readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
+                )
 
-                time.sleep(refresh_time)
-
-        finally:
-            future = asyncio.run_coroutine_threadsafe(self.__connection.aclose(), loop)
-            future.result()  # Wait for self._connection.aclose() to finish
-            loop.call_soon_threadsafe(loop.stop)
+            time.sleep(refresh_time)
 
     def __dynamic_batch_rate_loop(self) -> None:
         refresh_time = 1
@@ -377,7 +341,7 @@ class _BatchBase:
         demonDynamic = threading.Thread(
             target=dynamic_batch_rate_wrapper,
             daemon=True,
-            name="BgBatchScheduler",
+            name="BgDynamicBatchRate",
         )
         demonDynamic.start()
 
@@ -396,7 +360,7 @@ class _BatchBase:
         return demonBatchSend
 
     def __dynamic_batching(self) -> None:
-        status = self.__cluster.get_nodes_status()
+        status = self.__loop.run_until_complete(self.__cluster.get_nodes_status)
         if "batchStats" not in status[0] or "queueLength" not in status[0]["batchStats"]:
             # async indexing - just send a lot
             self.__batching_mode = _FixedSizeBatching(1000, 10)
@@ -445,7 +409,6 @@ class _BatchBase:
                             current_step + 1
                         )
                 self._batch_send = False
-
         else:
             if batch_length == 0:  # scale up if queue is empty
                 self.__recommended_num_objects = min(
@@ -487,13 +450,13 @@ class _BatchBase:
                     self.__recommended_num_objects = 0
                     self.__concurrent_requests = 2
 
-    async def __send_batch_async(
+    async def __send_batch(
         self, objs: List[_BatchObject], refs: List[_BatchReference], readd_rate_limit: bool
     ) -> None:
-        if len(objs) > 0:
+        if (n_objs := len(objs)) > 0:
             start = time.time()
             try:
-                response_obj = await self.__batch_grpc.aobjects(
+                response_obj = await self.__batch_grpc.objects(
                     objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
             except Exception as e:
@@ -501,11 +464,10 @@ class _BatchBase:
                     idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
                 }
                 response_obj = BatchObjectReturn(
-                    all_responses=list(errors_obj.values()),
+                    _all_responses=list(errors_obj.values()),
                     elapsed_seconds=time.time() - start,
                     errors=errors_obj,
                     has_errors=True,
-                    uuids={},
                 )
 
             readded_uuids = set()
@@ -513,20 +475,24 @@ class _BatchBase:
             highest_retry_count = 0
             for i, err in response_obj.errors.items():
                 if (
-                    "support@cohere.com" in err.message
-                    and (
-                        "rate limit" in err.message
-                        or "500 error: internal server error" in err.message
+                    (
+                        "support@cohere.com" in err.message
+                        and (
+                            "rate limit" in err.message
+                            or "500 error: internal server error" in err.message
+                        )
                     )
-                ) or (
-                    "OpenAI" in err.message
-                    and (
-                        "Rate limit reached" in err.message
-                        or "on tokens per min (TPM)" in err.message
-                        or "503 error: Service Unavailable." in err.message
-                        or "500 error: The server had an error while processing your request."
-                        in err.message
+                    or (
+                        "OpenAI" in err.message
+                        and (
+                            "Rate limit reached" in err.message
+                            or "on tokens per min (TPM)" in err.message
+                            or "503 error: Service Unavailable." in err.message
+                            or "500 error: The server had an error while processing your request."
+                            in err.message
+                        )
                     )
+                    or ("failed with status: 503 error" in err.message)  # huggingface
                 ):
                     if err.object_.retry_count > highest_retry_count:
                         highest_retry_count = err.object_.retry_count
@@ -558,7 +524,7 @@ class _BatchBase:
                     },
                     errors=new_errors,
                     has_errors=len(new_errors) > 0,
-                    all_responses=[
+                    _all_responses=[
                         err
                         for i, err in enumerate(response_obj.all_responses)
                         if i not in readded_objects
@@ -566,29 +532,45 @@ class _BatchBase:
                     elapsed_seconds=response_obj.elapsed_seconds,
                 )
                 if readd_rate_limit:
+                    # for rate limited batching the timing is handled by the outer loop => no sleep here
                     self.__time_stamp_last_request = (
                         time.time() + self.__fix_rate_batching_base_time * (highest_retry_count + 1)
                     )  # skip a full minute to recover from the rate limit
                     self.__fix_rate_batching_base_time += (
                         1  # increase the base time as the current one is too low
                     )
+                else:
+                    # sleep a bit to recover from the rate limit in other cases
+                    time.sleep(2**highest_retry_count)
             self.__uuid_lookup_lock.acquire()
             self.__uuid_lookup.difference_update(
                 obj.uuid for obj in objs if obj.uuid not in readded_uuids
             )
             self.__uuid_lookup_lock.release()
 
+            if (n_obj_errs := len(response_obj.errors)) > 0 and self.__objs_logs_count < 30:
+                logger.error(
+                    {
+                        "message": f"Failed to send {n_obj_errs} objects in a batch of {n_objs}. Please inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects.",
+                    }
+                )
+                self.__objs_logs_count += 1
+            if self.__objs_logs_count > 30:
+                logger.error(
+                    {
+                        "message": "There have been more than 30 failed object batches. Further errors will not be logged.",
+                    }
+                )
             self.__results_lock.acquire()
             self.__results_for_wrapper.results.objs += response_obj
             self.__results_for_wrapper.failed_objects.extend(response_obj.errors.values())
             self.__results_lock.release()
             self.__took_queue.append(time.time() - start)
 
-        if len(refs) > 0:
+        if (n_refs := len(refs)) > 0:
             start = time.time()
             try:
                 response_ref = await self.__batch_rest.references(references=refs)
-
             except Exception as e:
                 errors_ref = {
                     idx: ErrorReference(message=repr(e), reference=ref)
@@ -598,6 +580,20 @@ class _BatchBase:
                     elapsed_seconds=time.time() - start,
                     errors=errors_ref,
                     has_errors=True,
+                )
+            if (n_ref_errs := len(response_ref.errors)) > 0 and self.__refs_logs_count < 30:
+                logger.error(
+                    {
+                        "message": f"Failed to send {n_ref_errs} references in a batch of {n_refs}. Please inspect client.batch.failed_references or collection.batch.failed_references for the failed references.",
+                        "errors": response_ref.errors,
+                    }
+                )
+                self.__refs_logs_count += 1
+            if self.__refs_logs_count > 30:
+                logger.error(
+                    {
+                        "message": "There have been more than 30 failed reference batches. Further errors will not be logged.",
+                    }
                 )
             self.__results_lock.acquire()
             self.__results_for_wrapper.results.refs += response_ref
@@ -637,7 +633,9 @@ class _BatchBase:
                 uuid=uuid,
                 vector=vector,
                 tenant=tenant,
+                index=self.__objs_count,
             )
+            self.__objs_count += 1
             self.__results_for_wrapper.imported_shards.add(
                 Shard(collection=collection, tenant=tenant)
             )
@@ -702,3 +700,23 @@ class _BatchBase:
             return
 
         raise self.__bg_thread_exception or Exception("Batch thread died unexpectedly")
+
+
+class _ClusterBatch:
+    def __init__(self, connection: ConnectionV4):
+        self._connection = connection
+
+    async def get_nodes_status(
+        self,
+    ) -> List[Node]:
+        try:
+            response = await self._connection.get(path="/nodes")
+        except ConnectError as conn_err:
+            raise ConnectError("Get nodes status failed due to connection error") from conn_err
+
+        response_typed = _decode_json_response_dict(response, "Nodes status")
+        assert response_typed is not None
+        nodes = response_typed.get("nodes")
+        if nodes is None or nodes == []:
+            raise EmptyResponseException("Nodes status response returned empty")
+        return cast(List[Node], nodes)

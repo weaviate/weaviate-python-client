@@ -178,6 +178,9 @@ class Connection(_ConnectionBase):
         except requests.exceptions.RequestException:
             pass  # ignore any errors related to requests, it is a best-effort warning
 
+        if embedded_db is not None:
+            self.wait_for_weaviate(10)
+
     def _create_sessions(self, auth_client_secret: Optional[AuthCredentials]) -> None:
         """Creates a async httpx session and a sync request session.
 
@@ -237,13 +240,12 @@ class Connection(_ConnectionBase):
                 if is_weaviate_domain(self.url):
                     msg += """
 
-                    You can instantiate the client with login credentials for WCS using
+                    You can instantiate the client with login credentials for Weaviate Cloud using
 
                     client = weaviate.Client(
                       url=YOUR_WEAVIATE_URL,
-                      auth_client_secret=weaviate.AuthClientPassword(
-                        username = YOUR_WCS_USER,
-                        password = YOUR_WCS_PW,
+                      auth_client_secret=weaviate.AuthApiKey(
+                        api_key = YOUR_WCD_API_KEY,
                       ))
                     """
                 raise AuthenticationFailedException(msg)

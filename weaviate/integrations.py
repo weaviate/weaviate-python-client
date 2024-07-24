@@ -14,3 +14,4 @@ class _Integrations:
         if isinstance(integrations_config, _IntegrationConfig):
             integrations_config = [integrations_config]
         self.__connection.set_integrations(integrations_config)
+        self.__connection._prepare_grpc_headers()

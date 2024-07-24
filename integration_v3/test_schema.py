@@ -15,7 +15,7 @@ def client():
 
 
 @pytest.mark.parametrize("replicationFactor", [None, 1])
-def test_create_class_with_implicit_and_explicit_replication_factor(
+def test_create_class_with_implicit_and_explicit_replication_config(
     client: weaviate.Client, replicationFactor: Optional[int]
 ):
     single_class = {
