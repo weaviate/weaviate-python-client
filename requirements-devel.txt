@@ -1,4 +1,4 @@
-requests==2.30.0
+requests==2.32.2
 httpx==0.25.2
 validators==0.33.0
 authlib==1.2.1
