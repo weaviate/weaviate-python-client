@@ -4,7 +4,7 @@ import time
 import uuid as uuid_package
 from typing import Any, Dict, List, Optional, Union, cast
 
-import grpc  # type: ignore
+from grpc.aio import AioRpcError  # type: ignore
 from google.protobuf.struct_pb2 import Struct
 
 from weaviate.collections.classes.batch import (
@@ -79,7 +79,7 @@ class _BatchGRPC(_BaseGRPC):
             for obj in objects
         ]
 
-    def objects(self, objects: List[_BatchObject], timeout: int) -> BatchObjectReturn:
+    async def objects(self, objects: List[_BatchObject], timeout: int) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
 
         Parameters:
@@ -94,7 +94,7 @@ class _BatchGRPC(_BaseGRPC):
         weaviate_objs = self.__grpc_objects(objects)
 
         start = time.time()
-        errors = self.__send_batch(weaviate_objs, timeout=timeout)
+        errors = await self.__send_batch(weaviate_objs, timeout=timeout)
         elapsed_time = time.time() - start
 
         if len(errors) == len(weaviate_objs):
@@ -104,70 +104,6 @@ class _BatchGRPC(_BaseGRPC):
                     "\n".join(err for err in set(errors.values()))
                 )
             )
-
-        all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
-            List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
-        )
-        return_success: Dict[int, uuid_package.UUID] = {}
-        return_errors: Dict[int, ErrorObject] = {}
-
-        for idx, weav_obj in enumerate(weaviate_objs):
-            obj = objects[idx]
-            if idx in errors:
-                error = ErrorObject(errors[idx], obj, original_uuid=obj.uuid)
-                return_errors[obj.index] = error
-                all_responses[obj.index] = error
-            else:
-                success = uuid_package.UUID(weav_obj.uuid)
-                return_success[obj.index] = success
-                all_responses[obj.index] = success
-
-        return BatchObjectReturn(
-            uuids=return_success,
-            errors=return_errors,
-            has_errors=len(errors) > 0,
-            _all_responses=all_responses,
-            elapsed_seconds=elapsed_time,
-        )
-
-    def __send_batch(self, batch: List[batch_pb2.BatchObject], timeout: int) -> Dict[int, str]:
-        metadata = self._get_metadata()
-        try:
-            assert self._connection.grpc_stub is not None
-            res: batch_pb2.BatchObjectsReply
-            res, _ = self._connection.grpc_stub.BatchObjects.with_call(
-                batch_pb2.BatchObjectsRequest(
-                    objects=batch,
-                    consistency_level=self._consistency_level,
-                ),
-                metadata=metadata,
-                timeout=timeout,
-            )
-
-            objects: Dict[int, str] = {}
-            for result in res.errors:
-                objects[result.index] = result.error
-            return objects
-        except grpc.RpcError as e:
-            raise WeaviateBatchError(e.details())  # pyright: ignore
-
-    async def aobjects(self, objects: List[_BatchObject], timeout: int) -> BatchObjectReturn:
-        """Insert multiple objects into Weaviate through the gRPC API.
-
-        Parameters:
-            `objects`
-                A list of `WeaviateObject` containing the data of the objects to be inserted. The class name must be
-                provided for each object, and the UUID is optional. If no UUID is provided, one will be generated for each object.
-                The UUIDs of the inserted objects will be returned in the `uuids` attribute of the returned `_BatchReturn` object.
-                The UUIDs of the objects that failed to be inserted will be returned in the `errors` attribute of the returned `_BatchReturn` object.
-            `tenant`
-                The tenant to be used for this batch operation
-        """
-        weaviate_objs = self.__grpc_objects(objects)
-
-        start = time.time()
-        errors = await self.__send_batch_async(weaviate_objs, timeout=timeout)
-        elapsed_time = time.time() - start
 
         all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
             List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
@@ -194,14 +130,13 @@ class _BatchGRPC(_BaseGRPC):
             elapsed_seconds=elapsed_time,
         )
 
-    async def __send_batch_async(
+    async def __send_batch(
         self, batch: List[batch_pb2.BatchObject], timeout: int
     ) -> Dict[int, str]:
         metadata = self._get_metadata()
         try:
-            assert self._connection.agrpc_stub is not None
-            res: batch_pb2.BatchObjectsReply
-            res = await self._connection.agrpc_stub.BatchObjects(
+            assert self._connection.grpc_stub is not None
+            res = await self._connection.grpc_stub.BatchObjects(
                 batch_pb2.BatchObjectsRequest(
                     objects=batch,
                     consistency_level=self._consistency_level,
@@ -209,13 +144,14 @@ class _BatchGRPC(_BaseGRPC):
                 metadata=metadata,
                 timeout=timeout,
             )
+            res = cast(batch_pb2.BatchObjectsReply, res)
 
             objects: Dict[int, str] = {}
             for result in res.errors:
                 objects[result.index] = result.error
             return objects
-        except grpc.RpcError as e:
-            raise WeaviateBatchError(e.details())  # pyright: ignore
+        except AioRpcError as e:
+            raise WeaviateBatchError(str(e)) from e
 
     def __translate_properties_from_python_to_grpc(
         self, data: Dict[str, Any], refs: ReferenceInputs

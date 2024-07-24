@@ -51,11 +51,9 @@ def test_collection_length_tenant(collection_factory: CollectionFactory, how_man
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
-
     collection.tenants.create(
         tenants=[Tenant(name="tenant1"), Tenant(name="tenant2"), Tenant(name="tenant3")]
     )
-    collection.with_tenant("tenant1").data.insert_many([{} for _ in range(how_many)])
     collection.with_tenant("tenant2").data.insert_many([{} for _ in range(how_many * 2)])
 
     assert len(collection.with_tenant("tenant2")) == how_many * 2

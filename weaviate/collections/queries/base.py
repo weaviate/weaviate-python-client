@@ -67,7 +67,7 @@ class _WeaviateUUIDInt(uuid_lib.UUID):
         object.__setattr__(self, "int", hex_)
 
 
-class _BaseQuery(Generic[Properties, References]):
+class _Base(Generic[Properties, References]):
     def __init__(
         self,
         connection: ConnectionV4,
