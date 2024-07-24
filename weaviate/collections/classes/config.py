@@ -156,16 +156,22 @@ class GenerativeSearches(str, Enum):
     Attributes:
         `AWS`
             Weaviate module backed by AWS Bedrock generative models.
-        `OPENAI`
-            Weaviate module backed by OpenAI and Azure-OpenAI generative models.
-        `COHERE`
-            Weaviate module backed by Cohere generative models.
-        `PALM`
-            Weaviate module backed by PaLM generative models.
-        `AWS`
-            Weaviate module backed by AWS Bedrock generative models.
         `ANTHROPIC`
             Weaviate module backed by Anthropic generative models.
+        `ANYSCALE`
+            Weaviate module backed by Anyscale generative models.
+        `COHERE`
+            Weaviate module backed by Cohere generative models.
+        `MISTRAL`
+            Weaviate module backed by Mistral generative models.
+        `OCTOAI`
+            Weaviate module backed by OctoAI generative models.
+        `OLLAMA`
+            Weaviate module backed by generative models deployed on Ollama infrastructure.
+        `OPENAI`
+            Weaviate module backed by OpenAI and Azure-OpenAI generative models.
+        `PALM`
+            Weaviate module backed by PaLM generative models.
     """
 
     AWS = "generative-aws"
@@ -192,12 +198,17 @@ class Rerankers(str, Enum):
             Weaviate module backed by Cohere reranking models.
         `TRANSFORMERS`
             Weaviate module backed by Transformers reranking models.
+        `VOYAGEAI`
+            Weaviate module backed by VoyageAI reranking models.
+        `JINAAI`
+            Weaviate module backed by JinaAI reranking models.
     """
 
     NONE = "none"
     COHERE = "reranker-cohere"
     TRANSFORMERS = "reranker-transformers"
     VOYAGEAI = "reranker-voyageai"
+    JINAAI = "reranker-jinaai"
 
 
 class StopwordsPreset(str, Enum):
@@ -549,6 +560,22 @@ class _RerankerTransformersConfig(_RerankerConfigCreate):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.TRANSFORMERS, frozen=True, exclude=True
     )
+
+
+RerankerJinaAIModel = Literal[
+    "jina-reranker-v2-base-multilingual",
+    "jina-reranker-v1-base-en",
+    "jina-reranker-v1-turbo-en",
+    "jina-reranker-v1-tiny-en",
+    "jina-colbert-v1-en",
+]
+
+
+class _RerankerJinaAIConfig(_RerankerConfigCreate):
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.JINAAI, frozen=True, exclude=True
+    )
+    model: Optional[Union[RerankerJinaAIModel, str]] = Field(default=None)
 
 
 RerankerVoyageAIModel = Literal["rerank-lite-1", "rerank-1"]
@@ -907,6 +934,21 @@ class _Reranker:
                 The model to use. Defaults to `None`, which uses the server-defined default
         """
         return _RerankerCohereConfig(model=model)
+
+    @staticmethod
+    def jinaai(
+        model: Optional[Union[RerankerJinaAIModel, str]] = None,
+    ) -> _RerankerConfigCreate:
+        """Create a `_RerankerJinaAIConfig` object for use when reranking using the `reranker-jinaai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-jinaai)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _RerankerJinaAIConfig(model=model)
 
     @staticmethod
     def voyageai(
