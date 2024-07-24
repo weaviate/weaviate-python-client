@@ -13,16 +13,23 @@ on:
       - publishing.md
   pull_request:
 
+env:
+  WEAVIATE_123: 1.23.16
+  WEAVIATE_124: 1.24.21
+  WEAVIATE_125: 1.25.8
+  WEAVIATE_126: 1.26.1
+
+
 jobs:
   lint-and-format:
     name: Run Linter and Formatter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: psf/black@stable
         with:
-          version: "22.10"
-      - uses: actions/setup-python@v4
+            version: "23.9.1"
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -43,14 +50,17 @@ jobs:
         version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         folder: ["weaviate"]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
       - name: Run mypy
         run: mypy --config-file ./pyproject.toml --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
+      - uses: jakebailey/pyright-action@v2
+        with:
+          version: 1.1.347
 
   unit-tests:
     name: Run Unit Tests
@@ -61,8 +71,8 @@ jobs:
         version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         folder: ["test", "mock_tests"]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
@@ -71,36 +81,73 @@ jobs:
         run: pytest --cov -v --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-${{ matrix.folder }}.xml ${{ matrix.folder }}
       - name: Archive code coverage results
         if: matrix.version == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ matrix.folder }}
           path: coverage-${{ matrix.folder }}.xml
 
-  integration-tests:
-    name: Run Integration Tests
+  integration-tests-embedded:
+    name: Run Integration Tests Embedded
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        version: [ "3.8", "3.9", "3.10", "3.11", "3.12"]
+        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         optional_dependencies: [false]
-        include:
-          - version: "3.11"
-            optional_dependencies: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: |
           pip install -r requirements-devel.txt
           pip install .
+      - name: Run integration tests
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-embedded.xml integration_embedded
+      - name: Archive code coverage results
+        if: matrix.version == '3.10' && (github.ref_name != 'main')
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-integration-embedded
+          path: coverage-integration-embedded.xml
+
+  integration-tests-v3:
+    name: Run Integration Tests v3
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        versions: [
+          { py: "3.8", weaviate: $WEAVIATE_126},
+          { py: "3.9", weaviate: $WEAVIATE_126},
+          { py: "3.10", weaviate: $WEAVIATE_126},
+          { py: "3.11", weaviate: $WEAVIATE_123},
+          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_126},
+          { py: "3.12", weaviate: $WEAVIATE_126}
+        ]
+        optional_dependencies: [false]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.versions.py }}
+          cache: 'pip' # caching pip dependencies
+      - run: |
+          pip install -r requirements-devel.txt
+          pip install .
+      - name: free space
+        run: sudo rm -rf /usr/local/lib/android
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
       - name: Run integration tests with auth secrets
         if: ${{ !github.event.pull_request.head.repo.fork }}
         env:
@@ -108,42 +155,132 @@ jobs:
           OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+#          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-v3.xml integration_v3
+      - name: Run integration tests without auth secrets (for forks)
+        if: ${{ github.event.pull_request.head.repo.fork }}
+        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-v3.xml integration_v3
+      - name: Archive code coverage results
+        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-integration-v3
+          path: coverage-integration-v3.xml
+
+  integration-tests:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        versions: [
+          { py: "3.8", weaviate: $WEAVIATE_126},
+          { py: "3.9", weaviate: $WEAVIATE_126},
+          { py: "3.10", weaviate: $WEAVIATE_126},
+          { py: "3.11", weaviate: $WEAVIATE_123},
+          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_126},
+          { py: "3.12", weaviate: $WEAVIATE_126}
+        ]
+        optional_dependencies: [false]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.versions.py }}
+          cache: 'pip' # caching pip dependencies
+      - run: |
+          pip install -r requirements-devel.txt
+          pip install .
+      - name: free space
+        run: sudo rm -rf /usr/local/lib/android
+      - name: start weaviate
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
+      - name: Run integration tests with auth secrets
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        env:
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
+          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
+          OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
+#          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
+        run: pytest -n auto -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
-        if: matrix.version == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v3
+        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-integration
           path: coverage-integration.xml
 
+  journey-tests:
+    name: Run Journey Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        versions: [
+          { py: "3.8", weaviate: $WEAVIATE_125},
+          { py: "3.9", weaviate: $WEAVIATE_125},
+          { py: "3.10", weaviate: $WEAVIATE_125},
+          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.12", weaviate: $WEAVIATE_125}
+        ]
+        optional_dependencies: [false]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip' # caching pip dependencies
+      - run: pip install -r requirements-devel.txt
+      - run: pip install .
+      - name: free space
+        run: sudo rm -rf /usr/local/lib/android
+      - name: start weaviate
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
+      - name: Run journey tests
+        run: pytest journey_tests
+
   Codecov:
-    needs: [Unit-Tests, Integration-Tests]
+    needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]
     runs-on: ubuntu-latest
     if: github.ref_name != 'main'
     steps:
-      - uses: actions/checkout@v3
-      - name: Download coverage artifacts integration
-        uses: actions/download-artifact@v3
+      - uses: actions/checkout@v4
+      - name: Download coverage artifacts mock
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-mock_tests
-      - name: Download coverage artifacts integration
-        uses: actions/download-artifact@v3
+      - name: Download coverage artifacts unit
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-test
-      - name: Download coverage unit
-        uses: actions/download-artifact@v3
+      - name: Download coverage integration
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report-integration
+      - name: Download coverage integration v3
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-integration-v3
+      - name: Download coverage integration embedded
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-integration-embedded
       - name: Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
-          files: ./coverage-integration.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
+          files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-integration-embedded.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
           verbose: true
-
+          token: ${{ secrets.CODECOV_TOKEN }}
 
 
   build-package:
@@ -151,11 +288,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -164,7 +301,7 @@ jobs:
       - name: Build a binary wheel
         run: python -m build
       - name: Create Wheel Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: "dist/*.whl"
           name: weaviate-python-client-wheel
@@ -173,21 +310,32 @@ jobs:
   test-package:
     needs: [build-package]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        server: [
+          $WEAVIATE_123,
+          $WEAVIATE_124,
+          $WEAVIATE_125,
+          $WEAVIATE_126
+        ]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Download build artifact to append to release
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: weaviate-python-client-wheel
       - run: |
           pip install weaviate_client-*.whl
-          pip install pytest pytest-benchmark pytest-profiling
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+          pip install -r requirements-devel.txt  # install test dependencies
+      - name: free space
+        run: sudo rm -rf /usr/local/lib/android
       - run: rm -r weaviate
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
       - name: Run integration tests with auth secrets
         if: ${{ !github.event.pull_request.head.repo.fork }}
         env:
@@ -195,10 +343,10 @@ jobs:
           OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
-        run: pytest -v  integration
+        run: pytest -v -n auto integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v integration
+        run: pytest -v -n auto integration
 
 
   build-and-publish:
@@ -207,11 +355,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
@@ -233,7 +381,7 @@ jobs:
     needs: [build-and-publish]
     steps:
       - name: Download build artifact to append to release
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: weaviate-python-client-wheel
           path: dist

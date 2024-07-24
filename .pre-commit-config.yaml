@@ -1,7 +1,7 @@
 exclude: ^proto/
 repos:
 -   repo: https://github.com/psf/black
-    rev: 24.4.2
+    rev: 23.9.1
     hooks:
     -   id: black
 
@@ -11,24 +11,49 @@ repos:
     - id: no-commit-to-branch
     - id: trailing-whitespace
 
--   repo: https://github.com/PyCQA/flake8
-    rev: 7.1.0
-    hooks:
+- repo: https://github.com/myint/autoflake
+  rev: v1.4
+  hooks:
+      - id: autoflake
+        args: [--in-place, --remove-all-unused-imports, --exclude=weaviate/proto/*]
+
+
+- repo: https://github.com/PyCQA/flake8
+  rev: 7.1.0
+  hooks:
     - id: flake8
+      name: linting
       additional_dependencies: [
         'flake8-bugbear==22.10.27',
         'flake8-comprehensions==3.10.1',
         'flake8-builtins==2.0.1'
       ]
+    - id: flake8
+      name: docstrings
+      additional_dependencies: [
+        'flake8-docstrings==1.7.0'
+      ]
+      files: '^weaviate/collections'
 
 -   repo: local
     hooks:
     - id: mypy
       name: mypy
       entry: ./run-mypy.sh
-      language: system
+      language: python
+      language_version: "3.11"
       # use require_serial so that script
       # is only called once per commit
       require_serial: true
       # Print the number of files as a sanity-check
       verbose: true
+
+- repo: local
+  hooks:
+    - id: pyright
+      name: pyright
+      entry: pyright
+      language: node
+      pass_filenames: false
+      types: [python]
+      additional_dependencies: [pyright@1.1.364]

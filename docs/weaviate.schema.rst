@@ -1,24 +1,26 @@
-weaviate.schema
-===============
+weaviate.schema package
+=======================
 
 .. automodule:: weaviate.schema
    :members:
    :undoc-members:
    :show-inheritance:
 
-weaviate.schema.properties
---------------------------
+Subpackages
+-----------
 
 .. toctree::
    :maxdepth: 4
 
    weaviate.schema.properties
 
+Submodules
+----------
 
-weaviate.schema.validate\_schema
---------------------------------
+weaviate.schema.crud\_schema module
+-----------------------------------
 
-.. automodule:: weaviate.schema.validate_schema
+.. automodule:: weaviate.schema.crud_schema
    :members:
    :undoc-members:
    :show-inheritance:

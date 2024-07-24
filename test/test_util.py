@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock
 import pytest
 
 from test.util import check_error_message
-from weaviate import SchemaValidationException
+from weaviate.exceptions import SchemaValidationException
 from weaviate.util import (
     generate_uuid5,
     image_decoder_b64,
@@ -377,8 +377,7 @@ class TestUtil(unittest.TestCase):
         # invalid call
         type_error_message = (
             "The type of the 'vector' argument is not supported!\n"
-            "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
-            "and `tf.Tensor`"
+            "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series`, and `pl.Series`"
         )
         with self.assertRaises(TypeError) as error:
             get_vector("[1., 2., 3.]")

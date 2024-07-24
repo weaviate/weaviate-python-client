@@ -1,43 +1,93 @@
 """
 Weaviate Python Client Library used to interact with a Weaviate instance.
-
-The interaction with Weaviate instance should be through a `Client` object. A `Client` instance
-has instance attributes to all the object needed to create objects/schema, do classification,
-upload batches, query data, ... Creating separate `Schema`, `DataObject`, `Batch`,
-`Classification`, `Query`, `Connect`, `Reference` is **STRONGLY DISCOURAGED**. The `Client` class
-creates the needed instances and connects all of them to the same Weaviate instance for you.
-
-Examples
---------
-Creating and exploring a Weaviate instance running on `localhost`, on port `8080`, with Authentication disabled.
-
->>> import weaviate
->>> client = weaviate.Client('http://localhost:8080')
->>> print_type = lambda obj: print(type(obj))
->>> print_type(client.batch)
-<class 'weaviate.batch.crud_batch.Batch'>
->>> print_type(client.schema)
-<class 'weaviate.schema.crud_schema.Schema'>
->>> print_type(client.classification)
-<class 'weaviate.classification.classify.Classification'>
->>> print_type(client.data_object)
-<class 'weaviate.data.crud_data.DataObject'>
->>> print_type(client.query)
-<class 'weaviate.gql.query.Query'>
-
-Attributes
-----------
-__version__ : str
-    Current `weaviate-python` library version installed.
 """
 
+import sys
+from importlib.metadata import version, PackageNotFoundError
+from typing import Any
+
+try:
+    __version__ = version("weaviate-client")
+except PackageNotFoundError:
+    __version__ = "unknown version"
+
+from .client import Client, WeaviateAsyncClient, WeaviateClient
+from .collections.batch.client import BatchClient, ClientBatchingContextManager
+from .connect.helpers import (
+    connect_to_custom,
+    connect_to_embedded,
+    connect_to_local,
+    connect_to_wcs,
+    connect_to_weaviate_cloud,
+    use_async_with_custom,
+    use_async_with_embedded,
+    use_async_with_local,
+    use_async_with_weaviate_cloud,
+)
+from . import (
+    auth,
+    backup,
+    batch,
+    classes,
+    cluster,
+    collections,
+    config,
+    connect,
+    data,
+    embedded,
+    exceptions,
+    gql,
+    outputs,
+    schema,
+    types,
+)
+
+if not sys.warnoptions:
+    from warnings import simplefilter
+
+    simplefilter("default")
+
+from .warnings import _Warnings
 
 __all__ = [
+    "BatchClient",
+    "ClientBatchingContextManager",
     "Client",
+    "WeaviateClient",
+    "WeaviateAsyncClient",
+    "connect_to_custom",
+    "connect_to_embedded",
+    "connect_to_local",
+    "connect_to_wcs",
+    "connect_to_weaviate_cloud",
+    "auth",
+    "backup",
+    "batch",
+    "classes",
+    "cluster",
+    "collections",
+    "config",
+    "connect",
+    "data",
+    "embedded",
+    "exceptions",
+    "gql",
+    "outputs",
+    "schema",
+    "types",
+    "use_async_with_custom",
+    "use_async_with_embedded",
+    "use_async_with_local",
+    "use_async_with_weaviate_cloud",
+]
+
+deprs = [
+    "Collection",
     "AuthClientCredentials",
     "AuthClientPassword",
     "AuthBearerToken",
     "AuthApiKey",
+    "BackupStorage",
     "UnexpectedStatusCodeException",
     "ObjectAlreadyExistsException",
     "AuthenticationFailedException",
@@ -46,8 +96,11 @@ __all__ = [
     "ConsistencyLevel",
     "WeaviateErrorRetryConf",
     "EmbeddedOptions",
+    "AdditionalConfig",
     "Config",
     "ConnectionConfig",
+    "ConnectionParams",
+    "ProtocolParams",
     "AdditionalProperties",
     "LinkTo",
     "Shard",
@@ -55,32 +108,36 @@ __all__ = [
     "TenantActivityStatus",
 ]
 
-import sys
+map_ = {
+    "Collection": "collections",
+    "AuthClientCredentials": "auth",
+    "AuthClientPassword": "auth",
+    "AuthBearerToken": "auth",
+    "AuthApiKey": "auth",
+    "BackupStorage": "backup",
+    "UnexpectedStatusCodeException": "exceptions",
+    "ObjectAlreadyExistsException": "exceptions",
+    "AuthenticationFailedException": "exceptions",
+    "SchemaValidationException": "exceptions",
+    "WeaviateStartUpError": "exceptions",
+    "ConsistencyLevel": "data",
+    "WeaviateErrorRetryConf": "batch",
+    "EmbeddedOptions": "embedded",
+    "AdditionalConfig": "config",
+    "Config": "config",
+    "ConnectionConfig": "config",
+    "ConnectionParams": "connect",
+    "ProtocolParams": "connect",
+    "AdditionalProperties": "gql",
+    "LinkTo": "gql",
+    "Shard": "batch",
+    "Tenant": "schema",
+    "TenantActivityStatus": "schema",
+}
 
-from importlib.metadata import version, PackageNotFoundError
 
-try:
-    __version__ = version("weaviate-client")
-except PackageNotFoundError:
-    __version__ = "unknown version"
-
-from .auth import AuthClientCredentials, AuthClientPassword, AuthBearerToken, AuthApiKey
-from .batch.crud_batch import WeaviateErrorRetryConf, Shard
-from .client import Client
-from .data.replication import ConsistencyLevel
-from .schema.crud_schema import Tenant, TenantActivityStatus
-from .embedded import EmbeddedOptions
-from .exceptions import (
-    UnexpectedStatusCodeException,
-    ObjectAlreadyExistsException,
-    AuthenticationFailedException,
-    SchemaValidationException,
-    WeaviateStartUpError,
-)
-from .config import Config, ConnectionConfig
-from .gql.get import AdditionalProperties, LinkTo
-
-if not sys.warnoptions:
-    import warnings
-
-    warnings.simplefilter("default")
+def __getattr__(name: str) -> Any:
+    if name in deprs:
+        _Warnings.root_module_import(name, map_[name])
+        return getattr(sys.modules[f"{__name__}.{map_[name]}"], name)
+    raise AttributeError(f"module {__name__} has no attribute {name}")

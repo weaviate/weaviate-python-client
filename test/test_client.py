@@ -5,7 +5,8 @@ from unittest.mock import patch, Mock
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from test.util import mock_connection_func, check_error_message
-from weaviate import Client, ConnectionConfig
+from weaviate import Client
+from weaviate.config import ConnectionConfig
 from weaviate.embedded import EmbeddedOptions, EmbeddedDB
 from weaviate.exceptions import UnexpectedStatusCodeException
 

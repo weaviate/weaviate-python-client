@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.23.0-rc.0
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
       - 8083:8083
     restart: on-failure:0
@@ -25,4 +25,5 @@ services:
       AUTHORIZATION_ADMINLIST_ENABLED: 'true'
       AUTHORIZATION_ADMINLIST_USERS: 'test@test.de'
       AUTHENTICATION_OIDC_SCOPES: 'openid,email'
+      DISABLE_TELEMETRY: 'true'
 ...

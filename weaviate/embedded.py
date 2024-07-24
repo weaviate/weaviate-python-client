@@ -10,15 +10,17 @@ import time
 import urllib.request
 import warnings
 import zipfile
+from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import requests
 import validators
 
 from weaviate import exceptions
 from weaviate.exceptions import WeaviateStartUpError
+from weaviate.logger import logger
 from weaviate.util import _decode_json_response_dict
 
 DEFAULT_BINARY_PATH = str(Path.home() / ".cache/weaviate-embedded/")
@@ -28,12 +30,14 @@ GITHUB_RELEASE_DOWNLOAD_URL = "https://github.com/weaviate/weaviate/releases/dow
 DEFAULT_PORT = 8079
 DEFAULT_GRPC_PORT = 50060
 
+WEAVIATE_VERSION = "1.26.1"
+
 
 @dataclass
 class EmbeddedOptions:
     persistence_data_path: str = os.environ.get("XDG_DATA_HOME", DEFAULT_PERSISTENCE_DATA_PATH)
     binary_path: str = os.environ.get("XDG_CACHE_HOME", DEFAULT_BINARY_PATH)
-    version: str = "1.23.0"
+    version: str = WEAVIATE_VERSION
     port: int = DEFAULT_PORT
     hostname: str = "127.0.0.1"
     additional_env_vars: Optional[Dict[str, str]] = None
@@ -48,9 +52,8 @@ def get_random_port() -> int:
     return port_num
 
 
-class EmbeddedDB:
+class _EmbeddedBase:
     def __init__(self, options: EmbeddedOptions) -> None:
-        self.data_bind_port = get_random_port()
         self.options = options
         self.grpc_port: int = options.grpc_port
         self.process: Optional[subprocess.Popen[bytes]] = None
@@ -71,7 +74,7 @@ class EmbeddedDB:
             if not self.options.version.endswith(".tar.gz") and not self.options.version.endswith(
                 ".zip"
             ):
-                raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
+                raise exceptions.WeaviateEmbeddedInvalidVersionError(self.options.version)
 
             # for GitHub urls we can parse the version from the url
             if self.options.version.startswith(GITHUB_RELEASE_DOWNLOAD_URL):
@@ -92,7 +95,7 @@ class EmbeddedDB:
             assert latest is not None
             self._set_download_url_from_version_tag(latest["tag_name"])
         else:
-            raise exceptions.WeaviateEmbeddedInvalidVersion(self.options.version)
+            raise exceptions.WeaviateEmbeddedInvalidVersionError(self.options.version)
 
     def _set_download_url_from_version_tag(self, version: str) -> None:
         if platform.system() == "Darwin":
@@ -135,14 +138,14 @@ class EmbeddedDB:
             + str(hashlib.sha256(self.options.version.encode("utf-8")).hexdigest()),
         )
         if not self._weaviate_binary_path.exists():
-            print(
+            logger.info(
                 f"Binary {self.options.binary_path} did not exist. Downloading binary from {self._download_url}"
             )
             if self._download_url.endswith(".tar.gz"):
                 tar_filename = Path(self.options.binary_path, "tmp_weaviate.tgz")
                 urllib.request.urlretrieve(self._download_url, tar_filename)
-                binary_tar = tarfile.open(tar_filename)
-                binary_tar.extract("weaviate", path=Path(self.options.binary_path))
+                with tarfile.open(tar_filename) as binary_tar:
+                    binary_tar.extract("weaviate", path=Path(self.options.binary_path))
                 tar_filename.unlink()
             else:
                 assert self._download_url.endswith(".zip")
@@ -157,16 +160,6 @@ class EmbeddedDB:
             self._weaviate_binary_path.chmod(
                 self._weaviate_binary_path.stat().st_mode | stat.S_IEXEC
             )
-
-    def is_listening(self) -> bool:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.connect((self.options.hostname, self.options.port))
-            s.close()
-            return True
-        except (socket.error, ConnectionRefusedError):
-            s.close()
-            return False
 
     def wait_till_listening(self) -> None:
         seconds = 30
@@ -188,11 +181,26 @@ class EmbeddedDB:
                  this: https://github.com/weaviate/weaviate/issues/3315"""  # noqa: E231
             )
 
-    def start(self) -> None:
-        if self.is_listening():
-            print(f"embedded weaviate is already listening on port {self.options.port}")
-            return
+    def stop(self) -> None:
+        if self.process is not None:
+            try:
+                self.process.terminate()
+                self.process.wait()
+            except ProcessLookupError:
+                logger.info(
+                    f"""Tried to stop embedded weaviate process {self.process.pid}. Process was not found. So not doing
+                    anything"""
+                )
+            self.process = None
 
+    def ensure_running(self) -> None:
+        if self.is_listening() is False:
+            logger.info(
+                f"Embedded weaviate wasn't listening on ports http:{self.options.port} & grpc:{self.options.grpc_port}, so starting embedded weaviate again"
+            )
+            self.start()
+
+    def start(self) -> None:
         self.ensure_weaviate_binary_exists()
         my_env = os.environ.copy()
 
@@ -202,6 +210,13 @@ class EmbeddedDB:
         # Bug with weaviate requires setting gossip and data bind port
         my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
+        my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
+        my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
+
+        raft_port = get_random_port()
+        my_env.setdefault("RAFT_PORT", str(raft_port))
+        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(raft_port + 1))
+        my_env.setdefault("PROFILING_PORT", str(get_random_port()))
 
         my_env.setdefault(
             "ENABLE_MODULES",
@@ -211,7 +226,9 @@ class EmbeddedDB:
 
         # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel
         # instances
-        my_env.setdefault("CLUSTER_HOSTNAME", f"Embedded_at_{self.options.port}")
+        cluster_hostname = f"Embedded_at_{self.options.port}"
+        my_env.setdefault("CLUSTER_HOSTNAME", cluster_hostname)
+        my_env.setdefault("RAFT_JOIN", f"{cluster_hostname}:{raft_port}")
 
         if self.options.additional_env_vars is not None:
             my_env.update(self.options.additional_env_vars)
@@ -232,23 +249,71 @@ class EmbeddedDB:
                 env=my_env,
             )
             self.process = process
-        print(f"Started {self.options.binary_path}: process ID {self.process.pid}")
+        logger.info(f"Started {self.options.binary_path}: process ID {self.process.pid}")
         self.wait_till_listening()
 
-    def stop(self) -> None:
-        if self.process is not None:
-            try:
-                self.process.terminate()
-                self.process.wait()
-            except ProcessLookupError:
-                print(
-                    f"""Tried to stop embedded weaviate process {self.process.pid}. Process was not found. So not doing
-                    anything"""
-                )
+    @abstractmethod
+    def is_listening(self) -> bool:
+        raise NotImplementedError()
 
-    def ensure_running(self) -> None:
-        if not self.is_listening():
-            print(
-                f"Embedded weaviate wasn't listening on port {self.options.port}, so starting embedded weaviate again"
+
+class EmbeddedV3(_EmbeddedBase):
+    def is_listening(self) -> bool:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.connect((self.options.hostname, self.options.port))
+            return True
+        except (socket.error, ConnectionRefusedError):
+            return False
+        finally:
+            s.close()
+
+    def start(self) -> None:
+        if self.is_listening():
+            logger.info(f"embedded weaviate is already listening on port {self.options.port}")
+            return
+        super().start()
+
+
+EmbeddedDB = EmbeddedV3  # needed for BC from v3 -> v4
+
+
+class EmbeddedV4(_EmbeddedBase):
+    def is_listening(self) -> bool:
+        up = self.__is_listening()
+        return up[0] and up[1]
+
+    def __is_listening(self) -> Tuple[bool, bool]:
+        http_listening, grpc_listening = False, False
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.connect((self.options.hostname, self.options.port))
+                http_listening = True
+            except (socket.error, ConnectionRefusedError):
+                pass
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.connect((self.options.hostname, self.grpc_port))
+                grpc_listening = True
+            except (socket.error, ConnectionRefusedError):
+                pass
+        return (http_listening, grpc_listening)
+
+    def start(self) -> None:
+        up = self.__is_listening()
+        if up[0] and up[1]:
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start because processes are already listening on ports http:{self.options.port} and grpc:{self.grpc_port}"
+                f"use weaviate.connect_to_local(port={self.options.port}, grpc_port={self.options.grpc_port}) to connect to the existing instance"
             )
-            self.start()
+        elif up[0] and not up[1]:
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start because a process is already listening on port http:{self.options.port}"
+                "look for another free port for the HTTP connection to you embedded instance"
+            )
+        elif up[1] and not up[0]:
+            raise WeaviateStartUpError(
+                f"Embedded DB did not start because a process is already listening on port grpc:{self.grpc_port}"
+                "look for another free port for the gRPC connection to your embedded instance"
+            )
+        super().start()

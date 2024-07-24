@@ -1,32 +1,182 @@
 """
 Client class definition.
 """
+import asyncio
 from typing import Optional, Tuple, Union, Dict, Any
 
+from httpx import HTTPError as HttpxError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate.backup.backup import _BackupAsync
+from weaviate.backup.sync import _Backup
+
+
+from weaviate import syncify
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
 from .classification import Classification
+
+from .client_base import _WeaviateClientBase
 from .cluster import Cluster
-from .config import Config
-from .connect.connection import Connection, TIMEOUT_TYPE_RETURN
+from .collections.collections.async_ import _CollectionsAsync
+from .collections.collections.sync import _Collections
+from .collections.batch.client import _BatchClientWrapper
+from .collections.cluster import _Cluster, _ClusterAsync
+from .config import AdditionalConfig, Config
+from .connect import Connection
+from .connect.base import (
+    ConnectionParams,
+    TIMEOUT_TYPE_RETURN,
+)
 from .contextionary import Contextionary
 from .data import DataObject
-from .embedded import EmbeddedDB, EmbeddedOptions
-from .exceptions import UnexpectedStatusCodeException
+from .embedded import EmbeddedOptions, EmbeddedV3
+from .exceptions import (
+    UnexpectedStatusCodeError,
+    WeaviateClosedClientError,
+    WeaviateConnectionError,
+)
 from .gql import Query
 from .schema import Schema
-from .types import NUMBERS
+from weaviate.event_loop import _EventLoopSingleton, _EventLoop
+from .types import NUMBER
 from .util import _get_valid_timeout_config, _type_request_response
+from .warnings import _Warnings
 
-TIMEOUT_TYPE = Union[Tuple[NUMBERS, NUMBERS], NUMBERS]
+TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
+
+
+@syncify.convert
+class WeaviateClient(_WeaviateClientBase):
+    """
+    The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+
+    WARNING: This client is only compatible with Weaviate v1.23.6 and higher!
+
+    A Client instance creates all the needed objects to interact with Weaviate, and connects all of
+    them to the same Weaviate instance. See below the Attributes of the Client instance. For the
+    per attribute functionality see that attribute's documentation.
+
+    Attributes:
+        `backup`
+            A `Backup` object instance connected to the same Weaviate instance as the Client.
+        `batch`
+            A `_Batch` object instance connected to the same Weaviate instance as the Client.
+        `classification`
+            A `Classification` object instance connected to the same Weaviate instance as the Client.
+        `cluster`
+            A `Cluster` object instance connected to the same Weaviate instance as the Client.
+        `collections`
+            A `_Collections` object instance connected to the same Weaviate instance as the Client.
+    """
+
+    def __init__(
+        self,
+        connection_params: Optional[ConnectionParams] = None,
+        embedded_options: Optional[EmbeddedOptions] = None,
+        auth_client_secret: Optional[AuthCredentials] = None,
+        additional_headers: Optional[dict] = None,
+        additional_config: Optional[AdditionalConfig] = None,
+        skip_init_checks: bool = False,
+    ) -> None:
+        self._event_loop = _EventLoopSingleton.get_instance()
+        assert self._event_loop.loop is not None
+        self._loop = self._event_loop.loop
+        _EventLoop.patch_exception_handler(self._loop)
+
+        super().__init__(
+            connection_params=connection_params,
+            embedded_options=embedded_options,
+            auth_client_secret=auth_client_secret,
+            additional_headers=additional_headers,
+            additional_config=additional_config,
+            skip_init_checks=skip_init_checks,
+        )
+
+        collections = _Collections(self._event_loop, _CollectionsAsync(self._connection))
+
+        self.batch = _BatchClientWrapper(self._connection, config=collections)
+        """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
+        self.backup = _Backup(self._connection)
+        """This namespace contains all functionality to backup data."""
+        self.cluster = _Cluster(self._connection)
+        """This namespace contains all functionality to inspect the connected Weaviate cluster."""
+        self.collections = collections
+        """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
+
+        Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
+        """
+
+    def __enter__(self) -> "WeaviateClient":
+        self.connect()  # pyright: ignore # gets patched by syncify.convert to be sync
+        return self
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        self.close()  # pyright: ignore # gets patched by syncify.convert to be sync
+
+
+class WeaviateAsyncClient(_WeaviateClientBase):
+    """
+    The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+
+    WARNING: This client is only compatible with Weaviate v1.23.6 and higher!
+
+    A Client instance creates all the needed objects to interact with Weaviate, and connects all of
+    them to the same Weaviate instance. See below the Attributes of the Client instance. For the
+    per attribute functionality see that attribute's documentation.
+
+    Attributes:
+        `backup`
+            A `Backup` object instance connected to the same Weaviate instance as the Client.
+        `cluster`
+            A `Cluster` object instance connected to the same Weaviate instance as the Client.
+        `collections`
+            A `_CollectionsAsync` object instance connected to the same Weaviate instance as the Client.
+    """
+
+    def __init__(
+        self,
+        connection_params: Optional[ConnectionParams] = None,
+        embedded_options: Optional[EmbeddedOptions] = None,
+        auth_client_secret: Optional[AuthCredentials] = None,
+        additional_headers: Optional[dict] = None,
+        additional_config: Optional[AdditionalConfig] = None,
+        skip_init_checks: bool = False,
+    ) -> None:
+        self._loop = asyncio.get_event_loop()
+        _EventLoop.patch_exception_handler(self._loop)
+
+        super().__init__(
+            connection_params=connection_params,
+            embedded_options=embedded_options,
+            auth_client_secret=auth_client_secret,
+            additional_headers=additional_headers,
+            additional_config=additional_config,
+            skip_init_checks=skip_init_checks,
+        )
+
+        self.backup = _BackupAsync(self._connection)
+        """This namespace contains all functionality to backup data."""
+        self.cluster = _ClusterAsync(self._connection)
+        """This namespace contains all functionality to inspect the connected Weaviate cluster."""
+        self.collections = _CollectionsAsync(self._connection)
+        """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
+
+        Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.
+        """
+
+    async def __aenter__(self) -> "WeaviateAsyncClient":
+        await self.connect()
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        await self.close()
 
 
 class Client:
     """
-    A python native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+    The v3 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
     A Client instance creates all the needed objects to interact with Weaviate, and connects all of
     them to the same Weaviate instance. See below the Attributes of the Client instance. For the
     per attribute functionality see that attribute's documentation.
@@ -59,17 +209,16 @@ class Client:
         proxies: Union[dict, str, None] = None,
         trust_env: bool = False,
         additional_headers: Optional[dict] = None,
-        startup_period: Optional[int] = 5,
+        startup_period: Optional[int] = None,
         embedded_options: Optional[EmbeddedOptions] = None,
         additional_config: Optional[Config] = None,
     ) -> None:
-        """
-        Initialize a Client class instance.
+        """Initialize a Client class instance to use when interacting with Weaviate.
 
-        Parameters
+        Arguments:
         ----------
-        url : str
-            The URL to the weaviate instance.
+        url : str or None, optional
+            The connection string to the REST API of Weaviate.
         auth_client_secret : weaviate.AuthCredentials or None, optional
         # fmt: off
             Authenticate to weaviate by using one of the given authentication modes:
@@ -100,50 +249,21 @@ class Client:
                 {"X-OpenAI-Api-Key": "<THE-KEY>"}, {"X-HuggingFace-Api-Key": "<THE-KEY>"}
             by default None
         startup_period : int or None
-            How long the client will wait for Weaviate to start before raising a RequestsConnectionError.
-            If None, the client won't wait at all. Default timeout is 5s.
+            deprecated, has no effect
         embedded_options : weaviate.embedded.EmbeddedOptions or None, optional
             Create an embedded Weaviate cluster inside the client
             - You can pass weaviate.embedded.EmbeddedOptions() with default values
             - Take a look at the attributes of weaviate.embedded.EmbeddedOptions to see what is configurable
         additional_config: weaviate.Config, optional
             Additional and advanced configuration options for weaviate.
-        Examples
-        --------
-        Without Auth.
 
-        >>> client = Client(
-        ...     url = 'http://localhost:8080'
-        ... )
-        >>> client = Client(
-        ...     url = 'http://localhost:8080',
-        ...     timeout_config = (5, 15)
-        ... )
-
-        With Auth.
-
-        >>> my_credentials = weaviate.AuthClientPassword(USER_NAME, MY_PASSWORD)
-        >>> client = Client(
-        ...     url = 'http://localhost:8080',
-        ...     auth_client_secret = my_credentials
-        ... )
-
-        Creating a client with an embedded database:
-
-        >>> from weaviate import EmbeddedOptions
-        >>> client = Client(embedded_options=EmbeddedOptions())
-
-        Creating a client with additional configurations:
-
-        >>> from weaviate import Config
-        >>> client = Client(additional_config=Config())
-
-
-        Raises
-        ------
-        TypeError
-            If arguments are of a wrong data type.
+        Raises:
+        -------
+            `TypeError`
+                If arguments are of a wrong data type.
         """
+        _Warnings.weaviate_v3_client_is_deprecated()
+
         config = Config() if additional_config is None else additional_config
         url, embedded_db = self.__parse_url_and_embedded_db(url, embedded_options)
 
@@ -168,79 +288,24 @@ class Client:
         self.backup = Backup(self._connection)
         self.cluster = Cluster(self._connection)
 
-    def is_ready(self) -> bool:
-        """
-        Ping Weaviate's ready state
+    def __parse_url_and_embedded_db(
+        self, url: Optional[str], embedded_options: Optional[EmbeddedOptions]
+    ) -> Tuple[str, Optional[EmbeddedV3]]:
+        if embedded_options is None and url is None:
+            raise TypeError("Either url or embedded options must be present.")
+        elif embedded_options is not None and url is not None:
+            raise TypeError(
+                f"URL is not expected to be set when using embedded_options but URL was {url}"
+            )
 
-        Returns
-        -------
-        bool
-            True if Weaviate is ready to accept requests,
-            False otherwise.
-        """
+        if embedded_options is not None:
+            embedded_db = EmbeddedV3(options=embedded_options)
+            embedded_db.start()
+            return f"http://localhost:{embedded_db.options.port}", embedded_db
 
-        try:
-            response = self._connection.get(path="/.well-known/ready")
-            if response.status_code == 200:
-                return True
-            return False
-        except RequestsConnectionError:
-            return False
-
-    def is_live(self) -> bool:
-        """
-        Ping Weaviate's live state.
-
-        Returns
-        --------
-        bool
-            True if weaviate is live and should not be killed,
-            False otherwise.
-        """
-
-        response = self._connection.get(path="/.well-known/live")
-        if response.status_code == 200:
-            return True
-        return False
-
-    def get_meta(self) -> dict:
-        """
-        Get the meta endpoint description of weaviate.
-
-        Returns
-        -------
-        dict
-            The dict describing the weaviate configuration.
-
-        Raises
-        ------
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        """
-
-        return self._connection.get_meta()
-
-    def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
-        """
-        Get the openid-configuration.
-
-        Returns
-        -------
-        dict
-            The configuration or None if not configured.
-
-        Raises
-        ------
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        """
-
-        response = self._connection.get(path="/.well-known/openid-configuration")
-        if response.status_code == 200:
-            return _type_request_response(response.json())
-        if response.status_code == 404:
-            return None
-        raise UnexpectedStatusCodeException("Meta endpoint", response)
+        if not isinstance(url, str):
+            raise TypeError(f"URL is expected to be string but is {type(url)}")
+        return url.strip("/"), None
 
     @property
     def timeout_config(self) -> TIMEOUT_TYPE_RETURN:
@@ -272,27 +337,81 @@ class Client:
 
         self._connection.timeout_config = _get_valid_timeout_config(timeout_config)
 
-    @staticmethod
-    def __parse_url_and_embedded_db(
-        url: Optional[str], embedded_options: Optional[EmbeddedOptions]
-    ) -> Tuple[str, Optional[EmbeddedDB]]:
-        if embedded_options is None and url is None:
-            raise TypeError("Either url or embedded options must be present.")
-        elif embedded_options is not None and url is not None:
-            raise TypeError(
-                f"URL is not expected to be set when using embedded_options but URL was {url}"
-            )
-
-        if embedded_options is not None:
-            embedded_db = EmbeddedDB(options=embedded_options)
-            embedded_db.start()
-            return f"http://localhost:{embedded_db.options.port}", embedded_db
-
-        if not isinstance(url, str):
-            raise TypeError(f"URL is expected to be string but is {type(url)}")
-        return url.strip("/"), None
-
     def __del__(self) -> None:
-        # in case an exception happens before definition of these members
+        # in case an exception happens before definition of the client
         if hasattr(self, "_connection"):
             self._connection.close()
+
+    def is_ready(self) -> bool:
+        """
+        Ping Weaviate's ready state
+
+        Returns:
+            `bool`
+                `True` if Weaviate is ready to accept requests,
+                `False` otherwise.
+        """
+
+        try:
+            response = self._connection.get(path="/.well-known/ready")
+            if response.status_code == 200:
+                return True
+            return False
+        except (
+            HttpxError,
+            RequestsConnectionError,
+            UnexpectedStatusCodeError,
+            WeaviateClosedClientError,
+            WeaviateConnectionError,
+        ):
+            return False
+
+    def is_live(self) -> bool:
+        """
+        Ping Weaviate's live state.
+
+        Returns:
+            `bool`
+                `True` if weaviate is live and should not be killed,
+                `False` otherwise.
+        """
+
+        response = self._connection.get(path="/.well-known/live")
+        if response.status_code == 200:
+            return True
+        return False
+
+    def get_meta(self) -> dict:
+        """
+        Get the meta endpoint description of weaviate.
+
+        Returns:
+            `dict`
+                The `dict` describing the weaviate configuration.
+
+        Raises:
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a none OK status.
+        """
+
+        return self._connection.get_meta()
+
+    def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the openid-configuration.
+
+        Returns
+            `dict`
+                The configuration or `None` if not configured.
+
+        Raises
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a none OK status.
+        """
+
+        response = self._connection.get(path="/.well-known/openid-configuration")
+        if response.status_code == 200:
+            return _type_request_response(response.json())
+        if response.status_code == 404:
+            return None
+        raise UnexpectedStatusCodeError("Meta endpoint", response)

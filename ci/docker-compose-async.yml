@@ -9,9 +9,10 @@ services:
       - '8090'
       - --scheme
       - http
-    image: semitechnologies/weaviate:1.23.0-rc.0
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
       - "8090:8090"
+      - "50061:50051"
     restart: on-failure:0
     environment:
       QUERY_DEFAULTS_LIMIT: 25
@@ -19,3 +20,4 @@ services:
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       CLUSTER_HOSTNAME: 'node1'
       ASYNC_INDEXING: 'true'
+      DISABLE_TELEMETRY: 'true'

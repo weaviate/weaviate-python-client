@@ -347,8 +347,7 @@ class TestNearVector(unittest.TestCase):
         vector_error_msg = "\"No 'vector' key in `content` argument.\""
         vector_value_error_msg = (
             "The type of the 'vector' argument is not supported!\n"
-            "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor` "
-            "and `tf.Tensor`"
+            "Supported types are `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series`, and `pl.Series`"
         )
         certainty_error_msg = lambda dtype: (
             f"'certainty' key-value is expected to be of type <class 'float'> but is {dtype}!"
@@ -619,7 +618,7 @@ class TestWhere(unittest.TestCase):
             }
         )
 
-    def test___str__(self):
+    def test___str__(self) -> None:
         """
         Test the `__str__` method.
         """

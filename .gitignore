@@ -16,7 +16,12 @@ nohup.out
 .coverage
 coverage.xml
 .pytest_cache
+.mypy_cache
+prof
 
 image.png
 .vscode/
 scratch/
+
+*-test.sh
+*.hdf5

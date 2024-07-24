@@ -10,7 +10,7 @@ services:
       - --scheme
       - http
       - --write-timeout=600s
-    image: semitechnologies/weaviate:1.23.0-rc.0
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
     ports:
       - 8081:8081
     restart: on-failure:0
@@ -24,4 +24,5 @@ services:
       AUTHENTICATION_OIDC_GROUPS_CLAIM: 'groups'
       AUTHORIZATION_ADMINLIST_ENABLED: 'true'
       AUTHORIZATION_ADMINLIST_USERS: 'b6bf8e1d-d398-4e5d-8f1b-50fda9146a64'
+      DISABLE_TELEMETRY: 'true'
 ...

@@ -1,0 +1,30 @@
+---
+version: '3.4'
+services:
+  weaviate-reranker:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION}
+    ports:
+    - 8079:8080
+    - 50050:50051
+    restart: on-failure:0
+    environment:
+      RERANKER_INFERENCE_API: http://reranker-transformers:8080
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: "./data"
+      DEFAULT_VECTORIZER_MODULE: 'text2vec-openai'
+      ENABLE_MODULES: 'text2vec-openai,reranker-transformers,generative-openai'
+      CLUSTER_HOSTNAME: 'node1'
+      DISABLE_TELEMETRY: 'true'
+  reranker-transformers:
+    image: semitechnologies/reranker-transformers:cross-encoder-ms-marco-MiniLM-L-6-v2
+    environment:
+      ENABLE_CUDA: '0'
+...

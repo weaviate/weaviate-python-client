@@ -2,10 +2,8 @@ import unittest
 from unittest.mock import patch
 
 from test.util import check_error_message
-from weaviate.connect.connection import (
-    Connection,
-    _get_proxies,
-)
+from weaviate.connect.base import _get_proxies
+from weaviate.connect.v3 import Connection
 from weaviate.util import _get_valid_timeout_config
 
 
@@ -37,14 +35,14 @@ class TestConnection(unittest.TestCase):
         if headers != "skip":
             self.assertEqual(connection._headers, headers)
 
-    @patch("weaviate.connect.connection.datetime")
+    @patch("weaviate.connect.base.datetime")
     def test_get_epoch_time(self, mock_datetime):
         """
         Test the `get_epoch_time` function.
         """
 
         import datetime
-        from weaviate.connect.connection import _get_epoch_time
+        from weaviate.connect.base import _get_epoch_time
 
         zero_epoch = datetime.datetime.fromtimestamp(0)
         mock_datetime.datetime.utcnow.return_value = zero_epoch
@@ -58,14 +56,15 @@ class TestConnection(unittest.TestCase):
         mock_datetime.datetime.utcnow.return_value = epoch
         self.assertEqual(_get_epoch_time(), 110)
 
-    @patch("weaviate.connect.connection.os")
+    @patch("weaviate.connect.base.os")
     def test_get_proxies(self, os_mock):
         """
         Test the `_get_proxies` function.
         """
 
         error_msg = lambda dt: (
-            "If 'proxies' is not None, it must be of type dict or str. " f"Given type: {dt}."
+            "If 'proxies' is not None, it must be of type dict, str, or wvc.init.Proxies. "
+            f"Given type: {dt}."
         )
         with self.assertRaises(TypeError) as error:
             proxies = _get_proxies([], False)
@@ -81,7 +80,7 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(proxies, {"test": True})
 
         proxies = _get_proxies("test", True)
-        self.assertEqual(proxies, {"http": "test", "https": "test"})
+        self.assertEqual(proxies, {"http": "test", "https": "test", "grpc": "test"})
 
         os_mock.environ.get.return_value = None
         proxies = _get_proxies(None, True)
@@ -89,7 +88,7 @@ class TestConnection(unittest.TestCase):
 
         os_mock.environ.get.return_value = "test"
         proxies = _get_proxies(None, True)
-        self.assertEqual(proxies, {"http": "test", "https": "test"})
+        self.assertEqual(proxies, {"http": "test", "https": "test", "grpc": "test"})
 
     def test__get_valid_timeout_config(self):
         """

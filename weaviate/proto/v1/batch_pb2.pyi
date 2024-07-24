@@ -1,5 +1,5 @@
 from google.protobuf import struct_pb2 as _struct_pb2
-from v1 import base_pb2 as _base_pb2
+from weaviate.proto.v1 import base_pb2 as _base_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -14,7 +14,7 @@ from typing import (
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class BatchObjectsRequest(_message.Message):
-    __slots__ = ["objects", "consistency_level"]
+    __slots__ = ("objects", "consistency_level")
     OBJECTS_FIELD_NUMBER: _ClassVar[int]
     CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
     objects: _containers.RepeatedCompositeFieldContainer[BatchObject]
@@ -26,10 +26,10 @@ class BatchObjectsRequest(_message.Message):
     ) -> None: ...
 
 class BatchObject(_message.Message):
-    __slots__ = ["uuid", "vector", "properties", "collection", "tenant"]
+    __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")
 
     class Properties(_message.Message):
-        __slots__ = [
+        __slots__ = (
             "non_ref_properties",
             "single_target_ref_props",
             "multi_target_ref_props",
@@ -39,7 +39,8 @@ class BatchObject(_message.Message):
             "boolean_array_properties",
             "object_properties",
             "object_array_properties",
-        ]
+            "empty_list_props",
+        )
         NON_REF_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         SINGLE_TARGET_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
         MULTI_TARGET_REF_PROPS_FIELD_NUMBER: _ClassVar[int]
@@ -49,6 +50,7 @@ class BatchObject(_message.Message):
         BOOLEAN_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         OBJECT_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
         OBJECT_ARRAY_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+        EMPTY_LIST_PROPS_FIELD_NUMBER: _ClassVar[int]
         non_ref_properties: _struct_pb2.Struct
         single_target_ref_props: _containers.RepeatedCompositeFieldContainer[
             BatchObject.SingleTargetRefProps
@@ -72,6 +74,7 @@ class BatchObject(_message.Message):
         object_array_properties: _containers.RepeatedCompositeFieldContainer[
             _base_pb2.ObjectArrayProperties
         ]
+        empty_list_props: _containers.RepeatedScalarFieldContainer[str]
         def __init__(
             self,
             non_ref_properties: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...,
@@ -99,10 +102,11 @@ class BatchObject(_message.Message):
             object_array_properties: _Optional[
                 _Iterable[_Union[_base_pb2.ObjectArrayProperties, _Mapping]]
             ] = ...,
+            empty_list_props: _Optional[_Iterable[str]] = ...,
         ) -> None: ...
 
     class SingleTargetRefProps(_message.Message):
-        __slots__ = ["uuids", "prop_name"]
+        __slots__ = ("uuids", "prop_name")
         UUIDS_FIELD_NUMBER: _ClassVar[int]
         PROP_NAME_FIELD_NUMBER: _ClassVar[int]
         uuids: _containers.RepeatedScalarFieldContainer[str]
@@ -112,7 +116,7 @@ class BatchObject(_message.Message):
         ) -> None: ...
 
     class MultiTargetRefProps(_message.Message):
-        __slots__ = ["uuids", "prop_name", "target_collection"]
+        __slots__ = ("uuids", "prop_name", "target_collection")
         UUIDS_FIELD_NUMBER: _ClassVar[int]
         PROP_NAME_FIELD_NUMBER: _ClassVar[int]
         TARGET_COLLECTION_FIELD_NUMBER: _ClassVar[int]
@@ -130,11 +134,15 @@ class BatchObject(_message.Message):
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    VECTORS_FIELD_NUMBER: _ClassVar[int]
     uuid: str
     vector: _containers.RepeatedScalarFieldContainer[float]
     properties: BatchObject.Properties
     collection: str
     tenant: str
+    vector_bytes: bytes
+    vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
     def __init__(
         self,
         uuid: _Optional[str] = ...,
@@ -142,13 +150,15 @@ class BatchObject(_message.Message):
         properties: _Optional[_Union[BatchObject.Properties, _Mapping]] = ...,
         collection: _Optional[str] = ...,
         tenant: _Optional[str] = ...,
+        vector_bytes: _Optional[bytes] = ...,
+        vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...,
     ) -> None: ...
 
 class BatchObjectsReply(_message.Message):
-    __slots__ = ["took", "errors"]
+    __slots__ = ("took", "errors")
 
     class BatchError(_message.Message):
-        __slots__ = ["index", "error"]
+        __slots__ = ("index", "error")
         INDEX_FIELD_NUMBER: _ClassVar[int]
         ERROR_FIELD_NUMBER: _ClassVar[int]
         index: int
