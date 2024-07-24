@@ -209,6 +209,7 @@ class _WeaviateClientBase(_WeaviateClientInit):
             weaviate_object=json_query,
             error_msg="Raw GQL query failed",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="GQL query"),
+            is_gql_query=True,
         )
 
         res = _decode_json_response_dict(response, "GQL query")

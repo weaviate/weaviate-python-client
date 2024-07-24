@@ -48,9 +48,9 @@ class Config:
 class Timeout(BaseModel):
     """Timeouts for the different operations in the client."""
 
-    query: int = Field(default=30, ge=0)
-    insert: int = Field(default=90, ge=0)
-    init: int = Field(default=2, ge=0)
+    query: Union[int, float] = Field(default=30, ge=0)
+    insert: Union[int, float] = Field(default=90, ge=0)
+    init: Union[int, float] = Field(default=2, ge=0)
 
 
 class Proxies(BaseModel):

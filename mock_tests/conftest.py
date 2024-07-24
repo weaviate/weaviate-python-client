@@ -1,4 +1,5 @@
 import json
+import time
 from concurrent import futures
 from typing import Generator, Mapping
 
@@ -8,11 +9,19 @@ from grpc import ServicerContext
 from grpc_health.v1.health_pb2 import HealthCheckResponse, HealthCheckRequest
 from grpc_health.v1.health_pb2_grpc import HealthServicer, add_HealthServicer_to_server
 from pytest_httpserver import HTTPServer, HeaderValueMatcher
-from werkzeug.wrappers import Response
+from werkzeug.wrappers import Request, Response
 
 import weaviate
 from weaviate.connect.base import ConnectionParams, ProtocolParams
-from weaviate.proto.v1 import properties_pb2, tenants_pb2, search_get_pb2, weaviate_pb2_grpc
+from weaviate.proto.v1 import (
+    batch_pb2,
+    properties_pb2,
+    tenants_pb2,
+    search_get_pb2,
+    weaviate_pb2_grpc,
+)
+
+from mock_tests.mock_data import mock_class
 
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536
@@ -77,6 +86,26 @@ def weaviate_auth_mock(weaviate_mock: HTTPServer):
 
 
 @pytest.fixture(scope="function")
+def weaviate_timeouts_mock(weaviate_no_auth_mock: HTTPServer):
+    def slow_get(request: Request) -> Response:
+        time.sleep(1)
+        return Response(json.dumps({"doesn't": "matter"}), content_type="application/json")
+
+    def slow_post(request: Request) -> Response:
+        time.sleep(2)
+        return Response(json.dumps({"doesn't": "matter"}), content_type="application/json")
+
+    weaviate_no_auth_mock.expect_request(
+        f"/v1/schema/{mock_class['class']}", method="GET"
+    ).respond_with_handler(slow_get)
+    weaviate_no_auth_mock.expect_request("/v1/objects", method="POST").respond_with_handler(
+        slow_post
+    )
+
+    yield weaviate_no_auth_mock
+
+
+@pytest.fixture(scope="function")
 def start_grpc_server() -> Generator[grpc.Server, None, None]:
     # Create a gRPC server
     server: grpc.Server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -106,6 +135,22 @@ def weaviate_client(
     weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local(port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC)
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="function")
+def weaviate_timeouts_client(
+    weaviate_timeouts_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> Generator[weaviate.WeaviateClient, None, None]:
+    client = weaviate.connect_to_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        additional_config=weaviate.classes.init.AdditionalConfig(
+            timeout=weaviate.classes.init.Timeout(query=0.5, insert=1.5)
+        ),
+    )
     yield client
     client.close()
 
@@ -184,3 +229,24 @@ def year_zero_collection(
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
     return weaviate_client.collections.get("YearZeroCollection")
+
+
+@pytest.fixture(scope="function")
+def timeouts_collection(
+    weaviate_timeouts_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+) -> weaviate.collections.Collection:
+    class MockWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+        def Search(
+            self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
+        ) -> search_get_pb2.SearchReply:
+            time.sleep(1)
+            return search_get_pb2.SearchReply()
+
+        def BatchObjects(
+            self, request: batch_pb2.BatchObjectsRequest, context: grpc.ServicerContext
+        ) -> batch_pb2.BatchObjectsReply:
+            time.sleep(2)
+            return batch_pb2.BatchObjectsReply()
+
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
+    return weaviate_timeouts_client.collections.get(mock_class["class"])
