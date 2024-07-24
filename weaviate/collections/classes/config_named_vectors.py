@@ -251,8 +251,6 @@ class _NamedVectors:
                 Whether to vectorize the collection name. Defaults to `True`.
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
