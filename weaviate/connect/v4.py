@@ -413,7 +413,8 @@ class ConnectionV4(_ConnectionBase):
         acquiring a connection from the pool (pool), but a custom amount as specified for reading the response (read).
 
         From the PoV of the user, a request is considered to be timed out if no response is received within the specified time.
-        They specify the times depending on how they expect Weaviate to behave. For example, a query might take longer than an insert or vice versa.
+        They specify the times depending on how they expect Weaviate to behave. For example, a query might take longer than an insert or vice versa
+        but, in either case, the user only cares about how long it takes for a response to be received.
 
         https://www.python-httpx.org/advanced/timeouts/
         """
