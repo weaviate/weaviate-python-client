@@ -28,9 +28,9 @@ werkzeug==3.0.3
 pytest-httpserver==1.0.12
 py-spy==0.3.14
 
-numpy==2.0.1
-pandas==2.2.2
-pandas-stubs==2.2.2.240603
+numpy==1.24.4
+pandas==2.0.3
+pandas-stubs==2.0.3.230814
 polars==1.2.1
 
 fastapi==0.111.1
