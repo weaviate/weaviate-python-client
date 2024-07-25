@@ -79,7 +79,9 @@ class _BatchGRPC(_BaseGRPC):
             for obj in objects
         ]
 
-    async def objects(self, objects: List[_BatchObject], timeout: int) -> BatchObjectReturn:
+    async def objects(
+        self, objects: List[_BatchObject], timeout: Union[int, float]
+    ) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
 
         Parameters:
@@ -131,7 +133,7 @@ class _BatchGRPC(_BaseGRPC):
         )
 
     async def __send_batch(
-        self, batch: List[batch_pb2.BatchObject], timeout: int
+        self, batch: List[batch_pb2.BatchObject], timeout: Union[int, float]
     ) -> Dict[int, str]:
         metadata = self._get_metadata()
         try:

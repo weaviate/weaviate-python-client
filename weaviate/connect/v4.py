@@ -25,6 +25,7 @@ from httpx import (
     HTTPStatusError,
     Limits,
     ReadError,
+    ReadTimeout,
     RemoteProtocolError,
     RequestError,
     Response,
@@ -55,6 +56,7 @@ from weaviate.exceptions import (
     WeaviateConnectionError,
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
+    WeaviateTimeoutError,
 )
 from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.util import (
@@ -219,9 +221,6 @@ class ConnectionV4(_ConnectionBase):
     def __make_async_client(self) -> AsyncClient:
         return AsyncClient(
             headers=self._headers,
-            timeout=Timeout(
-                None, connect=self.timeout_config.query, read=self.timeout_config.insert
-            ),
             mounts=self.__make_mounts(),
         )
 
@@ -406,12 +405,37 @@ class ConnectionV4(_ConnectionBase):
         copied_headers.update({"authorization": self.get_current_bearer_token()})
         return copied_headers
 
+    def __get_timeout(
+        self, method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"], is_gql_query: bool
+    ) -> Timeout:
+        """
+        In this way, the client waits the `httpx` default of 5s when connecting to a socket (connect), writing chunks (write), and
+        acquiring a connection from the pool (pool), but a custom amount as specified for reading the response (read).
+
+        From the PoV of the user, a request is considered to be timed out if no response is received within the specified time.
+        They specify the times depending on how they expect Weaviate to behave. For example, a query might take longer than an insert or vice versa
+        but, in either case, the user only cares about how long it takes for a response to be received.
+
+        https://www.python-httpx.org/advanced/timeouts/
+        """
+        timeout = None
+        if method == "DELETE" or method == "PATCH" or method == "PUT":
+            timeout = self.timeout_config.insert
+        elif method == "GET" or method == "HEAD":
+            timeout = self.timeout_config.query
+        elif method == "POST" and is_gql_query:
+            timeout = self.timeout_config.query
+        elif method == "POST" and not is_gql_query:
+            timeout = self.timeout_config.insert
+        return Timeout(timeout=5.0, read=timeout)
+
     async def __send(
         self,
         method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
         url: str,
         error_msg: str,
         status_codes: Optional[_ExpectedStatusCodes],
+        is_gql_query: bool = False,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
     ) -> Response:
@@ -427,6 +451,7 @@ class ConnectionV4(_ConnectionBase):
                 json=weaviate_object,
                 params=params,
                 headers=self.__get_latest_headers(),
+                timeout=self.__get_timeout(method, is_gql_query),
             )
             res = await self._client.send(req)
             if status_codes is not None and res.status_code not in status_codes.ok:
@@ -436,6 +461,8 @@ class ConnectionV4(_ConnectionBase):
             raise WeaviateClosedClientError() from e
         except ConnectError as conn_err:
             raise WeaviateConnectionError(error_msg) from conn_err
+        except ReadTimeout as read_err:
+            raise WeaviateTimeoutError(error_msg) from read_err
         except Exception as e:
             raise e
 
@@ -480,6 +507,7 @@ class ConnectionV4(_ConnectionBase):
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
+        is_gql_query: bool = False,
     ) -> Response:
         return await self.__send(
             "POST",
@@ -488,6 +516,7 @@ class ConnectionV4(_ConnectionBase):
             params=params,
             error_msg=error_msg,
             status_codes=status_codes,
+            is_gql_query=is_gql_query,
         )
 
     async def put(
