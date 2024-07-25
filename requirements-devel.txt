@@ -19,7 +19,7 @@ importlib_metadata==8.2.0
 
 pytest==8.3.1
 pytest-cov==5.0.0
-pytest-asyncio==0.23.7
+pytest-asyncio==0.23.8
 pytest-benchmark==4.0.0
 pytest-profiling==1.7.0
 coverage==7.6.0
