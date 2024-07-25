@@ -7,12 +7,12 @@ Version 4.7.1
 This patch version includes:
 
 - Fixes log noise due to value of deprecated ``GRPC_VERBOSITY`` flag in underlying ``grpc`` library
-- Bump ``requests`` and ``authlib`` versions to avoid security issues
-- Add support for configuring the new ``reranker-jinaai`` module when creating collections
-- Fix parsing of the timeout configuration on client instantiation
+- Bumps ``requests`` and ``authlib`` versions to avoid security issues
+- Adds support for configuring the new ``reranker-jinaai`` module when creating collections
+- Fixes parsing of the timeout configuration on client instantiation
     - The ``query`` timeout now modifies the ``read=`` timeout in the ``httpx`` client for all ``GET``, ``HEAD``, and ``gql`` query requests
     - The ``insert`` timeout now modifies the ``read=`` timeout in the ``httpx`` client for all ``DELETE``, ``POST``, ``PATCH``, and ``PUT`` requests
-    - The ``init`` timeout now only modifies the timeouts in the ``httpx`` client for requests involved in the ``async def connect()`` method
+    - The ``init`` timeout now only modifies the timeouts in the ``httpx`` client for requests involved in the ``client.connect()`` method
 
 
 Version 4.7.0
