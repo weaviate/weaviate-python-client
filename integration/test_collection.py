@@ -64,6 +64,7 @@ DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=date
 def get_numpy_vector(input_list: list) -> Any:
     try:
         import numpy as np
+
         return np.array(input_list)
     except ModuleNotFoundError:
         return input_list
@@ -307,21 +308,28 @@ def test_insert_many_with_typed_dict(
     [
         (
             [
-                DataObject(properties={"name": "some numpy one"}, vector=get_numpy_vector([1, 2, 3])),
-            ],
-            False,
-        ),
-        (
-            [
-                DataObject(properties={"name": "some numpy one"}, vector=get_numpy_vector([1, 2, 3])),
-                DataObject(properties={"name": "some numpy two"}, vector=get_numpy_vector([11, 12, 13])),
+                DataObject(
+                    properties={"name": "some numpy one"}, vector=get_numpy_vector([1, 2, 3])
+                ),
             ],
             False,
         ),
         (
             [
                 DataObject(
-                    properties={"name": "some numpy 2d"}, vector=get_numpy_vector([[1, 2, 3], [11, 12, 13]])
+                    properties={"name": "some numpy one"}, vector=get_numpy_vector([1, 2, 3])
+                ),
+                DataObject(
+                    properties={"name": "some numpy two"}, vector=get_numpy_vector([11, 12, 13])
+                ),
+            ],
+            False,
+        ),
+        (
+            [
+                DataObject(
+                    properties={"name": "some numpy 2d"},
+                    vector=get_numpy_vector([[1, 2, 3], [11, 12, 13]]),
                 ),
             ],
             True,
