@@ -42,7 +42,7 @@ tomli==2.0.1
 types-protobuf==4.24.0.1
 types-requests==2.30.0.0
 types-urllib3==1.26.25.14
-typing_extensions==4.8.0
+typing_extensions==4.12.2
 
 pre-commit
 
