@@ -1,6 +1,7 @@
 """
 Weaviate Python Client Library used to interact with a Weaviate instance.
 """
+
 import os
 import sys
 from importlib.metadata import version, PackageNotFoundError

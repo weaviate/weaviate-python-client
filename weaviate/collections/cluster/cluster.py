@@ -23,8 +23,7 @@ class _ClusterAsync(_ClusterBase):
         collection: Optional[str] = None,
         *,
         output: Literal[None] = None,
-    ) -> List[Node[None, None]]:
-        ...
+    ) -> List[Node[None, None]]: ...
 
     @overload
     async def nodes(
@@ -32,8 +31,7 @@ class _ClusterAsync(_ClusterBase):
         collection: Optional[str] = None,
         *,
         output: Literal["minimal"],
-    ) -> List[Node[None, None]]:
-        ...
+    ) -> List[Node[None, None]]: ...
 
     @overload
     async def nodes(
@@ -41,16 +39,14 @@ class _ClusterAsync(_ClusterBase):
         collection: Optional[str] = None,
         *,
         output: Literal["verbose"],
-    ) -> List[Node[Shards, Stats]]:
-        ...
+    ) -> List[Node[Shards, Stats]]: ...
 
     @overload
     async def nodes(
         self,
         collection: Optional[str] = None,
         output: Optional[Literal["minimal", "verbose"]] = None,
-    ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]:
-        ...
+    ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]: ...
 
     async def nodes(
         self,

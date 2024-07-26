@@ -1037,9 +1037,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigUpdate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[
-        Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]
-    ] = Field(default=None, alias="vectorizer_config")
+    vectorizerConfig: Optional[Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]] = (
+        Field(default=None, alias="vectorizer_config")
+    )
     multiTenancyConfig: Optional[_MultiTenancyConfigUpdate] = Field(
         default=None, alias="multi_tenancy_config"
     )
@@ -1115,10 +1115,10 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                         vc.vectorIndexConfig.quantizer,
                         schema["vectorConfig"][vc.name]["vectorIndexConfig"],
                     )
-                    schema["vectorConfig"][vc.name][
-                        "vectorIndexConfig"
-                    ] = vc.vectorIndexConfig.merge_with_existing(
-                        schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+                    schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
+                        vc.vectorIndexConfig.merge_with_existing(
+                            schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+                        )
                     )
                     schema["vectorConfig"][vc.name][
                         "vectorIndexType"
@@ -1703,9 +1703,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[
-        Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
-    ] = Field(default=_Vectorizer.none(), alias="vectorizer_config")
+    vectorizerConfig: Optional[Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]] = (
+        Field(default=_Vectorizer.none(), alias="vectorizer_config")
+    )
     generativeSearch: Optional[_GenerativeConfigCreate] = Field(
         default=None, alias="generative_config"
     )

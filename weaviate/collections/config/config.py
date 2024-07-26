@@ -56,16 +56,13 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
         return cast(Dict[str, Any], data)
 
     @overload
-    async def get(self, simple: Literal[False] = ...) -> CollectionConfig:
-        ...
+    async def get(self, simple: Literal[False] = ...) -> CollectionConfig: ...
 
     @overload
-    async def get(self, simple: Literal[True]) -> CollectionConfigSimple:
-        ...
+    async def get(self, simple: Literal[True]) -> CollectionConfigSimple: ...
 
     @overload
-    async def get(self, simple: bool = ...) -> Union[CollectionConfig, CollectionConfigSimple]:
-        ...
+    async def get(self, simple: bool = ...) -> Union[CollectionConfig, CollectionConfigSimple]: ...
 
     async def get(self, simple: bool = False) -> Union[CollectionConfig, CollectionConfigSimple]:
         """Get the configuration for this collection from Weaviate.

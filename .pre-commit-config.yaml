@@ -3,7 +3,8 @@ repos:
 -   repo: https://github.com/psf/black
     rev: 24.4.2
     hooks:
-    -   id: black
+      - id: black
+        files: ^weaviate/ ^tests/ ^mock_tests/ ^integration/
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.6.0

@@ -1,4 +1,5 @@
 """Helper functions for creating new WeaviateClient or WeaviateAsyncClient instances in common scenarios."""
+
 from urllib.parse import urlparse
 from typing import Dict, Optional, Tuple
 

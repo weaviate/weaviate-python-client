@@ -25,9 +25,9 @@ _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "v1.batch_delete_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
     _globals["DESCRIPTOR"]._options = None
-    _globals[
-        "DESCRIPTOR"
-    ]._serialized_options = b"\n#io.weaviate.client.grpc.protocol.v1B\030WeaviateProtoBatchDeleteZ4github.com/weaviate/weaviate/grpc/generated;protocol"
+    _globals["DESCRIPTOR"]._serialized_options = (
+        b"\n#io.weaviate.client.grpc.protocol.v1B\030WeaviateProtoBatchDeleteZ4github.com/weaviate/weaviate/grpc/generated;protocol"
+    )
     _globals["_BATCHDELETEREQUEST"]._serialized_start = 54
     _globals["_BATCHDELETEREQUEST"]._serialized_end = 284
     _globals["_BATCHDELETEREPLY"]._serialized_start = 287

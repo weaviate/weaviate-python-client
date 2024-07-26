@@ -1,6 +1,7 @@
 """
 Client class definition.
 """
+
 import asyncio
 from typing import Optional, Tuple, Union, Dict, Any
 
