@@ -279,6 +279,7 @@ class Targets(_message.Message):
         key: str
         value: float
         def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
+
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     COMBINATION_FIELD_NUMBER: _ClassVar[int]
     WEIGHTS_FIELD_NUMBER: _ClassVar[int]
@@ -311,6 +312,7 @@ class Hybrid(_message.Message):
         FUSION_TYPE_UNSPECIFIED: _ClassVar[Hybrid.FusionType]
         FUSION_TYPE_RANKED: _ClassVar[Hybrid.FusionType]
         FUSION_TYPE_RELATIVE_SCORE: _ClassVar[Hybrid.FusionType]
+
     FUSION_TYPE_UNSPECIFIED: Hybrid.FusionType
     FUSION_TYPE_RANKED: Hybrid.FusionType
     FUSION_TYPE_RELATIVE_SCORE: Hybrid.FusionType
@@ -373,6 +375,7 @@ class NearTextSearch(_message.Message):
             concepts: _Optional[_Iterable[str]] = ...,
             uuids: _Optional[_Iterable[str]] = ...,
         ) -> None: ...
+
     QUERY_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
@@ -570,6 +573,7 @@ class NearVector(_message.Message):
         key: str
         value: bytes
         def __init__(self, key: _Optional[str] = ..., value: _Optional[bytes] = ...) -> None: ...
+
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]

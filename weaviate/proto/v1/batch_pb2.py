@@ -26,9 +26,9 @@ _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "v1.batch_pb2", _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
     _globals["DESCRIPTOR"]._options = None
-    _globals[
-        "DESCRIPTOR"
-    ]._serialized_options = b"\n#io.weaviate.client.grpc.protocol.v1B\022WeaviateProtoBatchZ4github.com/weaviate/weaviate/grpc/generated;protocol"
+    _globals["DESCRIPTOR"]._serialized_options = (
+        b"\n#io.weaviate.client.grpc.protocol.v1B\022WeaviateProtoBatchZ4github.com/weaviate/weaviate/grpc/generated;protocol"
+    )
     _globals["_BATCHOBJECT"].fields_by_name["vector"]._options = None
     _globals["_BATCHOBJECT"].fields_by_name["vector"]._serialized_options = b"\030\001"
     _globals["_BATCHOBJECTSREQUEST"]._serialized_start = 77

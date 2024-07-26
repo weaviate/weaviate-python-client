@@ -49,6 +49,7 @@ class _CollectionBase(Generic[Properties, References]):
                 The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
         """
         ...
+
     def with_consistency_level(
         self: Collection, consistency_level: Optional[ConsistencyLevel] = None
     ) -> Collection:

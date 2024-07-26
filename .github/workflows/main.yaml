@@ -26,14 +26,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: psf/black@stable
-        with:
-            version: "23.9.1"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
+      - name: "Black"
+        run: black --check weaviate test mock_tests integration
       - name: "Flake 8"
         run: flake8 weaviate test mock_tests integration
       - name: "Check release for pypi"

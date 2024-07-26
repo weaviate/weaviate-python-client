@@ -37,9 +37,9 @@ MOCK_SERVER_CONNECTION_PARAMS = ConnectionParams(
 
 # pytest_httpserver 'Authorization' HeaderValueMatcher does not work with Bearer tokens.
 # Hence, overwrite it with the default header value matcher that just compares for equality.
-HeaderValueMatcher.DEFAULT_MATCHERS[
-    "Authorization"
-] = HeaderValueMatcher.default_header_value_matcher
+HeaderValueMatcher.DEFAULT_MATCHERS["Authorization"] = (
+    HeaderValueMatcher.default_header_value_matcher
+)
 
 
 @pytest.fixture(scope="session")

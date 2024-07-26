@@ -187,8 +187,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
-    ) -> _ObjectIterator[Properties, References]:
-        ...
+    ) -> _ObjectIterator[Properties, References]: ...
 
     @overload
     def iterator(
@@ -199,8 +198,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
         after: Optional[UUID] = None,
-    ) -> _ObjectIterator[Properties, CrossReferences]:
-        ...
+    ) -> _ObjectIterator[Properties, CrossReferences]: ...
 
     @overload
     def iterator(
@@ -211,8 +209,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
-    ) -> _ObjectIterator[Properties, TReferences]:
-        ...
+    ) -> _ObjectIterator[Properties, TReferences]: ...
 
     @overload
     def iterator(
@@ -223,8 +220,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
-    ) -> _ObjectIterator[TProperties, References]:
-        ...
+    ) -> _ObjectIterator[TProperties, References]: ...
 
     @overload
     def iterator(
@@ -235,8 +231,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         after: Optional[UUID] = None,
-    ) -> _ObjectIterator[TProperties, CrossReferences]:
-        ...
+    ) -> _ObjectIterator[TProperties, CrossReferences]: ...
 
     @overload
     def iterator(
@@ -247,8 +242,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
-    ) -> _ObjectIterator[TProperties, TReferences]:
-        ...
+    ) -> _ObjectIterator[TProperties, TReferences]: ...
 
     def iterator(
         self,

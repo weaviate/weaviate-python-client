@@ -68,15 +68,13 @@ class _QuantizerConfigCreate(_ConfigCreateModel):
 
     @staticmethod
     @abstractmethod
-    def quantizer_name() -> str:
-        ...
+    def quantizer_name() -> str: ...
 
 
 class _QuantizerConfigUpdate(_ConfigUpdateModel):
     @staticmethod
     @abstractmethod
-    def quantizer_name() -> str:
-        ...
+    def quantizer_name() -> str: ...
 
 
 @dataclass

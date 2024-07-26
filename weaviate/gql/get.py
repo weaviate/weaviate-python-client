@@ -191,9 +191,9 @@ class GetBuilder(GraphQL):
         self._limit: Optional[int] = None  # To store the limit filter if it is added
         self._offset: Optional[str] = None  # To store the offset filter if it is added
         self._after: Optional[str] = None  # To store the offset filter if it is added
-        self._near_clause: Optional[
-            Filter
-        ] = None  # To store the `near`/`ask` clause if it is added
+        self._near_clause: Optional[Filter] = (
+            None  # To store the `near`/`ask` clause if it is added
+        )
         self._contains_filter = False  # true if any filter is added
         self._sort: Optional[Sort] = None
         self._bm25: Optional[BM25] = None
