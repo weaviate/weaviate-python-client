@@ -203,9 +203,7 @@ class ConnectionV4(_ConnectionBase):
 
     def __make_mounts(self) -> Dict[str, AsyncHTTPTransport]:
         return {
-            f"{key}://"
-            if key == "http" or key == "https"
-            else key: AsyncHTTPTransport(
+            f"{key}://" if key == "http" or key == "https" else key: AsyncHTTPTransport(
                 limits=Limits(
                     max_connections=self.__connection_config.session_pool_maxsize,
                     max_keepalive_connections=self.__connection_config.session_pool_connections,
@@ -222,6 +220,7 @@ class ConnectionV4(_ConnectionBase):
         return AsyncClient(
             headers=self._headers,
             mounts=self.__make_mounts(),
+            trust_env=self.__trust_env,
         )
 
     def __make_clients(self) -> None:
