@@ -655,20 +655,17 @@ class _DataCollectionAsync(Generic[Properties], _Data):
     @overload
     async def delete_many(
         self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
-    ) -> DeleteManyReturn[None]:
-        ...
+    ) -> DeleteManyReturn[None]: ...
 
     @overload
     async def delete_many(
         self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
-    ) -> DeleteManyReturn[List[DeleteManyObject]]:
-        ...
+    ) -> DeleteManyReturn[List[DeleteManyObject]]: ...
 
     @overload
     async def delete_many(
         self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
-    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
-        ...
+    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...
 
     async def delete_many(
         self, where: _Filters, verbose: bool = False, *, dry_run: bool = False

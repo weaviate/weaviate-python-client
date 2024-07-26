@@ -32,8 +32,7 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
 
     @staticmethod
     @abstractmethod
-    def vector_index_type() -> VectorIndexType:
-        ...
+    def vector_index_type() -> VectorIndexType: ...
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -50,8 +49,7 @@ class _VectorIndexConfigUpdate(_ConfigUpdateModel):
 
     @staticmethod
     @abstractmethod
-    def vector_index_type() -> VectorIndexType:
-        ...
+    def vector_index_type() -> VectorIndexType: ...
 
 
 class _VectorIndexConfigSkipCreate(_VectorIndexConfigCreate):

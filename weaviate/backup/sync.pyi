@@ -8,6 +8,7 @@ class _Backup:
 
     def __init__(self, connection: ConnectionV4):
         self._connection = connection
+
     def create(
         self,
         backup_id: str,
