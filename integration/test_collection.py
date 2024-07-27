@@ -1,6 +1,7 @@
 import datetime
 import io
 import pathlib
+import struct
 import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Union
@@ -58,6 +59,15 @@ UUID3 = uuid.UUID("83d99755-9deb-4b16-8431-d1dff4ab0a75")
 DATE1 = datetime.datetime.strptime("2012-02-09", "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
 DATE2 = datetime.datetime.strptime("2013-02-10", "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
 DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
+
+
+def get_numpy_vector(input_list: list) -> Any:
+    try:
+        import numpy as np
+
+        return np.array(input_list)
+    except ModuleNotFoundError:
+        return input_list
 
 
 def test_insert_with_typed_dict_generic(
@@ -291,6 +301,63 @@ def test_insert_many_with_typed_dict(
     obj2 = collection.query.fetch_object_by_id(ret.uuids[1])
     assert obj1.properties["name"] == "some name"
     assert obj2.properties["name"] == "some other name"
+
+
+@pytest.mark.parametrize(
+    "objects, should_error",
+    [
+        (
+            [
+                DataObject(
+                    properties={"name": "some numpy one"}, vector=get_numpy_vector([1, 2, 3])
+                ),
+            ],
+            False,
+        ),
+        (
+            [
+                DataObject(
+                    properties={"name": "some numpy one"}, vector=get_numpy_vector([1, 2, 3])
+                ),
+                DataObject(
+                    properties={"name": "some numpy two"}, vector=get_numpy_vector([11, 12, 13])
+                ),
+            ],
+            False,
+        ),
+        (
+            [
+                DataObject(
+                    properties={"name": "some numpy 2d"},
+                    vector=get_numpy_vector([[1, 2, 3], [11, 12, 13]]),
+                ),
+            ],
+            True,
+        ),
+    ],
+)
+def test_insert_many_with_numpy(
+    collection_factory: CollectionFactory,
+    objects: Sequence[DataObject[WeaviateProperties, Any]],
+    should_error: bool,
+) -> None:
+    if isinstance(objects[0].vector, list):
+        pytest.skip("numpy not available")
+    collection = collection_factory(
+        properties=[Property(name="Name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+    if not should_error:
+        ret = collection.data.insert_many(objects)
+        for idx, uuid_ in ret.uuids.items():
+            obj1 = collection.query.fetch_object_by_id(uuid_, include_vector=True)
+            inserted = objects[idx]
+            assert inserted.properties["name"] == obj1.properties["name"]
+            assert inserted.vector.tolist() == obj1.vector["default"]  # type: ignore[union-attr]
+    else:
+        with pytest.raises(struct.error) as e:
+            collection.data.insert_many(objects)
+        assert str(e.value) == "required argument is not a float"
 
 
 def test_insert_many_with_refs(collection_factory: CollectionFactory) -> None:
