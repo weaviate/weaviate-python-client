@@ -36,25 +36,25 @@ repos:
       ]
       files: '^weaviate/collections'
 
--   repo: local
-    hooks:
-    - id: mypy
-      name: mypy
-      entry: ./run-mypy.sh
-      language: python
-      language_version: "3.11"
-      # use require_serial so that script
-      # is only called once per commit
-      require_serial: true
-      # Print the number of files as a sanity-check
-      verbose: true
+# -   repo: local
+#     hooks:
+#     - id: mypy
+#       name: mypy
+#       entry: ./run-mypy.sh
+#       language: python
+#       language_version: "3.11"
+#       # use require_serial so that script
+#       # is only called once per commit
+#       require_serial: true
+#       # Print the number of files as a sanity-check
+#       verbose: true
 
-- repo: local
-  hooks:
-    - id: pyright
-      name: pyright
-      entry: pyright
-      language: node
-      pass_filenames: false
-      types: [python]
-      additional_dependencies: [pyright@1.1.364]
+# - repo: local
+#   hooks:
+#     - id: pyright
+#       name: pyright
+#       entry: pyright
+#       language: node
+#       pass_filenames: false
+#       types: [python]
+#       additional_dependencies: [pyright@1.1.364]

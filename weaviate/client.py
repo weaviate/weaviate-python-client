@@ -22,7 +22,7 @@ from .client_base import _WeaviateClientBase
 from .cluster import Cluster
 from .collections.collections.async_ import _CollectionsAsync
 from .collections.collections.sync import _Collections
-from .collections.batch.client import _BatchClientWrapper
+from .collections.batch.client import _BatchClient, _BatchClientAsync, _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
 from .config import AdditionalConfig, Config
 from .connect import Connection
@@ -97,7 +97,7 @@ class WeaviateClient(_WeaviateClientBase):
 
         collections = _Collections(self._event_loop, _CollectionsAsync(self._connection))
 
-        self.batch = _BatchClientWrapper(self._connection, config=collections)
+        self.batch = _BatchClientWrapper[_BatchClient](self._connection, _BatchClient, config=collections)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
@@ -156,12 +156,15 @@ class WeaviateAsyncClient(_WeaviateClientBase):
             additional_config=additional_config,
             skip_init_checks=skip_init_checks,
         )
+        collections = _Collections(self._loop, _CollectionsAsync(self._connection))
 
+        self.batch = _BatchClientWrapper[_BatchClient](self._connection, _BatchClientAsync, config=collections)
+        """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _BackupAsync(self._connection)
         """This namespace contains all functionality to backup data."""
         self.cluster = _ClusterAsync(self._connection)
         """This namespace contains all functionality to inspect the connected Weaviate cluster."""
-        self.collections = _CollectionsAsync(self._connection)
+        self.collections = collections
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.

@@ -1,4 +1,5 @@
-from typing import Optional, Union
+import asyncio
+from typing import Generic, Optional, Type, Union
 
 from weaviate.collections.batch.base import (
     _BatchBase,
@@ -11,11 +12,13 @@ from weaviate.collections.batch.batch_wrapper import (
     _BatchWrapper,
     _BatchMode,
     _ContextManagerWrapper,
+    T
 )
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.event_loop import _EventLoop, _EventLoopSingleton
 from weaviate.types import UUID, VECTORS
 
 from weaviate.connect.v4 import ConnectionV4
@@ -115,22 +118,119 @@ class _BatchClient(_BatchBase):
         )
 
 
+class _BatchClientAsync(_BatchBase):
+    async def add_object(
+        self,
+        collection: str,
+        properties: Optional[WeaviateProperties] = None,
+        references: Optional[ReferenceInputs] = None,
+        uuid: Optional[UUID] = None,
+        vector: Optional[VECTORS] = None,
+        tenant: Optional[Union[str, Tenant]] = None,
+    ) -> UUID:
+        """
+        Add one object to this batch.
+
+        This method is async enforcing the caller to relinquish control back to the event loop if used within a for loop.
+
+        NOTE: If the UUID of one of the objects already exists then the existing object will be
+        replaced by the new object.
+
+        Arguments:
+            `collection`
+                The name of the collection this object belongs to.
+            `properties`
+                The data properties of the object to be added as a dictionary.
+            `references`
+                The references of the object to be added as a dictionary.
+            `uuid`:
+                The UUID of the object as an uuid.UUID object or str. It can be a Weaviate beacon or Weaviate href.
+                If it is None an UUIDv4 will generated, by default None
+            `vector`:
+                The embedding of the object. Can be used when a collection does not have a vectorization module or the given
+                vector was generated using the _identical_ vectorization module that is configured for the class. In this
+                case this vector takes precedence.
+                Supported types are
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+            `tenant`
+                The tenant name or Tenant object to be used for this request.
+
+        Returns:
+            `str`
+                The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
+
+        Raises:
+            `WeaviateBatchValidationError`
+                If the provided options are in the format required by Weaviate.
+        """
+        await asyncio.sleep(0)
+        return super()._add_object(
+            collection=collection,
+            properties=properties,
+            references=references,
+            uuid=uuid,
+            vector=vector,
+            tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
+        )
+
+    async def add_reference(
+        self,
+        from_uuid: UUID,
+        from_collection: str,
+        from_property: str,
+        to: ReferenceInput,
+        tenant: Optional[Union[str, Tenant]] = None,
+    ) -> None:
+        """Add one reference to this batch.
+
+        This method is async enforcing the caller to relinquish control back to the event loop if used within a for loop.
+
+        Arguments:
+            `from_uuid`
+                The UUID of the object, as an uuid.UUID object or str, that should reference another object.
+            `from_collection`
+                The name of the collection that should reference another object.
+            `from_property`
+                The name of the property that contains the reference.
+            `to`
+                The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
+                For multi-target references use wvc.Reference.to_multi_target().
+            `tenant`
+                The tenant name or Tenant object to be used for this request.
+
+        Raises:
+            `WeaviateBatchValidationError`
+                If the provided options are in the format required by Weaviate.
+        """
+        await asyncio.sleep(0)
+        super()._add_reference(
+            from_object_uuid=from_uuid,
+            from_object_collection=from_collection,
+            from_property_name=from_property,
+            to=to,
+            tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
+        )
+
+
 BatchClient = _BatchClient
 ClientBatchingContextManager = _ContextManagerWrapper[BatchClient]
 
 
-class _BatchClientWrapper(_BatchWrapper):
+class _BatchClientWrapper(Generic[T], _BatchWrapper):
     def __init__(
         self,
         connection: ConnectionV4,
         config: "_Collections",
+        batch_client: Type[T],
         consistency_level: Optional[ConsistencyLevel] = None,
     ):
         super().__init__(connection, consistency_level)
         self.__config = config
+        self.__batch_client = batch_client
         self._vectorizer_batching: Optional[bool] = None
 
-    def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchClient]:
+    def __create_batch_and_reset(self) -> _ContextManagerWrapper[T]:
         if self._vectorizer_batching is None or not self._vectorizer_batching:
             configs = self.__config.list_all(simple=True)
 
@@ -153,12 +253,12 @@ class _BatchClientWrapper(_BatchWrapper):
 
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
-            _BatchClient(
+            self.__batch_client(
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
                 batch_mode=self._batch_mode,
-                event_loop=self._event_loop,
+                event_loop=_EventLoop(asyncio.get_running_loop()) if isinstance(self.__batch_client, _BatchClientAsync) else _EventLoopSingleton.get_instance(),
                 vectorizer_batching=self._vectorizer_batching,
             )
         )
