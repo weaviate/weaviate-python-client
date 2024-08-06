@@ -641,3 +641,43 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
 
     with pytest.raises(WeaviateInvalidInputError):
         collection.query.near_vector({"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]})
+
+
+@pytest.mark.parametrize(
+    "target_vector, distances",
+    [
+        (wvc.query.TargetVectors.sum(["first", "second", "second"]), [1, 3]),
+        (wvc.query.TargetVectors.manual_weights({"first": 1, "second": [1, 1]}), [1, 3]),
+        (wvc.query.TargetVectors.manual_weights({"first": 1, "second": [1, 2]}), [2, 4]),
+    ],
+)
+@pytest.mark.parametrize(
+    "near_vector",
+    [
+        {"first": [0.0, 1.0], "second": [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]},
+        [[0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+    ],
+)
+def test_same_target_vector_multiple_input(
+    collection_factory: CollectionFactory, near_vector: Union[List[float], List[List[float]]], target_vector: Union[List[str], _MultiTargetVectorJoin], distances: List[float]
+) -> None:
+    dummy = collection_factory("dummy")
+    # Todo: Update this to 1.26.2
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 1):
+        pytest.skip("Multi vector per target is not supported in versions lower than 1.26.2")
+
+    collection = collection_factory(
+        properties=[],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none("first"),
+            wvc.config.Configure.NamedVectors.none("second"),
+        ],
+    )
+
+    uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
+    uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
+
+    objs = collection.query.near_vector(near_vector, target_vector=target_vector, return_metadata=wvc.query.MetadataQuery.full()).objects
+    assert [obj.uuid for obj in objs] == [uuid2, uuid1]
+    assert objs[0].metadata.distance == distances[0]
+    assert objs[1].metadata.distance == distances[1]
