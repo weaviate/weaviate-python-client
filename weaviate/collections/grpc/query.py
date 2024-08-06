@@ -17,9 +17,8 @@ from typing import (
     get_args,
 )
 
-from typing_extensions import TypeAlias
-
 from grpc.aio import AioRpcError  # type: ignore
+from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
@@ -391,10 +390,19 @@ class _QueryGRPC(_BaseGRPC):
                 "{}f".format(len(near_vector)), *near_vector
             )
             vector_per_target_tmp = None
+            vector_for_targets = None
         else:
-            vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
-                near_vector, targets, "near_vector"
-            )
+            if self._connection._weaviate_version.is_lower_than(1, 26, 1):
+                vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
+                    near_vector, targets, "near_vector"
+                )
+                vector_for_targets = None
+            else:
+                vector_for_targets, near_vector_grpc = self.__vector_for_target(
+                    near_vector, targets, "near_vector"
+                )
+                vector_per_target_tmp = None
+
         request = self.__create_request(
             limit=limit,
             offset=offset,
@@ -412,6 +420,7 @@ class _QueryGRPC(_BaseGRPC):
                 targets=targets,
                 target_vectors=target_vectors,
                 vector_per_target=vector_per_target_tmp,
+                vector_for_targets=vector_for_targets,
                 vector_bytes=near_vector_grpc,
             ),
         )
@@ -877,7 +886,7 @@ class _QueryGRPC(_BaseGRPC):
         elif isinstance(target_vector, list):
             return search_get_pb2.Targets(target_vectors=target_vector), None
         else:
-            return target_vector.to_grpc_target_vector(), None
+            return target_vector.to_grpc_target_vector(self._connection._weaviate_version), None
 
     @staticmethod
     def __vector_per_target(
@@ -937,3 +946,67 @@ class _QueryGRPC(_BaseGRPC):
                         "{}f".format(len(nv)), *nv
                     )
                 return vector_per_target, None
+
+    @staticmethod
+    def __vector_for_target(
+        vector: NearVectorInputType, targets: Optional[search_get_pb2.Targets], argument_name: str
+    ) -> Tuple[Optional[List[search_get_pb2.VectorForTarget]], Optional[bytes]]:
+        invalid_nv_exception = WeaviateInvalidInputError(
+            f"""{argument_name} argument can be:
+                                - a list of numbers
+                                - a list of lists of numbers for multi target search
+                                - a dictionary with target names as keys and lists of numbers as values
+                        received: {vector}"""
+        )
+        vector_for_target: List[search_get_pb2.VectorForTarget] = []
+        if isinstance(vector, dict):
+            def add_vector(val: List[float], target_name: str) -> None:
+                vec = _get_vector_v4(val)
+
+                if (
+                        not isinstance(vec, list)
+                        or len(vec) == 0
+                        or not isinstance(vec[0], get_args(NUMBER))
+                ):
+                    raise invalid_nv_exception
+
+                vector_for_target.append(
+                    search_get_pb2.VectorForTarget(name=target_name, vector_bytes=struct.pack("{}f".format(len(vec)), *vec)))
+
+            for key, value in vector.items():
+                # typing tools do not understand the type narrowing here
+                if _is_1d_vector(value):
+                    val: List[float] = cast(List[float], value)
+                    add_vector(val, key)
+                else:
+                    vals: List[List[float]] = cast(List[List[float]], value)
+                    for inner_vector in vals:
+                        add_vector(inner_vector, key)
+
+            return vector_for_target, None
+        else:
+            if len(vector) == 0:
+                raise invalid_nv_exception
+
+            if _is_1d_vector(vector):
+                near_vector = _get_vector_v4(vector)
+                if not isinstance(near_vector, list):
+                    raise invalid_nv_exception
+                return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
+            else:
+                if targets is None or len(targets.target_vectors) != len(vector):
+                    raise WeaviateInvalidInputError(
+                        "The number of target vectors must be equal to the number of vectors."
+                    )
+                for i, inner_vec in enumerate(vector):
+                    nv: List[float] = _get_vector_v4(inner_vec)
+                    if (
+                        not isinstance(nv, list)
+                        or len(nv) == 0
+                        or not isinstance(nv[0], get_args(NUMBER))
+                    ):
+                        raise invalid_nv_exception
+                    vector_for_target.append(
+                        search_get_pb2.VectorForTarget(name=targets.target_vectors[i], vector_bytes=struct.pack("{}f".format(len(nv)), *nv)))
+
+                return vector_for_target, None

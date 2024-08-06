@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union, Dict
+from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union, Dict, cast
 
 from pydantic import ConfigDict, Field
 
@@ -8,6 +8,7 @@ from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.str_enum import BaseEnum
 from weaviate.types import INCLUDE_VECTOR, UUID
+from weaviate.util import _ServerVersion
 
 
 class HybridFusion(str, BaseEnum):
@@ -227,7 +228,7 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
-NearVectorInputType = Union[List[float], Dict[str, List[float]], List[List[float]]]
+NearVectorInputType = Union[List[float], Dict[str, List[float]], Dict[str, List[List[float]]], List[List[float]]]
 
 
 class _HybridNearBase(_WeaviateInput):
@@ -264,9 +265,9 @@ class _MultiTargetVectorJoinEnum(BaseEnum):
 class _MultiTargetVectorJoin:
     combination: _MultiTargetVectorJoinEnum
     target_vectors: List[str]
-    weights: Optional[Dict[str, float]] = None
+    weights: Optional[Dict[str, Union[float, List[float]]]] = None
 
-    def to_grpc_target_vector(self) -> search_get_pb2.Targets:
+    def to_grpc_target_vector(self, version: _ServerVersion) -> search_get_pb2.Targets:
         combination = self.combination
         if combination == _MultiTargetVectorJoinEnum.AVERAGE:
             combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_AVERAGE
@@ -280,9 +281,33 @@ class _MultiTargetVectorJoin:
             assert combination == _MultiTargetVectorJoinEnum.MINIMUM
             combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_MIN
 
-        return search_get_pb2.Targets(
-            target_vectors=self.target_vectors, weights=self.weights, combination=combination_grpc
-        )
+        # TODO: change to .2
+        if version.is_lower_than(1, 26, 1):
+            if self.weights is not None and any(isinstance(w, list) for w in self.weights.values()):
+                raise ValueError("Multiple weights per target are not supported in this Weaviate version. Please upgrade to at least Weaviate 1.26.2.")
+            # mypy does not seem to understand the type narrowing right above
+            weights_typed = cast(Optional[Dict[str, float]], self.weights)
+
+            return search_get_pb2.Targets(
+                target_vectors=self.target_vectors, weights=weights_typed, combination=combination_grpc
+            )
+        else:
+            weights: List[search_get_pb2.WeightsForTarget] = []
+            target_vectors: Optional[List[str]] = None
+            if self.weights is not None:
+                target_vectors = []
+                for target, weight in self.weights.items():
+                    if isinstance(weight, list):
+                        for w in weight:
+                            weights.append(search_get_pb2.WeightsForTarget(target=target, weight=w))
+                            target_vectors.append(target)
+                    else:
+                        weights.append(search_get_pb2.WeightsForTarget(target=target, weight=weight))
+                        target_vectors.append(target)
+
+            return search_get_pb2.Targets(
+                target_vectors=target_vectors, weights_for_targets=weights, combination=combination_grpc
+            )
 
 
 TargetVectorJoinType = Union[str, List[str], _MultiTargetVectorJoin]
@@ -313,7 +338,7 @@ class TargetVectors:
         )
 
     @staticmethod
-    def manual_weights(weights: Dict[str, float]) -> _MultiTargetVectorJoin:
+    def manual_weights(weights: Dict[str, Union[float, List[float]]]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors by summing them using manual weights."""
         return _MultiTargetVectorJoin(
             combination=_MultiTargetVectorJoinEnum.MANUAL_WEIGHTS,
@@ -322,7 +347,7 @@ class TargetVectors:
         )
 
     @staticmethod
-    def relative_score(weights: Dict[str, float]) -> _MultiTargetVectorJoin:
+    def relative_score(weights: Dict[str, Union[float, List[float]]]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors using score fusion."""
         return _MultiTargetVectorJoin(
             combination=_MultiTargetVectorJoinEnum.RELATIVE_SCORE,

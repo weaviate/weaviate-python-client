@@ -141,6 +141,7 @@ def collection_factory(
                 headers=headers,
                 ports=ports,
             )
+            client_fixture.collections.delete(name_fixture)
             collection: Collection[Any, Any] = client_fixture.collections.create(
                 name=name_fixture,
                 description=description,

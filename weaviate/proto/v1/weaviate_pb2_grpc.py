@@ -18,25 +18,25 @@ class WeaviateStub(object):
             channel: A grpc.Channel.
         """
         self.Search = channel.unary_unary(
-            "/weaviate.v1.Weaviate/Search",
-            request_serializer=v1_dot_search__get__pb2.SearchRequest.SerializeToString,
-            response_deserializer=v1_dot_search__get__pb2.SearchReply.FromString,
-        )
+                '/weaviate.v1.Weaviate/Search',
+                request_serializer=v1_dot_search__get__pb2.SearchRequest.SerializeToString,
+                response_deserializer=v1_dot_search__get__pb2.SearchReply.FromString,
+                )
         self.BatchObjects = channel.unary_unary(
-            "/weaviate.v1.Weaviate/BatchObjects",
-            request_serializer=v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
-            response_deserializer=v1_dot_batch__pb2.BatchObjectsReply.FromString,
-        )
+                '/weaviate.v1.Weaviate/BatchObjects',
+                request_serializer=v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
+                response_deserializer=v1_dot_batch__pb2.BatchObjectsReply.FromString,
+                )
         self.BatchDelete = channel.unary_unary(
-            "/weaviate.v1.Weaviate/BatchDelete",
-            request_serializer=v1_dot_batch__delete__pb2.BatchDeleteRequest.SerializeToString,
-            response_deserializer=v1_dot_batch__delete__pb2.BatchDeleteReply.FromString,
-        )
+                '/weaviate.v1.Weaviate/BatchDelete',
+                request_serializer=v1_dot_batch__delete__pb2.BatchDeleteRequest.SerializeToString,
+                response_deserializer=v1_dot_batch__delete__pb2.BatchDeleteReply.FromString,
+                )
         self.TenantsGet = channel.unary_unary(
-            "/weaviate.v1.Weaviate/TenantsGet",
-            request_serializer=v1_dot_tenants__pb2.TenantsGetRequest.SerializeToString,
-            response_deserializer=v1_dot_tenants__pb2.TenantsGetReply.FromString,
-        )
+                '/weaviate.v1.Weaviate/TenantsGet',
+                request_serializer=v1_dot_tenants__pb2.TenantsGetRequest.SerializeToString,
+                response_deserializer=v1_dot_tenants__pb2.TenantsGetReply.FromString,
+                )
 
 
 class WeaviateServicer(object):
@@ -45,173 +45,124 @@ class WeaviateServicer(object):
     def Search(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def BatchObjects(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def BatchDelete(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def TenantsGet(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
 
 def add_WeaviateServicer_to_server(servicer, server):
     rpc_method_handlers = {
-        "Search": grpc.unary_unary_rpc_method_handler(
-            servicer.Search,
-            request_deserializer=v1_dot_search__get__pb2.SearchRequest.FromString,
-            response_serializer=v1_dot_search__get__pb2.SearchReply.SerializeToString,
-        ),
-        "BatchObjects": grpc.unary_unary_rpc_method_handler(
-            servicer.BatchObjects,
-            request_deserializer=v1_dot_batch__pb2.BatchObjectsRequest.FromString,
-            response_serializer=v1_dot_batch__pb2.BatchObjectsReply.SerializeToString,
-        ),
-        "BatchDelete": grpc.unary_unary_rpc_method_handler(
-            servicer.BatchDelete,
-            request_deserializer=v1_dot_batch__delete__pb2.BatchDeleteRequest.FromString,
-            response_serializer=v1_dot_batch__delete__pb2.BatchDeleteReply.SerializeToString,
-        ),
-        "TenantsGet": grpc.unary_unary_rpc_method_handler(
-            servicer.TenantsGet,
-            request_deserializer=v1_dot_tenants__pb2.TenantsGetRequest.FromString,
-            response_serializer=v1_dot_tenants__pb2.TenantsGetReply.SerializeToString,
-        ),
+            'Search': grpc.unary_unary_rpc_method_handler(
+                    servicer.Search,
+                    request_deserializer=v1_dot_search__get__pb2.SearchRequest.FromString,
+                    response_serializer=v1_dot_search__get__pb2.SearchReply.SerializeToString,
+            ),
+            'BatchObjects': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchObjects,
+                    request_deserializer=v1_dot_batch__pb2.BatchObjectsRequest.FromString,
+                    response_serializer=v1_dot_batch__pb2.BatchObjectsReply.SerializeToString,
+            ),
+            'BatchDelete': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchDelete,
+                    request_deserializer=v1_dot_batch__delete__pb2.BatchDeleteRequest.FromString,
+                    response_serializer=v1_dot_batch__delete__pb2.BatchDeleteReply.SerializeToString,
+            ),
+            'TenantsGet': grpc.unary_unary_rpc_method_handler(
+                    servicer.TenantsGet,
+                    request_deserializer=v1_dot_tenants__pb2.TenantsGetRequest.FromString,
+                    response_serializer=v1_dot_tenants__pb2.TenantsGetReply.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "weaviate.v1.Weaviate", rpc_method_handlers
-    )
+            'weaviate.v1.Weaviate', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
-# This class is part of an EXPERIMENTAL API.
+ # This class is part of an EXPERIMENTAL API.
 class Weaviate(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def Search(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def Search(request,
             target,
-            "/weaviate.v1.Weaviate/Search",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/Search',
             v1_dot_search__get__pb2.SearchRequest.SerializeToString,
             v1_dot_search__get__pb2.SearchReply.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def BatchObjects(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def BatchObjects(request,
             target,
-            "/weaviate.v1.Weaviate/BatchObjects",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/BatchObjects',
             v1_dot_batch__pb2.BatchObjectsRequest.SerializeToString,
             v1_dot_batch__pb2.BatchObjectsReply.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def BatchDelete(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def BatchDelete(request,
             target,
-            "/weaviate.v1.Weaviate/BatchDelete",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/BatchDelete',
             v1_dot_batch__delete__pb2.BatchDeleteRequest.SerializeToString,
             v1_dot_batch__delete__pb2.BatchDeleteReply.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def TenantsGet(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def TenantsGet(request,
             target,
-            "/weaviate.v1.Weaviate/TenantsGet",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/weaviate.v1.Weaviate/TenantsGet',
             v1_dot_tenants__pb2.TenantsGetRequest.SerializeToString,
             v1_dot_tenants__pb2.TenantsGetReply.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
