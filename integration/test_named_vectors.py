@@ -659,7 +659,10 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
     ],
 )
 def test_same_target_vector_multiple_input(
-    collection_factory: CollectionFactory, near_vector: Union[List[float], List[List[float]]], target_vector: Union[List[str], _MultiTargetVectorJoin], distances: List[float]
+    collection_factory: CollectionFactory,
+    near_vector: Union[List[float], List[List[float]]],
+    target_vector: Union[List[str], _MultiTargetVectorJoin],
+    distances: List[float],
 ) -> None:
     dummy = collection_factory("dummy")
     # Todo: Update this to 1.26.2
@@ -677,7 +680,9 @@ def test_same_target_vector_multiple_input(
     uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
     uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
 
-    objs = collection.query.near_vector(near_vector, target_vector=target_vector, return_metadata=wvc.query.MetadataQuery.full()).objects
+    objs = collection.query.near_vector(
+        near_vector, target_vector=target_vector, return_metadata=wvc.query.MetadataQuery.full()
+    ).objects
     assert [obj.uuid for obj in objs] == [uuid2, uuid1]
     assert objs[0].metadata.distance == distances[0]
     assert objs[1].metadata.distance == distances[1]

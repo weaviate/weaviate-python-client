@@ -960,18 +960,22 @@ class _QueryGRPC(_BaseGRPC):
         )
         vector_for_target: List[search_get_pb2.VectorForTarget] = []
         if isinstance(vector, dict):
+
             def add_vector(val: List[float], target_name: str) -> None:
                 vec = _get_vector_v4(val)
 
                 if (
-                        not isinstance(vec, list)
-                        or len(vec) == 0
-                        or not isinstance(vec[0], get_args(NUMBER))
+                    not isinstance(vec, list)
+                    or len(vec) == 0
+                    or not isinstance(vec[0], get_args(NUMBER))
                 ):
                     raise invalid_nv_exception
 
                 vector_for_target.append(
-                    search_get_pb2.VectorForTarget(name=target_name, vector_bytes=struct.pack("{}f".format(len(vec)), *vec)))
+                    search_get_pb2.VectorForTarget(
+                        name=target_name, vector_bytes=struct.pack("{}f".format(len(vec)), *vec)
+                    )
+                )
 
             for key, value in vector.items():
                 # typing tools do not understand the type narrowing here
@@ -1007,6 +1011,10 @@ class _QueryGRPC(_BaseGRPC):
                     ):
                         raise invalid_nv_exception
                     vector_for_target.append(
-                        search_get_pb2.VectorForTarget(name=targets.target_vectors[i], vector_bytes=struct.pack("{}f".format(len(nv)), *nv)))
+                        search_get_pb2.VectorForTarget(
+                            name=targets.target_vectors[i],
+                            vector_bytes=struct.pack("{}f".format(len(nv)), *nv),
+                        )
+                    )
 
                 return vector_for_target, None
