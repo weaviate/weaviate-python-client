@@ -299,7 +299,7 @@ class _MultiTargetVectorJoin:
             )
         else:
             weights: List[search_get_pb2.WeightsForTarget] = []
-            target_vectors: Optional[List[str]] = None
+            target_vectors: List[str] = self.target_vectors
             if self.weights is not None:
                 target_vectors = []
                 for target, weight in self.weights.items():
