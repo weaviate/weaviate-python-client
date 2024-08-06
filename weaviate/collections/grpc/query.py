@@ -392,6 +392,7 @@ class _QueryGRPC(_BaseGRPC):
             vector_per_target_tmp = None
             vector_for_targets = None
         else:
+            # Todo: increase to .2
             if self._connection._weaviate_version.is_lower_than(1, 26, 1):
                 vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
                     near_vector, targets, "near_vector"
