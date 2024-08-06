@@ -228,7 +228,9 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
-NearVectorInputType = Union[List[float], Dict[str, List[float]], Dict[str, List[List[float]]], List[List[float]]]
+NearVectorInputType = Union[
+    List[float], Dict[str, List[float]], Dict[str, List[List[float]]], List[List[float]]
+]
 
 
 class _HybridNearBase(_WeaviateInput):
@@ -284,12 +286,16 @@ class _MultiTargetVectorJoin:
         # TODO: change to .2
         if version.is_lower_than(1, 26, 1):
             if self.weights is not None and any(isinstance(w, list) for w in self.weights.values()):
-                raise ValueError("Multiple weights per target are not supported in this Weaviate version. Please upgrade to at least Weaviate 1.26.2.")
+                raise ValueError(
+                    "Multiple weights per target are not supported in this Weaviate version. Please upgrade to at least Weaviate 1.26.2."
+                )
             # mypy does not seem to understand the type narrowing right above
             weights_typed = cast(Optional[Dict[str, float]], self.weights)
 
             return search_get_pb2.Targets(
-                target_vectors=self.target_vectors, weights=weights_typed, combination=combination_grpc
+                target_vectors=self.target_vectors,
+                weights=weights_typed,
+                combination=combination_grpc,
             )
         else:
             weights: List[search_get_pb2.WeightsForTarget] = []
@@ -302,11 +308,15 @@ class _MultiTargetVectorJoin:
                             weights.append(search_get_pb2.WeightsForTarget(target=target, weight=w))
                             target_vectors.append(target)
                     else:
-                        weights.append(search_get_pb2.WeightsForTarget(target=target, weight=weight))
+                        weights.append(
+                            search_get_pb2.WeightsForTarget(target=target, weight=weight)
+                        )
                         target_vectors.append(target)
 
             return search_get_pb2.Targets(
-                target_vectors=target_vectors, weights_for_targets=weights, combination=combination_grpc
+                target_vectors=target_vectors,
+                weights_for_targets=weights,
+                combination=combination_grpc,
             )
 
 
