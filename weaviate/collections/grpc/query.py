@@ -959,25 +959,29 @@ class _QueryGRPC(_BaseGRPC):
                                 - a dictionary with target names as keys and lists of numbers as values
                         received: {vector}"""
         )
+
+        if len(vector) == 0 or targets is None or len(targets.target_vectors) == 0:
+            raise invalid_nv_exception
+
         vector_for_target: List[search_get_pb2.VectorForTarget] = []
-        if isinstance(vector, dict):
 
-            def add_vector(val: List[float], target_name: str) -> None:
-                vec = _get_vector_v4(val)
+        def add_vector(val: List[float], target_name: str) -> None:
+            vec = _get_vector_v4(val)
 
-                if (
-                    not isinstance(vec, list)
-                    or len(vec) == 0
-                    or not isinstance(vec[0], get_args(NUMBER))
-                ):
-                    raise invalid_nv_exception
+            if (
+                not isinstance(vec, list)
+                or len(vec) == 0
+                or not isinstance(vec[0], get_args(NUMBER))
+            ):
+                raise invalid_nv_exception
 
-                vector_for_target.append(
-                    search_get_pb2.VectorForTarget(
-                        name=target_name, vector_bytes=struct.pack("{}f".format(len(vec)), *vec)
-                    )
+            vector_for_target.append(
+                search_get_pb2.VectorForTarget(
+                    name=target_name, vector_bytes=struct.pack("{}f".format(len(vec)), *vec)
                 )
+            )
 
+        if isinstance(vector, dict):
             for key, value in vector.items():
                 # typing tools do not understand the type narrowing here
                 if _is_1d_vector(value):
@@ -987,15 +991,7 @@ class _QueryGRPC(_BaseGRPC):
                     vals: List[List[float]] = cast(List[List[float]], value)
                     for inner_vector in vals:
                         add_vector(inner_vector, key)
-
-            if targets is None or len(vector_for_target) != len(targets.target_vectors):
-                raise WeaviateInvalidInputError(
-                    "The number of target vectors must be equal to the number of vectors."
-                )
-            return vector_for_target, None
         else:
-            if len(vector) == 0:
-                raise invalid_nv_exception
 
             if _is_1d_vector(vector):
                 near_vector = _get_vector_v4(vector)
@@ -1003,23 +999,21 @@ class _QueryGRPC(_BaseGRPC):
                     raise invalid_nv_exception
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
             else:
-                if targets is None or len(targets.target_vectors) != len(vector):
-                    raise WeaviateInvalidInputError(
-                        "The number of target vectors must be equal to the number of vectors."
-                    )
-                for i, inner_vec in enumerate(vector):
-                    nv: List[float] = _get_vector_v4(inner_vec)
-                    if (
-                        not isinstance(nv, list)
-                        or len(nv) == 0
-                        or not isinstance(nv[0], get_args(NUMBER))
-                    ):
-                        raise invalid_nv_exception
-                    vector_for_target.append(
-                        search_get_pb2.VectorForTarget(
-                            name=targets.target_vectors[i],
-                            vector_bytes=struct.pack("{}f".format(len(nv)), *nv),
-                        )
-                    )
+                count = 0
+                for inner_vec in vector:
+                    if _is_1d_vector(inner_vec):
+                        val2: List[float] = cast(List[float], inner_vec)
+                        add_vector(val2, targets.target_vectors[count])
+                        count += 1
+                    else:
+                        vals2: List[List[float]] = cast(List[List[float]], inner_vec)
+                        for inner_vector in vals2:
+                            add_vector(inner_vector, targets.target_vectors[count])
+                            count += 1
 
-                return vector_for_target, None
+        if len(targets.target_vectors) != len(vector_for_target):
+            raise WeaviateInvalidInputError(
+                "The number of target vectors must be equal to the number of vectors."
+            )
+
+        return vector_for_target, None
