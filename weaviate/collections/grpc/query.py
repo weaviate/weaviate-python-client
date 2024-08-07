@@ -988,6 +988,10 @@ class _QueryGRPC(_BaseGRPC):
                     for inner_vector in vals:
                         add_vector(inner_vector, key)
 
+            if targets is None or len(vector_for_target) != len(targets.target_vectors):
+                raise WeaviateInvalidInputError(
+                    "The number of target vectors must be equal to the number of vectors."
+                )
             return vector_for_target, None
         else:
             if len(vector) == 0:
