@@ -380,11 +380,7 @@ class _QueryGRPC(_BaseGRPC):
 
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
-        if (
-            isinstance(near_vector, list)
-            and len(near_vector) > 0
-            and isinstance(near_vector[0], float)
-        ):
+        if _is_1d_vector(near_vector) and len(near_vector) > 0:
             # fast path for simple vector
             near_vector_grpc: Optional[bytes] = struct.pack(
                 "{}f".format(len(near_vector)), *near_vector
@@ -937,11 +933,7 @@ class _QueryGRPC(_BaseGRPC):
                     )
                 for i, inner_vector in enumerate(vector):
                     nv = _get_vector_v4(inner_vector)
-                    if (
-                        not isinstance(nv, list)
-                        or len(nv) == 0
-                        or not isinstance(nv[0], get_args(NUMBER))
-                    ):
+                    if not isinstance(nv, list) or len(nv) == 0:
                         raise invalid_nv_exception
                     vector_per_target[targets.target_vectors[i]] = struct.pack(
                         "{}f".format(len(nv)), *nv
