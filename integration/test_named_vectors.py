@@ -662,9 +662,12 @@ def test_multi_query_error_length_do_not_match(collection_factory: CollectionFac
         ],
     )
 
-    # with pytest.raises(WeaviateInvalidInputError) as e:
-    #     collection.query.near_vector({"first": [[1.0, 0.0], [1.0, 0.0]], "second": [1.0, 0.0, 0.0]}, target_vector=["first", "second"])
-    # assert "The number of target vectors must be equal to the number of vectors" in str(e)
+    with pytest.raises(WeaviateInvalidInputError) as e:
+        collection.query.near_vector(
+            {"first": [[1.0, 0.0], [1.0, 0.0]], "second": [1.0, 0.0, 0.0]},
+            target_vector=["first", "second"],
+        )
+    assert "The number of target vectors must be equal to the number of vectors" in str(e)
 
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection.query.near_vector(

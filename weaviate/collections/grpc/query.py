@@ -959,6 +959,9 @@ class _QueryGRPC(_BaseGRPC):
                                 - a dictionary with target names as keys and lists of numbers as values
                         received: {vector}"""
         )
+        invalid_targets_exception = WeaviateInvalidInputError(
+            "The number of target vectors must be equal to the number of vectors."
+        )
 
         if len(vector) == 0 or targets is None or len(targets.target_vectors) == 0:
             raise invalid_nv_exception
@@ -1003,17 +1006,19 @@ class _QueryGRPC(_BaseGRPC):
                 for inner_vec in vector:
                     if _is_1d_vector(inner_vec):
                         val2: List[float] = cast(List[float], inner_vec)
+                        if count >= len(targets.target_vectors):
+                            raise invalid_targets_exception
                         add_vector(val2, targets.target_vectors[count])
                         count += 1
                     else:
                         vals2: List[List[float]] = cast(List[List[float]], inner_vec)
                         for inner_vector in vals2:
+                            if count >= len(targets.target_vectors):
+                                raise invalid_targets_exception
                             add_vector(inner_vector, targets.target_vectors[count])
                             count += 1
 
         if len(targets.target_vectors) != len(vector_for_target):
-            raise WeaviateInvalidInputError(
-                "The number of target vectors must be equal to the number of vectors."
-            )
+            raise invalid_targets_exception
 
         return vector_for_target, None
