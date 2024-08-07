@@ -642,6 +642,12 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
     with pytest.raises(WeaviateInvalidInputError):
         collection.query.near_vector({"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]})
 
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.near_vector({"first": [[1.0, 0.0], [1.0, 0.0]], "second": [1.0, 0.0, 0.0]})
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.near_vector([[[1.0, 0.0], [1.0, 0.0]], [1.0, 0.0, 0.0]])
+
 
 @pytest.mark.parametrize(
     "target_vector, distances",
