@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Union
+from typing import List, Union, Dict, Sequence
 
 import pytest
 
@@ -715,7 +715,7 @@ def test_same_target_vector_multiple_input(
 )
 def test_same_target_vector_multiple_input_combinations(
     collection_factory: CollectionFactory,
-    near_vector: Union[List[float], List[List[float]]],
+    near_vector: Dict[str, Union[Sequence[float], Sequence[Sequence[float]]]],
     target_vector: List[str],
 ) -> None:
     dummy = collection_factory("dummy")
