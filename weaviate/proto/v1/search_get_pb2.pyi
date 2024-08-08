@@ -269,8 +269,16 @@ class ObjectPropertiesRequest(_message.Message):
         object_properties: _Optional[_Iterable[_Union[ObjectPropertiesRequest, _Mapping]]] = ...,
     ) -> None: ...
 
+class WeightsForTarget(_message.Message):
+    __slots__ = ("target", "weight")
+    TARGET_FIELD_NUMBER: _ClassVar[int]
+    WEIGHT_FIELD_NUMBER: _ClassVar[int]
+    target: str
+    weight: float
+    def __init__(self, target: _Optional[str] = ..., weight: _Optional[float] = ...) -> None: ...
+
 class Targets(_message.Message):
-    __slots__ = ("target_vectors", "combination", "weights")
+    __slots__ = ("target_vectors", "combination", "weights", "weights_for_targets")
 
     class WeightsEntry(_message.Message):
         __slots__ = ("key", "value")
@@ -283,14 +291,17 @@ class Targets(_message.Message):
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     COMBINATION_FIELD_NUMBER: _ClassVar[int]
     WEIGHTS_FIELD_NUMBER: _ClassVar[int]
+    WEIGHTS_FOR_TARGETS_FIELD_NUMBER: _ClassVar[int]
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
     combination: CombinationMethod
     weights: _containers.ScalarMap[str, float]
+    weights_for_targets: _containers.RepeatedCompositeFieldContainer[WeightsForTarget]
     def __init__(
         self,
         target_vectors: _Optional[_Iterable[str]] = ...,
         combination: _Optional[_Union[CombinationMethod, str]] = ...,
         weights: _Optional[_Mapping[str, float]] = ...,
+        weights_for_targets: _Optional[_Iterable[_Union[WeightsForTarget, _Mapping]]] = ...,
     ) -> None: ...
 
 class Hybrid(_message.Message):
@@ -555,6 +566,16 @@ class RefPropertiesRequest(_message.Message):
         target_collection: _Optional[str] = ...,
     ) -> None: ...
 
+class VectorForTarget(_message.Message):
+    __slots__ = ("name", "vector_bytes")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    vector_bytes: bytes
+    def __init__(
+        self, name: _Optional[str] = ..., vector_bytes: _Optional[bytes] = ...
+    ) -> None: ...
+
 class NearVector(_message.Message):
     __slots__ = (
         "vector",
@@ -564,6 +585,7 @@ class NearVector(_message.Message):
         "target_vectors",
         "targets",
         "vector_per_target",
+        "vector_for_targets",
     )
 
     class VectorPerTargetEntry(_message.Message):
@@ -581,6 +603,7 @@ class NearVector(_message.Message):
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     TARGETS_FIELD_NUMBER: _ClassVar[int]
     VECTOR_PER_TARGET_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_FOR_TARGETS_FIELD_NUMBER: _ClassVar[int]
     vector: _containers.RepeatedScalarFieldContainer[float]
     certainty: float
     distance: float
@@ -588,6 +611,7 @@ class NearVector(_message.Message):
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
     targets: Targets
     vector_per_target: _containers.ScalarMap[str, bytes]
+    vector_for_targets: _containers.RepeatedCompositeFieldContainer[VectorForTarget]
     def __init__(
         self,
         vector: _Optional[_Iterable[float]] = ...,
@@ -597,6 +621,7 @@ class NearVector(_message.Message):
         target_vectors: _Optional[_Iterable[str]] = ...,
         targets: _Optional[_Union[Targets, _Mapping]] = ...,
         vector_per_target: _Optional[_Mapping[str, bytes]] = ...,
+        vector_for_targets: _Optional[_Iterable[_Union[VectorForTarget, _Mapping]]] = ...,
     ) -> None: ...
 
 class NearObject(_message.Message):
