@@ -892,7 +892,6 @@ class _QueryGRPC(_BaseGRPC):
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
                                 - a list of numbers
-                                - a list of lists of numbers for multi target search
                                 - a dictionary with target names as keys and lists of numbers as values
                         received: {vector}"""
         )
@@ -926,19 +925,10 @@ class _QueryGRPC(_BaseGRPC):
                     raise invalid_nv_exception
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
             else:
-                vector_per_target = {}
-                if targets is None or len(targets.target_vectors) != len(vector):
-                    raise WeaviateInvalidInputError(
-                        "The number of target vectors must be equal to the number of vectors."
-                    )
-                for i, inner_vector in enumerate(vector):
-                    nv = _get_vector_v4(inner_vector)
-                    if not isinstance(nv, list) or len(nv) == 0:
-                        raise invalid_nv_exception
-                    vector_per_target[targets.target_vectors[i]] = struct.pack(
-                        "{}f".format(len(nv)), *nv
-                    )
-                return vector_per_target, None
+                raise WeaviateInvalidInputError(
+                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
+                    keys and lists of numbers as values."""
+                )
 
     @staticmethod
     def __vector_for_target(
@@ -987,28 +977,16 @@ class _QueryGRPC(_BaseGRPC):
                     for inner_vector in vals:
                         add_vector(inner_vector, key)
         else:
-
             if _is_1d_vector(vector):
                 near_vector = _get_vector_v4(vector)
                 if not isinstance(near_vector, list):
                     raise invalid_nv_exception
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
             else:
-                count = 0
-                for inner_vec in vector:
-                    if _is_1d_vector(inner_vec):
-                        val2: List[float] = cast(List[float], inner_vec)
-                        if count >= len(targets.target_vectors):
-                            raise invalid_targets_exception
-                        add_vector(val2, targets.target_vectors[count])
-                        count += 1
-                    else:
-                        vals2: List[List[float]] = cast(List[List[float]], inner_vec)
-                        for inner_vector in vals2:
-                            if count >= len(targets.target_vectors):
-                                raise invalid_targets_exception
-                            add_vector(inner_vector, targets.target_vectors[count])
-                            count += 1
+                raise WeaviateInvalidInputError(
+                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
+                    keys and lists of numbers as values."""
+                )
 
         if len(targets.target_vectors) != len(vector_for_target):
             raise invalid_targets_exception
