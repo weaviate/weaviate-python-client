@@ -149,9 +149,6 @@ def test_near_vector_with_other_input(
         {"first": np.array([1, 0]), "second": [1, 0, 0]},
         {"first": pl.Series([1, 0]), "second": [1, 0, 0]},
         {"first": pd.Series([1, 0]), "second": [1, 0, 0]},
-        [np.array([1, 0]), [1, 0, 0]],
-        [pl.Series([1, 0]), [1, 0, 0]],
-        [pd.Series([1, 0]), [1, 0, 0]],
         {"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]},
     ],
 )

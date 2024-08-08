@@ -234,23 +234,42 @@ class _QueryGRPC(_BaseGRPC):
                 move_to=self.__parse_move(vector.move_to),
             )
         elif isinstance(vector, _HybridNearVector):
-            vector_per_target, vector_bytes_tmp = self.__vector_per_target(
-                vector.vector, targets, "vector"
-            )
+            # Todo: increase to .2
+            if self._connection._weaviate_version.is_lower_than(1, 26, 1):
+                vector_per_target_tmp, vector_bytes_tmp = self.__vector_per_target(
+                    vector.vector, targets, "vector"
+                )
+                vector_for_targets_tmp = None
+            else:
+                vector_for_targets_tmp, vector_bytes_tmp = self.__vector_for_target(
+                    vector.vector, targets, "vector"
+                )
+                vector_per_target_tmp = None
+
             near_vector = search_get_pb2.NearVector(
                 vector_bytes=vector_bytes_tmp,
                 certainty=vector.certainty,
                 distance=vector.distance,
-                vector_per_target=vector_per_target,
+                vector_per_target=vector_per_target_tmp,
+                vector_for_targets=vector_for_targets_tmp,
             )
         else:
-            vector_per_target, vector_bytes_tmp = self.__vector_per_target(
-                vector, targets, "vector"
-            )
-            if vector_per_target is not None:
+            # Todo: increase to .2
+            if self._connection._weaviate_version.is_lower_than(1, 26, 1):
+                vector_per_target_tmp, vector_bytes_tmp = self.__vector_per_target(
+                    vector, targets, "vector"
+                )
+                vector_for_targets_tmp = None
+            else:
+                vector_for_targets_tmp, vector_bytes_tmp = self.__vector_for_target(
+                    vector, targets, "vector"
+                )
+                vector_per_target_tmp = None
+            if vector_per_target_tmp is not None or vector_for_targets_tmp is not None:
                 near_vector = search_get_pb2.NearVector(
                     vector_bytes=vector_bytes_tmp,
-                    vector_per_target=vector_per_target,
+                    vector_per_target=vector_per_target_tmp,
+                    vector_for_targets=vector_for_targets_tmp,
                 )
             else:
                 vector_bytes = vector_bytes_tmp

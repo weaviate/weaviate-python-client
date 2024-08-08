@@ -229,7 +229,7 @@ class Rerank(_WeaviateInput):
 
 
 NearVectorInputType = Union[
-    List[float], Dict[str, List[float]], Dict[str, List[List[float]]], List[List[float]]
+    Sequence[float], Dict[str, Union[Sequence[float], Sequence[Sequence[float]]]]
 ]
 
 
