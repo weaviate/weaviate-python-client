@@ -399,7 +399,7 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
     return _uuid
 
 
-def get_vector(vector: Sequence) -> List[float]:
+def get_vector(vector: Sequence) -> Sequence[float]:
     """
     Get weaviate compatible format of the embedding vector.
 
@@ -444,7 +444,7 @@ def get_vector(vector: Sequence) -> List[float]:
     ) from None
 
 
-def _get_vector_v4(vector: Any) -> List[float]:
+def _get_vector_v4(vector: Any) -> Sequence[float]:
     try:
         return get_vector(vector)
     except TypeError as e:

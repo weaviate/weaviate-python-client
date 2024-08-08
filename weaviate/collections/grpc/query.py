@@ -964,9 +964,6 @@ class _QueryGRPC(_BaseGRPC):
             "The number of target vectors must be equal to the number of vectors."
         )
 
-        if len(vector) == 0 or targets is None or len(targets.target_vectors) == 0:
-            raise invalid_nv_exception
-
         vector_for_target: List[search_get_pb2.VectorForTarget] = []
 
         def add_vector(val: List[float], target_name: str) -> None:
@@ -986,6 +983,9 @@ class _QueryGRPC(_BaseGRPC):
             )
 
         if isinstance(vector, dict):
+            if len(vector) == 0 or targets is None or len(targets.target_vectors) == 0:
+                raise invalid_nv_exception
+
             for key, value in vector.items():
                 # typing tools do not understand the type narrowing here
                 if _is_1d_vector(value):
