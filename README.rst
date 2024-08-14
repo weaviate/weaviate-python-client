@@ -23,6 +23,15 @@ The client is tested for python 3.8 and higher.
 
 Visit the official `Weaviate <https://weaviate.io/>`_ website for more information about the Weaviate and how to use it in production.
 
+Client Versions
+--------
+We currently support the following versions client versions:
+
+- 4.X: actively supported
+- 3.X: deprecated, receives only critical bug fixes and dependency updates
+- copy of the 3.X branch in v4 releases: Will be removed at 30.11.2024
+
+
 Articles
 --------
 
@@ -31,7 +40,6 @@ Here are some articles on Weaviate:
 - `Semantic Search Queries Return More Informed Results <https://hackernoon.com/semantic-search-queries-return-more-informed-results-nr5335nw>`_
 - `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_
 - `A sub-50ms neural search with DistilBERT and Weaviate <https://towardsdatascience.com/a-sub-50ms-neural-search-with-distilbert-and-weaviate-4857ae390154>`_
-
 
 Documentation
 -------------
