@@ -1,6 +1,7 @@
 """
 Batch class definitions.
 """
+
 import datetime
 import sys
 import threading
@@ -349,7 +350,6 @@ class Batch:
         ValueError
             If the value of one of the arguments is wrong.
         """
-        _Warnings.use_of_client_batch_will_be_removed_in_next_major_release()
         return self.configure(**kwargs)
 
     def configure(
