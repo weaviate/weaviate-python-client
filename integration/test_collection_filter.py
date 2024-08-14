@@ -1,7 +1,7 @@
 import datetime
 import time
 import uuid
-from typing import Callable, List, Optional
+from typing import Callable, Iterable, List, Optional
 
 import pytest as pytest
 
@@ -21,6 +21,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import MetadataQuery, QueryReference, Sort
 from weaviate.collections.classes.internal import ReferenceToMulti
+from weaviate.types import UUID
 
 NOW = datetime.datetime.now(datetime.timezone.utc)
 LATER = NOW + datetime.timedelta(hours=1)
@@ -546,6 +547,44 @@ def test_filter_id(collection_factory: CollectionFactory, weav_filter: _FilterVa
 
     assert len(objects) == 1
     assert objects[0].uuid == UUID1
+
+
+@pytest.mark.parametrize(
+    "ids, expected_len, expected",
+    [
+        ([], 0, set()),
+        ((), 0, set()),
+        ([UUID3, ], 1, {UUID3, }),
+        ([UUID1, UUID2], 2, {UUID1, UUID2}),
+        ((UUID1, UUID3), 2, {UUID1, UUID3}),
+        ((UUID1, UUID3, UUID3), 2, {UUID1, UUID3}),
+    ],
+)
+def test_filter_ids(
+    collection_factory: CollectionFactory,
+    ids: Iterable[UUID],
+    expected_len: int,
+    expected: set,
+) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="Name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    collection.data.insert_many(
+        [
+            DataObject(properties={"name": "first"}, uuid=UUID1),
+            DataObject(properties={"name": "second"}, uuid=UUID2),
+            DataObject(properties={"name": "third"}, uuid=UUID3),
+        ]
+    )
+
+    objects = collection.query.fetch_objects_by_ids(ids).objects
+
+    assert len(objects) == expected_len
+    assert {o.uuid for o in objects} == expected
 
 
 @pytest.mark.parametrize("path", ["_creationTimeUnix", "_lastUpdateTimeUnix"])
