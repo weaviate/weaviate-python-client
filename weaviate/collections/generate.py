@@ -7,10 +7,6 @@ from weaviate.collections.queries.fetch_objects import (
     _FetchObjectsGenerateAsync,
     _FetchObjectsGenerate,
 )
-from weaviate.collections.queries.fetch_objects_by_ids import (
-    _FetchObjectsByIDsGenerateAsync,
-    _FetchObjectsByIDsGenerate,
-)
 from weaviate.collections.queries.hybrid import _HybridGenerateAsync, _HybridGenerate
 from weaviate.collections.queries.near_image import _NearImageGenerateAsync, _NearImageGenerate
 from weaviate.collections.queries.near_media import _NearMediaGenerateAsync, _NearMediaGenerate
@@ -23,7 +19,6 @@ class _GenerateCollectionAsync(
     Generic[TProperties, References],
     _BM25GenerateAsync[TProperties, References],
     _FetchObjectsGenerateAsync[TProperties, References],
-    _FetchObjectsByIDsGenerateAsync[TProperties, References],
     _HybridGenerateAsync[TProperties, References],
     _NearImageGenerateAsync[TProperties, References],
     _NearMediaGenerateAsync[TProperties, References],
@@ -38,7 +33,6 @@ class _GenerateCollection(
     Generic[TProperties, References],
     _BM25Generate[TProperties, References],
     _FetchObjectsGenerate[TProperties, References],
-    _FetchObjectsByIDsGenerate[TProperties, References],
     _HybridGenerate[TProperties, References],
     _NearImageGenerate[TProperties, References],
     _NearMediaGenerate[TProperties, References],
