@@ -140,7 +140,7 @@ class _FetchObjectsByIDsGenerateAsync(
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]: ...
 
-class _FetchObjectsGenerate(Generic[Properties, References], _Base[Properties, References]):
+class _FetchObjectsByIDsGenerate(Generic[Properties, References], _Base[Properties, References]):
     @overload
     def fetch_objects_by_ids(
         self,
