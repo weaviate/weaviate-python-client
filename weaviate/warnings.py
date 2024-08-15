@@ -106,31 +106,3 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
-
-    @staticmethod
-    def weaviate_too_old_vs_latest(server_version: str) -> None:
-        warnings.warn(
-            message=f"""Dep004: You are connected to Weaviate {server_version}.
-            Please consider upgrading to the latest version. See https://www.weaviate.io/developers/weaviate for details.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def weaviate_client_too_old_vs_latest(client_version: str, latest_version: str) -> None:
-        warnings.warn(
-            message=f"""Dep005: You are using weaviate-client version {client_version}. The latest version is {latest_version}.
-            Please consider upgrading to the latest version. See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def use_of_client_batch_will_be_removed_in_next_major_release() -> None:
-        warnings.warn(
-            message="""Dep006: You are using the `client.batch()` method, which will be removed in the next major release.
-            Please instead use the `client.batch.configure()` method to configure your batch and `client.batch` to enter the context manager.
-            See https://weaviate.io/developers/weaviate/client-libraries/python for details.""",
-            category=DeprecationWarning,
-            stacklevel=1,
-        )

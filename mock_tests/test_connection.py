@@ -33,27 +33,6 @@ def test_additional_headers(weaviate_mock, header: Dict[str, str]):
     client.schema.delete_all()  # some call that includes headers
 
 
-@pytest.mark.parametrize("version,warning", [("1.13", True), ("1.14", False)])
-def test_warning_old_weaviate(recwarn, ready_mock: HTTPServer, version: str, warning: bool):
-    """Test that we warn if a new client version is using an old weaviate server."""
-    ready_mock.expect_request("/v1/meta").respond_with_json({"version": version})
-    weaviate.Client(url=MOCK_SERVER_URL)
-
-    if warning:
-        assert len(recwarn) == 2
-        w = recwarn.pop()
-        assert issubclass(w.category, DeprecationWarning)
-        assert str(w.message).startswith("Dep001")
-        w = recwarn.pop()
-        assert issubclass(w.category, DeprecationWarning)
-        assert str(w.message).startswith("Dep004")
-    else:
-        assert len(recwarn) == 1
-        w = recwarn.pop()
-        assert issubclass(w.category, DeprecationWarning)
-        assert str(w.message).startswith("Dep004")
-
-
 def test_wait_for_weaviate(httpserver: HTTPServer):
     def handler(request: Request):
         time.sleep(0.01)
