@@ -15,6 +15,22 @@ from typing import (
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class CombinationMethod(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    COMBINATION_METHOD_UNSPECIFIED: _ClassVar[CombinationMethod]
+    COMBINATION_METHOD_TYPE_SUM: _ClassVar[CombinationMethod]
+    COMBINATION_METHOD_TYPE_MIN: _ClassVar[CombinationMethod]
+    COMBINATION_METHOD_TYPE_AVERAGE: _ClassVar[CombinationMethod]
+    COMBINATION_METHOD_TYPE_RELATIVE_SCORE: _ClassVar[CombinationMethod]
+    COMBINATION_METHOD_TYPE_MANUAL: _ClassVar[CombinationMethod]
+
+COMBINATION_METHOD_UNSPECIFIED: CombinationMethod
+COMBINATION_METHOD_TYPE_SUM: CombinationMethod
+COMBINATION_METHOD_TYPE_MIN: CombinationMethod
+COMBINATION_METHOD_TYPE_AVERAGE: CombinationMethod
+COMBINATION_METHOD_TYPE_RELATIVE_SCORE: CombinationMethod
+COMBINATION_METHOD_TYPE_MANUAL: CombinationMethod
+
 class SearchRequest(_message.Message):
     __slots__ = (
         "collection",
@@ -253,6 +269,30 @@ class ObjectPropertiesRequest(_message.Message):
         object_properties: _Optional[_Iterable[_Union[ObjectPropertiesRequest, _Mapping]]] = ...,
     ) -> None: ...
 
+class Targets(_message.Message):
+    __slots__ = ("target_vectors", "combination", "weights")
+
+    class WeightsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: float
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[float] = ...) -> None: ...
+
+    TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    COMBINATION_FIELD_NUMBER: _ClassVar[int]
+    WEIGHTS_FIELD_NUMBER: _ClassVar[int]
+    target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    combination: CombinationMethod
+    weights: _containers.ScalarMap[str, float]
+    def __init__(
+        self,
+        target_vectors: _Optional[_Iterable[str]] = ...,
+        combination: _Optional[_Union[CombinationMethod, str]] = ...,
+        weights: _Optional[_Mapping[str, float]] = ...,
+    ) -> None: ...
+
 class Hybrid(_message.Message):
     __slots__ = (
         "query",
@@ -264,6 +304,7 @@ class Hybrid(_message.Message):
         "target_vectors",
         "near_text",
         "near_vector",
+        "targets",
     )
 
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -271,6 +312,7 @@ class Hybrid(_message.Message):
         FUSION_TYPE_UNSPECIFIED: _ClassVar[Hybrid.FusionType]
         FUSION_TYPE_RANKED: _ClassVar[Hybrid.FusionType]
         FUSION_TYPE_RELATIVE_SCORE: _ClassVar[Hybrid.FusionType]
+
     FUSION_TYPE_UNSPECIFIED: Hybrid.FusionType
     FUSION_TYPE_RANKED: Hybrid.FusionType
     FUSION_TYPE_RELATIVE_SCORE: Hybrid.FusionType
@@ -283,6 +325,7 @@ class Hybrid(_message.Message):
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
     NEAR_TEXT_FIELD_NUMBER: _ClassVar[int]
     NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
     query: str
     properties: _containers.RepeatedScalarFieldContainer[str]
     vector: _containers.RepeatedScalarFieldContainer[float]
@@ -292,6 +335,7 @@ class Hybrid(_message.Message):
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
     near_text: NearTextSearch
     near_vector: NearVector
+    targets: Targets
     def __init__(
         self,
         query: _Optional[str] = ...,
@@ -303,10 +347,19 @@ class Hybrid(_message.Message):
         target_vectors: _Optional[_Iterable[str]] = ...,
         near_text: _Optional[_Union[NearTextSearch, _Mapping]] = ...,
         near_vector: _Optional[_Union[NearVector, _Mapping]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
     ) -> None: ...
 
 class NearTextSearch(_message.Message):
-    __slots__ = ("query", "certainty", "distance", "move_to", "move_away", "target_vectors")
+    __slots__ = (
+        "query",
+        "certainty",
+        "distance",
+        "move_to",
+        "move_away",
+        "target_vectors",
+        "targets",
+    )
 
     class Move(_message.Message):
         __slots__ = ("force", "concepts", "uuids")
@@ -322,18 +375,21 @@ class NearTextSearch(_message.Message):
             concepts: _Optional[_Iterable[str]] = ...,
             uuids: _Optional[_Iterable[str]] = ...,
         ) -> None: ...
+
     QUERY_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     MOVE_TO_FIELD_NUMBER: _ClassVar[int]
     MOVE_AWAY_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
     query: _containers.RepeatedScalarFieldContainer[str]
     certainty: float
     distance: float
     move_to: NearTextSearch.Move
     move_away: NearTextSearch.Move
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    targets: Targets
     def __init__(
         self,
         query: _Optional[_Iterable[str]] = ...,
@@ -342,114 +398,133 @@ class NearTextSearch(_message.Message):
         move_to: _Optional[_Union[NearTextSearch.Move, _Mapping]] = ...,
         move_away: _Optional[_Union[NearTextSearch.Move, _Mapping]] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
     ) -> None: ...
 
 class NearImageSearch(_message.Message):
-    __slots__ = ("image", "certainty", "distance", "target_vectors")
+    __slots__ = ("image", "certainty", "distance", "target_vectors", "targets")
     IMAGE_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
     image: str
     certainty: float
     distance: float
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    targets: Targets
     def __init__(
         self,
         image: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
     ) -> None: ...
 
 class NearAudioSearch(_message.Message):
-    __slots__ = ("audio", "certainty", "distance", "target_vectors")
+    __slots__ = ("audio", "certainty", "distance", "target_vectors", "targets")
     AUDIO_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
     audio: str
     certainty: float
     distance: float
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    targets: Targets
     def __init__(
         self,
         audio: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
     ) -> None: ...
 
 class NearVideoSearch(_message.Message):
-    __slots__ = ("video", "certainty", "distance", "target_vectors")
+    __slots__ = ("video", "certainty", "distance", "target_vectors", "targets")
     VIDEO_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
     video: str
     certainty: float
     distance: float
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    targets: Targets
     def __init__(
         self,
         video: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
     ) -> None: ...
 
 class NearDepthSearch(_message.Message):
-    __slots__ = ("depth", "certainty", "distance", "target_vectors")
+    __slots__ = ("depth", "certainty", "distance", "target_vectors", "targets")
     DEPTH_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
     depth: str
     certainty: float
     distance: float
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    targets: Targets
     def __init__(
         self,
         depth: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
     ) -> None: ...
 
 class NearThermalSearch(_message.Message):
-    __slots__ = ("thermal", "certainty", "distance", "target_vectors")
+    __slots__ = ("thermal", "certainty", "distance", "target_vectors", "targets")
     THERMAL_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
     thermal: str
     certainty: float
     distance: float
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    targets: Targets
     def __init__(
         self,
         thermal: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
     ) -> None: ...
 
 class NearIMUSearch(_message.Message):
-    __slots__ = ("imu", "certainty", "distance", "target_vectors")
+    __slots__ = ("imu", "certainty", "distance", "target_vectors", "targets")
     IMU_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
     imu: str
     certainty: float
     distance: float
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    targets: Targets
     def __init__(
         self,
         imu: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
     ) -> None: ...
 
 class BM25(_message.Message):
@@ -481,17 +556,38 @@ class RefPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class NearVector(_message.Message):
-    __slots__ = ("vector", "certainty", "distance", "vector_bytes", "target_vectors")
+    __slots__ = (
+        "vector",
+        "certainty",
+        "distance",
+        "vector_bytes",
+        "target_vectors",
+        "targets",
+        "vector_per_target",
+    )
+
+    class VectorPerTargetEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: bytes
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[bytes] = ...) -> None: ...
+
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_PER_TARGET_FIELD_NUMBER: _ClassVar[int]
     vector: _containers.RepeatedScalarFieldContainer[float]
     certainty: float
     distance: float
     vector_bytes: bytes
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    targets: Targets
+    vector_per_target: _containers.ScalarMap[str, bytes]
     def __init__(
         self,
         vector: _Optional[_Iterable[float]] = ...,
@@ -499,24 +595,29 @@ class NearVector(_message.Message):
         distance: _Optional[float] = ...,
         vector_bytes: _Optional[bytes] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
+        vector_per_target: _Optional[_Mapping[str, bytes]] = ...,
     ) -> None: ...
 
 class NearObject(_message.Message):
-    __slots__ = ("id", "certainty", "distance", "target_vectors")
+    __slots__ = ("id", "certainty", "distance", "target_vectors", "targets")
     ID_FIELD_NUMBER: _ClassVar[int]
     CERTAINTY_FIELD_NUMBER: _ClassVar[int]
     DISTANCE_FIELD_NUMBER: _ClassVar[int]
     TARGET_VECTORS_FIELD_NUMBER: _ClassVar[int]
+    TARGETS_FIELD_NUMBER: _ClassVar[int]
     id: str
     certainty: float
     distance: float
     target_vectors: _containers.RepeatedScalarFieldContainer[str]
+    targets: Targets
     def __init__(
         self,
         id: _Optional[str] = ...,
         certainty: _Optional[float] = ...,
         distance: _Optional[float] = ...,
         target_vectors: _Optional[_Iterable[str]] = ...,
+        targets: _Optional[_Union[Targets, _Mapping]] = ...,
     ) -> None: ...
 
 class Rerank(_message.Message):

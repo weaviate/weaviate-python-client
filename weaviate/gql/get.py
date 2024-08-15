@@ -7,6 +7,8 @@ from enum import Enum
 from json import dumps
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
+import grpc  # type: ignore
+
 from weaviate import util
 from weaviate.connect import Connection
 from weaviate.data.replication import ConsistencyLevel
@@ -28,18 +30,16 @@ from weaviate.gql.filter import (
     MediaType,
     Sort,
 )
+from weaviate.proto.v1 import search_get_pb2
+from weaviate.str_enum import BaseEnum
+from weaviate.types import UUID
 from weaviate.util import (
     image_encoder_b64,
     _capitalize_first_letter,
     get_valid_uuid,
     file_encoder_b64,
-    BaseEnum,
 )
 from weaviate.warnings import _Warnings
-from weaviate.types import UUID
-
-from weaviate.proto.v1 import search_get_pb2
-import grpc  # type: ignore
 
 
 @dataclass
@@ -191,9 +191,9 @@ class GetBuilder(GraphQL):
         self._limit: Optional[int] = None  # To store the limit filter if it is added
         self._offset: Optional[str] = None  # To store the offset filter if it is added
         self._after: Optional[str] = None  # To store the offset filter if it is added
-        self._near_clause: Optional[
-            Filter
-        ] = None  # To store the `near`/`ask` clause if it is added
+        self._near_clause: Optional[Filter] = (
+            None  # To store the `near`/`ask` clause if it is added
+        )
         self._contains_filter = False  # true if any filter is added
         self._sort: Optional[Sort] = None
         self._bm25: Optional[BM25] = None

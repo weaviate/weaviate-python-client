@@ -1,11 +1,13 @@
 # run:
 # - profiling: pytest -m profiling profiling/test_profiling.py --profile-svg
 # - benchmark: pytest profiling/test_profiling.py --benchmark-only --benchmark-disable-gc
-
+import concurrent.futures
 import math
 from typing import Any, List
 import uuid
+
 import pytest
+
 import weaviate
 from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.data import DataObject
@@ -229,6 +231,43 @@ def test_list_value_properties(client: weaviate.WeaviateClient) -> None:
         assert len(objs) == 100
 
 
+@pytest.mark.profiling
+def test_multithreaded_queries(client: weaviate.WeaviateClient) -> None:
+    name = "TestProfileMultithreadedQueries"
+    client.collections.delete(name)
+
+    col = client.collections.create(
+        name=name,
+        properties=[
+            Property(name="index", data_type=DataType.INT),
+        ],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    col = client.collections.get(name)
+
+    col.data.insert_many([{"index": i} for i in range(1000)])
+
+    def query_objects() -> None:
+        for _ in range(100):
+            objs = col.query.fetch_objects(
+                limit=1000,
+                include_vector=False,
+                return_properties=["index"],
+                return_metadata=None,
+            )
+            assert len(objs.objects) == 1000
+
+    threads: List[concurrent.futures.Future] = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        threads.extend([executor.submit(query_objects) for _ in range(4)])
+
+    for thread in threads:
+        thread.result()
+
+    client.collections.delete(name)
+
+
 def test_benchmark_get_vector(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_get_vector, client)
 
@@ -251,3 +290,7 @@ def test_benchmark_blob_properties(benchmark: Any, client: weaviate.WeaviateClie
 
 def test_benchmark_list_value_properties(benchmark: Any, client: weaviate.WeaviateClient) -> None:
     benchmark(test_list_value_properties, client)
+
+
+def test_benchmark_multithreaded_queries(benchmark: Any, client: weaviate.WeaviateClient) -> None:
+    benchmark(test_multithreaded_queries, client)

@@ -2,12 +2,12 @@
 Cluster class definition.
 """
 
-from typing import List, Literal, Optional, Union, cast
+from typing import List, Literal, Optional, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.cluster.types import Node
-from weaviate.connect import Connection, ConnectionV4
+from weaviate.connect import Connection
 from weaviate.exceptions import (
     EmptyResponseException,
 )
@@ -19,7 +19,7 @@ class Cluster:
     Cluster class used for cluster information
     """
 
-    def __init__(self, connection: Union[Connection, ConnectionV4]):
+    def __init__(self, connection: Connection):
         """
         Initialize a Cluster class instance.
 

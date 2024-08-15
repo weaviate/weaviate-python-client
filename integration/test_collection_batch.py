@@ -143,7 +143,7 @@ def test_add_ref_batch_with_tenant(batch_collection: BatchCollection) -> None:
     mt_collection.tenants.create([Tenant(name="tenant" + str(i)) for i in range(5)])
 
     batching = mt_collection.with_tenant("tenant1")
-    with batching.batch.rate_limit(50) as batch:
+    with batching.batch.dynamic() as batch:
         obj_uuid0 = uuid.uuid4()
         batch.add_object(properties={"name": "one"}, uuid=obj_uuid0)
 

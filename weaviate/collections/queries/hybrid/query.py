@@ -1,5 +1,6 @@
 from typing import Generic, List, Optional
 
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -10,6 +11,7 @@ from weaviate.collections.classes.grpc import (
     HybridFusion,
     Rerank,
     HybridVectorType,
+    TargetVectorJoinType,
 )
 from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
@@ -19,13 +21,13 @@ from weaviate.collections.classes.internal import (
     _GroupBy,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.base import _Base
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def hybrid(
+class _HybridQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+    async def hybrid(
         self,
         query: Optional[str],
         *,
@@ -39,7 +41,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -102,7 +104,7 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
             raise WeaviateUnsupportedFeatureError(
                 "Hybrid group by", self._connection.server_version, "1.25.0"
             )
-        res = self._query.hybrid(
+        res = await self._query.hybrid(
             query=query,
             alpha=alpha,
             vector=vector,
@@ -133,3 +135,8 @@ class _HybridQuery(Generic[Properties, References], _BaseQuery[Properties, Refer
             return_properties,
             return_references,
         )
+
+
+@syncify.convert
+class _HybridQuery(Generic[Properties, References], _HybridQueryAsync[Properties, References]):
+    pass
