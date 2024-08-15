@@ -161,13 +161,13 @@ class _Warnings:
     def weaviate_v3_client_is_deprecated() -> None:
         warnings.warn(
             message="""Dep016: Python client v3 `weaviate.Client(...)` connections and methods are deprecated and will
-            be removed by 30.11.2024.
+            be removed by 2024-11-30.
 
-            You can either:
-            a) upgrade your code to use Python client v4 `weaviate.WeaviateClient` connections and methods.
+            Upgrade your code to use Python client v4 `weaviate.WeaviateClient` connections and methods.
                 - For Python Client v4 usage, see: https://weaviate.io/developers/weaviate/client-libraries/python
                 - For code migration, see: https://weaviate.io/developers/weaviate/client-libraries/python/v3_v4_migration
-            b) stay on v3 releases by installing `weaviate-client==3.26.X` and/or pin the dependency in your requirement file using `weaviate-client>=3.26.6;<4.0.0`""",
+
+            If you have to use v3 code, install the v3 client and pin the v3 dependency in your requirements file: `weaviate-client>=3.26.7;<4.0.0`""",
             category=DeprecationWarning,
             stacklevel=1,
         )
