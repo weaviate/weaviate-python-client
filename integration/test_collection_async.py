@@ -250,3 +250,40 @@ async def test_generate(async_openai_collection: AsyncOpenAICollectionFactory) -
     assert len(res.objects) == 2
     for obj in res.objects:
         assert obj.generated is not None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "ids, expected_len, expected",
+    [
+        ([], 0, set()),
+        ((), 0, set()),
+        ([UUID3, ], 1, {UUID3, }),
+        ([UUID1, UUID2], 2, {UUID1, UUID2}),
+        ((UUID1, UUID3), 2, {UUID1, UUID3}),
+        ((UUID1, UUID3, UUID3), 2, {UUID1, UUID3}),
+    ],
+)
+async def test_generate_by_ids(
+    async_collection_factory: AsyncCollectionFactory,
+    ids: Iterable[UUID],
+    expected_len: int,
+    expected: set,
+) -> None:
+    collection = await async_collection_factory(
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+    )
+    await collection.data.insert_many(
+        [
+            DataObject(properties={"name": "first"}, uuid=UUID1),
+            DataObject(properties={"name": "second"}, uuid=UUID2),
+            DataObject(properties={"name": "third"}, uuid=UUID3),
+        ]
+    )
+    res = await collection.generate.fetch_objects_by_ids(ids)
+    assert res is not None
+    assert len(res.objects) == expected_len
+    assert {o.uuid for o in res.objects} == expected
