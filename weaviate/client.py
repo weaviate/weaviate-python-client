@@ -173,7 +173,8 @@ class WeaviateAsyncClient(_WeaviateClientBase):
         await self.close()
 
 
-@deprecated("""
+@deprecated(
+    """
 Python client v3 `weaviate.Client(...)` connections and methods are deprecated and will
             be removed by 2024-11-30.
 
@@ -181,7 +182,8 @@ Python client v3 `weaviate.Client(...)` connections and methods are deprecated a
                 - For Python Client v4 usage, see: https://weaviate.io/developers/weaviate/client-libraries/python
                 - For code migration, see: https://weaviate.io/developers/weaviate/client-libraries/python/v3_v4_migration
 
-            If you have to use v3 code, install the v3 client and pin the v3 dependency in your requirements file: `weaviate-client>=3.26.7;<4.0.0`""")
+            If you have to use v3 code, install the v3 client and pin the v3 dependency in your requirements file: `weaviate-client>=3.26.7;<4.0.0`"""
+)
 class Client:
     """
     The v3 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
