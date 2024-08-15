@@ -27,6 +27,7 @@ from weaviate.collections.classes.config import (
     GenerativeSearches,
     Rerankers,
     _RerankerConfigCreate,
+    Tokenization
 )
 from weaviate.collections.classes.tenants import Tenant
 
@@ -589,7 +590,69 @@ def test_collection_config_get_shards_multi_tenancy(collection_factory: Collecti
     assert "tenant1" in [shard.name for shard in shards]
     assert "tenant2" in [shard.name for shard in shards]
 
-
+def test_collection_config_create_from_dict(collection_factory: CollectionFactory) -> None:
+    collection, client = collection_factory(
+        inverted_index_config=Configure.inverted_index(bm25_b=0.8, bm25_k1=1.3),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+        generative_config=Configure.Generative.openai(model="gpt-4"),
+        vectorizer_config=Configure.Vectorizer.text2vec_openai(model="ada"),
+        vector_index_config=Configure.VectorIndex.flat(
+            vector_cache_max_objects=234,
+            quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=456),
+        ),
+        description="Some description",
+        reranker_config=Configure.Reranker.cohere(model="rerank-english-v2.0"),
+        properties=[
+            Property(name="field_tokenization", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
+            Property(name="field_description", data_type=DataType.TEXT, 
+                     tokenization=Tokenization.FIELD, description="field desc"),
+            Property(name="field_index_filterable", data_type=DataType.TEXT, 
+                     index_filterable=False),
+            Property(name="field_skip_vectorization", data_type=DataType.TEXT, 
+                     skip_vectorization=True),
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="texts", data_type=DataType.TEXT_ARRAY),
+            Property(name="number", data_type=DataType.NUMBER),
+            Property(name="numbers", data_type=DataType.NUMBER_ARRAY),
+            Property(name="int", data_type=DataType.INT),
+            Property(name="ints", data_type=DataType.INT_ARRAY),
+            Property(name="date", data_type=DataType.DATE),
+            Property(name="dates", data_type=DataType.DATE_ARRAY),
+            Property(name="boolean", data_type=DataType.BOOL),
+            Property(name="booleans", data_type=DataType.BOOL_ARRAY),
+            Property(name="geo", data_type=DataType.GEO_COORDINATES),
+            Property(name="phone", data_type=DataType.PHONE_NUMBER),            
+            # TODO: this will fail
+            # Property(name="field_index_searchable", data_type=DataType.TEXT, 
+            #          index_searchable=False),
+            # Property(name="field_skip_vectorization", data_type=DataType.TEXT, 
+            #          vectorize_property_name=False),            
+            # Property(
+            #     name="name",
+            #     data_type=DataType.OBJECT,
+            #     nested_properties=[
+            #         Property(name="first", data_type=DataType.TEXT),
+            #         Property(name="last", data_type=DataType.TEXT),
+            #     ],
+            # ),
+        ],
+        return_client=True
+    )
+    old_dict = collection.config.get().to_dict()
+    new_dict = old_dict
+    new_collection_name = collection.name + "_FROM_DICT"
+    client.collections.delete(new_collection_name)
+    new_dict["class"] = new_collection_name
+    new_collection = client.collections.create_from_dict(new_dict)
+    new_collection_dict = new_collection.config.get().to_dict()
+    # make the same name for collections
+    new_collection_dict["class"] = collection.name
+    old_dict["class"] = collection.name
+    # check if both dict are the same
+    assert new_collection_dict == old_dict
+    # remove the created collection
+    client.collections.delete(new_collection_name)
+    
 def test_config_vector_index_flat_and_quantizer_bq(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.flat(
