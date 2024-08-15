@@ -554,7 +554,15 @@ def test_filter_id(collection_factory: CollectionFactory, weav_filter: _FilterVa
     [
         ([], 0, set()),
         ((), 0, set()),
-        ([UUID3, ], 1, {UUID3, }),
+        (
+            [
+                UUID3,
+            ],
+            1,
+            {
+                UUID3,
+            },
+        ),
         ([UUID1, UUID2], 2, {UUID1, UUID2}),
         ((UUID1, UUID3), 2, {UUID1, UUID3}),
         ((UUID1, UUID3, UUID3), 2, {UUID1, UUID3}),
