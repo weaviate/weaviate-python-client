@@ -595,7 +595,12 @@ def test_collection_config_create_from_dict(collection_factory: CollectionFactor
         inverted_index_config=Configure.inverted_index(bm25_b=0.8, bm25_k1=1.3),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         generative_config=Configure.Generative.openai(model="gpt-4"),
-        vectorizer_config=Configure.Vectorizer.text2vec_openai(model="ada"),
+        vectorizer_config=Configure.Vectorizer.text2vec_openai(
+            model="text-embedding-3-small",
+            base_url="http://weaviate.io",
+            vectorize_collection_name=False,
+            dimensions=512
+        ),
         vector_index_config=Configure.VectorIndex.flat(
             vector_cache_max_objects=234,
             quantizer=Configure.VectorIndex.Quantizer.bq(rescore_limit=456),
@@ -621,12 +626,12 @@ def test_collection_config_create_from_dict(collection_factory: CollectionFactor
             Property(name="boolean", data_type=DataType.BOOL),
             Property(name="booleans", data_type=DataType.BOOL_ARRAY),
             Property(name="geo", data_type=DataType.GEO_COORDINATES),
-            Property(name="phone", data_type=DataType.PHONE_NUMBER),            
+            Property(name="phone", data_type=DataType.PHONE_NUMBER),
+            Property(name="vectorize_property_name", data_type=DataType.TEXT, 
+                     vectorize_property_name=False),
+            Property(name="field_index_searchable", data_type=DataType.TEXT, 
+                     index_searchable=False),
             # TODO: this will fail
-            # Property(name="field_index_searchable", data_type=DataType.TEXT, 
-            #          index_searchable=False),
-            # Property(name="field_skip_vectorization", data_type=DataType.TEXT, 
-            #          vectorize_property_name=False),            
             # Property(
             #     name="name",
             #     data_type=DataType.OBJECT,
@@ -649,6 +654,8 @@ def test_collection_config_create_from_dict(collection_factory: CollectionFactor
     new_collection_dict["class"] = collection.name
     old_dict["class"] = collection.name
     # check if both dict are the same
+    #print("old", old_dict)
+    #print("new", new_collection_dict)
     assert new_collection_dict == old_dict
     # remove the created collection
     client.collections.delete(new_collection_name)
