@@ -47,14 +47,18 @@ class CollectionFactory(Protocol):
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerConfigCreate] = None,
-        return_client: bool = False
+        return_client: bool = False,
     ) -> Union[Collection[Any, Any], Tuple[Collection[Any, Any], weaviate.WeaviateClient]]:
         """Typing for fixture."""
         ...
 
 
 @pytest.fixture
-def collection_factory(request: SubRequest) -> Generator[Union[Collection[Any, Any], Tuple[Collection[Any, Any], weaviate.WeaviateClient]], None, None]:
+def collection_factory(
+    request: SubRequest,
+) -> Generator[
+    Union[Collection[Any, Any], Tuple[Collection[Any, Any], weaviate.WeaviateClient]], None, None
+]:
     name_fixture: Optional[str] = None
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
@@ -76,7 +80,7 @@ def collection_factory(request: SubRequest) -> Generator[Union[Collection[Any, A
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
         reranker_config: Optional[_RerankerConfigCreate] = None,
-        return_client: bool = False
+        return_client: bool = False,
     ) -> Collection[Any, Any]:
         nonlocal client_fixture, name_fixture
         name_fixture = _sanitize_collection_name(request.node.name) + name
