@@ -273,25 +273,29 @@ async def test_generate(async_openai_collection: AsyncOpenAICollectionFactory) -
     ],
 )
 async def test_generate_by_ids(
-    async_collection_factory: AsyncCollectionFactory,
+    async_openai_collection: AsyncOpenAICollectionFactory,
     ids: Iterable[UUID],
     expected_len: int,
     expected: set,
 ) -> None:
-    collection = await async_collection_factory(
-        properties=[
-            Property(name="name", data_type=DataType.TEXT),
-        ],
+    collection = await async_openai_collection(
         vectorizer_config=wvc.config.Configure.Vectorizer.none(),
     )
     await collection.data.insert_many(
         [
-            DataObject(properties={"name": "first"}, uuid=UUID1),
-            DataObject(properties={"name": "second"}, uuid=UUID2),
-            DataObject(properties={"name": "third"}, uuid=UUID3),
+            DataObject(properties={"text": "John Doe"}, uuid=UUID1),
+            DataObject(properties={"text": "Jane Doe"}, uuid=UUID2),
+            DataObject(properties={"text": "J. Doe"}, uuid=UUID3),
         ]
     )
-    res = await collection.generate.fetch_objects_by_ids(ids)
+    res = await collection.generate.fetch_objects_by_ids(
+        ids,
+        single_prompt="Who is this? {text}",
+        grouped_task="Who are these people?",
+    )
     assert res is not None
+    assert res.generated is not None
     assert len(res.objects) == expected_len
     assert {o.uuid for o in res.objects} == expected
+    for obj in res.objects:
+        assert obj.generated is not None
