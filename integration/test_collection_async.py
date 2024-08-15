@@ -258,7 +258,15 @@ async def test_generate(async_openai_collection: AsyncOpenAICollectionFactory) -
     [
         ([], 0, set()),
         ((), 0, set()),
-        ([UUID3, ], 1, {UUID3, }),
+        (
+            [
+                UUID3,
+            ],
+            1,
+            {
+                UUID3,
+            },
+        ),
         ([UUID1, UUID2], 2, {UUID1, UUID2}),
         ((UUID1, UUID3), 2, {UUID1, UUID3}),
         ((UUID1, UUID3, UUID3), 2, {UUID1, UUID3}),

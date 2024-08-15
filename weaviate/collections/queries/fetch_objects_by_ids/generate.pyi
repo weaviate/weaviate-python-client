@@ -17,7 +17,9 @@ from weaviate.collections.classes.types import Properties, TProperties, Referenc
 from weaviate.collections.queries.base import _Base
 from weaviate.types import UUID, INCLUDE_VECTOR
 
-class _FetchObjectsByIDsGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
+class _FetchObjectsByIDsGenerateAsync(
+    Generic[Properties, References], _Base[Properties, References]
+):
     @overload
     async def fetch_objects_by_ids(
         self,

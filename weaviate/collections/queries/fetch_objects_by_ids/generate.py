@@ -16,7 +16,9 @@ from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import UUID, INCLUDE_VECTOR
 
 
-class _FetchObjectsByIDsGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
+class _FetchObjectsByIDsGenerateAsync(
+    Generic[Properties, References], _Base[Properties, References]
+):
     async def fetch_objects_by_ids(
         self,
         ids: Iterable[UUID],
