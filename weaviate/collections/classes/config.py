@@ -1016,8 +1016,8 @@ class _Property(_PropertyBase):
         out = super().to_dict()
         out["dataType"] = [self.data_type.value]
         out["indexFilterable"] = self.index_filterable
-        out["indexVector"] = self.index_searchable
-        out["tokenizer"] = self.tokenization.value if self.tokenization else None
+        out["indexSearchable"] = self.index_searchable
+        out["tokenization"] = self.tokenization.value if self.tokenization else None
 
         module_config: Dict[str, Any] = {}
         if self.vectorizer is not None:
