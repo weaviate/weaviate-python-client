@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 3.26.7
+--------------
+This patch version includes
+
+- Remove deprecation warnings for old client and weaviate versions.
+
 Version 3.26.6
 --------------
 This patch version includes
