@@ -251,6 +251,18 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_mistral(
+            vectorize_collection_name=False,
+            model="cool-model",
+        ),
+        {
+            "text2vec-mistral": {
+                "vectorizeClassName": False,
+                "model": "cool-model",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_palm(
             project_id="project",
         ),
@@ -1179,6 +1191,20 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "baseURL": "https://api.openai.com/",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.NamedVectors.text2vec_mistral(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-mistral": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
                     }
                 },
                 "vectorIndexType": "hnsw",

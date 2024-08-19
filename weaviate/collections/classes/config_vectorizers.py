@@ -232,7 +232,7 @@ class _Text2VecHuggingFaceConfigCreate(_Text2VecHuggingFaceConfig, _VectorizerCo
 
 
 class _Text2VecMistralConfig(_VectorizerConfigCreate):
-    vectorizer: Vectorizers = Field(default=Vectorizers.TEXT2VEC_MISTRAL, frozen=True, exclude=True)
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(default=Vectorizers.TEXT2VEC_MISTRAL, frozen=True, exclude=True)
     model: Optional[str]
     vectorizeClassName: bool
 
