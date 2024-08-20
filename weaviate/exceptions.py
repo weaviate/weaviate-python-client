@@ -317,7 +317,7 @@ class WeaviateConnectionError(WeaviateBaseError):
     """Is raised when the connection to Weaviate fails."""
 
     def __init__(self, message: str = "") -> None:
-        msg = f"""Connection to Weaviate failed. {message}"""
+        msg = f"""Connection to Weaviate failed. Details: {message}"""
         super().__init__(msg)
 
 
@@ -326,4 +326,12 @@ class WeaviateUnsupportedFeatureError(WeaviateBaseError):
 
     def __init__(self, feature: str, current: str, minimum: str) -> None:
         msg = f"""{feature} is not supported by your connected server's Weaviate version. The current version is {current}, but the feature requires at least version {minimum}."""
+        super().__init__(msg)
+
+
+class WeaviateTimeoutError(WeaviateBaseError):
+    """Is raised when a request to Weaviate times out."""
+
+    def __init__(self, message: str = "") -> None:
+        msg = f"""The request to Weaviate timed out while awaiting a response. Try adjusting the timeout config for your client. Details: {message}"""
         super().__init__(msg)

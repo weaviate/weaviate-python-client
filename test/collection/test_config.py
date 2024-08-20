@@ -752,6 +752,26 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.anthropic(
+            model="model",
+            max_tokens=100,
+            stop_sequences=["stop"],
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-anthropic": {
+                "model": "model",
+                "maxTokens": 100,
+                "stopSequences": ["stop"],
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
 ]
 
 
@@ -1004,6 +1024,19 @@ def test_vector_config_hnsw_bq() -> None:
 
     assert vi_dict["efConstruction"] == 128
     assert vi_dict["bq"]["rescoreLimit"] == 123
+
+
+def test_vector_config_hnsw_sq() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        ef_construction=128,
+        quantizer=Configure.VectorIndex.Quantizer.sq(rescore_limit=123, training_limit=5012),
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["efConstruction"] == 128
+    assert vi_dict["sq"]["rescoreLimit"] == 123
+    assert vi_dict["sq"]["trainingLimit"] == 5012
 
 
 def test_vector_config_flat_pq() -> None:

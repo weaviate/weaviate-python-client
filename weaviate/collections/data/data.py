@@ -1,29 +1,27 @@
+import asyncio
 import datetime
 import uuid as uuid_package
 from typing import (
     Dict,
     Any,
-    Literal,
     Optional,
     List,
+    Literal,
     Mapping,
-    Tuple,
     Sequence,
     Generic,
+    Tuple,
     Type,
     Union,
     cast,
     overload,
 )
 
-from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
-from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
-from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
     DeleteManyObject,
     _BatchObject,
-    BatchObjectReturn,
     _BatchReference,
+    BatchObjectReturn,
     BatchReferenceReturn,
     DeleteManyReturn,
 )
@@ -43,21 +41,23 @@ from weaviate.collections.classes.types import (
     _PhoneNumber,
     Properties,
     TProperties,
-    WeaviateField,
     _check_properties_generic,
+    WeaviateField,
 )
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.logger import logger
 from weaviate.types import BEACON, UUID, VECTORS
-from weaviate.util import (
-    _datetime_to_string,
-    _get_vector_v4,
-)
+from weaviate.util import _datetime_to_string, _get_vector_v4
 from weaviate.validator import _validate_input, _ValidateArgument
 
+from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
+from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
+from weaviate.collections.batch.rest import _BatchREST
+from weaviate.exceptions import WeaviateInvalidInputError
 
-class _Data:
+
+class _DataBase:
     def __init__(
         self,
         connection: ConnectionV4,
@@ -75,11 +75,13 @@ class _Data:
         self._batch_delete_grpc = _BatchDeleteGRPC(connection, consistency_level)
         self._batch_rest = _BatchREST(connection, consistency_level)
 
-    def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
+
+class _Data(_DataBase):
+    async def _insert(self, weaviate_obj: Dict[str, Any]) -> uuid_package.UUID:
         path = "/objects"
 
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
-        self._connection.post(
+        await self._connection.post(
             path=path,
             weaviate_object=weaviate_obj,
             params=params,
@@ -88,11 +90,11 @@ class _Data:
         )
         return uuid_package.UUID(weaviate_obj["id"])
 
-    def _exists(self, uuid: str) -> bool:
+    async def _exists(self, uuid: str) -> bool:
         path = "/objects/" + self.name + "/" + uuid
 
-        params = self.__apply_context({})
-        request = self._connection.head(
+        params = self._apply_context({})
+        request = await self._connection.head(
             path=path,
             params=params,
             error_msg="object existence",
@@ -100,76 +102,13 @@ class _Data:
         )
         return request.status_code == 204
 
-    def delete_by_id(self, uuid: UUID) -> bool:
-        """Delete an object from the collection based on its UUID.
-
-        Arguments:
-            `uuid`
-                The UUID of the object to delete, REQUIRED.
-        """
-        path = f"/objects/{self.name}/{uuid}"
-
-        response = self._connection.delete(
-            path=path,
-            params=self.__apply_context({}),
-            error_msg="Object could not be deleted.",
-            status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
-        )
-        if response.status_code == 204:
-            return True  # Successfully deleted
-        else:
-            assert response.status_code == 404
-            return False  # did not exist
-
-    @overload
-    def delete_many(
-        self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
-    ) -> DeleteManyReturn[None]:
-        ...
-
-    @overload
-    def delete_many(
-        self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
-    ) -> DeleteManyReturn[List[DeleteManyObject]]:
-        ...
-
-    @overload
-    def delete_many(
-        self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
-    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
-        ...
-
-    def delete_many(
-        self, where: _Filters, verbose: bool = False, *, dry_run: bool = False
-    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
-        """Delete multiple objects from the collection based on a filter.
-
-        Arguments:
-            `where`
-                The filter to apply. This filter is the same that is used when performing queries and has the same syntax, REQUIRED.
-            `verbose`
-                Whether to return the deleted objects in the response.
-            `dry_run`
-                Whether to perform a dry run. If set to `True`, the objects will not be deleted, but the response will contain the objects that would have been deleted.
-
-        Raises:
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`:
-                If Weaviate reports a non-OK status.
-        """
-        _ValidateArgument(expected=[_Filters], name="where", value=where)
-        return self._batch_delete_grpc.batch_delete(
-            self.name, where, verbose, dry_run, self._tenant
-        )
-
-    def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
+    async def _replace(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
 
         weaviate_obj["id"] = str(uuid)  # must add ID to payload for PUT request
 
-        self._connection.put(
+        await self._connection.put(
             path=path,
             weaviate_object=weaviate_obj,
             params=params,
@@ -177,11 +116,11 @@ class _Data:
             status_codes=_ExpectedStatusCodes(ok_in=200, error="replace object"),
         )
 
-    def _update(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
+    async def _update(self, weaviate_obj: Dict[str, Any], uuid: UUID) -> None:
         path = f"/objects/{self.name}/{uuid}"
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
 
-        self._connection.patch(
+        await self._connection.patch(
             path=path,
             weaviate_object=weaviate_obj,
             params=params,
@@ -189,7 +128,7 @@ class _Data:
             status_codes=_ExpectedStatusCodes(ok_in=[200, 204], error="update object"),
         )
 
-    def _reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
+    async def _reference_add(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -198,29 +137,34 @@ class _Data:
             raise WeaviateInvalidInputError(
                 "reference_add does not support adding multiple objects to a reference at once. Use reference_add_many or reference_replace instead."
             )
-        for beacon in ref._to_beacons():
-            self._connection.post(
-                path=path,
-                weaviate_object=beacon,
-                params=self.__apply_context(params),
-                error_msg="Reference was not added.",
-                status_codes=_ExpectedStatusCodes(ok_in=200, error="add reference to object"),
-            )
+        await asyncio.gather(
+            *[
+                self._connection.post(
+                    path=path,
+                    weaviate_object=beacon,
+                    params=self._apply_context(params),
+                    error_msg="Reference was not added.",
+                    status_codes=_ExpectedStatusCodes(ok_in=200, error="add reference to object"),
+                )
+                for beacon in ref._to_beacons()
+            ]
+        )
 
-    def _reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
+    async def _reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
         batch = [
             _BatchReference(
                 from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
                 to=beacon,
                 tenant=self._tenant,
                 from_uuid=str(ref.from_uuid),
+                to_uuid=None,  # not relevant here, this entry is only needed for the batch module
             )
             for ref in refs
             for beacon in ref._to_beacons()
         ]
-        return self._batch_rest.references(list(batch))
+        return await self._batch_rest.references(list(batch))
 
-    def _reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
+    async def _reference_delete(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -229,28 +173,36 @@ class _Data:
             raise WeaviateInvalidInputError(
                 "reference_delete does not support deleting multiple objects from a reference at once. Use reference_replace instead."
             )
-        for beacon in ref._to_beacons():
-            self._connection.delete(
-                path=path,
-                weaviate_object=beacon,
-                params=self.__apply_context(params),
-                error_msg="Reference was not deleted.",
-                status_codes=_ExpectedStatusCodes(ok_in=204, error="delete reference from object"),
-            )
+        await asyncio.gather(
+            *[
+                self._connection.delete(
+                    path=path,
+                    weaviate_object=beacon,
+                    params=self._apply_context(params),
+                    error_msg="Reference was not deleted.",
+                    status_codes=_ExpectedStatusCodes(
+                        ok_in=204, error="delete reference from object"
+                    ),
+                )
+                for beacon in ref._to_beacons()
+            ]
+        )
 
-    def _reference_replace(self, from_uuid: UUID, from_property: str, ref: _Reference) -> None:
+    async def _reference_replace(
+        self, from_uuid: UUID, from_property: str, ref: _Reference
+    ) -> None:
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
-        self._connection.put(
+        await self._connection.put(
             path=path,
             weaviate_object=ref._to_beacons(),
-            params=self.__apply_context(params),
+            params=self._apply_context(params),
             error_msg="Reference was not replaced.",
             status_codes=_ExpectedStatusCodes(ok_in=200, error="replace reference on object"),
         )
 
-    def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
         if self._tenant is not None:
             params["tenant"] = self._tenant
         if self._consistency_level is not None:
@@ -305,7 +257,7 @@ class _Data:
         )
 
 
-class _DataCollection(Generic[Properties], _Data):
+class _DataCollectionAsync(Generic[Properties], _Data):
     def __init__(
         self,
         connection: ConnectionV4,
@@ -318,9 +270,9 @@ class _DataCollection(Generic[Properties], _Data):
         super().__init__(connection, name, consistency_level, tenant, validate_arguments)
         self.__type = type_
 
-    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
+    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollectionAsync[TProperties]":
         _check_properties_generic(data_model)
-        return _DataCollection[TProperties](
+        return _DataCollectionAsync[TProperties](
             self._connection,
             self.name,
             self._consistency_level,
@@ -336,7 +288,7 @@ class _DataCollection(Generic[Properties], _Data):
             obj["vector"] = _get_vector_v4(vector)
         return obj
 
-    def insert(
+    async def insert(
         self,
         properties: Properties,
         references: Optional[ReferenceInputs] = None,
@@ -385,9 +337,9 @@ class _DataCollection(Generic[Properties], _Data):
         if vector is not None:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
-        return self._insert(weaviate_obj)
+        return await self._insert(weaviate_obj)
 
-    def insert_many(
+    async def insert_many(
         self,
         objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
     ) -> BatchObjectReturn:
@@ -407,33 +359,41 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.exceptions.WeaviateInsertManyAllFailedError`:
                 If every object in the batch fails to be inserted. The exception message contains details about the failure.
         """
-        return self._batch_grpc.objects(
-            [
-                (
-                    _BatchObject(
-                        collection=self.name,
-                        vector=obj.vector,
-                        uuid=str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
-                        properties=cast(dict, obj.properties),
-                        tenant=self._tenant,
-                        references=obj.references,
-                    )
-                    if isinstance(obj, DataObject)
-                    else _BatchObject(
-                        collection=self.name,
-                        vector=None,
-                        uuid=str(uuid_package.uuid4()),
-                        properties=cast(dict, obj),
-                        tenant=self._tenant,
-                        references=None,
-                    )
+        objs = [
+            (
+                _BatchObject(
+                    collection=self.name,
+                    vector=obj.vector,
+                    uuid=str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
+                    properties=cast(dict, obj.properties),
+                    tenant=self._tenant,
+                    references=obj.references,
+                    index=idx,
                 )
-                for obj in objects
-            ],
-            timeout=self._connection.timeout_config.insert,
-        )
+                if isinstance(obj, DataObject)
+                else _BatchObject(
+                    collection=self.name,
+                    vector=None,
+                    uuid=str(uuid_package.uuid4()),
+                    properties=cast(dict, obj),
+                    tenant=self._tenant,
+                    references=None,
+                    index=idx,
+                )
+            )
+            for idx, obj in enumerate(objects)
+        ]
+        res = await self._batch_grpc.objects(objs, timeout=self._connection.timeout_config.insert)
+        if (n_obj_errs := len(res.errors)) > 0:
+            logger.error(
+                {
+                    "message": f"Failed to send {n_obj_errs} objects in a batch of {len(objs)}. Please inspect the errors variable of the returned object for more information.",
+                    "errors": res.errors,
+                }
+            )
+        return res
 
-    def replace(
+    async def replace(
         self,
         uuid: UUID,
         properties: Properties,
@@ -486,9 +446,9 @@ class _DataCollection(Generic[Properties], _Data):
         if vector is not None:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
-        self._replace(weaviate_obj, uuid=uuid)
+        await self._replace(weaviate_obj, uuid=uuid)
 
-    def update(
+    async def update(
         self,
         uuid: UUID,
         properties: Optional[Properties] = None,
@@ -532,9 +492,11 @@ class _DataCollection(Generic[Properties], _Data):
         if vector is not None:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
-        self._update(weaviate_obj, uuid=uuid)
+        await self._update(weaviate_obj, uuid=uuid)
 
-    def reference_add(self, from_uuid: UUID, from_property: str, to: SingleReferenceInput) -> None:
+    async def reference_add(
+        self, from_uuid: UUID, from_property: str, to: SingleReferenceInput
+    ) -> None:
         """Create a reference between an object in this collection and any other object in Weaviate.
 
         Arguments:
@@ -565,9 +527,9 @@ class _DataCollection(Generic[Properties], _Data):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
             ref = _Reference(target_collection=None, uuids=to)
-        self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
+        await self._reference_add(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
+    async def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
         """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
 
         Arguments:
@@ -584,9 +546,9 @@ class _DataCollection(Generic[Properties], _Data):
             `weaviate.UnexpectedStatusCodeError
                 If Weaviate reports a non-OK status.
         """
-        return self._reference_add_many(refs)
+        return await self._reference_add_many(refs)
 
-    def reference_delete(
+    async def reference_delete(
         self, from_uuid: UUID, from_property: str, to: SingleReferenceInput
     ) -> None:
         """Delete a reference from an object within the collection.
@@ -613,9 +575,11 @@ class _DataCollection(Generic[Properties], _Data):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
             ref = _Reference(target_collection=None, uuids=to)
-        self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
+        await self._reference_delete(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def reference_replace(self, from_uuid: UUID, from_property: str, to: ReferenceInput) -> None:
+    async def reference_replace(
+        self, from_uuid: UUID, from_property: str, to: ReferenceInput
+    ) -> None:
         """Replace a reference of an object within the collection.
 
         Arguments:
@@ -648,9 +612,9 @@ class _DataCollection(Generic[Properties], _Data):
             ref = _Reference(target_collection=to.target_collection, uuids=to.uuids)
         else:
             ref = _Reference(target_collection=None, uuids=to)
-        self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
+        await self._reference_replace(from_uuid=from_uuid, from_property=from_property, ref=ref)
 
-    def exists(self, uuid: UUID) -> bool:
+    async def exists(self, uuid: UUID) -> bool:
         """Check for existence of a single object in the collection.
 
         Arguments:
@@ -665,4 +629,64 @@ class _DataCollection(Generic[Properties], _Data):
                 If any unexpected error occurs during the operation.
         """
         _validate_input(_ValidateArgument(expected=[UUID], name="uuid", value=uuid))
-        return self._exists(str(uuid))
+        return await self._exists(str(uuid))
+
+    async def delete_by_id(self, uuid: UUID) -> bool:
+        """Delete an object from the collection based on its UUID.
+
+        Arguments:
+            `uuid`
+                The UUID of the object to delete, REQUIRED.
+        """
+        path = f"/objects/{self.name}/{uuid}"
+
+        response = await self._connection.delete(
+            path=path,
+            params=self._apply_context({}),
+            error_msg="Object could not be deleted.",
+            status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
+        )
+        if response.status_code == 204:
+            return True  # Successfully deleted
+        else:
+            assert response.status_code == 404
+            return False  # did not exist
+
+    @overload
+    async def delete_many(
+        self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
+    ) -> DeleteManyReturn[None]: ...
+
+    @overload
+    async def delete_many(
+        self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
+    ) -> DeleteManyReturn[List[DeleteManyObject]]: ...
+
+    @overload
+    async def delete_many(
+        self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
+    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...
+
+    async def delete_many(
+        self, where: _Filters, verbose: bool = False, *, dry_run: bool = False
+    ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
+        """Delete multiple objects from the collection based on a filter.
+
+        Arguments:
+            `where`
+                The filter to apply. This filter is the same that is used when performing queries and has the same syntax, REQUIRED.
+            `verbose`
+                Whether to return the deleted objects in the response.
+            `dry_run`
+                Whether to perform a dry run. If set to `True`, the objects will not be deleted, but the response will contain the objects that would have been deleted.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`:
+                If Weaviate reports a non-OK status.
+        """
+        _ValidateArgument(expected=[_Filters], name="where", value=where)
+        return await self._batch_delete_grpc.batch_delete(
+            self.name, where, verbose, dry_run, self._tenant
+        )

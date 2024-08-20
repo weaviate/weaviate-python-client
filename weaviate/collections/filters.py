@@ -22,13 +22,11 @@ from weaviate.util import _datetime_to_string
 class _FilterToGRPC:
     @overload
     @staticmethod
-    def convert(weav_filter: Literal[None]) -> None:
-        ...
+    def convert(weav_filter: Literal[None]) -> None: ...
 
     @overload
     @staticmethod
-    def convert(weav_filter: _Filters) -> base_pb2.Filters:
-        ...
+    def convert(weav_filter: _Filters) -> base_pb2.Filters: ...
 
     @staticmethod
     def convert(weav_filter: Optional[_Filters]) -> Optional[base_pb2.Filters]:

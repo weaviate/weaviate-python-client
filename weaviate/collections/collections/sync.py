@@ -1,11 +1,9 @@
 from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
 
-from weaviate.collections.base import _CollectionsBase
 from weaviate.collections.classes.config import (
     _NamedVectorConfigCreate,
     CollectionConfig,
     CollectionConfigSimple,
-    _CollectionConfigCreate,
     _GenerativeConfigCreate,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
@@ -24,12 +22,17 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import Collection
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.collections.collections.async_ import _CollectionsAsync
+from weaviate.event_loop import _EventLoop
 from weaviate.util import _capitalize_first_letter
 from weaviate.validator import _validate_input, _ValidateArgument
 
 
-class _Collections(_CollectionsBase):
+class _Collections:
+    def __init__(self, event_loop: _EventLoop, collections: _CollectionsAsync) -> None:
+        self.__loop = event_loop
+        self.__collections = collections
+
     def create(
         self,
         name: str,
@@ -96,43 +99,33 @@ class _Collections(_CollectionsBase):
         Raises:
             `weaviate.WeaviateInvalidInputError`
                 If the input parameters are invalid.
-            `weaviate.exceptions.WeaviateUnsupportedFeatureError`
-                If the Weaviate version is lower than 1.24.0 and named vectorizers are provided.
             `weaviate.WeaviateConnectionError`
                 If the network connection to Weaviate fails.
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if isinstance(vectorizer_config, list) and self._connection._weaviate_version.is_lower_than(
-            1, 24, 0
-        ):
-            raise WeaviateInvalidInputError(
-                "Named vectorizers are only supported in Weaviate v1.24.0 and higher"
-            )
-
-        config = _CollectionConfigCreate(
+        self.__loop.run_until_complete(
+            self.__collections.create,
+            name,
             description=description,
             generative_config=generative_config,
             inverted_index_config=inverted_index_config,
             multi_tenancy_config=multi_tenancy_config,
-            name=name,
             properties=properties,
             references=references,
             replication_config=replication_config,
             reranker_config=reranker_config,
             sharding_config=sharding_config,
-            vectorizer_config=vectorizer_config,
             vector_index_config=vector_index_config,
+            vectorizer_config=vectorizer_config,
+            data_model_properties=data_model_properties,
+            data_model_references=data_model_references,
+            skip_argument_validation=skip_argument_validation,
         )
-
-        name = super()._create(config._to_dict())
-        assert (
-            config.name == name
-        ), f"Name of created collection ({name}) does not match given name ({config.name})"
         return self.get(
             name,
-            data_model_properties,
-            data_model_references,
+            data_model_properties=data_model_properties,
+            data_model_references=data_model_references,
             skip_argument_validation=skip_argument_validation,
         )
 
@@ -172,7 +165,7 @@ class _Collections(_CollectionsBase):
             _check_references_generic(data_model_references)
         name = _capitalize_first_letter(name)
         return Collection[Properties, References](
-            self._connection,
+            self.__collections._connection,
             name,
             properties=data_model_properties,
             references=data_model_references,
@@ -197,13 +190,7 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        _validate_input([_ValidateArgument(expected=[str, List[str]], name="name", value=name)])
-
-        if isinstance(name, str):
-            self._delete(_capitalize_first_letter(name))
-        else:
-            for n in name:
-                self._delete(_capitalize_first_letter(n))
+        return self.__loop.run_until_complete(self.__collections.delete, name)
 
     def delete_all(self) -> None:
         """Use this method to delete all collections from the Weaviate instance.
@@ -219,8 +206,7 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        for name in self.list_all().keys():
-            self.delete(name)
+        return self.__loop.run_until_complete(self.__collections.delete_all)
 
     def exists(self, name: str) -> bool:
         """Use this method to check if a collection exists in the Weaviate instance.
@@ -240,8 +226,7 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
-        return self._exists(_capitalize_first_letter(name))
+        return self.__loop.run_until_complete(self.__collections.exists, name)
 
     def export_config(self, name: str) -> CollectionConfig:
         """Use this method to export the configuration of a collection from the Weaviate instance.
@@ -261,21 +246,18 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        return self._export(_capitalize_first_letter(name))
+        return self.__loop.run_until_complete(self.__collections.export_config, name)
 
     @overload
-    def list_all(self, simple: Literal[False]) -> Dict[str, CollectionConfig]:
-        ...
+    def list_all(self, simple: Literal[False]) -> Dict[str, CollectionConfig]: ...
 
     @overload
-    def list_all(self, simple: Literal[True] = ...) -> Dict[str, CollectionConfigSimple]:
-        ...
+    def list_all(self, simple: Literal[True] = ...) -> Dict[str, CollectionConfigSimple]: ...
 
     @overload
     def list_all(
         self, simple: bool = ...
-    ) -> Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]:
-        ...
+    ) -> Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]: ...
 
     def list_all(
         self, simple: bool = True
@@ -298,8 +280,7 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
-        return self._get_all(simple=simple)
+        return self.__loop.run_until_complete(self.__collections.list_all, simple)
 
     def create_from_dict(self, config: dict) -> Collection:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration dictionary object.
@@ -317,7 +298,7 @@ class _Collections(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        name = super()._create(config)
+        name = self.__loop.run_until_complete(self.__collections._create, config)
         return self.get(name)
 
     def create_from_config(self, config: CollectionConfig) -> Collection:

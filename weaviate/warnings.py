@@ -198,6 +198,22 @@ class _Warnings:
         )
 
     @staticmethod
+    def batch_results_objects_all_responses_attribute() -> None:
+        warnings.warn(
+            message="""Dep020: The `all_responses` attribute in the `BatchResults` object is deprecated and will be removed by Q4 2024. Please instead use the `errors` and `uuids` attributes.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def deprecated_tenant_type(old: str, new: str) -> None:
+        warnings.warn(
+            message=f"""Dep020: The tenant status {old} is deprecated and will be removed by Q1 2025. Please use {new} instead.""",
+            category=DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
             message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
@@ -215,6 +231,16 @@ class _Warnings:
             query_model in your Text2Vec-HuggingFace module configuration. The model definitions will
             be ignored in favour of endpoint_url.
             """,
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def datetime_year_zero(date: str) -> None:
+        warnings.warn(
+            message=f"""Con004: Received a date {date} with year 0. The year 0 does not exist in the Gregorian calendar
+            and cannot be parsed by the datetime library. The year will be set to {datetime.min}.
+            See https://en.wikipedia.org/wiki/Year_zero for more information.""",
             category=UserWarning,
             stacklevel=1,
         )
@@ -269,5 +295,14 @@ class _Warnings:
         warnings.warn(
             message=f"""Grpc002: Unknown return type {field} received, skipping value and returning None.""",
             category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def unclosed_connection() -> None:
+        warnings.warn(
+            message="""Con004: The connection to Weaviate was not closed properly. This can lead to memory leaks.
+            Please make sure to close the connection using `client.close()`.""",
+            category=ResourceWarning,
             stacklevel=1,
         )

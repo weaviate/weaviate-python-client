@@ -13,6 +13,7 @@ from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
 from weaviate.connect import ConnectionV4
+from weaviate.event_loop import _EventLoop
 from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS
 
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 class _BatchCollection(Generic[Properties], _BatchBase):
     def __init__(
         self,
+        event_loop: _EventLoop,
         connection: ConnectionV4,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
@@ -36,6 +38,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
             consistency_level=consistency_level,
             results=results,
             batch_mode=batch_mode,
+            event_loop=event_loop,
             vectorizer_batching=vectorizer_batching,
         )
         self.__name = name
@@ -111,6 +114,10 @@ class _BatchCollection(Generic[Properties], _BatchBase):
         )
 
 
+BatchCollection = _BatchCollection[Properties]
+CollectionBatchingContextManager = _ContextManagerWrapper[BatchCollection[Properties]]
+
+
 class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
     def __init__(
         self,
@@ -148,6 +155,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
             _BatchCollection[Properties](
+                event_loop=self._event_loop,
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
@@ -158,7 +166,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
             )
         )
 
-    def dynamic(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+    def dynamic(self) -> CollectionBatchingContextManager[Properties]:
         """Configure dynamic batching.
 
         When you exit the context manager, the final batch will be sent automatically.
@@ -168,7 +176,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
     def fixed_size(
         self, batch_size: int = 100, concurrent_requests: int = 2
-    ) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+    ) -> CollectionBatchingContextManager[Properties]:
         """Configure fixed size batches. Note that the default is dynamic batching.
 
         When you exit the context manager, the final batch will be sent automatically.
@@ -183,9 +191,7 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self._batch_mode = _FixedSizeBatching(batch_size, concurrent_requests)
         return self.__create_batch_and_reset()
 
-    def rate_limit(
-        self, requests_per_minute: int
-    ) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+    def rate_limit(self, requests_per_minute: int) -> CollectionBatchingContextManager[Properties]:
         """Configure batches with a rate limited vectorizer.
 
         When you exit the context manager, the final batch will be sent automatically.

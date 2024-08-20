@@ -1,6 +1,76 @@
 Changelog
 =========
 
+Version 4.7.1
+--------------
+
+This patch version includes:
+
+- Fixes log noise due to value of deprecated ``GRPC_VERBOSITY`` flag in underlying ``grpc`` library
+- Bumps ``requests`` and ``authlib`` versions to avoid security issues
+- Adds support for configuring the new ``reranker-jinaai`` module when creating collections
+- Fixes parsing of the timeout configuration on client instantiation
+    - The ``query`` timeout now modifies the ``read=`` timeout in the ``httpx`` client for all ``GET``, ``HEAD``, and ``gql`` query requests
+    - The ``insert`` timeout now modifies the ``read=`` timeout in the ``httpx`` client for all ``DELETE``, ``POST``, ``PATCH``, and ``PUT`` requests
+    - The ``init`` timeout now only modifies the timeouts in the ``httpx`` client for requests involved in the ``client.connect()`` method
+
+
+Version 4.7.0
+--------------
+
+This minor version includes:
+
+- The introduction of the ``WeaviateAsyncClient`` class to support I/O requests to Weaviate using the ``async/await`` syntax with `asyncio <https://docs.python.org/3/library/asyncio.html>`
+    - All methods that perform CRUD and search actions are now ``async def`` functions
+    - To instantiate a client quickly, use the ``weaviate.use_async_with_x`` methods in an async context manager pattern, e.g.:
+        .. code-block:: python
+            async with weaviate.use_async_with_local() as client:
+                # Your code
+    - Note, you cannot do ``await weaviate.use_async_with_x`` if not using the context manager pattern. You have to create the client first and then connect manually:
+        .. code-block:: python
+            client = weaviate.use_async_with_local()
+            await client.connect()
+            # Your code
+            await client.close()
+- A refactoring of the underlying implementation of the ``WeaviateClient`` to use the ``WeaviateAsyncClient`` under-the-hood scheduling the necessary coroutines to run in a side-car event-loop thread
+- Support for new core Weaviate features in both the sync and async clients:
+    - Multi-vector search in the ``.near_x`` and ``.hybrid`` methods within the ``.generate`` and ``.query`` collection namespaces
+    - Scalar Quantization (SQ) vector index configuration
+    - Async replication configuration for multi-node Weaviate deployments
+    - Tenant offloading to S3 cloud storage using the newly intrduced ``OFFLOADED`` tenant activity status
+    - Renaming of ``HOT`` to ``ACTIVE`` and ``COLD`` to ``INACTIVE`` for tenant activity statuses
+    - NOTE: To use these features, you must have Weaviate version 1.26.0 or higher
+
+
+Version 4.6.7
+--------------
+
+This patch version includes:
+
+- Fix batching with references. Under some circumstances a reference could be added before its ``to``-object and the reference would be lost.
+- Fix node status for timed out nodes
+- Fix parsing the year 0. While weaviate allows to add dates with year zero ("0000-01-30T00:00:00Z"), the datetime library is based on the gregorian calendar which does not have a year zero. The client will years with 0 as the minimum date that is possible in datetime (``datetime.datetime(1, 1, 1, 0, 0)``) and emit a warning
+- Support for custom rerankers and generative modules using ``Configure.Generative.custom()`` and ``Configure.Reranker.custom()``
+- Add support for kagome_kr tokenizer. Requires Weaviate 1.25.8
+- Increase default embedded version to 1.25.8
+
+Version 4.6.6
+--------------
+
+This patch version includes:
+
+- Log batch errors
+- Only the last 100k successfully added UUIDs are kept in memory to prevent OOM situations.
+- Fix tenant creation with string input
+
+In the v3 copy that is part of v4:
+
+- Fixes GraphQL query injection vulnerability caused by incorrect escaping of backslashes in plain text input builder methods. Many thanks to `@adamleko <https://github.com/adamleko>`_, `@bismuthsalamander <https://github.com/bismuthsalamander>`_, and `@tardigrade-9 <https://github.com/tardigrade-9>`_ for their help in fixing this issue
+- Fixes batch retry with tenants
+
+
+
+
 Version 4.6.5
 --------------
 
@@ -96,7 +166,7 @@ This patch version includes:
 - Support for new modules in Weaviate 1.24.2:
   - ``text2vec-voyageai``
   - ``generative-mistral``
-  - Support new parameters for interference URLs in ``text2vec-transformers`` and ``multi2vec-clip``
+  - Support new parameters for inference URLs in ``text2vec-transformers`` and ``multi2vec-clip``
 - Support for new modules in Weaviate 1.24.3:
   - ``multi2vec-palm``
 
@@ -528,6 +598,19 @@ This beta version includes:
     - Python-native dataclasses for easy data manipulation
     - No more builder methods or raw dictionaries
 - Join the discussion and contribute your feedback `here <https://forum.weaviate.io/t/python-v4-client-feedback-megathread/892>`_
+
+Version 3.26.5
+--------------
+This patch version includes
+
+- Fixes GraphQL query injection vulnerability caused by incorrect escaping of backslashes in plain text input builder methods
+- Many thanks to `@adamleko <https://github.com/adamleko>`_, `@bismuthsalamander <https://github.com/bismuthsalamander>`_, and `@tardigrade-9 <https://github.com/tardigrade-9>`_ for their help in fixing this issue
+
+Version 3.26.4
+--------------
+This patch version includes
+
+- Fixes batch retry with tenants
 
 Version 3.26.2
 --------------
