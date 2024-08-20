@@ -163,14 +163,18 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
         schema = await self.__get()
         if schema.get("moduleConfig"):
             configured_module = list(schema.get("moduleConfig", {}).keys())[0]
-            obj["moduleConfig"] = {
-                configured_module: {
-                    "skip": obj["skip_vectorization"],
-                    "vectorizePropertyName": obj["vectorize_property_name"],
-                }
-            }
-            del obj["skip_vectorization"]
-            del obj["vectorize_property_name"]
+            modconf = {}
+            if "skip_vectorization" in obj:
+                modconf["skip"] = obj["skip_vectorization"]
+                del obj["skip_vectorization"]
+
+            if "vectorizePropertyName" in obj:
+                modconf["vectorizePropertyName"] = obj["vectorizePropertyName"]
+                del obj["vectorizePropertyName"]
+
+            if len(modconf) > 0:
+                obj["moduleConfig"] = {configured_module: modconf}
+
         await self._connection.post(
             path=path,
             weaviate_object=obj,
