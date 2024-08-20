@@ -29,7 +29,9 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     GenerativeSearches,
     Rerankers,
-    _RerankerConfigCreate, Tokenization, )
+    _RerankerConfigCreate,
+    Tokenization,
+)
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
 
@@ -801,13 +803,21 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
             "reranker-cohere", module_config={"model": "rerank-english-v2.0"}
         ),
         properties=[
-            Property(name="field_tokenization", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
-            Property(name="field_description", data_type=DataType.TEXT,
-                     tokenization=Tokenization.FIELD, description="field desc"),
-            Property(name="field_index_filterable", data_type=DataType.TEXT,
-                     index_filterable=False),
-            Property(name="field_skip_vectorization", data_type=DataType.TEXT,
-                     skip_vectorization=True),
+            Property(
+                name="field_tokenization", data_type=DataType.TEXT, tokenization=Tokenization.FIELD
+            ),
+            Property(
+                name="field_description",
+                data_type=DataType.TEXT,
+                tokenization=Tokenization.FIELD,
+                description="field desc",
+            ),
+            Property(
+                name="field_index_filterable", data_type=DataType.TEXT, index_filterable=False
+            ),
+            Property(
+                name="field_skip_vectorization", data_type=DataType.TEXT, skip_vectorization=True
+            ),
             Property(name="text", data_type=DataType.TEXT),
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
             Property(name="number", data_type=DataType.NUMBER),
@@ -820,12 +830,24 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
             Property(name="booleans", data_type=DataType.BOOL_ARRAY),
             Property(name="geo", data_type=DataType.GEO_COORDINATES),
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
-            Property(name="field_index_searchable", data_type=DataType.TEXT,
-                     index_searchable=False),
-            Property(name="field_index_range_filters_false", data_type=DataType.INT, index_range_filters=False),
-            Property(name="field_index_range_filters_true", data_type=DataType.INT, index_range_filters=True),
-            Property(name="field_skip_vectorization_false", data_type=DataType.TEXT,
-                     vectorize_property_name=False),
+            Property(
+                name="field_index_searchable", data_type=DataType.TEXT, index_searchable=False
+            ),
+            Property(
+                name="field_index_range_filters_false",
+                data_type=DataType.INT,
+                index_range_filters=False,
+            ),
+            Property(
+                name="field_index_range_filters_true",
+                data_type=DataType.INT,
+                index_range_filters=True,
+            ),
+            Property(
+                name="field_skip_vectorization_false",
+                data_type=DataType.TEXT,
+                vectorize_property_name=False,
+            ),
             Property(
                 name="nested",
                 data_type=DataType.OBJECT,
