@@ -7,6 +7,10 @@ from weaviate.collections.queries.fetch_object_by_id import (
     _FetchObjectByIDQueryAsync,
     _FetchObjectByIDQuery,
 )
+from weaviate.collections.queries.fetch_objects_by_ids import (
+    _FetchObjectsByIDsQueryAsync,
+    _FetchObjectsByIDsQuery,
+)
 from weaviate.collections.queries.fetch_objects import _FetchObjectsQueryAsync, _FetchObjectsQuery
 from weaviate.collections.queries.hybrid import _HybridQueryAsync, _HybridQuery
 from weaviate.collections.queries.near_image import _NearImageQueryAsync, _NearImageQuery
@@ -20,6 +24,7 @@ class _QueryCollectionAsync(
     Generic[TProperties, References],
     _BM25QueryAsync[TProperties, References],
     _FetchObjectByIDQueryAsync[TProperties, References],
+    _FetchObjectsByIDsQueryAsync[TProperties, References],
     _FetchObjectsQueryAsync[TProperties, References],
     _HybridQueryAsync[TProperties, References],
     _NearImageQueryAsync[TProperties, References],
@@ -35,6 +40,7 @@ class _QueryCollection(
     Generic[TProperties, References],
     _BM25Query[TProperties, References],
     _FetchObjectByIDQuery[TProperties, References],
+    _FetchObjectsByIDsQuery[TProperties, References],
     _FetchObjectsQuery[TProperties, References],
     _HybridQuery[TProperties, References],
     _NearImageQuery[TProperties, References],
