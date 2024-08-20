@@ -168,9 +168,9 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
                 modconf["skip"] = obj["skip_vectorization"]
                 del obj["skip_vectorization"]
 
-            if "vectorizePropertyName" in obj:
-                modconf["vectorizePropertyName"] = obj["vectorizePropertyName"]
-                del obj["vectorizePropertyName"]
+            if "vectorize_property_name" in obj:
+                modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
+                del obj["vectorize_property_name"]
 
             if len(modconf) > 0:
                 obj["moduleConfig"] = {configured_module: modconf}
