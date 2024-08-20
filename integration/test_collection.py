@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Uni
 
 import pytest
 
+import weaviate.classes as wvc
 from integration.conftest import CollectionFactory, CollectionFactoryGet, _sanitize_collection_name
 from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
 from weaviate.collections.classes.batch import ErrorObject
@@ -50,8 +51,6 @@ from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import UUID, UUIDS
-
-import weaviate.classes as wvc
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
@@ -1122,32 +1121,47 @@ def test_add_property(collection_factory: CollectionFactory) -> None:
     assert "name" in obj2.properties
     assert "number" in obj2.properties
 
+
 def test_add_property_with_vectorizer(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.text2vec_openai(),
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
         properties=[Property(name="name", data_type=DataType.TEXT)],
     )
-    collection.config.add_property(Property(
-        name="new_property_all_true",
-        data_type=DataType.TEXT, 
-        skip_vectorization=True,
-        vectorize_property_name=True
-    ))
-    collection.config.add_property(Property(
-        name="new_property_all_false",
-        data_type=DataType.TEXT, 
-        skip_vectorization=False,
-        vectorize_property_name=False
-    ))    
-    new_property_true = [item for item in collection.config.get().to_dict()["properties"] if item['name'] == 'new_property_all_true'][0]
-    mconfig = new_property_true["moduleConfig"]["text2vec-openai"]
-    assert mconfig["skip"] == True
-    assert mconfig["vectorizePropertyName"] == True
+    collection.config.add_property(
+        Property(
+            name="newPropertyAllTrue",
+            data_type=DataType.TEXT,
+            skip_vectorization=True,
+            vectorize_property_name=True,
+        )
+    )
+    collection.config.add_property(
+        Property(
+            name="newPropertyAllFalse",
+            data_type=DataType.TEXT,
+            skip_vectorization=False,
+            vectorize_property_name=False,
+        )
+    )
+    new_property_true = [
+        item
+        for item in collection.config.get().to_dict()["properties"]
+        if item["name"] == "newPropertyAllTrue"
+    ][0]
+    mconfig = new_property_true["moduleConfig"]["text2vec-contextionary"]
+    assert mconfig["skip"]
+    assert mconfig["vectorizePropertyName"]
 
-    new_property_false = [item for item in collection.config.get().to_dict()["properties"] if item['name'] == 'new_property_all_false'][0]
-    mconfig = new_property_false["moduleConfig"]["text2vec-openai"]
-    assert mconfig["skip"] == False
-    assert mconfig["vectorizePropertyName"] == False
+    new_property_false = [
+        item
+        for item in collection.config.get().to_dict()["properties"]
+        if item["name"] == "newPropertyAllFalse"
+    ][0]
+    mconfig = new_property_false["moduleConfig"]["text2vec-contextionary"]
+    assert not mconfig["skip"]
+    assert not mconfig["vectorizePropertyName"]
 
 
 def test_add_reference(collection_factory: CollectionFactory) -> None:
