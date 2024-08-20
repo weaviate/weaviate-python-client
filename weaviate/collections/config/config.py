@@ -165,7 +165,9 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             configured_module = list(schema.get("moduleConfig", {}).keys())[0]
             obj["moduleConfig"] = {
                 configured_module: {
-                    'skip': obj["skip_vectorization"], 'vectorizePropertyName': obj["vectorize_property_name"]}
+                    "skip": obj["skip_vectorization"],
+                    "vectorizePropertyName": obj["vectorize_property_name"],
+                }
             }
             del obj["skip_vectorization"]
             del obj["vectorize_property_name"]
