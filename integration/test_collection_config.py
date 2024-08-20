@@ -29,8 +29,7 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     GenerativeSearches,
     Rerankers,
-    _RerankerConfigCreate, Tokenization,
-)
+    _RerankerConfigCreate, Tokenization, )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
 
@@ -802,8 +801,6 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
             "reranker-cohere", module_config={"model": "rerank-english-v2.0"}
         ),
         properties=[
-            Property(name="name", data_type=DataType.TEXT),
-            Property(name="age", data_type=DataType.INT),
             Property(name="field_tokenization", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
             Property(name="field_description", data_type=DataType.TEXT,
                      tokenization=Tokenization.FIELD, description="field desc"),
@@ -823,19 +820,20 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
             Property(name="booleans", data_type=DataType.BOOL_ARRAY),
             Property(name="geo", data_type=DataType.GEO_COORDINATES),
             Property(name="phone", data_type=DataType.PHONE_NUMBER),
-            # TODO: this will fail
-            # Property(name="field_index_searchable", data_type=DataType.TEXT,
-            #          index_searchable=False),
-            # Property(name="field_skip_vectorization", data_type=DataType.TEXT,
-            #          vectorize_property_name=False),
-            # Property(
-            #     name="name",
-            #     data_type=DataType.OBJECT,
-            #     nested_properties=[
-            #         Property(name="first", data_type=DataType.TEXT),
-            #         Property(name="last", data_type=DataType.TEXT),
-            #     ],
-            # ),
+            Property(name="field_index_searchable", data_type=DataType.TEXT,
+                     index_searchable=False),
+            Property(name="field_index_range_filters_false", data_type=DataType.INT, index_range_filters=False),
+            Property(name="field_index_range_filters_true", data_type=DataType.INT, index_range_filters=True),
+            Property(name="field_skip_vectorization_false", data_type=DataType.TEXT,
+                     vectorize_property_name=False),
+            Property(
+                name="nested",
+                data_type=DataType.OBJECT,
+                nested_properties=[
+                    Property(name="first", data_type=DataType.TEXT),
+                    Property(name="last", data_type=DataType.TEXT),
+                ],
+            ),
         ],
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         replication_config=Configure.replication(factor=1, async_enabled=False),
@@ -854,6 +852,7 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
     dconf = conf.to_dict()
 
     client = weaviate.connect_to_local()
+    client.collections.delete(name)
     client.collections.create_from_dict(dconf)
     old = collection.config.get()
     old.name = "dummy"
