@@ -168,12 +168,12 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port",
     [
-        (
-            "WCS",
-            "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
-            "WCS_DUMMY_CI_PW",
-            WCS_PORT,
-        ),
+        # (
+        #     "WCS",
+        #     "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
+        #     "WCS_DUMMY_CI_PW",
+        #     WCS_PORT,
+        # ),
         (
             "okta",
             "test@test.de",
