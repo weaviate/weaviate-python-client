@@ -66,14 +66,14 @@ def test_authentication_client_credentials(
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port,scope,warning",
     [
-        (
-            "WCS",
-            "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
-            "WCS_DUMMY_CI_PW",
-            WCS_PORT,
-            None,
-            False,
-        ),
+        # (  # WCS keycloak times out too often
+        #     "WCS",
+        #     "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
+        #     "WCS_DUMMY_CI_PW",
+        #     WCS_PORT,
+        #     None,
+        #     False,
+        # ),
         (
             "okta",
             "test@test.de",
