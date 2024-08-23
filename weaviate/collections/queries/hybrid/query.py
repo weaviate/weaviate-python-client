@@ -4,7 +4,6 @@ from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-
 from weaviate.collections.classes.grpc import (
     METADATA,
     GroupBy,
@@ -35,6 +34,7 @@ class _HybridQueryAsync(Generic[Properties, References], _Base[Properties, Refer
         vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         auto_limit: Optional[int] = None,
@@ -110,6 +110,7 @@ class _HybridQueryAsync(Generic[Properties, References], _Base[Properties, Refer
             vector=vector,
             properties=query_properties,
             fusion_type=fusion_type,
+            distance=distance,
             limit=limit,
             offset=offset,
             autocut=auto_limit,

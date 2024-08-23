@@ -17,9 +17,8 @@ from typing import (
     get_args,
 )
 
-from typing_extensions import TypeAlias
-
 from grpc.aio import AioRpcError  # type: ignore
+from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
@@ -165,6 +164,7 @@ class _QueryGRPC(_BaseGRPC):
         vector: Optional[HybridVectorType] = None,
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         autocut: Optional[int] = None,
@@ -274,6 +274,7 @@ class _QueryGRPC(_BaseGRPC):
                 near_text=near_text,
                 near_vector=near_vector,
                 vector_bytes=vector_bytes,
+                vector_distance=distance,
             )
             if query is not None or vector is not None
             else None

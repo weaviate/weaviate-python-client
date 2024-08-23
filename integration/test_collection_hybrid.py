@@ -428,3 +428,24 @@ def test_vector_per_target(
     ).objects
     assert len(objs) == 1
     assert objs[0].uuid == uuid1
+
+
+def test_vector_distance(collection_factory: CollectionFactory):
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+
+    uuid1 = collection.data.insert({}, vector=[1, 0, 0])
+    collection.data.insert({}, vector=[0, 1, 0])
+    collection.data.insert({}, vector=[0, 0, 1])
+
+    objs = collection.query.hybrid("name", vector=[1, 0, 0])
+    assert len(objs.objects) == 3
+    assert objs.objects[0].uuid == uuid1
+
+    objs = collection.query.hybrid("name", vector=[1, 0, 0], distance=0.1)
+    assert len(objs.objects) == 1
+    assert objs.objects[0].uuid == uuid1
