@@ -3,6 +3,7 @@ from weaviate.connect import ConnectionV4
 
 from typing import List, Literal, Optional, Union, overload
 
+from weaviate.cluster.types import Node as NodeREST
 from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST, Stats
 from weaviate.exceptions import (
     EmptyResponseError,
@@ -73,6 +74,17 @@ class _ClusterAsync(_ClusterBase):
             `weaviate.EmptyResponseError`
                 If the response is empty.
         """
+        nodes = await self.rest_nodes(collection, output)
+        if output == "verbose":
+            return _ConvertFromREST.nodes_verbose(nodes)
+        else:
+            return _ConvertFromREST.nodes_minimal(nodes)
+
+    async def rest_nodes(
+        self,
+        collection: Optional[str] = None,
+        output: Optional[Literal["minimal", "verbose"]] = None,
+    ) -> List[NodeREST]:
         path = "/nodes"
         if collection is not None:
             path += "/" + _capitalize_first_letter(collection)
@@ -86,8 +98,4 @@ class _ClusterAsync(_ClusterBase):
         nodes = response_typed.get("nodes")
         if nodes is None or nodes == []:
             raise EmptyResponseError("Nodes status response returned empty")
-
-        if output == "verbose":
-            return _ConvertFromREST.nodes_verbose(nodes)
-        else:
-            return _ConvertFromREST.nodes_minimal(nodes)
+        return nodes
