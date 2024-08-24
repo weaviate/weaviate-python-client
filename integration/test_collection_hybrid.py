@@ -449,3 +449,24 @@ def test_vector_distance(collection_factory: CollectionFactory):
     objs = collection.query.hybrid("name", vector=[1, 0, 0], distance=0.1)
     assert len(objs.objects) == 1
     assert objs.objects[0].uuid == uuid1
+
+
+def test_aggregate_max_vector_distance(
+    collection_factory: CollectionFactory,
+    # vector: List[int],
+    # expected: List[uuid.UUID],
+    # distance: float,
+    # query: str,
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    collection.data.insert({"name": "banana one"}, vector=[1, 0, 0, 0])
+    collection.data.insert({"name": "banana two"}, vector=[0, 1, 0, 0])
+    collection.data.insert({"name": "banana three"}, vector=[0, 1, 0, 0])
+    collection.data.insert({"name": "banana four"}, vector=[1, 0, 0, 0])
+
+    res = collection.aggregate.hybrid("banana", vector=[1, 0, 0, 0], max_vector_distance=0.5, return_metrics=[wvc.aggregate.Metrics("name").text(count=True)])
+    assert res.total_count == 2
