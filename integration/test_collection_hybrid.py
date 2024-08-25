@@ -438,6 +438,10 @@ def test_vector_distance(collection_factory: CollectionFactory):
         ),
     )
 
+    # ToDo: Change after version including this feature is released
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 1):
+        pytest.skip("Hybrid max vector distance is only supported in versions higher than 1.26.1")
+
     uuid1 = collection.data.insert({}, vector=[1, 0, 0])
     collection.data.insert({}, vector=[0, 1, 0])
     collection.data.insert({}, vector=[0, 0, 1])
@@ -451,17 +455,15 @@ def test_vector_distance(collection_factory: CollectionFactory):
     assert objs.objects[0].uuid == uuid1
 
 
-def test_aggregate_max_vector_distance(
-    collection_factory: CollectionFactory,
-    # vector: List[int],
-    # expected: List[uuid.UUID],
-    # distance: float,
-    # query: str,
-) -> None:
+def test_aggregate_max_vector_distance(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[Property(name="name", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.none(),
     )
+
+    # ToDo: Change after version including this feature is released
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 1):
+        pytest.skip("Hybrid max vector distance is only supported in versions higher than 1.26.1")
 
     collection.data.insert({"name": "banana one"}, vector=[1, 0, 0, 0])
     collection.data.insert({"name": "banana two"}, vector=[0, 1, 0, 0])
