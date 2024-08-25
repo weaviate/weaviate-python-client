@@ -450,7 +450,7 @@ def test_vector_distance(collection_factory: CollectionFactory):
     assert len(objs.objects) == 3
     assert objs.objects[0].uuid == uuid1
 
-    objs = collection.query.hybrid("name", vector=[1, 0, 0], distance=0.1)
+    objs = collection.query.hybrid("name", vector=[1, 0, 0], max_vector_distance=0.1)
     assert len(objs.objects) == 1
     assert objs.objects[0].uuid == uuid1
 
