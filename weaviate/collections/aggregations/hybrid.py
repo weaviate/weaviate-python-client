@@ -71,7 +71,14 @@ class _HybridAsync(_AggregateAsync):
         )
         builder = self._base(return_metrics, filters, total_count)
         builder = self._add_hybrid_to_builder(
-            builder, query, alpha, vector, query_properties, object_limit, target_vector, max_vector_distance
+            builder,
+            query,
+            alpha,
+            vector,
+            query_properties,
+            object_limit,
+            target_vector,
+            max_vector_distance,
         )
         builder = self._add_groupby_to_builder(builder, group_by)
         res = await self._do(builder)

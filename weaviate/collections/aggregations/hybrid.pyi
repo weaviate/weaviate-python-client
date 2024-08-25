@@ -10,7 +10,6 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.types import NUMBER
 
-
 class _HybridAsync(_AggregateAsync):
     @overload
     async def hybrid(

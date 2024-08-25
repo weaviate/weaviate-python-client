@@ -25,7 +25,6 @@ from weaviate.collections.classes.types import Properties, TProperties, Referenc
 from weaviate.collections.queries.base import _Base
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
-
 class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
     @overload
     async def hybrid(

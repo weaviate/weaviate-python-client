@@ -57,7 +57,7 @@ class Hybrid:
             target_vectors = '","'.join(self.target_vectors)
             ret += f', targetVectors: ["{target_vectors}"]'
         if self.max_vector_distance is not None:
-            ret += f', maxVectorDistance:{self.max_vector_distance}'
+            ret += f", maxVectorDistance:{self.max_vector_distance}"
         return "hybrid:{" + ret + "}"
 
 

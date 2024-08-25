@@ -468,5 +468,10 @@ def test_aggregate_max_vector_distance(
     collection.data.insert({"name": "banana three"}, vector=[0, 1, 0, 0])
     collection.data.insert({"name": "banana four"}, vector=[1, 0, 0, 0])
 
-    res = collection.aggregate.hybrid("banana", vector=[1, 0, 0, 0], max_vector_distance=0.5, return_metrics=[wvc.aggregate.Metrics("name").text(count=True)])
+    res = collection.aggregate.hybrid(
+        "banana",
+        vector=[1, 0, 0, 0],
+        max_vector_distance=0.5,
+        return_metrics=[wvc.aggregate.Metrics("name").text(count=True)],
+    )
     assert res.total_count == 2
