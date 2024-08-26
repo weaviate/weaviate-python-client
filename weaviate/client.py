@@ -157,6 +157,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
         additional_headers: Optional[dict] = None,
         additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
+        disable_ssl_verification: bool = False,
     ) -> None:
         """Initialise a WeaviateClient class instance to use when interacting with Weaviate.
 
@@ -191,6 +192,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
         config = additional_config or AdditionalConfig()
 
         self.__skip_init_checks = skip_init_checks
+        self.__disable_ssl_verification = disable_ssl_verification
 
         self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
             connection_params=connection_params,
@@ -284,7 +286,7 @@ class WeaviateClient(_ClientBase[ConnectionV4]):
         """
         if self._connection.is_connected():
             return
-        self._connection.connect(self.__skip_init_checks)
+        self._connection.connect(self.__skip_init_checks, self.__disable_ssl_verification)
 
     def is_connected(self) -> bool:
         """Check if the client is connected to Weaviate.

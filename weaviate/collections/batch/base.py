@@ -285,6 +285,7 @@ class _BatchBase:
 
     def __batch_send(self) -> None:
         loop = self.__start_new_event_loop()
+        # TODO: figure a way to pass disable_verification_process to aopen
         future = asyncio.run_coroutine_threadsafe(self.__connection.aopen(), loop)
         future.result()  # Wait for self._connection.aopen() to finish
         refresh_time: float = 0.01

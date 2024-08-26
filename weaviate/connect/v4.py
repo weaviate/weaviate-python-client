@@ -132,10 +132,10 @@ class _Connection(_ConnectionBase):
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
-    def connect(self, skip_init_checks: bool) -> None:
+    def connect(self, skip_init_checks: bool, disable_ssl_verification: bool) -> None:
         if self.embedded_db is not None:
             self.embedded_db.start()
-        self._create_clients(self._auth, skip_init_checks)
+        self._create_clients(self._auth, skip_init_checks, disable_ssl_verification)
         self.__connected = True
         if self.embedded_db is not None:
             try:
@@ -214,46 +214,51 @@ class _Connection(_ConnectionBase):
                 if key != "grpc"
             }
 
-    def __make_sync_client(self) -> Client:
+    def __make_sync_client(self, disable_ssl_verification: bool) -> Client:
         return Client(
             headers=self._headers,
             timeout=Timeout(
                 None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
             mounts=self.__make_mounts("sync"),
+            verify=not disable_ssl_verification,
         )
 
-    def __make_async_client(self) -> AsyncClient:
+    def __make_async_client(self, disable_ssl_verification: bool) -> AsyncClient:
         return AsyncClient(
             headers=self._headers,
             timeout=Timeout(
                 None, connect=self.timeout_config.query, read=self.timeout_config.insert
             ),
             mounts=self.__make_mounts("async"),
+            verify=not disable_ssl_verification,
         )
 
-    def __make_clients(self) -> None:
-        self._client = self.__make_sync_client()
+    def __make_clients(self, disable_ssl_verification: bool) -> None:
+        self._client = self.__make_sync_client(disable_ssl_verification)
 
     def _create_clients(
-        self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool
+        self,
+        auth_client_secret: Optional[AuthCredentials],
+        skip_init_checks: bool,
+        disable_ssl_verification: bool,
     ) -> None:
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
-            self.__make_clients()
+            self.__make_clients(disable_ssl_verification)
             return
 
         if "authorization" in self._headers and auth_client_secret is None:
-            self.__make_clients()
+            self.__make_clients(disable_ssl_verification)
             return
 
         # no need to check OIDC if no auth is provided and users dont want any checks at initialization time
         if skip_init_checks and auth_client_secret is None:
-            self.__make_clients()
+            self.__make_clients(disable_ssl_verification)
             return
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
-        with self.__make_sync_client() as client:
+        with self.__make_sync_client(disable_ssl_verification=disable_ssl_verification) as client:
             try:
                 response = client.get(oidc_url)
             except Exception as e:
@@ -269,7 +274,7 @@ class _Connection(_ConnectionBase):
                 resp = response.json()
             except Exception:
                 _Warnings.auth_cannot_parse_oidc_config(oidc_url)
-                self.__make_clients()
+                self.__make_clients(disable_ssl_verification=disable_ssl_verification)
                 return
 
             if auth_client_secret is not None:
@@ -309,9 +314,9 @@ class _Connection(_ConnectionBase):
                 raise AuthenticationFailedError(msg)
         elif response.status_code == 404 and auth_client_secret is not None:
             _Warnings.auth_with_anon_weaviate()
-            self.__make_clients()
+            self.__make_clients(disable_ssl_verification)
         else:
-            self.__make_clients()
+            self.__make_clients(disable_ssl_verification)
 
     def get_current_bearer_token(self) -> str:
         if not self.is_connected():
@@ -376,9 +381,9 @@ class _Connection(_ConnectionBase):
         )
         demon.start()
 
-    async def aopen(self) -> None:
+    async def aopen(self, disable_ssl_verification: bool = False) -> None:
         if self._aclient is None:
-            self._aclient = await self.__make_async_client().__aenter__()
+            self._aclient = await self.__make_async_client(disable_ssl_verification).__aenter__()
         if self._grpc_stub_async is None:
             self._grpc_channel_async = self._connection_params._grpc_channel(
                 async_channel=True, proxies=self._proxies
@@ -453,7 +458,7 @@ class _Connection(_ConnectionBase):
         except RuntimeError as e:
             raise WeaviateClosedClientError() from e
         except ConnectError as conn_err:
-            raise WeaviateConnectionError(error_msg) from conn_err
+            raise WeaviateConnectionError(f"{conn_err} {error_msg}")
 
     def delete(
         self,
@@ -707,8 +712,8 @@ class ConnectionV4(_Connection):
                 f"v{self.server_version}", self._connection_params._grpc_address
             ) from e
 
-    def connect(self, skip_init_checks: bool) -> None:
-        super().connect(skip_init_checks)
+    def connect(self, skip_init_checks: bool, disable_ssl_verification: bool) -> None:
+        super().connect(skip_init_checks, disable_ssl_verification)
         # create GRPC channel. If Weaviate does not support GRPC then error now.
         self._grpc_channel = self._connection_params._grpc_channel(
             async_channel=False, proxies=self._proxies

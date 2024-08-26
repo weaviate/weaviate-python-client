@@ -17,6 +17,7 @@ def connect_to_weaviate_cloud(
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
+    disable_ssl_verification: bool = False,
 ) -> WeaviateClient:
     """
     Connect to a Weaviate Cloud (WCD) instance.
@@ -81,6 +82,7 @@ def connect_to_weaviate_cloud(
         additional_headers=headers,
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
+        disable_ssl_verification=disable_ssl_verification,
     )
     return __connect(client)
 
@@ -91,6 +93,7 @@ def connect_to_wcs(
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
+    disable_ssl_verification: bool = False,
 ) -> WeaviateClient:
     """
     Connect to a Weaviate Cloud (WCD) instance.
@@ -137,7 +140,12 @@ def connect_to_wcs(
         >>> # The connection is automatically closed when the context is exited.
     """
     return connect_to_weaviate_cloud(
-        cluster_url, auth_credentials, headers, additional_config, skip_init_checks
+        cluster_url,
+        auth_credentials,
+        headers,
+        additional_config,
+        skip_init_checks,
+        disable_ssl_verification,
     )
 
 
@@ -148,6 +156,7 @@ def connect_to_local(
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
+    disable_ssl_verification: bool = False,
     auth_credentials: Optional[AuthCredentials] = None,
 ) -> WeaviateClient:
     """
@@ -208,6 +217,7 @@ def connect_to_local(
         additional_headers=headers,
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
+        disable_ssl_verification=disable_ssl_verification,
         auth_client_secret=auth_credentials,
     )
     return __connect(client)
@@ -310,6 +320,7 @@ def connect_to_custom(
     additional_config: Optional[AdditionalConfig] = None,
     auth_credentials: Optional[AuthCredentials] = None,
     skip_init_checks: bool = False,
+    disable_ssl_verification: bool = False,
 ) -> WeaviateClient:
     """
     Connect to a Weaviate instance with custom connection parameters.
@@ -388,6 +399,7 @@ def connect_to_custom(
         additional_headers=headers,
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
+        disable_ssl_verification=disable_ssl_verification,
     )
     return __connect(client)
 

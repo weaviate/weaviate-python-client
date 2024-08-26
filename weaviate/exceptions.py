@@ -182,7 +182,35 @@ InvalidDataModelException = InvalidDataModelError
 
 
 class WeaviateStartUpError(WeaviateBaseError):
-    """Is raised if weaviate is not available on the given url+port."""
+    """Is raised if weaviate is not available on the given url+port or due to ssl verification."""
+
+    def __init__(self, message: str = ""):
+        """
+        Weaviate base exception initializer.
+
+        Arguments:
+            `message`:
+                An error message specific to the context in which the error occurred.
+        """
+
+        self.message = message
+        if "SSL: CERTIFICATE_VERIFY_FAILED" in str(message):
+            msg = """
+            We have identified a SSL CERTIFICATE_VERIFY_FAILED error.
+
+            This error could be due to one of several reasons:
+            - Weaviate client is under a corporate network that terminates ssl and issues it's own certificates.
+            - You have a self signed certificate
+
+            Weaviate python client uses certifi, and because of that, it will not be able to trust
+            Potential fixes:
+            - disable ssl verification by setting using `disable_ssl_verification=True` in client initialization
+                - note that Weaviate will trust any certificate
+            - Replace certifi cacert with the same cacert that is issued by your corporate network.
+                - for example: cat MyCompanyRootCA.pem >> $(python -m certifi)
+            """
+            message = message + msg
+        super().__init__(message)
 
 
 class WeaviateEmbeddedInvalidVersionError(WeaviateBaseError):
