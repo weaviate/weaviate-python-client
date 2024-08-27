@@ -216,7 +216,7 @@ class _QueryGRPC(_BaseGRPC):
         if query is None:
             alpha = 1
 
-        targets, target_vector = self.__target_vector_to_grpc(target_vector)
+        targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
         near_text, near_vector, vector_bytes = None, None, None
 
@@ -246,7 +246,9 @@ class _QueryGRPC(_BaseGRPC):
                 )
                 vector_per_target_tmp = None
                 if target_vectors_tmp is not None:
-                    targets, target_vector = self.__target_vector_to_grpc(target_vectors_tmp)
+                    targets, target_vectors = self.__recompute_target_vector_to_grpc(
+                        target_vector, target_vectors_tmp
+                    )
 
             near_vector = search_get_pb2.NearVector(
                 vector_bytes=vector_bytes_tmp,
@@ -268,9 +270,11 @@ class _QueryGRPC(_BaseGRPC):
                 )
                 vector_per_target_tmp = None
                 if target_vectors_tmp is not None:
-                    targets, target_vector = self.__target_vector_to_grpc(target_vectors_tmp)
+                    targets, target_vectors = self.__recompute_target_vector_to_grpc(
+                        target_vector, target_vectors_tmp
+                    )
                 else:
-                    targets, target_vector = self.__target_vector_to_grpc(target_vector)
+                    targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
             if vector_per_target_tmp is not None or vector_for_targets_tmp is not None:
                 near_vector = search_get_pb2.NearVector(
@@ -294,7 +298,7 @@ class _QueryGRPC(_BaseGRPC):
                     if fusion_type is not None
                     else None
                 ),
-                target_vectors=target_vector,
+                target_vectors=target_vectors,
                 targets=targets,
                 near_text=near_text,
                 near_vector=near_vector,
@@ -426,7 +430,9 @@ class _QueryGRPC(_BaseGRPC):
                 )
                 vector_per_target_tmp = None
                 if target_vectors_tmp is not None:
-                    targets, target_vector = self.__target_vector_to_grpc(target_vectors_tmp)
+                    targets, target_vectors = self.__recompute_target_vector_to_grpc(
+                        target_vector, target_vectors_tmp
+                    )
 
         request = self.__create_request(
             limit=limit,
@@ -887,6 +893,15 @@ class _QueryGRPC(_BaseGRPC):
             return set(args)
         else:
             return {cast(A, args)}
+
+    def __recompute_target_vector_to_grpc(
+        self, target_vector: Optional[TargetVectorJoinType], target_vectors_tmp: List[str]
+    ) -> Tuple[Optional[search_get_pb2.Targets], Optional[List[str]]]:
+        if isinstance(target_vector, _MultiTargetVectorJoin):
+            target_vector.target_vectors = target_vectors_tmp
+        else:
+            target_vector = target_vectors_tmp
+        return self.__target_vector_to_grpc(target_vector)
 
     def __target_vector_to_grpc(
         self, target_vector: Optional[TargetVectorJoinType]

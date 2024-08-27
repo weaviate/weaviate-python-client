@@ -642,31 +642,10 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
         collection.query.near_vector([[[1.0, 0.0], [1.0, 0.0]], [1.0, 0.0, 0.0]])
 
 
-def test_multi_query_error_length_do_not_match(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 1):
-        pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
-
-    collection = collection_factory(
-        properties=[],
-        vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
-        ],
-    )
-
-    with pytest.raises(WeaviateInvalidInputError) as e:
-        collection.query.near_vector(
-            {"first": [[1.0, 0.0], [1.0, 0.0]], "second": [1.0, 0.0, 0.0]},
-            target_vector=["first", "second"],
-        )
-    assert "The number of target vectors must be equal to the number of vectors" in str(e)
-
-
 @pytest.mark.parametrize(
     "target_vector, distances",
     [
-        (wvc.query.TargetVectors.sum(["first", "second", "second"]), [1, 3]),
+        (wvc.query.TargetVectors.sum(["first", "second"]), [1, 3]),
         (wvc.query.TargetVectors.manual_weights({"first": 1, "second": [1, 1]}), [1, 3]),
         (wvc.query.TargetVectors.manual_weights({"first": 1, "second": [1, 2]}), [2, 4]),
     ],
@@ -705,11 +684,11 @@ def test_same_target_vector_multiple_input(
 @pytest.mark.parametrize(
     "near_vector,target_vector",
     [
-        ({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}, ["first", "second", "second"]),
-        ({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}, ["first", "first", "second"]),
+        ({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}, ["first", "second"]),
+        ({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}, ["first", "second"]),
         (
             {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]},
-            ["first", "first", "second", "second"],
+            ["first", "second"],
         ),
     ],
 )
