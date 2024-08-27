@@ -254,7 +254,7 @@ class _AggregateAsync:
         query_properties: Optional[List[str]],
         object_limit: Optional[int],
         target_vector: Optional[str],
-        max_vector_distance: Optional[float],
+        max_vector_distance: Optional[NUMBER],
     ) -> AggregateBuilder:
         payload: dict = {}
         if query is not None:
