@@ -25,17 +25,15 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
+from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 from weaviate.connect import ConnectionV4
-from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
 from weaviate.util import _decode_json_response_dict, _decode_json_response_list
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
-
-from weaviate.connect.v4 import _ExpectedStatusCodes
-
-from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 
 
 class _ConfigCollectionBase:
@@ -162,6 +160,21 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
     async def _add_property(self, additional_property: PropertyType) -> None:
         path = f"/schema/{self._name}/properties"
         obj = additional_property._to_dict()
+        schema = await self.__get()
+        if schema.get("moduleConfig"):
+            configured_module = list(schema.get("moduleConfig", {}).keys())[0]
+            modconf = {}
+            if "skip_vectorization" in obj:
+                modconf["skip"] = obj["skip_vectorization"]
+                del obj["skip_vectorization"]
+
+            if "vectorize_property_name" in obj:
+                modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
+                del obj["vectorize_property_name"]
+
+            if len(modconf) > 0:
+                obj["moduleConfig"] = {configured_module: modconf}
+
         await self._connection.post(
             path=path,
             weaviate_object=obj,
