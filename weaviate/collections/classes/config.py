@@ -1190,6 +1190,8 @@ class _NestedProperty(_ConfigBase):
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
         out["dataType"] = [str(self.data_type.value)]
+        if self.nested_properties is not None and len(self.nested_properties) > 0:
+            out["nestedProperties"] = [np.to_dict() for np in self.nested_properties]
         return out
 
 
@@ -1546,13 +1548,6 @@ class _ShardStatus:
 
 
 ShardStatus = _ShardStatus
-
-# class PropertyConfig(ConfigCreateModel):
-#     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
-#     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
-#     tokenization: Optional[Tokenization] = None
-#     description: Optional[str] = None
-#     moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
 
 
 class Property(_ConfigCreateModel):

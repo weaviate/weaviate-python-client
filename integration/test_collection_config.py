@@ -29,9 +29,7 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     GenerativeSearches,
     Rerankers,
-    _RerankerConfigCreate,
-    Tokenization,
-)
+    _RerankerConfigCreate, Tokenization, )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
 
@@ -836,24 +834,30 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
             Property(
                 name="field_index_range_filters_false",
                 data_type=DataType.INT,
-                index_range_filters=False,
+                index_range_filters=False
             ),
             Property(
                 name="field_index_range_filters_true",
                 data_type=DataType.INT,
-                index_range_filters=True,
+                index_range_filters=True
             ),
             Property(
                 name="field_skip_vectorization_false",
                 data_type=DataType.TEXT,
-                vectorize_property_name=False,
+                vectorize_property_name=False
             ),
             Property(
                 name="nested",
                 data_type=DataType.OBJECT,
                 nested_properties=[
                     Property(name="first", data_type=DataType.TEXT),
-                    Property(name="last", data_type=DataType.TEXT),
+                    Property(name="nested_token", data_type=DataType.TEXT, tokenization=Tokenization.FIELD),
+                    Property(name="nested_searchable", data_type=DataType.TEXT, index_searchable=False),
+                    Property(name="nested_filterable", data_type=DataType.TEXT, index_filterable=False),
+                    Property(name="nested_prop_vectorization", data_type=DataType.TEXT, vectorize_property_name=False),
+                    Property(name="nested_range", data_type=DataType.TEXT, vectorize_property_name=False),
+                    Property(name="nested_skip_vectorization", data_type=DataType.TEXT, skip_vectorization=True),
+                    Property(name="nested2", data_type=DataType.OBJECT, nested_properties=[Property(name="first", data_type=DataType.TEXT)]),
                 ],
             ),
         ],
