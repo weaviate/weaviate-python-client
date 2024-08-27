@@ -1178,7 +1178,7 @@ PropertyVectorizerConfig = _PropertyVectorizerConfig
 
 
 @dataclass
-class _NestedProperty:
+class _NestedProperty(_ConfigBase):
     data_type: DataType
     description: Optional[str]
     index_filterable: bool
@@ -1186,6 +1186,13 @@ class _NestedProperty:
     name: str
     nested_properties: Optional[List["NestedProperty"]]
     tokenization: Optional[Tokenization]
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["dataType"] = [str(self.data_type.value)]
+        if self.nested_properties is not None and len(self.nested_properties) > 0:
+            out["nestedProperties"] = [np.to_dict() for np in self.nested_properties]
+        return out
 
 
 NestedProperty = _NestedProperty
@@ -1219,9 +1226,11 @@ class _Property(_PropertyBase):
         out = super().to_dict()
         out["dataType"] = [self.data_type.value]
         out["indexFilterable"] = self.index_filterable
-        out["indexVector"] = self.index_searchable
-        out["tokenizer"] = self.tokenization.value if self.tokenization else None
-
+        out["indexSearchable"] = self.index_searchable
+        out["indexRangeFilters"] = self.index_range_filters
+        out["tokenization"] = self.tokenization.value if self.tokenization else None
+        if self.nested_properties is not None and len(self.nested_properties) > 0:
+            out["nestedProperties"] = [np.to_dict() for np in self.nested_properties]
         module_config: Dict[str, Any] = {}
         if self.vectorizer is not None:
             module_config[self.vectorizer] = {}
@@ -1539,13 +1548,6 @@ class _ShardStatus:
 
 
 ShardStatus = _ShardStatus
-
-# class PropertyConfig(ConfigCreateModel):
-#     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
-#     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
-#     tokenization: Optional[Tokenization] = None
-#     description: Optional[str] = None
-#     moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
 
 
 class Property(_ConfigCreateModel):
