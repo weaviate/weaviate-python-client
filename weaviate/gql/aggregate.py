@@ -32,6 +32,7 @@ class Hybrid:
     vector: Optional[List[float]]
     properties: Optional[List[str]]
     target_vectors: Optional[List[str]]
+    max_vector_distance: Optional[List[str]]
 
     def __init__(self, content: dict) -> None:
         self.query = content.get("query")
@@ -39,6 +40,7 @@ class Hybrid:
         self.vector = content.get("vector")
         self.properties = content.get("properties")
         self.target_vectors = content.get("targetVectors")
+        self.max_vector_distance = content.get("maxVectorDistance")
 
     def __str__(self) -> str:
         ret = ""
@@ -54,6 +56,8 @@ class Hybrid:
         if self.target_vectors is not None:
             target_vectors = '","'.join(self.target_vectors)
             ret += f', targetVectors: ["{target_vectors}"]'
+        if self.max_vector_distance is not None:
+            ret += f", maxVectorDistance:{self.max_vector_distance}"
         return "hybrid:{" + ret + "}"
 
 

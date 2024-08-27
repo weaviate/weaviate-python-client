@@ -2,11 +2,10 @@ import io
 import json
 import os
 import pathlib
-
 from typing import List, Optional, TypeVar, Union, cast
-from typing_extensions import ParamSpec
 
 from httpx import ConnectError
+from typing_extensions import ParamSpec
 
 from weaviate.collections.classes.aggregate import (
     AProperties,
@@ -34,13 +33,13 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
-from weaviate.connect import ConnectionV4
 from weaviate.collections.filters import _FilterToREST
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
+from weaviate.types import NUMBER, UUID
 from weaviate.util import file_encoder_b64, _decode_json_response_dict
 from weaviate.validator import _ValidateArgument, _validate_input
-from weaviate.types import NUMBER, UUID
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -255,6 +254,7 @@ class _AggregateAsync:
         query_properties: Optional[List[str]],
         object_limit: Optional[int],
         target_vector: Optional[str],
+        max_vector_distance: Optional[NUMBER],
     ) -> AggregateBuilder:
         payload: dict = {}
         if query is not None:
@@ -267,6 +267,8 @@ class _AggregateAsync:
             payload["properties"] = query_properties
         if target_vector is not None:
             payload["targetVectors"] = [target_vector]
+        if max_vector_distance is not None:
+            payload["maxVectorDistance"] = max_vector_distance
         builder = builder.with_hybrid(payload)
         if object_limit is not None:
             builder = builder.with_object_limit(object_limit)
