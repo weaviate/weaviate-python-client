@@ -428,7 +428,7 @@ def test_vector_per_target(
 @pytest.mark.parametrize(
     "near_vector,target_vector",
     [
-        ({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}, ["first", "second", "second"]),
+        ({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}, ["first", "second"]),
         ({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}, ["first", "first", "second"]),
         (
             {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]},
