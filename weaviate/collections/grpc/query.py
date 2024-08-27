@@ -164,6 +164,7 @@ class _QueryGRPC(_BaseGRPC):
         vector: Optional[HybridVectorType] = None,
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         autocut: Optional[int] = None,
@@ -303,6 +304,7 @@ class _QueryGRPC(_BaseGRPC):
                 near_text=near_text,
                 near_vector=near_vector,
                 vector_bytes=vector_bytes,
+                vector_distance=distance,
             )
             if query is not None or vector is not None
             else None

@@ -478,3 +478,50 @@ def test_same_target_vector_multiple_input_combinations(
         return_metadata=wvc.query.MetadataQuery.full(),
     ).objects
     assert sorted([obj.uuid for obj in objs]) == sorted([uuid2, uuid1])
+
+
+def test_vector_distance(collection_factory: CollectionFactory):
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
+            vectorize_collection_name=False
+        ),
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 3):
+        pytest.skip("Hybrid max vector distance is only supported in versions higher than 1.26.3")
+
+    uuid1 = collection.data.insert({}, vector=[1, 0, 0])
+    collection.data.insert({}, vector=[0, 1, 0])
+    collection.data.insert({}, vector=[0, 0, 1])
+
+    objs = collection.query.hybrid("name", vector=[1, 0, 0])
+    assert len(objs.objects) == 3
+    assert objs.objects[0].uuid == uuid1
+
+    objs = collection.query.hybrid("name", vector=[1, 0, 0], max_vector_distance=0.1)
+    assert len(objs.objects) == 1
+    assert objs.objects[0].uuid == uuid1
+
+
+def test_aggregate_max_vector_distance(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=Configure.Vectorizer.none(),
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 26, 3):
+        pytest.skip("Hybrid max vector distance is only supported in versions higher than 1.26.3")
+
+    collection.data.insert({"name": "banana one"}, vector=[1, 0, 0, 0])
+    collection.data.insert({"name": "banana two"}, vector=[0, 1, 0, 0])
+    collection.data.insert({"name": "banana three"}, vector=[0, 1, 0, 0])
+    collection.data.insert({"name": "banana four"}, vector=[1, 0, 0, 0])
+
+    res = collection.aggregate.hybrid(
+        "banana",
+        vector=[1, 0, 0, 0],
+        max_vector_distance=0.5,
+        return_metrics=[wvc.aggregate.Metrics("name").text(count=True)],
+    )
+    assert res.total_count == 2

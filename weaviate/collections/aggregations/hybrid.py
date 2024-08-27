@@ -25,6 +25,7 @@ class _HybridAsync(_AggregateAsync):
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
@@ -70,7 +71,14 @@ class _HybridAsync(_AggregateAsync):
         )
         builder = self._base(return_metrics, filters, total_count)
         builder = self._add_hybrid_to_builder(
-            builder, query, alpha, vector, query_properties, object_limit, target_vector
+            builder,
+            query,
+            alpha,
+            vector,
+            query_properties,
+            object_limit,
+            target_vector,
+            max_vector_distance,
         )
         builder = self._add_groupby_to_builder(builder, group_by)
         res = await self._do(builder)
