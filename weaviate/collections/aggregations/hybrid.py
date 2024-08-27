@@ -25,7 +25,7 @@ class _HybridAsync(_AggregateAsync):
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
-        max_vector_distance: Optional[float] = None,
+        max_vector_distance: Optional[NUMBER] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
