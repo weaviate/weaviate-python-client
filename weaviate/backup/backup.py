@@ -380,7 +380,7 @@ class _BackupAsync:
 
         Returns
         -------
-         A `BackupStatusReturn` object that contains the backup restore status response.
+         A list of `BackupStatusReturn` objects that contain the backup restore status responses.
         """
         return await self.__list_backups(backend)
 
