@@ -5,8 +5,8 @@ Backup class definition.
 from enum import Enum
 from time import sleep
 from typing import Optional, Union, List, Tuple, Any, Dict
-from pydantic import BaseModel, Field
 
+from pydantic import BaseModel, Field
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection, ConnectionV4
@@ -16,7 +16,7 @@ from weaviate.exceptions import (
     BackupFailedException,
     EmptyResponseException,
 )
-from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
+from weaviate.util import _capitalize_first_letter, _decode_json_response_dict, _decode_json_response_list
 
 STORAGE_NAMES = {
     "filesystem",
@@ -356,6 +356,33 @@ class _BackupAsync:
          A `BackupStatusReturn` object that contains the backup restore status response.
         """
         return await self.__get_restore_status(backup_id, backend)
+
+    async def __list_backups(self, backend: BackupStorage) -> List[BackupStatusReturn]:
+        _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
+        path = f"/backups/{backend.value}"
+
+        response = await self._connection.get(
+            path=path, error_msg="Backup list status failed due to connection error."
+        )
+        typed_response = _decode_json_response_list(response, "Backup restore status check")
+        if typed_response is None:
+            raise EmptyResponseException()
+        return [BackupStatusReturn(**entry) for entry in typed_response]
+
+    async def list_backups(self, backend: BackupStorage) -> List[BackupStatusReturn]:
+        """
+        List all backups that are currently in progress.
+
+        Parameters
+        ----------
+        backend : BackupStorage
+            The backend storage where to create the backup.
+
+        Returns
+        -------
+         A `BackupStatusReturn` object that contains the backup restore status response.
+        """
+        return await self.__list_backups(backend)
 
 
 class Backup:

@@ -16,7 +16,7 @@ from weaviate.collections.classes.config import DataType, Property, ReferencePro
 from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
     UnexpectedStatusCodeException,
-    BackupFailedException,
+    BackupFailedException, UnexpectedStatusCodeError,
 )
 
 BACKEND = BackupStorage.FILESYSTEM
@@ -449,3 +449,15 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
             wait_for_completion=True,
             config=BackupConfigRestore(cpu_percentage=70),
         )
+
+
+def test_list_backup(client: weaviate.WeaviateClient) -> None:
+    """Create and restore backup without waiting."""
+    backup_id = _create_backup_id()
+
+    resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
+    assert resp.status == BackupStatus.STARTED
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        backups = client.backup.list_backups(backend=BACKEND)
+        assert backup_id in [b.id for b in backups]

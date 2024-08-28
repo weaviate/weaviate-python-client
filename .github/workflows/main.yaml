@@ -19,7 +19,6 @@ env:
   WEAVIATE_125: preview-8382155
   WEAVIATE_126: preview-0c3d554
 
-
 jobs:
   lint-and-format:
     name: Run Linter and Formatter
@@ -128,7 +127,7 @@ jobs:
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_126}
+          { py: "3.12", weaviate: $WEAVIATE_127}
         ]
         optional_dependencies: [false]
     steps:
