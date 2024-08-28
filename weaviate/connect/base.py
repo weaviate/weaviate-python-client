@@ -1,5 +1,7 @@
 import datetime
 import os
+import socket
+import ssl
 import time
 from abc import ABC, abstractmethod
 from typing import Dict, Tuple, TypeVar, Union, cast
@@ -8,13 +10,12 @@ from urllib.parse import urlparse
 import grpc  # type: ignore
 from grpc import ssl_channel_credentials
 from grpc.aio import Channel  # type: ignore
-
-# from grpclib.client import Channel
-
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import Proxies
 from weaviate.types import NUMBER
+
+# from grpclib.client import Channel
 
 
 JSONPayload = Union[dict, list]
@@ -111,15 +112,44 @@ class ConnectionParams(BaseModel):
     def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
 
-    def _grpc_channel(self, proxies: Dict[str, str]) -> Channel:
+    def _grpc_channel(self, proxies: Dict[str, str], enable_ssl_verification: bool) -> Channel:
         if (p := proxies.get("grpc")) is not None:
             options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
         else:
             options = GRPC_DEFAULT_OPTIONS
         if self.grpc.secure:
+            if enable_ssl_verification:
+                creds = ssl_channel_credentials()
+            else:
+                import logging
+                logging.basicConfig(level=logging.DEBUG)
+
+                # download certificate from server. This is super hacky, but the grpc library does NOT offer a way to
+                # disable certificate verification. There are probably a number of edge cases that this does not cover.
+                context = ssl.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
+                targets = self.grpc.host.removeprefix("http://").split(":")
+
+                with socket.create_connection((targets[0], self.http.port)) as sock:
+                    with context.wrap_socket(
+                        sock, server_hostname=self._grpc_target
+                    ) as secure_sock:
+                        cert_binary = secure_sock.getpeercert(binary_form=True)
+                        if cert_binary is None:
+                            raise ValueError(
+                                "Failed to retrieve the server certificate to bypass ssl verification."
+                            )
+
+                        cert = ssl.DER_cert_to_PEM_cert(cert_binary)
+
+                creds = ssl_channel_credentials(root_certificates=cert.encode())
+                # this assumes that the server cert has the correct hostname, which might not be the case
+                options.append(("grpc.ssl_target_name_override", targets[0]))
+
             return grpc.aio.secure_channel(
                 target=self._grpc_target,
-                credentials=ssl_channel_credentials(),
+                credentials=creds,
                 options=options,
             )
         else:

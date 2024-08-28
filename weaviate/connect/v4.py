@@ -14,7 +14,6 @@ from authlib.integrations.httpx_client import (  # type: ignore
 )
 from grpc.aio import Channel  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
-
 # from grpclib.client import Channel
 from httpx import (
     AsyncClient,
@@ -98,6 +97,7 @@ class ConnectionV4(_ConnectionBase):
         timeout_config: TimeoutConfig,
         proxies: Union[str, Proxies, None],
         trust_env: bool,
+        disable_ssl_verification: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
         loop: asyncio.AbstractEventLoop,  # required for background token refresh
@@ -115,6 +115,7 @@ class ConnectionV4(_ConnectionBase):
         self.timeout_config = timeout_config
         self.__connection_config = connection_config
         self.__trust_env = trust_env
+        self.__enable_ssl_verification = not disable_ssl_verification
         self._weaviate_version = _ServerVersion.from_string("")
         self.__connected = False
         self.__loop = loop
@@ -211,6 +212,7 @@ class ConnectionV4(_ConnectionBase):
                 proxy=Proxy(url=proxy),
                 retries=self.__connection_config.session_pool_max_retries,
                 trust_env=self.__trust_env,
+                verify=self.__enable_ssl_verification
             )
             for key, proxy in self._proxies.items()
             if key != "grpc"
@@ -221,6 +223,7 @@ class ConnectionV4(_ConnectionBase):
             headers=self._headers,
             mounts=self.__make_mounts(),
             trust_env=self.__trust_env,
+            verify=self.__enable_ssl_verification
         )
 
     def __make_clients(self) -> None:
@@ -229,7 +232,7 @@ class ConnectionV4(_ConnectionBase):
     async def _open_connections(
         self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool
     ) -> None:
-        self._grpc_channel = self._connection_params._grpc_channel(proxies=self._proxies)
+        self._grpc_channel = self._connection_params._grpc_channel(proxies=self._proxies, enable_ssl_verification=self.__enable_ssl_verification)
         assert self._grpc_channel is not None
         self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
 

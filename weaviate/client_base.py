@@ -5,11 +5,8 @@ Client class definition.
 import asyncio
 from typing import Optional, Tuple, Union, Dict, Any
 
-
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
-
 from weaviate.integrations import _Integrations
-
 from .auth import AuthCredentials
 from .config import AdditionalConfig
 from .connect import ConnectionV4
@@ -83,6 +80,7 @@ class _WeaviateClientInit:
             proxies=config.proxies,
             trust_env=config.trust_env,
             loop=self._loop,
+            disable_ssl_verification=config.disable_ssl_verification,
         )
 
         self.integrations = _Integrations(self._connection)

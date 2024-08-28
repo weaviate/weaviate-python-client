@@ -12,6 +12,7 @@ from pytest_httpserver import HTTPServer, HeaderValueMatcher
 from werkzeug.wrappers import Request, Response
 
 import weaviate
+from mock_tests.mock_data import mock_class
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.proto.v1 import (
     batch_pb2,
@@ -20,8 +21,6 @@ from weaviate.proto.v1 import (
     search_get_pb2,
     weaviate_pb2_grpc,
 )
-
-from mock_tests.mock_data import mock_class
 
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536
@@ -105,17 +104,16 @@ def weaviate_timeouts_mock(weaviate_no_auth_mock: HTTPServer):
     yield weaviate_no_auth_mock
 
 
+# Implement the health check service
+class MockHealthServicer(HealthServicer):
+    def Check(self, request: HealthCheckRequest, context: ServicerContext) -> HealthCheckResponse:
+        return HealthCheckResponse(status=HealthCheckResponse.SERVING)
+
+
 @pytest.fixture(scope="function")
 def start_grpc_server() -> Generator[grpc.Server, None, None]:
     # Create a gRPC server
     server: grpc.Server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-
-    # Implement the health check service
-    class MockHealthServicer(HealthServicer):
-        def Check(
-            self, request: HealthCheckRequest, context: ServicerContext
-        ) -> HealthCheckResponse:
-            return HealthCheckResponse(status=HealthCheckResponse.SERVING)
 
     # Add the health check service to the server
     add_HealthServicer_to_server(MockHealthServicer(), server)
