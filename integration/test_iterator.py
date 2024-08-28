@@ -48,11 +48,16 @@ class Data(TypedDict):
     "return_properties",
     [None, Data, ["data"]],
 )
+@pytest.mark.parametrize(
+    "cache_size",
+    [None, 100, 10000]
+)
 def test_iterator_arguments(
     collection_factory: CollectionFactory,
     include_vector: bool,
     return_metadata: Optional[METADATA],
     return_properties: Optional[PROPERTIES],
+    cache_size: Optional[int]
 ) -> None:
     collection = collection_factory(
         properties=[
@@ -69,7 +74,7 @@ def test_iterator_arguments(
     )
 
     iter_ = collection.iterator(
-        include_vector, return_metadata=return_metadata, return_properties=return_properties
+        include_vector, return_metadata=return_metadata, return_properties=return_properties, cache_size=cache_size
     )
 
     # Expect everything back

@@ -187,6 +187,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[Properties, References]: ...
 
     @overload
@@ -198,6 +199,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[Properties, CrossReferences]: ...
 
     @overload
@@ -209,6 +211,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[Properties, TReferences]: ...
 
     @overload
@@ -220,6 +223,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[TProperties, References]: ...
 
     @overload
@@ -231,6 +235,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[TProperties, CrossReferences]: ...
 
     @overload
@@ -242,6 +247,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[TProperties, TReferences]: ...
 
     def iterator(
@@ -252,6 +258,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> Union[
         _ObjectIterator[Properties, References],
         _ObjectIterator[Properties, CrossReferences],
@@ -281,6 +288,8 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
                 The references to return with each object.
             `after`
                 The cursor to use to mark the initial starting point of the iterator in the collection.
+            `cache_size`
+                How many objects should be fetched in each request to Weaviate during the iteration. The default is 100.
 
         Raises:
             `weaviate.exceptions.WeaviateGRPCQueryError`:
@@ -295,4 +304,5 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
                 return_references=return_references,
                 after=after,
             ),
+            cache_size=cache_size,
         )
