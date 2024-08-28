@@ -131,7 +131,7 @@ class ConnectionParams(BaseModel):
                 context.verify_mode = ssl.CERT_NONE
                 targets = self.grpc.host.removeprefix("http://").split(":")
 
-                with socket.create_connection((targets[0], self.http.port)) as sock:
+                with socket.create_connection((targets[0], self.grpc.port)) as sock:
                     with context.wrap_socket(
                         sock, server_hostname=self._grpc_target
                     ) as secure_sock:
