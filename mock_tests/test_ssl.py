@@ -69,6 +69,9 @@ def test_disable_ssl_verification(
         Response(json.dumps({}), status=404)
     )
 
+    assert httpserver.port == PORT
+    assert httpserver.host == SERVER
+
     # test http connection with ssl
     with pytest.raises(weaviate.exceptions.WeaviateConnectionError):
         weaviate.connect_to_custom(
