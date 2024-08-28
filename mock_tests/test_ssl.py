@@ -1,6 +1,7 @@
 import json
 import ssl
 from concurrent import futures
+from typing import Iterable
 
 import grpc
 import pytest
@@ -13,13 +14,8 @@ import weaviate
 from mock_tests.conftest import MockHealthServicer, MOCK_IP, MOCK_PORT_GRPC
 
 SERVER = "127.0.0.1"
-PORT = 8888
-MOCK_PORT_GRPC_SSL = 50053
-
-
-@pytest.fixture(scope="session")
-def httpserver_listen_address():
-    return SERVER, PORT
+MOCK_PORT_GRPC_SSL = 23538
+PORT = 23539
 
 
 @pytest.fixture(scope="session")
@@ -30,6 +26,16 @@ def httpserver_ssl_context():
     server_cert.configure_cert(server_context)
 
     return server_context
+
+
+@pytest.fixture(scope="session")
+def make_httpserver(httpserver_ssl_context) -> Iterable[HTTPServer]:
+    server = HTTPServer(host=SERVER, port=PORT, ssl_context=httpserver_ssl_context)
+    server.start()
+    yield server
+    server.clear()
+    if server.is_running():
+        server.stop()
 
 
 @pytest.fixture(scope="module")
@@ -60,17 +66,17 @@ def start_grpc_server_ssl() -> grpc.Server:
 
 
 def test_disable_ssl_verification(
-    httpserver: HTTPServer, start_grpc_server_ssl: grpc.Server, start_grpc_server: grpc.Server
+    make_httpserver: HTTPServer, start_grpc_server_ssl: grpc.Server, start_grpc_server: grpc.Server
 ):
-    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
-    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
-    httpserver.expect_request("/v1/nodes").respond_with_json({"nodes": [{"gitHash": "ABC"}]})
-    httpserver.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
+    make_httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    make_httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
+    make_httpserver.expect_request("/v1/nodes").respond_with_json({"nodes": [{"gitHash": "ABC"}]})
+    make_httpserver.expect_request("/v1/.well-known/openid-configuration").respond_with_response(
         Response(json.dumps({}), status=404)
     )
 
-    assert httpserver.port == PORT
-    assert httpserver.host == SERVER
+    assert make_httpserver.port == PORT
+    assert make_httpserver.host == SERVER
 
     # test http connection with ssl
     with pytest.raises(weaviate.exceptions.WeaviateConnectionError):
@@ -116,4 +122,4 @@ def test_disable_ssl_verification(
         additional_config=weaviate.config.AdditionalConfig(disable_ssl_verification=True),
     )
 
-    httpserver.check_assertions()
+    make_httpserver.check_assertions()
