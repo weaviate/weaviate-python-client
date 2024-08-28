@@ -122,6 +122,7 @@ class ConnectionParams(BaseModel):
                 creds = ssl_channel_credentials()
             else:
                 import logging
+
                 logging.basicConfig(level=logging.DEBUG)
 
                 # download certificate from server. This is super hacky, but the grpc library does NOT offer a way to
@@ -129,7 +130,7 @@ class ConnectionParams(BaseModel):
                 context = ssl.create_default_context()
                 context.check_hostname = False
                 context.verify_mode = ssl.CERT_NONE
-                targets = self.grpc.host.removeprefix("http://").split(":")
+                targets = self.grpc.host.replace("http://", "", 1).split(":")
 
                 with socket.create_connection((targets[0], self.grpc.port)) as sock:
                     with context.wrap_socket(
