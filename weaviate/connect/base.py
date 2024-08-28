@@ -145,8 +145,6 @@ class ConnectionParams(BaseModel):
                         cert = ssl.DER_cert_to_PEM_cert(cert_binary)
 
                 creds = ssl_channel_credentials(root_certificates=cert.encode())
-                # this assumes that the server cert has the correct hostname, which might not be the case
-                options.append(("grpc.ssl_target_name_override", targets[0]))
 
             return grpc.aio.secure_channel(
                 target=self._grpc_target,
