@@ -38,12 +38,14 @@ class _ObjectIterator(
         self,
         query: _FetchObjectsQuery[Any, Any],
         inputs: _IteratorInputs[TProperties, TReferences],
+        cache_size: Optional[int] = None,
     ) -> None:
         self.__query = query
         self.__inputs = inputs
 
         self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
+        self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
 
     def __iter__(
         self,
@@ -55,7 +57,7 @@ class _ObjectIterator(
     def __next__(self) -> Object[TProperties, TReferences]:
         if len(self.__iter_object_cache) == 0:
             res = self.__query.fetch_objects(
-                limit=ITERATOR_CACHE_SIZE,
+                limit=self.__iter_cache_size,
                 after=self.__iter_object_last_uuid,
                 include_vector=self.__inputs.include_vector,
                 return_metadata=self.__inputs.return_metadata,
@@ -82,12 +84,14 @@ class _ObjectAIterator(
         self,
         query: _FetchObjectsQueryAsync[Any, Any],
         inputs: _IteratorInputs[TProperties, TReferences],
+        cache_size: Optional[int] = None,
     ) -> None:
         self.__query = query
         self.__inputs = inputs
 
         self.__iter_object_cache: List[Object[TProperties, TReferences]] = []
         self.__iter_object_last_uuid: Optional[UUID] = _parse_after(self.__inputs.after)
+        self.__iter_cache_size = cache_size or ITERATOR_CACHE_SIZE
 
     def __aiter__(
         self,
@@ -101,7 +105,7 @@ class _ObjectAIterator(
     ) -> Object[TProperties, TReferences]:
         if len(self.__iter_object_cache) == 0:
             res = await self.__query.fetch_objects(
-                limit=ITERATOR_CACHE_SIZE,
+                limit=self.__iter_cache_size,
                 after=self.__iter_object_last_uuid,
                 include_vector=self.__inputs.include_vector,
                 return_metadata=self.__inputs.return_metadata,
