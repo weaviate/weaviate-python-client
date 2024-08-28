@@ -1,4 +1,5 @@
 import pytest
+
 from weaviate.config import ConnectionConfig
 from weaviate.connect import ConnectionV4, ConnectionParams
 
@@ -11,6 +12,7 @@ def connection() -> ConnectionV4:
         (10, 60),
         None,
         True,
+        False,
         None,
         ConnectionConfig(),
         None,
