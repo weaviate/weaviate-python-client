@@ -247,8 +247,6 @@ class _NamedVectors:
                 Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
             `vectorize_collection_name`
