@@ -445,7 +445,7 @@ class _GenerativeMistral(_GenerativeConfigCreate):
     maxTokens: Optional[int]
 
 
-class _GenerativeFriendlyai(_GenerativeConfigCreate):
+class _GenerativeFriendliai(_GenerativeConfigCreate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
     )
@@ -636,7 +636,7 @@ class _Generative:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> _GenerativeConfigCreate:
-        return _GenerativeFriendlyai(
+        return _GenerativeFriendliai(
             model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
         )
 
