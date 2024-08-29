@@ -615,6 +615,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-anyscale": {}},
     ),
     (
+        Configure.Generative.friendliai(temperature=0.5, max_tokens=100, model="model", base_url="https://api.custom.ai"),
+        {"generative-friendliai": {"temperature": 0.5, "maxTokens": 100, "model": "model", "baseURL": "https://api.custom.ai"}},
+    ),
+    (
         Configure.Generative.mistral(temperature=0.5, max_tokens=100, model="model"),
         {"generative-mistral": {"temperature": 0.5, "maxTokens": 100, "model": "model"}},
     ),
