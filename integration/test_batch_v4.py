@@ -687,9 +687,13 @@ def test_batching_error_logs(
         for obj in [{"name": i} for i in range(100)]:
             batch.add_object(properties=obj, collection=name)
     assert (
-        "Failed to send 100 objects in a batch of 100. Please inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects."
-        in caplog.text
-    )
+        ("Failed to send" in caplog.text)
+        and ("objects in a batch of" in caplog.text)
+        and (
+            "Please inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects."
+            in caplog.text
+        )
+    )  # number of objects sent per batch is not fixed for less than 100 objects
 
 
 def test_references_with_to_uuids(client_factory: ClientFactory) -> None:

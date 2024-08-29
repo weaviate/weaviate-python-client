@@ -285,13 +285,6 @@ class _BatchBase:
                     ):
                         time.sleep(1)
                         continue
-            elif isinstance(self.__batching_mode, _FixedSizeBatching):
-                if (
-                    len(self.__batch_objects) + len(self.__batch_references)
-                    < self.__recommended_num_objects
-                ):
-                    time.sleep(refresh_time)
-                    continue
 
             if (
                 self.__active_requests < self.__concurrent_requests
