@@ -162,7 +162,12 @@ class _BatchBase:
         batch_mode: _BatchMode,
         event_loop: _EventLoop,
         vectorizer_batching: bool,
+        objects: Optional[ObjectsBatchRequest] = None,
+        references: Optional[ReferencesBatchRequest] = None,
     ) -> None:
+        self.__batch_objects = objects or ObjectsBatchRequest()
+        self.__batch_references = references or ReferencesBatchRequest()
+
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = consistency_level
         self.__vectorizer_batching = vectorizer_batching
@@ -226,14 +231,12 @@ class _BatchBase:
         # do 62 secs to give us some buffer to the "per-minute" calculation
         self.__fix_rate_batching_base_time = 62
 
-        self.__loop.run_until_complete(self.__make_locks)
+        self.__loop.run_until_complete(self.__make_asyncio_locks)
 
         self.__bg_thread = self.__start_bg_threads()
         self.__bg_thread_exception: Optional[Exception] = None
 
-    async def __make_locks(self) -> None:
-        self.__batch_objects = ObjectsBatchRequest()
-        self.__batch_references = ReferencesBatchRequest()
+    async def __make_asyncio_locks(self) -> None:
         self.__active_requests_lock = asyncio.Lock()
         self.__uuid_lookup_lock = asyncio.Lock()
         self.__results_lock = asyncio.Lock()
