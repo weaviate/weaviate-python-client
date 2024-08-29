@@ -61,23 +61,23 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
 
     def __init__(self) -> None:
         self._items: List[TBatchInput] = []
-        self._lock = asyncio.Lock()
+        self._lock = threading.Lock()
 
     def __len__(self) -> int:
         return len(self._items)
 
-    async def add(self, item: TBatchInput) -> None:
+    def add(self, item: TBatchInput) -> None:
         """Add an item to the BatchRequest."""
-        await self._lock.acquire()
+        self._lock.acquire()
         self._items.append(item)
         self._lock.release()
 
-    async def prepend(self, item: List[TBatchInput]) -> None:
+    def prepend(self, item: List[TBatchInput]) -> None:
         """Add items to the front of the BatchRequest.
 
         This is intended to be used when objects should be retries, eg. after a temporary error.
         """
-        await self._lock.acquire()
+        self._lock.acquire()
         self._items = item + self._items
         self._lock.release()
 
@@ -85,7 +85,7 @@ class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
 class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]):
     """Collect Weaviate-object references to add them in one request to Weaviate."""
 
-    async def pop_items(self, pop_amount: int, uuid_lookup: Set[str]) -> List[_BatchReference]:
+    def pop_items(self, pop_amount: int, uuid_lookup: Set[str]) -> List[_BatchReference]:
         """Pop the given number of items from the BatchRequest queue.
 
         Returns
@@ -93,7 +93,7 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
         """
         ret: List[_BatchReference] = []
         i = 0
-        await self._lock.acquire()
+        self._lock.acquire()
         while len(ret) < pop_amount and len(self._items) > 0 and i < len(self._items):
             if self._items[i].from_uuid not in uuid_lookup and (
                 self._items[i].to_uuid is None or self._items[i].to_uuid not in uuid_lookup
@@ -108,13 +108,13 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
 class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
     """Collect objects for one batch request to weaviate."""
 
-    async def pop_items(self, pop_amount: int) -> List[_BatchObject]:
+    def pop_items(self, pop_amount: int) -> List[_BatchObject]:
         """Pop the given number of items from the BatchRequest queue.
 
         Returns
             `List[_BatchObject]` items from the BatchRequest.
         """
-        await self._lock.acquire()
+        self._lock.acquire()
         if pop_amount >= len(self._items):
             ret = copy(self._items)
             self._items.clear()
@@ -297,12 +297,9 @@ class _BatchBase:
                 self.__active_requests += 1
                 self.__active_requests_lock.release()
 
-                objs = self.__loop.run_until_complete(
-                    self.__batch_objects.pop_items, self.__recommended_num_objects
-                )
+                objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
                 self.__loop.run_until_complete(self.__uuid_lookup_lock.acquire)
-                refs = self.__loop.run_until_complete(
-                    self.__batch_references.pop_items,
+                refs = self.__batch_references.pop_items(
                     self.__recommended_num_refs,
                     uuid_lookup=self.__uuid_lookup,
                 )
@@ -518,7 +515,7 @@ class _BatchBase:
                 ]
                 readded_uuids = {obj.uuid for obj in readd_objects}
 
-                await self.__batch_objects.prepend(readd_objects)
+                self.__batch_objects.prepend(readd_objects)
 
                 new_errors = {
                     i: err for i, err in response_obj.errors.items() if i not in readded_objects
@@ -641,17 +638,13 @@ class _BatchBase:
                 index=self.__objs_count,
             )
             self.__objs_count += 1
-            self.__loop.run_until_complete(self.__results_lock.acquire)
             self.__results_for_wrapper.imported_shards.add(
                 Shard(collection=collection, tenant=tenant)
             )
-            self.__results_lock.release()
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
-        self.__loop.run_until_complete(self.__uuid_lookup_lock.acquire)
         self.__uuid_lookup.add(str(batch_object.uuid))
-        self.__uuid_lookup_lock.release()
-        self.__loop.run_until_complete(self.__batch_objects.add, batch_object._to_internal())
+        self.__batch_objects.add(batch_object._to_internal())
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
         # not need a long queue
@@ -695,9 +688,7 @@ class _BatchBase:
                 )
             except ValidationError as e:
                 raise WeaviateBatchValidationError(repr(e))
-            self.__loop.run_until_complete(
-                self.__batch_references.add, batch_reference._to_internal()
-            )
+            self.__batch_references.add(batch_reference._to_internal())
 
         # block if queue gets too long or weaviate is overloaded
         while self.__recommended_num_objects == 0:
