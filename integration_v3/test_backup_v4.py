@@ -130,6 +130,7 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     # check create status
     create_status = client.backup.get_create_status(backup_id, BACKEND)
     assert create_status.status == BackupStatus.SUCCESS
+    assert create_status.path == backup_id
 
     # remove existing class
     client.collections.delete("Article")
@@ -454,12 +455,28 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
 def test_list_backup(client: weaviate.WeaviateClient) -> None:
     """Create and restore backup without waiting."""
     backup_id = _create_backup_id()
-    if client._connection._weaviate_version.is_at_least(1, 27, 0):
+    if client._connection._weaviate_version.is_lower_than(1, 27, 0):
         pytest.skip("List backups is only supported from 1.27.0")
 
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED
 
+    backups = client.backup.list_backups(backend=BACKEND)
+    assert backup_id in [b.backup_id for b in backups]
+
+
+def test_cancel_backup(client: weaviate.WeaviateClient) -> None:
+    """Create and restore backup without waiting."""
+    backup_id = _create_backup_id()
+    if client._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip("Cancel backups is only supported from 1.27.0")
+
+    resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
+    assert resp.status == BackupStatus.STARTED
+
     with pytest.raises(UnexpectedStatusCodeError):
-        backups = client.backup.list_backups(backend=BACKEND)
-        assert backup_id in [b.id for b in backups]
+        assert client.backup.cancel_backup(backup_id=backup_id, backend=BACKEND)
+
+    _ = client.backup.list_backups(backend=BACKEND)
+    # depends on the final implementation
+    # assert len(backups) == 0

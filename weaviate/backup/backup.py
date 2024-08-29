@@ -76,6 +76,7 @@ class BackupStatusReturn(BaseModel):
     error: Optional[str] = Field(default=None)
     status: BackupStatus
     path: str
+    backup_id: str = Field(alias="id")
 
 
 class BackupReturn(BackupStatusReturn):
@@ -205,6 +206,7 @@ class _BackupAsync:
         typed_response = _decode_json_response_dict(response, "Backup status check")
         if typed_response is None:
             raise EmptyResponseException()
+        typed_response["id"] = backup_id
         return BackupStatusReturn(**typed_response)
 
     async def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
@@ -335,13 +337,14 @@ class _BackupAsync:
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
             raise EmptyResponseException()
+        typed_response["id"] = backup_id
         return BackupStatusReturn(**typed_response)
 
     async def get_restore_status(
         self, backup_id: str, backend: BackupStorage
     ) -> BackupStatusReturn:
         """
-        Checks if a started classification job has completed.
+        Checks if a started restore job has completed.
 
         Parameters
         ----------
@@ -357,7 +360,52 @@ class _BackupAsync:
         """
         return await self.__get_restore_status(backup_id, backend)
 
-    async def __list_backups(self, backend: BackupStorage) -> List[BackupStatusReturn]:
+    async def __cancel_backup(
+        self, backup_id: str, backend: BackupStorage
+    ) -> bool:
+        backup_id, backend = _get_and_validate_get_status(
+            backup_id=backup_id,
+            backend=backend,
+        )
+        path = f"/backups/{backend.value}/{backup_id}"
+
+        response = await self._connection.delete(
+            path=path, error_msg="Backup delete failed due to connection error."
+        )
+        if response is None:
+            raise EmptyResponseException()
+
+        if response.status_code == 204:
+            return True  # Successfully deleted
+        else:
+            return False  # did not exist
+
+    async def cancel_backup(
+        self, backup_id: str, backend: BackupStorage
+    ) -> bool:
+        """
+        Cancels a running backup.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage where to create the backup.
+
+        Raises
+        ------
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+
+        Returns
+        -------
+         A bool indicating if the cancellation was successful.
+        """
+        return await self.__cancel_backup(backup_id, backend)
+
+    async def __list_backups(self, backend: BackupStorage) -> List[BackupReturn]:
         _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
         path = f"/backups/{backend.value}"
 
@@ -367,9 +415,9 @@ class _BackupAsync:
         typed_response = _decode_json_response_list(response, "Backup restore status check")
         if typed_response is None:
             raise EmptyResponseException()
-        return [BackupStatusReturn(**entry) for entry in typed_response]
+        return [BackupReturn(**entry) for entry in typed_response]
 
-    async def list_backups(self, backend: BackupStorage) -> List[BackupStatusReturn]:
+    async def list_backups(self, backend: BackupStorage) -> List[BackupReturn]:
         """
         List all backups that are currently in progress.
 
