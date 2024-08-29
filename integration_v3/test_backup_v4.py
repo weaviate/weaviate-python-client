@@ -130,7 +130,7 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     # check create status
     create_status = client.backup.get_create_status(backup_id, BACKEND)
     assert create_status.status == BackupStatus.SUCCESS
-    assert create_status.path == backup_id
+    assert create_status.backup_id == backup_id
 
     # remove existing class
     client.collections.delete("Article")

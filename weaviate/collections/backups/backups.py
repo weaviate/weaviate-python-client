@@ -59,7 +59,9 @@ class _CollectionBackupAsync(_CollectionBackupBase):
         create = await self._backup.create(
             backup_id, backend, [self._name], None, wait_for_completion, config
         )
-        return BackupStatusReturn(error=create.error, status=create.status, path=create.path, id=backup_id)
+        return BackupStatusReturn(
+            error=create.error, status=create.status, path=create.path, id=backup_id
+        )
 
     async def restore(
         self,
@@ -97,7 +99,9 @@ class _CollectionBackupAsync(_CollectionBackupBase):
         restore = await self._backup.restore(
             backup_id, backend, [self._name], None, wait_for_completion, config
         )
-        return BackupStatusReturn(error=restore.error, status=restore.status, path=restore.path, id=backup_id)
+        return BackupStatusReturn(
+            error=restore.error, status=restore.status, path=restore.path, id=backup_id
+        )
 
     async def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
         """Check if a started backup job has completed.

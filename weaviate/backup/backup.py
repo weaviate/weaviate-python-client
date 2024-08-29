@@ -16,7 +16,11 @@ from weaviate.exceptions import (
     BackupFailedException,
     EmptyResponseException,
 )
-from weaviate.util import _capitalize_first_letter, _decode_json_response_dict, _decode_json_response_list
+from weaviate.util import (
+    _capitalize_first_letter,
+    _decode_json_response_dict,
+    _decode_json_response_list,
+)
 
 STORAGE_NAMES = {
     "filesystem",
@@ -360,9 +364,7 @@ class _BackupAsync:
         """
         return await self.__get_restore_status(backup_id, backend)
 
-    async def __cancel_backup(
-        self, backup_id: str, backend: BackupStorage
-    ) -> bool:
+    async def __cancel_backup(self, backup_id: str, backend: BackupStorage) -> bool:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
             backend=backend,
@@ -381,9 +383,7 @@ class _BackupAsync:
         else:
             return False  # did not exist
 
-    async def cancel_backup(
-        self, backup_id: str, backend: BackupStorage
-    ) -> bool:
+    async def cancel_backup(self, backup_id: str, backend: BackupStorage) -> bool:
         """
         Cancels a running backup.
 
