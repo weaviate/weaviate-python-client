@@ -237,9 +237,9 @@ class _NamedVectors:
         endpoint: str,
         instruction: Optional[str] = None,
     ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `text2vec-mistral` model.
+        """Create a named vector using the `text2vec-databricks` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-mistral)
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-databricks)
         for detailed usage.
 
         Arguments:
@@ -249,12 +249,12 @@ class _NamedVectors:
                 Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
             `endpoint`
                 The endpoint to use.
             `instruction`
                 The instruction strategy to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
