@@ -178,6 +178,7 @@ class GenerativeSearches(str, Enum):
     ANTHROPIC = "generative-anthropic"
     ANYSCALE = "generative-anyscale"
     COHERE = "generative-cohere"
+    FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
     OCTOAI = "generative-octoai"
     OLLAMA = "generative-ollama"
@@ -444,6 +445,16 @@ class _GenerativeMistral(_GenerativeConfigCreate):
     maxTokens: Optional[int]
 
 
+class _GenerativeFriendliai(_GenerativeConfigCreate):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
+    )
+    temperature: Optional[float]
+    model: Optional[str]
+    maxTokens: Optional[int]
+    baseURL: Optional[str]
+
+
 class _GenerativeOllama(_GenerativeConfigCreate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
@@ -616,6 +627,18 @@ class _Generative:
                 The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
         """
         return _GenerativeCustom(generative=_EnumLikeStr(module_name), module_config=module_config)
+
+    @staticmethod
+    def friendliai(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeFriendliai(
+            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
 
     @staticmethod
     def mistral(
