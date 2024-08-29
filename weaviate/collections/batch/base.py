@@ -162,11 +162,7 @@ class _BatchBase:
         batch_mode: _BatchMode,
         event_loop: _EventLoop,
         vectorizer_batching: bool,
-        objects_: Optional[ObjectsBatchRequest] = None,
-        references: Optional[ReferencesBatchRequest] = None,
     ) -> None:
-        self.__batch_objects = objects_ or ObjectsBatchRequest()
-        self.__batch_references = references or ReferencesBatchRequest()
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = consistency_level
         self.__vectorizer_batching = vectorizer_batching
@@ -175,14 +171,11 @@ class _BatchBase:
         self.__batch_rest = _BatchREST(connection, self.__consistency_level)
 
         # lookup table for objects that are currently being processed - is used to not send references from objects that have not been added yet
-        self.__uuid_lookup_lock = asyncio.Lock()
         self.__uuid_lookup: Set[str] = set()
 
         # we do not want that users can access the results directly as they are not thread-safe
         self.__results_for_wrapper_backup = results
         self.__results_for_wrapper = _BatchDataWrapper()
-
-        self.__results_lock = asyncio.Lock()
 
         self.__cluster = _ClusterBatch(self.__connection)
 
@@ -222,7 +215,6 @@ class _BatchBase:
         self.__recommended_num_refs: int = 50
 
         self.__active_requests = 0
-        self.__active_requests_lock = asyncio.Lock()
 
         # dynamic batching
         self.__time_last_scale_up: float = 0
@@ -234,8 +226,17 @@ class _BatchBase:
         # do 62 secs to give us some buffer to the "per-minute" calculation
         self.__fix_rate_batching_base_time = 62
 
+        self.__loop.run_until_complete(self.__make_locks)
+
         self.__bg_thread = self.__start_bg_threads()
         self.__bg_thread_exception: Optional[Exception] = None
+
+    async def __make_locks(self) -> None:
+        self.__batch_objects = ObjectsBatchRequest()
+        self.__batch_references = ReferencesBatchRequest()
+        self.__active_requests_lock = asyncio.Lock()
+        self.__uuid_lookup_lock = asyncio.Lock()
+        self.__results_lock = asyncio.Lock()
 
     @property
     def number_errors(self) -> int:
@@ -354,6 +355,7 @@ class _BatchBase:
             try:
                 self.__batch_send()
             except Exception as e:
+                logger.error(e)
                 self.__bg_thread_exception = e
 
         demonBatchSend = threading.Thread(
@@ -362,6 +364,7 @@ class _BatchBase:
             name="BgBatchScheduler",
         )
         demonBatchSend.start()
+
         return demonBatchSend
 
     def __dynamic_batching(self) -> None:
