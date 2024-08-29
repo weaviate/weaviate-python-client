@@ -546,7 +546,7 @@ class _BatchBase:
                     )
                 else:
                     # sleep a bit to recover from the rate limit in other cases
-                    time.sleep(2**highest_retry_count)
+                    await asyncio.sleep(2**highest_retry_count)
             await self.__uuid_lookup_lock.acquire()
             self.__uuid_lookup.difference_update(
                 obj.uuid for obj in objs if obj.uuid not in readded_uuids
