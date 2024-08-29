@@ -1181,7 +1181,11 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        [Configure.NamedVectors.text2vec_databricks(name="test", endpoint="http://api.custom.com", instruction="instruction")],
+        [
+            Configure.NamedVectors.text2vec_databricks(
+                name="test", endpoint="http://api.custom.com", instruction="instruction"
+            )
+        ],
         {
             "test": {
                 "vectorizer": {

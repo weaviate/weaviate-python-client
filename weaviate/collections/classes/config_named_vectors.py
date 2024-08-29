@@ -48,7 +48,8 @@ from weaviate.collections.classes.config_vectorizers import (
     Vectorizers,
     VoyageModel,
     _map_multi2vec_fields,
-    _VectorizerCustomConfig, _Text2VecDatabricksConfig,
+    _VectorizerCustomConfig,
+    _Text2VecDatabricksConfig,
 )
 
 
