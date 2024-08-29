@@ -454,6 +454,8 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
 def test_list_backup(client: weaviate.WeaviateClient) -> None:
     """Create and restore backup without waiting."""
     backup_id = _create_backup_id()
+    if client._connection._weaviate_version.is_at_least(1, 27, 0):
+        pytest.skip("List backups is only supported from 1.27.0")
 
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED
