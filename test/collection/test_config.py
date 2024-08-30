@@ -195,6 +195,20 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_databricks(
+            vectorize_collection_name=False,
+            endpoint="http://api.custom.com",
+            instruction="instruction",
+        ),
+        {
+            "text2vec-databricks": {
+                "vectorizeClassName": False,
+                "endpoint": "http://api.custom.com",
+                "instruction": "instruction",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_octoai(
             vectorize_collection_name=False,
             model="thenlper/gte-large",
@@ -1173,6 +1187,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "vectorizeClassName": True,
                         "region": "us-east-1",
                         "service": "bedrock",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_databricks(
+                name="test", endpoint="http://api.custom.com", instruction="instruction"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-databricks": {
+                        "vectorizeClassName": True,
+                        "instruction": "instruction",
+                        "endpoint": "http://api.custom.com",
                     }
                 },
                 "vectorIndexType": "hnsw",
