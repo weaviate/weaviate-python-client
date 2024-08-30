@@ -178,6 +178,7 @@ class GenerativeSearches(str, Enum):
     ANTHROPIC = "generative-anthropic"
     ANYSCALE = "generative-anyscale"
     COHERE = "generative-cohere"
+    FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
     OCTOAI = "generative-octoai"
     OLLAMA = "generative-ollama"
@@ -444,6 +445,16 @@ class _GenerativeMistral(_GenerativeConfigCreate):
     maxTokens: Optional[int]
 
 
+class _GenerativeFriendliai(_GenerativeConfigCreate):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
+    )
+    temperature: Optional[float]
+    model: Optional[str]
+    maxTokens: Optional[int]
+    baseURL: Optional[str]
+
+
 class _GenerativeOllama(_GenerativeConfigCreate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
@@ -616,6 +627,18 @@ class _Generative:
                 The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
         """
         return _GenerativeCustom(generative=_EnumLikeStr(module_name), module_config=module_config)
+
+    @staticmethod
+    def friendliai(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> _GenerativeConfigCreate:
+        return _GenerativeFriendliai(
+            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
 
     @staticmethod
     def mistral(
@@ -1178,7 +1201,7 @@ PropertyVectorizerConfig = _PropertyVectorizerConfig
 
 
 @dataclass
-class _NestedProperty:
+class _NestedProperty(_ConfigBase):
     data_type: DataType
     description: Optional[str]
     index_filterable: bool
@@ -1186,6 +1209,13 @@ class _NestedProperty:
     name: str
     nested_properties: Optional[List["NestedProperty"]]
     tokenization: Optional[Tokenization]
+
+    def to_dict(self) -> Dict[str, Any]:
+        out = super().to_dict()
+        out["dataType"] = [str(self.data_type.value)]
+        if self.nested_properties is not None and len(self.nested_properties) > 0:
+            out["nestedProperties"] = [np.to_dict() for np in self.nested_properties]
+        return out
 
 
 NestedProperty = _NestedProperty
@@ -1219,9 +1249,11 @@ class _Property(_PropertyBase):
         out = super().to_dict()
         out["dataType"] = [self.data_type.value]
         out["indexFilterable"] = self.index_filterable
-        out["indexVector"] = self.index_searchable
-        out["tokenizer"] = self.tokenization.value if self.tokenization else None
-
+        out["indexSearchable"] = self.index_searchable
+        out["indexRangeFilters"] = self.index_range_filters
+        out["tokenization"] = self.tokenization.value if self.tokenization else None
+        if self.nested_properties is not None and len(self.nested_properties) > 0:
+            out["nestedProperties"] = [np.to_dict() for np in self.nested_properties]
         module_config: Dict[str, Any] = {}
         if self.vectorizer is not None:
             module_config[self.vectorizer] = {}
@@ -1540,13 +1572,6 @@ class _ShardStatus:
 
 ShardStatus = _ShardStatus
 
-# class PropertyConfig(ConfigCreateModel):
-#     indexFilterable: Optional[bool] = Field(None, alias="index_filterable")
-#     indexSearchable: Optional[bool] = Field(None, alias="index_searchable")
-#     tokenization: Optional[Tokenization] = None
-#     description: Optional[str] = None
-#     moduleConfig: Optional[ModuleConfig] = Field(None, alias="module_config")
-
 
 class Property(_ConfigCreateModel):
     """This class defines the structure of a data property that a collection can have within Weaviate.
@@ -1605,8 +1630,8 @@ class Property(_ConfigCreateModel):
                     "vectorizePropertyName": self.vectorize_property_name,
                 }
             }
-        del ret_dict["skip_vectorization"]
-        del ret_dict["vectorize_property_name"]
+            del ret_dict["skip_vectorization"]
+            del ret_dict["vectorize_property_name"]
         if self.nestedProperties is not None:
             ret_dict["nestedProperties"] = (
                 [prop._to_dict() for prop in self.nestedProperties]

@@ -23,6 +23,7 @@ class _HybridAsync(_AggregateAsync):
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateReturn: ...
@@ -38,6 +39,7 @@ class _HybridAsync(_AggregateAsync):
         filters: Optional[_Filters] = None,
         group_by: Union[str, GroupByAggregate],
         target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn: ...
@@ -53,6 +55,7 @@ class _HybridAsync(_AggregateAsync):
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
@@ -70,6 +73,7 @@ class _Hybrid(_AggregateAsync):
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateReturn: ...
@@ -85,6 +89,7 @@ class _Hybrid(_AggregateAsync):
         filters: Optional[_Filters] = None,
         group_by: Union[str, GroupByAggregate],
         target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn: ...
@@ -100,6 +105,7 @@ class _Hybrid(_AggregateAsync):
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
