@@ -811,6 +811,40 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.databricks(),
+        {"generative-databricks": {}},
+    ),
+    (
+        Configure.Generative.databricks(
+            model="model",
+            base_url="https://api.databricks.com",
+            frequency_penalty=0.5,
+            log_probs=True,
+            max_tokens=100,
+            n=10,
+            presence_penalty=0.5,
+            stop=["stop"],
+            temperature=0.5,
+            top_log_probs=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-databricks": {
+                "model": "model",
+                "baseURL": "https://api.databricks.com",
+                "frequencyPenalty": 0.5,
+                "logProbs": True,
+                "maxTokens": 100,
+                "N": 10,
+                "presencePenalty": 0.5,
+                "stop": ["stop"],
+                "temperature": 0.5,
+                "topLogProbs": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
 ]
 
 

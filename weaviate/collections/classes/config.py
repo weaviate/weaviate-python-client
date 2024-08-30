@@ -162,6 +162,10 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by Anyscale generative models.
         `COHERE`
             Weaviate module backed by Cohere generative models.
+        `DATABRICKS`
+            Weaviate module backed by Databricks generative models.
+        `FRIENDLIAI`
+            Weaviate module backed by FriendliAI generative models.
         `MISTRAL`
             Weaviate module backed by Mistral generative models.
         `OCTOAI`
@@ -178,6 +182,7 @@ class GenerativeSearches(str, Enum):
     ANTHROPIC = "generative-anthropic"
     ANYSCALE = "generative-anyscale"
     COHERE = "generative-cohere"
+    DATABRICKS = "generative-databricks"
     FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
     OCTOAI = "generative-octoai"
@@ -426,6 +431,23 @@ class _GenerativeCustom(_GenerativeConfigCreate):
         return self.module_config
 
 
+class _GenerativeDatabricks(_GenerativeConfigCreate):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.DATABRICKS, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    baseURL: Optional[str]
+    frequencyPenalty: Optional[float]
+    logProbs: Optional[bool]
+    maxTokens: Optional[int]
+    N: Optional[int]
+    presencePenalty: Optional[float]
+    stop: Optional[List[str]]
+    temperature: Optional[float]
+    topLogProbs: Optional[int]
+    topP: Optional[float]
+
+
 class _GenerativeOctoai(_GenerativeConfigCreate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OCTOAI, frozen=True, exclude=True
@@ -611,6 +633,14 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
     ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeAnyscale` object for use when generating using the `generative-anyscale` module.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeAnyscale(model=model, temperature=temperature)
 
     @staticmethod
@@ -629,6 +659,61 @@ class _Generative:
         return _GenerativeCustom(generative=_EnumLikeStr(module_name), module_config=module_config)
 
     @staticmethod
+    def databricks(
+        *,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        frequency_penalty: Optional[float] = None,
+        log_probs: Optional[bool] = None,
+        max_tokens: Optional[int] = None,
+        n: Optional[int] = None,
+        presence_penalty: Optional[float] = None,
+        stop: Optional[List[str]] = None,
+        temperature: Optional[float] = None,
+        top_log_probs: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeDatabricks` object for use when performing AI generation using the `generative-databricks` module.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            `frequency_penalty`
+                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            `log_probs`
+                Whether to log the probabilities. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `n`
+                The number of sequences to generate. Defaults to `None`, which uses the server-defined default
+            `presence_penalty`
+                The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            `stop`
+                The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_log_probs`
+                The top log probabilities to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeDatabricks(
+            model=model,
+            baseURL=base_url,
+            frequencyPenalty=frequency_penalty,
+            logProbs=log_probs,
+            maxTokens=max_tokens,
+            N=n,
+            presencePenalty=presence_penalty,
+            stop=stop,
+            temperature=temperature,
+            topLogProbs=top_log_probs,
+            topP=top_p,
+        )
+
+    @staticmethod
     def friendliai(
         *,
         base_url: Optional[str] = None,
@@ -636,6 +721,19 @@ class _Generative:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> _GenerativeConfigCreate:
+        """
+        Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
+
+        Arguments:
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeFriendliai(
             model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
         )
@@ -646,6 +744,16 @@ class _Generative:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeMistral` object for use when performing AI generation using the `generative-mistral` module.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
 
     @staticmethod
@@ -656,6 +764,18 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
     ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeOctoai` object for use when performing AI generation using the `generative-octoai` module.
+
+        Arguments:
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+        """
         return _GenerativeOctoai(
             baseURL=base_url, maxTokens=max_tokens, model=model, temperature=temperature
         )
