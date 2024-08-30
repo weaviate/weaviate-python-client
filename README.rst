@@ -24,7 +24,7 @@ The client is tested for python 3.8 and higher.
 Visit the official `Weaviate <https://weaviate.io/>`_ website for more information about the Weaviate and how to use it in production.
 
 Client Versions
---------
+---------------
 We currently support the following versions client versions:
 
 - 4.X: actively supported
