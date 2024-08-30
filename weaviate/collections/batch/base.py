@@ -237,9 +237,14 @@ class _BatchBase:
         self.__bg_thread_exception: Optional[Exception] = None
 
     async def __make_asyncio_locks(self) -> None:
+        """Create the locks in the context of the running event loop so that internal `asyncio.get_event_loop()` calls work."""
         self.__active_requests_lock = asyncio.Lock()
         self.__uuid_lookup_lock = asyncio.Lock()
         self.__results_lock = asyncio.Lock()
+
+    async def __release_asyncio_lock(self, lock: asyncio.Lock) -> None:
+        """Release the lock in the context of the running event loop so that internal `asyncio.get_event_loop()` calls work."""
+        return lock.release()
 
     @property
     def number_errors(self) -> int:
@@ -299,15 +304,13 @@ class _BatchBase:
                 self._batch_send = True
                 self.__loop.run_until_complete(self.__active_requests_lock.acquire)
                 self.__active_requests += 1
-                self.__active_requests_lock.release()
+                self.__loop.run_until_complete(self.__release_asyncio_lock, self.__active_requests_lock)
 
                 objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
-                self.__loop.run_until_complete(self.__uuid_lookup_lock.acquire)
                 refs = self.__batch_references.pop_items(
                     self.__recommended_num_refs,
                     uuid_lookup=self.__uuid_lookup,
                 )
-                self.__uuid_lookup_lock.release()
                 # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                 self.__loop.schedule(
                     self.__send_batch,
