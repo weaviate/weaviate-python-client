@@ -304,7 +304,9 @@ class _BatchBase:
                 self._batch_send = True
                 self.__loop.run_until_complete(self.__active_requests_lock.acquire)
                 self.__active_requests += 1
-                self.__loop.run_until_complete(self.__release_asyncio_lock, self.__active_requests_lock)
+                self.__loop.run_until_complete(
+                    self.__release_asyncio_lock, self.__active_requests_lock
+                )
 
                 objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
                 refs = self.__batch_references.pop_items(
