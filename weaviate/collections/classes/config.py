@@ -435,16 +435,10 @@ class _GenerativeDatabricks(_GenerativeConfigCreate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.DATABRICKS, frozen=True, exclude=True
     )
-    model: Optional[str]
-    baseURL: Optional[str]
-    frequencyPenalty: Optional[float]
-    logProbs: Optional[bool]
+    endpoint: str
     maxTokens: Optional[int]
-    N: Optional[int]
-    presencePenalty: Optional[float]
-    stop: Optional[List[str]]
     temperature: Optional[float]
-    topLogProbs: Optional[int]
+    topK: Optional[int]
     topP: Optional[float]
 
 
@@ -661,55 +655,31 @@ class _Generative:
     @staticmethod
     def databricks(
         *,
-        model: Optional[str] = None,
-        base_url: Optional[str] = None,
-        frequency_penalty: Optional[float] = None,
-        log_probs: Optional[bool] = None,
+        endpoint: str,
         max_tokens: Optional[int] = None,
-        n: Optional[int] = None,
-        presence_penalty: Optional[float] = None,
-        stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
-        top_log_probs: Optional[int] = None,
+        top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> _GenerativeConfigCreate:
         """Create a `_GenerativeDatabricks` object for use when performing AI generation using the `generative-databricks` module.
 
         Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `frequency_penalty`
-                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
-            `log_probs`
-                Whether to log the probabilities. Defaults to `None`, which uses the server-defined default
+            `endpoint`
+                The URL where the API request should go. Defaults to `None`, which uses the server-defined default
             `max_tokens`
                 The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `n`
-                The number of sequences to generate. Defaults to `None`, which uses the server-defined default
-            `presence_penalty`
-                The presence penalty to use. Defaults to `None`, which uses the server-defined default
-            `stop`
-                The stop sequences to use. Defaults to `None`, which uses the server-defined default
             `temperature`
                 The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_log_probs`
-                The top log probabilities to use. Defaults to `None`, which uses the server-defined default
+            `top_k`
+                The top K value to use. Defaults to `None`, which uses the server-defined default
             `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
+                The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeDatabricks(
-            model=model,
-            baseURL=base_url,
-            frequencyPenalty=frequency_penalty,
-            logProbs=log_probs,
+            endpoint=endpoint,
             maxTokens=max_tokens,
-            N=n,
-            presencePenalty=presence_penalty,
-            stop=stop,
             temperature=temperature,
-            topLogProbs=top_log_probs,
+            topK=top_k,
             topP=top_p,
         )
 
