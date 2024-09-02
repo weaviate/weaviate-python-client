@@ -27,6 +27,7 @@ pytest-xdist==3.6.1
 werkzeug==3.0.3
 pytest-httpserver==1.0.12
 py-spy==0.3.14
+trustme>=1.1.0
 
 numpy>=1.24.4,<3.0.0
 pandas>=2.0.3,<3.0.0

@@ -8,22 +8,20 @@ from typing import Optional, Tuple, Union, Dict, Any
 from httpx import HTTPError as HttpxError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
+from weaviate import syncify
 from weaviate.backup.backup import _BackupAsync
 from weaviate.backup.sync import _Backup
-
-
-from weaviate import syncify
+from weaviate.event_loop import _EventLoopSingleton, _EventLoop
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
 from .classification import Classification
-
 from .client_base import _WeaviateClientBase
 from .cluster import Cluster
-from .collections.collections.async_ import _CollectionsAsync
-from .collections.collections.sync import _Collections
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
+from .collections.collections.async_ import _CollectionsAsync
+from .collections.collections.sync import _Collections
 from .config import AdditionalConfig, Config
 from .connect import Connection
 from .connect.base import (
@@ -40,7 +38,6 @@ from .exceptions import (
 )
 from .gql import Query
 from .schema import Schema
-from weaviate.event_loop import _EventLoopSingleton, _EventLoop
 from .types import NUMBER
 from .util import _get_valid_timeout_config, _type_request_response
 from .warnings import _Warnings
