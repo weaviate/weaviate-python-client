@@ -472,10 +472,23 @@ class _BatchBase:
                 response_obj = await self.__batch_grpc.objects(
                     objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
+                if response_obj.has_errors:
+                    logger.error(
+                        {
+                            "message": f"Failed to send {len(response_obj.errors)} in a batch of {len(objs)}",
+                            "errors": {err.message for err in response_obj.errors.values()},
+                        }
+                    )
             except Exception as e:
                 errors_obj = {
                     idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
                 }
+                logger.error(
+                    {
+                        "message": f"Failed to send all objects in a batch of {len(objs)}",
+                        "error": repr(e),
+                    }
+                )
                 response_obj = BatchObjectReturn(
                     _all_responses=list(errors_obj.values()),
                     elapsed_seconds=time.time() - start,
