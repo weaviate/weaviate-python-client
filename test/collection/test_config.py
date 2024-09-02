@@ -812,8 +812,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
-        Configure.Generative.databricks(),
-        {"generative-databricks": {}},
+        Configure.Generative.databricks(endpoint="https://api.databricks.com"),
+        {"generative-databricks": {
+            "endpoint": "https://api.databricks.com",
+        }},
     ),
     (
         Configure.Generative.databricks(
