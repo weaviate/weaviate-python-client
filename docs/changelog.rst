@@ -1,6 +1,19 @@
 Changelog
 =========
 
+Version 4.8.0
+--------------
+
+This minor version includes:
+    - Support for new modules:
+        - Mistral text2vec module
+        - Friendli generative module
+        - Databricks text2vec and generative modules
+    - New ``fetch_objects_by_ids`` method
+    - Support for hybrid search with vector distance
+    - Fixes issue with adding a property on a vectorized collection
+    - Bumps ``requests``, ``importlib-metadata``, ``pytest```, ``pytest-asyncio``, ``types-requests``, ``litestar`` and ``typing-extensions`` libs to newest versions
+
 Version 4.7.1
 --------------
 
