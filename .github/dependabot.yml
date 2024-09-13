@@ -9,3 +9,12 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+    ignore:
+      - dependency-name: "requests"
+      - dependency-name: "httpx"
+      - dependency-name: "validators"
+      - dependency-name: "authlib"
+      - dependency-name: "grpcio"
+      - dependency-name: "grpcio-tools"
+      - dependency-name: "grpcio-health-checking"
+      - dependency-name: "pydantic"
