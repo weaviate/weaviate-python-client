@@ -55,6 +55,7 @@ class BackupStatus(str, Enum):
     TRANSFERRED = "TRANSFERRED"
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
+    CANCELED = "CANCELED"
 
 
 class _BackupConfigBase(BaseModel):

@@ -476,7 +476,9 @@ def test_cancel_backup(client: weaviate.WeaviateClient) -> None:
 
     with pytest.raises(UnexpectedStatusCodeError):
         assert client.backup.cancel_backup(backup_id=backup_id, backend=BACKEND)
-
+        
+    status_resp = client.backup.get_create_status(backup_id=backup_id, backend=BACKEND)
+    assert status_resp.status == BackupStatus.CANCELED
     _ = client.backup.list_backups(backend=BACKEND)
     # depends on the final implementation
     # assert len(backups) == 0
