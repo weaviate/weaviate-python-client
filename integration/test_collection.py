@@ -6,6 +6,7 @@ import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Union
 
+import numpy as np
 import pytest
 
 from integration.conftest import CollectionFactory, CollectionFactoryGet, _sanitize_collection_name
@@ -59,15 +60,6 @@ UUID3 = uuid.UUID("83d99755-9deb-4b16-8431-d1dff4ab0a75")
 DATE1 = datetime.datetime.strptime("2012-02-09", "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
 DATE2 = datetime.datetime.strptime("2013-02-10", "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
 DATE3 = datetime.datetime.strptime("2019-06-10", "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
-
-
-def get_numpy_vector(input_list: list) -> Any:
-    try:
-        import numpy as np
-
-        return np.array(input_list)
-    except ModuleNotFoundError:
-        return input_list
 
 
 def test_insert_with_typed_dict_generic(
@@ -309,7 +301,7 @@ def test_insert_many_with_typed_dict(
         (
             [
                 DataObject(
-                    properties={"name": "some numpy one"}, vector=get_numpy_vector([1, 2, 3])
+                    properties={"name": "some numpy one"}, vector=np.array([1, 2, 3])
                 ),
             ],
             False,
@@ -317,10 +309,10 @@ def test_insert_many_with_typed_dict(
         (
             [
                 DataObject(
-                    properties={"name": "some numpy one"}, vector=get_numpy_vector([1, 2, 3])
+                    properties={"name": "some numpy one"}, vector=np.array([1, 2, 3])
                 ),
                 DataObject(
-                    properties={"name": "some numpy two"}, vector=get_numpy_vector([11, 12, 13])
+                    properties={"name": "some numpy two"}, vector=np.array([11, 12, 13])
                 ),
             ],
             False,
@@ -329,7 +321,7 @@ def test_insert_many_with_typed_dict(
             [
                 DataObject(
                     properties={"name": "some numpy 2d"},
-                    vector=get_numpy_vector([[1, 2, 3], [11, 12, 13]]),
+                    vector=np.array([[1, 2, 3], [11, 12, 13]]),
                 ),
             ],
             True,
