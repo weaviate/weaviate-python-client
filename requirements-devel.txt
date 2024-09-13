@@ -32,9 +32,9 @@ numpy>=1.24.4,<3.0.0
 pandas>=2.0.3,<3.0.0
 polars>=0.20.26,<1.8.0
 
-fastapi==0.111.1
-flask[async]==3.0.3
-litestar==2.10.0
+fastapi>=0.111.0,<1.0.0
+flask[async]>=2.0.0,<3.0.0
+litestar>=2.0.0,<3.0.0
 
 mypy==1.11.0
 mypy-extensions==1.0.0
