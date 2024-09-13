@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 4.8.1
+--------------
+
+This patch version includes:
+    - Suppresses warning emitted by ``protobuf`` library in relation to obsolate generated stubs
+    - Fixes the ``authlib`` to ``<1.32.2`` while a potential bug is investigated
+    - Updates the ``validators`` dependency
+
 Version 4.8.0
 --------------
 
