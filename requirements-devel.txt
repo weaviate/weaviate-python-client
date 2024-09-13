@@ -36,7 +36,7 @@ fastapi==0.111.1
 flask[async]==3.0.3
 litestar==2.10.0
 
-mypy==1.11.0
+mypy==1.11.2
 mypy-extensions==1.0.0
 tomli==2.0.1
 types-protobuf==4.24.0.1
