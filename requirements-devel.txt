@@ -47,7 +47,7 @@ typing_extensions==4.12.2
 pre-commit
 
 flake8
-flake8-bugbear==24.4.26
+flake8-bugbear==24.8.19
 flake8-comprehensions==3.15.0
 flake8-builtins==2.5.0
 black==24.8.0
