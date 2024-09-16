@@ -31,7 +31,7 @@ class _BatchReference:
     to: str
     tenant: Optional[str]
     from_uuid: str
-    to_uuid: str | None
+    to_uuid: Union[str, None]
 
 
 class BatchObject(BaseModel):
