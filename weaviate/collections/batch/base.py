@@ -481,7 +481,8 @@ class _BatchBase:
                     )
             except Exception as e:
                 errors_obj = {
-                    idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
+                    idx: ErrorObject(message=repr(e), object_=BatchObject._from_internal(obj))
+                    for idx, obj in enumerate(objs)
                 }
                 logger.error(
                     {
@@ -535,7 +536,9 @@ class _BatchBase:
                 )
 
                 readd_objects = [
-                    err.object_ for i, err in response_obj.errors.items() if i in readded_objects
+                    err.object_._to_internal()
+                    for i, err in response_obj.errors.items()
+                    if i in readded_objects
                 ]
                 readded_uuids = {obj.uuid for obj in readd_objects}
 
@@ -599,7 +602,9 @@ class _BatchBase:
                 response_ref = await self.__batch_rest.references(references=refs)
             except Exception as e:
                 errors_ref = {
-                    idx: ErrorReference(message=repr(e), reference=ref)
+                    idx: ErrorReference(
+                        message=repr(e), reference=BatchReference._from_internal(ref)
+                    )
                     for idx, ref in enumerate(refs)
                 }
                 response_ref = BatchReferenceReturn(

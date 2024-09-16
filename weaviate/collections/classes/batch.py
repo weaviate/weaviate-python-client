@@ -31,7 +31,7 @@ class _BatchReference:
     to: str
     tenant: Optional[str]
     from_uuid: str
-    to_uuid: Optional[str] = None
+    to_uuid: str | None
 
 
 class BatchObject(BaseModel):
@@ -49,6 +49,7 @@ class BatchObject(BaseModel):
     vector: Optional[VECTORS] = Field(default=None)
     tenant: Optional[str] = Field(default=None)
     index: int
+    retry_count: int
 
     def __init__(self, **data: Any) -> None:
         v = data.get("vector")
@@ -74,6 +75,19 @@ class BatchObject(BaseModel):
             tenant=self.tenant,
             references=self.references,
             index=self.index,
+        )
+
+    @classmethod
+    def _from_internal(cls, obj: _BatchObject) -> "BatchObject":
+        return BatchObject(
+            collection=obj.collection,
+            vector=obj.vector,
+            uuid=uuid_package.UUID(obj.uuid),
+            properties=obj.properties,
+            tenant=obj.tenant,
+            references=obj.references,
+            index=obj.index,
+            retry_count=obj.retry_count,
         )
 
     @field_validator("collection")
@@ -136,13 +150,32 @@ class BatchReference(BaseModel):
             tenant=self.tenant,
         )
 
+    @classmethod
+    def _from_internal(cls, ref: _BatchReference) -> "BatchReference":
+        to = ref.to.split("weaviate://")[1].split("/")
+        if len(to) == 2:
+            to_object_collection = to[0]
+        elif len(to) == 1:
+            to_object_collection = None
+        else:
+            raise ValueError(f"Invalid reference 'to' value in _BatchReference object {ref}")
+        assert ref.to_uuid is not None, "`to_uuid` must not be None"
+        return BatchReference(
+            from_object_collection=ref.from_.split("/")[1],
+            from_object_uuid=ref.from_uuid,
+            from_property_name=ref.from_.split("/")[-1],
+            to_object_uuid=ref.to_uuid,
+            to_object_collection=to_object_collection,
+            tenant=ref.tenant,
+        )
+
 
 @dataclass
 class ErrorObject:
     """This class contains the error information for a single object in a batch operation."""
 
     message: str
-    object_: _BatchObject
+    object_: BatchObject
     original_uuid: Optional[UUID] = None
 
 
@@ -151,7 +184,7 @@ class ErrorReference:
     """This class contains the error information for a single reference in a batch operation."""
 
     message: str
-    reference: _BatchReference
+    reference: BatchReference
 
 
 @dataclass
