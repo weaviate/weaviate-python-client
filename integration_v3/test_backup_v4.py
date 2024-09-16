@@ -16,7 +16,8 @@ from weaviate.collections.classes.config import DataType, Property, ReferencePro
 from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
     UnexpectedStatusCodeException,
-    BackupFailedException, UnexpectedStatusCodeError,
+    BackupFailedException,
+    UnexpectedStatusCodeError,
 )
 
 BACKEND = BackupStorage.FILESYSTEM
@@ -452,17 +453,18 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
         )
 
 
-def test_list_backup(client: weaviate.WeaviateClient) -> None:
-    """Create and restore backup without waiting."""
-    backup_id = _create_backup_id()
-    if client._connection._weaviate_version.is_lower_than(1, 27, 0):
-        pytest.skip("List backups is only supported from 1.27.0")
-
-    resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
-    assert resp.status == BackupStatus.STARTED
-
-    backups = client.backup.list_backups(backend=BACKEND)
-    assert backup_id in [b.backup_id for b in backups]
+# did not make it into 1.27, will come later
+# def test_list_backup(client: weaviate.WeaviateClient) -> None:
+#     """Create and restore backup without waiting."""
+#     backup_id = _create_backup_id()
+#     if client._connection._weaviate_version.is_lower_than(1, 27, 0):
+#         pytest.skip("List backups is only supported from 1.27.0")
+#
+#     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
+#     assert resp.status == BackupStatus.STARTED
+#
+#     backups = client.backup.list_backups(backend=BACKEND)
+#     assert backup_id in [b.backup_id for b in backups]
 
 
 def test_cancel_backup(client: weaviate.WeaviateClient) -> None:
@@ -476,7 +478,7 @@ def test_cancel_backup(client: weaviate.WeaviateClient) -> None:
 
     with pytest.raises(UnexpectedStatusCodeError):
         assert client.backup.cancel_backup(backup_id=backup_id, backend=BACKEND)
-        
+
     status_resp = client.backup.get_create_status(backup_id=backup_id, backend=BACKEND)
     assert status_resp.status == BackupStatus.CANCELED
     _ = client.backup.list_backups(backend=BACKEND)

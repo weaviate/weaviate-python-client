@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.connect import Connection, ConnectionV4
+from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
@@ -373,15 +374,17 @@ class _BackupAsync:
         path = f"/backups/{backend.value}/{backup_id}"
 
         response = await self._connection.delete(
-            path=path, error_msg="Backup delete failed due to connection error."
+            path=path,
+            error_msg="Backup delete failed due to connection error.",
+            status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
         )
-        typed_response = _decode_json_response_dict(response, "Backup restore status check")
-        if typed_response is None:
-            raise EmptyResponseException()
 
         if response.status_code == 204:
             return True  # Successfully deleted
         else:
+            typed_response = _decode_json_response_dict(response, "Backup restore status check")
+            if typed_response is None:
+                raise EmptyResponseException()
             return False  # did not exist
 
     async def cancel_backup(self, backup_id: str, backend: BackupStorage) -> bool:
@@ -419,20 +422,21 @@ class _BackupAsync:
             raise EmptyResponseException()
         return [BackupReturn(**entry) for entry in typed_response]
 
-    async def list_backups(self, backend: BackupStorage) -> List[BackupReturn]:
-        """
-        List all backups that are currently in progress.
-
-        Parameters
-        ----------
-        backend : BackupStorage
-            The backend storage where to create the backup.
-
-        Returns
-        -------
-         A list of `BackupStatusReturn` objects that contain the backup restore status responses.
-        """
-        return await self.__list_backups(backend)
+    # did not make it into 1.27, will come later
+    # async def list_backups(self, backend: BackupStorage) -> List[BackupReturn]:
+    #     """
+    #     List all backups that are currently in progress.
+    #
+    #     Parameters
+    #     ----------
+    #     backend : BackupStorage
+    #         The backend storage where to create the backup.
+    #
+    #     Returns
+    #     -------
+    #      A list of `BackupStatusReturn` objects that contain the backup restore status responses.
+    #     """
+    #     return await self.__list_backups(backend)
 
 
 class Backup:
