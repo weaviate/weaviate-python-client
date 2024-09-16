@@ -49,7 +49,7 @@ class BatchObject(BaseModel):
     vector: Optional[VECTORS] = Field(default=None)
     tenant: Optional[str] = Field(default=None)
     index: int
-    retry_count: int
+    retry_count: int = 0
 
     def __init__(self, **data: Any) -> None:
         v = data.get("vector")
