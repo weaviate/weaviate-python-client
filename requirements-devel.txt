@@ -24,7 +24,7 @@ pytest-benchmark==4.0.0
 pytest-profiling==1.7.0
 coverage==7.6.1
 pytest-xdist==3.6.1
-werkzeug==3.0.3
+werkzeug==3.0.4
 pytest-httpserver==1.1.0
 py-spy==0.3.14
 
