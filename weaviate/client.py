@@ -7,23 +7,22 @@ from typing import Optional, Tuple, Union, Dict, Any
 
 from httpx import HTTPError as HttpxError
 from requests.exceptions import ConnectionError as RequestsConnectionError
-
-from weaviate.backup.backup import _BackupAsync
-from weaviate.backup.sync import _Backup
-
+from typing_extensions import deprecated
 
 from weaviate import syncify
+from weaviate.backup.backup import _BackupAsync
+from weaviate.backup.sync import _Backup
+from weaviate.event_loop import _EventLoopSingleton, _EventLoop
 from .auth import AuthCredentials
 from .backup import Backup
 from .batch import Batch
 from .classification import Classification
-
 from .client_base import _WeaviateClientBase
 from .cluster import Cluster
-from .collections.collections.async_ import _CollectionsAsync
-from .collections.collections.sync import _Collections
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
+from .collections.collections.async_ import _CollectionsAsync
+from .collections.collections.sync import _Collections
 from .config import AdditionalConfig, Config
 from .connect import Connection
 from .connect.base import (
@@ -40,7 +39,6 @@ from .exceptions import (
 )
 from .gql import Query
 from .schema import Schema
-from weaviate.event_loop import _EventLoopSingleton, _EventLoop
 from .types import NUMBER
 from .util import _get_valid_timeout_config, _type_request_response
 from .warnings import _Warnings
@@ -175,6 +173,17 @@ class WeaviateAsyncClient(_WeaviateClientBase):
         await self.close()
 
 
+@deprecated(
+    """
+Python client v3 `weaviate.Client(...)` connections and methods are deprecated and will
+            be removed by 2024-11-30.
+
+            Upgrade your code to use Python client v4 `weaviate.WeaviateClient` connections and methods.
+                - For Python Client v4 usage, see: https://weaviate.io/developers/weaviate/client-libraries/python
+                - For code migration, see: https://weaviate.io/developers/weaviate/client-libraries/python/v3_v4_migration
+
+            If you have to use v3 code, install the v3 client and pin the v3 dependency in your requirements file: `weaviate-client>=3.26.7;<4.0.0`"""
+)
 class Client:
     """
     The v3 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.

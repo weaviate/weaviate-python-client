@@ -90,6 +90,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_AWS = "text2vec-aws"
     TEXT2VEC_COHERE = "text2vec-cohere"
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
+    TEXT2VEC_DATABRICKS = "text2vec-databricks"
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_MISTRAL = "text2vec-mistral"
@@ -236,6 +237,15 @@ class _Text2VecMistralConfig(_VectorizerConfigCreate):
         default=Vectorizers.TEXT2VEC_MISTRAL, frozen=True, exclude=True
     )
     model: Optional[str]
+    vectorizeClassName: bool
+
+
+class _Text2VecDatabricksConfig(_VectorizerConfigCreate):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.TEXT2VEC_DATABRICKS, frozen=True, exclude=True
+    )
+    endpoint: str
+    instruction: Optional[str]
     vectorizeClassName: bool
 
 
@@ -743,6 +753,35 @@ class _Vectorizer:
             baseURL=base_url,
             model=model,
             truncate=truncate,
+            vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
+    def text2vec_databricks(
+        *,
+        endpoint: str,
+        instruction: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecDatabricksConfig` object for use when vectorizing using the `text2vec-databricks` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-databricks)
+        for detailed usage.
+
+        Arguments:
+            `endpoint`
+                The endpoint to use.
+            `instruction`
+                The instruction strategy to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+
+        Raises:
+            `pydantic.ValidationError` if `truncate` is not a valid value from the `CohereModel` type.
+        """
+        return _Text2VecDatabricksConfig(
+            endpoint=endpoint,
+            instruction=instruction,
             vectorizeClassName=vectorize_collection_name,
         )
 

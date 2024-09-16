@@ -195,6 +195,20 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_databricks(
+            vectorize_collection_name=False,
+            endpoint="http://api.custom.com",
+            instruction="instruction",
+        ),
+        {
+            "text2vec-databricks": {
+                "vectorizeClassName": False,
+                "endpoint": "http://api.custom.com",
+                "instruction": "instruction",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_octoai(
             vectorize_collection_name=False,
             model="thenlper/gte-large",
@@ -615,6 +629,19 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-anyscale": {}},
     ),
     (
+        Configure.Generative.friendliai(
+            temperature=0.5, max_tokens=100, model="model", base_url="https://api.custom.ai"
+        ),
+        {
+            "generative-friendliai": {
+                "temperature": 0.5,
+                "maxTokens": 100,
+                "model": "model",
+                "baseURL": "https://api.custom.ai",
+            }
+        },
+    ),
+    (
         Configure.Generative.mistral(temperature=0.5, max_tokens=100, model="model"),
         {"generative-mistral": {"temperature": 0.5, "maxTokens": 100, "model": "model"}},
     ),
@@ -778,6 +805,32 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "model": "model",
                 "maxTokens": 100,
                 "stopSequences": ["stop"],
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
+        Configure.Generative.databricks(endpoint="https://api.databricks.com"),
+        {
+            "generative-databricks": {
+                "endpoint": "https://api.databricks.com",
+            }
+        },
+    ),
+    (
+        Configure.Generative.databricks(
+            endpoint="https://api.databricks.com",
+            max_tokens=100,
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-databricks": {
+                "endpoint": "https://api.databricks.com",
+                "maxTokens": 100,
                 "temperature": 0.5,
                 "topK": 10,
                 "topP": 0.5,
@@ -1160,6 +1213,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "vectorizeClassName": True,
                         "region": "us-east-1",
                         "service": "bedrock",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_databricks(
+                name="test", endpoint="http://api.custom.com", instruction="instruction"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-databricks": {
+                        "vectorizeClassName": True,
+                        "instruction": "instruction",
+                        "endpoint": "http://api.custom.com",
                     }
                 },
                 "vectorIndexType": "hnsw",
