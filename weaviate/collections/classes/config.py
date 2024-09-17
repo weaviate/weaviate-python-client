@@ -355,6 +355,7 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
+    propagateObjectDeletion: Optional[bool]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
@@ -2141,7 +2142,9 @@ class Configure:
 
     @staticmethod
     def replication(
-        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+        factor: Optional[int] = None,
+        async_enabled: Optional[bool] = None,
+        propagate_object_deletion: Optional[bool] = None,
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
@@ -2152,8 +2155,14 @@ class Configure:
                 The replication factor.
             `async_enabled`
                 Enabled async replication.
+            `propagate_object_deletion`
+                Propagate object deletion.
         """
-        return _ReplicationConfigCreate(factor=factor, asyncEnabled=async_enabled)
+        return _ReplicationConfigCreate(
+            factor=factor,
+            asyncEnabled=async_enabled,
+            propagateObjectDeletion=propagate_object_deletion,
+        )
 
     @staticmethod
     def sharding(

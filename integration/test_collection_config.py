@@ -255,7 +255,9 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         multi_tenancy_config=Configure.multi_tenancy(
             enabled=True, auto_tenant_activation=True, auto_tenant_creation=True
         ),
-        replication_config=Configure.replication(factor=2, async_enabled=True),
+        replication_config=Configure.replication(
+            factor=2, async_enabled=True, propagate_object_deletion=True
+        ),
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
             distance_metric=VectorDistances.DOT,
