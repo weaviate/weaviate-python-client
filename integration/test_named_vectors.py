@@ -648,6 +648,10 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
         (wvc.query.TargetVectors.sum(["first", "second"]), [1, 3]),
         (wvc.query.TargetVectors.manual_weights({"first": 1, "second": [1, 1]}), [1, 3]),
         (wvc.query.TargetVectors.manual_weights({"first": 1, "second": [1, 2]}), [2, 4]),
+        (
+            wvc.query.TargetVectors.manual_weights({"second": [1, 2], "first": 1}),
+            [2, 4],
+        ),  # different order
     ],
 )
 def test_same_target_vector_multiple_input(
@@ -689,6 +693,10 @@ def test_same_target_vector_multiple_input(
         (
             {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]},
             ["first", "second"],
+        ),
+        (
+            {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]},
+            ["second", "first"],  # different order
         ),
     ],
 )

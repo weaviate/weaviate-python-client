@@ -899,8 +899,13 @@ class _QueryGRPC(_BaseGRPC):
     def __recompute_target_vector_to_grpc(
         self, target_vector: Optional[TargetVectorJoinType], target_vectors_tmp: List[str]
     ) -> Tuple[Optional[search_get_pb2.Targets], Optional[List[str]]]:
+        # reorder input for targets so they match the vectors
         if isinstance(target_vector, _MultiTargetVectorJoin):
             target_vector.target_vectors = target_vectors_tmp
+            if target_vector.weights is not None:
+                target_vector.weights = {
+                    target: target_vector.weights[target] for target in target_vectors_tmp
+                }
         else:
             target_vector = target_vectors_tmp
         return self.__target_vector_to_grpc(target_vector)
