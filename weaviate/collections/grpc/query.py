@@ -989,8 +989,8 @@ class _QueryGRPC(_BaseGRPC):
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
                                 - a list of numbers
-                                - a dictionary with target names as keys and lists of numbers as values for multi target search
-                        received: {vector}"""
+                                - a dictionary with target names as keys and lists of numbers as values for multi target search. The keys must match the given target vectors
+                        received: {vector} and {targets}."""
         )
 
         vector_for_target: List[search_get_pb2.VectorForTarget] = []
@@ -1012,7 +1012,7 @@ class _QueryGRPC(_BaseGRPC):
             )
 
         if isinstance(vector, dict):
-            if len(vector) == 0 or targets is None or len(targets.target_vectors) == 0:
+            if len(vector) == 0 or targets is None or len(targets.target_vectors) != len(vector):
                 raise invalid_nv_exception
             target_vectors_tmp: List[str] = []
             for key, value in vector.items():
