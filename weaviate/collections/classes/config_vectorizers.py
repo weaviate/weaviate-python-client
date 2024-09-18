@@ -30,8 +30,6 @@ JinaModel: TypeAlias = Literal[
     "jina-embeddings-v2-base-zh",
     "jina-embeddings-v2-base-es",
     "jina-embeddings-v2-base-code",
-    "jina-colbert-v1-en",
-    "jina-colbert-v2",
     "jina-embeddings-v3",
 ]
 VoyageModel: TypeAlias = Literal[
