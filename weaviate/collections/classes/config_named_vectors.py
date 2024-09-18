@@ -951,6 +951,8 @@ class _NamedVectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
+        base_url: Optional[str] = None,
+        dimensions: Optional[int] = None,
         model: Optional[Union[JinaModel, str]] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
@@ -967,6 +969,10 @@ class _NamedVectors:
                 The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
+            `base_url`
+                The base URL to send the vectorization requests to. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
@@ -976,6 +982,8 @@ class _NamedVectors:
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecJinaConfigCreate(
+                baseURL=base_url,
+                dimensions=dimensions,
                 model=model,
                 vectorizeClassName=vectorize_collection_name,
             ),

@@ -24,7 +24,16 @@ CohereTruncation: TypeAlias = Literal["NONE", "START", "END", "LEFT", "RIGHT"]
 OpenAIModel: TypeAlias = Literal[
     "text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"
 ]
-JinaModel: TypeAlias = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
+JinaModel: TypeAlias = Literal[
+    "jina-embeddings-v2-base-en",
+    "jina-embeddings-v2-small-en",
+    "jina-embeddings-v2-base-zh",
+    "jina-embeddings-v2-base-es",
+    "jina-embeddings-v2-base-code",
+    "jina-colbert-v1-en",
+    "jina-colbert-v2",
+    "jina-embeddings-v3",
+]
 VoyageModel: TypeAlias = Literal[
     "voyage-large-2",
     "voyage-code-2",
@@ -341,6 +350,8 @@ class _Text2VecJinaConfig(_ConfigCreateModel):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_JINAAI, frozen=True, exclude=True
     )
+    baseURL: Optional[str]
+    dimensions: Optional[int]
     model: Optional[str]
     vectorizeClassName: bool
 
@@ -1094,6 +1105,8 @@ class _Vectorizer:
     def text2vec_jinaai(
         model: Optional[Union[JinaModel, str]] = None,
         vectorize_collection_name: bool = True,
+        base_url: Optional[str] = None,
+        dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecJinaConfigCreate` object for use when vectorizing using the `text2vec-jinaai` model.
 
@@ -1107,8 +1120,17 @@ class _Vectorizer:
                 [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai#available-models) for more details.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
+            `base_url`
+                The base URL to send the vectorization requests to. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
         """
-        return _Text2VecJinaConfigCreate(model=model, vectorizeClassName=vectorize_collection_name)
+        return _Text2VecJinaConfigCreate(
+            model=model,
+            vectorizeClassName=vectorize_collection_name,
+            baseURL=base_url,
+            dimensions=dimensions,
+        )
 
     @staticmethod
     def text2vec_voyageai(
