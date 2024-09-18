@@ -24,6 +24,7 @@ class _TenantsGRPC(_BaseGRPC):
             collection=self._name,
             names=tenants_pb2.TenantNames(values=names) if names is not None else None,
         )
+        await self._connection._awake_channel()
         res = await self._connection.grpc_stub.TenantsGet(
             request,
             metadata=self._connection.grpc_headers(),

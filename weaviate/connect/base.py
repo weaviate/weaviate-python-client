@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, TypeVar, Union, cast
+from typing import Any, Dict, List, Tuple, TypeVar, Union, cast
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -113,14 +113,20 @@ class ConnectionParams(BaseModel):
 
     def _grpc_channel(self, proxies: Dict[str, str]) -> Channel:
         if (p := proxies.get("grpc")) is not None:
-            options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
+            options: List[Tuple[str, Any]] = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
         else:
             options = GRPC_DEFAULT_OPTIONS
+        options = [
+            *options,
+            (
+                "grpc.client_idle_timeout_ms",
+                int(os.getenv("GRPC_CLIENT_IDLE_TIMEOUT_MS", 30 * 60 * 1000)),
+            ),
+        ]
+        print(options)
         if self.grpc.secure:
             return grpc.aio.secure_channel(
-                target=self._grpc_target,
-                credentials=ssl_channel_credentials(),
-                options=options,
+                target=self._grpc_target, credentials=ssl_channel_credentials(), options=options
             )
         else:
             return grpc.aio.insecure_channel(

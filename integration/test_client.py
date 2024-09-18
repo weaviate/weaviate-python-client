@@ -1,3 +1,5 @@
+import asyncio
+import os
 from typing import Callable, Generator, Tuple, Union
 
 import pytest
@@ -664,3 +666,23 @@ async def test_sync_client_inside_async_client(caplog: pytest.LogCaptureFixture)
             assert client.is_ready()
             assert await aclient.is_ready()
             assert "BlockingIOError: [Errno 35] Resource temporarily unavailable" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_client_idle_timeout() -> None:
+    collection_name = "TestGRPCClientIdleTimeout"
+    os.environ["GRPC_CLIENT_IDLE_TIMEOUT_MS"] = "1000"
+    async with weaviate.use_async_with_local() as client:
+        try:
+            collection = await client.collections.create(collection_name)
+            await asyncio.sleep(5)
+
+            assert client._connection._grpc_channel is not None
+            assert client._connection._grpc_channel.get_state(False).value[1] == "idle"
+
+            res = await collection.query.fetch_objects()
+            assert len(res.objects) == 0
+
+            assert client._connection._grpc_channel.get_state(False).value[1] == "ready"
+        finally:
+            await client.collections.delete(collection_name)

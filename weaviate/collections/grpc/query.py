@@ -760,6 +760,7 @@ class _QueryGRPC(_BaseGRPC):
     async def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
         try:
             assert self._connection.grpc_stub is not None
+            await self._connection._awake_channel()
             res = await self._connection.grpc_stub.Search(
                 request,
                 metadata=self._connection.grpc_headers(),

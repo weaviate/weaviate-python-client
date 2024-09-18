@@ -29,6 +29,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
         metadata = self._get_metadata()
         try:
             assert self._connection.grpc_stub is not None
+            await self._connection._awake_channel()
             res = await self._connection.grpc_stub.BatchDelete(
                 batch_delete_pb2.BatchDeleteRequest(
                     collection=name,

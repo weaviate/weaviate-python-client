@@ -138,6 +138,7 @@ class _BatchGRPC(_BaseGRPC):
         metadata = self._get_metadata()
         try:
             assert self._connection.grpc_stub is not None
+            await self._connection._awake_channel()
             res = await self._connection.grpc_stub.BatchObjects(
                 batch_pb2.BatchObjectsRequest(
                     objects=batch,

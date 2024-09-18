@@ -719,3 +719,7 @@ class ConnectionV4(_ConnectionBase):
     def __del__(self) -> None:
         if self._client is not None or self._grpc_channel is not None:
             _Warnings.unclosed_connection()
+
+    async def _awake_channel(self) -> None:
+        assert self._grpc_channel is not None
+        await self._grpc_channel.channel_ready()
