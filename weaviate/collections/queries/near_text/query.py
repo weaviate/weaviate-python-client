@@ -1,5 +1,6 @@
 from typing import Generic, List, Optional, Union
 
+from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
@@ -8,6 +9,7 @@ from weaviate.collections.classes.grpc import (
     GroupBy,
     Move,
     Rerank,
+    TargetVectorJoinType,
 )
 from weaviate.collections.classes.internal import (
     _GroupBy,
@@ -17,12 +19,12 @@ from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.base import _Base
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, References]):
-    def near_text(
+class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+    async def near_text(
         self,
         query: Union[List[str], str],
         *,
@@ -36,7 +38,7 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
         filters: Optional[_Filters] = None,
         group_by: Optional[GroupBy] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
@@ -92,7 +94,7 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = self._query.near_text(
+        res = await self._query.near_text(
             near_text=query,
             certainty=certainty,
             distance=distance,
@@ -123,3 +125,8 @@ class _NearTextQuery(Generic[Properties, References], _BaseQuery[Properties, Ref
             return_properties,
             return_references,
         )
+
+
+@syncify.convert
+class _NearTextQuery(Generic[Properties, References], _NearTextQueryAsync[Properties, References]):
+    pass

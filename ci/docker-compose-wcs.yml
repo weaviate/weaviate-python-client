@@ -20,7 +20,7 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
       AUTHENTICATION_OIDC_ENABLED: 'true'
       AUTHENTICATION_OIDC_CLIENT_ID: 'wcs'
-      AUTHENTICATION_OIDC_ISSUER: 'https://auth.wcs.api.semi.technology/auth/realms/SeMI'
+      AUTHENTICATION_OIDC_ISSUER: 'https://auth.wcs.api.weaviate.io/auth/realms/SeMI'
       AUTHENTICATION_OIDC_USERNAME_CLAIM: 'email'
       AUTHENTICATION_OIDC_GROUPS_CLAIM: 'groups'
       AUTHORIZATION_ADMINLIST_ENABLED: 'true'

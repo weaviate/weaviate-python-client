@@ -1,3 +1,4 @@
+import datetime
 import json
 import time
 from typing import Any, Dict
@@ -165,7 +166,9 @@ def test_missing_multi_tenancy_config(
             index_timestamps=False,
             stopwords=StopwordsConfig(preset=StopwordsPreset.NONE, additions=[], removals=[]),
         ),
-        multi_tenancy_config=MultiTenancyConfig(enabled=True, auto_tenant_creation=False),
+        multi_tenancy_config=MultiTenancyConfig(
+            enabled=True, auto_tenant_creation=False, auto_tenant_activation=False
+        ),
         sharding_config=ShardingConfig(
             virtual_per_physical=0,
             desired_count=0,
@@ -178,7 +181,7 @@ def test_missing_multi_tenancy_config(
         ),
         properties=[],
         references=[],
-        replication_config=ReplicationConfig(factor=0),
+        replication_config=ReplicationConfig(factor=0, async_enabled=False),
         vector_index_config=vic,
         vector_index_type=VectorIndexType.FLAT,
         vectorizer=Vectorizers.NONE,
@@ -240,7 +243,7 @@ def test_return_from_bind_module(
         "invertedIndexConfig": ii_config,
         "multiTenancyConfig": config.multi_tenancy()._to_dict(),
         "vectorizer": "multi2vec-bind",
-        "replicationConfig": {"factor": 2},
+        "replicationConfig": {"factor": 2, "asyncEnabled": False},
         "moduleConfig": {"multi2vec-bind": {}},
     }
     weaviate_auth_mock.expect_request("/v1/schema/TestBindCollection").respond_with_json(
@@ -337,3 +340,33 @@ def test_integration_config(
 
     client.collections.list_all()  # return is irrelevant
     weaviate_no_auth_mock.check_assertions()
+
+
+def test_year_zero(year_zero_collection: weaviate.collections.Collection) -> None:
+    with pytest.warns(UserWarning) as recwarn:
+        objs = year_zero_collection.query.fetch_objects().objects
+        assert objs[0].properties["date"] == datetime.datetime.min
+
+        assert str(recwarn[0].message).startswith("Con004")
+
+
+@pytest.mark.parametrize("output", ["minimal", "verbose"])
+def test_node_with_timeout(
+    httpserver: HTTPServer, start_grpc_server: grpc.Server, output: str
+) -> None:
+    httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
+    httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
+
+    httpserver.expect_request("/v1/nodes").respond_with_json(
+        status=200,
+        response_json={"nodes": [{"status": "TIMEOUT", "shards": None, "name": "node1"}]},
+    )
+
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+    )
+
+    nodes = client.cluster.nodes(output=output)
+    assert nodes[0].status == "TIMEOUT"

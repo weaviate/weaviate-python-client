@@ -806,9 +806,13 @@ class Batch:
         new_batch = ObjectsBatchRequest()
         for obj in batch_request.get_request_body()["objects"]:
             class_name = obj["class"]
+            tenant = obj.get("tenant", None)
             uuid = obj["id"]
+            params = {"tenant": tenant} if tenant is not None else None
+
             response_head = self._connection.head(
                 path="/objects/" + class_name + "/" + uuid,
+                params=params,
             )
 
             if response_head.status_code == 404:
@@ -823,6 +827,7 @@ class Batch:
             # object might already exist and needs to be overwritten in case of an update
             response = self._connection.get(
                 path="/objects/" + class_name + "/" + uuid,
+                params=params,
             )
 
             obj_weav = _decode_json_response_dict(response, "Re-add objects")
@@ -835,6 +840,7 @@ class Batch:
                     data_object=obj["properties"],
                     uuid=uuid,
                     vector=obj.get("vector", None),
+                    tenant=tenant,
                 )
         return new_batch
 

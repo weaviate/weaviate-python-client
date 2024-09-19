@@ -48,11 +48,13 @@ class Data(TypedDict):
     "return_properties",
     [None, Data, ["data"]],
 )
+@pytest.mark.parametrize("cache_size", [None, 100, 10000])
 def test_iterator_arguments(
     collection_factory: CollectionFactory,
     include_vector: bool,
     return_metadata: Optional[METADATA],
     return_properties: Optional[PROPERTIES],
+    cache_size: Optional[int],
 ) -> None:
     collection = collection_factory(
         properties=[
@@ -69,7 +71,10 @@ def test_iterator_arguments(
     )
 
     iter_ = collection.iterator(
-        include_vector, return_metadata=return_metadata, return_properties=return_properties
+        include_vector,
+        return_metadata=return_metadata,
+        return_properties=return_properties,
+        cache_size=cache_size,
     )
 
     # Expect everything back
@@ -196,7 +201,7 @@ def test_iterator(collection_factory: CollectionFactory, count: int) -> None:
     # make sure a new iterator resets the internal state and that the return order is the same for every run
     for _ in range(3):
         # get the property and sort them - order returned by weaviate is not identical to the order inserted
-        ret: list[int] = [obj.properties["data"] for obj in collection.iterator()]
+        ret: list[int] = [int(obj.properties["data"]) for obj in collection.iterator()]
         if first_order is None:
             first_order = ret
         else:

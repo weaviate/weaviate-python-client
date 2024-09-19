@@ -1,4 +1,5 @@
-from typing import Dict, Any, List, Literal, Optional, Union, cast, overload
+import asyncio
+from typing import Dict, Any, List, Literal, Optional, Tuple, Union, cast, overload
 
 from pydantic_core import ValidationError
 
@@ -14,8 +15,6 @@ from weaviate.collections.classes.config import (
     _VectorIndexConfigHNSWUpdate,
     CollectionConfig,
     CollectionConfigSimple,
-    _Property,
-    _ReferenceProperty,
     ShardStatus,
     _ShardStatus,
     ShardTypes,
@@ -26,46 +25,44 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
-from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
 from weaviate.util import _decode_json_response_dict, _decode_json_response_list
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
-from weaviate.connect.v4 import _ExpectedStatusCodes
 
-from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
-
-
-class _ConfigBase:
+class _ConfigCollectionBase:
     def __init__(self, connection: ConnectionV4, name: str, tenant: Optional[str]) -> None:
-        self.__connection = connection
+        self._connection = connection
         self._name = name
-        self.__tenant = tenant
+        self._tenant = tenant
 
-    def __get(self) -> Dict[str, Any]:
-        response = self.__connection.get(
+
+class _ConfigCollectionAsync(_ConfigCollectionBase):
+    async def __get(self) -> Dict[str, Any]:
+        response = await self._connection.get(
             path=f"/schema/{self._name}",
             error_msg="Collection configuration could not be retrieved.",
             status_codes=_ExpectedStatusCodes(ok_in=200, error="Get collection configuration"),
         )
-        return cast(Dict[str, Any], response.json())
+        data = response.json()
+        return cast(Dict[str, Any], data)
 
     @overload
-    def get(self, simple: Literal[False] = ...) -> CollectionConfig:
-        ...
+    async def get(self, simple: Literal[False] = ...) -> CollectionConfig: ...
 
     @overload
-    def get(self, simple: Literal[True]) -> CollectionConfigSimple:
-        ...
+    async def get(self, simple: Literal[True]) -> CollectionConfigSimple: ...
 
     @overload
-    def get(self, simple: bool = ...) -> Union[CollectionConfig, CollectionConfigSimple]:
-        ...
+    async def get(self, simple: bool = ...) -> Union[CollectionConfig, CollectionConfigSimple]: ...
 
-    def get(self, simple: bool = False) -> Union[CollectionConfig, CollectionConfigSimple]:
+    async def get(self, simple: bool = False) -> Union[CollectionConfig, CollectionConfigSimple]:
         """Get the configuration for this collection from Weaviate.
 
         Arguments:
@@ -78,22 +75,22 @@ class _ConfigBase:
                 If Weaviate reports a non-OK status.
         """
         _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
-        schema = self.__get()
         if simple:
-            return _collection_config_simple_from_json(schema)
-        return _collection_config_from_json(schema)
+            return _collection_config_simple_from_json(await self.__get())
+        conf = _collection_config_from_json(await self.__get())
+        return conf
 
-    def update(
+    async def update(
         self,
         *,
         description: Optional[str] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
+        multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
             Union[
                 _VectorIndexConfigHNSWUpdate,
                 _VectorIndexConfigFlatUpdate,
-                _VectorIndexConfigDynamicUpdate,
             ]
         ] = None,
         vectorizer_config: Optional[
@@ -104,7 +101,6 @@ class _ConfigBase:
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
-        multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
@@ -152,38 +148,75 @@ class _ConfigBase:
             )
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e
-        schema = self.__get()
+        schema = await self.__get()
         schema = config.merge_with_existing(schema)
-        self.__connection.put(
+        await self._connection.put(
             path=f"/schema/{self._name}",
             weaviate_object=schema,
             error_msg="Collection configuration may not have been updated.",
             status_codes=_ExpectedStatusCodes(ok_in=200, error="Update collection configuration"),
         )
 
-    def _add_property(self, additional_property: PropertyType) -> None:
+    async def _add_property(self, additional_property: PropertyType) -> None:
         path = f"/schema/{self._name}/properties"
         obj = additional_property._to_dict()
-        self.__connection.post(
+        schema = await self.__get()
+        if schema.get("moduleConfig"):
+            configured_module = list(schema.get("moduleConfig", {}).keys())[0]
+            modconf = {}
+            if "skip_vectorization" in obj:
+                modconf["skip"] = obj["skip_vectorization"]
+                del obj["skip_vectorization"]
+
+            if "vectorize_property_name" in obj:
+                modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
+                del obj["vectorize_property_name"]
+
+            if len(modconf) > 0:
+                obj["moduleConfig"] = {configured_module: modconf}
+
+        await self._connection.post(
             path=path,
             weaviate_object=obj,
             error_msg="Property may not have been added properly.",
             status_codes=_ExpectedStatusCodes(ok_in=200, error="Add property to collection"),
         )
 
-    def _get_property_by_name(self, property_name: str) -> Optional[_Property]:
-        for prop in self.get().properties:
+    async def _property_exists(self, property_name: str) -> bool:
+        conf = _collection_config_simple_from_json(await self.__get())
+        if len(conf.properties) == 0:
+            return False
+        for prop in conf.properties:
             if prop.name == property_name:
-                return prop
-        return None
+                return True
+        return False
 
-    def _get_reference_by_name(self, reference_name: str) -> Optional[_ReferenceProperty]:
-        for ref in self.get().references:
+    async def _reference_exists(self, reference_name: str) -> bool:
+        conf = _collection_config_simple_from_json(await self.__get())
+        if len(conf.references) == 0:
+            return False
+        for ref in conf.references:
             if ref.name == reference_name:
-                return ref
-        return None
+                return True
+        return False
 
-    def get_shards(self) -> List[ShardStatus]:
+    async def __get_shards(self) -> List[ShardStatus]:
+        response = await self._connection.get(
+            path=f"/schema/{self._name}/shards{f'?tenant={self._tenant}' if self._tenant else ''}",
+            error_msg="Shard statuses could not be retrieved.",
+        )
+        shards = _decode_json_response_list(response, "get shards")
+        assert shards is not None
+        return [
+            _ShardStatus(
+                name=shard["name"],
+                status=shard["status"],
+                vector_queue_size=shard["vectorQueueSize"],
+            )
+            for shard in shards
+        ]
+
+    async def get_shards(self) -> List[ShardStatus]:
         """Get the statuses of the shards of this collection.
 
         If the collection is multi-tenancy and you did not call `.with_tenant` then you
@@ -200,22 +233,9 @@ class _ConfigBase:
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        response = self.__connection.get(
-            path=f"/schema/{self._name}/shards{f'?tenant={self.__tenant}' if self.__tenant else ''}",
-            error_msg="Shard statuses could not be retrieved.",
-        )
-        shards = _decode_json_response_list(response, "get shards")
-        assert shards is not None
-        return [
-            _ShardStatus(
-                name=shard["name"],
-                status=shard["status"],
-                vector_queue_size=shard["vectorQueueSize"],
-            )
-            for shard in shards
-        ]
+        return await self.__get_shards()
 
-    def update_shards(
+    async def update_shards(
         self,
         status: Literal["READY", "READONLY"],
         shard_names: Optional[Union[str, List[str]]] = None,
@@ -239,31 +259,30 @@ class _ConfigBase:
                 If Weaviate reports a non-OK status.
         """
         if shard_names is None:
-            shards_config = self.get_shards()
+            shards_config = await self.__get_shards()
             shard_names = [shard_config.name for shard_config in shards_config]
         elif isinstance(shard_names, str):
             shard_names = [shard_names]
 
+        results = await asyncio.gather(
+            *[self.__update_shard(shard_name, status) for shard_name in shard_names]
+        )
+
+        return {result[0]: result[1] for result in results}
+
+    async def __update_shard(self, shard_name: str, status: str) -> Tuple[str, ShardTypes]:
+        path = f"/schema/{self._name}/shards/{shard_name}"
         data = {"status": status}
+        response = await self._connection.put(
+            path=path,
+            weaviate_object=data,
+            error_msg=f"shard '{shard_name}' may not have been updated.",
+        )
+        resp = _decode_json_response_dict(response, f"Update shard '{shard_name}' status")
+        assert resp is not None
+        return shard_name, resp["status"]
 
-        to_return: Dict[str, ShardTypes] = {}
-
-        for _shard_name in shard_names:
-            path = f"/schema/{self._name}/shards/{_shard_name}"
-            response = self.__connection.put(
-                path=path,
-                weaviate_object=data,
-                error_msg=f"shard '{_shard_name}' may not have been updated.",
-            )
-            resp = _decode_json_response_dict(response, f"Update shard '{_shard_name}' status")
-            assert resp is not None
-            to_return[_shard_name] = resp["status"]
-
-        return to_return
-
-
-class _ConfigCollection(_ConfigBase):
-    def add_property(self, prop: Property) -> None:
+    async def add_property(self, prop: Property) -> None:
         """Add a property to the collection in Weaviate.
 
         Arguments:
@@ -278,13 +297,15 @@ class _ConfigCollection(_ConfigBase):
                 If the property already exists in the collection.
         """
         _validate_input([_ValidateArgument(expected=[Property], name="prop", value=prop)])
-        if self._get_property_by_name(prop.name) is not None:
+        if await self._property_exists(prop.name):
             raise WeaviateInvalidInputError(
                 f"Property with name '{prop.name}' already exists in collection '{self._name}'."
             )
-        self._add_property(prop)
+        await self._add_property(prop)
 
-    def add_reference(self, ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget]) -> None:
+    async def add_reference(
+        self, ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget]
+    ) -> None:
         """Add a reference to the collection in Weaviate.
 
         Arguments:
@@ -307,8 +328,9 @@ class _ConfigCollection(_ConfigBase):
                 )
             ]
         )
-        if self._get_reference_by_name(ref.name) is not None:
+        exists = await self._reference_exists(ref.name)
+        if exists:
             raise WeaviateInvalidInputError(
                 f"Reference with name '{ref.name}' already exists in collection '{self._name}'."
             )
-        self._add_property(ref)
+        await self._add_property(ref)

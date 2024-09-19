@@ -32,8 +32,7 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
 
     @staticmethod
     @abstractmethod
-    def vector_index_type() -> VectorIndexType:
-        ...
+    def vector_index_type() -> VectorIndexType: ...
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -50,8 +49,7 @@ class _VectorIndexConfigUpdate(_ConfigUpdateModel):
 
     @staticmethod
     @abstractmethod
-    def vector_index_type() -> VectorIndexType:
-        ...
+    def vector_index_type() -> VectorIndexType: ...
 
 
 class _VectorIndexConfigSkipCreate(_VectorIndexConfigCreate):
@@ -115,6 +113,17 @@ class _VectorIndexConfigDynamicCreate(_VectorIndexConfigCreate):
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.DYNAMIC
+
+    def _to_dict(self) -> dict:
+        ret_dict = super()._to_dict()
+        if self.hnsw is not None:
+            ret_dict["hnsw"] = self.hnsw._to_dict()
+        if self.flat is not None:
+            ret_dict["flat"] = self.flat._to_dict()
+        if self.threshold is not None:
+            ret_dict["threshold"] = self.threshold
+
+        return ret_dict
 
 
 class _VectorIndexConfigDynamicUpdate(_VectorIndexConfigUpdate):

@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 
 from weaviate.collections.classes.config import (
     _BQConfig,
+    _SQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _NamedVectorConfig,
@@ -48,9 +49,13 @@ def __get_rerank_config(schema: Dict[str, Any]) -> Optional[_RerankerConfig]:
         )
         == 1
     ):
+        try:
+            reranker = Rerankers(rerankers[0])
+        except ValueError:
+            reranker = rerankers[0]
         return _RerankerConfig(
             model=schema["moduleConfig"][rerankers[0]],
-            reranker=Rerankers(rerankers[0]),
+            reranker=reranker,
         )
     else:
         return None
@@ -65,8 +70,13 @@ def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfi
         )
         == 1
     ):
+        try:
+            generative = GenerativeSearches(generators[0])
+        except ValueError:
+            generative = generators[0]
+
         return _GenerativeConfig(
-            generative=GenerativeSearches(generators[0]),
+            generative=generative,
             model=schema["moduleConfig"][generators[0]],
         )
     else:
@@ -74,22 +84,26 @@ def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfi
 
 
 def __get_vectorizer_config(schema: Dict[str, Any]) -> Optional[_VectorizerConfig]:
-    if __get_vectorizer(schema) is not None and schema.get("vectorizer", "none") != "none":
+    if __is_vectorizer_present(schema) is not None and schema.get("vectorizer", "none") != "none":
         vec_config: Dict[str, Any] = schema["moduleConfig"].pop(schema["vectorizer"])
+        try:
+            vectorizer = Vectorizers(schema["vectorizer"])
+        except ValueError:
+            vectorizer = schema["vectorizer"]
         return _VectorizerConfig(
             vectorize_collection_name=vec_config.pop("vectorizeClassName", False),
             model=vec_config,
-            vectorizer=Vectorizers(schema["vectorizer"]),
+            vectorizer=vectorizer,
         )
     else:
         return None
 
 
-def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Vectorizers]:
+def __is_vectorizer_present(schema: Dict[str, Any]) -> bool:
     # ignore single vectorizer config if named vectors are present
     if "vectorConfig" in schema:
-        return None
-    return Vectorizers(schema.get("vectorizer"))
+        return False
+    return True
 
 
 def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]:
@@ -99,13 +113,22 @@ def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]
         return None
 
 
-def __get_quantizer_config(config: Dict[str, Any]) -> Optional[Union[_PQConfig, _BQConfig]]:
-    quantizer: Optional[Union[_PQConfig, _BQConfig]] = None
+def __get_quantizer_config(
+    config: Dict[str, Any]
+) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig]]:
+    quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig]] = None
     if "bq" in config and config["bq"]["enabled"]:
         # values are not present for bq+hnsw
         quantizer = _BQConfig(
             cache=config["bq"].get("cache"),
             rescore_limit=config["bq"].get("rescoreLimit"),
+        )
+    elif "sq" in config and config["sq"]["enabled"]:
+        # values are not present for bq+hnsw
+        quantizer = _SQConfig(
+            cache=config["sq"].get("cache"),
+            rescore_limit=config["sq"].get("rescoreLimit"),
+            training_limit=config["sq"].get("trainingLimit"),
         )
     elif "pq" in config and config["pq"].get("enabled"):
         quantizer = _PQConfig(
@@ -163,7 +186,6 @@ def __get_vector_index_config(
         return _VectorIndexConfigDynamic(
             distance_metric=VectorDistances(schema["vectorIndexConfig"]["distance"]),
             threshold=schema["vectorIndexConfig"].get("threshold"),
-            quantizer=None,
             hnsw=__get_hnsw_config(schema["vectorIndexConfig"]["hnsw"]),
             flat=__get_flat_config(schema["vectorIndexConfig"]["flat"]),
         )
@@ -188,10 +210,14 @@ def __get_vector_config(
 
             vector_index_config = __get_vector_index_config(named_vector)
             assert vector_index_config is not None
+            try:
+                vec: Union[str, Vectorizers] = Vectorizers(vectorizer_str)
+            except ValueError:
+                vec = vectorizer_str
 
             named_vectors[name] = _NamedVectorConfig(
                 vectorizer=_NamedVectorizerConfig(
-                    vectorizer=Vectorizers(vectorizer_str),
+                    vectorizer=vec,
                     model=vec_config,
                     source_properties=props,
                 ),
@@ -200,6 +226,17 @@ def __get_vector_config(
         return named_vectors
     else:
         return None
+
+
+def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Union[str, Vectorizers]]:
+    if "vectorConfig" in schema:
+        return None
+
+    vectorizer = str(schema["vectorizer"])
+    try:
+        return Vectorizers(vectorizer)
+    except ValueError:
+        return vectorizer
 
 
 def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
@@ -246,10 +283,16 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             auto_tenant_creation=schema.get("multiTenancyConfig", {}).get(
                 "autoTenantCreation", False
             ),
+            auto_tenant_activation=schema.get("multiTenancyConfig", {}).get(
+                "autoTenantActivation", False
+            ),
         ),
         properties=_properties_from_config(schema) if schema.get("properties") is not None else [],
         references=_references_from_config(schema) if schema.get("properties") is not None else [],
-        replication_config=_ReplicationConfig(factor=schema["replicationConfig"]["factor"]),
+        replication_config=_ReplicationConfig(
+            factor=schema["replicationConfig"]["factor"],
+            async_enabled=schema["replicationConfig"].get("asyncEnabled", False),
+        ),
         reranker_config=__get_rerank_config(schema),
         sharding_config=(
             None
@@ -312,6 +355,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
             data_type=DataType(prop["dataType"][0]),
             description=prop.get("description"),
             index_filterable=prop["indexFilterable"],
+            index_range_filters=prop.get("indexRangeFilters", False),
             index_searchable=prop["indexSearchable"],
             name=prop["name"],
             nested_properties=(

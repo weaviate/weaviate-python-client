@@ -1,18 +1,26 @@
 exclude: ^proto/
 repos:
--   repo: https://github.com/psf/black
-    rev: 23.9.1
+-   repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 24.8.0
     hooks:
-    -   id: black
+      - id: black
+        language_version: python3.12
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v4.6.0
   hooks:
     - id: no-commit-to-branch
     - id: trailing-whitespace
 
+- repo: https://github.com/myint/autoflake
+  rev: v1.4
+  hooks:
+      - id: autoflake
+        args: [--in-place, --remove-all-unused-imports, --exclude=weaviate/proto/*]
+
+
 - repo: https://github.com/PyCQA/flake8
-  rev: 6.1.0
+  rev: 7.1.0
   hooks:
     - id: flake8
       name: linting
@@ -49,4 +57,4 @@ repos:
       language: node
       pass_filenames: false
       types: [python]
-      additional_dependencies: [pyright@1.1.347]
+      additional_dependencies: [pyright@1.1.364]

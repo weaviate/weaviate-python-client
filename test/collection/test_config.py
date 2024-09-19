@@ -195,6 +195,20 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_databricks(
+            vectorize_collection_name=False,
+            endpoint="http://api.custom.com",
+            instruction="instruction",
+        ),
+        {
+            "text2vec-databricks": {
+                "vectorizeClassName": False,
+                "endpoint": "http://api.custom.com",
+                "instruction": "instruction",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_octoai(
             vectorize_collection_name=False,
             model="thenlper/gte-large",
@@ -247,6 +261,18 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "type": "text",
                 "baseURL": "https://api.openai.com/",
                 "dimensions": 100,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_mistral(
+            vectorize_collection_name=False,
+            model="cool-model",
+        ),
+        {
+            "text2vec-mistral": {
+                "vectorizeClassName": False,
+                "model": "cool-model",
             }
         },
     ),
@@ -617,6 +643,19 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-anyscale": {}},
     ),
     (
+        Configure.Generative.friendliai(
+            temperature=0.5, max_tokens=100, model="model", base_url="https://api.custom.ai"
+        ),
+        {
+            "generative-friendliai": {
+                "temperature": 0.5,
+                "maxTokens": 100,
+                "model": "model",
+                "baseURL": "https://api.custom.ai",
+            }
+        },
+    ),
+    (
         Configure.Generative.mistral(temperature=0.5, max_tokens=100, model="model"),
         {"generative-mistral": {"temperature": 0.5, "maxTokens": 100, "model": "model"}},
     ),
@@ -766,6 +805,52 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.anthropic(
+            model="model",
+            max_tokens=100,
+            stop_sequences=["stop"],
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-anthropic": {
+                "model": "model",
+                "maxTokens": 100,
+                "stopSequences": ["stop"],
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
+        Configure.Generative.databricks(endpoint="https://api.databricks.com"),
+        {
+            "generative-databricks": {
+                "endpoint": "https://api.databricks.com",
+            }
+        },
+    ),
+    (
+        Configure.Generative.databricks(
+            endpoint="https://api.databricks.com",
+            max_tokens=100,
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-databricks": {
+                "endpoint": "https://api.databricks.com",
+                "maxTokens": 100,
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
 ]
 
 
@@ -900,62 +985,92 @@ def test_config_with_properties() -> None:
             {
                 "dataType": ["text"],
                 "name": "text",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["text[]"],
                 "name": "text_array",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["int"],
                 "name": "int",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["int[]"],
                 "name": "int_array",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["number"],
                 "name": "number",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["number[]"],
                 "name": "number_array",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["boolean"],
                 "name": "bool",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["boolean[]"],
                 "name": "bool_array",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["date"],
                 "name": "date",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["date[]"],
                 "name": "date_array",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["uuid"],
                 "name": "uuid",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["uuid[]"],
                 "name": "uuid_array",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["geoCoordinates"],
                 "name": "geo",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["blob"],
                 "name": "blob",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
             {
                 "dataType": ["phoneNumber"],
                 "name": "phone_number",
+                "skip_vectorization": False,
+                "vectorize_property_name": True,
             },
         ],
     }
@@ -988,6 +1103,19 @@ def test_vector_config_hnsw_bq() -> None:
 
     assert vi_dict["efConstruction"] == 128
     assert vi_dict["bq"]["rescoreLimit"] == 123
+
+
+def test_vector_config_hnsw_sq() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        ef_construction=128,
+        quantizer=Configure.VectorIndex.Quantizer.sq(rescore_limit=123, training_limit=5012),
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["efConstruction"] == 128
+    assert vi_dict["sq"]["rescoreLimit"] == 123
+    assert vi_dict["sq"]["trainingLimit"] == 5012
 
 
 def test_vector_config_flat_pq() -> None:
@@ -1107,6 +1235,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     ),
     (
         [
+            Configure.NamedVectors.text2vec_databricks(
+                name="test", endpoint="http://api.custom.com", instruction="instruction"
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-databricks": {
+                        "vectorizeClassName": True,
+                        "instruction": "instruction",
+                        "endpoint": "http://api.custom.com",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
             Configure.NamedVectors.text2vec_octoai(
                 name="test", source_properties=["prop"], base_url="https://text.octoai.com"
             )
@@ -1160,6 +1307,20 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "baseURL": "https://api.openai.com/",
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.NamedVectors.text2vec_mistral(name="test", source_properties=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-mistral": {
+                        "vectorizeClassName": True,
+                        "properties": ["prop"],
                     }
                 },
                 "vectorIndexType": "hnsw",

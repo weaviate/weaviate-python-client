@@ -1,16 +1,29 @@
-from dataclasses import dataclass
 import struct
-from typing import Any, Dict, List, Literal, Optional, Sequence, Set, TypeVar, Union, cast, Tuple
+import uuid as uuid_lib
+from dataclasses import dataclass
+from typing import (
+    Any,
+    Awaitable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+    Union,
+    cast,
+    Tuple,
+    get_args,
+)
 
+from grpc.aio import AioRpcError  # type: ignore
 from typing_extensions import TypeAlias
 
-import grpc  # type: ignore
-import uuid as uuid_lib
-
 from weaviate.collections.classes.config import ConsistencyLevel
-
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
+    _MultiTargetVectorJoin,
     HybridFusion,
     _QueryReferenceMultiTarget,
     _MetadataQuery,
@@ -26,21 +39,25 @@ from weaviate.collections.classes.grpc import (
     REFERENCES,
     _Sorting,
     Rerank,
+    TargetVectorJoinType,
+    NearVectorInputType,
 )
-from weaviate.collections.classes.internal import _Generative, _GroupBy
+from weaviate.collections.classes.internal import (
+    _Generative,
+    _GroupBy,
+)
 from weaviate.collections.filters import _FilterToGRPC
-
 from weaviate.collections.grpc.shared import _BaseGRPC
-
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
-from weaviate.types import NUMBER, UUID
-from weaviate.util import _get_vector_v4
-
+from weaviate.exceptions import (
+    WeaviateQueryError,
+    WeaviateUnsupportedFeatureError,
+    WeaviateInvalidInputError,
+)
 from weaviate.proto.v1 import search_get_pb2
-
-from weaviate.validator import _ValidateArgument, _validate_input
-
+from weaviate.types import NUMBER, UUID
+from weaviate.util import _get_vector_v4, _is_1d_vector
+from weaviate.validator import _ValidateArgument, _validate_input, _ExtraTypes
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
 _PyValue: TypeAlias = Union[
@@ -113,12 +130,12 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
 
         if sort is not None:
-            sort_by: grpc.RepeatedCompositeFieldContainer[search_get_pb2.SortBy] = [
+            sort_by: Optional[List[search_get_pb2.SortBy]] = [
                 search_get_pb2.SortBy(ascending=sort.ascending, path=[sort.prop])
                 for sort in sort.sorts
             ]
@@ -147,6 +164,7 @@ class _QueryGRPC(_BaseGRPC):
         vector: Optional[HybridVectorType] = None,
         properties: Optional[List[str]] = None,
         fusion_type: Optional[HybridFusion] = None,
+        distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         autocut: Optional[int] = None,
@@ -157,8 +175,8 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
-    ) -> search_get_pb2.SearchReply:
+        target_vector: Optional[TargetVectorJoinType] = None,
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._connection._weaviate_version.is_lower_than(1, 25, 0) and (
             isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
         ):
@@ -173,17 +191,70 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([None, str], "query", query),
                     _ValidateArgument([float, int, None], "alpha", alpha),
                     _ValidateArgument(
-                        [list, _HybridNearText, _HybridNearVector, None], "vector", vector
+                        [
+                            List,
+                            Dict,
+                            _ExtraTypes.PANDAS,
+                            _ExtraTypes.POLARS,
+                            _ExtraTypes.NUMPY,
+                            _ExtraTypes.TF,
+                            _HybridNearText,
+                            _HybridNearVector,
+                            None,
+                        ],
+                        "vector",
+                        vector,
                     ),
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
         # Set hybrid search to only query the other search-type if one of the two is not set
         if query is None:
             alpha = 1
+
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
+
+        near_text, near_vector, vector_bytes = None, None, None
+
+        if vector is None:
+            pass
+        elif isinstance(vector, list) and len(vector) > 0 and isinstance(vector[0], float):
+            # fast path for simple vector
+            vector_bytes = struct.pack("{}f".format(len(vector)), *vector)
+        elif isinstance(vector, _HybridNearText):
+            near_text = search_get_pb2.NearTextSearch(
+                query=[vector.text] if isinstance(vector.text, str) else vector.text,
+                certainty=vector.certainty,
+                distance=vector.distance,
+                move_away=self.__parse_move(vector.move_away),
+                move_to=self.__parse_move(vector.move_to),
+            )
+        elif isinstance(vector, _HybridNearVector):
+            vector_per_target, vector_bytes_tmp = self.__vector_per_target(
+                vector.vector, targets, "vector"
+            )
+            near_vector = search_get_pb2.NearVector(
+                vector_bytes=vector_bytes_tmp,
+                certainty=vector.certainty,
+                distance=vector.distance,
+                vector_per_target=vector_per_target,
+            )
+        else:
+            vector_per_target, vector_bytes_tmp = self.__vector_per_target(
+                vector, targets, "vector"
+            )
+            if vector_per_target is not None:
+                near_vector = search_get_pb2.NearVector(
+                    vector_bytes=vector_bytes_tmp,
+                    vector_per_target=vector_per_target,
+                )
+            else:
+                vector_bytes = vector_bytes_tmp
 
         hybrid_search = (
             search_get_pb2.Hybrid(
@@ -198,32 +269,12 @@ class _QueryGRPC(_BaseGRPC):
                     if fusion_type is not None
                     else None
                 ),
-                target_vectors=[target_vector] if target_vector is not None else None,
-                vector_bytes=(
-                    struct.pack("{}f".format(len(vector)), *vector)
-                    if vector is not None and isinstance(vector, list)
-                    else None
-                ),
-                near_text=(
-                    search_get_pb2.NearTextSearch(
-                        query=[vector.text] if isinstance(vector.text, str) else vector.text,
-                        certainty=vector.certainty,
-                        distance=vector.distance,
-                        move_away=self.__parse_move(vector.move_away),
-                        move_to=self.__parse_move(vector.move_to),
-                    )
-                    if vector is not None and isinstance(vector, _HybridNearText)
-                    else None
-                ),
-                near_vector=(
-                    search_get_pb2.NearVector(
-                        vector_bytes=struct.pack("{}f".format(len(vector.vector)), *vector.vector),
-                        certainty=vector.certainty,
-                        distance=vector.distance,
-                    )
-                    if vector is not None and isinstance(vector, _HybridNearVector)
-                    else None
-                ),
+                target_vectors=target_vector,
+                targets=targets,
+                near_text=near_text,
+                near_vector=near_vector,
+                vector_bytes=vector_bytes,
+                vector_distance=distance,
             )
             if query is not None or vector is not None
             else None
@@ -259,7 +310,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -291,7 +342,7 @@ class _QueryGRPC(_BaseGRPC):
 
     def near_vector(
         self,
-        near_vector: List[float],
+        near_vector: NearVectorInputType,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -301,22 +352,50 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
-                    _ValidateArgument([List], "near_vector", near_vector),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [
+                            List,
+                            Dict,
+                            _ExtraTypes.PANDAS,
+                            _ExtraTypes.POLARS,
+                            _ExtraTypes.NUMPY,
+                            _ExtraTypes.TF,
+                        ],
+                        "near_vector",
+                        near_vector,
+                    ),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
-        near_vector = _get_vector_v4(near_vector)
         certainty, distance = self.__parse_near_options(certainty, distance)
 
+        targets, target_vectors = self.__target_vector_to_grpc(target_vector)
+
+        if (
+            isinstance(near_vector, list)
+            and len(near_vector) > 0
+            and isinstance(near_vector[0], float)
+        ):
+            # fast path for simple vector
+            near_vector_grpc: Optional[bytes] = struct.pack(
+                "{}f".format(len(near_vector)), *near_vector
+            )
+            vector_per_target_tmp = None
+        else:
+            vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
+                near_vector, targets, "near_vector"
+            )
         request = self.__create_request(
             limit=limit,
             offset=offset,
@@ -331,8 +410,10 @@ class _QueryGRPC(_BaseGRPC):
             near_vector=search_get_pb2.NearVector(
                 certainty=certainty,
                 distance=distance,
-                vector_bytes=struct.pack("{}f".format(len(near_vector)), *near_vector),
-                target_vectors=[target_vector] if target_vector is not None else None,
+                targets=targets,
+                target_vectors=target_vectors,
+                vector_per_target=vector_per_target_tmp,
+                vector_bytes=near_vector_grpc,
             ),
         )
 
@@ -350,20 +431,24 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument([str, uuid_lib.UUID], "near_object", near_object),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
         certainty, distance = self.__parse_near_options(certainty, distance)
+
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
 
         base_request = self.__create_request(
             limit=limit,
@@ -380,7 +465,8 @@ class _QueryGRPC(_BaseGRPC):
                 id=str(near_object),
                 certainty=certainty,
                 distance=distance,
-                target_vectors=[target_vector] if target_vector is not None else None,
+                target_vectors=target_vector,
+                targets=targets,
             ),
         )
 
@@ -400,32 +486,36 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument([List, str], "near_text", near_text),
                     _ValidateArgument([Move, None], "move_away", move_away),
                     _ValidateArgument([Move, None], "move_to", move_to),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, List, _MultiTargetVectorJoin, None], "target_vector", target_vector
+                    ),
                 ]
             )
 
         if isinstance(near_text, str):
             near_text = [near_text]
         certainty, distance = self.__parse_near_options(certainty, distance)
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
 
         near_text_req = search_get_pb2.NearTextSearch(
             query=near_text,
             certainty=certainty,
             distance=distance,
-            target_vectors=[target_vector] if target_vector is not None else None,
             move_away=self.__parse_move(move_away),
             move_to=self.__parse_move(move_to),
+            targets=targets,
+            target_vectors=target_vector,
         )
 
         request = self.__create_request(
@@ -457,47 +547,72 @@ class _QueryGRPC(_BaseGRPC):
         group_by: Optional[_GroupBy] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-        target_vector: Optional[str] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Optional[PROPERTIES] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> search_get_pb2.SearchReply:
+    ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument([str], "media", media),
-                    _ValidateArgument([str, None], "target_vector", target_vector),
+                    _ValidateArgument(
+                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                    ),
                 ]
             )
 
         certainty, distance = self.__parse_near_options(certainty, distance)
 
         kwargs: Dict[str, Any] = {}
-        target_vectors = [target_vector] if target_vector is not None else None
-
+        targets, target_vector = self.__target_vector_to_grpc(target_vector)
         if type_ == "audio":
             kwargs["near_audio"] = search_get_pb2.NearAudioSearch(
-                audio=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                audio=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "depth":
             kwargs["near_depth"] = search_get_pb2.NearDepthSearch(
-                depth=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                depth=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "image":
             kwargs["near_image"] = search_get_pb2.NearImageSearch(
-                image=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                image=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "imu":
             kwargs["near_imu"] = search_get_pb2.NearIMUSearch(
-                imu=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                imu=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "thermal":
             kwargs["near_thermal"] = search_get_pb2.NearThermalSearch(
-                thermal=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                thermal=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         elif type_ == "video":
             kwargs["near_video"] = search_get_pb2.NearVideoSearch(
-                video=media, distance=distance, certainty=certainty, target_vectors=target_vectors
+                video=media,
+                distance=distance,
+                certainty=certainty,
+                target_vectors=target_vector,
+                targets=targets,
             )
         else:
             raise ValueError(
@@ -642,20 +757,17 @@ class _QueryGRPC(_BaseGRPC):
             near_video=near_video,
         )
 
-    def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
+    async def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
         try:
             assert self._connection.grpc_stub is not None
-            res: search_get_pb2.SearchReply  # According to PEP-0526
-            res, _ = self._connection.grpc_stub.Search.with_call(
+            res = await self._connection.grpc_stub.Search(
                 request,
                 metadata=self._connection.grpc_headers(),
                 timeout=self._connection.timeout_config.query,
             )
-
-            return res
-
-        except grpc.RpcError as e:
-            raise WeaviateQueryError(e.details(), "GRPC search")  # pyright: ignore
+            return cast(search_get_pb2.SearchReply, res)
+        except AioRpcError as e:
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:
         return search_get_pb2.MetadataRequest(
@@ -742,3 +854,87 @@ class _QueryGRPC(_BaseGRPC):
             return set(args)
         else:
             return {cast(A, args)}
+
+    def __target_vector_to_grpc(
+        self, target_vector: Optional[TargetVectorJoinType]
+    ) -> Tuple[Optional[search_get_pb2.Targets], Optional[List[str]]]:
+        if target_vector is None:
+            return None, None
+
+        if self._connection._weaviate_version.is_lower_than(1, 26, 0):
+            if isinstance(target_vector, str):
+                return None, [target_vector]
+            elif isinstance(target_vector, list) and len(target_vector) == 1:
+                return None, target_vector
+            else:
+                raise WeaviateUnsupportedFeatureError(
+                    "Multiple target vectors in search",
+                    str(self._connection._weaviate_version),
+                    "1.26.0",
+                )
+
+        if isinstance(target_vector, str):
+            return search_get_pb2.Targets(target_vectors=[target_vector]), None
+        elif isinstance(target_vector, list):
+            return search_get_pb2.Targets(target_vectors=target_vector), None
+        else:
+            return target_vector.to_grpc_target_vector(), None
+
+    @staticmethod
+    def __vector_per_target(
+        vector: NearVectorInputType, targets: Optional[search_get_pb2.Targets], argument_name: str
+    ) -> Tuple[Optional[Dict[str, bytes]], Optional[bytes]]:
+        invalid_nv_exception = WeaviateInvalidInputError(
+            f"""{argument_name} argument can be:
+                                - a list of numbers
+                                - a list of lists of numbers for multi target search
+                                - a dictionary with target names as keys and lists of numbers as values
+                        received: {vector}"""
+        )
+        if isinstance(vector, dict):
+            if targets is None or len(targets.target_vectors) != len(vector):
+                raise WeaviateInvalidInputError(
+                    "The number of target vectors must be equal to the number of vectors."
+                )
+
+            vector_per_target: Dict[str, bytes] = {}
+            for key, value in vector.items():
+                nv = _get_vector_v4(value)
+
+                if (
+                    not isinstance(nv, list)
+                    or len(nv) == 0
+                    or not isinstance(nv[0], get_args(NUMBER))
+                ):
+                    raise invalid_nv_exception
+
+                vector_per_target[key] = struct.pack("{}f".format(len(nv)), *nv)
+
+            return vector_per_target, None
+        else:
+            if len(vector) == 0:
+                raise invalid_nv_exception
+
+            if _is_1d_vector(vector):
+                near_vector = _get_vector_v4(vector)
+                if not isinstance(near_vector, list):
+                    raise invalid_nv_exception
+                return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
+            else:
+                vector_per_target = {}
+                if targets is None or len(targets.target_vectors) != len(vector):
+                    raise WeaviateInvalidInputError(
+                        "The number of target vectors must be equal to the number of vectors."
+                    )
+                for i, inner_vector in enumerate(vector):
+                    nv = _get_vector_v4(inner_vector)
+                    if (
+                        not isinstance(nv, list)
+                        or len(nv) == 0
+                        or not isinstance(nv[0], get_args(NUMBER))
+                    ):
+                        raise invalid_nv_exception
+                    vector_per_target[targets.target_vectors[i]] = struct.pack(
+                        "{}f".format(len(nv)), *nv
+                    )
+                return vector_per_target, None

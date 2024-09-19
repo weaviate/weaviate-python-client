@@ -1,6 +1,7 @@
 """
 Test the 'weaviate.batch.requests' functions/classes.
 """
+
 import unittest
 from unittest.mock import patch
 

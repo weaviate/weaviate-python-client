@@ -9,3 +9,8 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+    ignore:
+      - dependency-name: "grpcio"
+      - dependency-name: "grpcio-tools"
+      - dependency-name: "grpcio-health-checking"
+      - dependency-name: "pydantic"

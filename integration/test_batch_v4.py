@@ -1,3 +1,4 @@
+import concurrent.futures
 import uuid
 from dataclasses import dataclass
 from typing import Generator, List, Optional, Protocol, Tuple, Callable
@@ -6,6 +7,8 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
+from weaviate import BatchClient, ClientBatchingContextManager
+import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
@@ -79,16 +82,20 @@ def client_factory(
 ) -> Generator[
     Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
 ]:
-    name_fixture: Optional[str] = None
+    name_fixtures: List[str] = []
     client_fixture: Optional[weaviate.WeaviateClient] = None
 
     def _factory(
         name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
-        nonlocal client_fixture, name_fixture
+        nonlocal client_fixture, name_fixtures
         name_fixture = _sanitize_collection_name(request.node.name) + name
-        client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
-        client_fixture.collections.delete(name_fixture)
+        name_fixtures.append(name_fixture)
+        if client_fixture is None:
+            client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
+
+        if client_fixture.collections.exists(name_fixture):
+            client_fixture.collections.delete(name_fixture)
 
         client_fixture.collections.create(
             name=name_fixture,
@@ -98,12 +105,18 @@ def client_factory(
             ],
             references=[ReferenceProperty(name="test", target_collection=name_fixture)],
             multi_tenancy_config=Configure.multi_tenancy(multi_tenant),
+            vectorizer_config=Configure.Vectorizer.none(),
         )
         return client_fixture, name_fixture
 
-    yield _factory
-    if client_fixture is not None and name_fixture is not None:
-        client_fixture.collections.delete(name_fixture)
+    try:
+        yield _factory
+    finally:
+        if client_fixture is not None and name_fixtures is not None:
+            for name_fixture in name_fixtures:
+                client_fixture.collections.delete(name_fixture)
+        if client_fixture is not None:
+            client_fixture.close()
 
 
 def test_add_objects_in_multiple_batches(client_factory: ClientFactory) -> None:
@@ -341,12 +354,29 @@ def test_add_ref_batch_with_tenant(client_factory: ClientFactory) -> None:
         assert ret_obj.references["test"].objects[0].uuid == obj[0]
 
 
-def test_add_ten_thousand_data_objects(client_factory: ClientFactory, request: SubRequest) -> None:
+@pytest.mark.parametrize(
+    "batching_method",
+    [
+        lambda client: client.batch.dynamic(),
+        lambda client: client.batch.fixed_size(),
+        lambda client: client.batch.rate_limit(9999),
+    ],
+    ids=[
+        "test_add_ten_thousand_data_objects_dynamic",
+        "test_add_ten_thousand_data_objects_fixed_size",
+        "test_add_ten_thousand_data_objects_rate_limit",
+    ],
+)
+def test_add_ten_thousand_data_objects(
+    client_factory: ClientFactory,
+    batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+    request: SubRequest,
+) -> None:
     """Test adding ten thousand data objects"""
     client, name = client_factory()
 
     nr_objects = 10000
-    with client.batch.dynamic() as batch:
+    with batching_method(client) as batch:
         for i in range(nr_objects):
             batch.add_object(
                 collection=name,
@@ -374,7 +404,9 @@ def make_refs(uuids: List[UUID], name: str) -> List[dict]:
     return refs
 
 
-def test_add_one_hundred_objects_and_references_between_all(client_factory: ClientFactory) -> None:
+def test_add_one_hundred_objects_and_references_between_all(
+    client_factory: ClientFactory,
+) -> None:
     """Test adding one hundred objects and references between all of them"""
     client, name = client_factory()
     nr_objects = 100
@@ -417,9 +449,9 @@ def test_add_1000_objects_with_async_indexing_and_wait(
     ret = client.collections.get(name).aggregate.over_all(total_count=True)
     assert ret.total_count == nr_objects
 
-    old_client = weaviate.Client("http://localhost:8090")
-    assert old_client.schema.get_class_shards(name)[0]["status"] == "READY"
-    assert old_client.schema.get_class_shards(name)[0]["vectorQueueSize"] == 0
+    shards = client.collections.get(name).config.get_shards()
+    assert shards[0].status == "READY"
+    assert shards[0].vector_queue_size == 0
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -470,10 +502,11 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_all(
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
         assert ret.total_count == nr_objects / len(tenants)
-    old_client = weaviate.Client("http://localhost:8090")
-    for shard in old_client.schema.get_class_shards(name):
-        assert shard["status"] == "READY"
-        assert shard["vectorQueueSize"] == 0
+
+    shards = client.collections.get(name).config.get_shards()
+    for shard in shards:
+        assert shard.status == "READY"
+        assert shard.vector_queue_size == 0
 
 
 @pytest.mark.skip("Difficult to find numbers that work reliably in the CI")
@@ -501,14 +534,72 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
     for tenant in tenants:
         ret = collection.with_tenant(tenant.name).aggregate.over_all(total_count=True)
         assert ret.total_count == 1000 if tenant.name == tenants[0].name else 1
-    old_client = weaviate.Client("http://localhost:8090")
-    for shard in old_client.schema.get_class_shards(name):
-        if shard["name"] == tenants[0].name:
-            assert shard["status"] == "READY"
-            assert shard["vectorQueueSize"] == 0
+
+    shards = client.collections.get(name).config.get_shards()
+    for shard in shards:
+        if shard.name == tenants[0].name:
+            assert shard.status == "READY"
+            assert shard.vector_queue_size == 0
         else:
-            assert shard["status"] == "INDEXING"
-            assert shard["vectorQueueSize"] > 0
+            assert shard.status == "INDEXING"
+            assert shard.vector_queue_size > 0
+
+
+@pytest.mark.parametrize(
+    "batching_method",
+    [
+        lambda client: client.batch.dynamic(),
+        lambda client: client.batch.fixed_size(),
+        lambda client: client.batch.rate_limit(1000),
+    ],
+    ids=[
+        "test_add_one_hundred_objects_and_references_between_all_dynamic",
+        "test_add_one_hundred_objects_and_references_between_all_fixed_size",
+        "test_add_one_hundred_objects_and_references_between_all_rate_limit",
+    ],
+)
+def test_add_one_object_and_a_self_reference(
+    client_factory: ClientFactory,
+    batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
+) -> None:
+    """Test adding one object and a self reference"""
+    client, name = client_factory()
+    with batching_method(client) as batch:
+        uuid = batch.add_object(collection=name, properties={})
+        batch.add_reference(
+            from_uuid=uuid,
+            from_collection=name,
+            from_property="test",
+            to=uuid,
+        )
+    obj = client.collections.get(name).query.fetch_object_by_id(
+        uuid, return_references=QueryReference(link_on="test")
+    )
+    assert obj is not None
+    assert obj.references["test"].objects[0].uuid == uuid
+
+
+def test_multi_threaded_batching(
+    client_factory: ClientFactory,
+) -> None:
+    client, name = client_factory()
+    nr_objects = 1000
+    nr_threads = 10
+
+    def batch_insert(batch: BatchClient) -> None:
+        for i in range(nr_objects):
+            batch.add_object(
+                collection=name,
+                properties={"name": "test" + str(i)},
+            )
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        with client.batch.dynamic() as batch:
+            futures = [executor.submit(batch_insert, batch) for _ in range(nr_threads)]
+    for future in concurrent.futures.as_completed(futures):
+        future.result()
+    objs = client.collections.get(name).query.fetch_objects(limit=nr_objects * nr_threads).objects
+    assert len(objs) == nr_objects * nr_threads
 
 
 def test_error_reset(client_factory: ClientFactory) -> None:
@@ -545,3 +636,91 @@ def test_non_existant_collection(client_factory: ClientFactory) -> None:
 
     # above should not throw - depending on the autoschema config this might create an error or
     # not, so we do not check for errors here
+
+
+def test_number_of_stored_results_in_batch(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    with client.batch.dynamic() as batch:
+        for i in range(99999):
+            batch.add_object(properties={"name": str(i)}, collection=name)
+
+    assert len(client.batch.results.objs.all_responses) == 99999
+    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.batch.results.objs.uuids) == 99999
+    assert sorted(client.batch.results.objs.uuids.keys()) == list(range(99999))
+
+    with client.batch.dynamic() as batch:
+        for i in range(100001):
+            batch.add_object(properties={"name": str(i)}, collection=name)
+
+    assert len(client.batch.results.objs.all_responses) == 100000
+    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.batch.results.objs.uuids) == 100000
+    assert sorted(client.batch.results.objs.uuids.keys()) == list(range(1, 100001))
+
+    # depending on timings in the event loop, some batches may end before others
+    # as such the keys of the uuids dict may not be in order but they are still unique
+    # and correspond to the original indices within the batch
+
+
+def test_uuids_keys_and_original_index(client_factory: ClientFactory) -> None:
+    client, name = client_factory()
+    objs = [(uuid.uuid4(), {"name": str(i)}) for i in range(100)]
+    with client.batch.dynamic() as batch:
+        for obj in objs:
+            batch.add_object(uuid=obj[0], properties=obj[1], collection=name)
+
+    assert len(client.batch.results.objs.all_responses) == 100
+    assert len(client.batch.results.objs.errors) == 0
+    assert len(client.batch.results.objs.uuids) == 100
+
+    assert [objs[k][0] for k in client.batch.results.objs.uuids.keys()] == list(
+        client.batch.results.objs.uuids.values()
+    )
+
+
+def test_batching_error_logs(
+    client_factory: ClientFactory, caplog: pytest.LogCaptureFixture
+) -> None:
+    client, name = client_factory()
+    with client.batch.fixed_size() as batch:
+        for obj in [{"name": i} for i in range(100)]:
+            batch.add_object(properties=obj, collection=name)
+    assert (
+        "Failed to send 100 objects in a batch of 100. Please inspect client.batch.failed_objects or collection.batch.failed_objects for the failed objects."
+        in caplog.text
+    )
+
+
+def test_references_with_to_uuids(client_factory: ClientFactory) -> None:
+    """Test that batch waits until the to object is created."""
+    client, _ = client_factory()
+
+    client.collections.delete(["target", "source"])
+    target = client.collections.create(
+        "target", multi_tenancy_config=wvc.config.Configure.multi_tenancy(enabled=True)
+    )
+    source = client.collections.create(
+        "source",
+        references=[wvc.config.ReferenceProperty(name="to", target_collection="target")],
+        multi_tenancy_config=wvc.config.Configure.multi_tenancy(enabled=True),
+    )
+
+    target.tenants.create("tenant-1")
+    source.tenants.create("tenant-1")
+    from_uuid = source.with_tenant("tenant-1").data.insert(properties={})
+    objs = 20
+
+    with client.batch.fixed_size(batch_size=10, concurrent_requests=1) as batch:
+        for _ in range(objs):
+            to = batch.add_object(collection="target", properties={}, tenant="tenant-1")
+            batch.add_reference(
+                from_uuid=from_uuid,
+                from_property="to",
+                to=to,
+                from_collection="source",
+                tenant="tenant-1",
+            )
+
+    assert len(client.batch.failed_references) == 0, client.batch.failed_references
+    client.collections.delete(["target", "source"])

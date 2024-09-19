@@ -9,7 +9,7 @@ import weaviate
 import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
 from weaviate import util
-from weaviate.collections.classes.config import DataType, Property
+from weaviate.collections.classes.config import Configure, DataType, Property
 from weaviate.collections.classes.filters import Filter
 from weaviate.exceptions import AuthenticationFailedError, UnexpectedStatusCodeError
 
@@ -66,14 +66,14 @@ def test_authentication_client_credentials(
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port,scope,warning",
     [
-        (
-            "WCS",
-            "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
-            "WCS_DUMMY_CI_PW",
-            WCS_PORT,
-            None,
-            False,
-        ),
+        # (  # WCS keycloak times out too often
+        #     "WCS",
+        #     "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
+        #     "WCS_DUMMY_CI_PW",
+        #     WCS_PORT,
+        #     None,
+        #     False,
+        # ),
         (
             "okta",
             "test@test.de",
@@ -122,6 +122,9 @@ def test_authentication_user_pw(
             assert issubclass(w.category, UserWarning)
             assert str(w.message).startswith("Auth002")
         else:
+            if len(recwarn) != 0:
+                for rwarning in recwarn.list:
+                    print(rwarning.message)
             assert len(recwarn) == 0
 
 
@@ -165,12 +168,12 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port",
     [
-        (
-            "WCS",
-            "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
-            "WCS_DUMMY_CI_PW",
-            WCS_PORT,
-        ),
+        # (  # WCS keycloak times out too often
+        #     "WCS",
+        #     "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
+        #     "WCS_DUMMY_CI_PW",
+        #     WCS_PORT,
+        # ),
         (
             "okta",
             "test@test.de",
@@ -265,6 +268,7 @@ def test_auth_e2e(request: SubRequest) -> None:
             properties=[
                 Property(name="name", data_type=DataType.TEXT),
             ],
+            vectorizer_config=Configure.Vectorizer.none(),
         )
         col.data.insert({"name": "test"})
         col.data.insert_many([{"name": "test2"}])
