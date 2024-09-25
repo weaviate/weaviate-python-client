@@ -25,6 +25,8 @@ OpenAIModel: TypeAlias = Literal[
 ]
 JinaModel: TypeAlias = Literal["jina-embeddings-v2-base-en", "jina-embeddings-v2-small-en"]
 VoyageModel: TypeAlias = Literal[
+    "voyage-3",
+    "voyage-3-lite",
     "voyage-large-2",
     "voyage-code-2",
     "voyage-2",
