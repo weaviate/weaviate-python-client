@@ -65,6 +65,7 @@ from weaviate.warnings import _Warnings
 class _WeaviateUUIDInt(uuid_lib.UUID):
     def __init__(self, hex_: int) -> None:
         object.__setattr__(self, "int", hex_)
+        object.__setattr__(self, "is_safe", uuid_lib.SafeUUID.unknown)
 
 
 class _Base(Generic[Properties, References]):
