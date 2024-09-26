@@ -363,7 +363,12 @@ class _DataCollectionAsync(Generic[Properties], _Data):
             (
                 _BatchObject(
                     collection=self.name,
-                    vector=obj.vector,
+                    vector=(
+                        obj.vector
+                        if obj.vector is None
+                        or isinstance(obj.vector, dict)
+                        else _get_vector_v4(obj.vector)
+                    ),
                     uuid=str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
                     properties=cast(dict, obj.properties),
                     tenant=self._tenant,

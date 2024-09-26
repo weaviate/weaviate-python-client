@@ -49,15 +49,14 @@ class _BatchGRPC(_BaseGRPC):
 
     def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
         def pack_vector(vector: Any) -> bytes:
-            vector_list = _get_vector_v4(vector)
-            return struct.pack("{}f".format(len(vector_list)), *vector_list)
+            return struct.pack("{}f".format(len(vector)), *vector)
 
         return [
             batch_pb2.BatchObject(
                 collection=obj.collection,
                 vector_bytes=(
                     pack_vector(obj.vector)
-                    if obj.vector is not None and not isinstance(obj.vector, dict)
+                    if obj.vector is not None and isinstance(obj.vector, list)
                     else None
                 ),
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
