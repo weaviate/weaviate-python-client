@@ -27,11 +27,15 @@ from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.util import _datetime_to_string, _get_vector_v4
 
 
+def _pack_vector(vector: Any) -> bytes:
+    return struct.pack("{}f".format(len(vector)), *vector)
+
+
 def _pack_named_vectors(vectors: Dict[str, List[float]]) -> List[base_pb2.Vectors]:
     return [
         base_pb2.Vectors(
             name=name,
-            vector_bytes=struct.pack("{}f".format(len(vector)), *vector),
+            vector_bytes=_pack_vector(vector),
         )
         for name, vector in vectors.items()
     ]
@@ -48,17 +52,9 @@ class _BatchGRPC(_BaseGRPC):
         super().__init__(connection, consistency_level)
 
     def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
-        def pack_vector(vector: Any) -> bytes:
-            return struct.pack("{}f".format(len(vector)), *vector)
-
         return [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector_bytes=(
-                    pack_vector(obj.vector)
-                    if obj.vector is not None and isinstance(obj.vector, list)
-                    else None
-                ),
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=(
                     self.__translate_properties_from_python_to_grpc(
@@ -69,6 +65,11 @@ class _BatchGRPC(_BaseGRPC):
                     else None
                 ),
                 tenant=obj.tenant,
+                vector_bytes=(
+                    _pack_vector(obj.vector)
+                    if obj.vector is not None and isinstance(obj.vector, list)
+                    else None
+                ),
                 vectors=(
                     _pack_named_vectors(obj.vector)
                     if obj.vector is not None and isinstance(obj.vector, dict)
