@@ -231,6 +231,20 @@ class StopwordsPreset(str, Enum):
     EN = "en"
 
 
+class ObjectDeletionConflictResolution(str, Enum):
+    """How object deletions in multi node environments should be resolved.
+
+    Attributes:
+        `PERMANENT_DELETION`
+            Once an object has been deleted on one node it will be deleted on all nodes in case of conflicts.
+        `NO_AUTOMATED_RESOLUTION`
+            No deletion resolution.
+    """
+
+    PERMANENT_DELETION = "PermanentDeletion"
+    NO_AUTOMATED_RESOLUTION = "NoAutomatedResolution"
+
+
 class PQEncoderType(str, Enum):
     """Type of the PQ encoder.
 
@@ -355,7 +369,7 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
-    propagateObjectDeletion: Optional[bool]
+    objectDeletionConflictResolution: Optional[ObjectDeletionConflictResolution]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
@@ -1380,6 +1394,7 @@ ReferencePropertyConfig = _ReferenceProperty
 class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
+    object_deletion_conflict_resolution: Optional[bool]
 
 
 ReplicationConfig = _ReplicationConfig
@@ -2144,7 +2159,7 @@ class Configure:
     def replication(
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
-        propagate_object_deletion: Optional[bool] = None,
+        object_deletion_conflict_resolution: Optional[ObjectDeletionConflictResolution] = None,
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
@@ -2161,7 +2176,7 @@ class Configure:
         return _ReplicationConfigCreate(
             factor=factor,
             asyncEnabled=async_enabled,
-            propagateObjectDeletion=propagate_object_deletion,
+            objectDeletionConflictResolution=object_deletion_conflict_resolution,
         )
 
     @staticmethod
