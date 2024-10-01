@@ -218,7 +218,7 @@ class _Warnings:
     @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
-            message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
+            message=f"""Con002: You are using the datetime object {date} without a timezone. The timezone will be set to UTC.
             To use a different timezone, specify it in the datetime object. For example:
             datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone(-datetime.timedelta(hours=2))).isoformat() = 2021-01-01T00:00:00-02:00
             """,
