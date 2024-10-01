@@ -1394,7 +1394,7 @@ ReferencePropertyConfig = _ReferenceProperty
 class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
-    object_deletion_conflict_resolution: Optional[bool]
+    object_deletion_conflict_resolution: Optional[ObjectDeletionConflictResolution]
 
 
 ReplicationConfig = _ReplicationConfig
