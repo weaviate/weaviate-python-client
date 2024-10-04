@@ -15,7 +15,7 @@ on:
 
 env:
   WEAVIATE_123: 1.23.16
-  WEAVIATE_124: 1.24.25
+  WEAVIATE_124: preview-fix-returning-vectors-in-bm25-search-e261e80
   WEAVIATE_125: 1.25.18
   WEAVIATE_126: 1.26.5
 
