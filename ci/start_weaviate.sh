@@ -21,7 +21,7 @@ function wait(){
 
   echo "Waiting for $1"
   while true; do
-    if curl -s $1 > /dev/null; then
+    if curl -s "$1/v1/.well-known/ready" > /dev/null; then
       break
     else
       if [ $? -eq 7 ]; then
