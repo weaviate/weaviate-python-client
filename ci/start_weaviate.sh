@@ -21,21 +21,24 @@ function wait(){
 
   echo "Waiting for $1"
   while true; do
+    # first check if weaviate already responds
+    if ! curl -s $1 > /dev/null; then
+      continue
+    fi
+
+    # endpoint available, check if it is ready
     HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$1/v1/.well-known/ready")
-    CURL_EXIT_CODE=$?
 
     if [ "$HTTP_STATUS" -eq 200 ]; then
       break
     else
-      if [ $CURL_EXIT_CODE -eq 7 ] || [ $CURL_EXIT_CODE -eq 56 ]; then
-        echo "Weaviate is not up yet. (waited for ${ALREADY_WAITING}s)"
-        if [ $ALREADY_WAITING -gt $MAX_WAIT_SECONDS ]; then
-          echo "Weaviate did not start up in $MAX_WAIT_SECONDS."
-          exit 1
-        else
-          sleep 2
-          let ALREADY_WAITING=$ALREADY_WAITING+2
-        fi
+      echo "Weaviate is not up yet. (waited for ${ALREADY_WAITING}s)"
+      if [ $ALREADY_WAITING -gt $MAX_WAIT_SECONDS ]; then
+        echo "Weaviate did not start up in $MAX_WAIT_SECONDS."
+        exit 1
+      else
+        sleep 2
+        let ALREADY_WAITING=$ALREADY_WAITING+2
       fi
     fi
   done
