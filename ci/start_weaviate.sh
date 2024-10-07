@@ -21,7 +21,9 @@ function wait(){
 
   echo "Waiting for $1"
   while true; do
-    if curl -s "$1/v1/.well-known/ready" > /dev/null; then
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$1/v1/.well-known/ready")
+
+    if [ "$HTTP_STATUS" -eq 200 ]; then
       break
     else
       if [ $? -eq 7 ]; then
