@@ -19,7 +19,6 @@ env:
   WEAVIATE_125: preview-8382155
   WEAVIATE_126: preview-0c3d554
 
-
 jobs:
   lint-and-format:
     name: Run Linter and Formatter
