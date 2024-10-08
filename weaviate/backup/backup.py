@@ -375,14 +375,14 @@ class _BackupAsync:
 
         response = await self._connection.delete(
             path=path,
-            error_msg="Backup delete failed due to connection error.",
+            error_msg="Backup cancel failed due to connection error.",
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
         )
 
         if response.status_code == 204:
             return True  # Successfully deleted
         else:
-            typed_response = _decode_json_response_dict(response, "Backup restore status check")
+            typed_response = _decode_json_response_dict(response, "Backup cancel")
             if typed_response is None:
                 raise EmptyResponseException()
             return False  # did not exist
@@ -417,7 +417,7 @@ class _BackupAsync:
         response = await self._connection.get(
             path=path, error_msg="Backup list status failed due to connection error."
         )
-        typed_response = _decode_json_response_list(response, "Backup restore status check")
+        typed_response = _decode_json_response_list(response, "Backup list")
         if typed_response is None:
             raise EmptyResponseException()
         return [BackupReturn(**entry) for entry in typed_response]
