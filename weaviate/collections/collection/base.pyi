@@ -65,3 +65,13 @@ class _CollectionBase(Generic[Properties, References]):
                 The consistency level to use.
         """
         ...
+
+    @property
+    def tenant(self) -> Optional[str]:
+        """The tenant of this collection object."""
+        ...
+
+    @property
+    def consistency_level(self) -> Optional[ConsistencyLevel]:
+        """The consistency level of this collection object."""
+        ...
