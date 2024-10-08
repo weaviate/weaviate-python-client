@@ -30,25 +30,37 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/sync")
-def sync() -> JSONResponse:
+@app.get("/sync-in-sync")
+def sync_in_sync() -> JSONResponse:
     return JSONResponse(content=journeys["sync"].simple())
 
 
-@app.get("/async")
-async def async_() -> JSONResponse:
+@app.get("/sync-in-async")
+async def sync_in_async() -> JSONResponse:
+    return JSONResponse(content=journeys["sync"].simple())
+
+
+@app.get("/async-in-async")
+async def async_in_async() -> JSONResponse:
     return JSONResponse(content=await journeys["async_"].simple())
 
 
-def test_sync() -> None:
+def test_sync_in_sync() -> None:
     with TestClient(app) as client:
-        res = client.get("/sync")
+        res = client.get("/sync-in-sync")
         assert res.status_code == 200
         assert len(res.json()) == 100
 
 
-def test_async() -> None:
+def test_sync_in_async() -> None:
     with TestClient(app) as client:
-        res = client.get("/async")
+        res = client.get("/sync-in-async")
+        assert res.status_code == 200
+        assert len(res.json()) == 100
+
+
+def test_async_in_async() -> None:
+    with TestClient(app) as client:
+        res = client.get("/async-in-async")
         assert res.status_code == 200
         assert len(res.json()) == 100

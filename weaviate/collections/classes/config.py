@@ -605,7 +605,7 @@ class _RerankerJinaAIConfig(_RerankerConfigCreate):
     model: Optional[Union[RerankerJinaAIModel, str]] = Field(default=None)
 
 
-RerankerVoyageAIModel = Literal["rerank-lite-1", "rerank-1"]
+RerankerVoyageAIModel = Literal["rerank-2", "rerank-2-lite", "rerank-lite-1", "rerank-1"]
 
 
 class _RerankerVoyageAIConfig(_RerankerConfigCreate):
