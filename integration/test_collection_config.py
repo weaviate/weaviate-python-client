@@ -349,6 +349,12 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
             config.replication_config.object_deletion_conflict_resolution
             == wvc.config.ObjectDeletionConflictResolution.PERMANENT_DELETION
         )
+    else:
+        # default value if not present in schema
+        assert (
+            config.replication_config.object_deletion_conflict_resolution
+            == wvc.config.ObjectDeletionConflictResolution.NO_AUTOMATED_RESOLUTION
+        )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)

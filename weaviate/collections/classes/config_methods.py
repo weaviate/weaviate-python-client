@@ -298,7 +298,7 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                     schema["replicationConfig"]["objectDeletionConflictResolution"]
                 )
                 if "objectDeletionConflictResolution" in schema["replicationConfig"]
-                else None
+                else ObjectDeletionConflictResolution.NO_AUTOMATED_RESOLUTION
             ),
         ),
         reranker_config=__get_rerank_config(schema),
