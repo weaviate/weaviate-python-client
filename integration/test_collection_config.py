@@ -344,7 +344,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     else:
         assert config.replication_config.async_enabled is False
 
-    if collection._connection._weaviate_version.is_at_least(1, 25, 18):
+    if collection._connection._weaviate_version.is_at_least(1, 24, 25):
         assert (
             config.replication_config.object_deletion_conflict_resolution
             == wvc.config.ObjectDeletionConflictResolution.PERMANENT_DELETION
