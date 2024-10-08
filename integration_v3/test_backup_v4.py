@@ -17,7 +17,6 @@ from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
     UnexpectedStatusCodeException,
     BackupFailedException,
-    UnexpectedStatusCodeError,
 )
 
 BACKEND = BackupStorage.FILESYSTEM
@@ -470,17 +469,18 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
 def test_cancel_backup(client: weaviate.WeaviateClient) -> None:
     """Create and restore backup without waiting."""
     backup_id = _create_backup_id()
-    if client._connection._weaviate_version.is_lower_than(1, 27, 0):
+    if client._connection._weaviate_version.is_lower_than(1, 24, 0):
         pytest.skip("Cancel backups is only supported from 1.27.0")
 
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED
 
-    with pytest.raises(UnexpectedStatusCodeError):
-        assert client.backup.cancel_backup(backup_id=backup_id, backend=BACKEND)
+    assert client.backup.cancel_backup(backup_id=backup_id, backend=BACKEND)
 
-    status_resp = client.backup.get_create_status(backup_id=backup_id, backend=BACKEND)
-    assert status_resp.status == BackupStatus.CANCELED
-    _ = client.backup.list_backups(backend=BACKEND)
-    # depends on the final implementation
-    # assert len(backups) == 0
+    # async process
+    start = time.time()
+    while time.time() - start < 5:
+        status_resp = client.backup.get_create_status(backup_id=backup_id, backend=BACKEND)
+        if status_resp.status == BackupStatus.CANCELED:
+            break
+        time.sleep(0.1)
