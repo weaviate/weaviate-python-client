@@ -1,8 +1,6 @@
-import uuid as uuid_lib
-
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Union
 from typing_extensions import TypeAlias
 from pydantic import Field
 from weaviate.collections.classes.types import GeoCoordinate
@@ -96,7 +94,7 @@ class _GeoCoordinateFilter(GeoCoordinate):
 
 
 FilterValuesList = Union[
-    List[str], List[bool], List[int], List[float], List[datetime], List[uuid_lib.UUID]
+    List[str], List[bool], List[int], List[float], List[datetime], Sequence[UUID]
 ]
 FilterValues = Union[
     int, float, str, bool, datetime, UUID, _GeoCoordinateFilter, None, FilterValuesList
@@ -364,7 +362,7 @@ class _FilterById(_FilterBase):
         self._target = target
         self._property = "_id"
 
-    def contains_any(self, uuids: List[UUID]) -> _Filters:
+    def contains_any(self, uuids: Sequence[UUID]) -> _Filters:
         """Filter for objects that has one of the given ID."""
         if len(uuids) == 0:
             raise WeaviateInvalidInputError("Filter contains_any must have at least one value")
