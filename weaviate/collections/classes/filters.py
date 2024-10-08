@@ -94,7 +94,12 @@ class _GeoCoordinateFilter(GeoCoordinate):
 
 
 FilterValuesList = Union[
-    List[str], List[bool], List[int], List[float], List[datetime], Sequence[UUID]
+    Sequence[str],
+    Sequence[bool],
+    Sequence[int],
+    Sequence[float],
+    Sequence[datetime],
+    Sequence[UUID],
 ]
 FilterValues = Union[
     int, float, str, bool, datetime, UUID, _GeoCoordinateFilter, None, FilterValuesList
