@@ -660,9 +660,8 @@ def test_same_target_vector_multiple_input(
     distances: List[float],
 ) -> None:
     dummy = collection_factory("dummy")
-    # Todo: Update this to 1.26.2
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 1):
-        pytest.skip("Multi vector per target is not supported in versions lower than 1.26.2")
+    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
 
     collection = collection_factory(
         properties=[],
@@ -707,8 +706,8 @@ def test_same_target_vector_multiple_input_combinations(
 ) -> None:
     dummy = collection_factory("dummy")
     # Todo: Update this to 1.26.2
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 1):
-        pytest.skip("Multi vector per target is not supported in versions lower than 1.26.2")
+    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
 
     collection = collection_factory(
         properties=[],
@@ -729,9 +728,8 @@ def test_same_target_vector_multiple_input_combinations(
 
 def test_deprecated_syntax(collection_factory: CollectionFactory):
     dummy = collection_factory("dummy")
-    # Todo: Update this to 1.26.2
-    if dummy._connection._weaviate_version.is_lower_than(1, 26, 1):
-        pytest.skip("Multi vector per target is not supported in versions lower than 1.26.2")
+    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
 
     collection = collection_factory(
         properties=[],
