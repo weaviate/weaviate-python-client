@@ -283,8 +283,7 @@ class _MultiTargetVectorJoin:
             assert combination == _MultiTargetVectorJoinEnum.MINIMUM
             combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_MIN
 
-        # TODO: change to .2
-        if version.is_lower_than(1, 26, 1):
+        if version.is_lower_than(1, 27, 0):
             if self.weights is not None and any(isinstance(w, list) for w in self.weights.values()):
                 raise ValueError(
                     "Multiple weights per target are not supported in this Weaviate version. Please upgrade to at least Weaviate 1.26.2."

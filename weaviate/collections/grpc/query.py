@@ -235,8 +235,7 @@ class _QueryGRPC(_BaseGRPC):
                 move_to=self.__parse_move(vector.move_to),
             )
         elif isinstance(vector, _HybridNearVector):
-            # Todo: increase to .2
-            if self._connection._weaviate_version.is_lower_than(1, 26, 1):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, vector_bytes_tmp = self.__vector_per_target(
                     vector.vector, targets, "vector"
                 )
@@ -259,8 +258,7 @@ class _QueryGRPC(_BaseGRPC):
                 vector_for_targets=vector_for_targets_tmp,
             )
         else:
-            # Todo: increase to .2
-            if self._connection._weaviate_version.is_lower_than(1, 26, 1):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, vector_bytes_tmp = self.__vector_per_target(
                     vector, targets, "vector"
                 )
@@ -420,8 +418,7 @@ class _QueryGRPC(_BaseGRPC):
             vector_per_target_tmp = None
             vector_for_targets = None
         else:
-            # Todo: increase to .2
-            if self._connection._weaviate_version.is_lower_than(1, 26, 1):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
                     near_vector, targets, "near_vector"
                 )

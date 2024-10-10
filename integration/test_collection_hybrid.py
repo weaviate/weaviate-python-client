@@ -2,6 +2,8 @@ import uuid
 from typing import Any, List, Optional, Union
 
 import numpy as np
+import pandas as pd
+import polars as pl
 import pytest
 
 import weaviate.classes as wvc
@@ -383,10 +385,10 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
 @pytest.mark.parametrize(
     "vector",
     [
-        # {"first": [1, 0], "second": [1, 0, 0]},
+        {"first": [1, 0], "second": [1, 0, 0]},
         {"first": [1, 0], "second": np.array([1, 0, 0])},
-        # {"first": [1, 0], "second": pl.Series([1, 0, 0])},
-        # {"first": [1, 0], "second": pd.Series([1, 0, 0])},
+        {"first": [1, 0], "second": pl.Series([1, 0, 0])},
+        {"first": [1, 0], "second": pd.Series([1, 0, 0])},
     ],
 )
 def test_vector_per_target(
