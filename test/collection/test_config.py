@@ -281,7 +281,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             project_id="project",
         ),
         {
-            "text2vec-google": {
+            "text2vec-palm": {
                 "projectId": "project",
                 "vectorizeClassName": True,
             }
@@ -292,7 +292,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             project_id="project",
         ),
         {
-            "text2vec-google": {
+            "text2vec-palm": {
                 "projectId": "project",
                 "vectorizeClassName": True,
             }
@@ -306,7 +306,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             vectorize_collection_name=False,
         ),
         {
-            "text2vec-google": {
+            "text2vec-palm": {
                 "projectId": "project",
                 "apiEndpoint": "api.google.com",
                 "modelId": "model",
@@ -322,7 +322,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             vectorize_collection_name=False,
         ),
         {
-            "text2vec-google": {
+            "text2vec-palm": {
                 "projectId": "project",
                 "apiEndpoint": "api.google.com",
                 "modelId": "model",
@@ -402,7 +402,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             location="us-central1",
         ),
         {
-            "multi2vec-google": {
+            "multi2vec-palm": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -423,7 +423,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             location="us-central1",
         ),
         {
-            "multi2vec-google": {
+            "multi2vec-palm": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -1372,7 +1372,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-google": {
+                    "text2vec-palm": {
                         "projectId": "project",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -1393,7 +1393,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-google": {
+                    "text2vec-palm": {
                         "projectId": "project",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -1489,7 +1489,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-google": {
+                    "multi2vec-palm": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "projectId": "project",
@@ -1514,7 +1514,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-google": {
+                    "multi2vec-palm": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "projectId": "project",
