@@ -281,7 +281,18 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             project_id="project",
         ),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
+                "projectId": "project",
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_google(
+            project_id="project",
+        ),
+        {
+            "text2vec-google": {
                 "projectId": "project",
                 "vectorizeClassName": True,
             }
@@ -295,7 +306,23 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             vectorize_collection_name=False,
         ),
         {
-            "text2vec-palm": {
+            "text2vec-google": {
+                "projectId": "project",
+                "apiEndpoint": "api.google.com",
+                "modelId": "model",
+                "vectorizeClassName": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_google(
+            project_id="project",
+            api_endpoint="api.google.com",
+            model_id="model",
+            vectorize_collection_name=False,
+        ),
+        {
+            "text2vec-google": {
                 "projectId": "project",
                 "apiEndpoint": "api.google.com",
                 "modelId": "model",
@@ -375,7 +402,28 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             location="us-central1",
         ),
         {
-            "multi2vec-palm": {
+            "multi2vec-google": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "videoFields": ["video"],
+                "projectId": "project",
+                "location": "us-central1",
+                "videoIntervalSeconds": 1,
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_google(
+            image_fields=["image"],
+            text_fields=["text"],
+            video_fields=["video"],
+            project_id="project",
+            video_interval_seconds=1,
+            location="us-central1",
+        ),
+        {
+            "multi2vec-google": {
                 "imageFields": ["image"],
                 "textFields": ["text"],
                 "videoFields": ["video"],
@@ -1324,7 +1372,28 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "text2vec-palm": {
+                    "text2vec-google": {
+                        "projectId": "project",
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_google(
+                name="test",
+                project_id="project",
+                source_properties=["prop"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-google": {
                         "projectId": "project",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
@@ -1420,7 +1489,32 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         {
             "test": {
                 "vectorizer": {
-                    "multi2vec-palm": {
+                    "multi2vec-google": {
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.multi2vec_google(
+                name="test",
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-google": {
                         "imageFields": ["image"],
                         "textFields": ["text"],
                         "projectId": "project",
