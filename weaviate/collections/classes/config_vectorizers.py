@@ -102,21 +102,19 @@ class Vectorizers(str, Enum):
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
     TEXT2VEC_DATABRICKS = "text2vec-databricks"
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
-    TEXT2VEC_GOOGLE = "text2vec-google"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_MISTRAL = "text2vec-mistral"
     TEXT2VEC_OCTOAI = "text2vec-octoai"
     TEXT2VEC_OLLAMA = "text2vec-ollama"
     TEXT2VEC_OPENAI = "text2vec-openai"
-    TEXT2VEC_PALM = "text2vec-palm"  # remove when text2vec-palm is removed
+    TEXT2VEC_PALM = "text2vec-palm"  # change to google once 1.27 is the lowest supported version
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_JINAAI = "text2vec-jinaai"
     TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_BIND = "multi2vec-bind"
-    MULTI2VEC_GOOGLE = "multi2vec-google"
-    MULTI2VEC_PALM = "multi2vec-palm"  # remove when text2vec-palm is removed
+    MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
@@ -286,7 +284,7 @@ class _Text2VecCohereConfig(_VectorizerConfigCreate):
 
 class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
-        default=Vectorizers.TEXT2VEC_GOOGLE, frozen=True, exclude=True
+        default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True
     )
     projectId: str
     apiEndpoint: Optional[str]
@@ -395,7 +393,7 @@ class _Multi2VecClipConfig(_Multi2VecBase):
 
 class _Multi2VecGoogleConfig(_Multi2VecBase, _VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
-        default=Vectorizers.MULTI2VEC_GOOGLE, frozen=True, exclude=True
+        default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True
     )
     videoFields: Optional[List[Multi2VecField]]
     projectId: str
