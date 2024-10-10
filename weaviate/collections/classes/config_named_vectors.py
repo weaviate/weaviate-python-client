@@ -17,25 +17,24 @@ from weaviate.collections.classes.config_vector_index import (
     VectorIndexType,
 )
 from weaviate.collections.classes.config_vectorizers import (
-    _Img2VecNeuralConfigCreate,
-    _Multi2VecBindConfigCreate,
-    _Multi2VecClipConfigCreate,
+    _Img2VecNeuralConfig,
+    _Multi2VecBindConfig,
+    _Multi2VecClipConfig,
     _Multi2VecPalmConfig,
-    _Ref2VecCentroidConfigCreate,
-    _Text2VecAWSConfigCreate,
-    _Text2VecAzureOpenAIConfigCreate,
-    _Text2VecCohereConfigCreate,
-    _Text2VecContextionaryConfigCreate,
-    _Text2VecGPT4AllConfigCreate,
-    _Text2VecHuggingFaceConfigCreate,
-    _Text2VecJinaConfigCreate,
+    _Ref2VecCentroidConfig,
+    _Text2VecAWSConfig,
+    _Text2VecAzureOpenAIConfig,
+    _Text2VecCohereConfig,
+    _Text2VecContextionaryConfig,
+    _Text2VecGPT4AllConfig,
+    _Text2VecHuggingFaceConfig,
+    _Text2VecJinaConfig,
     _Text2VecMistralConfig,
     _Text2VecOctoConfig,
     _Text2VecOllamaConfig,
-    _Text2VecOpenAIConfigCreate,
-    _Text2VecPalmConfigCreate,
-    _Text2VecTransformersConfigCreate,
-    _Text2VecVoyageConfigCreate,
+    _Text2VecOpenAIConfig,
+    _Text2VecPalmConfig,
+    _Text2VecTransformersConfig,
     _VectorizerConfigCreate,
     AWSModel,
     AWSService,
@@ -50,6 +49,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _map_multi2vec_fields,
     _VectorizerCustomConfig,
     _Text2VecDatabricksConfig,
+    _Text2VecVoyageConfig,
 )
 
 
@@ -186,7 +186,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecCohereConfigCreate(
+            vectorizer=_Text2VecCohereConfig(
                 baseURL=base_url,
                 model=model,
                 truncate=truncate,
@@ -221,7 +221,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecContextionaryConfigCreate(
+            vectorizer=_Text2VecContextionaryConfig(
                 vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
@@ -436,7 +436,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecOpenAIConfigCreate(
+            vectorizer=_Text2VecOpenAIConfig(
                 baseURL=base_url,
                 model=model,
                 modelVersion=model_version,
@@ -481,7 +481,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecAWSConfigCreate(
+            vectorizer=_Text2VecAWSConfig(
                 model=model,
                 endpoint=endpoint,
                 region=region,
@@ -517,7 +517,7 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Img2VecNeuralConfigCreate(imageFields=image_fields),
+            vectorizer=_Img2VecNeuralConfig(imageFields=image_fields),
             vector_index_config=vector_index_config,
         )
 
@@ -565,7 +565,7 @@ class _NamedVectors:
 
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Multi2VecClipConfigCreate(
+            vectorizer=_Multi2VecClipConfig(
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),
                 vectorizeClassName=vectorize_collection_name,
@@ -663,7 +663,7 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Multi2VecBindConfigCreate(
+            vectorizer=_Multi2VecBindConfig(
                 audioFields=_map_multi2vec_fields(audio_fields),
                 depthFields=_map_multi2vec_fields(depth_fields),
                 imageFields=_map_multi2vec_fields(image_fields),
@@ -701,7 +701,7 @@ class _NamedVectors:
         """
         return _NamedVectorConfigCreate(
             name=name,
-            vectorizer=_Ref2VecCentroidConfigCreate(
+            vectorizer=_Ref2VecCentroidConfig(
                 referenceProperties=reference_properties,
                 method=method,
             ),
@@ -737,7 +737,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecAzureOpenAIConfigCreate(
+            vectorizer=_Text2VecAzureOpenAIConfig(
                 baseURL=base_url,
                 resourceName=resource_name,
                 deploymentId=deployment_id,
@@ -772,7 +772,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecGPT4AllConfigCreate(
+            vectorizer=_Text2VecGPT4AllConfig(
                 vectorizeClassName=vectorize_collection_name,
             ),
             vector_index_config=vector_index_config,
@@ -830,7 +830,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecHuggingFaceConfigCreate(
+            vectorizer=_Text2VecHuggingFaceConfig(
                 model=model,
                 passageModel=passage_model,
                 queryModel=query_model,
@@ -886,7 +886,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecPalmConfigCreate(
+            vectorizer=_Text2VecPalmConfig(
                 projectId=project_id,
                 apiEndpoint=api_endpoint,
                 modelId=model_id,
@@ -934,7 +934,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecTransformersConfigCreate(
+            vectorizer=_Text2VecTransformersConfig(
                 poolingStrategy=pooling_strategy,
                 vectorizeClassName=vectorize_collection_name,
                 inferenceUrl=inference_url,
@@ -981,7 +981,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecJinaConfigCreate(
+            vectorizer=_Text2VecJinaConfig(
                 baseURL=base_url,
                 dimensions=dimensions,
                 model=model,
@@ -1027,7 +1027,7 @@ class _NamedVectors:
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
-            vectorizer=_Text2VecVoyageConfigCreate(
+            vectorizer=_Text2VecVoyageConfig(
                 model=model,
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,

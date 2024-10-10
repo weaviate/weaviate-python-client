@@ -147,7 +147,7 @@ class _VectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(default=..., exclude=True)
 
 
-class _Text2VecContextionaryConfig(_ConfigCreateModel):
+class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_CONTEXTIONARY, frozen=True, exclude=True
     )
@@ -161,10 +161,6 @@ class _VectorizerCustomConfig(_VectorizerConfigCreate):
         if self.module_config is None:
             return {}
         return self.module_config
-
-
-class _Text2VecContextionaryConfigCreate(_Text2VecContextionaryConfig, _VectorizerConfigCreate):
-    pass
 
 
 class _Text2VecAWSConfig(_VectorizerConfigCreate):
@@ -184,11 +180,7 @@ class _Text2VecAWSConfig(_VectorizerConfigCreate):
         return r
 
 
-class _Text2VecAWSConfigCreate(_Text2VecAWSConfig, _VectorizerConfigCreate):
-    pass
-
-
-class _Text2VecAzureOpenAIConfig(_ConfigCreateModel):
+class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_OPENAI, frozen=True, exclude=True
     )
@@ -204,11 +196,7 @@ class _Text2VecAzureOpenAIConfig(_ConfigCreateModel):
         return ret_dict
 
 
-class _Text2VecAzureOpenAIConfigCreate(_Text2VecAzureOpenAIConfig, _VectorizerConfigCreate):
-    pass
-
-
-class _Text2VecHuggingFaceConfig(_ConfigCreateModel):
+class _Text2VecHuggingFaceConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_HUGGINGFACE, frozen=True, exclude=True
     )
@@ -237,10 +225,6 @@ class _Text2VecHuggingFaceConfig(_ConfigCreateModel):
         return ret_dict
 
 
-class _Text2VecHuggingFaceConfigCreate(_Text2VecHuggingFaceConfig, _VectorizerConfigCreate):
-    pass
-
-
 class _Text2VecMistralConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_MISTRAL, frozen=True, exclude=True
@@ -261,7 +245,7 @@ class _Text2VecDatabricksConfig(_VectorizerConfigCreate):
 OpenAIType = Literal["text", "code"]
 
 
-class _Text2VecOpenAIConfig(_ConfigCreateModel):
+class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_OPENAI, frozen=True, exclude=True
     )
@@ -281,11 +265,7 @@ class _Text2VecOpenAIConfig(_ConfigCreateModel):
         return ret_dict
 
 
-class _Text2VecOpenAIConfigCreate(_Text2VecOpenAIConfig, _VectorizerConfigCreate):
-    pass
-
-
-class _Text2VecCohereConfig(_ConfigCreateModel):
+class _Text2VecCohereConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_COHERE, frozen=True, exclude=True
     )
@@ -301,11 +281,7 @@ class _Text2VecCohereConfig(_ConfigCreateModel):
         return ret_dict
 
 
-class _Text2VecCohereConfigCreate(_Text2VecCohereConfig, _VectorizerConfigCreate):
-    pass
-
-
-class _Text2VecPalmConfig(_ConfigCreateModel):
+class _Text2VecPalmConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True
     )
@@ -316,11 +292,7 @@ class _Text2VecPalmConfig(_ConfigCreateModel):
     titleProperty: Optional[str]
 
 
-class _Text2VecPalmConfigCreate(_Text2VecPalmConfig, _VectorizerConfigCreate):
-    pass
-
-
-class _Text2VecTransformersConfig(_ConfigCreateModel):
+class _Text2VecTransformersConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_TRANSFORMERS, frozen=True, exclude=True
     )
@@ -331,22 +303,14 @@ class _Text2VecTransformersConfig(_ConfigCreateModel):
     queryInferenceUrl: Optional[str]
 
 
-class _Text2VecTransformersConfigCreate(_Text2VecTransformersConfig, _VectorizerConfigCreate):
-    pass
-
-
-class _Text2VecGPT4AllConfig(_ConfigCreateModel):
+class _Text2VecGPT4AllConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_GPT4ALL, frozen=True, exclude=True
     )
     vectorizeClassName: bool
 
 
-class _Text2VecGPT4AllConfigCreate(_Text2VecGPT4AllConfig, _VectorizerConfigCreate):
-    pass
-
-
-class _Text2VecJinaConfig(_ConfigCreateModel):
+class _Text2VecJinaConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_JINAAI, frozen=True, exclude=True
     )
@@ -356,11 +320,7 @@ class _Text2VecJinaConfig(_ConfigCreateModel):
     vectorizeClassName: bool
 
 
-class _Text2VecJinaConfigCreate(_Text2VecJinaConfig, _VectorizerConfigCreate):
-    pass
-
-
-class _Text2VecVoyageConfig(_ConfigCreateModel):
+class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
     )
@@ -368,10 +328,6 @@ class _Text2VecVoyageConfig(_ConfigCreateModel):
     baseURL: Optional[str]
     truncate: Optional[bool]
     vectorizeClassName: bool
-
-
-class _Text2VecVoyageConfigCreate(_Text2VecVoyageConfig, _VectorizerConfigCreate):
-    pass
 
 
 class _Text2VecOctoConfig(_VectorizerConfigCreate):
@@ -392,15 +348,11 @@ class _Text2VecOllamaConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
-class _Img2VecNeuralConfig(_ConfigCreateModel):
+class _Img2VecNeuralConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.IMG2VEC_NEURAL, frozen=True, exclude=True
     )
     imageFields: List[str]
-
-
-class _Img2VecNeuralConfigCreate(_Img2VecNeuralConfig, _VectorizerConfigCreate):
-    pass
 
 
 class Multi2VecField(BaseModel):
@@ -410,7 +362,7 @@ class Multi2VecField(BaseModel):
     weight: Optional[float] = Field(default=None, exclude=True)
 
 
-class _Multi2VecBase(_ConfigCreateModel):
+class _Multi2VecBase(_VectorizerConfigCreate):
     imageFields: Optional[List[Multi2VecField]]
     textFields: Optional[List[Multi2VecField]]
     vectorizeClassName: bool
@@ -438,10 +390,6 @@ class _Multi2VecClipConfig(_Multi2VecBase):
     inferenceUrl: Optional[str]
 
 
-class _Multi2VecClipConfigCreate(_Multi2VecClipConfig, _VectorizerConfigCreate):
-    pass
-
-
 class _Multi2VecPalmConfig(_Multi2VecBase, _VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.MULTI2VEC_PALM, frozen=True, exclude=True
@@ -466,20 +414,12 @@ class _Multi2VecBindConfig(_Multi2VecBase):
     videoFields: Optional[List[Multi2VecField]]
 
 
-class _Multi2VecBindConfigCreate(_Multi2VecBindConfig, _VectorizerConfigCreate):
-    pass
-
-
-class _Ref2VecCentroidConfig(_ConfigCreateModel):
+class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.REF2VEC_CENTROID, frozen=True, exclude=True
     )
     referenceProperties: List[str]
     method: Literal["mean"]
-
-
-class _Ref2VecCentroidConfigCreate(_Ref2VecCentroidConfig, _VectorizerConfigCreate):
-    pass
 
 
 def _map_multi2vec_fields(
@@ -519,7 +459,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `image_fields` is not a `list`.
         """
-        return _Img2VecNeuralConfigCreate(imageFields=image_fields)
+        return _Img2VecNeuralConfig(imageFields=image_fields)
 
     @staticmethod
     def multi2vec_clip(
@@ -559,7 +499,7 @@ class _Vectorizer:
                     stacklevel=1,
                 )
 
-        return _Multi2VecClipConfigCreate(
+        return _Multi2VecClipConfig(
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
             vectorizeClassName=vectorize_collection_name,
@@ -603,7 +543,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if any of the `*_fields` are not `None` or a `list`.
         """
-        return _Multi2VecBindConfigCreate(
+        return _Multi2VecBindConfig(
             audioFields=_map_multi2vec_fields(audio_fields),
             depthFields=_map_multi2vec_fields(depth_fields),
             imageFields=_map_multi2vec_fields(image_fields),
@@ -633,7 +573,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `reference_properties` is not a `list`.
         """
-        return _Ref2VecCentroidConfigCreate(
+        return _Ref2VecCentroidConfig(
             referenceProperties=reference_properties,
             method=method,
         )
@@ -663,7 +603,7 @@ class _Vectorizer:
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _Text2VecAWSConfigCreate(
+        return _Text2VecAWSConfig(
             model=model,
             region=region,
             vectorizeClassName=vectorize_collection_name,
@@ -696,7 +636,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
         """
-        return _Text2VecAzureOpenAIConfigCreate(
+        return _Text2VecAzureOpenAIConfig(
             baseURL=base_url,
             resourceName=resource_name,
             deploymentId=deployment_id,
@@ -717,7 +657,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError`` if `vectorize_collection_name` is not a `bool`.
         """
-        return _Text2VecContextionaryConfigCreate(vectorizeClassName=vectorize_collection_name)
+        return _Text2VecContextionaryConfig(vectorizeClassName=vectorize_collection_name)
 
     @staticmethod
     def custom(
@@ -760,7 +700,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `truncate` is not a valid value from the `CohereModel` type.
         """
-        return _Text2VecCohereConfigCreate(
+        return _Text2VecCohereConfig(
             baseURL=base_url,
             model=model,
             truncate=truncate,
@@ -812,7 +752,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `vectorize_collection_name` is not a `bool`.
         """
-        return _Text2VecGPT4AllConfigCreate(vectorizeClassName=vectorize_collection_name)
+        return _Text2VecGPT4AllConfig(vectorizeClassName=vectorize_collection_name)
 
     @staticmethod
     def text2vec_huggingface(
@@ -853,7 +793,7 @@ class _Vectorizer:
                 It is important to note that some of these variables are mutually exclusive.
                     See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface) for more details.
         """
-        return _Text2VecHuggingFaceConfigCreate(
+        return _Text2VecHuggingFaceConfig(
             model=model,
             passageModel=passage_model,
             queryModel=query_model,
@@ -967,7 +907,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `type_` is not a valid value from the `OpenAIType` type.
         """
-        return _Text2VecOpenAIConfigCreate(
+        return _Text2VecOpenAIConfig(
             baseURL=base_url,
             model=model,
             modelVersion=model_version,
@@ -1004,7 +944,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
         """
-        return _Text2VecPalmConfigCreate(
+        return _Text2VecPalmConfig(
             projectId=project_id,
             apiEndpoint=api_endpoint,
             modelId=model_id,
@@ -1093,7 +1033,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
         """
-        return _Text2VecTransformersConfigCreate(
+        return _Text2VecTransformersConfig(
             poolingStrategy=pooling_strategy,
             vectorizeClassName=vectorize_collection_name,
             inferenceUrl=inference_url,
@@ -1125,7 +1065,7 @@ class _Vectorizer:
             `dimensions`
                 The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
         """
-        return _Text2VecJinaConfigCreate(
+        return _Text2VecJinaConfig(
             model=model,
             vectorizeClassName=vectorize_collection_name,
             baseURL=base_url,
@@ -1157,7 +1097,7 @@ class _Vectorizer:
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _Text2VecVoyageConfigCreate(
+        return _Text2VecVoyageConfig(
             model=model,
             baseURL=base_url,
             truncate=truncate,
