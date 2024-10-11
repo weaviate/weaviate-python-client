@@ -181,7 +181,7 @@ jobs:
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_126}
+          { py: "3.12", weaviate: $WEAVIATE_127}
         ]
         optional_dependencies: [false]
     steps:
