@@ -44,7 +44,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
@@ -64,7 +64,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -84,7 +84,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
@@ -167,7 +167,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
@@ -187,7 +187,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
@@ -207,7 +207,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
@@ -311,7 +311,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
@@ -331,7 +331,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -351,7 +351,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
@@ -434,7 +434,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
@@ -454,7 +454,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
@@ -474,7 +474,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload

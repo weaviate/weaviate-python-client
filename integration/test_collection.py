@@ -960,7 +960,7 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
     assert config.vectorizer == Vectorizers.NONE
 
 
-@pytest.mark.parametrize("return_properties", [None, [], ["name"]])
+@pytest.mark.parametrize("return_properties", [None, [], ["name"], False, True])
 @pytest.mark.parametrize(
     "return_metadata",
     [
@@ -983,7 +983,7 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize("include_vector", [False, True])
 def test_return_properties_metadata_references_combos(
     collection_factory: CollectionFactory,
-    return_properties: Optional[List[PROPERTY]],
+    return_properties: Optional[List[PROPERTY] | bool],
     return_metadata: Optional[MetadataQuery],
     return_references: Optional[List[REFERENCE]],
     include_vector: bool,
@@ -1022,12 +1022,12 @@ def test_return_properties_metadata_references_combos(
 
     assert obj.uuid is not None
 
-    if return_properties is None:
+    if return_properties is None or return_properties is True:
         assert "name" in obj.properties
         assert "age" in obj.properties
         assert obj.properties["name"] == "John"
         assert obj.properties["age"] == 43
-    elif len(return_properties) == 0:
+    elif return_properties is False or len(return_properties) == 0:
         assert "name" not in obj.properties
         assert "age" not in obj.properties
     else:

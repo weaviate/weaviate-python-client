@@ -43,7 +43,7 @@ class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, Ref
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
@@ -64,7 +64,7 @@ class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, Ref
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -85,7 +85,7 @@ class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, Ref
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
@@ -172,7 +172,7 @@ class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, Ref
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
@@ -193,7 +193,7 @@ class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, Ref
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -214,7 +214,7 @@ class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, Ref
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
@@ -324,7 +324,7 @@ class _NearTextQuery(Generic[Properties, References], _Base[Properties, Referenc
         multi_target_fusion_method: Optional[Literal["Sum", "Average", "Minimum"]] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
@@ -345,7 +345,7 @@ class _NearTextQuery(Generic[Properties, References], _Base[Properties, Referenc
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -366,7 +366,7 @@ class _NearTextQuery(Generic[Properties, References], _Base[Properties, Referenc
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
@@ -453,7 +453,7 @@ class _NearTextQuery(Generic[Properties, References], _Base[Properties, Referenc
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
@@ -474,7 +474,7 @@ class _NearTextQuery(Generic[Properties, References], _Base[Properties, Referenc
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -495,7 +495,7 @@ class _NearTextQuery(Generic[Properties, References], _Base[Properties, Referenc
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
