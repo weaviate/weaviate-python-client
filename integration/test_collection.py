@@ -983,7 +983,7 @@ def test_collection_config_get(collection_factory: CollectionFactory) -> None:
 @pytest.mark.parametrize("include_vector", [False, True])
 def test_return_properties_metadata_references_combos(
     collection_factory: CollectionFactory,
-    return_properties: Optional[List[PROPERTY] | bool],
+    return_properties: Union[List[PROPERTY], bool, None],
     return_metadata: Optional[MetadataQuery],
     return_references: Optional[List[REFERENCE]],
     include_vector: bool,
