@@ -18,7 +18,7 @@ env:
   WEAVIATE_124: 1.24.21
   WEAVIATE_125: 1.25.8
   WEAVIATE_126: preview-allow-multiple-inputs-for-a-single-target-vector-199cd7e
-  WEAVIATE_127: preview-allow-multiple-inputs-for-a-single-target-vector-b6785b6
+  WEAVIATE_127: 1.27.0-rc.0
 
 
 jobs:
