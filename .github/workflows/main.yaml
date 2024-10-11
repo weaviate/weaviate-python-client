@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12"]
         folder: ["weaviate"]
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12"]
         folder: ["test", "mock_tests"]
     steps:
       - uses: actions/checkout@v4
@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12"]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -120,7 +120,6 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_126},
           { py: "3.9", weaviate: $WEAVIATE_126},
           { py: "3.10", weaviate: $WEAVIATE_126},
           { py: "3.11", weaviate: $WEAVIATE_123},
@@ -172,7 +171,6 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_126},
           { py: "3.9", weaviate: $WEAVIATE_126},
           { py: "3.10", weaviate: $WEAVIATE_126},
           { py: "3.11", weaviate: $WEAVIATE_123},
@@ -224,7 +222,6 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_125},
           { py: "3.9", weaviate: $WEAVIATE_125},
           { py: "3.10", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_125},
