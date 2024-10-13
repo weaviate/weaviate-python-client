@@ -1009,7 +1009,11 @@ class _QueryGRPC(_BaseGRPC):
             )
 
         if isinstance(vector, dict):
-            if len(vector) == 0 or targets is None or len(targets.target_vectors) != len(vector):
+            if (
+                len(vector) == 0
+                or targets is None
+                or len(set(targets.target_vectors)) != len(vector)
+            ):
                 raise invalid_nv_exception
             target_vectors_tmp: List[str] = []
             for key, value in vector.items():
