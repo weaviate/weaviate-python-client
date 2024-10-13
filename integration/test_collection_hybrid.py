@@ -431,24 +431,24 @@ def test_vector_per_target(
     "near_vector,target_vector",
     [
         ({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}, ["first", "second"]),
-        ({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}, ["first", "first", "second"]),
+        ({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}, ["first", "second"]),
         (
             {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]},
-            ["first", "first", "second", "second"],
+            ["first", "second"],
         ),
         (
             wvc.query.HybridVector.near_vector({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}),
-            ["first", "second", "second"],
+            ["first", "second"],
         ),
         (
             wvc.query.HybridVector.near_vector({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}),
-            ["first", "first", "second"],
+            ["first", "second"],
         ),
         (
             wvc.query.HybridVector.near_vector(
                 {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]}
             ),
-            ["first", "first", "second", "second"],
+            ["first", "second"],
         ),
     ],
 )
