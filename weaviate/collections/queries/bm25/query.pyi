@@ -1,4 +1,4 @@
-from typing import Generic, List, Literal, Optional, Type, overload
+from typing import Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -31,7 +31,7 @@ class _BM25QueryAsync(Generic[Properties, References], _Base[Properties, Referen
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
@@ -48,7 +48,7 @@ class _BM25QueryAsync(Generic[Properties, References], _Base[Properties, Referen
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -65,7 +65,7 @@ class _BM25QueryAsync(Generic[Properties, References], _Base[Properties, Referen
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
@@ -136,7 +136,7 @@ class _BM25QueryAsync(Generic[Properties, References], _Base[Properties, Referen
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
@@ -153,7 +153,7 @@ class _BM25QueryAsync(Generic[Properties, References], _Base[Properties, Referen
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
@@ -170,7 +170,7 @@ class _BM25QueryAsync(Generic[Properties, References], _Base[Properties, Referen
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
@@ -257,7 +257,7 @@ class _BM25Query(Generic[Properties, References], _Base[Properties, References])
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
@@ -274,7 +274,7 @@ class _BM25Query(Generic[Properties, References], _Base[Properties, References])
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
@@ -291,7 +291,7 @@ class _BM25Query(Generic[Properties, References], _Base[Properties, References])
         rerank: Optional[Rerank] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
@@ -363,7 +363,7 @@ class _BM25Query(Generic[Properties, References], _Base[Properties, References])
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
@@ -381,7 +381,7 @@ class _BM25Query(Generic[Properties, References], _Base[Properties, References])
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
@@ -399,7 +399,7 @@ class _BM25Query(Generic[Properties, References], _Base[Properties, References])
         target_vector: Optional[str] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
