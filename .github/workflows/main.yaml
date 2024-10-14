@@ -15,7 +15,7 @@ on:
 
 env:
   WEAVIATE_123: 1.23.16
-  WEAVIATE_124: preview-check-for-module-readyness-in-readyness-probe-9d851a5
+  WEAVIATE_124: preview-rename-object-deletion-to-deletion-strategy-727ecf7
   WEAVIATE_125: preview-8382155
   WEAVIATE_126: preview-0c3d554
 
