@@ -288,7 +288,34 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_google(
+            project_id="project",
+        ),
+        {
+            "text2vec-palm": {
+                "projectId": "project",
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_palm(
+            project_id="project",
+            api_endpoint="api.google.com",
+            model_id="model",
+            vectorize_collection_name=False,
+        ),
+        {
+            "text2vec-palm": {
+                "projectId": "project",
+                "apiEndpoint": "api.google.com",
+                "modelId": "model",
+                "vectorizeClassName": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_google(
             project_id="project",
             api_endpoint="api.google.com",
             model_id="model",
@@ -367,6 +394,27 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.multi2vec_palm(
+            image_fields=["image"],
+            text_fields=["text"],
+            video_fields=["video"],
+            project_id="project",
+            video_interval_seconds=1,
+            location="us-central1",
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "videoFields": ["video"],
+                "projectId": "project",
+                "location": "us-central1",
+                "videoIntervalSeconds": 1,
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_google(
             image_fields=["image"],
             text_fields=["text"],
             video_fields=["video"],
@@ -727,7 +775,37 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.google(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
         Configure.Generative.palm(
+            project_id="project",
+            api_endpoint="https://api.google.com",
+            max_output_tokens=100,
+            model_id="model",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://api.google.com",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
+        Configure.Generative.google(
             project_id="project",
             api_endpoint="https://api.google.com",
             max_output_tokens=100,
@@ -1335,6 +1413,27 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        [
+            Configure.NamedVectors.text2vec_google(
+                name="test",
+                project_id="project",
+                source_properties=["prop"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-palm": {
+                        "projectId": "project",
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.NamedVectors.text2vec_transformers(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -1410,6 +1509,31 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     (
         [
             Configure.NamedVectors.multi2vec_palm(
+                name="test",
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.multi2vec_google(
                 name="test",
                 image_fields=["image"],
                 text_fields=["text"],
