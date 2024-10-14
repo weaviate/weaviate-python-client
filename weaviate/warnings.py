@@ -168,7 +168,15 @@ class _Warnings:
     @staticmethod
     def palm_to_google_m2v() -> None:
         warnings.warn(
-            "Dep012: text2vec-palm is deprecated and will be removed in Q2 25. Use multi2vec-google instead.",
+            "Dep012: multi2vec-palm is deprecated and will be removed in Q2 25. Use multi2vec-google instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def palm_to_google_gen() -> None:
+        warnings.warn(
+            "Dep013: generative.palm is deprecated and will be removed in Q2 25. Use generative.google instead.",
             DeprecationWarning,
             stacklevel=1,
         )

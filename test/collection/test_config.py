@@ -775,7 +775,37 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.google(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
         Configure.Generative.palm(
+            project_id="project",
+            api_endpoint="https://api.google.com",
+            max_output_tokens=100,
+            model_id="model",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://api.google.com",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
+        Configure.Generative.google(
             project_id="project",
             api_endpoint="https://api.google.com",
             max_output_tokens=100,
