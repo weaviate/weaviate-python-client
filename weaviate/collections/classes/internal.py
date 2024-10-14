@@ -484,7 +484,7 @@ def _extract_references_from_data_model(type_: Type["References"]) -> Optional[R
     return refs if len(refs) > 0 else None
 
 
-ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
+ReturnProperties: TypeAlias = Union[PROPERTIES, bool, Type[TProperties]]
 ReturnReferences: TypeAlias = Union[
     Union[_QueryReference, Sequence[_QueryReference]], Type[TReferences]
 ]
