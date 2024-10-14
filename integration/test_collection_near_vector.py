@@ -16,6 +16,7 @@ from weaviate.collections.classes.grpc import (
     GroupBy,
     MetadataQuery,
 )
+from weaviate.exceptions import WeaviateInvalidInputError
 
 UUID1 = uuid.UUID("806827e0-2b31-43ca-9269-24fa95a221f9")
 UUID2 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
@@ -149,9 +150,6 @@ def test_near_vector_with_other_input(
         {"first": np.array([1, 0]), "second": [1, 0, 0]},
         {"first": pl.Series([1, 0]), "second": [1, 0, 0]},
         {"first": pd.Series([1, 0]), "second": [1, 0, 0]},
-        [np.array([1, 0]), [1, 0, 0]],
-        [pl.Series([1, 0]), [1, 0, 0]],
-        [pd.Series([1, 0]), [1, 0, 0]],
         {"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]},
     ],
 )
@@ -175,3 +173,22 @@ def test_near_vector_with_named_vector_other_input(
     ret = collection.query.near_vector(near_vector, distance=0.1, target_vector=["first", "second"])
     assert len(ret.objects) == 1
     assert ret.objects[0].uuid == uuid1
+
+
+def test_near_vector_with_extra_vectors(collection_factory: CollectionFactory):
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip("Named vectors are supported in versions higher than 1.26.0")
+
+    collection = collection_factory(
+        vectorizer_config=[
+            Configure.NamedVectors.none("first"),
+            Configure.NamedVectors.none("second"),
+        ]
+    )
+
+    collection.data.insert({}, vector={"first": [1, 0], "second": [1, 0, 0]})
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.near_vector(
+            {"first": [1, 0], "second": [1, 0, 0]}, target_vector=["second"]
+        )

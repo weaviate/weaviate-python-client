@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Union
+from typing import List, Union, Dict, Sequence
 
 import pytest
 
@@ -594,16 +594,7 @@ def test_named_vector_multi_target(
     assert sorted([obj.uuid for obj in objs]) == sorted([uuid1, uuid2])  # order is not guaranteed
 
 
-@pytest.mark.parametrize(
-    "near_vector",
-    [
-        {"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]},
-        [[1.0, 0.0], [1.0, 0.0, 0.0]],
-    ],
-)
-def test_named_vector_multi_target_vector_per_target(
-    collection_factory: CollectionFactory, near_vector: Union[List[float], List[List[float]]]
-) -> None:
+def test_named_vector_multi_target_vector_per_target(collection_factory: CollectionFactory) -> None:
     dummy = collection_factory("dummy")
     if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
         pytest.skip("Named vectors are not supported in versions lower than 1.26.0")
@@ -619,7 +610,9 @@ def test_named_vector_multi_target_vector_per_target(
     uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
     uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
 
-    objs = collection.query.near_vector(near_vector, target_vector=["first", "second"]).objects
+    objs = collection.query.near_vector(
+        {"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]}, target_vector=["first", "second"]
+    ).objects
     assert sorted([obj.uuid for obj in objs]) == sorted([uuid1, uuid2])  # order is not guaranteed
 
 
@@ -641,3 +634,125 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
 
     with pytest.raises(WeaviateInvalidInputError):
         collection.query.near_vector({"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]})
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.near_vector({"first": [[1.0, 0.0], [1.0, 0.0]], "second": [1.0, 0.0, 0.0]})
+
+    with pytest.raises(WeaviateInvalidInputError):
+        collection.query.near_vector([[[1.0, 0.0], [1.0, 0.0]], [1.0, 0.0, 0.0]])
+
+
+@pytest.mark.parametrize(
+    "target_vector, distances",
+    [
+        (wvc.query.TargetVectors.sum(["first", "second"]), [1, 3]),
+        (wvc.query.TargetVectors.manual_weights({"first": 1, "second": [1, 1]}), [1, 3]),
+        (wvc.query.TargetVectors.manual_weights({"first": 1, "second": [1, 2]}), [2, 4]),
+        (
+            wvc.query.TargetVectors.manual_weights({"second": [1, 2], "first": 1}),
+            [2, 4],
+        ),  # different order
+    ],
+)
+def test_same_target_vector_multiple_input(
+    collection_factory: CollectionFactory,
+    target_vector: Union[List[str], _MultiTargetVectorJoin],
+    distances: List[float],
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
+
+    collection = collection_factory(
+        properties=[],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none("first"),
+            wvc.config.Configure.NamedVectors.none("second"),
+        ],
+    )
+
+    uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
+    uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
+
+    objs = collection.query.near_vector(
+        {"first": [0.0, 1.0], "second": [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]},
+        target_vector=target_vector,
+        return_metadata=wvc.query.MetadataQuery.full(),
+    ).objects
+    assert [obj.uuid for obj in objs] == [uuid2, uuid1]
+    assert objs[0].metadata.distance == distances[0]
+    assert objs[1].metadata.distance == distances[1]
+
+
+@pytest.mark.parametrize(
+    "near_vector,target_vector",
+    [
+        ({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}, ["first", "second"]),
+        ({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}, ["first", "second"]),
+        (
+            {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]},
+            ["first", "second"],
+        ),
+        (
+            {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]},
+            ["second", "first"],  # different order
+        ),
+    ],
+)
+def test_same_target_vector_multiple_input_combinations(
+    collection_factory: CollectionFactory,
+    near_vector: Dict[str, Union[Sequence[float], Sequence[Sequence[float]]]],
+    target_vector: List[str],
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
+
+    collection = collection_factory(
+        properties=[],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none("first"),
+            wvc.config.Configure.NamedVectors.none("second"),
+        ],
+    )
+
+    uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
+    uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
+
+    objs = collection.query.near_vector(
+        near_vector, target_vector=target_vector, return_metadata=wvc.query.MetadataQuery.full()
+    ).objects
+    assert sorted([obj.uuid for obj in objs]) == sorted([uuid2, uuid1])
+
+
+def test_deprecated_syntax(collection_factory: CollectionFactory):
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
+
+    collection = collection_factory(
+        properties=[],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none("first"),
+            wvc.config.Configure.NamedVectors.none("second"),
+        ],
+    )
+
+    collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
+    collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
+
+    with pytest.raises(WeaviateInvalidInputError) as e:
+        collection.query.near_vector(
+            [[0.0, 1.0], [[1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]],
+            target_vector=["first", "second", "second"],
+            return_metadata=wvc.query.MetadataQuery.full(),
+        )
+    assert "Providing lists of lists has been deprecated" in str(e)
+
+    with pytest.raises(WeaviateInvalidInputError) as e:
+        collection.query.near_vector(
+            [[0.0, 1.0], [1.0, 0.0, 0.0]],
+            target_vector=["first", "second"],
+            return_metadata=wvc.query.MetadataQuery.full(),
+        )
+    assert "Providing lists of lists has been deprecated" in str(e)
