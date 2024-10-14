@@ -158,6 +158,30 @@ class _Warnings:
         )
 
     @staticmethod
+    def palm_to_google_t2v() -> None:
+        warnings.warn(
+            "Dep011: text2vec-palm is deprecated and will be removed in Q2 25. Use text2vec-google instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def palm_to_google_m2v() -> None:
+        warnings.warn(
+            "Dep012: multi2vec-palm is deprecated and will be removed in Q2 25. Use multi2vec-google instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def palm_to_google_gen() -> None:
+        warnings.warn(
+            "Dep013: generative.palm is deprecated and will be removed in Q2 25. Use generative.google instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def weaviate_v3_client_is_deprecated() -> None:
         warnings.warn(
             message="""Dep016: Python client v3 `weaviate.Client(...)` connections and methods are deprecated and will

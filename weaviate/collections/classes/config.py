@@ -15,7 +15,7 @@ from typing import (
 )
 
 from pydantic import AnyHttpUrl, Field, ValidationInfo, field_validator
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, deprecated
 
 from weaviate.collections.classes.config_base import (
     _ConfigBase,
@@ -49,7 +49,7 @@ from weaviate.collections.classes.config_vectorizers import Vectorizers as Vecto
 from weaviate.collections.classes.config_vectorizers import _Vectorizer, _VectorizerConfigCreate
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _capitalize_first_letter
-from weaviate.warnings import _Warnings
+from ...warnings import _Warnings
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
@@ -188,7 +188,7 @@ class GenerativeSearches(str, Enum):
     OCTOAI = "generative-octoai"
     OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
-    PALM = "generative-palm"
+    PALM = "generative-palm"  # rename to google once all versions support it
 
 
 class Rerankers(str, Enum):
@@ -525,7 +525,7 @@ class _GenerativeCohereConfig(_GenerativeConfigCreate):
         return ret_dict
 
 
-class _GenerativePaLMConfig(_GenerativeConfigCreate):
+class _GenerativeGoogleConfig(_GenerativeConfigCreate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
@@ -896,6 +896,9 @@ class _Generative:
         )
 
     @staticmethod
+    @deprecated(
+        "This method is deprecated and will be removed in Q2 25. Please use `google` instead."
+    )
     def palm(
         project_id: str,
         api_endpoint: Optional[str] = None,
@@ -926,7 +929,49 @@ class _Generative:
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
         """
-        return _GenerativePaLMConfig(
+        _Warnings.palm_to_google_gen()
+        return _GenerativeGoogleConfig(
+            apiEndpoint=api_endpoint,
+            maxOutputTokens=max_output_tokens,
+            modelId=model_id,
+            projectId=project_id,
+            temperature=temperature,
+            topK=top_k,
+            topP=top_p,
+        )
+
+    @staticmethod
+    def google(
+        project_id: str,
+        api_endpoint: Optional[str] = None,
+        max_output_tokens: Optional[int] = None,
+        model_id: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Arguments:
+            `project_id`
+                The PalM project ID to use.
+            `api_endpoint`
+                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            `max_output_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_k`
+                The top K to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
