@@ -231,6 +231,20 @@ class StopwordsPreset(str, Enum):
     EN = "en"
 
 
+class DeletionStrategy(str, Enum):
+    """How object deletions in multi node environments should be resolved.
+
+    Attributes:
+        `PERMANENT_DELETION`
+            Once an object has been deleted on one node it will be deleted on all nodes in case of conflicts.
+        `NO_AUTOMATED_RESOLUTION`
+            No deletion resolution.
+    """
+
+    DELETE_ON_CONFLICT = "DeleteOnConflict"
+    NO_AUTOMATED_RESOLUTION = "NoAutomatedResolution"
+
+
 class PQEncoderType(str, Enum):
     """Type of the PQ encoder.
 
@@ -355,6 +369,7 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
+    deletionStrategy: Optional[DeletionStrategy]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
@@ -1424,6 +1439,7 @@ ReferencePropertyConfig = _ReferenceProperty
 class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
+    deletion_strategy: DeletionStrategy
 
 
 ReplicationConfig = _ReplicationConfig
@@ -2186,7 +2202,9 @@ class Configure:
 
     @staticmethod
     def replication(
-        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+        factor: Optional[int] = None,
+        async_enabled: Optional[bool] = None,
+        deletion_strategy: Optional[DeletionStrategy] = None,
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
@@ -2197,8 +2215,14 @@ class Configure:
                 The replication factor.
             `async_enabled`
                 Enabled async replication.
+            `deletion_strategy`
+                How conflicts .
         """
-        return _ReplicationConfigCreate(factor=factor, asyncEnabled=async_enabled)
+        return _ReplicationConfigCreate(
+            factor=factor,
+            asyncEnabled=async_enabled,
+            deletionStrategy=deletion_strategy,
+        )
 
     @staticmethod
     def sharding(

@@ -126,7 +126,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         sort: Optional[_Sorting] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
@@ -171,7 +171,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
@@ -334,7 +334,7 @@ class _QueryGRPC(_BaseGRPC):
         filters: Optional[_Filters] = None,
         group_by: Optional[_GroupBy] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
@@ -382,7 +382,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
@@ -471,7 +471,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
@@ -526,7 +526,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
@@ -587,7 +587,7 @@ class _QueryGRPC(_BaseGRPC):
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
         return_metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
     ) -> Awaitable[search_get_pb2.SearchReply]:
         if self._validate_arguments:
@@ -690,7 +690,7 @@ class _QueryGRPC(_BaseGRPC):
         after: Optional[UUID] = None,
         filters: Optional[_Filters] = None,
         metadata: Optional[_MetadataQuery] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
@@ -722,7 +722,9 @@ class _QueryGRPC(_BaseGRPC):
                     _ValidateArgument([int, None], "autocut", autocut),
                     _ValidateArgument([_GroupBy, None], "group_by", group_by),
                     _ValidateArgument(
-                        [str, QueryNested, Sequence, None], "return_properties", return_properties
+                        [str, bool, QueryNested, Sequence, None],
+                        "return_properties",
+                        return_properties,
                     ),
                     _ValidateArgument(
                         [_QueryReference, Sequence, None], "return_references", return_references
@@ -752,12 +754,7 @@ class _QueryGRPC(_BaseGRPC):
         else:
             return_references_parsed = None
 
-        if return_properties is not None:
-            return_properties_parsed: Optional[Set[PROPERTY]] = self.__convert_to_set(
-                return_properties
-            )
-        else:
-            return_properties_parsed = None
+        return_properties_parsed = self.__parse_return_properties(return_properties)
 
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
@@ -831,6 +828,13 @@ class _QueryGRPC(_BaseGRPC):
             ],
         )
 
+    def __parse_return_properties(
+        self, props: Union[PROPERTIES, bool, None]
+    ) -> Optional[Set[PROPERTY]]:
+        if props is None or props is True:
+            return None
+        return self.__convert_to_set([] if props is False else props)
+
     def _translate_properties_from_python_to_grpc(
         self, properties: Optional[Set[PROPERTY]], references: Optional[Set[REFERENCE]]
     ) -> Optional[search_get_pb2.PropertiesRequest]:
@@ -850,11 +854,7 @@ class _QueryGRPC(_BaseGRPC):
                     search_get_pb2.RefPropertiesRequest(
                         reference_property=ref.link_on,
                         properties=self._translate_properties_from_python_to_grpc(
-                            (
-                                None
-                                if ref.return_properties is None
-                                else self.__convert_to_set(ref.return_properties)
-                            ),
+                            self.__parse_return_properties(ref.return_properties),
                             (
                                 None
                                 if ref.return_references is None

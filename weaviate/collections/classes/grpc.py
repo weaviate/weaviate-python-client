@@ -435,7 +435,7 @@ class _QueryReference(_WeaviateInput):
     link_on: str
     include_vector: bool = Field(default=False)
     return_metadata: Optional[MetadataQuery] = Field(default=None)
-    return_properties: Optional["PROPERTIES"] = Field(default=None)
+    return_properties: Union["PROPERTIES", bool, None] = Field(default=None)
     return_references: Optional["REFERENCES"] = Field(default=None)
 
     def __hash__(self) -> int:  # for set

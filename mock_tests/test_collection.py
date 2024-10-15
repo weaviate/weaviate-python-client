@@ -181,7 +181,7 @@ def test_missing_multi_tenancy_config(
         ),
         properties=[],
         references=[],
-        replication_config=ReplicationConfig(factor=0, async_enabled=False),
+        replication_config=ReplicationConfig(factor=0, async_enabled=False, deletion_strategy=None),
         vector_index_config=vic,
         vector_index_type=VectorIndexType.FLAT,
         vectorizer=Vectorizers.NONE,
