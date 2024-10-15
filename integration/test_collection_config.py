@@ -269,6 +269,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
             dynamic_ef_min=10,
             ef=-2,
             ef_construction=100,
+            filter_strategy=wvc.config.FilterStrategyHNSW.ACORN,
             flat_search_cutoff=41000,
             max_connections=72,
             quantizer=Configure.VectorIndex.Quantizer.pq(
@@ -375,6 +376,11 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.training_limit == 1000001
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 100000
+    if collection._connection._weaviate_version.is_at_least(1, 27, 0):
+        assert config.vector_index_config.filter_strategy == wvc.config.FilterStrategyHNSW.ACORN
+    else:
+        # default value if not present in schema
+        assert config.vector_index_config.filter_strategy == wvc.config.FilterStrategyHNSW.SWEEPING
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
@@ -399,6 +405,8 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.multi_tenancy_config.auto_tenant_activation is False
     assert config.multi_tenancy_config.auto_tenant_creation is False
 
+    assert config.vector_index_config.filter_strategy == wvc.config.FilterStrategyHNSW.SWEEPING
+
     collection.config.update(
         description="Test",
         inverted_index_config=Reconfigure.inverted_index(
@@ -414,6 +422,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
         ),  # currently not updateable in RAFT
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             vector_cache_max_objects=2000000,
+            filter_strategy=wvc.config.FilterStrategyHNSW.ACORN,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(
                 centroids=128,
                 encoder_type=PQEncoderType.TILE,
@@ -472,6 +481,12 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
+    if collection._connection._weaviate_version.is_at_least(1, 27, 0):
+        assert config.vector_index_config.filter_strategy == wvc.config.FilterStrategyHNSW.ACORN
+    else:
+        # default value if not present in schema
+        assert config.vector_index_config.filter_strategy == wvc.config.FilterStrategyHNSW.SWEEPING
+
     assert config.vector_index_type == VectorIndexType.HNSW
 
     assert config.multi_tenancy_config.enabled is True
@@ -488,6 +503,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
     collection.config.update(
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.FilterStrategyHNSW.SWEEPING,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(enabled=False),
         )
     )
@@ -529,6 +545,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 2000000
+    assert config.vector_index_config.filter_strategy == wvc.config.FilterStrategyHNSW.SWEEPING
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
