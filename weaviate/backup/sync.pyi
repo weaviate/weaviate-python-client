@@ -9,6 +9,7 @@ class _Backup:
     def __init__(self, connection: ConnectionV4):
         self._connection = connection
 
+    def cancel(self, backup_id: str, backend: BackupStorage) -> bool: ...
     def create(
         self,
         backup_id: str,
