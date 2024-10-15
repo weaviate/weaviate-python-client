@@ -126,7 +126,7 @@ class AdditionalProperties:
         additional_props: List[str] = []
         cls_fields: Tuple[Field, ...] = fields(self.__class__)
         for field in cls_fields:
-            if issubclass(field.type, bool):
+            if issubclass(field.type, bool):  # type: ignore
                 enabled: bool = getattr(self, field.name)
                 if enabled:
                     name = field.name
