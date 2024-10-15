@@ -378,6 +378,7 @@ class _ReplicationConfigCreate(_ConfigCreateModel):
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
+    deletionStrategy: Optional[DeletionStrategy]
 
 
 class _BM25ConfigCreate(_ConfigCreateModel):
@@ -2222,7 +2223,7 @@ class Configure:
             `async_enabled`
                 Enabled async replication.
             `deletion_strategy`
-                How conflicts .
+                How conflicts between different nodes about deleted objects are resolved.
         """
         return _ReplicationConfigCreate(
             factor=factor,
@@ -2443,7 +2444,9 @@ class Reconfigure:
 
     @staticmethod
     def replication(
-        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+        factor: Optional[int] = None,
+        async_enabled: Optional[bool] = None,
+        deletion_strategy: Optional[DeletionStrategy] = None,
     ) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
@@ -2454,8 +2457,12 @@ class Reconfigure:
                 The replication factor.
             `async_enabled`
                 Enable async replication.
+            `deletion_strategy`
+                How conflicts between different nodes about deleted objects are resolved.
         """
-        return _ReplicationConfigUpdate(factor=factor, asyncEnabled=async_enabled)
+        return _ReplicationConfigUpdate(
+            factor=factor, asyncEnabled=async_enabled, deletionStrategy=deletion_strategy
+        )
 
     @staticmethod
     def multi_tenancy(

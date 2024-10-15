@@ -418,7 +418,9 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             stopwords_removals=["the"],
         ),
         replication_config=Reconfigure.replication(
-            factor=2, async_enabled=True
+            factor=2,
+            async_enabled=True,
+            deletion_strategy=wvc.config.DeletionStrategy.DELETE_ON_CONFLICT,
         ),  # currently not updateable in RAFT
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             vector_cache_max_objects=2000000,
@@ -457,6 +459,17 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
         assert config.replication_config.async_enabled is True
     else:
         assert config.replication_config.async_enabled is False
+    if collection._connection._weaviate_version.is_at_least(1, 24, 25):
+        assert (
+            config.replication_config.deletion_strategy
+            == wvc.config.DeletionStrategy.DELETE_ON_CONFLICT
+        )
+    else:
+        # default value if not present in schema
+        assert (
+            config.replication_config.deletion_strategy
+            == wvc.config.DeletionStrategy.NO_AUTOMATED_RESOLUTION
+        )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -505,7 +518,10 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             filter_strategy=wvc.config.FilterStrategyHNSW.SWEEPING,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(enabled=False),
-        )
+        ),
+        replication_config=Reconfigure.replication(
+            deletion_strategy=wvc.config.DeletionStrategy.NO_AUTOMATED_RESOLUTION,
+        ),
     )
     config = collection.config.get()
 
@@ -523,6 +539,10 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
     assert config.replication_config.factor == 2
+    assert (
+        config.replication_config.deletion_strategy
+        == wvc.config.DeletionStrategy.NO_AUTOMATED_RESOLUTION
+    )
 
     if collection._connection._weaviate_version.is_at_least(1, 26, 0):
         assert config.replication_config.async_enabled is True
