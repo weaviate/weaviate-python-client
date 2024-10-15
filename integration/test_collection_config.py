@@ -259,7 +259,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         replication_config=Configure.replication(
             factor=2,
             async_enabled=True,
-            object_deletion_conflict_resolution=wvc.config.ObjectDeletionConflictResolution.PERMANENT_DELETION,
+            deletion_strategy=wvc.config.DeletionStrategy.DELETE_ON_CONFLICT,
         ),
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
@@ -346,14 +346,14 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
 
     if collection._connection._weaviate_version.is_at_least(1, 24, 25):
         assert (
-            config.replication_config.object_deletion_conflict_resolution
-            == wvc.config.ObjectDeletionConflictResolution.PERMANENT_DELETION
+            config.replication_config.deletion_strategy
+            == wvc.config.DeletionStrategy.DELETE_ON_CONFLICT
         )
     else:
         # default value if not present in schema
         assert (
-            config.replication_config.object_deletion_conflict_resolution
-            == wvc.config.ObjectDeletionConflictResolution.NO_AUTOMATED_RESOLUTION
+            config.replication_config.deletion_strategy
+            == wvc.config.DeletionStrategy.NO_AUTOMATED_RESOLUTION
         )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)

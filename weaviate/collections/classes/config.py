@@ -231,7 +231,7 @@ class StopwordsPreset(str, Enum):
     EN = "en"
 
 
-class ObjectDeletionConflictResolution(str, Enum):
+class DeletionStrategy(str, Enum):
     """How object deletions in multi node environments should be resolved.
 
     Attributes:
@@ -241,7 +241,7 @@ class ObjectDeletionConflictResolution(str, Enum):
             No deletion resolution.
     """
 
-    PERMANENT_DELETION = "PermanentDeletion"
+    DELETE_ON_CONFLICT = "DeleteOnConflict"
     NO_AUTOMATED_RESOLUTION = "NoAutomatedResolution"
 
 
@@ -369,7 +369,7 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
-    objectDeletionConflictResolution: Optional[ObjectDeletionConflictResolution]
+    deletionStrategy: Optional[DeletionStrategy]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
@@ -1394,7 +1394,7 @@ ReferencePropertyConfig = _ReferenceProperty
 class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
-    object_deletion_conflict_resolution: ObjectDeletionConflictResolution
+    deletion_strategy: DeletionStrategy
 
 
 ReplicationConfig = _ReplicationConfig
@@ -2159,7 +2159,7 @@ class Configure:
     def replication(
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
-        object_deletion_conflict_resolution: Optional[ObjectDeletionConflictResolution] = None,
+        deletion_strategy: Optional[DeletionStrategy] = None,
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
@@ -2170,13 +2170,13 @@ class Configure:
                 The replication factor.
             `async_enabled`
                 Enabled async replication.
-            `propagate_object_deletion`
-                Propagate object deletion.
+            `deletion_strategy`
+                How conflicts .
         """
         return _ReplicationConfigCreate(
             factor=factor,
             asyncEnabled=async_enabled,
-            objectDeletionConflictResolution=object_deletion_conflict_resolution,
+            deletionStrategy=deletion_strategy,
         )
 
     @staticmethod
