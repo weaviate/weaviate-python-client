@@ -234,7 +234,7 @@ class StopwordsPreset(str, Enum):
     EN = "en"
 
 
-class DeletionStrategy(str, Enum):
+class ReplicationDeletionStrategy(str, Enum):
     """How object deletions in multi node environments should be resolved.
 
     Attributes:
@@ -372,13 +372,13 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
-    deletionStrategy: Optional[DeletionStrategy]
+    deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
-    deletionStrategy: Optional[DeletionStrategy]
+    deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
 class _BM25ConfigCreate(_ConfigCreateModel):
@@ -1443,7 +1443,7 @@ ReferencePropertyConfig = _ReferenceProperty
 class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
-    deletion_strategy: DeletionStrategy
+    deletion_strategy: ReplicationDeletionStrategy
 
 
 ReplicationConfig = _ReplicationConfig
@@ -2211,7 +2211,7 @@ class Configure:
     def replication(
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
-        deletion_strategy: Optional[DeletionStrategy] = None,
+        deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
@@ -2446,7 +2446,7 @@ class Reconfigure:
     def replication(
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
-        deletion_strategy: Optional[DeletionStrategy] = None,
+        deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
     ) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 

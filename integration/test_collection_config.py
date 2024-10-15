@@ -259,7 +259,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         replication_config=Configure.replication(
             factor=2,
             async_enabled=True,
-            deletion_strategy=wvc.config.DeletionStrategy.DELETE_ON_CONFLICT,
+            deletion_strategy=wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
         ),
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
@@ -348,13 +348,13 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     if collection._connection._weaviate_version.is_at_least(1, 24, 25):
         assert (
             config.replication_config.deletion_strategy
-            == wvc.config.DeletionStrategy.DELETE_ON_CONFLICT
+            == wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT
         )
     else:
         # default value if not present in schema
         assert (
             config.replication_config.deletion_strategy
-            == wvc.config.DeletionStrategy.NO_AUTOMATED_RESOLUTION
+            == wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
         )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
@@ -420,7 +420,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
         replication_config=Reconfigure.replication(
             factor=2,
             async_enabled=True,
-            deletion_strategy=wvc.config.DeletionStrategy.DELETE_ON_CONFLICT,
+            deletion_strategy=wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
         ),  # currently not updateable in RAFT
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             vector_cache_max_objects=2000000,
@@ -462,13 +462,13 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     if collection._connection._weaviate_version.is_at_least(1, 24, 25):
         assert (
             config.replication_config.deletion_strategy
-            == wvc.config.DeletionStrategy.DELETE_ON_CONFLICT
+            == wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT
         )
     else:
         # default value if not present in schema
         assert (
             config.replication_config.deletion_strategy
-            == wvc.config.DeletionStrategy.NO_AUTOMATED_RESOLUTION
+            == wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
         )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
@@ -520,7 +520,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(enabled=False),
         ),
         replication_config=Reconfigure.replication(
-            deletion_strategy=wvc.config.DeletionStrategy.NO_AUTOMATED_RESOLUTION,
+            deletion_strategy=wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION,
         ),
     )
     config = collection.config.get()
@@ -541,7 +541,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.replication_config.factor == 2
     assert (
         config.replication_config.deletion_strategy
-        == wvc.config.DeletionStrategy.NO_AUTOMATED_RESOLUTION
+        == wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
     )
 
     if collection._connection._weaviate_version.is_at_least(1, 26, 0):

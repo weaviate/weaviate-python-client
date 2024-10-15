@@ -35,7 +35,7 @@ from weaviate.collections.classes.config import (
     _RerankerConfig,
     Rerankers,
     _NestedProperty,
-    DeletionStrategy,
+    ReplicationDeletionStrategy,
     FilterStrategyHNSW,
 )
 
@@ -300,9 +300,9 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             factor=schema["replicationConfig"]["factor"],
             async_enabled=schema["replicationConfig"].get("asyncEnabled", False),
             deletion_strategy=(
-                DeletionStrategy(schema["replicationConfig"]["deletionStrategy"])
+                ReplicationDeletionStrategy(schema["replicationConfig"]["deletionStrategy"])
                 if "deletionStrategy" in schema["replicationConfig"]
-                else DeletionStrategy.NO_AUTOMATED_RESOLUTION
+                else ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
             ),
         ),
         reranker_config=__get_rerank_config(schema),
