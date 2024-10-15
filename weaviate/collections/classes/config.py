@@ -1934,7 +1934,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 if val.vectorizer != Vectorizers.NONE:
                     self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
             elif isinstance(val, _VectorIndexConfigCreate):
-                ret_dict["vectorIndexType"] = val.vector_index_type()
+                ret_dict["vectorIndexType"] = val.vector_index_type().value
                 ret_dict[cls_field] = val._to_dict()
             elif (
                 isinstance(val, list)
