@@ -4,6 +4,7 @@ import pytest as pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
+import weaviate.classes as wvc
 from integration.conftest import OpenAICollection, CollectionFactory
 from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.config import (
@@ -255,7 +256,11 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         multi_tenancy_config=Configure.multi_tenancy(
             enabled=True, auto_tenant_activation=True, auto_tenant_creation=True
         ),
-        replication_config=Configure.replication(factor=2, async_enabled=True),
+        replication_config=Configure.replication(
+            factor=2,
+            async_enabled=True,
+            deletion_strategy=wvc.config.DeletionStrategy.DELETE_ON_CONFLICT,
+        ),
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
             distance_metric=VectorDistances.DOT,
@@ -338,6 +343,18 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         assert config.replication_config.async_enabled is True
     else:
         assert config.replication_config.async_enabled is False
+
+    if collection._connection._weaviate_version.is_at_least(1, 24, 25):
+        assert (
+            config.replication_config.deletion_strategy
+            == wvc.config.DeletionStrategy.DELETE_ON_CONFLICT
+        )
+    else:
+        # default value if not present in schema
+        assert (
+            config.replication_config.deletion_strategy
+            == wvc.config.DeletionStrategy.NO_AUTOMATED_RESOLUTION
+        )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)

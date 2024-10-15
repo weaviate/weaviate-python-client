@@ -542,21 +542,28 @@ class _Base(Generic[Properties, References]):
     def _parse_return_properties(
         self,
         return_properties: Optional[ReturnProperties[TProperties]],
-    ) -> Optional[PROPERTIES]:
+    ) -> Union[PROPERTIES, bool, None]:
         if (
             return_properties is not None and not return_properties
-        ):  # fast way to check if it is an empty list
+        ):  # fast way to check if it is an empty list or False
             return []
 
         if (
             isinstance(return_properties, Sequence)
             or isinstance(return_properties, str)
             or isinstance(return_properties, QueryNested)
-            or (return_properties is None and self._properties is None)
+            or (
+                (return_properties is None or return_properties is True)
+                and self._properties is None
+            )
         ):
             # return self.__parse_properties(return_properties)
-            return cast(Optional[PROPERTIES], return_properties)  # is not sourced from any generic
-        elif return_properties is None and self._properties is not None:
+            return cast(
+                Union[PROPERTIES, bool, None], return_properties
+            )  # is not sourced from any generic
+        elif (
+            return_properties is None or return_properties is True
+        ) and self._properties is not None:
             if not is_typeddict(self._properties):
                 return return_properties
             return _extract_properties_from_data_model(
@@ -564,6 +571,7 @@ class _Base(Generic[Properties, References]):
             )  # is sourced from collection-specific generic
         else:
             assert return_properties is not None
+            assert return_properties is not True
             if not is_typeddict(return_properties):
                 raise WeaviateInvalidInputError(
                     f"return_properties must only be a TypedDict or PROPERTIES within this context but is {type(return_properties)}"
