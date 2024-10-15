@@ -30,7 +30,10 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectors,
     _NamedVectorsUpdate,
 )
-from weaviate.collections.classes.config_vector_index import VectorIndexType as VectorIndexTypeAlias
+from weaviate.collections.classes.config_vector_index import (
+    VectorIndexType as VectorIndexTypeAlias,
+    FilterStrategyHNSW,
+)
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
@@ -1533,6 +1536,7 @@ class _VectorIndexConfigHNSW(_VectorIndexConfig):
     dynamic_ef_factor: int
     ef: int
     ef_construction: int
+    filter_strategy: FilterStrategyHNSW
     flat_search_cutoff: int
     max_connections: int
     skip: bool
@@ -2064,6 +2068,7 @@ class _VectorIndex:
         dynamic_ef_min: Optional[int] = None,
         ef: Optional[int] = None,
         ef_construction: Optional[int] = None,
+        filter_strategy: Optional[FilterStrategyHNSW] = None,
         flat_search_cutoff: Optional[int] = None,
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
@@ -2084,6 +2089,7 @@ class _VectorIndex:
             dynamicEfFactor=dynamic_ef_factor,
             efConstruction=ef_construction,
             ef=ef,
+            filterStrategy=filter_strategy,
             flatSearchCutoff=flat_search_cutoff,
             maxConnections=max_connections,
             vectorCacheMaxObjects=vector_cache_max_objects,
@@ -2335,6 +2341,7 @@ class _VectorIndexUpdate:
         dynamic_ef_max: Optional[int] = None,
         ef: Optional[int] = None,
         flat_search_cutoff: Optional[int] = None,
+        filter_strategy: Optional[FilterStrategyHNSW] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate]] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
@@ -2350,6 +2357,7 @@ class _VectorIndexUpdate:
             dynamicEfMax=dynamic_ef_max,
             dynamicEfFactor=dynamic_ef_factor,
             ef=ef,
+            filterStrategy=filter_strategy,
             flatSearchCutoff=flat_search_cutoff,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,

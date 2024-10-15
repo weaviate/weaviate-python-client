@@ -18,7 +18,7 @@ env:
   WEAVIATE_124: preview-rename-object-deletion-to-deletion-strategy-727ecf7
   WEAVIATE_125: stable-v1.25-d9f6cbb
   WEAVIATE_126: stable-v1.26-6a411a4
-  WEAVIATE_127: preview-merge-stable-v1-27-into-main-33adc57
+  WEAVIATE_127: stable-v1.27-0694720
 
 jobs:
   lint-and-format:
