@@ -192,6 +192,10 @@ class _BackupAsync:
                     raise BackupFailedException(
                         f"Backup failed: {create_status} with error: {status.error}"
                     )
+                if status.status == BackupStatus.CANCELED:
+                    raise BackupFailedException(
+                        f"Backup was canceled: {create_status} with error: {status.error}"
+                    )
                 sleep(1)
         return BackupReturn(**create_status)
 
