@@ -79,7 +79,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
     dynamicEfFactor: Optional[int]
     efConstruction: Optional[int]
     ef: Optional[int]
-    VectorFilterStrategy: Optional[VectorFilterStrategy]
+    filterStrategy: Optional[VectorFilterStrategy]
     flatSearchCutoff: Optional[int]
     maxConnections: Optional[int]
     vectorCacheMaxObjects: Optional[int]
@@ -102,7 +102,7 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
     dynamicEfMax: Optional[int]
     dynamicEfFactor: Optional[int]
     ef: Optional[int]
-    VectorFilterStrategy: Optional[VectorFilterStrategy]
+    filterStrategy: Optional[VectorFilterStrategy]
     flatSearchCutoff: Optional[int]
     vectorCacheMaxObjects: Optional[int]
 

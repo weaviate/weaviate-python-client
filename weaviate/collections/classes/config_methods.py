@@ -159,8 +159,8 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         ef=config["ef"],
         ef_construction=config["efConstruction"],
         filter_strategy=(
-            VectorFilterStrategy(config["VectorFilterStrategy"])
-            if "VectorFilterStrategy" in config
+            VectorFilterStrategy(config["filterStrategy"])
+            if "filterStrategy" in config
             else VectorFilterStrategy.SWEEPING
         ),
         flat_search_cutoff=config["flatSearchCutoff"],
