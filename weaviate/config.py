@@ -9,6 +9,7 @@ class ConnectionConfig:
     session_pool_connections: int = 20
     session_pool_maxsize: int = 100
     session_pool_max_retries: int = 3
+    session_pool_timeout: int = 5
 
     def __post_init__(self) -> None:
         if not isinstance(self.session_pool_connections, int):
@@ -22,6 +23,10 @@ class ConnectionConfig:
         if not isinstance(self.session_pool_max_retries, int):
             raise TypeError(
                 f"session_pool_max_retries must be {int}, received {type(self.session_pool_max_retries)}"
+            )
+        if not isinstance(self.session_pool_timeout, int):
+            raise TypeError(
+                f"session_pool_timeout must be {int}, received {type(self.session_pool_timeout)}"
             )
 
 
