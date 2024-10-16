@@ -426,7 +426,9 @@ class ConnectionV4(_ConnectionBase):
             timeout = self.timeout_config.query
         elif method == "POST" and not is_gql_query:
             timeout = self.timeout_config.insert
-        return Timeout(timeout=5.0, read=timeout)
+        return Timeout(
+            timeout=5.0, read=timeout, pool=self.__connection_config.session_pool_timeout
+        )
 
     async def __send(
         self,
