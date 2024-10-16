@@ -475,7 +475,7 @@ def test_cancel_backup(client: weaviate.WeaviateClient) -> None:
     resp = client.backup.create(backup_id=backup_id, backend=BACKEND)
     assert resp.status == BackupStatus.STARTED
 
-    assert client.backup.cancel_backup(backup_id=backup_id, backend=BACKEND)
+    assert client.backup.cancel(backup_id=backup_id, backend=BACKEND)
 
     # async process
     start = time.time()
