@@ -32,7 +32,7 @@ from weaviate.collections.classes.config_named_vectors import (
 )
 from weaviate.collections.classes.config_vector_index import (
     VectorIndexType as VectorIndexTypeAlias,
-    FilterStrategyHNSW,
+    VectorFilterStrategy,
 )
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
@@ -1536,7 +1536,7 @@ class _VectorIndexConfigHNSW(_VectorIndexConfig):
     dynamic_ef_factor: int
     ef: int
     ef_construction: int
-    filter_strategy: FilterStrategyHNSW
+    filter_strategy: VectorFilterStrategy
     flat_search_cutoff: int
     max_connections: int
     skip: bool
@@ -2068,7 +2068,7 @@ class _VectorIndex:
         dynamic_ef_min: Optional[int] = None,
         ef: Optional[int] = None,
         ef_construction: Optional[int] = None,
-        filter_strategy: Optional[FilterStrategyHNSW] = None,
+        filter_strategy: Optional[VectorFilterStrategy] = None,
         flat_search_cutoff: Optional[int] = None,
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
@@ -2341,7 +2341,7 @@ class _VectorIndexUpdate:
         dynamic_ef_max: Optional[int] = None,
         ef: Optional[int] = None,
         flat_search_cutoff: Optional[int] = None,
-        filter_strategy: Optional[FilterStrategyHNSW] = None,
+        filter_strategy: Optional[VectorFilterStrategy] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate]] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
