@@ -4,6 +4,7 @@ Weaviate Exceptions.
 
 from json.decoder import JSONDecodeError
 from typing import Union, Tuple
+
 import httpx
 import requests
 
@@ -135,6 +136,12 @@ class BackupFailedError(WeaviateBaseError):
 
 
 BackupFailedException = BackupFailedError
+
+
+class BackupCanceledError(WeaviateBaseError):
+    """
+    Backup canceled Exception.
+    """
 
 
 class EmptyResponseError(WeaviateBaseError):
