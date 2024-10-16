@@ -16,6 +16,7 @@ from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
     BackupFailedException,
     EmptyResponseException,
+    BackupCanceledError,
 )
 from weaviate.util import (
     _capitalize_first_letter,
@@ -193,7 +194,7 @@ class _BackupAsync:
                         f"Backup failed: {create_status} with error: {status.error}"
                     )
                 if status.status == BackupStatus.CANCELED:
-                    raise BackupFailedException(
+                    raise BackupCanceledError(
                         f"Backup was canceled: {create_status} with error: {status.error}"
                     )
                 sleep(1)
@@ -330,7 +331,7 @@ class _BackupAsync:
                         f"Backup restore failed: {restore_status} with error: {status.error}"
                     )
                 if status.status == BackupStatus.CANCELED:
-                    raise BackupFailedException(
+                    raise BackupCanceledError(
                         f"Backup restore canceled: {restore_status} with error: {status.error}"
                     )
 

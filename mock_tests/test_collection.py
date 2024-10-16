@@ -30,7 +30,7 @@ from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
     WeaviateStartUpError,
-    BackupFailedException,
+    BackupCanceledError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -415,14 +415,14 @@ def test_backup_cancel_while_create_and_restore(
         }
     )
 
-    with pytest.raises(BackupFailedException):
+    with pytest.raises(BackupCanceledError):
         client.backup.create(
             backup_id=backup_id,
             backend="filesystem",
             wait_for_completion=True,
         )
 
-    with pytest.raises(BackupFailedException):
+    with pytest.raises(BackupCanceledError):
         client.backup.restore(
             backup_id=backup_id,
             backend="filesystem",
