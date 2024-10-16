@@ -376,7 +376,7 @@ def test_node_with_timeout(
     assert nodes[0].status == "TIMEOUT"
 
 
-def test_backup_cancel_while_create(
+def test_backup_cancel_while_create_and_restore(
     weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
 ) -> None:
     client = weaviate.connect_to_local(
@@ -390,7 +390,7 @@ def test_backup_cancel_while_create(
     weaviate_no_auth_mock.expect_request("/v1/backups/filesystem").respond_with_json(
         {
             "collections": ["backupTest"],
-            "status": "CANCELED",
+            "status": "STARTED",
             "path": "path",
             "id": backup_id,
         }
@@ -404,8 +404,26 @@ def test_backup_cancel_while_create(
         }
     )
 
+    weaviate_no_auth_mock.expect_request(
+        "/v1/backups/filesystem/" + backup_id + "/restore"
+    ).respond_with_json(
+        {
+            "collections": ["backupTest"],
+            "status": "CANCELED",
+            "path": "path",
+            "id": backup_id,
+        }
+    )
+
     with pytest.raises(BackupFailedException):
         client.backup.create(
+            backup_id=backup_id,
+            backend="filesystem",
+            wait_for_completion=True,
+        )
+
+    with pytest.raises(BackupFailedException):
+        client.backup.restore(
             backup_id=backup_id,
             backend="filesystem",
             wait_for_completion=True,
