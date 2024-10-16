@@ -1226,3 +1226,24 @@ def test_range_filters(collection_factory: CollectionFactory, index_range_filter
     )
     config = collection.config.get()
     assert config.properties[0].index_range_filters == index_range_filters
+
+
+@pytest.mark.parametrize(
+    "deletion_strategy",
+    [
+        wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
+        wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION,
+    ],
+)
+def test_replication_config(
+    collection_factory: CollectionFactory, deletion_strategy: wvc.config.ReplicationDeletionStrategy
+) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 25):
+        pytest.skip("deletion strategy is supported in Weaviate versions lower than 1.24, 25")
+
+    collection = collection_factory(
+        replication_config=wvc.config.Configure.replication(deletion_strategy=deletion_strategy),
+    )
+    config = collection.config.get()
+    assert config.replication_config.deletion_strategy == deletion_strategy
