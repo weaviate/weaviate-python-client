@@ -36,7 +36,7 @@ from weaviate.collections.classes.config import (
     Rerankers,
     _NestedProperty,
     DeletionStrategy,
-    FilterStrategy,
+    VectorFilterStrategy,
 )
 
 
@@ -159,9 +159,9 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         ef=config["ef"],
         ef_construction=config["efConstruction"],
         filter_strategy=(
-            FilterStrategy(config["filterStrategy"])
-            if "filterStrategy" in config
-            else FilterStrategy.SWEEPING
+            VectorFilterStrategy(config["VectorFilterStrategy"])
+            if "VectorFilterStrategy" in config
+            else VectorFilterStrategy.SWEEPING
         ),
         flat_search_cutoff=config["flatSearchCutoff"],
         max_connections=config["maxConnections"],

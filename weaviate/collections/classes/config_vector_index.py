@@ -13,7 +13,7 @@ from weaviate.collections.classes.config_base import (
 from weaviate.collections.classes.config_vectorizers import VectorDistances
 
 
-class FilterStrategy(str, Enum):
+class VectorFilterStrategy(str, Enum):
     """Set the strategy when doing a filtered HNSW search.
 
     Attributes:
@@ -79,7 +79,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
     dynamicEfFactor: Optional[int]
     efConstruction: Optional[int]
     ef: Optional[int]
-    filterStrategy: Optional[FilterStrategy]
+    VectorFilterStrategy: Optional[VectorFilterStrategy]
     flatSearchCutoff: Optional[int]
     maxConnections: Optional[int]
     vectorCacheMaxObjects: Optional[int]
@@ -102,7 +102,7 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
     dynamicEfMax: Optional[int]
     dynamicEfFactor: Optional[int]
     ef: Optional[int]
-    filterStrategy: Optional[FilterStrategy]
+    VectorFilterStrategy: Optional[VectorFilterStrategy]
     flatSearchCutoff: Optional[int]
     vectorCacheMaxObjects: Optional[int]
 
