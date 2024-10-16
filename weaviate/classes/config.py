@@ -12,7 +12,7 @@ from weaviate.collections.classes.config import (
     Tokenization,
     VectorDistances,
 )
-from weaviate.collections.classes.config_vector_index import FilterStrategyHNSW
+from weaviate.collections.classes.config_vector_index import FilterStrategy
 from weaviate.collections.classes.config_vectorizers import Multi2VecField, Vectorizers
 from weaviate.connect.integrations import Integrations
 
@@ -22,7 +22,7 @@ __all__ = [
     "Reconfigure",
     "DataType",
     "GenerativeSearches",
-    "FilterStrategyHNSW",
+    "FilterStrategy",
     "Integrations",
     "Multi2VecField",
     "DeletionStrategy",
