@@ -380,7 +380,9 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
     else:
         # default value if not present in schema
-        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+        assert (
+            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+        )
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
@@ -485,7 +487,9 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
         assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
     else:
         # default value if not present in schema
-        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+        assert (
+            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+        )
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
