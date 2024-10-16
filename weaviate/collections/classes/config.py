@@ -234,7 +234,7 @@ class StopwordsPreset(str, Enum):
     EN = "en"
 
 
-class DeletionStrategy(str, Enum):
+class ReplicationDeletionStrategy(str, Enum):
     """How object deletions in multi node environments should be resolved.
 
     Attributes:
@@ -372,12 +372,13 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
-    deletionStrategy: Optional[DeletionStrategy]
+    deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
+    deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
 class _BM25ConfigCreate(_ConfigCreateModel):
@@ -1442,7 +1443,7 @@ ReferencePropertyConfig = _ReferenceProperty
 class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
-    deletion_strategy: DeletionStrategy
+    deletion_strategy: ReplicationDeletionStrategy
 
 
 ReplicationConfig = _ReplicationConfig
@@ -1933,7 +1934,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 if val.vectorizer != Vectorizers.NONE:
                     self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
             elif isinstance(val, _VectorIndexConfigCreate):
-                ret_dict["vectorIndexType"] = val.vector_index_type()
+                ret_dict["vectorIndexType"] = val.vector_index_type().value
                 ret_dict[cls_field] = val._to_dict()
             elif (
                 isinstance(val, list)
@@ -2210,7 +2211,7 @@ class Configure:
     def replication(
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
-        deletion_strategy: Optional[DeletionStrategy] = None,
+        deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
@@ -2222,7 +2223,7 @@ class Configure:
             `async_enabled`
                 Enabled async replication.
             `deletion_strategy`
-                How conflicts .
+                How conflicts between different nodes about deleted objects are resolved.
         """
         return _ReplicationConfigCreate(
             factor=factor,
@@ -2443,7 +2444,9 @@ class Reconfigure:
 
     @staticmethod
     def replication(
-        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+        factor: Optional[int] = None,
+        async_enabled: Optional[bool] = None,
+        deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
     ) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
@@ -2454,8 +2457,12 @@ class Reconfigure:
                 The replication factor.
             `async_enabled`
                 Enable async replication.
+            `deletion_strategy`
+                How conflicts between different nodes about deleted objects are resolved.
         """
-        return _ReplicationConfigUpdate(factor=factor, asyncEnabled=async_enabled)
+        return _ReplicationConfigUpdate(
+            factor=factor, asyncEnabled=async_enabled, deletionStrategy=deletion_strategy
+        )
 
     @staticmethod
     def multi_tenancy(
