@@ -13,7 +13,6 @@ from weaviate.backup.backup import (
     BackupStorage,
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
-import threading
 from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
     UnexpectedStatusCodeException,
@@ -477,44 +476,6 @@ def test_cancel_backup(client: weaviate.WeaviateClient) -> None:
     assert resp.status == BackupStatus.STARTED
 
     assert client.backup.cancel_backup(backup_id=backup_id, backend=BACKEND)
-
-    # async process
-    start = time.time()
-    while time.time() - start < 5:
-        status_resp = client.backup.get_create_status(backup_id=backup_id, backend=BACKEND)
-        if status_resp.status == BackupStatus.CANCELED:
-            break
-        time.sleep(0.1)
-    status_resp = client.backup.get_create_status(backup_id=backup_id, backend=BACKEND)
-    assert status_resp.status == BackupStatus.CANCELED
-        
-def test_cancel_backup_with_waiting(client: weaviate.WeaviateClient) -> None:
-    """Cancel a backup while waiting for completion."""
-    backup_id = _create_backup_id()
-    if client._connection._weaviate_version.is_lower_than(1, 24, 25):
-        pytest.skip("Cancel backups is only supported from 1.24.25")
-
-    # Run the backup creation in a separate thread
-
-    def create_backup():
-        nonlocal resp
-        with pytest.raises(BackupFailedException) as excinfo:
-            client.backup.create(
-                backup_id=backup_id,
-                backend=BACKEND,
-                wait_for_completion=True,
-            )
-        assert "Backup was canceled" in str(excinfo.value)
-
-    resp = None
-    backup_thread = threading.Thread(target=create_backup)
-    backup_thread.start()
-
-    # Cancel the backup
-    assert client.backup.cancel_backup(backup_id=backup_id, backend=BACKEND)
-
-    # Wait for the backup thread to finish
-    backup_thread.join()
 
     # async process
     start = time.time()

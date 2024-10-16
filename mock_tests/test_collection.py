@@ -27,7 +27,11 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
-from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
+from weaviate.exceptions import (
+    UnexpectedStatusCodeError,
+    WeaviateStartUpError,
+    BackupFailedException,
+)
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
@@ -370,3 +374,39 @@ def test_node_with_timeout(
 
     nodes = client.cluster.nodes(output=output)
     assert nodes[0].status == "TIMEOUT"
+
+
+def test_backup_cancel_while_create(
+    weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+    )
+
+    backup_id = "id"
+
+    weaviate_no_auth_mock.expect_request("/v1/backups/filesystem").respond_with_json(
+        {
+            "collections": ["backupTest"],
+            "status": "CANCELED",
+            "path": "path",
+            "id": backup_id,
+        }
+    )
+    weaviate_no_auth_mock.expect_request("/v1/backups/filesystem/" + backup_id).respond_with_json(
+        {
+            "collections": ["backupTest"],
+            "status": "CANCELED",
+            "path": "path",
+            "id": backup_id,
+        }
+    )
+
+    with pytest.raises(BackupFailedException):
+        client.backup.create(
+            backup_id=backup_id,
+            backend="filesystem",
+            wait_for_completion=True,
+        )
