@@ -1,6 +1,22 @@
 Changelog
 =========
 
+Version 4.9.0
+--------------
+
+This minor version includes:
+    - Support for new 1.27 features:
+        - Multi vector search for near_vector and hybrid
+        - Backup cancellation
+        - Vector search filter strategy (acorn)
+
+    - Renaming ``*-palm`` to ``*-google`` for generative and vectorization modules.
+    - Typing fixes
+    - Bump of default embedded version to 1.26.6
+    - Allow ``return_properties={True, False}`` as equivalents to ``{None, []}``
+    - Dependency updates
+
+
 Version 4.8.1
 --------------
 
