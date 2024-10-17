@@ -485,4 +485,5 @@ def test_cancel_backup(client: weaviate.WeaviateClient) -> None:
             break
         time.sleep(0.1)
     status_resp = client.backup.get_create_status(backup_id=backup_id, backend=BACKEND)
-    assert status_resp.status == BackupStatus.CANCELED
+    # there can be a race between the cancel and the backup completion
+    assert status_resp.status == BackupStatus.CANCELED or status_resp.status == BackupStatus.SUCCESS
