@@ -18,6 +18,7 @@ env:
   WEAVIATE_124: preview-rename-object-deletion-to-deletion-strategy-727ecf7
   WEAVIATE_125: stable-v1.25-d9f6cbb
   WEAVIATE_126: stable-v1.26-6a411a4
+  WEAVIATE_127: stable-v1.27-0694720
 
 jobs:
   lint-and-format:
@@ -126,7 +127,7 @@ jobs:
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_126}
+          { py: "3.12", weaviate: $WEAVIATE_127}
         ]
         optional_dependencies: [false]
     steps:
@@ -183,7 +184,7 @@ jobs:
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_126}
+          { py: "3.12", weaviate: $WEAVIATE_127}
         ]
         optional_dependencies: [false]
     steps:
@@ -330,7 +331,8 @@ jobs:
           $WEAVIATE_123,
           $WEAVIATE_124,
           $WEAVIATE_125,
-          $WEAVIATE_126
+          $WEAVIATE_126,
+          $WEAVIATE_127
         ]
     steps:
       - name: Checkout

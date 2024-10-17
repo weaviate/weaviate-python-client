@@ -35,7 +35,8 @@ from weaviate.collections.classes.config import (
     _RerankerConfig,
     Rerankers,
     _NestedProperty,
-    DeletionStrategy,
+    ReplicationDeletionStrategy,
+    VectorFilterStrategy,
 )
 
 
@@ -157,6 +158,11 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         dynamic_ef_factor=config["dynamicEfFactor"],
         ef=config["ef"],
         ef_construction=config["efConstruction"],
+        filter_strategy=(
+            VectorFilterStrategy(config["filterStrategy"])
+            if "filterStrategy" in config
+            else VectorFilterStrategy.SWEEPING
+        ),
         flat_search_cutoff=config["flatSearchCutoff"],
         max_connections=config["maxConnections"],
         quantizer=quantizer,
@@ -294,9 +300,9 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             factor=schema["replicationConfig"]["factor"],
             async_enabled=schema["replicationConfig"].get("asyncEnabled", False),
             deletion_strategy=(
-                DeletionStrategy(schema["replicationConfig"]["deletionStrategy"])
+                ReplicationDeletionStrategy(schema["replicationConfig"]["deletionStrategy"])
                 if "deletionStrategy" in schema["replicationConfig"]
-                else DeletionStrategy.NO_AUTOMATED_RESOLUTION
+                else ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
             ),
         ),
         reranker_config=__get_rerank_config(schema),

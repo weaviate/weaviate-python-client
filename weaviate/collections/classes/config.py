@@ -15,7 +15,7 @@ from typing import (
 )
 
 from pydantic import AnyHttpUrl, Field, ValidationInfo, field_validator
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, deprecated
 
 from weaviate.collections.classes.config_base import (
     _ConfigBase,
@@ -30,7 +30,10 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectors,
     _NamedVectorsUpdate,
 )
-from weaviate.collections.classes.config_vector_index import VectorIndexType as VectorIndexTypeAlias
+from weaviate.collections.classes.config_vector_index import (
+    VectorIndexType as VectorIndexTypeAlias,
+    VectorFilterStrategy,
+)
 from weaviate.collections.classes.config_vector_index import (
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
@@ -49,7 +52,7 @@ from weaviate.collections.classes.config_vectorizers import Vectorizers as Vecto
 from weaviate.collections.classes.config_vectorizers import _Vectorizer, _VectorizerConfigCreate
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _capitalize_first_letter
-from weaviate.warnings import _Warnings
+from ...warnings import _Warnings
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
@@ -188,7 +191,7 @@ class GenerativeSearches(str, Enum):
     OCTOAI = "generative-octoai"
     OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
-    PALM = "generative-palm"
+    PALM = "generative-palm"  # rename to google once all versions support it
 
 
 class Rerankers(str, Enum):
@@ -231,7 +234,7 @@ class StopwordsPreset(str, Enum):
     EN = "en"
 
 
-class DeletionStrategy(str, Enum):
+class ReplicationDeletionStrategy(str, Enum):
     """How object deletions in multi node environments should be resolved.
 
     Attributes:
@@ -369,12 +372,13 @@ class _ShardingConfigCreate(_ConfigCreateModel):
 class _ReplicationConfigCreate(_ConfigCreateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
-    deletionStrategy: Optional[DeletionStrategy]
+    deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
 class _ReplicationConfigUpdate(_ConfigUpdateModel):
     factor: Optional[int]
     asyncEnabled: Optional[bool]
+    deletionStrategy: Optional[ReplicationDeletionStrategy]
 
 
 class _BM25ConfigCreate(_ConfigCreateModel):
@@ -540,7 +544,7 @@ class _GenerativeCohereConfig(_GenerativeConfigCreate):
         return ret_dict
 
 
-class _GenerativePaLMConfig(_GenerativeConfigCreate):
+class _GenerativeGoogleConfig(_GenerativeConfigCreate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
@@ -911,6 +915,9 @@ class _Generative:
         )
 
     @staticmethod
+    @deprecated(
+        "This method is deprecated and will be removed in Q2 25. Please use `google` instead."
+    )
     def palm(
         project_id: str,
         api_endpoint: Optional[str] = None,
@@ -941,7 +948,49 @@ class _Generative:
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
         """
-        return _GenerativePaLMConfig(
+        _Warnings.palm_to_google_gen()
+        return _GenerativeGoogleConfig(
+            apiEndpoint=api_endpoint,
+            maxOutputTokens=max_output_tokens,
+            modelId=model_id,
+            projectId=project_id,
+            temperature=temperature,
+            topK=top_k,
+            topP=top_p,
+        )
+
+    @staticmethod
+    def google(
+        project_id: str,
+        api_endpoint: Optional[str] = None,
+        max_output_tokens: Optional[int] = None,
+        model_id: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_k: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeConfigCreate:
+        """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
+        for detailed usage.
+
+        Arguments:
+            `project_id`
+                The PalM project ID to use.
+            `api_endpoint`
+                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            `max_output_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_k`
+                The top K to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeGoogleConfig(
             apiEndpoint=api_endpoint,
             maxOutputTokens=max_output_tokens,
             modelId=model_id,
@@ -1394,7 +1443,7 @@ ReferencePropertyConfig = _ReferenceProperty
 class _ReplicationConfig(_ConfigBase):
     factor: int
     async_enabled: bool
-    deletion_strategy: DeletionStrategy
+    deletion_strategy: ReplicationDeletionStrategy
 
 
 ReplicationConfig = _ReplicationConfig
@@ -1488,6 +1537,7 @@ class _VectorIndexConfigHNSW(_VectorIndexConfig):
     dynamic_ef_factor: int
     ef: int
     ef_construction: int
+    filter_strategy: VectorFilterStrategy
     flat_search_cutoff: int
     max_connections: int
     skip: bool
@@ -1884,7 +1934,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 if val.vectorizer != Vectorizers.NONE:
                     self.__add_to_module_config(ret_dict, val.vectorizer.value, val._to_dict())
             elif isinstance(val, _VectorIndexConfigCreate):
-                ret_dict["vectorIndexType"] = val.vector_index_type()
+                ret_dict["vectorIndexType"] = val.vector_index_type().value
                 ret_dict[cls_field] = val._to_dict()
             elif (
                 isinstance(val, list)
@@ -2019,6 +2069,7 @@ class _VectorIndex:
         dynamic_ef_min: Optional[int] = None,
         ef: Optional[int] = None,
         ef_construction: Optional[int] = None,
+        filter_strategy: Optional[VectorFilterStrategy] = None,
         flat_search_cutoff: Optional[int] = None,
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
@@ -2039,6 +2090,7 @@ class _VectorIndex:
             dynamicEfFactor=dynamic_ef_factor,
             efConstruction=ef_construction,
             ef=ef,
+            filterStrategy=filter_strategy,
             flatSearchCutoff=flat_search_cutoff,
             maxConnections=max_connections,
             vectorCacheMaxObjects=vector_cache_max_objects,
@@ -2159,7 +2211,7 @@ class Configure:
     def replication(
         factor: Optional[int] = None,
         async_enabled: Optional[bool] = None,
-        deletion_strategy: Optional[DeletionStrategy] = None,
+        deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
     ) -> _ReplicationConfigCreate:
         """Create a `ReplicationConfigCreate` object to be used when defining the replication configuration of Weaviate.
 
@@ -2171,7 +2223,7 @@ class Configure:
             `async_enabled`
                 Enabled async replication.
             `deletion_strategy`
-                How conflicts .
+                How conflicts between different nodes about deleted objects are resolved.
         """
         return _ReplicationConfigCreate(
             factor=factor,
@@ -2290,6 +2342,7 @@ class _VectorIndexUpdate:
         dynamic_ef_max: Optional[int] = None,
         ef: Optional[int] = None,
         flat_search_cutoff: Optional[int] = None,
+        filter_strategy: Optional[VectorFilterStrategy] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate]] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
@@ -2305,6 +2358,7 @@ class _VectorIndexUpdate:
             dynamicEfMax=dynamic_ef_max,
             dynamicEfFactor=dynamic_ef_factor,
             ef=ef,
+            filterStrategy=filter_strategy,
             flatSearchCutoff=flat_search_cutoff,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
@@ -2390,7 +2444,9 @@ class Reconfigure:
 
     @staticmethod
     def replication(
-        factor: Optional[int] = None, async_enabled: Optional[bool] = None
+        factor: Optional[int] = None,
+        async_enabled: Optional[bool] = None,
+        deletion_strategy: Optional[ReplicationDeletionStrategy] = None,
     ) -> _ReplicationConfigUpdate:
         """Create a `ReplicationConfigUpdate` object.
 
@@ -2401,8 +2457,12 @@ class Reconfigure:
                 The replication factor.
             `async_enabled`
                 Enable async replication.
+            `deletion_strategy`
+                How conflicts between different nodes about deleted objects are resolved.
         """
-        return _ReplicationConfigUpdate(factor=factor, asyncEnabled=async_enabled)
+        return _ReplicationConfigUpdate(
+            factor=factor, asyncEnabled=async_enabled, deletionStrategy=deletion_strategy
+        )
 
     @staticmethod
     def multi_tenancy(

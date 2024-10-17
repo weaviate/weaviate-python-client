@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from enum import Enum
 from typing import Any, Dict, Optional
+
 from pydantic import Field
 
 from weaviate.collections.classes.config_base import (
@@ -9,8 +10,19 @@ from weaviate.collections.classes.config_base import (
     _QuantizerConfigCreate,
     _QuantizerConfigUpdate,
 )
-
 from weaviate.collections.classes.config_vectorizers import VectorDistances
+
+
+class VectorFilterStrategy(str, Enum):
+    """Set the strategy when doing a filtered HNSW search.
+
+    Attributes:
+        SWEEPING: Do normal ANN search and skip nodes.
+        ACORN: Multi-hop search to find new candidates matching the filter.
+    """
+
+    SWEEPING = "sweeping"
+    ACORN = "acorn"
 
 
 class VectorIndexType(str, Enum):
@@ -67,6 +79,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
     dynamicEfFactor: Optional[int]
     efConstruction: Optional[int]
     ef: Optional[int]
+    filterStrategy: Optional[VectorFilterStrategy]
     flatSearchCutoff: Optional[int]
     maxConnections: Optional[int]
     vectorCacheMaxObjects: Optional[int]
@@ -89,6 +102,7 @@ class _VectorIndexConfigHNSWUpdate(_VectorIndexConfigUpdate):
     dynamicEfMax: Optional[int]
     dynamicEfFactor: Optional[int]
     ef: Optional[int]
+    filterStrategy: Optional[VectorFilterStrategy]
     flatSearchCutoff: Optional[int]
     vectorCacheMaxObjects: Optional[int]
 

@@ -225,7 +225,7 @@ def test_return_from_bind_module(
     prop_modconf: Dict[str, Any] = {"multi2vec-bind": {}}
 
     hnsw_config = config.VectorIndex.hnsw(
-        1, VectorDistances.COSINE, 1, 1, 1, 1, 1, 1, 1, 1
+        1, VectorDistances.COSINE, 1, 1, 1, 1, 1, None, 1, 1, 1
     )._to_dict()
     hnsw_config["skip"] = True
     ii_config = config.inverted_index(

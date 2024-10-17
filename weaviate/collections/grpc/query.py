@@ -217,7 +217,7 @@ class _QueryGRPC(_BaseGRPC):
         if query is None:
             alpha = 1
 
-        targets, target_vector = self.__target_vector_to_grpc(target_vector)
+        targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
         near_text, near_vector, vector_bytes = None, None, None
 
@@ -235,23 +235,51 @@ class _QueryGRPC(_BaseGRPC):
                 move_to=self.__parse_move(vector.move_to),
             )
         elif isinstance(vector, _HybridNearVector):
-            vector_per_target, vector_bytes_tmp = self.__vector_per_target(
-                vector.vector, targets, "vector"
-            )
+            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
+                vector_per_target_tmp, vector_bytes_tmp = self.__vector_per_target(
+                    vector.vector, targets, "vector"
+                )
+                vector_for_targets_tmp = None
+            else:
+                vector_for_targets_tmp, vector_bytes_tmp, target_vectors_tmp = (
+                    self.__vector_for_target(vector.vector, targets, "vector")
+                )
+                vector_per_target_tmp = None
+                if target_vectors_tmp is not None:
+                    targets, target_vectors = self.__recompute_target_vector_to_grpc(
+                        target_vector, target_vectors_tmp
+                    )
+
             near_vector = search_get_pb2.NearVector(
                 vector_bytes=vector_bytes_tmp,
                 certainty=vector.certainty,
                 distance=vector.distance,
-                vector_per_target=vector_per_target,
+                vector_per_target=vector_per_target_tmp,
+                vector_for_targets=vector_for_targets_tmp,
             )
         else:
-            vector_per_target, vector_bytes_tmp = self.__vector_per_target(
-                vector, targets, "vector"
-            )
-            if vector_per_target is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
+                vector_per_target_tmp, vector_bytes_tmp = self.__vector_per_target(
+                    vector, targets, "vector"
+                )
+                vector_for_targets_tmp = None
+            else:
+                vector_for_targets_tmp, vector_bytes_tmp, target_vectors_tmp = (
+                    self.__vector_for_target(vector, targets, "vector")
+                )
+                vector_per_target_tmp = None
+                if target_vectors_tmp is not None:
+                    targets, target_vectors = self.__recompute_target_vector_to_grpc(
+                        target_vector, target_vectors_tmp
+                    )
+                else:
+                    targets, target_vectors = self.__target_vector_to_grpc(target_vector)
+
+            if vector_per_target_tmp is not None or vector_for_targets_tmp is not None:
                 near_vector = search_get_pb2.NearVector(
                     vector_bytes=vector_bytes_tmp,
-                    vector_per_target=vector_per_target,
+                    vector_per_target=vector_per_target_tmp,
+                    vector_for_targets=vector_for_targets_tmp,
                 )
             else:
                 vector_bytes = vector_bytes_tmp
@@ -269,7 +297,7 @@ class _QueryGRPC(_BaseGRPC):
                     if fusion_type is not None
                     else None
                 ),
-                target_vectors=target_vector,
+                target_vectors=target_vectors,
                 targets=targets,
                 near_text=near_text,
                 near_vector=near_vector,
@@ -382,20 +410,29 @@ class _QueryGRPC(_BaseGRPC):
 
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
-        if (
-            isinstance(near_vector, list)
-            and len(near_vector) > 0
-            and isinstance(near_vector[0], float)
-        ):
+        if _is_1d_vector(near_vector) and len(near_vector) > 0:
             # fast path for simple vector
             near_vector_grpc: Optional[bytes] = struct.pack(
                 "{}f".format(len(near_vector)), *near_vector
             )
             vector_per_target_tmp = None
+            vector_for_targets = None
         else:
-            vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
-                near_vector, targets, "near_vector"
-            )
+            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
+                vector_per_target_tmp, near_vector_grpc = self.__vector_per_target(
+                    near_vector, targets, "near_vector"
+                )
+                vector_for_targets = None
+            else:
+                vector_for_targets, near_vector_grpc, target_vectors_tmp = self.__vector_for_target(
+                    near_vector, targets, "near_vector"
+                )
+                vector_per_target_tmp = None
+                if target_vectors_tmp is not None:
+                    targets, target_vectors = self.__recompute_target_vector_to_grpc(
+                        target_vector, target_vectors_tmp
+                    )
+
         request = self.__create_request(
             limit=limit,
             offset=offset,
@@ -413,6 +450,7 @@ class _QueryGRPC(_BaseGRPC):
                 targets=targets,
                 target_vectors=target_vectors,
                 vector_per_target=vector_per_target_tmp,
+                vector_for_targets=vector_for_targets,
                 vector_bytes=near_vector_grpc,
             ),
         )
@@ -855,6 +893,20 @@ class _QueryGRPC(_BaseGRPC):
         else:
             return {cast(A, args)}
 
+    def __recompute_target_vector_to_grpc(
+        self, target_vector: Optional[TargetVectorJoinType], target_vectors_tmp: List[str]
+    ) -> Tuple[Optional[search_get_pb2.Targets], Optional[List[str]]]:
+        # reorder input for targets so they match the vectors
+        if isinstance(target_vector, _MultiTargetVectorJoin):
+            target_vector.target_vectors = target_vectors_tmp
+            if target_vector.weights is not None:
+                target_vector.weights = {
+                    target: target_vector.weights[target] for target in target_vectors_tmp
+                }
+        else:
+            target_vector = target_vectors_tmp
+        return self.__target_vector_to_grpc(target_vector)
+
     def __target_vector_to_grpc(
         self, target_vector: Optional[TargetVectorJoinType]
     ) -> Tuple[Optional[search_get_pb2.Targets], Optional[List[str]]]:
@@ -878,7 +930,7 @@ class _QueryGRPC(_BaseGRPC):
         elif isinstance(target_vector, list):
             return search_get_pb2.Targets(target_vectors=target_vector), None
         else:
-            return target_vector.to_grpc_target_vector(), None
+            return target_vector.to_grpc_target_vector(self._connection._weaviate_version), None
 
     @staticmethod
     def __vector_per_target(
@@ -887,7 +939,6 @@ class _QueryGRPC(_BaseGRPC):
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
                                 - a list of numbers
-                                - a list of lists of numbers for multi target search
                                 - a dictionary with target names as keys and lists of numbers as values
                         received: {vector}"""
         )
@@ -921,20 +972,71 @@ class _QueryGRPC(_BaseGRPC):
                     raise invalid_nv_exception
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
             else:
-                vector_per_target = {}
-                if targets is None or len(targets.target_vectors) != len(vector):
-                    raise WeaviateInvalidInputError(
-                        "The number of target vectors must be equal to the number of vectors."
-                    )
-                for i, inner_vector in enumerate(vector):
-                    nv = _get_vector_v4(inner_vector)
-                    if (
-                        not isinstance(nv, list)
-                        or len(nv) == 0
-                        or not isinstance(nv[0], get_args(NUMBER))
-                    ):
-                        raise invalid_nv_exception
-                    vector_per_target[targets.target_vectors[i]] = struct.pack(
-                        "{}f".format(len(nv)), *nv
-                    )
-                return vector_per_target, None
+                raise WeaviateInvalidInputError(
+                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
+                    keys and lists of numbers as values."""
+                )
+
+    @staticmethod
+    def __vector_for_target(
+        vector: NearVectorInputType, targets: Optional[search_get_pb2.Targets], argument_name: str
+    ) -> Tuple[
+        Optional[List[search_get_pb2.VectorForTarget]], Optional[bytes], Optional[List[str]]
+    ]:
+        invalid_nv_exception = WeaviateInvalidInputError(
+            f"""{argument_name} argument can be:
+                                - a list of numbers
+                                - a dictionary with target names as keys and lists of numbers as values for multi target search. The keys must match the given target vectors
+                        received: {vector} and {targets}."""
+        )
+
+        vector_for_target: List[search_get_pb2.VectorForTarget] = []
+
+        def add_vector(val: List[float], target_name: str) -> None:
+            vec = _get_vector_v4(val)
+
+            if (
+                not isinstance(vec, list)
+                or len(vec) == 0
+                or not isinstance(vec[0], get_args(NUMBER))
+            ):
+                raise invalid_nv_exception
+
+            vector_for_target.append(
+                search_get_pb2.VectorForTarget(
+                    name=target_name, vector_bytes=struct.pack("{}f".format(len(vec)), *vec)
+                )
+            )
+
+        if isinstance(vector, dict):
+            if (
+                len(vector) == 0
+                or targets is None
+                or len(set(targets.target_vectors)) != len(vector)
+            ):
+                raise invalid_nv_exception
+            target_vectors_tmp: List[str] = []
+            for key, value in vector.items():
+                # typing tools do not understand the type narrowing here
+                if _is_1d_vector(value):
+                    val: List[float] = cast(List[float], value)
+                    add_vector(val, key)
+                    target_vectors_tmp.append(key)
+                else:
+                    vals: List[List[float]] = cast(List[List[float]], value)
+                    for inner_vector in vals:
+                        add_vector(inner_vector, key)
+                        target_vectors_tmp.append(key)
+
+            return vector_for_target, None, target_vectors_tmp
+        else:
+            if _is_1d_vector(vector):
+                near_vector = _get_vector_v4(vector)
+                if not isinstance(near_vector, list):
+                    raise invalid_nv_exception
+                return None, struct.pack("{}f".format(len(near_vector)), *near_vector), None
+            else:
+                raise WeaviateInvalidInputError(
+                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
+                    keys and lists of numbers as values."""
+                )

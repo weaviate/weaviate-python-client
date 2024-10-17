@@ -397,7 +397,7 @@ class _BackupAsync:
                 raise EmptyResponseException()
             return False  # did not exist
 
-    async def cancel_backup(self, backup_id: str, backend: BackupStorage) -> bool:
+    async def cancel(self, backup_id: str, backend: BackupStorage) -> bool:
         """
         Cancels a running backup.
 
