@@ -286,7 +286,7 @@ class _MultiTargetVectorJoin:
         if version.is_lower_than(1, 27, 0):
             if self.weights is not None and any(isinstance(w, list) for w in self.weights.values()):
                 raise ValueError(
-                    "Multiple weights per target are not supported in this Weaviate version. Please upgrade to at least Weaviate 1.26.2."
+                    "Multiple weights per target are not supported in this Weaviate version. Please upgrade to at least Weaviate 1.27.0."
                 )
             # mypy does not seem to understand the type narrowing right above
             weights_typed = cast(Optional[Dict[str, float]], self.weights)
