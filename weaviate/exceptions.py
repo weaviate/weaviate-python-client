@@ -224,13 +224,33 @@ WeaviateInvalidInputException = WeaviateInvalidInputError
 class WeaviateQueryError(WeaviateBaseError):
     """Is raised if a query (either gRPC or GraphQL) to Weaviate fails in any way."""
 
-    def __init__(self, message: str, protocol_type: str):
-        msg = f"""Query call with protocol {protocol_type} failed with message {message}."""
+    def __init__(self, message: str, protocol_type: str, add_message: bool = True):
+        if add_message:
+            msg = f"""Query call with protocol {protocol_type} failed with message {message}."""
+        else:
+            msg = message
         super().__init__(msg)
-        self.message = message
+        self.message = msg
 
 
 WeaviateQueryException = WeaviateQueryError
+
+
+class WeaviateQueryThirdPartyError(WeaviateQueryError):
+    """Is raised if a query (either gRPC or GraphQL) to Weaviate fails in any way."""
+
+    def __init__(
+        self, full_error: str, provider_name: str, provider_error: str, protocol_type: str
+    ):
+        msg = f"""
+        Full error message: {full_error}
+
+        Query failed due to an error with a third party service.
+        Provider: {provider_name}
+        Error from provider: {provider_error}
+        """
+        super().__init__(msg, protocol_type, False)
+        self.message = msg
 
 
 class WeaviateBatchError(WeaviateQueryError):

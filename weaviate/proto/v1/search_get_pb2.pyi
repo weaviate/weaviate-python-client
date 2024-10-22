@@ -62,6 +62,7 @@ class SearchRequest(_message.Message):
         "uses_123_api",
         "uses_125_api",
         "uses_127_api",
+        "uses_128_api",
     )
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
@@ -91,6 +92,7 @@ class SearchRequest(_message.Message):
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
     USES_125_API_FIELD_NUMBER: _ClassVar[int]
     USES_127_API_FIELD_NUMBER: _ClassVar[int]
+    USES_128_API_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
     consistency_level: _base_pb2.ConsistencyLevel
@@ -119,6 +121,7 @@ class SearchRequest(_message.Message):
     uses_123_api: bool
     uses_125_api: bool
     uses_127_api: bool
+    uses_128_api: bool
     def __init__(
         self,
         collection: _Optional[str] = ...,
@@ -149,6 +152,7 @@ class SearchRequest(_message.Message):
         uses_123_api: bool = ...,
         uses_125_api: bool = ...,
         uses_127_api: bool = ...,
+        uses_128_api: bool = ...,
     ) -> None: ...
 
 class GroupBy(_message.Message):
@@ -647,6 +651,21 @@ class Rerank(_message.Message):
     query: str
     def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
 
+class ThirdPartyError(_message.Message):
+    __slots__ = ("provider_name", "error_from_provider", "full_error")
+    PROVIDER_NAME_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FROM_PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    FULL_ERROR_FIELD_NUMBER: _ClassVar[int]
+    provider_name: str
+    error_from_provider: str
+    full_error: str
+    def __init__(
+        self,
+        provider_name: _Optional[str] = ...,
+        error_from_provider: _Optional[str] = ...,
+        full_error: _Optional[str] = ...,
+    ) -> None: ...
+
 class SearchReply(_message.Message):
     __slots__ = (
         "took",
@@ -654,17 +673,20 @@ class SearchReply(_message.Message):
         "generative_grouped_result",
         "group_by_results",
         "generative_grouped_results",
+        "third_party_error",
     )
     TOOK_FIELD_NUMBER: _ClassVar[int]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_GROUPED_RESULT_FIELD_NUMBER: _ClassVar[int]
     GROUP_BY_RESULTS_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_GROUPED_RESULTS_FIELD_NUMBER: _ClassVar[int]
+    THIRD_PARTY_ERROR_FIELD_NUMBER: _ClassVar[int]
     took: float
     results: _containers.RepeatedCompositeFieldContainer[SearchResult]
     generative_grouped_result: str
     group_by_results: _containers.RepeatedCompositeFieldContainer[GroupByResult]
     generative_grouped_results: _generative_pb2.GenerativeResult
+    third_party_error: ThirdPartyError
     def __init__(
         self,
         took: _Optional[float] = ...,
@@ -674,6 +696,7 @@ class SearchReply(_message.Message):
         generative_grouped_results: _Optional[
             _Union[_generative_pb2.GenerativeResult, _Mapping]
         ] = ...,
+        third_party_error: _Optional[_Union[ThirdPartyError, _Mapping]] = ...,
     ) -> None: ...
 
 class RerankReply(_message.Message):

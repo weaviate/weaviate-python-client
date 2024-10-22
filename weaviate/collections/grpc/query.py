@@ -53,6 +53,7 @@ from weaviate.exceptions import (
     WeaviateQueryError,
     WeaviateUnsupportedFeatureError,
     WeaviateInvalidInputError,
+    WeaviateQueryThirdPartyError,
 )
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import NUMBER, UUID
@@ -759,6 +760,7 @@ class _QueryGRPC(_BaseGRPC):
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
             uses_125_api=self.__uses_125_api,
+            uses_128_api=True,  # sets a new return format for errors. The client can handle both
             collection=self._name,
             limit=limit,
             offset=offset,
@@ -800,7 +802,15 @@ class _QueryGRPC(_BaseGRPC):
                 metadata=self._connection.grpc_headers(),
                 timeout=self._connection.timeout_config.query,
             )
-            return cast(search_get_pb2.SearchReply, res)
+            sr = cast(search_get_pb2.SearchReply, res)
+            if sr.third_party_error is not None:
+                raise WeaviateQueryThirdPartyError(
+                    sr.third_party_error.full_error,
+                    sr.third_party_error.provider_name,
+                    sr.third_party_error.error_from_provider,
+                    "GRPC search",
+                )
+            return sr
         except AioRpcError as e:
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
