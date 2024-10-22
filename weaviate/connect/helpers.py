@@ -1,7 +1,7 @@
 """Helper functions for creating new WeaviateClient or WeaviateAsyncClient instances in common scenarios."""
 
-from urllib.parse import urlparse
 from typing import Dict, Optional, Tuple
+from urllib.parse import urlparse
 
 from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
@@ -318,6 +318,9 @@ def connect_to_custom(
     additional_config: Optional[AdditionalConfig] = None,
     auth_credentials: Optional[AuthCredentials] = None,
     skip_init_checks: bool = False,
+    *,
+    http_path: Optional[str] = None,
+    grcp_path: Optional[str] = None,
 ) -> WeaviateClient:
     """
     Connect to a Weaviate instance with custom connection parameters.
@@ -390,9 +393,11 @@ def connect_to_custom(
                 http_host=http_host,
                 http_port=http_port,
                 http_secure=http_secure,
+                http_path=http_path,
                 grpc_host=grpc_host,
                 grpc_port=grpc_port,
                 grpc_secure=grpc_secure,
+                grpc_path=grcp_path,
             ),
             auth_client_secret=auth_credentials,
             additional_headers=headers,

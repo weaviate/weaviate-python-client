@@ -2,19 +2,18 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, TypeVar, Union, cast
+from typing import Dict, Tuple, TypeVar, Union, cast, Optional
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
 from grpc import ssl_channel_credentials
 from grpc.aio import Channel  # type: ignore
-
-# from grpclib.client import Channel
-
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import Proxies
 from weaviate.types import NUMBER
+
+# from grpclib.client import Channel
 
 
 JSONPayload = Union[dict, list]
@@ -30,6 +29,7 @@ class ProtocolParams(BaseModel):
     host: str
     port: int
     secure: bool
+    path: str = ""
 
     @field_validator("host")
     def _check_host(cls, v: str) -> str:
@@ -83,17 +83,21 @@ class ConnectionParams(BaseModel):
         grpc_host: str,
         grpc_port: int,
         grpc_secure: bool,
+        http_path: Optional[str] = None,
+        grpc_path: Optional[str] = None,
     ) -> "ConnectionParams":
         return cls(
             http=ProtocolParams(
                 host=http_host,
                 port=http_port,
                 secure=http_secure,
+                path=http_path or "",
             ),
             grpc=ProtocolParams(
                 host=grpc_host,
                 port=grpc_port,
                 secure=grpc_secure,
+                path=grpc_path or "",
             ),
         )
 
@@ -109,7 +113,7 @@ class ConnectionParams(BaseModel):
 
     @property
     def _grpc_target(self) -> str:
-        return f"{self.grpc.host}:{self.grpc.port}"
+        return f"{self.grpc.host}:{self.grpc.port}{self.grpc.path}"
 
     def _grpc_channel(self, proxies: Dict[str, str]) -> Channel:
         if (p := proxies.get("grpc")) is not None:
@@ -134,7 +138,7 @@ class ConnectionParams(BaseModel):
 
     @property
     def _http_url(self) -> str:
-        return f"{self._http_scheme}://{self.http.host}:{self.http.port}"
+        return f"{self._http_scheme}://{self.http.host}:{self.http.port}{self.grpc.path}"
 
 
 class _ConnectionBase(ABC):
