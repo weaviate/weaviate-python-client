@@ -1,5 +1,6 @@
 from google.protobuf import struct_pb2 as _struct_pb2
 from weaviate.proto.v1 import base_pb2 as _base_pb2
+from weaviate.proto.v1 import generative_pb2 as _generative_pb2
 from weaviate.proto.v1 import properties_pb2 as _properties_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -60,6 +61,7 @@ class SearchRequest(_message.Message):
         "rerank",
         "uses_123_api",
         "uses_125_api",
+        "uses_127_api",
     )
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     TENANT_FIELD_NUMBER: _ClassVar[int]
@@ -88,6 +90,7 @@ class SearchRequest(_message.Message):
     RERANK_FIELD_NUMBER: _ClassVar[int]
     USES_123_API_FIELD_NUMBER: _ClassVar[int]
     USES_125_API_FIELD_NUMBER: _ClassVar[int]
+    USES_127_API_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
     consistency_level: _base_pb2.ConsistencyLevel
@@ -111,10 +114,11 @@ class SearchRequest(_message.Message):
     near_depth: NearDepthSearch
     near_thermal: NearThermalSearch
     near_imu: NearIMUSearch
-    generative: GenerativeSearch
+    generative: _generative_pb2.GenerativeSearch
     rerank: Rerank
     uses_123_api: bool
     uses_125_api: bool
+    uses_127_api: bool
     def __init__(
         self,
         collection: _Optional[str] = ...,
@@ -140,10 +144,11 @@ class SearchRequest(_message.Message):
         near_depth: _Optional[_Union[NearDepthSearch, _Mapping]] = ...,
         near_thermal: _Optional[_Union[NearThermalSearch, _Mapping]] = ...,
         near_imu: _Optional[_Union[NearIMUSearch, _Mapping]] = ...,
-        generative: _Optional[_Union[GenerativeSearch, _Mapping]] = ...,
+        generative: _Optional[_Union[_generative_pb2.GenerativeSearch, _Mapping]] = ...,
         rerank: _Optional[_Union[Rerank, _Mapping]] = ...,
         uses_123_api: bool = ...,
         uses_125_api: bool = ...,
+        uses_127_api: bool = ...,
     ) -> None: ...
 
 class GroupBy(_message.Message):
@@ -168,21 +173,6 @@ class SortBy(_message.Message):
     ascending: bool
     path: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, ascending: bool = ..., path: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class GenerativeSearch(_message.Message):
-    __slots__ = ("single_response_prompt", "grouped_response_task", "grouped_properties")
-    SINGLE_RESPONSE_PROMPT_FIELD_NUMBER: _ClassVar[int]
-    GROUPED_RESPONSE_TASK_FIELD_NUMBER: _ClassVar[int]
-    GROUPED_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
-    single_response_prompt: str
-    grouped_response_task: str
-    grouped_properties: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(
-        self,
-        single_response_prompt: _Optional[str] = ...,
-        grouped_response_task: _Optional[str] = ...,
-        grouped_properties: _Optional[_Iterable[str]] = ...,
-    ) -> None: ...
 
 class MetadataRequest(_message.Message):
     __slots__ = (
@@ -658,21 +648,32 @@ class Rerank(_message.Message):
     def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
 
 class SearchReply(_message.Message):
-    __slots__ = ("took", "results", "generative_grouped_result", "group_by_results")
+    __slots__ = (
+        "took",
+        "results",
+        "generative_grouped_result",
+        "group_by_results",
+        "generative_grouped_results",
+    )
     TOOK_FIELD_NUMBER: _ClassVar[int]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_GROUPED_RESULT_FIELD_NUMBER: _ClassVar[int]
     GROUP_BY_RESULTS_FIELD_NUMBER: _ClassVar[int]
+    GENERATIVE_GROUPED_RESULTS_FIELD_NUMBER: _ClassVar[int]
     took: float
     results: _containers.RepeatedCompositeFieldContainer[SearchResult]
     generative_grouped_result: str
     group_by_results: _containers.RepeatedCompositeFieldContainer[GroupByResult]
+    generative_grouped_results: _generative_pb2.GenerativeResult
     def __init__(
         self,
         took: _Optional[float] = ...,
         results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ...,
         generative_grouped_result: _Optional[str] = ...,
         group_by_results: _Optional[_Iterable[_Union[GroupByResult, _Mapping]]] = ...,
+        generative_grouped_results: _Optional[
+            _Union[_generative_pb2.GenerativeResult, _Mapping]
+        ] = ...,
     ) -> None: ...
 
 class RerankReply(_message.Message):
@@ -680,12 +681,6 @@ class RerankReply(_message.Message):
     SCORE_FIELD_NUMBER: _ClassVar[int]
     score: float
     def __init__(self, score: _Optional[float] = ...) -> None: ...
-
-class GenerativeReply(_message.Message):
-    __slots__ = ("result",)
-    RESULT_FIELD_NUMBER: _ClassVar[int]
-    result: str
-    def __init__(self, result: _Optional[str] = ...) -> None: ...
 
 class GroupByResult(_message.Message):
     __slots__ = (
@@ -696,6 +691,7 @@ class GroupByResult(_message.Message):
         "objects",
         "rerank",
         "generative",
+        "generative_result",
     )
     NAME_FIELD_NUMBER: _ClassVar[int]
     MIN_DISTANCE_FIELD_NUMBER: _ClassVar[int]
@@ -704,13 +700,15 @@ class GroupByResult(_message.Message):
     OBJECTS_FIELD_NUMBER: _ClassVar[int]
     RERANK_FIELD_NUMBER: _ClassVar[int]
     GENERATIVE_FIELD_NUMBER: _ClassVar[int]
+    GENERATIVE_RESULT_FIELD_NUMBER: _ClassVar[int]
     name: str
     min_distance: float
     max_distance: float
     number_of_objects: int
     objects: _containers.RepeatedCompositeFieldContainer[SearchResult]
     rerank: RerankReply
-    generative: GenerativeReply
+    generative: _generative_pb2.GenerativeReply
+    generative_result: _generative_pb2.GenerativeResult
     def __init__(
         self,
         name: _Optional[str] = ...,
@@ -719,19 +717,23 @@ class GroupByResult(_message.Message):
         number_of_objects: _Optional[int] = ...,
         objects: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ...,
         rerank: _Optional[_Union[RerankReply, _Mapping]] = ...,
-        generative: _Optional[_Union[GenerativeReply, _Mapping]] = ...,
+        generative: _Optional[_Union[_generative_pb2.GenerativeReply, _Mapping]] = ...,
+        generative_result: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ...,
     ) -> None: ...
 
 class SearchResult(_message.Message):
-    __slots__ = ("properties", "metadata")
+    __slots__ = ("properties", "metadata", "generative")
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     METADATA_FIELD_NUMBER: _ClassVar[int]
+    GENERATIVE_FIELD_NUMBER: _ClassVar[int]
     properties: PropertiesResult
     metadata: MetadataResult
+    generative: _generative_pb2.GenerativeResult
     def __init__(
         self,
         properties: _Optional[_Union[PropertiesResult, _Mapping]] = ...,
         metadata: _Optional[_Union[MetadataResult, _Mapping]] = ...,
+        generative: _Optional[_Union[_generative_pb2.GenerativeResult, _Mapping]] = ...,
     ) -> None: ...
 
 class MetadataResult(_message.Message):
