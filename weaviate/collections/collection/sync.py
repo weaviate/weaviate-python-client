@@ -20,6 +20,7 @@ from weaviate.collections.cluster import _Cluster
 from weaviate.collections.config import _ConfigCollection
 from weaviate.collections.data import _DataCollection
 from weaviate.collections.generate import _GenerateCollection
+from weaviate.collections.gfl import _GFL
 from weaviate.collections.iterator import _IteratorInputs, _ObjectIterator
 from weaviate.collections.query import _QueryCollection
 from weaviate.collections.tenants import _Tenants
@@ -55,6 +56,8 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities.
         `tenants`
             This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate.
+        `gfl`
+            This namespace includes all the querying methods available to you when using Weaviate's Generative Feedback Loop (GFL) capabilities.
     """
 
     def __init__(
@@ -138,6 +141,11 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             validate_arguments=validate_arguments,
         )
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
+        self.gfl = _GFL(
+            connection=connection,
+            name=name,
+        )
+        """This namespace includes all the querying methods available to you when using Weaviate's Generative Filtering Language (GFL) capabilities."""
 
     def __len__(self) -> int:
         total = self.aggregate.over_all(total_count=True).total_count

@@ -2,10 +2,9 @@ import json
 from dataclasses import asdict
 from typing import Generic, List, Literal, Optional, Type, Union, overload
 
-from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.aggregate import _AggregateCollectionAsync
 from weaviate.collections.backups import _CollectionBackupAsync
-from weaviate.collections.cluster import _ClusterAsync
+from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
@@ -16,8 +15,10 @@ from weaviate.collections.classes.internal import (
     TReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
+from weaviate.collections.cluster import _ClusterAsync
 from weaviate.collections.data import _DataCollectionAsync
 from weaviate.collections.generate import _GenerateCollectionAsync
+from weaviate.collections.gfl.gfl import _GFLAsync
 from weaviate.collections.iterator import _IteratorInputs, _ObjectAIterator
 from weaviate.collections.tenants import _TenantsAsync
 from weaviate.connect import ConnectionV4
@@ -52,6 +53,8 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
             This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities.
         `tenants`
             This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate.
+        `gfl`
+            This namespace includes all the querying methods available to you when using Weaviate's Generative Feedback Loop (GFL) capabilities.
     """
 
     def __init__(
@@ -100,6 +103,11 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
         self.tenants = _TenantsAsync(connection, name)
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
+        self.gfl = _GFLAsync(
+            connection,
+            name,
+        )
+        """This namespace includes all the querying methods available to you when using Weaviate's Generative Feedback Loop (GFL) capabilities."""
 
     async def length(self) -> int:
         """Get the total number of objects in the collection."""
