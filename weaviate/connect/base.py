@@ -103,8 +103,14 @@ class ConnectionParams(BaseModel):
 
     @model_validator(mode="after")
     def _check_port_collision(self: T) -> T:
-        if self.http.host == self.grpc.host and self.http.port == self.grpc.port:
-            raise ValueError("http.port and grpc.port must be different if using the same host")
+        if (
+            self.http.host == self.grpc.host
+            and self.http.port == self.grpc.port
+            and self.http.path == self.grpc.path
+        ):
+            raise ValueError(
+                "http.port and grpc.port or http.path and grpc.path must be different if using the same host"
+            )
         return self
 
     @property
@@ -138,7 +144,7 @@ class ConnectionParams(BaseModel):
 
     @property
     def _http_url(self) -> str:
-        return f"{self._http_scheme}://{self.http.host}:{self.http.port}{self.grpc.path}"
+        return f"{self._http_scheme}://{self.http.host}:{self.http.port}{self.http.path}"
 
 
 class _ConnectionBase(ABC):
