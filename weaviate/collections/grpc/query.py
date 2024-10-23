@@ -808,6 +808,8 @@ class _QueryGRPC(_BaseGRPC):
                     sr.third_party_error.full_error,
                     sr.third_party_error.provider_name,
                     sr.third_party_error.error_from_provider,
+                    sr.third_party_error.status_code,
+                    sr.third_party_error.request_id,
                     "GRPC search",
                 )
             return sr

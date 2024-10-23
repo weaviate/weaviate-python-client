@@ -652,18 +652,24 @@ class Rerank(_message.Message):
     def __init__(self, property: _Optional[str] = ..., query: _Optional[str] = ...) -> None: ...
 
 class ThirdPartyError(_message.Message):
-    __slots__ = ("provider_name", "error_from_provider", "full_error")
+    __slots__ = ("provider_name", "error_from_provider", "full_error", "status_code", "request_id")
     PROVIDER_NAME_FIELD_NUMBER: _ClassVar[int]
     ERROR_FROM_PROVIDER_FIELD_NUMBER: _ClassVar[int]
     FULL_ERROR_FIELD_NUMBER: _ClassVar[int]
+    STATUS_CODE_FIELD_NUMBER: _ClassVar[int]
+    REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     provider_name: str
     error_from_provider: str
     full_error: str
+    status_code: int
+    request_id: str
     def __init__(
         self,
         provider_name: _Optional[str] = ...,
         error_from_provider: _Optional[str] = ...,
         full_error: _Optional[str] = ...,
+        status_code: _Optional[int] = ...,
+        request_id: _Optional[str] = ...,
     ) -> None: ...
 
 class SearchReply(_message.Message):

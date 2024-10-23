@@ -240,14 +240,24 @@ class WeaviateQueryThirdPartyError(WeaviateQueryError):
     """Is raised if a query (either gRPC or GraphQL) to Weaviate fails in any way."""
 
     def __init__(
-        self, full_error: str, provider_name: str, provider_error: str, protocol_type: str
+        self,
+        full_error: str,
+        provider_name: str,
+        provider_error: str,
+        error_code: int,
+        request_id: str,
+        protocol_type: str,
     ):
+        request_id_str = f"with request_id {request_id} " if request_id else ""
+
         msg = f"""
         Full error message: {full_error}
 
-        Query failed due to an error with a third party service.
+        Query {request_id_str}failed due to an error with a third party service:
         Provider: {provider_name}
+        Error code: {error_code}
         Error from provider: {provider_error}
+
         """
         super().__init__(msg, protocol_type, False)
         self.message = msg
