@@ -2,28 +2,23 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, TypeVar, Union, cast
+from typing import Dict, Tuple, TypeVar, Union, cast, Optional
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
 from grpc import ssl_channel_credentials
 from grpc.aio import Channel  # type: ignore
-
-# from grpclib.client import Channel
-
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import Proxies
 from weaviate.types import NUMBER
 
+# from grpclib.client import Channel
+
 
 JSONPayload = Union[dict, list]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
-GRPC_DEFAULT_OPTIONS = [
-    ("grpc.max_send_message_length", MAX_GRPC_MESSAGE_LENGTH),
-    ("grpc.max_receive_message_length", MAX_GRPC_MESSAGE_LENGTH),
-]
 
 
 class ProtocolParams(BaseModel):
@@ -111,11 +106,18 @@ class ConnectionParams(BaseModel):
     def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
 
-    def _grpc_channel(self, proxies: Dict[str, str]) -> Channel:
+    def _grpc_channel(self, proxies: Dict[str, str], grpc_msg_size: Optional[int]) -> Channel:
+        if grpc_msg_size is None:
+            grpc_msg_size = MAX_GRPC_MESSAGE_LENGTH
+        opts = [
+            ("grpc.max_send_message_length", grpc_msg_size),
+            ("grpc.max_receive_message_length", grpc_msg_size),
+        ]
+
         if (p := proxies.get("grpc")) is not None:
-            options: list = [*GRPC_DEFAULT_OPTIONS, ("grpc.http_proxy", p)]
+            options: list = [*opts, ("grpc.http_proxy", p)]
         else:
-            options = GRPC_DEFAULT_OPTIONS
+            options = opts
         if self.grpc.secure:
             return grpc.aio.secure_channel(
                 target=self._grpc_target,

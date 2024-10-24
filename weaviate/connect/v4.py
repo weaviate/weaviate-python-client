@@ -116,6 +116,7 @@ class ConnectionV4(_ConnectionBase):
         self.__connection_config = connection_config
         self.__trust_env = trust_env
         self._weaviate_version = _ServerVersion.from_string("")
+        self._grpc_max_msg_size: Optional[int] = None
         self.__connected = False
         self.__loop = loop
 
@@ -143,20 +144,16 @@ class ConnectionV4(_ConnectionBase):
     async def connect(self, skip_init_checks: bool) -> None:
         self.__connected = True
 
-        await self._open_connections(self._auth, skip_init_checks)
-        self.__connected = True
-        if self.embedded_db is not None:
-            try:
-                await self.wait_for_weaviate(10)
-            except WeaviateStartUpError as e:
-                self.embedded_db.stop()
-                self.__connected = False
-                raise e
+        await self._open_connections_rest(self._auth, skip_init_checks)
 
-        # need this to get the version of weaviate for version checks
+        # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
             meta = await self.get_meta()
             self._weaviate_version = _ServerVersion.from_string(meta["version"])
+            if "grpc_max_msg_size" in meta:
+                self._grpc_max_msg_size = int(meta["grpc_max_msg_size"])
+            else:
+                _Warnings.grpc_max_msg_size_not_found()
         except (
             WeaviateConnectionError,
             ReadError,
@@ -165,6 +162,16 @@ class ConnectionV4(_ConnectionBase):
         ) as e:
             self.__connected = False
             raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
+
+        await self.open_connection_grpc()
+        self.__connected = True
+        if self.embedded_db is not None:
+            try:
+                await self.wait_for_weaviate(10)
+            except WeaviateStartUpError as e:
+                self.embedded_db.stop()
+                self.__connected = False
+                raise e
 
         # do it after all other init checks so as not to break all the tests
         if self._weaviate_version.is_lower_than(1, 23, 7):
@@ -226,12 +233,9 @@ class ConnectionV4(_ConnectionBase):
     def __make_clients(self) -> None:
         self._client = self.__make_async_client()
 
-    async def _open_connections(
+    async def _open_connections_rest(
         self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool
     ) -> None:
-        self._grpc_channel = self._connection_params._grpc_channel(proxies=self._proxies)
-        assert self._grpc_channel is not None
-        self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
 
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
@@ -306,6 +310,14 @@ class ConnectionV4(_ConnectionBase):
             self.__make_clients()
         else:
             self.__make_clients()
+
+    async def open_connection_grpc(self) -> None:
+        self._grpc_channel = self._connection_params._grpc_channel(
+            proxies=self._proxies,
+            grpc_msg_size=self._grpc_max_msg_size,
+        )
+        assert self._grpc_channel is not None
+        self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
 
     def get_current_bearer_token(self) -> str:
         if not self.is_connected():
