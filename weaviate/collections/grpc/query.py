@@ -803,7 +803,7 @@ class _QueryGRPC(_BaseGRPC):
                 timeout=self._connection.timeout_config.query,
             )
             sr = cast(search_get_pb2.SearchReply, res)
-            if sr.third_party_error is not None:
+            if sr.third_party_error is not None and sr.third_party_error.provider_name != "":
                 raise WeaviateQueryThirdPartyError(
                     sr.third_party_error.full_error,
                     sr.third_party_error.provider_name,
