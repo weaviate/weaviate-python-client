@@ -195,6 +195,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[Properties, References]:
         ...
 
@@ -207,6 +208,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return_properties: Optional[PROPERTIES] = None,
         return_references: REFERENCES,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[Properties, CrossReferences]:
         ...
 
@@ -219,6 +221,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return_properties: Optional[PROPERTIES] = None,
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[Properties, TReferences]:
         ...
 
@@ -231,6 +234,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[TProperties, References]:
         ...
 
@@ -243,6 +247,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return_properties: Type[TProperties],
         return_references: REFERENCES,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[TProperties, CrossReferences]:
         ...
 
@@ -255,6 +260,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> _ObjectIterator[TProperties, TReferences]:
         ...
 
@@ -267,6 +273,7 @@ class Collection(_CollectionBase, Generic[Properties, References]):
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
         after: Optional[UUID] = None,
+        cache_size: Optional[int] = None,
     ) -> Union[
         _ObjectIterator[Properties, References],
         _ObjectIterator[Properties, CrossReferences],
@@ -313,4 +320,5 @@ class Collection(_CollectionBase, Generic[Properties, References]):
             after
             if after is None or isinstance(after, uuid_package.UUID)
             else uuid_package.UUID(after),
+            cache_size,
         )
