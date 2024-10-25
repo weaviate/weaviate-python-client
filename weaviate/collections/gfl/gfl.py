@@ -89,6 +89,7 @@ class _GFLBase:
 
 
 class _GFLAsync(_GFLBase):
+
     async def create(
         self,
         property_name: str,
@@ -118,7 +119,9 @@ class _GFLAsync(_GFLBase):
                 "uuids": uuids,
                 "collection": self._name,
                 "instruction": instruction,
-                "on_properties": [(property_name, data_type.value)],
+                "on_properties": [
+                    {"name": property_name, "data_type": data_type.value},
+                ],
                 "view_properties": view_properties,
                 "weaviate": {
                     "url": self._cluster_host,
