@@ -104,7 +104,6 @@ class Vectorizers(str, Enum):
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_MISTRAL = "text2vec-mistral"
-    TEXT2VEC_OCTOAI = "text2vec-octoai"
     TEXT2VEC_OLLAMA = "text2vec-ollama"
     TEXT2VEC_OPENAI = "text2vec-openai"
     TEXT2VEC_PALM = "text2vec-palm"  # change to google once 1.27 is the lowest supported version
@@ -328,15 +327,6 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     model: Optional[str]
     baseURL: Optional[str]
     truncate: Optional[bool]
-    vectorizeClassName: bool
-
-
-class _Text2VecOctoConfig(_VectorizerConfigCreate):
-    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
-        default=Vectorizers.TEXT2VEC_OCTOAI, frozen=True, exclude=True
-    )
-    model: Optional[str]
-    baseURL: Optional[str]
     vectorizeClassName: bool
 
 
@@ -823,32 +813,6 @@ class _Vectorizer:
                 Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecMistralConfig(model=model, vectorizeClassName=vectorize_collection_name)
-
-    @staticmethod
-    def text2vec_octoai(
-        *,
-        base_url: Optional[str] = None,
-        model: Optional[str] = None,
-        vectorize_collection_name: bool = True,
-    ) -> _VectorizerConfigCreate:
-        """Create a `_Text2VecOctoConfig` object for use when vectorizing using the `text2vec-octoai` model.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-octoai)
-        for detailed usage.
-
-        Arguments:
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-        """
-        return _Text2VecOctoConfig(
-            baseURL=base_url,
-            model=model,
-            vectorizeClassName=vectorize_collection_name,
-        )
 
     @staticmethod
     def text2vec_ollama(

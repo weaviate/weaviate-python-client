@@ -171,8 +171,6 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by FriendliAI generative models.
         `MISTRAL`
             Weaviate module backed by Mistral generative models.
-        `OCTOAI`
-            Weaviate module backed by OctoAI generative models.
         `OLLAMA`
             Weaviate module backed by generative models deployed on Ollama infrastructure.
         `OPENAI`
@@ -188,7 +186,6 @@ class GenerativeSearches(str, Enum):
     DATABRICKS = "generative-databricks"
     FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
-    OCTOAI = "generative-octoai"
     OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
     PALM = "generative-palm"  # rename to google once all versions support it
@@ -459,16 +456,6 @@ class _GenerativeDatabricks(_GenerativeConfigCreate):
     temperature: Optional[float]
     topK: Optional[int]
     topP: Optional[float]
-
-
-class _GenerativeOctoai(_GenerativeConfigCreate):
-    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
-        default=GenerativeSearches.OCTOAI, frozen=True, exclude=True
-    )
-    baseURL: Optional[str]
-    temperature: Optional[float]
-    maxTokens: Optional[int]
-    model: Optional[str]
 
 
 class _GenerativeMistral(_GenerativeConfigCreate):
@@ -744,30 +731,6 @@ class _Generative:
                 The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
-
-    @staticmethod
-    def octoai(
-        *,
-        base_url: Optional[str] = None,
-        max_tokens: Optional[int] = None,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None,
-    ) -> _GenerativeConfigCreate:
-        """Create a `_GenerativeOctoai` object for use when performing AI generation using the `generative-octoai` module.
-
-        Arguments:
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-        """
-        return _GenerativeOctoai(
-            baseURL=base_url, maxTokens=max_tokens, model=model, temperature=temperature
-        )
 
     @staticmethod
     def ollama(

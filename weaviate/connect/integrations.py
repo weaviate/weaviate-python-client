@@ -83,14 +83,6 @@ class _IntegrationConfigMistral(_IntegrationConfig):
     )
 
 
-class _IntegrationConfigOcto(_IntegrationConfig):
-    api_key: str = Field(serialization_alias="X-OctoAI-Api-Key")
-    requests_per_minute_embeddings: Optional[int] = Field(
-        serialization_alias="X-OctoAI-Ratelimit-RequestPM-Embedding"
-    )
-    base_url: Optional[str] = Field(serialization_alias="X-OctoAI-Baseurl")
-
-
 class Integrations:
     @staticmethod
     def cohere(
@@ -174,19 +166,6 @@ class Integrations:
         base_url: Optional[str] = None,
     ) -> _IntegrationConfig:
         return _IntegrationConfigJina(
-            api_key=api_key,
-            requests_per_minute_embeddings=requests_per_minute_embeddings,
-            base_url=base_url,
-        )
-
-    @staticmethod
-    def octoai(
-        *,
-        api_key: str,
-        requests_per_minute_embeddings: Optional[int] = None,
-        base_url: Optional[str] = None,
-    ) -> _IntegrationConfig:
-        return _IntegrationConfigOcto(
             api_key=api_key,
             requests_per_minute_embeddings=requests_per_minute_embeddings,
             base_url=base_url,
