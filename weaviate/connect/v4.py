@@ -150,10 +150,11 @@ class ConnectionV4(_ConnectionBase):
         try:
             meta = await self.get_meta()
             self._weaviate_version = _ServerVersion.from_string(meta["version"])
-            if "grpc_max_msg_size" in meta:
-                self._grpc_max_msg_size = int(meta["grpc_max_msg_size"])
-            else:
-                _Warnings.grpc_max_msg_size_not_found()
+            if "grpcMaxMessageSize" in meta:
+                self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
+            # Add warning later, when weaviate supported it for a while
+            # else:
+            #     _Warnings.grpc_max_msg_size_not_found()
         except (
             WeaviateConnectionError,
             ReadError,
