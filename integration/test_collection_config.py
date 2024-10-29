@@ -257,7 +257,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
             enabled=True, auto_tenant_activation=True, auto_tenant_creation=True
         ),
         replication_config=Configure.replication(
-            factor=2,
+            factor=1,
             async_enabled=True,
             deletion_strategy=wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
         ),
@@ -339,7 +339,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     else:
         assert config.multi_tenancy_config.auto_tenant_creation is False
 
-    assert config.replication_config.factor == 2
+    assert config.replication_config.factor == 1
     if collection._connection._weaviate_version.is_at_least(1, 26, 0):
         assert config.replication_config.async_enabled is True
     else:

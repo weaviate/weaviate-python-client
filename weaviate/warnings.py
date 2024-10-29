@@ -332,3 +332,12 @@ class _Warnings:
             category=ResourceWarning,
             stacklevel=1,
         )
+
+    @staticmethod
+    def grpc_max_msg_size_not_found() -> None:
+        warnings.warn(
+            message="""Con005: Could not retrieve the maximum GRPC message size from the weaviate server. Using the default
+            value of 10mb. If you need a larger message size, please update weaviate.""",
+            category=UserWarning,
+            stacklevel=1,
+        )

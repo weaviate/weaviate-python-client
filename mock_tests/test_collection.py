@@ -310,18 +310,6 @@ def test_return_from_bind_module(
                 "X-Jinaai-Baseurl": "http://some-url.com",
             },
         ),
-        (
-            [
-                wvc.config.Integrations.octoai(
-                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
-                )
-            ],
-            {
-                "X-Octoai-Api-Key": "key",
-                "X-Octoai-Ratelimit-RequestPM-Embedding": "50",
-                "X-Octoai-Baseurl": "http://some-url.com",
-            },
-        ),
     ],
 )
 def test_integration_config(
