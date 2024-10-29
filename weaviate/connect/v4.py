@@ -237,7 +237,6 @@ class ConnectionV4(_ConnectionBase):
     async def _open_connections_rest(
         self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool
     ) -> None:
-
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self.__make_clients()

@@ -241,9 +241,11 @@ class _QueryGRPC(_BaseGRPC):
                 )
                 vector_for_targets_tmp = None
             else:
-                vector_for_targets_tmp, vector_bytes_tmp, target_vectors_tmp = (
-                    self.__vector_for_target(vector.vector, targets, "vector")
-                )
+                (
+                    vector_for_targets_tmp,
+                    vector_bytes_tmp,
+                    target_vectors_tmp,
+                ) = self.__vector_for_target(vector.vector, targets, "vector")
                 vector_per_target_tmp = None
                 if target_vectors_tmp is not None:
                     targets, target_vectors = self.__recompute_target_vector_to_grpc(
@@ -264,9 +266,11 @@ class _QueryGRPC(_BaseGRPC):
                 )
                 vector_for_targets_tmp = None
             else:
-                vector_for_targets_tmp, vector_bytes_tmp, target_vectors_tmp = (
-                    self.__vector_for_target(vector, targets, "vector")
-                )
+                (
+                    vector_for_targets_tmp,
+                    vector_bytes_tmp,
+                    target_vectors_tmp,
+                ) = self.__vector_for_target(vector, targets, "vector")
                 vector_per_target_tmp = None
                 if target_vectors_tmp is not None:
                     targets, target_vectors = self.__recompute_target_vector_to_grpc(
