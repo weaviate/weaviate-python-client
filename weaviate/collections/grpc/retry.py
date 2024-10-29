@@ -1,5 +1,6 @@
 import asyncio
-from typing import Awaitable, Callable, ParamSpec, TypeVar
+from typing import Awaitable, Callable
+from typing_extensions import ParamSpec, TypeVar
 
 from grpc import StatusCode  # type: ignore
 from grpc.aio import AioRpcError  # type: ignore
