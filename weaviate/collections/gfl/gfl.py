@@ -38,6 +38,7 @@ class _GFLBase:
         self._cluster_host = connection.url.replace(":443", "")
         self._headers = {"Content-Type": "application/json"}
         self._headers.update(connection.additional_headers)
+        self._timeout = 20
 
         # Store token for use in request body instead of headers
         self._token = self._connection.get_current_bearer_token().replace("Bearer ", "")
@@ -54,7 +55,7 @@ class _GFLBase:
     # Implement the request methods
     async def get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Response:
         try:
-            response = await self._client.get(path, params=params)
+            response = await self._client.get(path, params=params, timeout=self._timeout)
             response.raise_for_status()
             return response
         except HTTPError as e:
@@ -62,7 +63,7 @@ class _GFLBase:
 
     async def post(self, path: str, json: Optional[Dict[str, Any]] = None) -> Response:
         try:
-            response = await self._client.post(path, json=json)
+            response = await self._client.post(path, json=json, timeout=self._timeout)
             # response.raise_for_status()
             if response.status_code >= 400:
                 error_message = f"Error {response.status_code}: {response.text}"
@@ -73,7 +74,7 @@ class _GFLBase:
 
     async def put(self, path: str, json: Optional[Dict[str, Any]] = None) -> Response:
         try:
-            response = await self._client.put(path, json=json)
+            response = await self._client.put(path, json=json, timeout=self._timeout)
             response.raise_for_status()
             return response
         except HTTPError as e:
@@ -81,7 +82,7 @@ class _GFLBase:
 
     async def delete(self, path: str) -> Response:
         try:
-            response = await self._client.delete(path)
+            response = await self._client.delete(path, timeout=self._timeout)
             response.raise_for_status()
             return response
         except HTTPError as e:
