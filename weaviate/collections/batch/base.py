@@ -402,6 +402,12 @@ class _BatchBase:
             try:
                 self.__dynamic_batch_rate_loop()
             except Exception as e:
+                logger.error(
+                    {
+                        "message": "There was an error in the dynamic batch rate loop!",
+                        "exception": e,
+                    }
+                )
                 self.__bg_thread_exception = e
 
         demonDynamic = threading.Thread(
@@ -415,6 +421,12 @@ class _BatchBase:
             try:
                 self.__batch_send()
             except Exception as e:
+                logger.error(
+                    {
+                        "message": "There was an error in the batching loop!",
+                        "exception": e,
+                    }
+                )
                 self.__bg_thread_exception = e
 
         demonBatchSend = threading.Thread(
