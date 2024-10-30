@@ -10,7 +10,13 @@ from werkzeug import Request, Response
 
 import weaviate
 import weaviate.classes as wvc
-from mock_tests.conftest import MOCK_PORT, MOCK_IP, MOCK_PORT_GRPC, CLIENT_ID
+from mock_tests.conftest import (
+    MOCK_PORT,
+    MOCK_IP,
+    MOCK_PORT_GRPC,
+    CLIENT_ID,
+    MockRetriesWeaviateService,
+)
 from weaviate.collections.classes.config import (
     CollectionConfig,
     VectorIndexConfigFlat,
@@ -416,3 +422,30 @@ def test_backup_cancel_while_create_and_restore(
             backend="filesystem",
             wait_for_completion=True,
         )
+
+
+def test_grpc_retry_logic(
+    retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService]
+) -> None:
+    collection = retries[0]
+    service = retries[1]
+
+    with pytest.raises(weaviate.exceptions.WeaviateQueryError):
+        # checks first call correctly handles error that isn't UNAVAILABLE
+        collection.query.fetch_objects()
+
+    # should perform one retry and then succeed subsequently
+    objs = collection.query.fetch_objects().objects
+    assert len(objs) == 1
+    assert objs[0].properties["name"] == "test"
+    assert service.search_count == 2
+
+    with pytest.raises(grpc.aio.AioRpcError):
+        # checks first call correctly handles error that isn't UNAVAILABLE
+        collection.tenants.get()
+
+    # should perform one retry and then succeed subsequently
+    tenants = list(collection.tenants.get().values())
+    assert len(tenants) == 1
+    assert tenants[0].name == "tenant1"
+    assert service.tenants_count == 2

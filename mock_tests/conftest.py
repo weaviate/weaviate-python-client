@@ -250,3 +250,63 @@ def timeouts_collection(
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
     return weaviate_timeouts_client.collections.get(mock_class["class"])
+
+
+class MockRetriesWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    search_count = 0
+    tenants_count = 0
+
+    def Search(
+        self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
+    ) -> search_get_pb2.SearchReply:
+        if self.search_count == 0:
+            self.search_count += 1
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details("Internal server error")
+            return search_get_pb2.SearchReply()
+        if self.search_count == 1:
+            self.search_count += 1
+            context.set_code(grpc.StatusCode.UNAVAILABLE)
+            context.set_details("Service is unavailable")
+            return search_get_pb2.SearchReply()
+        return search_get_pb2.SearchReply(
+            results=[
+                search_get_pb2.SearchResult(
+                    properties=search_get_pb2.PropertiesResult(
+                        non_ref_props=properties_pb2.Properties(
+                            fields={"name": properties_pb2.Value(text_value="test")}
+                        )
+                    )
+                )
+            ]
+        )
+
+    def TenantsGet(
+        self, request: tenants_pb2.TenantsGetRequest, context: ServicerContext
+    ) -> tenants_pb2.TenantsGetReply:
+        if self.tenants_count == 0:
+            self.tenants_count += 1
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details("Internal server error")
+            return tenants_pb2.TenantsGetReply()
+        if self.tenants_count == 1:
+            self.tenants_count += 1
+            context.set_code(grpc.StatusCode.UNAVAILABLE)
+            context.set_details("Service is unavailable")
+            return tenants_pb2.TenantsGetReply()
+        return tenants_pb2.TenantsGetReply(
+            tenants=[
+                tenants_pb2.Tenant(
+                    name="tenant1", activity_status=tenants_pb2.TENANT_ACTIVITY_STATUS_ACTIVE
+                )
+            ]
+        )
+
+
+@pytest.fixture(scope="function")
+def retries(
+    weaviate_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+) -> tuple[weaviate.collections.Collection, MockRetriesWeaviateService]:
+    service = MockRetriesWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+    return weaviate_client.collections.get("RetriesCollection"), service
