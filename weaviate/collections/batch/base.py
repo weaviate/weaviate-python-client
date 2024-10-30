@@ -343,6 +343,13 @@ class _BatchBase:
                 while True:
                     if self.__handle_futures(futures, break_early=True):
                         break
+            elif self.__flushing:
+                # wait for all futures to be done
+                while True:
+                    self.__handle_futures(futures, break_early=False)
+                    if len(futures) == 0:
+                        self.__flushing = False
+                        break
 
             # check if any of the futures are done before looping again
             if len(futures) > 0:
@@ -709,6 +716,7 @@ class _BatchBase:
             self.__active_requests > 0
             or len(self.__batch_objects) > 0
             or len(self.__batch_references) > 0
+            or self.__flushing
         ):
             time.sleep(0.01)
             self.__check_bg_thread_alive()
