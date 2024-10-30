@@ -517,11 +517,10 @@ class _BatchBase:
         if (n := len(objs)) > 0:
             start = time.time()
             try:
+                res = await self.__batch_grpc.objects(objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT)
                 return _SendReturn(
                     n=n,
-                    response=await self.__batch_grpc.objects(
-                        objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
-                    ),
+                    response=res,
                     start=start,
                 )
             except Exception as e:
