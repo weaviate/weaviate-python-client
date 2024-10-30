@@ -1,4 +1,5 @@
 import asyncio
+import os
 import threading
 import time
 from concurrent.futures import Future
@@ -7,6 +8,7 @@ from typing import Any, Callable, Coroutine, Dict, Generic, Optional, TypeVar, c
 from typing_extensions import ParamSpec
 
 from weaviate.exceptions import WeaviateClosedClientError
+from weaviate.logger import logger
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -20,6 +22,7 @@ class _Future(Future, Generic[T]):
 class _EventLoop:
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         self.loop = loop
+        self.pid = os.getpid()
 
     def start(self) -> None:
         if self.loop is not None:
@@ -115,6 +118,17 @@ class _EventLoopSingleton:
     @classmethod
     def get_instance(cls) -> _EventLoop:
         if cls._instance is not None:
+            if cls._instance.pid != os.getpid():
+                logger.warning(
+                    {
+                        "message": "Event loop instance is being recreated due to a fork",
+                        "old_pid": cls._instance.pid,
+                        "new_pid": os.getpid(),
+                    }
+                )
+                cls._instance.shutdown()
+                cls._instance = _EventLoop()
+                cls._instance.start()
             return cls._instance
         cls._instance = _EventLoop()
         cls._instance.start()
