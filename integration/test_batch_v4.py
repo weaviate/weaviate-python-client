@@ -548,13 +548,13 @@ def test_add_1000_tenant_objects_with_async_indexing_and_wait_for_only_one(
 @pytest.mark.parametrize(
     "batching_method",
     [
-        # lambda client: client.batch.dynamic(),
-        # lambda client: client.batch.fixed_size(),
+        lambda client: client.batch.dynamic(),
+        lambda client: client.batch.fixed_size(),
         lambda client: client.batch.rate_limit(1000),
     ],
     ids=[
-        # "test_add_one_object_and_a_self_reference_dynamic",
-        # "test_add_one_object_and_a_self_reference_fixed_size",
+        "test_add_one_object_and_a_self_reference_dynamic",
+        "test_add_one_object_and_a_self_reference_fixed_size",
         "test_add_one_object_and_a_self_reference_rate_limit",
     ],
 )
