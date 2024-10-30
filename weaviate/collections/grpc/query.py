@@ -47,12 +47,14 @@ from weaviate.collections.classes.internal import (
     _GroupBy,
 )
 from weaviate.collections.filters import _FilterToGRPC
+from weaviate.collections.grpc.retry import _Retry
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateQueryError,
     WeaviateUnsupportedFeatureError,
     WeaviateInvalidInputError,
+    WeaviateRetryError,
 )
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import NUMBER, UUID
@@ -799,13 +801,16 @@ class _QueryGRPC(_BaseGRPC):
     async def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
         try:
             assert self._connection.grpc_stub is not None
-            res = await self._connection.grpc_stub.Search(
+            res = await _Retry(4).with_exponential_backoff(
+                0,
+                f"Searching in collection {request.collection}",
+                self._connection.grpc_stub.Search,
                 request,
                 metadata=self._connection.grpc_headers(),
                 timeout=self._connection.timeout_config.query,
             )
             return cast(search_get_pb2.SearchReply, res)
-        except AioRpcError as e:
+        except (AioRpcError, WeaviateRetryError) as e:
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:
