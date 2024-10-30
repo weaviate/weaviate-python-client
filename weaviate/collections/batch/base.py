@@ -158,6 +158,11 @@ class _SendReturn(Generic[T]):
 
 _BatchMode: TypeAlias = Union[_DynamicBatching, _FixedSizeBatching, _RateLimitedBatching]
 
+_BatchFuture = Union[
+    concurrent.futures.Future[_SendReturn[BatchObjectReturn]],
+    concurrent.futures.Future[_SendReturn[BatchReferenceReturn]],
+]
+
 
 class _BatchBase:
     def __init__(
@@ -260,23 +265,21 @@ class _BatchBase:
             time.sleep(0.01)
 
         # copy the results to the public results
-        self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
-        self.__results_for_wrapper_backup.failed_objects = self.__results_for_wrapper.failed_objects
-        self.__results_for_wrapper_backup.failed_references = (
-            self.__results_for_wrapper.failed_references
-        )
-        self.__results_for_wrapper_backup.imported_shards = (
-            self.__results_for_wrapper.imported_shards
-        )
+        with self.__results_lock:
+            self.__results_for_wrapper_backup.results = self.__results_for_wrapper.results
+            self.__results_for_wrapper_backup.failed_objects = (
+                self.__results_for_wrapper.failed_objects
+            )
+            self.__results_for_wrapper_backup.failed_references = (
+                self.__results_for_wrapper.failed_references
+            )
+            self.__results_for_wrapper_backup.imported_shards = (
+                self.__results_for_wrapper.imported_shards
+            )
 
     def __batch_send(self) -> None:
         refresh_time: float = 0.01
-        futures: list[
-            Union[
-                concurrent.futures.Future[_SendReturn[BatchObjectReturn]],
-                concurrent.futures.Future[_SendReturn[BatchReferenceReturn]],
-            ]
-        ] = []
+        futures: list[_BatchFuture] = []
         max_wait = 5
         now = time.time()
         while (
@@ -336,42 +339,44 @@ class _BatchBase:
                     futures.append(self.__loop.schedule(self.__send_refs, refs))
                     self.__active_requests += 1
             elif len(futures) > 0:
-                # wait for at least one of the futures to be done
-                all_running = True
-                while all_running:
-                    for i, future in enumerate(futures):
-                        if future.done():
-                            self.__active_requests -= 1
-                            ret = futures.pop(i).result()
-                            if isinstance(ret.response, BatchObjectReturn):
-                                self.__handle_objs(
-                                    cast(_SendReturn[BatchObjectReturn], ret),
-                                    readd_rate_limit=isinstance(
-                                        self.__batching_mode, _RateLimitedBatching
-                                    ),
-                                )
-                            elif isinstance(ret.response, BatchReferenceReturn):
-                                self.__handle_refs(cast(_SendReturn[BatchReferenceReturn], ret))
-                            else:
-                                raise Exception("Unknown response type")
-                            all_running = False
+                # wait for at least one of the futures to be done because len(futures) == self.__concurrent_requests
+                while True:
+                    if self.__handle_futures(futures, break_early=True):
+                        break
 
             # check if any of the futures are done before looping again
-            for i, future in enumerate(futures):
-                if future.done():
-                    self.__active_requests -= 1
-                    ret = futures.pop(i).result()
-                    if isinstance(ret.response, BatchObjectReturn):
-                        self.__handle_objs(
-                            cast(_SendReturn[BatchObjectReturn], ret),
-                            readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
-                        )
-                    elif isinstance(ret.response, BatchReferenceReturn):
-                        self.__handle_refs(cast(_SendReturn[BatchReferenceReturn], ret))
-                    else:
-                        raise Exception("Unknown response type")
+            if len(futures) > 0:
+                self.__handle_futures(futures, break_early=False)
+            else:
+                time.sleep(refresh_time)
 
-            time.sleep(refresh_time)
+        # if thread is shutting down, wait for all futures to return
+        start = time.time()
+        if len(futures) > 0:
+            while True:
+                self.__handle_futures(futures, break_early=False)
+                if len(futures) == 0:
+                    break
+                if time.time() - start > 10:  # wait for 10 seconds max
+                    break
+
+    def __handle_futures(self, futures: List[_BatchFuture], break_early: bool) -> bool:
+        for i, future in enumerate(futures):
+            if future.done():
+                self.__active_requests -= 1
+                ret = futures.pop(i).result()
+                if isinstance(ret.response, BatchObjectReturn):
+                    self.__handle_objs(
+                        cast(_SendReturn[BatchObjectReturn], ret),
+                        readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
+                    )
+                elif isinstance(ret.response, BatchReferenceReturn):
+                    self.__handle_refs(cast(_SendReturn[BatchReferenceReturn], ret))
+                else:
+                    raise Exception("Unknown response type")
+                if break_early:
+                    return True
+        return False
 
     def __dynamic_batch_rate_loop(self) -> None:
         refresh_time = 1
@@ -511,33 +516,30 @@ class _BatchBase:
                     self.__recommended_num_objects = 0
                     self.__concurrent_requests = 2
 
-    async def __send_objs(
-        self, objs: List[_BatchObject]
-    ) -> Optional[_SendReturn[BatchObjectReturn]]:
-        if (n := len(objs)) > 0:
-            start = time.time()
-            try:
-                res = await self.__batch_grpc.objects(objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT)
-                return _SendReturn(
-                    n=n,
-                    response=res,
-                    start=start,
-                )
-            except Exception as e:
-                errors_obj = {
-                    idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
-                }
-                return _SendReturn(
-                    n=n,
-                    response=BatchObjectReturn(
-                        _all_responses=list(errors_obj.values()),
-                        elapsed_seconds=time.time() - start,
-                        errors=errors_obj,
-                        has_errors=True,
-                    ),
-                    start=start,
-                )
-        return None
+    async def __send_objs(self, objs: List[_BatchObject]) -> _SendReturn[BatchObjectReturn]:
+        n = len(objs)
+        start = time.time()
+        try:
+            res = await self.__batch_grpc.objects(objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT)
+            return _SendReturn(
+                n=n,
+                response=res,
+                start=start,
+            )
+        except Exception as e:
+            errors_obj = {
+                idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
+            }
+            return _SendReturn(
+                n=n,
+                response=BatchObjectReturn(
+                    _all_responses=list(errors_obj.values()),
+                    elapsed_seconds=time.time() - start,
+                    errors=errors_obj,
+                    has_errors=True,
+                ),
+                start=start,
+            )
 
     def __handle_objs(
         self, return_: _SendReturn[BatchObjectReturn], readd_rate_limit: bool
@@ -643,32 +645,28 @@ class _BatchBase:
             self.__results_for_wrapper.failed_objects.extend(response_obj.errors.values())
         self.__took_queue.append(time.time() - return_.start)
 
-    async def __send_refs(
-        self, refs: List[_BatchReference]
-    ) -> Optional[_SendReturn[BatchReferenceReturn]]:
-        if (n := len(refs)) > 0:
-            start = time.time()
-            try:
-                return _SendReturn(
-                    n=n,
-                    response=await self.__batch_rest.references(references=refs),
-                    start=start,
-                )
-            except Exception as e:
-                errors_ref = {
-                    idx: ErrorReference(message=repr(e), reference=ref)
-                    for idx, ref in enumerate(refs)
-                }
-                return _SendReturn(
-                    n=n,
-                    response=BatchReferenceReturn(
-                        elapsed_seconds=time.time() - start,
-                        errors=errors_ref,
-                        has_errors=True,
-                    ),
-                    start=start,
-                )
-        return None
+    async def __send_refs(self, refs: List[_BatchReference]) -> _SendReturn[BatchReferenceReturn]:
+        n = len(refs)
+        start = time.time()
+        try:
+            return _SendReturn(
+                n=n,
+                response=await self.__batch_rest.references(references=refs),
+                start=start,
+            )
+        except Exception as e:
+            errors_ref = {
+                idx: ErrorReference(message=repr(e), reference=ref) for idx, ref in enumerate(refs)
+            }
+            return _SendReturn(
+                n=n,
+                response=BatchReferenceReturn(
+                    elapsed_seconds=time.time() - start,
+                    errors=errors_ref,
+                    has_errors=True,
+                ),
+                start=start,
+            )
 
     def __handle_refs(self, return_: _SendReturn[BatchReferenceReturn]) -> None:
         response_ref = return_.response
