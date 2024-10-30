@@ -8,7 +8,6 @@ from typing import Any, Callable, Coroutine, Dict, Generic, Optional, TypeVar, c
 from typing_extensions import ParamSpec
 
 from weaviate.exceptions import WeaviateClosedClientError
-from weaviate.logger import logger
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -22,7 +21,6 @@ class _Future(Future, Generic[T]):
 class _EventLoop:
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         self.loop = loop
-        self.pid = os.getpid()
 
     def start(self) -> None:
         if self.loop is not None:
@@ -113,28 +111,22 @@ class _EventLoop:
 
 
 class _EventLoopSingleton:
-    _instance: Optional[_EventLoop] = None
+    _instances: Optional[Dict[int, _EventLoop]] = None
 
     @classmethod
     def get_instance(cls) -> _EventLoop:
-        if cls._instance is not None:
-            if cls._instance.pid != os.getpid():
-                logger.warning(
-                    {
-                        "message": "Event loop instance is being recreated due to a fork",
-                        "old_pid": cls._instance.pid,
-                        "new_pid": os.getpid(),
-                    }
-                )
-                cls._instance.shutdown()
-                cls._instance = _EventLoop()
-                cls._instance.start()
-            return cls._instance
-        cls._instance = _EventLoop()
-        cls._instance.start()
-        return cls._instance
+        pid = os.getpid()
+        if cls._instances is not None and pid in cls._instances:
+            return cls._instances[pid]
+        if cls._instances is None:
+            cls._instances = {}
+        instance = _EventLoop()
+        instance.start()
+        cls._instances[pid] = instance
+        return instance
 
     def __del__(self) -> None:
-        if self._instance is not None:
-            self._instance.shutdown()
-            self._instance = None
+        if self._instances is not None:
+            for instance in self._instances.values():
+                instance.shutdown()
+            self._instances = None
