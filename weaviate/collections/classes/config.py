@@ -426,11 +426,11 @@ class _MultiTenancyConfigUpdate(_ConfigUpdateModel):
     autoTenantActivation: Optional[bool]
 
 
-class _GenerativeConfigCreate(_ConfigCreateModel):
+class _GenerativeConfigCreateAndUpdate(_ConfigCreateModel):
     generative: Union[GenerativeSearches, _EnumLikeStr]
 
 
-class _GenerativeAnyscale(_GenerativeConfigCreate):
+class _GenerativeAnyscale(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
@@ -438,7 +438,7 @@ class _GenerativeAnyscale(_GenerativeConfigCreate):
     model: Optional[str]
 
 
-class _GenerativeCustom(_GenerativeConfigCreate):
+class _GenerativeCustom(_GenerativeConfigCreateAndUpdate):
     module_config: Optional[Dict[str, Any]]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -447,7 +447,7 @@ class _GenerativeCustom(_GenerativeConfigCreate):
         return self.module_config
 
 
-class _GenerativeDatabricks(_GenerativeConfigCreate):
+class _GenerativeDatabricks(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.DATABRICKS, frozen=True, exclude=True
     )
@@ -458,7 +458,7 @@ class _GenerativeDatabricks(_GenerativeConfigCreate):
     topP: Optional[float]
 
 
-class _GenerativeMistral(_GenerativeConfigCreate):
+class _GenerativeMistral(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
     )
@@ -467,7 +467,7 @@ class _GenerativeMistral(_GenerativeConfigCreate):
     maxTokens: Optional[int]
 
 
-class _GenerativeFriendliai(_GenerativeConfigCreate):
+class _GenerativeFriendliai(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
     )
@@ -477,7 +477,7 @@ class _GenerativeFriendliai(_GenerativeConfigCreate):
     baseURL: Optional[str]
 
 
-class _GenerativeOllama(_GenerativeConfigCreate):
+class _GenerativeOllama(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
     )
@@ -485,7 +485,7 @@ class _GenerativeOllama(_GenerativeConfigCreate):
     apiEndpoint: Optional[str]
 
 
-class _GenerativeOpenAIConfigBase(_GenerativeConfigCreate):
+class _GenerativeOpenAIConfigBase(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
@@ -512,7 +512,7 @@ class _GenerativeAzureOpenAIConfig(_GenerativeOpenAIConfigBase):
     deploymentId: str
 
 
-class _GenerativeCohereConfig(_GenerativeConfigCreate):
+class _GenerativeCohereConfig(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
@@ -531,7 +531,7 @@ class _GenerativeCohereConfig(_GenerativeConfigCreate):
         return ret_dict
 
 
-class _GenerativeGoogleConfig(_GenerativeConfigCreate):
+class _GenerativeGoogleConfig(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
@@ -544,7 +544,7 @@ class _GenerativeGoogleConfig(_GenerativeConfigCreate):
     topP: Optional[float]
 
 
-class _GenerativeAWSConfig(_GenerativeConfigCreate):
+class _GenerativeAWSConfig(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
@@ -554,7 +554,7 @@ class _GenerativeAWSConfig(_GenerativeConfigCreate):
     endpoint: Optional[str]
 
 
-class _GenerativeAnthropicConfig(_GenerativeConfigCreate):
+class _GenerativeAnthropicConfig(_GenerativeConfigCreateAndUpdate):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANTHROPIC, frozen=True, exclude=True
     )
@@ -566,21 +566,21 @@ class _GenerativeAnthropicConfig(_GenerativeConfigCreate):
     topP: Optional[float]
 
 
-class _RerankerConfigCreate(_ConfigCreateModel):
+class _RerankerConfigCreateAndUpdate(_ConfigCreateModel):
     reranker: Union[Rerankers, _EnumLikeStr]
 
 
 RerankerCohereModel = Literal["rerank-english-v2.0", "rerank-multilingual-v2.0"]
 
 
-class _RerankerCohereConfig(_RerankerConfigCreate):
+class _RerankerCohereConfig(_RerankerConfigCreateAndUpdate):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.COHERE, frozen=True, exclude=True
     )
     model: Optional[Union[RerankerCohereModel, str]] = Field(default=None)
 
 
-class _RerankerCustomConfig(_RerankerConfigCreate):
+class _RerankerCustomConfig(_RerankerConfigCreateAndUpdate):
     module_config: Optional[Dict[str, Any]]
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -589,7 +589,7 @@ class _RerankerCustomConfig(_RerankerConfigCreate):
         return self.module_config
 
 
-class _RerankerTransformersConfig(_RerankerConfigCreate):
+class _RerankerTransformersConfig(_RerankerConfigCreateAndUpdate):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.TRANSFORMERS, frozen=True, exclude=True
     )
@@ -604,7 +604,7 @@ RerankerJinaAIModel = Literal[
 ]
 
 
-class _RerankerJinaAIConfig(_RerankerConfigCreate):
+class _RerankerJinaAIConfig(_RerankerConfigCreateAndUpdate):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.JINAAI, frozen=True, exclude=True
     )
@@ -614,7 +614,7 @@ class _RerankerJinaAIConfig(_RerankerConfigCreate):
 RerankerVoyageAIModel = Literal["rerank-2", "rerank-2-lite", "rerank-lite-1", "rerank-1"]
 
 
-class _RerankerVoyageAIConfig(_RerankerConfigCreate):
+class _RerankerVoyageAIConfig(_RerankerConfigCreateAndUpdate):
     reranker: Union[Rerankers, _EnumLikeStr] = Field(
         default=Rerankers.VOYAGEAI, frozen=True, exclude=True
     )
@@ -632,7 +632,7 @@ class _Generative:
     def anyscale(
         model: Optional[str] = None,
         temperature: Optional[float] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativeAnyscale` object for use when generating using the `generative-anyscale` module.
 
         Arguments:
@@ -647,7 +647,7 @@ class _Generative:
     def custom(
         module_name: str,
         module_config: Optional[Dict[str, Any]] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativeCustom` object for use when generating using a custom specification.
 
         Arguments:
@@ -666,7 +666,7 @@ class _Generative:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativeDatabricks` object for use when performing AI generation using the `generative-databricks` module.
 
         Arguments:
@@ -696,7 +696,7 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """
         Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
 
@@ -719,7 +719,7 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativeMistral` object for use when performing AI generation using the `generative-mistral` module.
 
         Arguments:
@@ -737,7 +737,7 @@ class _Generative:
         *,
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """
         Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
 
@@ -759,7 +759,7 @@ class _Generative:
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativeOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
@@ -801,7 +801,7 @@ class _Generative:
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativeAzureOpenAIConfig` object for use when performing AI generation using the `generative-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
@@ -845,7 +845,7 @@ class _Generative:
         stop_sequences: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         base_url: Optional[AnyHttpUrl] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativeCohereConfig` object for use when performing AI generation using the `generative-cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-cohere)
@@ -889,7 +889,7 @@ class _Generative:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativePaLMConfig` object for use when performing AI generation using the `generative-palm` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-palm)
@@ -931,7 +931,7 @@ class _Generative:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativeGoogleConfig` object for use when performing AI generation using the `generative-google` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
@@ -969,7 +969,7 @@ class _Generative:
         region: str = "",  # cant have a non-default value after a default value, but we cant change the order for BC
         endpoint: Optional[str] = None,
         service: Union[AWSService, str] = "bedrock",
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """Create a `_GenerativeAWSConfig` object for use when performing AI generation using the `generative-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
@@ -1000,7 +1000,7 @@ class _Generative:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeConfigCreate:
+    ) -> _GenerativeConfigCreateAndUpdate:
         """
         Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
 
@@ -1036,7 +1036,7 @@ class _Reranker:
     """
 
     @staticmethod
-    def transformers() -> _RerankerConfigCreate:
+    def transformers() -> _RerankerConfigCreateAndUpdate:
         """Create a `_RerankerTransformersConfig` object for use when reranking using the `reranker-transformers` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-transformers)
@@ -1047,7 +1047,7 @@ class _Reranker:
     @staticmethod
     def custom(
         module_name: str, module_config: Optional[Dict[str, Any]] = None
-    ) -> _RerankerConfigCreate:
+    ) -> _RerankerConfigCreateAndUpdate:
         """Create a `_RerankerCustomConfig` object for use when reranking using a custom module.
 
         Arguments:
@@ -1063,7 +1063,7 @@ class _Reranker:
     @staticmethod
     def cohere(
         model: Optional[Union[RerankerCohereModel, str]] = None,
-    ) -> _RerankerConfigCreate:
+    ) -> _RerankerConfigCreateAndUpdate:
         """Create a `_RerankerCohereConfig` object for use when reranking using the `reranker-cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-cohere)
@@ -1078,7 +1078,7 @@ class _Reranker:
     @staticmethod
     def jinaai(
         model: Optional[Union[RerankerJinaAIModel, str]] = None,
-    ) -> _RerankerConfigCreate:
+    ) -> _RerankerConfigCreateAndUpdate:
         """Create a `_RerankerJinaAIConfig` object for use when reranking using the `reranker-jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-jinaai)
@@ -1093,7 +1093,7 @@ class _Reranker:
     @staticmethod
     def voyageai(
         model: Optional[Union[RerankerVoyageAIModel, str]] = None,
-    ) -> _RerankerConfigCreate:
+    ) -> _RerankerConfigCreateAndUpdate:
         """Create a `_RerankerVoyageAIConfig` object for use when reranking using the `reranker-voyageai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-voyageai)
@@ -1124,10 +1124,12 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
     moduleConfig: _VectorizerConfigCreate = Field(
         default=_Vectorizer.none(), alias="vectorizer_config"
     )
-    generativeSearch: Optional[_GenerativeConfigCreate] = Field(
+    generativeSearch: Optional[_GenerativeConfigCreateAndUpdate] = Field(
         default=None, alias="generative_config"
     )
-    rerankerConfig: Optional[_RerankerConfigCreate] = Field(default=None, alias="reranker_config")
+    rerankerConfig: Optional[_RerankerConfigCreateAndUpdate] = Field(
+        default=None, alias="reranker_config"
+    )
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict: Dict[str, Any] = {}
@@ -1138,9 +1140,9 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
                 continue
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
-            elif isinstance(val, _GenerativeConfigCreate):
+            elif isinstance(val, _GenerativeConfigCreateAndUpdate):
                 self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
-            elif isinstance(val, _RerankerConfigCreate):
+            elif isinstance(val, _RerankerConfigCreateAndUpdate):
                 self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
             elif isinstance(val, _VectorizerConfigCreate):
                 ret_dict["vectorizer"] = val.vectorizer.value
@@ -1182,6 +1184,12 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     )
     multiTenancyConfig: Optional[_MultiTenancyConfigUpdate] = Field(
         default=None, alias="multi_tenancy_config"
+    )
+    generativeConfig: Optional[_GenerativeConfigCreateAndUpdate] = Field(
+        default=None, alias="generative_config"
+    )
+    rerankerConfig: Optional[_RerankerConfigCreateAndUpdate] = Field(
+        default=None, alias="reranker_config"
     )
 
     def __check_quantizers(
@@ -1237,6 +1245,24 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
             schema["vectorIndexConfig"] = self.vectorIndexConfig.merge_with_existing(
                 schema["vectorIndexConfig"]
             )
+        if self.generativeConfig is not None:
+            # clear any existing generative config
+            if "moduleConfig" in schema:
+                schema["moduleConfig"] = {
+                    k: v for k, v in schema["moduleConfig"].items() if "generative" not in k
+                }
+            self.__add_to_module_config(
+                schema, self.generativeConfig.generative.value, self.generativeConfig._to_dict()
+            )
+        if self.rerankerConfig is not None:
+            # clear any existing reranker config
+            if "moduleConfig" in schema:
+                schema["moduleConfig"] = {
+                    k: v for k, v in schema["moduleConfig"].items() if "reranker" not in k
+                }
+            self.__add_to_module_config(
+                schema, self.rerankerConfig.reranker.value, self.rerankerConfig._to_dict()
+            )
         if self.vectorizerConfig is not None:
             if isinstance(self.vectorizerConfig, _VectorIndexConfigUpdate):
                 self.__check_quantizers(
@@ -1264,6 +1290,15 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                         "vectorIndexType"
                     ] = vc.vectorIndexConfig.vector_index_type()
         return schema
+
+    @staticmethod
+    def __add_to_module_config(
+        return_dict: Dict[str, Any], addition_key: str, addition_val: Dict[str, Any]
+    ) -> None:
+        if "moduleConfig" not in return_dict:
+            return_dict["moduleConfig"] = {addition_key: addition_val}
+        else:
+            return_dict["moduleConfig"][addition_key] = addition_val
 
 
 @dataclass
@@ -1850,10 +1885,12 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     vectorizerConfig: Optional[Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]] = (
         Field(default=_Vectorizer.none(), alias="vectorizer_config")
     )
-    generativeSearch: Optional[_GenerativeConfigCreate] = Field(
+    generativeSearch: Optional[_GenerativeConfigCreateAndUpdate] = Field(
         default=None, alias="generative_config"
     )
-    rerankerConfig: Optional[_RerankerConfigCreate] = Field(default=None, alias="reranker_config")
+    rerankerConfig: Optional[_RerankerConfigCreateAndUpdate] = Field(
+        default=None, alias="reranker_config"
+    )
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
@@ -1888,9 +1925,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
                 continue
             elif isinstance(val, (bool, float, str, int)):
                 ret_dict[cls_field] = str(val)
-            elif isinstance(val, _GenerativeConfigCreate):
+            elif isinstance(val, _GenerativeConfigCreateAndUpdate):
                 self.__add_to_module_config(ret_dict, val.generative.value, val._to_dict())
-            elif isinstance(val, _RerankerConfigCreate):
+            elif isinstance(val, _RerankerConfigCreateAndUpdate):
                 self.__add_to_module_config(ret_dict, val.reranker.value, val._to_dict())
             elif isinstance(val, _VectorizerConfigCreate):
                 ret_dict["vectorizer"] = val.vectorizer.value
@@ -2378,6 +2415,8 @@ class Reconfigure:
 
     NamedVectors = _NamedVectorsUpdate
     VectorIndex = _VectorIndexUpdate
+    Generative = _Generative  # config is the same for create and update
+    Reranker = _Reranker  # config is the same for create and update
 
     @staticmethod
     def inverted_index(

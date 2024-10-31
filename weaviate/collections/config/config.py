@@ -20,6 +20,8 @@ from weaviate.collections.classes.config import (
     ShardTypes,
     _NamedVectorConfigUpdate,
     _MultiTenancyConfigUpdate,
+    _GenerativeConfigCreateAndUpdate,
+    _RerankerConfigCreateAndUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -101,6 +103,8 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
+        generative_config: Optional[_GenerativeConfigCreateAndUpdate] = None,
+        reranker_config: Optional[_RerankerConfigCreateAndUpdate] = None,
     ) -> None:
         """Update the configuration for this collection in Weaviate.
 
@@ -113,6 +117,8 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
                 Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
             `replication_config`
                 Configuration for the replication. Use `Reconfigure.replication` to generate one.
+            `reranker_config`
+                Configuration for the reranker. Use `Reconfigure.replication` to generate one.
             `vector_index_config` DEPRECATED USE `vectorizer_config` INSTEAD
                 Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
             `vectorizer_config`
@@ -145,6 +151,8 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
                 vector_index_config=vector_index_config,
                 vectorizer_config=vectorizer_config,
                 multi_tenancy_config=multi_tenancy_config,
+                generative_config=generative_config,
+                reranker_config=reranker_config,
             )
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e

@@ -24,12 +24,12 @@ from weaviate.collections.classes.config import (
     _InvertedIndexConfigCreate,
     _ReferencePropertyBase,
     Configure,
-    _GenerativeConfigCreate,
+    _GenerativeConfigCreateAndUpdate,
     _ReplicationConfigCreate,
     DataType,
     _MultiTenancyConfigCreate,
     _VectorIndexConfigCreate,
-    _RerankerConfigCreate,
+    _RerankerConfigCreateAndUpdate,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.types import Properties
@@ -49,7 +49,7 @@ class CollectionFactory(Protocol):
         ] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        generative_config: Optional[_GenerativeConfigCreate] = None,
+        generative_config: Optional[_GenerativeConfigCreateAndUpdate] = None,
         headers: Optional[Dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         data_model_properties: Optional[Type[Properties]] = None,
@@ -57,7 +57,7 @@ class CollectionFactory(Protocol):
         replication_config: Optional[_ReplicationConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
-        reranker_config: Optional[_RerankerConfigCreate] = None,
+        reranker_config: Optional[_RerankerConfigCreateAndUpdate] = None,
     ) -> Collection[Any, Any]:
         """Typing for fixture."""
         ...
@@ -117,7 +117,7 @@ def collection_factory(
         ] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        generative_config: Optional[_GenerativeConfigCreate] = None,
+        generative_config: Optional[_GenerativeConfigCreateAndUpdate] = None,
         headers: Optional[Dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         data_model_properties: Optional[Type[Properties]] = None,
@@ -125,7 +125,7 @@ def collection_factory(
         replication_config: Optional[_ReplicationConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
-        reranker_config: Optional[_RerankerConfigCreate] = None,
+        reranker_config: Optional[_RerankerConfigCreateAndUpdate] = None,
     ) -> Collection[Any, Any]:
         try:
             nonlocal client_fixture, name_fixtures, call_counter
@@ -186,7 +186,7 @@ class AsyncCollectionFactory(Protocol):
         ] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        generative_config: Optional[_GenerativeConfigCreate] = None,
+        generative_config: Optional[_GenerativeConfigCreateAndUpdate] = None,
         headers: Optional[Dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         data_model_properties: Optional[Type[Properties]] = None,
@@ -194,7 +194,7 @@ class AsyncCollectionFactory(Protocol):
         replication_config: Optional[_ReplicationConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
-        reranker_config: Optional[_RerankerConfigCreate] = None,
+        reranker_config: Optional[_RerankerConfigCreateAndUpdate] = None,
     ) -> CollectionAsync[Any, Any]:
         """Typing for fixture."""
         ...
@@ -254,7 +254,7 @@ async def async_collection_factory(
         ] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
-        generative_config: Optional[_GenerativeConfigCreate] = None,
+        generative_config: Optional[_GenerativeConfigCreateAndUpdate] = None,
         headers: Optional[Dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
         data_model_properties: Optional[Type[Properties]] = None,
@@ -262,7 +262,7 @@ async def async_collection_factory(
         replication_config: Optional[_ReplicationConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         description: Optional[str] = None,
-        reranker_config: Optional[_RerankerConfigCreate] = None,
+        reranker_config: Optional[_RerankerConfigCreateAndUpdate] = None,
     ) -> CollectionAsync[Any, Any]:
         try:
             nonlocal client_fixture, name_fixtures
