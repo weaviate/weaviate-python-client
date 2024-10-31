@@ -35,5 +35,8 @@ pytest ./journey_tests
 pip install gunicorn
 pip install uvicorn
 nohup gunicorn --bind=0.0.0.0:80 --workers=2 --worker-class "uvicorn.workers.UvicornWorker" --preload journey_tests.gunicorn.app:app &
+echo $! > gunicorn_pid.txt
 wait "http://localhost:80"
 pytest ./journey_tests/gunicorn/test.py
+kill -9 $(cat gunicorn_pid.txt)
+rm gunicorn_pid.txt
