@@ -30,7 +30,7 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     GenerativeSearches,
     Rerankers,
-    _RerankerConfigCreateAndUpdate,
+    _RerankerProvider,
     Tokenization,
 )
 from weaviate.collections.classes.tenants import Tenant
@@ -793,7 +793,7 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
 )
 def test_config_reranker_module(
     collection_factory: CollectionFactory,
-    reranker_config: _RerankerConfigCreateAndUpdate,
+    reranker_config: _RerankerProvider,
     expected_reranker: Rerankers,
     expected_model: dict,
 ) -> None:

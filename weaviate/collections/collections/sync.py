@@ -4,7 +4,7 @@ from weaviate.collections.classes.config import (
     _NamedVectorConfigCreate,
     CollectionConfig,
     CollectionConfigSimple,
-    _GenerativeConfigCreateAndUpdate,
+    _GenerativeProvider,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
     _VectorIndexConfigCreate,
@@ -12,7 +12,7 @@ from weaviate.collections.classes.config import (
     _ShardingConfigCreate,
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
-    _RerankerConfigCreateAndUpdate,
+    _RerankerProvider,
     _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.internal import References
@@ -38,13 +38,13 @@ class _Collections:
         name: str,
         *,
         description: Optional[str] = None,
-        generative_config: Optional[_GenerativeConfigCreateAndUpdate] = None,
+        generative_config: Optional[_GenerativeProvider] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
-        reranker_config: Optional[_RerankerConfigCreateAndUpdate] = None,
+        reranker_config: Optional[_RerankerProvider] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[
