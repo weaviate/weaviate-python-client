@@ -15,6 +15,6 @@ docker compose -f ci/docker-compose-async.yml up -d
 
 echo "Wait until the container is up"
 
-wait "http://localhost:8080"
+wait "http://localhost:8090"
 
 echo "All containers running"
