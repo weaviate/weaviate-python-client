@@ -170,6 +170,8 @@ jobs:
         with:
           name: coverage-report-integration-v3
           path: coverage-integration-v3.xml
+      - name: stop weaviate
+        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   integration-tests:
     name: Run Integration Tests
@@ -227,6 +229,8 @@ jobs:
         with:
           name: coverage-report-integration
           path: coverage-integration.xml
+      - name: stop weaviate
+        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   journey-tests:
     name: Run Journey Tests
@@ -261,6 +265,8 @@ jobs:
         run: /bin/bash ci/start_weaviate_jt.sh ${{ matrix.versions.weaviate }}
       - name: Run journey tests
         run: ./journey_tests/run.sh
+      - name: stop weaviate
+        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   Codecov:
     needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]
