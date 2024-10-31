@@ -38,7 +38,7 @@ class _GFLBase:
         self._cluster_host = connection.url.replace(":443", "")
         self._headers = {"Content-Type": "application/json"}
         self._headers.update(connection.additional_headers)
-        self._timeout = 20
+        self._timeout = 40
 
         # Store token for use in request body instead of headers
         self._token = self._connection.get_current_bearer_token().replace("Bearer ", "")
