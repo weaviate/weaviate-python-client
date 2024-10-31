@@ -9,7 +9,7 @@ import weaviate
 from journey_tests.journeys import AsyncJourneys, SyncJourneys
 
 # some dependency instantiate a sync client on import/file root
-client = weaviate.connect_to_local()
+client = weaviate.connect_to_local(port=8090, grpc_port=50061)
 client.close()
 
 
