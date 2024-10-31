@@ -23,8 +23,8 @@ journeys: Journeys = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    journeys["async_"] = await AsyncJourneys.use()
-    journeys["sync"] = SyncJourneys.use()
+    journeys["async_"] = await AsyncJourneys.use(8090, 50061)
+    journeys["sync"] = SyncJourneys.use(8090, 50061)
     try:
         yield
     finally:
