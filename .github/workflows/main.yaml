@@ -260,7 +260,7 @@ jobs:
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
       - name: Run journey tests
-        run: pytest journey_tests
+        run: ./journey_tests/run.sh
 
   Codecov:
     needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]
