@@ -12,6 +12,7 @@ from weaviate.collections.classes.config import (
     Property,
 )
 from weaviate.collections.classes.data import DataObject
+from weaviate.collections.classes.generative import GenerativeProvider
 from weaviate.collections.classes.grpc import GroupBy, Rerank
 from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
 from weaviate.util import _ServerVersion
@@ -644,3 +645,41 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
         ][
             0
         ].metadata.rerank_score
+
+
+def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection) -> None:
+    collection = openai_collection(
+        vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
+    )
+
+    collection.data.insert_many(
+        [
+            DataObject(
+                properties={
+                    "text": "melons are big",
+                    "content": "Teddy is the biggest and bigger than everything else. Teddy is not a fruit",
+                }
+            ),
+            DataObject(
+                properties={
+                    "text": "cats are small. You cannot eat cats. Cats are not fruit",
+                    "content": "bananas are the smallest and smaller than everything else",
+                }
+            ),
+        ]
+    )
+
+    res = collection.generate.near_text(
+        query="small fruit",
+        single_prompt="Is there something to eat in {text} of the given object? Only answer yes if there is something to eat and no if not. Dont use punctuation",
+        grouped_task="Write out the fruit in alphabetical order. Only write the names separated by a space",
+        generative_provider=GenerativeProvider.openai(
+            temperature=0.1,
+            top_p=0.9,
+        ),
+    )
+    assert res.generated == "bananas melons"
+    assert res.objects[0].generated is not None
+    assert res.objects[1].generated is not None
+    assert res.objects[0].generated.lower() == "no"
+    assert res.objects[1].generated.lower() == "yes"

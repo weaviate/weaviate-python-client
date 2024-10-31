@@ -35,7 +35,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        dynamic_rag: Optional[_GenerativeProviderDynamic] = None,
+        generative_provider: Optional[_GenerativeProviderDynamic] = None,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,
@@ -139,7 +139,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
-                dynamic_rag=dynamic_rag,
+                generative_provider=generative_provider,
             ),
         )
         return self._result_to_generative_return(

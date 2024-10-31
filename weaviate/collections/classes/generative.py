@@ -20,14 +20,14 @@ from weaviate.proto.v1.generative_pb2 import (
     GenerativeMistral,
     GenerativeOllama,
     GenerativeOpenAI,
-    GenerativeProvider,
+    GenerativeProvider as GenerativeProviderGRPC,
 )
 
 
 class _GenerativeProviderDynamic(BaseModel):
     generative: Union[GenerativeSearches, _EnumLikeStr]
 
-    def to_grpc(self) -> GenerativeProvider:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         raise NotImplementedError("This method must be implemented in the child class")
 
     def _parse_anyhttpurl(self, url: Optional[AnyHttpUrl]) -> Optional[str]:
@@ -49,8 +49,8 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
     top_p: Optional[float]
     stop_sequences: Optional[List[str]]
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             anthropic=GenerativeAnthropic(
                 base_url=self._parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
@@ -71,8 +71,8 @@ class _GenerativeAnyscale(_GenerativeProviderDynamic):
     model: Optional[str]
     temperature: Optional[float]
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             anyscale=GenerativeAnyscale(
                 base_url=self._parse_anyhttpurl(self.base_url),
                 model=self.model,
@@ -93,8 +93,8 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
     target_variant: Optional[str]
     temperature: Optional[float]
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             aws=GenerativeAWS(
                 model=self.model,
                 region=self.region,
@@ -120,8 +120,8 @@ class _GenerativeCohere(_GenerativeProviderDynamic):
     stop_sequences: Optional[List[str]]
     temperature: Optional[float]
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             cohere=GenerativeCohere(
                 base_url=self._parse_anyhttpurl(self.base_url),
                 k=self.k,
@@ -151,8 +151,8 @@ class _GenerativeDatabricks(_GenerativeProviderDynamic):
     top_log_probs: Optional[int]
     top_p: Optional[float]
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             databricks=GenerativeDatabricks(
                 endpoint=self.endpoint,
                 frequency_penalty=self.frequency_penalty,
@@ -180,8 +180,8 @@ class _GenerativeFriendliai(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             friendliai=GenerativeFriendliAI(
                 base_url=self.base_url,
                 max_tokens=self.max_tokens,
@@ -203,8 +203,8 @@ class _GenerativeMistral(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             mistral=GenerativeMistral(
                 base_url=self._parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
@@ -223,8 +223,8 @@ class _GenerativeOllama(_GenerativeProviderDynamic):
     model: Optional[str]
     temperature: Optional[float]
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             ollama=GenerativeOllama(
                 api_endpoint=self._parse_anyhttpurl(self.api_endpoint),
                 model=self.model,
@@ -250,8 +250,8 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             openai=GenerativeOpenAI(
                 api_version=self.api_version,
                 base_url=self._parse_anyhttpurl(self.base_url),
@@ -293,8 +293,8 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
             else None
         )
 
-    def to_grpc(self) -> GenerativeProvider:
-        return GenerativeProvider(
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
             google=GenerativeGoogle(
                 api_endpoint=self._parse_api_endpoint(self.api_endpoint),
                 endpoint_id=self.endpoint_id,
@@ -312,8 +312,8 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
         )
 
 
-class DynamicRAG:
-    """Use this factory class to create the correct object for the `dynamic_rag` argument in the search methods of the `.generate` namespace.
+class GenerativeProvider:
+    """Use this factory class to create the correct object for the `generative_provider` argument in the search methods of the `.generate` namespace.
 
     Each staticmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.

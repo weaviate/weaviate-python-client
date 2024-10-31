@@ -29,7 +29,7 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        dynamic_rag: Optional[_GenerativeProviderDynamic] = None,
+        generative_provider: Optional[_GenerativeProviderDynamic] = None,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -115,7 +115,7 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
-                dynamic_rag=dynamic_rag,
+                generative_provider=generative_provider,
             ),
         )
         return self._result_to_generative_return(

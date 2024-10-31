@@ -198,22 +198,26 @@ class _Generative:
     single: Optional[str]
     grouped: Optional[str]
     grouped_properties: Optional[List[str]]
-    dynamic_rag: Optional[_GenerativeProviderDynamic]
+    generative_provider: Optional[_GenerativeProviderDynamic]
 
     def __init__(
         self,
         single: Optional[str],
         grouped: Optional[str],
         grouped_properties: Optional[List[str]],
-        dynamic_rag: Optional[_GenerativeProviderDynamic] = None,
+        generative_provider: Optional[_GenerativeProviderDynamic] = None,
     ) -> None:
         self.single = single
         self.grouped = grouped
         self.grouped_properties = grouped_properties
-        self.dynamic_rag = dynamic_rag
+        self.generative_provider = generative_provider
 
     def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
-        if server_version.is_lower_than(1, 27, 1):  # TODO: change to 1.27.2 when it drops
+        if server_version.is_lower_than(1, 27, 1):  # TODO: change to 1.28.0 when it drops
+            if self.generative_provider is not None:
+                raise WeaviateInvalidInputError(
+                    "Dynamic RAG is not supported in this Weaviate version. Please upgrade your server to >=1.28.0"
+                )
             return generative_pb2.GenerativeSearch(
                 single_response_prompt=self.single,
                 grouped_response_task=self.grouped,
@@ -223,7 +227,11 @@ class _Generative:
             return generative_pb2.GenerativeSearch(
                 single=generative_pb2.GenerativeSearch.Single(
                     prompt=self.single,
-                    queries=[self.dynamic_rag.to_grpc()] if self.dynamic_rag is not None else None,
+                    queries=(
+                        [self.generative_provider.to_grpc()]
+                        if self.generative_provider is not None
+                        else None
+                    ),
                 ),
                 grouped=generative_pb2.GenerativeSearch.Grouped(
                     task=self.grouped,
@@ -232,7 +240,11 @@ class _Generative:
                         if self.grouped_properties is not None
                         else None
                     ),
-                    queries=[self.dynamic_rag.to_grpc()] if self.dynamic_rag is not None else None,
+                    queries=(
+                        [self.generative_provider.to_grpc()]
+                        if self.generative_provider is not None
+                        else None
+                    ),
                 ),
             )
 
