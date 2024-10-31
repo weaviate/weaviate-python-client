@@ -15,10 +15,10 @@ on:
 
 env:
   WEAVIATE_123: 1.23.16
-  WEAVIATE_124: preview-rename-object-deletion-to-deletion-strategy-727ecf7
-  WEAVIATE_125: stable-v1.25-d9f6cbb
-  WEAVIATE_126: stable-v1.26-6a411a4
-  WEAVIATE_127: preview-make-grpc-msg-size-configurable-with-2gb-default-ffdbc86
+  WEAVIATE_124: 1.24.26
+  WEAVIATE_125: 1.25.24
+  WEAVIATE_126: 1.26.8
+  WEAVIATE_127: stable-v1.27-372397e
 
 jobs:
   lint-and-format:

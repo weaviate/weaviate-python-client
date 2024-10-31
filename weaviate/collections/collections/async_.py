@@ -1,13 +1,14 @@
 import asyncio
 from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
+
 from pydantic import ValidationError
-from weaviate.collections.collections.base import _CollectionsBase
+
 from weaviate.collections.classes.config import (
     _NamedVectorConfigCreate,
     CollectionConfig,
     CollectionConfigSimple,
     _CollectionConfigCreate,
-    _GenerativeConfigCreate,
+    _GenerativeProvider,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
     _VectorIndexConfigCreate,
@@ -15,7 +16,7 @@ from weaviate.collections.classes.config import (
     _ShardingConfigCreate,
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
-    _RerankerConfigCreate,
+    _RerankerProvider,
     _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.internal import References
@@ -25,6 +26,7 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import CollectionAsync
+from weaviate.collections.collections.base import _CollectionsBase
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _capitalize_first_letter
 from weaviate.validator import _validate_input, _ValidateArgument
@@ -36,13 +38,13 @@ class _CollectionsAsync(_CollectionsBase):
         name: str,
         *,
         description: Optional[str] = None,
-        generative_config: Optional[_GenerativeConfigCreate] = None,
+        generative_config: Optional[_GenerativeProvider] = None,
         inverted_index_config: Optional[_InvertedIndexConfigCreate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigCreate] = None,
         properties: Optional[Sequence[Property]] = None,
         references: Optional[List[_ReferencePropertyBase]] = None,
         replication_config: Optional[_ReplicationConfigCreate] = None,
-        reranker_config: Optional[_RerankerConfigCreate] = None,
+        reranker_config: Optional[_RerankerProvider] = None,
         sharding_config: Optional[_ShardingConfigCreate] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorizer_config: Optional[
