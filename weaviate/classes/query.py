@@ -1,5 +1,6 @@
 from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.filters import Filter
+from weaviate.collections.classes.generative import DynamicRAG
 from weaviate.collections.classes.grpc import (
     HybridFusion,
     GroupBy,
@@ -16,6 +17,7 @@ from weaviate.collections.classes.grpc import (
 from weaviate.collections.classes.types import GeoCoordinate
 
 __all__ = [
+    "DynamicRAG",
     "Filter",
     "GeoCoordinate",
     "GroupBy",

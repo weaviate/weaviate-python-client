@@ -4,6 +4,7 @@ from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
+from weaviate.collections.classes.generative import _GenerativeProviderDynamic
 from weaviate.collections.classes.grpc import (
     METADATA,
     GroupBy,
@@ -32,6 +33,7 @@ class _NearTextGenerateAsync(Generic[Properties, References], _Base[Properties, 
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
+        dynamic_rag: Optional[_GenerativeProviderDynamic] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
@@ -58,6 +60,14 @@ class _NearTextGenerateAsync(Generic[Properties, References], _Base[Properties, 
         Arguments:
             `query`
                 The text or texts to search on, REQUIRED.
+            `single_prompt`
+                The prompt to use for RaG on each object individually.
+            `grouped_task`
+                The prompt to use for RaG on the entire result set.
+            `grouped_properties`
+                The properties to use in the RaG on the entire result set.
+            `dynamic_rag`
+                The provider-specific options used to customize the generation step of the RAG query. Use the `DynamicRAG` factory to create a suitably object for your use-case.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
@@ -115,6 +125,7 @@ class _NearTextGenerateAsync(Generic[Properties, References], _Base[Properties, 
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
+                dynamic_rag=dynamic_rag,
             ),
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),

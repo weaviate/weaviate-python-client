@@ -4,6 +4,7 @@ from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
+from weaviate.collections.classes.generative import _GenerativeProviderDynamic
 from weaviate.collections.classes.grpc import (
     METADATA,
     GroupBy,
@@ -34,6 +35,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
+        dynamic_rag: Optional[_GenerativeProviderDynamic] = None,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,
@@ -64,6 +66,8 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
                 The prompt to use for RaG on the entire result set.
             `grouped_properties`
                 The properties to use in the RaG on the entire result set.
+            `dynamic_rag`
+                The provider-specific options used to customize the generation step of the RAG query. Use the `DynamicRAG` factory to create a suitably object for your use-case.
             `alpha`
                 The weight of the BM25 score. If not specified, the default weight specified by the server is used.
             `vector`
@@ -135,6 +139,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
+                dynamic_rag=dynamic_rag,
             ),
         )
         return self._result_to_generative_return(

@@ -2,6 +2,7 @@ from typing import Generic, Iterable, List, Optional
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import Filter
+from weaviate.collections.classes.generative import _GenerativeProviderDynamic
 from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
     GenerativeReturnType,
@@ -26,6 +27,7 @@ class _FetchObjectsByIDsGenerateAsync(
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
+        dynamic_rag: Optional[_GenerativeProviderDynamic] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -35,7 +37,10 @@ class _FetchObjectsByIDsGenerateAsync(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
-        """Special case of fetch_objects based on filters on uuid"""
+        """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects matching the provided IDs in this collection.
+
+        See the docstring of `fetch_objects` for more information on the arguments.
+        """
         if not ids:
             res = search_get_pb2.SearchReply(results=None)
         else:
@@ -52,6 +57,7 @@ class _FetchObjectsByIDsGenerateAsync(
                     single=single_prompt,
                     grouped=grouped_task,
                     grouped_properties=grouped_properties,
+                    dynamic_rag=dynamic_rag,
                 ),
             )
         return self._result_to_generative_query_return(

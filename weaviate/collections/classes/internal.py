@@ -23,6 +23,7 @@ if sys.version_info < (3, 9):
 else:
     from typing import Annotated, get_type_hints, get_origin, get_args
 
+from weaviate.collections.classes.generative import _GenerativeProviderDynamic
 from weaviate.collections.classes.grpc import (
     QueryNested,
     _QueryReference,
@@ -47,10 +48,10 @@ from weaviate.collections.classes.types import (
     _WeaviateInput,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import _to_beacons
+from weaviate.util import _to_beacons, _ServerVersion
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
 
-from weaviate.proto.v1 import search_get_pb2, generative_pb2
+from weaviate.proto.v1 import base_pb2, search_get_pb2, generative_pb2
 
 
 @dataclass
@@ -197,23 +198,43 @@ class _Generative:
     single: Optional[str]
     grouped: Optional[str]
     grouped_properties: Optional[List[str]]
+    dynamic_rag: Optional[_GenerativeProviderDynamic]
 
     def __init__(
         self,
         single: Optional[str],
         grouped: Optional[str],
         grouped_properties: Optional[List[str]],
+        dynamic_rag: Optional[_GenerativeProviderDynamic] = None,
     ) -> None:
         self.single = single
         self.grouped = grouped
         self.grouped_properties = grouped_properties
+        self.dynamic_rag = dynamic_rag
 
-    def to_grpc(self) -> generative_pb2.GenerativeSearch:
-        return generative_pb2.GenerativeSearch(
-            single_response_prompt=self.single,
-            grouped_response_task=self.grouped,
-            grouped_properties=self.grouped_properties,
-        )
+    def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
+        if server_version.is_lower_than(1, 27, 1):  # TODO: change to 1.27.2 when it drops
+            return generative_pb2.GenerativeSearch(
+                single_response_prompt=self.single,
+                grouped_response_task=self.grouped,
+                grouped_properties=self.grouped_properties,
+            )
+        else:
+            return generative_pb2.GenerativeSearch(
+                single=generative_pb2.GenerativeSearch.Single(
+                    prompt=self.single,
+                    queries=[self.dynamic_rag.to_grpc()] if self.dynamic_rag is not None else None,
+                ),
+                grouped=generative_pb2.GenerativeSearch.Grouped(
+                    task=self.grouped,
+                    properties=(
+                        base_pb2.TextArray(values=self.grouped_properties)
+                        if self.grouped_properties is not None
+                        else None
+                    ),
+                    queries=[self.dynamic_rag.to_grpc()] if self.dynamic_rag is not None else None,
+                ),
+            )
 
 
 class _GroupBy:

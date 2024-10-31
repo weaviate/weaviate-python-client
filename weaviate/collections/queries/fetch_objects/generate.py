@@ -2,6 +2,7 @@ from typing import Generic, List, Optional
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.generative import _GenerativeProviderDynamic
 from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
     GenerativeReturnType,
@@ -22,6 +23,7 @@ class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properti
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
+        dynamic_rag: Optional[_GenerativeProviderDynamic] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -41,6 +43,8 @@ class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properti
                 The prompt to use for RaG on the entire result set.
             `grouped_properties`
                 The properties to use in the RaG on the entire result set.
+            `dynamic_rag`
+                The provider-specific options used to customize the generation step of the RAG query. Use the `DynamicRAG` factory to create a suitably object for your use-case.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
             `offset`
@@ -85,6 +89,7 @@ class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properti
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
+                dynamic_rag=dynamic_rag,
             ),
         )
         return self._result_to_generative_query_return(
