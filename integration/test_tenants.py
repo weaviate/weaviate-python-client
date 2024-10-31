@@ -16,7 +16,10 @@ from weaviate.collections.classes.data import (
 from weaviate.collections.classes.tenants import (
     Tenant,
     TenantCreate,
+    TenantCreateActivityStatus,
     TenantActivityStatus,
+    TenantUpdateActivityStatus,
+    TenantUpdate,
 )
 from weaviate.collections.tenants import TenantCreateInputType
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
@@ -267,17 +270,23 @@ def test_update_tenant(collection_factory: CollectionFactory) -> None:
     assert tenants["1"].activity_status == TenantActivityStatus.ACTIVE
 
     with pytest.warns(DeprecationWarning) as recwarn:
-        collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.COLD))
+        collection.tenants.update(
+            TenantUpdate(name="1", activity_status=TenantUpdateActivityStatus.COLD)
+        )
         assert len(recwarn) == 1
         assert any("COLD is deprecated" in warn.message.args[0] for warn in recwarn.list)
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.INACTIVE
 
-    collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.ACTIVE))
+    collection.tenants.update(
+        TenantUpdate(name="1", activity_status=TenantUpdateActivityStatus.ACTIVE)
+    )
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.ACTIVE
 
-    collection.tenants.update(Tenant(name="1", activity_status=TenantActivityStatus.INACTIVE))
+    collection.tenants.update(
+        TenantUpdate(name="1", activity_status=TenantUpdateActivityStatus.INACTIVE)
+    )
     tenants = collection.tenants.get()
     assert tenants["1"].activity_status == TenantActivityStatus.INACTIVE
 
@@ -452,10 +461,10 @@ def test_tenants_create_and_update_1001_tenants(
     collection.tenants.create(tenants)
     t = collection.tenants.get()
     assert len(t) == 1001
-    assert all(tenant.activity_status == TenantActivityStatus.ACTIVE for tenant in t.values())
+    assert all(tenant.activity_status == TenantCreateActivityStatus.ACTIVE for tenant in t.values())
 
     tenants = [
-        Tenant(name=f"tenant{i}", activity_status=TenantActivityStatus.INACTIVE)
+        TenantUpdate(name=f"tenant{i}", activity_status=TenantUpdateActivityStatus.INACTIVE)
         for i in range(1001)
     ]
     collection.tenants.update(tenants)
