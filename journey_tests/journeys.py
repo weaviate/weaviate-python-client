@@ -9,8 +9,8 @@ class SyncJourneys:
         self.__client = client
 
     @classmethod
-    def use(cls, port: int = 8080, grpc_port=50051) -> "SyncJourneys":
-        return cls(connect_to_local(port=port, grpc_port=grpc_port))
+    def use(cls) -> "SyncJourneys":
+        return cls(connect_to_local(port=8090, grpc_port=50061))
 
     def close(self) -> None:
         self.__client.close()
@@ -40,8 +40,8 @@ class AsyncJourneys:
         self.__client = client
 
     @classmethod
-    async def use(cls, port: int = 8080, grpc_port=50051) -> "AsyncJourneys":
-        client = use_async_with_local(port=port, grpc_port=grpc_port)
+    async def use(cls) -> "AsyncJourneys":
+        client = use_async_with_local(port=8090, grpc_port=50061)
         await client.connect()
         return cls(client)
 
