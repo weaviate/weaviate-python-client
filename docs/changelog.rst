@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 4.9.1
+--------------
+This patch version includes:
+    - Fix event loop being used from multiple processes
+    - Add updating generative and reranker collection settings
+    - Add experimental backoff for GRPC UNAVAILABLE error codes
+    - Automatically pick up GRPC message size from Weaviate
+    - Remove octoai vectorizer and generative methods. They are shutting down
+
+
 Version 4.9.0
 --------------
 
