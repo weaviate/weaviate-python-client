@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -18,6 +18,7 @@ from weaviate.collections.classes.grpc import (
     GroupBy,
     MetadataQuery,
     NearVectorInputType,
+    _HybridNearVector,
 )
 from weaviate.collections.classes.internal import Object
 from weaviate.exceptions import (
@@ -388,10 +389,6 @@ def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFac
         {"first": [1, 0], "second": np.array([1, 0, 0])},
         {"first": [1, 0], "second": pl.Series([1, 0, 0])},
         {"first": [1, 0], "second": pd.Series([1, 0, 0])},
-        [[1, 0], [1, 0, 0]],
-        [[1, 0], np.array([1, 0, 0])],
-        [[1, 0], pl.Series([1, 0, 0])],
-        [[1, 0], pd.Series([1, 0, 0])],
     ],
 )
 def test_vector_per_target(
@@ -428,6 +425,60 @@ def test_vector_per_target(
     ).objects
     assert len(objs) == 1
     assert objs[0].uuid == uuid1
+
+
+@pytest.mark.parametrize(
+    "near_vector,target_vector",
+    [
+        ({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}, ["first", "second"]),
+        ({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}, ["first", "second"]),
+        (
+            {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]},
+            ["first", "second"],
+        ),
+        (
+            wvc.query.HybridVector.near_vector({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}),
+            ["first", "second"],
+        ),
+        (
+            wvc.query.HybridVector.near_vector({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}),
+            ["first", "second"],
+        ),
+        (
+            wvc.query.HybridVector.near_vector(
+                {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]}
+            ),
+            ["first", "second"],
+        ),
+    ],
+)
+def test_same_target_vector_multiple_input_combinations(
+    collection_factory: CollectionFactory,
+    near_vector: Union[List[float], _HybridNearVector],
+    target_vector: List[str],
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
+
+    collection = collection_factory(
+        properties=[],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none("first"),
+            wvc.config.Configure.NamedVectors.none("second"),
+        ],
+    )
+
+    uuid1 = collection.data.insert({}, vector={"first": [1, 0], "second": [0, 1, 0]})
+    uuid2 = collection.data.insert({}, vector={"first": [0, 1], "second": [1, 0, 0]})
+
+    objs = collection.query.hybrid(
+        query=None,
+        vector=near_vector,
+        target_vector=target_vector,
+        return_metadata=wvc.query.MetadataQuery.full(),
+    ).objects
+    assert sorted([obj.uuid for obj in objs]) == sorted([uuid2, uuid1])
 
 
 def test_vector_distance(collection_factory: CollectionFactory):

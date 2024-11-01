@@ -3,9 +3,14 @@ from typing import TypedDict
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from fastapi.testclient import TestClient
+
+import weaviate
 
 from journey_tests.journeys import AsyncJourneys, SyncJourneys
+
+# some dependency instantiate a sync client on import/file root
+client = weaviate.connect_to_local(port=8090, grpc_port=50061)
+client.close()
 
 
 class Journeys(TypedDict):
@@ -45,22 +50,12 @@ async def async_in_async() -> JSONResponse:
     return JSONResponse(content=await journeys["async_"].simple())
 
 
-def test_sync_in_sync() -> None:
-    with TestClient(app) as client:
-        res = client.get("/sync-in-sync")
-        assert res.status_code == 200
-        assert len(res.json()) == 100
+@app.get("/health")
+def health() -> JSONResponse:
+    return JSONResponse(content={"status": "ok"})
 
 
-def test_sync_in_async() -> None:
-    with TestClient(app) as client:
-        res = client.get("/sync-in-async")
-        assert res.status_code == 200
-        assert len(res.json()) == 100
+if __name__ == "__main__":
+    import uvicorn
 
-
-def test_async_in_async() -> None:
-    with TestClient(app) as client:
-        res = client.get("/async-in-async")
-        assert res.status_code == 200
-        assert len(res.json()) == 100
+    uvicorn.run(app, host="0.0.0.0", port=8000)

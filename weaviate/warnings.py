@@ -158,6 +158,30 @@ class _Warnings:
         )
 
     @staticmethod
+    def palm_to_google_t2v() -> None:
+        warnings.warn(
+            "Dep011: text2vec-palm is deprecated and will be removed in Q2 25. Use text2vec-google instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def palm_to_google_m2v() -> None:
+        warnings.warn(
+            "Dep012: multi2vec-palm is deprecated and will be removed in Q2 25. Use multi2vec-google instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def palm_to_google_gen() -> None:
+        warnings.warn(
+            "Dep013: generative.palm is deprecated and will be removed in Q2 25. Use generative.google instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
     def weaviate_v3_client_is_deprecated() -> None:
         warnings.warn(
             message="""Dep016: Python client v3 `weaviate.Client(...)` connections and methods are deprecated and will
@@ -218,7 +242,7 @@ class _Warnings:
     @staticmethod
     def datetime_insertion_with_no_specified_timezone(date: datetime) -> None:
         warnings.warn(
-            message=f"""Con002: You are inserting the datetime object {date} without a timezone. The timezone will be set to UTC.
+            message=f"""Con002: You are using the datetime object {date} without a timezone. The timezone will be set to UTC.
             To use a different timezone, specify it in the datetime object. For example:
             datetime.datetime(2021, 1, 1, 0, 0, 0, tzinfo=datetime.timezone(-datetime.timedelta(hours=2))).isoformat() = 2021-01-01T00:00:00-02:00
             """,
@@ -306,5 +330,14 @@ class _Warnings:
             message="""Con004: The connection to Weaviate was not closed properly. This can lead to memory leaks.
             Please make sure to close the connection using `client.close()`.""",
             category=ResourceWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def grpc_max_msg_size_not_found() -> None:
+        warnings.warn(
+            message="""Con005: Could not retrieve the maximum GRPC message size from the weaviate server. Using the default
+            value of 10mb. If you need a larger message size, please update weaviate.""",
+            category=UserWarning,
             stacklevel=1,
         )

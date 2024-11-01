@@ -10,7 +10,13 @@ from werkzeug import Request, Response
 
 import weaviate
 import weaviate.classes as wvc
-from mock_tests.conftest import MOCK_PORT, MOCK_IP, MOCK_PORT_GRPC, CLIENT_ID
+from mock_tests.conftest import (
+    MOCK_PORT,
+    MOCK_IP,
+    MOCK_PORT_GRPC,
+    CLIENT_ID,
+    MockRetriesWeaviateService,
+)
 from weaviate.collections.classes.config import (
     CollectionConfig,
     VectorIndexConfigFlat,
@@ -27,7 +33,11 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
-from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateStartUpError
+from weaviate.exceptions import (
+    UnexpectedStatusCodeError,
+    WeaviateStartUpError,
+    BackupCanceledError,
+)
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
@@ -181,7 +191,7 @@ def test_missing_multi_tenancy_config(
         ),
         properties=[],
         references=[],
-        replication_config=ReplicationConfig(factor=0, async_enabled=False),
+        replication_config=ReplicationConfig(factor=0, async_enabled=False, deletion_strategy=None),
         vector_index_config=vic,
         vector_index_type=VectorIndexType.FLAT,
         vectorizer=Vectorizers.NONE,
@@ -221,7 +231,7 @@ def test_return_from_bind_module(
     prop_modconf: Dict[str, Any] = {"multi2vec-bind": {}}
 
     hnsw_config = config.VectorIndex.hnsw(
-        1, VectorDistances.COSINE, 1, 1, 1, 1, 1, 1, 1, 1
+        1, VectorDistances.COSINE, 1, 1, 1, 1, 1, None, 1, 1, 1
     )._to_dict()
     hnsw_config["skip"] = True
     ii_config = config.inverted_index(
@@ -306,18 +316,6 @@ def test_return_from_bind_module(
                 "X-Jinaai-Baseurl": "http://some-url.com",
             },
         ),
-        (
-            [
-                wvc.config.Integrations.octoai(
-                    api_key="key", base_url="http://some-url.com", requests_per_minute_embeddings=50
-                )
-            ],
-            {
-                "X-Octoai-Api-Key": "key",
-                "X-Octoai-Ratelimit-RequestPM-Embedding": "50",
-                "X-Octoai-Baseurl": "http://some-url.com",
-            },
-        ),
     ],
 )
 def test_integration_config(
@@ -370,3 +368,84 @@ def test_node_with_timeout(
 
     nodes = client.cluster.nodes(output=output)
     assert nodes[0].status == "TIMEOUT"
+
+
+def test_backup_cancel_while_create_and_restore(
+    weaviate_no_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    client = weaviate.connect_to_local(
+        port=MOCK_PORT,
+        host=MOCK_IP,
+        grpc_port=MOCK_PORT_GRPC,
+    )
+
+    backup_id = "id"
+
+    weaviate_no_auth_mock.expect_request("/v1/backups/filesystem").respond_with_json(
+        {
+            "collections": ["backupTest"],
+            "status": "STARTED",
+            "path": "path",
+            "id": backup_id,
+        }
+    )
+    weaviate_no_auth_mock.expect_request("/v1/backups/filesystem/" + backup_id).respond_with_json(
+        {
+            "collections": ["backupTest"],
+            "status": "CANCELED",
+            "path": "path",
+            "id": backup_id,
+        }
+    )
+
+    weaviate_no_auth_mock.expect_request(
+        "/v1/backups/filesystem/" + backup_id + "/restore"
+    ).respond_with_json(
+        {
+            "collections": ["backupTest"],
+            "status": "CANCELED",
+            "path": "path",
+            "id": backup_id,
+        }
+    )
+
+    with pytest.raises(BackupCanceledError):
+        client.backup.create(
+            backup_id=backup_id,
+            backend="filesystem",
+            wait_for_completion=True,
+        )
+
+    with pytest.raises(BackupCanceledError):
+        client.backup.restore(
+            backup_id=backup_id,
+            backend="filesystem",
+            wait_for_completion=True,
+        )
+
+
+def test_grpc_retry_logic(
+    retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService]
+) -> None:
+    collection = retries[0]
+    service = retries[1]
+
+    with pytest.raises(weaviate.exceptions.WeaviateQueryError):
+        # checks first call correctly handles error that isn't UNAVAILABLE
+        collection.query.fetch_objects()
+
+    # should perform one retry and then succeed subsequently
+    objs = collection.query.fetch_objects().objects
+    assert len(objs) == 1
+    assert objs[0].properties["name"] == "test"
+    assert service.search_count == 2
+
+    with pytest.raises(grpc.aio.AioRpcError):
+        # checks first call correctly handles error that isn't UNAVAILABLE
+        collection.tenants.get()
+
+    # should perform one retry and then succeed subsequently
+    tenants = list(collection.tenants.get().values())
+    assert len(tenants) == 1
+    assert tenants[0].name == "tenant1"
+    assert service.tenants_count == 2

@@ -3,6 +3,7 @@ from typing import (
     Literal,
     Optional,
     Type,
+    Union,
     overload,
 )
 
@@ -25,7 +26,7 @@ class _FetchObjectByIDQueryAsync(Generic[Properties, References], _Base[Properti
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> ObjectSingleReturn[Properties, References]: ...
     @overload
@@ -34,7 +35,7 @@ class _FetchObjectByIDQueryAsync(Generic[Properties, References], _Base[Properti
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> ObjectSingleReturn[Properties, CrossReferences]: ...
     @overload
@@ -43,7 +44,7 @@ class _FetchObjectByIDQueryAsync(Generic[Properties, References], _Base[Properti
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> ObjectSingleReturn[Properties, TReferences]: ...
     @overload
@@ -90,7 +91,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _Base[Properties, R
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> ObjectSingleReturn[Properties, References]: ...
     @overload
@@ -99,7 +100,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _Base[Properties, R
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> ObjectSingleReturn[Properties, CrossReferences]: ...
     @overload
@@ -108,7 +109,7 @@ class _FetchObjectByIDQuery(Generic[Properties, References], _Base[Properties, R
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
         *,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> ObjectSingleReturn[Properties, TReferences]: ...
     @overload

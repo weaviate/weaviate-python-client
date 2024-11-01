@@ -1,6 +1,32 @@
 Changelog
 =========
 
+Version 4.9.1
+--------------
+This patch version includes:
+    - Fix event loop being used from multiple processes
+    - Add updating generative and reranker collection settings
+    - Add experimental backoff for GRPC UNAVAILABLE error codes
+    - Automatically pick up GRPC message size from Weaviate
+    - Remove octoai vectorizer and generative methods. They are shutting down
+
+
+Version 4.9.0
+--------------
+
+This minor version includes:
+    - Support for new 1.27 features:
+        - Multi vector search for near_vector and hybrid
+        - Backup cancellation
+        - Vector search filter strategy (acorn)
+
+    - Renaming ``*-palm`` to ``*-google`` for generative and vectorization modules.
+    - Typing fixes
+    - Bump of default embedded version to 1.26.6
+    - Allow ``return_properties={True, False}`` as equivalents to ``{None, []}``
+    - Dependency updates
+
+
 Version 4.8.1
 --------------
 

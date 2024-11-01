@@ -4,6 +4,7 @@ Weaviate Exceptions.
 
 from json.decoder import JSONDecodeError
 from typing import Union, Tuple
+
 import httpx
 import requests
 
@@ -135,6 +136,12 @@ class BackupFailedError(WeaviateBaseError):
 
 
 BackupFailedException = BackupFailedError
+
+
+class BackupCanceledError(WeaviateBaseError):
+    """
+    Backup canceled Exception.
+    """
 
 
 class EmptyResponseError(WeaviateBaseError):
@@ -334,4 +341,12 @@ class WeaviateTimeoutError(WeaviateBaseError):
 
     def __init__(self, message: str = "") -> None:
         msg = f"""The request to Weaviate timed out while awaiting a response. Try adjusting the timeout config for your client. Details: {message}"""
+        super().__init__(msg)
+
+
+class WeaviateRetryError(WeaviateBaseError):
+    """Is raised when a request to Weaviate fails and is retried multiple times."""
+
+    def __init__(self, message: str, count: int) -> None:
+        msg = f"""The request to Weaviate failed after {count} retries. Details: {message}"""
         super().__init__(msg)

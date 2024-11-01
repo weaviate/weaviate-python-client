@@ -4,6 +4,7 @@ import pytest as pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
+import weaviate.classes as wvc
 from integration.conftest import OpenAICollection, CollectionFactory
 from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.config import (
@@ -29,7 +30,7 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     GenerativeSearches,
     Rerankers,
-    _RerankerConfigCreate,
+    _RerankerProvider,
     Tokenization,
 )
 from weaviate.collections.classes.tenants import Tenant
@@ -255,7 +256,11 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
         multi_tenancy_config=Configure.multi_tenancy(
             enabled=True, auto_tenant_activation=True, auto_tenant_creation=True
         ),
-        replication_config=Configure.replication(factor=2, async_enabled=True),
+        replication_config=Configure.replication(
+            factor=1,
+            async_enabled=True,
+            deletion_strategy=wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
+        ),
         vector_index_config=Configure.VectorIndex.hnsw(
             cleanup_interval_seconds=10,
             distance_metric=VectorDistances.DOT,
@@ -264,6 +269,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
             dynamic_ef_min=10,
             ef=-2,
             ef_construction=100,
+            filter_strategy=wvc.config.VectorFilterStrategy.ACORN,
             flat_search_cutoff=41000,
             max_connections=72,
             quantizer=Configure.VectorIndex.Quantizer.pq(
@@ -333,11 +339,23 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     else:
         assert config.multi_tenancy_config.auto_tenant_creation is False
 
-    assert config.replication_config.factor == 2
+    assert config.replication_config.factor == 1
     if collection._connection._weaviate_version.is_at_least(1, 26, 0):
         assert config.replication_config.async_enabled is True
     else:
         assert config.replication_config.async_enabled is False
+
+    if collection._connection._weaviate_version.is_at_least(1, 24, 25):
+        assert (
+            config.replication_config.deletion_strategy
+            == wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT
+        )
+    else:
+        # default value if not present in schema
+        assert (
+            config.replication_config.deletion_strategy
+            == wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
+        )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -358,6 +376,13 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config.quantizer.training_limit == 1000001
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 100000
+    if collection._connection._weaviate_version.is_at_least(1, 27, 0):
+        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
+    else:
+        # default value if not present in schema
+        assert (
+            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+        )
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
@@ -382,6 +407,8 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.multi_tenancy_config.auto_tenant_activation is False
     assert config.multi_tenancy_config.auto_tenant_creation is False
 
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+
     collection.config.update(
         description="Test",
         inverted_index_config=Reconfigure.inverted_index(
@@ -393,10 +420,13 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
             stopwords_removals=["the"],
         ),
         replication_config=Reconfigure.replication(
-            factor=2, async_enabled=True
+            factor=2,
+            async_enabled=True,
+            deletion_strategy=wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
         ),  # currently not updateable in RAFT
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
             vector_cache_max_objects=2000000,
+            filter_strategy=wvc.config.VectorFilterStrategy.ACORN,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(
                 centroids=128,
                 encoder_type=PQEncoderType.TILE,
@@ -431,6 +461,17 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
         assert config.replication_config.async_enabled is True
     else:
         assert config.replication_config.async_enabled is False
+    if collection._connection._weaviate_version.is_at_least(1, 24, 25):
+        assert (
+            config.replication_config.deletion_strategy
+            == wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT
+        )
+    else:
+        # default value if not present in schema
+        assert (
+            config.replication_config.deletion_strategy
+            == wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
+        )
 
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _PQConfig)
@@ -455,6 +496,14 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 2000000
 
+    if collection._connection._weaviate_version.is_at_least(1, 27, 0):
+        assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.ACORN
+    else:
+        # default value if not present in schema
+        assert (
+            config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
+        )
+
     assert config.vector_index_type == VectorIndexType.HNSW
 
     assert config.multi_tenancy_config.enabled is True
@@ -471,8 +520,12 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
     collection.config.update(
         vectorizer_config=Reconfigure.VectorIndex.hnsw(
+            filter_strategy=wvc.config.VectorFilterStrategy.SWEEPING,
             quantizer=Reconfigure.VectorIndex.Quantizer.pq(enabled=False),
-        )
+        ),
+        replication_config=Reconfigure.replication(
+            deletion_strategy=wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION,
+        ),
     )
     config = collection.config.get()
 
@@ -490,6 +543,10 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.inverted_index_config.stopwords.removals == ["the"]
 
     assert config.replication_config.factor == 2
+    assert (
+        config.replication_config.deletion_strategy
+        == wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
+    )
 
     if collection._connection._weaviate_version.is_at_least(1, 26, 0):
         assert config.replication_config.async_enabled is True
@@ -512,6 +569,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.vector_index_config.quantizer is None
     assert config.vector_index_config.skip is False
     assert config.vector_index_config.vector_cache_max_objects == 2000000
+    assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
 
     assert config.vector_index_type == VectorIndexType.HNSW
 
@@ -735,7 +793,7 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
 )
 def test_config_reranker_module(
     collection_factory: CollectionFactory,
-    reranker_config: _RerankerConfigCreate,
+    reranker_config: _RerankerProvider,
     expected_reranker: Rerankers,
     expected_model: dict,
 ) -> None:
@@ -1063,7 +1121,7 @@ def test_config_unknown_module(request: SubRequest) -> None:
         client.collections.delete(name=collection_name)
 
 
-def test_create_custom_module(collection_factory: CollectionFactory) -> None:
+def test_create_custom_generative(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         generative_config=Configure.Generative.custom(
             "generative-anyscale", module_config={"temperature": 0.5}
@@ -1080,6 +1138,14 @@ def test_create_custom_module(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.generative_config.generative, str)
     assert config.generative_config.generative == "generative-anyscale"
     assert config.generative_config.model == {"temperature": 0.5}
+
+    if collection._connection._weaviate_version.is_at_least(1, 25, 24):
+        collection.config.update(
+            generative_config=Reconfigure.Generative.custom("generative-dummy"),
+        )
+        config = collection.config.get()
+        assert isinstance(config.generative_config.generative, str)
+        assert config.generative_config.generative == "generative-dummy"
 
 
 def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
@@ -1099,6 +1165,14 @@ def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.reranker_config.reranker, str)
     assert config.reranker_config.reranker == "reranker-cohere"
     assert config.reranker_config.model == {"model": "rerank-english-v2.0"}
+
+    if collection._connection._weaviate_version.is_at_least(1, 25, 24):
+        collection.config.update(
+            reranker_config=Reconfigure.Reranker.custom("reranker-dummy"),
+        )
+        config = collection.config.get()
+        assert isinstance(config.reranker_config.reranker, str)
+        assert config.reranker_config.reranker == "reranker-dummy"
 
 
 def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None:
@@ -1168,3 +1242,24 @@ def test_range_filters(collection_factory: CollectionFactory, index_range_filter
     )
     config = collection.config.get()
     assert config.properties[0].index_range_filters == index_range_filters
+
+
+@pytest.mark.parametrize(
+    "deletion_strategy",
+    [
+        wvc.config.ReplicationDeletionStrategy.DELETE_ON_CONFLICT,
+        wvc.config.ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION,
+    ],
+)
+def test_replication_config(
+    collection_factory: CollectionFactory, deletion_strategy: wvc.config.ReplicationDeletionStrategy
+) -> None:
+    collection_dummy = collection_factory("dummy")
+    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 25):
+        pytest.skip("deletion strategy is supported in Weaviate versions lower than 1.24, 25")
+
+    collection = collection_factory(
+        replication_config=wvc.config.Configure.replication(deletion_strategy=deletion_strategy),
+    )
+    config = collection.config.get()
+    assert config.replication_config.deletion_strategy == deletion_strategy

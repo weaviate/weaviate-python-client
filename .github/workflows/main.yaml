@@ -15,10 +15,10 @@ on:
 
 env:
   WEAVIATE_123: 1.23.16
-  WEAVIATE_124: 1.24.21
-  WEAVIATE_125: 1.25.8
-  WEAVIATE_126: preview-increase-version-number-8b44fe6
-
+  WEAVIATE_124: 1.24.26
+  WEAVIATE_125: 1.25.24
+  WEAVIATE_126: 1.26.8
+  WEAVIATE_127: stable-v1.27-372397e
 
 jobs:
   lint-and-format:
@@ -46,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12"]
         folder: ["weaviate"]
     steps:
       - uses: actions/checkout@v4
@@ -67,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12"]
         folder: ["test", "mock_tests"]
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12"]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -121,14 +121,13 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_126},
           { py: "3.9", weaviate: $WEAVIATE_126},
           { py: "3.10", weaviate: $WEAVIATE_126},
           { py: "3.11", weaviate: $WEAVIATE_123},
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_126}
+          { py: "3.12", weaviate: $WEAVIATE_127}
         ]
         optional_dependencies: [false]
     steps:
@@ -140,6 +139,12 @@ jobs:
         with:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
+      - name: Login to Docker Hub
+        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
       - run: |
           pip install -r requirements-devel.txt
           pip install .
@@ -165,6 +170,8 @@ jobs:
         with:
           name: coverage-report-integration-v3
           path: coverage-integration-v3.xml
+      - name: stop weaviate
+        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   integration-tests:
     name: Run Integration Tests
@@ -173,14 +180,13 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_126},
           { py: "3.9", weaviate: $WEAVIATE_126},
           { py: "3.10", weaviate: $WEAVIATE_126},
           { py: "3.11", weaviate: $WEAVIATE_123},
           { py: "3.11", weaviate: $WEAVIATE_124},
           { py: "3.11", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_126}
+          { py: "3.12", weaviate: $WEAVIATE_127}
         ]
         optional_dependencies: [false]
     steps:
@@ -192,6 +198,12 @@ jobs:
         with:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
+      - name: Login to Docker Hub
+        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
       - run: |
           pip install -r requirements-devel.txt
           pip install .
@@ -217,6 +229,8 @@ jobs:
         with:
           name: coverage-report-integration
           path: coverage-integration.xml
+      - name: stop weaviate
+        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   journey-tests:
     name: Run Journey Tests
@@ -225,7 +239,6 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.8", weaviate: $WEAVIATE_125},
           { py: "3.9", weaviate: $WEAVIATE_125},
           { py: "3.10", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_125},
@@ -238,14 +251,22 @@ jobs:
         with:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
+      - name: Login to Docker Hub
+        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
       - run: pip install -r requirements-devel.txt
       - run: pip install .
       - name: free space
         run: sudo rm -rf /usr/local/lib/android
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
+        run: /bin/bash ci/start_weaviate_jt.sh ${{ matrix.versions.weaviate }}
       - name: Run journey tests
-        run: pytest journey_tests
+        run: ./journey_tests/run.sh
+      - name: stop weaviate
+        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   Codecov:
     needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]
@@ -316,13 +337,20 @@ jobs:
           $WEAVIATE_123,
           $WEAVIATE_124,
           $WEAVIATE_125,
-          $WEAVIATE_126
+          $WEAVIATE_126,
+          $WEAVIATE_127
         ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Login to Docker Hub
+        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
       - name: Download build artifact to append to release
         uses: actions/download-artifact@v4
         with:

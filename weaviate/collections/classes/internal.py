@@ -50,7 +50,7 @@ from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _to_beacons
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
 
-from weaviate.proto.v1 import search_get_pb2
+from weaviate.proto.v1 import search_get_pb2, generative_pb2
 
 
 @dataclass
@@ -208,8 +208,8 @@ class _Generative:
         self.grouped = grouped
         self.grouped_properties = grouped_properties
 
-    def to_grpc(self) -> search_get_pb2.GenerativeSearch:
-        return search_get_pb2.GenerativeSearch(
+    def to_grpc(self) -> generative_pb2.GenerativeSearch:
+        return generative_pb2.GenerativeSearch(
             single_response_prompt=self.single,
             grouped_response_task=self.grouped,
             grouped_properties=self.grouped_properties,
@@ -484,7 +484,7 @@ def _extract_references_from_data_model(type_: Type["References"]) -> Optional[R
     return refs if len(refs) > 0 else None
 
 
-ReturnProperties: TypeAlias = Union[PROPERTIES, Type[TProperties]]
+ReturnProperties: TypeAlias = Union[PROPERTIES, bool, Type[TProperties]]
 ReturnReferences: TypeAlias = Union[
     Union[_QueryReference, Sequence[_QueryReference]], Type[TReferences]
 ]

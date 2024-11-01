@@ -10,7 +10,7 @@ class SyncJourneys:
 
     @classmethod
     def use(cls) -> "SyncJourneys":
-        return cls(connect_to_local())
+        return cls(connect_to_local(port=8090, grpc_port=50061))
 
     def close(self) -> None:
         self.__client.close()
@@ -41,7 +41,7 @@ class AsyncJourneys:
 
     @classmethod
     async def use(cls) -> "AsyncJourneys":
-        client = use_async_with_local()
+        client = use_async_with_local(port=8090, grpc_port=50061)
         await client.connect()
         return cls(client)
 

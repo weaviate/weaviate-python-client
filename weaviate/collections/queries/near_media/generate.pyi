@@ -47,7 +47,7 @@ class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GenerativeReturn[Properties, References]: ...
     @overload
@@ -70,7 +70,7 @@ class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> GenerativeReturn[Properties, CrossReferences]: ...
     @overload
@@ -93,7 +93,7 @@ class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GenerativeReturn[Properties, TReferences]: ...
     @overload
@@ -186,7 +186,7 @@ class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GenerativeGroupByReturn[Properties, References]: ...
     @overload
@@ -209,7 +209,7 @@ class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> GenerativeGroupByReturn[Properties, CrossReferences]: ...
     @overload
@@ -232,7 +232,7 @@ class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties,
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GenerativeGroupByReturn[Properties, TReferences]: ...
     @overload
@@ -351,7 +351,7 @@ class _NearMediaGenerate(Generic[Properties, References], _Base[Properties, Refe
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GenerativeReturn[Properties, References]: ...
     @overload
@@ -374,7 +374,7 @@ class _NearMediaGenerate(Generic[Properties, References], _Base[Properties, Refe
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> GenerativeReturn[Properties, CrossReferences]: ...
     @overload
@@ -397,7 +397,7 @@ class _NearMediaGenerate(Generic[Properties, References], _Base[Properties, Refe
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GenerativeReturn[Properties, TReferences]: ...
     @overload
@@ -490,7 +490,7 @@ class _NearMediaGenerate(Generic[Properties, References], _Base[Properties, Refe
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
     ) -> GenerativeGroupByReturn[Properties, References]: ...
     @overload
@@ -513,7 +513,7 @@ class _NearMediaGenerate(Generic[Properties, References], _Base[Properties, Refe
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
     ) -> GenerativeGroupByReturn[Properties, CrossReferences]: ...
     @overload
@@ -536,7 +536,7 @@ class _NearMediaGenerate(Generic[Properties, References], _Base[Properties, Refe
         target_vector: Optional[TargetVectorJoinType] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[PROPERTIES] = None,
+        return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
     ) -> GenerativeGroupByReturn[Properties, TReferences]: ...
     @overload

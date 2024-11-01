@@ -6,8 +6,8 @@ from pydantic import ValidationError
 from weaviate.collections.classes.config import (
     _CollectionConfigCreate,
     DataType,
-    _GenerativeConfigCreate,
-    _RerankerConfigCreate,
+    _GenerativeProvider,
+    _RerankerProvider,
     _VectorizerConfigCreate,
     Configure,
     Property,
@@ -209,20 +209,6 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        Configure.Vectorizer.text2vec_octoai(
-            vectorize_collection_name=False,
-            model="thenlper/gte-large",
-            base_url="https://text.octoai.com",
-        ),
-        {
-            "text2vec-octoai": {
-                "vectorizeClassName": False,
-                "model": "thenlper/gte-large",
-                "baseURL": "https://text.octoai.com",
-            }
-        },
-    ),
-    (
         Configure.Vectorizer.text2vec_ollama(
             vectorize_collection_name=False,
             model="cool-model",
@@ -288,7 +274,34 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_google(
+            project_id="project",
+        ),
+        {
+            "text2vec-palm": {
+                "projectId": "project",
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_palm(
+            project_id="project",
+            api_endpoint="api.google.com",
+            model_id="model",
+            vectorize_collection_name=False,
+        ),
+        {
+            "text2vec-palm": {
+                "projectId": "project",
+                "apiEndpoint": "api.google.com",
+                "modelId": "model",
+                "vectorizeClassName": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_google(
             project_id="project",
             api_endpoint="api.google.com",
             model_id="model",
@@ -367,6 +380,27 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.multi2vec_palm(
+            image_fields=["image"],
+            text_fields=["text"],
+            video_fields=["video"],
+            project_id="project",
+            video_interval_seconds=1,
+            location="us-central1",
+        ),
+        {
+            "multi2vec-palm": {
+                "imageFields": ["image"],
+                "textFields": ["text"],
+                "videoFields": ["video"],
+                "projectId": "project",
+                "location": "us-central1",
+                "videoIntervalSeconds": 1,
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_google(
             image_fields=["image"],
             text_fields=["text"],
             video_fields=["video"],
@@ -646,22 +680,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-mistral": {"temperature": 0.5, "maxTokens": 100, "model": "model"}},
     ),
     (
-        Configure.Generative.octoai(
-            model="mistral-7b-instruct",
-            temperature=0.5,
-            base_url="https://text.octoai.run",
-            max_tokens=123,
-        ),
-        {
-            "generative-octoai": {
-                "model": "mistral-7b-instruct",
-                "maxTokens": 123,
-                "temperature": 0.5,
-                "baseURL": "https://text.octoai.run",
-            }
-        },
-    ),
-    (
         Configure.Generative.ollama(
             model="cool-model",
             api_endpoint="https://123.456.789.0",
@@ -727,7 +745,37 @@ TEST_CONFIG_WITH_GENERATIVE = [
         },
     ),
     (
+        Configure.Generative.google(project_id="project"),
+        {
+            "generative-palm": {
+                "projectId": "project",
+            }
+        },
+    ),
+    (
         Configure.Generative.palm(
+            project_id="project",
+            api_endpoint="https://api.google.com",
+            max_output_tokens=100,
+            model_id="model",
+            temperature=0.5,
+            top_k=10,
+            top_p=0.5,
+        ),
+        {
+            "generative-palm": {
+                "projectId": "project",
+                "apiEndpoint": "https://api.google.com",
+                "maxOutputTokens": 100,
+                "modelId": "model",
+                "temperature": 0.5,
+                "topK": 10,
+                "topP": 0.5,
+            }
+        },
+    ),
+    (
+        Configure.Generative.google(
             project_id="project",
             api_endpoint="https://api.google.com",
             max_output_tokens=100,
@@ -845,7 +893,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
     TEST_CONFIG_WITH_GENERATIVE,
 )
 def test_config_with_generative(
-    generative_config: _GenerativeConfigCreate,
+    generative_config: _GenerativeProvider,
     expected_mc: dict,
 ) -> None:
     config = _CollectionConfigCreate(name="test", generative_config=generative_config)
@@ -883,7 +931,7 @@ TEST_CONFIG_WITH_RERANKER = [
 
 @pytest.mark.parametrize("reranker_config,expected_mc", TEST_CONFIG_WITH_RERANKER)
 def test_config_with_reranker(
-    reranker_config: _RerankerConfigCreate,
+    reranker_config: _RerankerProvider,
     expected_mc: dict,
 ) -> None:
     config = _CollectionConfigCreate(name="test", reranker_config=reranker_config)
@@ -1240,25 +1288,6 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     ),
     (
         [
-            Configure.NamedVectors.text2vec_octoai(
-                name="test", source_properties=["prop"], base_url="https://text.octoai.com"
-            )
-        ],
-        {
-            "test": {
-                "vectorizer": {
-                    "text2vec-octoai": {
-                        "properties": ["prop"],
-                        "vectorizeClassName": True,
-                        "baseURL": "https://text.octoai.com",
-                    }
-                },
-                "vectorIndexType": "hnsw",
-            }
-        },
-    ),
-    (
-        [
             Configure.NamedVectors.text2vec_ollama(
                 name="test",
                 source_properties=["prop"],
@@ -1316,6 +1345,27 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     (
         [
             Configure.NamedVectors.text2vec_palm(
+                name="test",
+                project_id="project",
+                source_properties=["prop"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-palm": {
+                        "projectId": "project",
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_google(
                 name="test",
                 project_id="project",
                 source_properties=["prop"],
@@ -1410,6 +1460,31 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     (
         [
             Configure.NamedVectors.multi2vec_palm(
+                name="test",
+                image_fields=["image"],
+                text_fields=["text"],
+                project_id="project",
+                location="us-central1",
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-palm": {
+                        "imageFields": ["image"],
+                        "textFields": ["text"],
+                        "projectId": "project",
+                        "location": "us-central1",
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.multi2vec_google(
                 name="test",
                 image_fields=["image"],
                 text_fields=["text"],

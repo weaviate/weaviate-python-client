@@ -10,7 +10,12 @@ class _ConfigCreateModel(BaseModel):
     model_config = ConfigDict(strict=True)
 
     def _to_dict(self) -> Dict[str, Any]:
-        return cast(dict, self.model_dump(exclude_none=True))
+        ret = cast(dict, self.model_dump(exclude_none=True))
+        for key, val in ret.items():
+            if isinstance(val, Enum):
+                ret[key] = val.value
+
+        return ret
 
 
 class _ConfigUpdateModel(BaseModel):
