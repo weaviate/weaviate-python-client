@@ -7,16 +7,14 @@ export WEAVIATE_VERSION=$1
 source ./ci/compose.sh
 
 echo "Stop existing session if running"
-compose_down_all
+docker compose -f ci/docker-compose-async.yml down --remove-orphans
 rm -rf weaviate-data || true
 
 echo "Run Docker compose"
-compose_up_all
+docker compose -f ci/docker-compose-async.yml up -d
 
-echo "Wait until all containers are up"
+echo "Wait until the container is up"
 
-for port in $(all_weaviate_ports); do
-  wait "http://localhost:$port"
-done
+wait "http://localhost:8090"
 
 echo "All containers running"
