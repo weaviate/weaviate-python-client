@@ -18,11 +18,11 @@ autodoc-pydantic==2.2.0
 importlib_metadata==8.5.0
 
 pytest==8.3.3
-pytest-cov==5.0.0
+pytest-cov==6.0.0
 pytest-asyncio==0.24.0
 pytest-benchmark==4.0.0
 pytest-profiling==1.7.0
-coverage==7.6.3
+coverage==7.6.4
 pytest-xdist==3.6.1
 werkzeug==3.0.6
 pytest-httpserver==1.1.0
