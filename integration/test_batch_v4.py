@@ -596,8 +596,8 @@ def test_multi_threaded_batching(
     with concurrent.futures.ThreadPoolExecutor() as executor:
         with client.batch.dynamic() as batch:
             futures = [executor.submit(batch_insert, batch) for _ in range(nr_threads)]
-    for future in concurrent.futures.as_completed(futures):
-        future.result()
+        for future in concurrent.futures.as_completed(futures):
+            future.result()
     objs = client.collections.get(name).query.fetch_objects(limit=nr_objects * nr_threads).objects
     assert len(objs) == nr_objects * nr_threads
 
