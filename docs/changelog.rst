@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.9.2
+--------------
+This patch version includes:
+    - Suppress gRPC library warnings for each event loop used in each process
+
+
 Version 4.9.1
 --------------
 This patch version includes:
