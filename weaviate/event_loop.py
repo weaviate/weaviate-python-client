@@ -26,6 +26,7 @@ class _EventLoop:
         if self.loop is not None:
             return
         self.loop = self.__start_new_event_loop()
+        _EventLoop.patch_exception_handler(self.loop)
 
     def run_until_complete(
         self, f: Callable[P, Coroutine[Any, Any, T]], *args: P.args, **kwargs: P.kwargs
