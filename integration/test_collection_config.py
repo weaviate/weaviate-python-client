@@ -30,7 +30,7 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     GenerativeSearches,
     Rerankers,
-    _RerankerConfigCreate,
+    _RerankerProvider,
     Tokenization,
 )
 from weaviate.collections.classes.tenants import Tenant
@@ -793,7 +793,7 @@ def test_config_vector_index_hnsw_and_quantizer_pq(collection_factory: Collectio
 )
 def test_config_reranker_module(
     collection_factory: CollectionFactory,
-    reranker_config: _RerankerConfigCreate,
+    reranker_config: _RerankerProvider,
     expected_reranker: Rerankers,
     expected_model: dict,
 ) -> None:
@@ -1121,7 +1121,7 @@ def test_config_unknown_module(request: SubRequest) -> None:
         client.collections.delete(name=collection_name)
 
 
-def test_create_custom_module(collection_factory: CollectionFactory) -> None:
+def test_create_custom_generative(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         generative_config=Configure.Generative.custom(
             "generative-anyscale", module_config={"temperature": 0.5}
@@ -1138,6 +1138,14 @@ def test_create_custom_module(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.generative_config.generative, str)
     assert config.generative_config.generative == "generative-anyscale"
     assert config.generative_config.model == {"temperature": 0.5}
+
+    if collection._connection._weaviate_version.is_at_least(1, 25, 24):
+        collection.config.update(
+            generative_config=Reconfigure.Generative.custom("generative-dummy"),
+        )
+        config = collection.config.get()
+        assert isinstance(config.generative_config.generative, str)
+        assert config.generative_config.generative == "generative-dummy"
 
 
 def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
@@ -1157,6 +1165,14 @@ def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
     assert isinstance(config.reranker_config.reranker, str)
     assert config.reranker_config.reranker == "reranker-cohere"
     assert config.reranker_config.model == {"model": "rerank-english-v2.0"}
+
+    if collection._connection._weaviate_version.is_at_least(1, 25, 24):
+        collection.config.update(
+            reranker_config=Reconfigure.Reranker.custom("reranker-dummy"),
+        )
+        config = collection.config.get()
+        assert isinstance(config.reranker_config.reranker, str)
+        assert config.reranker_config.reranker == "reranker-dummy"
 
 
 def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None:

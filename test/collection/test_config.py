@@ -6,8 +6,8 @@ from pydantic import ValidationError
 from weaviate.collections.classes.config import (
     _CollectionConfigCreate,
     DataType,
-    _GenerativeConfigCreate,
-    _RerankerConfigCreate,
+    _GenerativeProvider,
+    _RerankerProvider,
     _VectorizerConfigCreate,
     Configure,
     Property,
@@ -893,7 +893,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
     TEST_CONFIG_WITH_GENERATIVE,
 )
 def test_config_with_generative(
-    generative_config: _GenerativeConfigCreate,
+    generative_config: _GenerativeProvider,
     expected_mc: dict,
 ) -> None:
     config = _CollectionConfigCreate(name="test", generative_config=generative_config)
@@ -931,7 +931,7 @@ TEST_CONFIG_WITH_RERANKER = [
 
 @pytest.mark.parametrize("reranker_config,expected_mc", TEST_CONFIG_WITH_RERANKER)
 def test_config_with_reranker(
-    reranker_config: _RerankerConfigCreate,
+    reranker_config: _RerankerProvider,
     expected_mc: dict,
 ) -> None:
     config = _CollectionConfigCreate(name="test", reranker_config=reranker_config)
