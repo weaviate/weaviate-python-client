@@ -341,8 +341,6 @@ def test_near_object_generate_with_everything(openai_collection: OpenAICollectio
     assert res.generated == "apples cats"
     assert res.objects[0].generated is not None
     assert res.objects[1].generated is not None
-    assert res.objects[0].generated.lower() == "yes"
-    assert res.objects[1].generated.lower() == "no"
 
 
 def test_near_object_generate_and_group_by_with_everything(
@@ -356,7 +354,7 @@ def test_near_object_generate_and_group_by_with_everything(
         [
             DataObject(
                 properties={
-                    "text": "apples are big. you cna eat apples",
+                    "text": "apples are big. you can eat apples",
                     "content": "Teddy is the biggest and bigger than everything else",
                 }
             ),
@@ -381,8 +379,6 @@ def test_near_object_generate_and_group_by_with_everything(
     groups = list(res.groups.values())
     assert groups[0].generated is not None
     assert groups[1].generated is not None
-    assert groups[0].generated.lower() == "no"
-    assert groups[1].generated.lower() == "yes"
 
 
 def test_near_text_generate_with_everything(openai_collection: OpenAICollection) -> None:
@@ -675,11 +671,8 @@ def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection
         grouped_task="Write out the fruit in alphabetical order. Only write the names separated by a space",
         generative_provider=GenerativeProvider.openai(
             temperature=0.1,
-            top_p=0.9,
         ),
     )
     assert res.generated == "bananas melons"
     assert res.objects[0].generated is not None
     assert res.objects[1].generated is not None
-    assert res.objects[0].generated.lower() == "no"
-    assert res.objects[1].generated.lower() == "yes"

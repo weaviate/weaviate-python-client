@@ -225,26 +225,34 @@ class _Generative:
             )
         else:
             return generative_pb2.GenerativeSearch(
-                single=generative_pb2.GenerativeSearch.Single(
-                    prompt=self.single,
-                    queries=(
-                        [self.generative_provider.to_grpc()]
-                        if self.generative_provider is not None
-                        else None
-                    ),
+                single=(
+                    generative_pb2.GenerativeSearch.Single(
+                        prompt=self.single,
+                        queries=(
+                            [self.generative_provider.to_grpc()]
+                            if self.generative_provider is not None
+                            else None
+                        ),
+                    )
+                    if self.single is not None
+                    else None
                 ),
-                grouped=generative_pb2.GenerativeSearch.Grouped(
-                    task=self.grouped,
-                    properties=(
-                        base_pb2.TextArray(values=self.grouped_properties)
-                        if self.grouped_properties is not None
-                        else None
-                    ),
-                    queries=(
-                        [self.generative_provider.to_grpc()]
-                        if self.generative_provider is not None
-                        else None
-                    ),
+                grouped=(
+                    generative_pb2.GenerativeSearch.Grouped(
+                        task=self.grouped,
+                        properties=(
+                            base_pb2.TextArray(values=self.grouped_properties)
+                            if self.grouped_properties is not None
+                            else None
+                        ),
+                        queries=(
+                            [self.generative_provider.to_grpc()]
+                            if self.generative_provider is not None
+                            else None
+                        ),
+                    )
+                    if self.grouped is not None
+                    else None
                 ),
             )
 

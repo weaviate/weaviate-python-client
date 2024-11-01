@@ -101,6 +101,7 @@ class _QueryGRPC(_BaseGRPC):
         self._tenant = tenant
         self._validate_arguments = validate_arguments
         self.__uses_125_api = self._connection._weaviate_version.is_at_least(1, 25, 0)
+        self.__uses_127_api = self._connection._weaviate_version.is_at_least(1, 27, 0)
 
     def __parse_near_options(
         self,
@@ -764,6 +765,7 @@ class _QueryGRPC(_BaseGRPC):
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
             uses_125_api=self.__uses_125_api,
+            uses_127_api=self.__uses_127_api,
             collection=self._name,
             limit=limit,
             offset=offset,
