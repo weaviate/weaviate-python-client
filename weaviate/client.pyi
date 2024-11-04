@@ -41,6 +41,7 @@ from .exceptions import (
     WeaviateConnectionError,
 )
 from .gql import Query
+from .rbac import _Roles
 from .schema import Schema
 from weaviate.event_loop import _EventLoopSingleton
 from .types import NUMBER
@@ -78,6 +79,7 @@ class WeaviateClient(_WeaviateClientInit):
     batch: _BatchClientWrapper
     backup: _Backup
     cluster: _Cluster
+    roles: _Roles
     def close(self) -> None: ...
     def connect(self) -> None: ...
     def is_connected(self) -> bool: ...

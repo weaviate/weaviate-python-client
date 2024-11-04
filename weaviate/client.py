@@ -38,6 +38,7 @@ from .exceptions import (
     WeaviateConnectionError,
 )
 from .gql import Query
+from .rbac import _Roles
 from .schema import Schema
 from .types import NUMBER
 from .util import _get_valid_timeout_config, _type_request_response
@@ -163,6 +164,8 @@ class WeaviateAsyncClient(_WeaviateClientBase):
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.
         """
+        self.roles = _Roles(self._connection)
+        """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
 
     async def __aenter__(self) -> "WeaviateAsyncClient":
         await self.connect()
