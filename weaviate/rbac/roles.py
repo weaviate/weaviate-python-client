@@ -21,15 +21,27 @@ class _RolesBase:
     def __init__(self, connection: ConnectionV4) -> None:
         self._connection = connection
 
-    async def _get_roles(self, name: Optional[str]) -> List[WeaviateRole]:
-        path = "/authz/roles" if name is None else f"/authz/roles/{name}"
+    async def _get_roles(self) -> List[WeaviateRole]:
+        path = "/authz/roles"
 
         res = await self._connection.get(
             path,
-            error_msg="Could not get roles" if name is None else f"Could not get role {name}",
+            error_msg="Could not get roles",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles"),
         )
         return cast(List[WeaviateRole], res.json())
+
+    async def _get_role(self, name: str) -> Optional[WeaviateRole]:
+        path = f"/authz/roles/{name}"
+
+        res = await self._connection.get(
+            path,
+            error_msg=f"Could not get role {name}",
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="Get role"),
+        )
+        if res.status_code == 404:
+            return None
+        return cast(Optional[WeaviateRole], res.json())
 
     async def _post_roles(self, role: WeaviateRole) -> WeaviateRole:
         path = "/authz/roles"
@@ -109,16 +121,18 @@ class _RolesAsync(_RolesBase):
                     )
                     for resource in permission["resources"]
                 )
-            if permission["level"] == "database":
+            elif permission["level"] == "database":
                 database_permissions.append(
                     DatabasePermission(
                         actions=[DatabaseAction(action) for action in permission["actions"]]
                     )
                 )
+            else:
+                raise ValueError(f"Unknown permission level: {permission['level']}")
         return Role(
             name=role["name"],
-            collection_permissions=collection_permissions,
-            database_permissions=database_permissions,
+            collection_permissions=cp if len(cp := collection_permissions) > 0 else None,
+            database_permissions=dp if len(dp := database_permissions) > 0 else None,
         )
 
     def __user_from_weaviate_user(self, user: str) -> User:
@@ -130,7 +144,7 @@ class _RolesAsync(_RolesBase):
         Returns:
             All roles.
         """
-        return [self.__role_from_weaviate_role(role) for role in await self._get_roles(None)]
+        return [self.__role_from_weaviate_role(role) for role in await self._get_roles()]
 
     async def by_name(self, role: str) -> Optional[Role]:
         """Get the permissions granted to this role.
@@ -141,11 +155,10 @@ class _RolesAsync(_RolesBase):
         Returns:
             A `Role` object or `None` if it does not exist.
         """
-        return (
-            self.__role_from_weaviate_role(r[0])
-            if len(r := await self._get_roles(role)) > 0
-            else None
-        )
+        r = await self._get_role(role)
+        if r is None:
+            return None
+        return self.__role_from_weaviate_role(r)
 
     async def by_user(self, user: str) -> List[Role]:
         """Get the roles assigned to a user.
