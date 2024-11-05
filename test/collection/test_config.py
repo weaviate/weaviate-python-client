@@ -83,6 +83,22 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.multi2vec_cohere(
+            model="embed-multilingual-v2.0",
+            truncate="NONE",
+            vectorize_collection_name=False,
+            base_url="https://api.cohere.ai",
+        ),
+        {
+            "multi2vec-cohere": {
+                "model": "embed-multilingual-v2.0",
+                "truncate": "NONE",
+                "vectorizeClassName": False,
+                "baseURL": "https://api.cohere.ai/",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_gpt4all(),
         {
             "text2vec-gpt4all": {
@@ -1213,6 +1229,20 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "text2vec-cohere": {
                         "vectorizeClassName": True,
                         "properties": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.NamedVectors.multi2vec_cohere(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-cohere": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
                     }
                 },
                 "vectorIndexType": "hnsw",
