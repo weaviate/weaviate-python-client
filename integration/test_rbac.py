@@ -4,7 +4,7 @@ from weaviate.auth import Auth
 from weaviate.rbac.models import RBAC
 
 
-@pytest.skip("Not working until we have a CI image")
+@pytest.mark.skip("Not working until we have a CI image")
 def test_create_role(client_factory: ClientFactory) -> None:
     with client_factory(
         ports=(8080, 50051), auth_credentials=Auth.api_key("jp-secret-key")
