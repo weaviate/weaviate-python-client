@@ -1,55 +1,13 @@
-from dataclasses import dataclass
-from enum import Enum
-from typing import List, Sequence, Union
+from typing import List, Union
 
 from weaviate.connect import ConnectionV4
-
-
-class _Permission:
-    pass
-
-
-class _Action:
-    pass
-
-
-class CollectionAction(str, _Action, Enum):
-    CREATE_TENANT = "create_tenant"
-    READ_TENANT = "read_tenant"
-    UPDATE_TENANT = "update_tenant"
-    DELETE_TENANT = "delete_tenant"
-
-    CREATE_OBJECT = "create_object"
-    READ_OBJECT = "read_object"
-    UPDATE_OBJECT = "update_object"
-    DELETE_OBJECT = "delete_object"
-
-
-class DatabaseAction(str, _Action, Enum):
-    CREATE_COLLECTION = "create_collection"
-    READ_COLLECTION = "read_collection"
-    UPDATE_COLLECTION = "update_collection"
-    DELETE_COLLECTION = "delete_collection"
-
-    CREATE_ROLE = "create_role"
-    READ_ROLE = "read_role"
-    UPDATE_ROLE = "update_role"
-    DELETE_ROLE = "delete_role"
-
-
-@dataclass
-class CollectionPermission(_Permission):
-    collection: str
-    actions: List[CollectionAction]
-
-
-@dataclass
-class DatabasePermission(_Permission):
-    actions: List[DatabaseAction]
-
-
-Actions = Union[_Action, Sequence[_Action]]
-Permissions = Union[_Permission, Sequence[_Permission]]
+from weaviate.rbac.types import (
+    CollectionAction,
+    DatabaseAction,
+    _CollectionPermission,
+    _DatabasePermission,
+    Permissions,
+)
 
 
 class _Permissions:
@@ -82,10 +40,10 @@ class ActionsFactory:
 
 class PermissionsFactory:
     @staticmethod
-    def collection(  # type: ignore
+    def collection(
         collection: str, actions: Union[CollectionAction, List[CollectionAction]]
-    ) -> CollectionPermission:
-        """Create a permission specific to a collection.
+    ) -> _CollectionPermission:
+        """Create a permission specific to a collection to be used when creating and adding permissions to roles.
 
         Args:
             collection: The collection to grant permissions on.
@@ -94,11 +52,14 @@ class PermissionsFactory:
         Returns:
             The collection permission.
         """
-        ...
+        return _CollectionPermission(
+            resource=collection,
+            actions=[actions] if isinstance(actions, CollectionAction) else actions,
+        )
 
     @staticmethod
-    def database(actions: Union[DatabaseAction, List[DatabaseAction]]) -> DatabasePermission:  # type: ignore
-        """Create a database permission.
+    def database(actions: Union[DatabaseAction, List[DatabaseAction]]) -> _DatabasePermission:
+        """Create a database permission to be used when creating and adding permissions to roles.
 
         Args:
             actions: The actions to grant on the database.
@@ -106,7 +67,9 @@ class PermissionsFactory:
         Returns:
             The database permission.
         """
-        ...
+        return _DatabasePermission(
+            actions=[actions] if isinstance(actions, DatabaseAction) else actions
+        )
 
 
 class RBAC:

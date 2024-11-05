@@ -41,7 +41,7 @@ from .exceptions import (
     WeaviateConnectionError,
 )
 from .gql import Query
-from .rbac import _Roles
+from .rbac import _Roles, _RolesAsync
 from .schema import Schema
 from weaviate.event_loop import _EventLoopSingleton
 from .types import NUMBER
@@ -62,6 +62,7 @@ class WeaviateAsyncClient(_WeaviateClientInit):
     collections: _CollectionsAsync
     backup: _BackupAsync
     cluster: _ClusterAsync
+    roles: _RolesAsync
     async def close(self) -> None: ...
     async def connect(self) -> None: ...
     def is_connected(self) -> bool: ...

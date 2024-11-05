@@ -1,3 +1,4 @@
-from .roles import _Roles
+from .roles import _RolesAsync
+from .sync import _Roles
 
-__all__ = ["_Roles"]
+__all__ = ["_RolesAsync", "_Roles"]
