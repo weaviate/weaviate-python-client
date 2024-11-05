@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 from weaviate.rbac.roles import _RolesBase
-from weaviate.rbac.types import Permissions, Role, User
+from weaviate.rbac.models import Permissions, Role, User
 
 class _Roles(_RolesBase):
     def list_all(self) -> List[Role]: ...

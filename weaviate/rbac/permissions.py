@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from weaviate.connect import ConnectionV4
-from weaviate.rbac.types import (
+from weaviate.rbac.models import (
     CollectionAction,
     DatabaseAction,
     _CollectionPermission,

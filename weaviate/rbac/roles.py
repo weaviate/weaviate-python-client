@@ -4,7 +4,7 @@ from typing import List, Optional, Union, cast
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.permissions import _Permissions
-from weaviate.rbac.types import (
+from weaviate.rbac.models import (
     CollectionAction,
     CollectionPermission,
     DatabaseAction,
@@ -22,15 +22,10 @@ class _RolesBase:
         self._connection = connection
 
     async def _get_roles(self, name: Optional[str]) -> List[WeaviateRole]:
-        path = "/authz/roles"
-
-        params = {}
-        if name is not None:
-            params = {"name": name}
+        path = "/authz/roles" if name is None else f"/authz/roles/{name}"
 
         res = await self._connection.get(
             path,
-            params=params,
             error_msg="Could not get roles" if name is None else f"Could not get role {name}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles"),
         )
