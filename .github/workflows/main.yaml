@@ -14,11 +14,10 @@ on:
   pull_request:
 
 env:
-  WEAVIATE_123: 1.23.16
-  WEAVIATE_124: 1.24.26
   WEAVIATE_125: 1.25.24
   WEAVIATE_126: 1.26.8
-  WEAVIATE_127: preview--rbac-add-policy-to-role-translation-5e24099
+  WEAVIATE_127: 1.27.1
+  WEAVIATE_128: preview--rbac-add-policy-to-role-translation-5e24099
 
 jobs:
   lint-and-format:
@@ -121,13 +120,14 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_126},
-          { py: "3.10", weaviate: $WEAVIATE_126},
-          { py: "3.11", weaviate: $WEAVIATE_123},
-          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.9", weaviate: $WEAVIATE_128},
+          { py: "3.10", weaviate: $WEAVIATE_128},
           { py: "3.11", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_127}
+          { py: "3.11", weaviate: $WEAVIATE_127},
+          { py: "3.11", weaviate: $WEAVIATE_128},
+          { py: "3.12", weaviate: $WEAVIATE_128},
+          { py: "3.13", weaviate: $WEAVIATE_128}
         ]
         optional_dependencies: [false]
     steps:
@@ -180,13 +180,14 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_126},
-          { py: "3.10", weaviate: $WEAVIATE_126},
-          { py: "3.11", weaviate: $WEAVIATE_123},
-          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.9", weaviate: $WEAVIATE_128},
+          { py: "3.10", weaviate: $WEAVIATE_128},
           { py: "3.11", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_127}
+          { py: "3.11", weaviate: $WEAVIATE_127},
+          { py: "3.11", weaviate: $WEAVIATE_128},
+          { py: "3.12", weaviate: $WEAVIATE_128},
+          { py: "3.13", weaviate: $WEAVIATE_128}
         ]
         optional_dependencies: [false]
     steps:
@@ -239,10 +240,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_125},
-          { py: "3.10", weaviate: $WEAVIATE_125},
-          { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.12", weaviate: $WEAVIATE_125}
+          { py: "3.9", weaviate: $WEAVIATE_128},
+          { py: "3.10", weaviate: $WEAVIATE_128},
+          { py: "3.11", weaviate: $WEAVIATE_128},
+          { py: "3.12", weaviate: $WEAVIATE_128},
+          { py: "3.13", weaviate: $WEAVIATE_128}
         ]
         optional_dependencies: [false]
     steps:
@@ -334,11 +336,10 @@ jobs:
       fail-fast: false
       matrix:
         server: [
-          $WEAVIATE_123,
-          $WEAVIATE_124,
           $WEAVIATE_125,
           $WEAVIATE_126,
-          $WEAVIATE_127
+          $WEAVIATE_127,
+          $WEAVIATE_128
         ]
     steps:
       - name: Checkout
