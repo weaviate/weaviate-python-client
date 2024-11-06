@@ -1,3 +1,4 @@
+import pytest
 from integration.conftest import ClientFactory
 from weaviate.auth import Auth
 from weaviate.rbac.models import RBAC
@@ -7,6 +8,8 @@ def test_create_role(client_factory: ClientFactory) -> None:
     with client_factory(
         ports=(8092, 50063), auth_credentials=Auth.api_key("jp-secret-key")
     ) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
+            pytest.skip("This test requires Weaviate 1.28.0 or higher")
         client.roles.create(
             name="CollectionCreator",
             permissions=RBAC.permissions.database(actions=RBAC.actions.database.CREATE_COLLECTION),
