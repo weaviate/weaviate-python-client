@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.9.3
+--------------
+This patch version includes:
+    - Fixes interface for updating generative and reranker collection settings
+
 Version 4.9.2
 --------------
 This patch version includes:
