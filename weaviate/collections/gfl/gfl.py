@@ -21,6 +21,9 @@ class GFLStatus(BaseModel):
     child_state: str
     batch_count: int
     total_items: int
+    total_duration: Optional[float] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
 
 
 class GFLStatusResponse(BaseModel):
