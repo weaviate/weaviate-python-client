@@ -1,13 +1,5 @@
-from typing import List, Union
-
 from weaviate.connect import ConnectionV4
-from weaviate.rbac.models import (
-    CollectionAction,
-    DatabaseAction,
-    _CollectionPermission,
-    _DatabasePermission,
-    Permissions,
-)
+from weaviate.rbac.models import Permissions
 
 
 class _Permissions:
@@ -31,47 +23,3 @@ class _Permissions:
             role: The role to remove the permissions from.
         """
         ...
-
-
-class ActionsFactory:
-    collection = CollectionAction
-    database = DatabaseAction
-
-
-class PermissionsFactory:
-    @staticmethod
-    def collection(
-        collection: str, actions: Union[CollectionAction, List[CollectionAction]]
-    ) -> _CollectionPermission:
-        """Create a permission specific to a collection to be used when creating and adding permissions to roles.
-
-        Args:
-            collection: The collection to grant permissions on.
-            actions: The actions to grant on the collection.
-
-        Returns:
-            The collection permission.
-        """
-        return _CollectionPermission(
-            resource=collection,
-            actions=[actions] if isinstance(actions, CollectionAction) else actions,
-        )
-
-    @staticmethod
-    def database(actions: Union[DatabaseAction, List[DatabaseAction]]) -> _DatabasePermission:
-        """Create a database permission to be used when creating and adding permissions to roles.
-
-        Args:
-            actions: The actions to grant on the database.
-
-        Returns:
-            The database permission.
-        """
-        return _DatabasePermission(
-            actions=[actions] if isinstance(actions, DatabaseAction) else actions
-        )
-
-
-class RBAC:
-    actions = ActionsFactory
-    permissions = PermissionsFactory

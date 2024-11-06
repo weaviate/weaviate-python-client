@@ -12,6 +12,8 @@ from weaviate.rbac.models import (
     Permissions,
     _Permission,
     Role,
+    TenantAction,
+    TenantPermission,
     User,
     WeaviateRole,
 )
@@ -112,11 +114,12 @@ class _RolesAsync(_RolesBase):
     def __role_from_weaviate_role(self, role: WeaviateRole) -> Role:
         collection_permissions: List[CollectionPermission] = []
         database_permissions: List[DatabasePermission] = []
+        tenant_permissions: List[TenantPermission] = []
         for permission in role["permissions"]:
             if permission["level"] == "collection":
                 collection_permissions.extend(
                     CollectionPermission(
-                        resource=resource,
+                        collection=resource.split("/")[0],
                         actions=[CollectionAction(action) for action in permission["actions"]],
                     )
                     for resource in permission["resources"]
@@ -127,12 +130,22 @@ class _RolesAsync(_RolesBase):
                         actions=[DatabaseAction(action) for action in permission["actions"]]
                     )
                 )
+            elif permission["level"] == "tenant":
+                tenant_permissions.extend(
+                    TenantPermission(
+                        collection=resource.split("/")[0],
+                        tenant=resource.split("/")[1],
+                        actions=[TenantAction(action) for action in permission["actions"]],
+                    )
+                    for resource in permission["resources"]
+                )
             else:
                 raise ValueError(f"Unknown permission level: {permission['level']}")
         return Role(
             name=role["name"],
             collection_permissions=cp if len(cp := collection_permissions) > 0 else None,
             database_permissions=dp if len(dp := database_permissions) > 0 else None,
+            tenant_permissions=tp if len(tp := tenant_permissions) > 0 else None,
         )
 
     def __user_from_weaviate_user(self, user: str) -> User:

@@ -5,7 +5,8 @@ from weaviate.rbac.models import RBAC
 
 def test_create_role(client_factory: ClientFactory) -> None:
     with client_factory(
-        ports=(8092, 50063), auth_credentials=Auth.api_key("jp-secret-key")
+        # ports=(8092, 50063),
+        auth_credentials=Auth.api_key("jp-secret-key")
     ) as client:
         client.roles.create(
             name="CollectionCreator",

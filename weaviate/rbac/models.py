@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 class WeaviatePermission(TypedDict):
     actions: List[str]
-    level: Literal["collection", "database"]
+    level: Literal["collection", "database", "tenant"]
     resources: List[str]
 
 
@@ -19,6 +19,13 @@ class WeaviateRole(TypedDict):
 
 class _Action:
     pass
+
+
+class TenantAction(str, _Action, Enum):
+    CREATE_OBJECT = "create_object"
+    READ_OBJECT = "read_object"
+    UPDATE_OBJECT = "update_object"
+    DELETE_OBJECT = "delete_object"
 
 
 class CollectionAction(str, _Action, Enum):
@@ -39,10 +46,9 @@ class DatabaseAction(str, _Action, Enum):
     UPDATE_COLLECTION = "update_collection"
     DELETE_COLLECTION = "delete_collection"
 
-    CREATE_ROLE = "create_role"
-    READ_ROLE = "read_role"
-    UPDATE_ROLE = "update_role"
-    DELETE_ROLE = "delete_role"
+    MANAGE_CLUSTER = "manage_cluster"
+    MANAGE_ROLES = "manage_roles"
+    READ_ROLES = "read_roles"
 
 
 class _Permission(BaseModel):
@@ -52,14 +58,14 @@ class _Permission(BaseModel):
 
 
 class _CollectionPermission(_Permission):
-    resource: str
+    collection: str
     actions: List[CollectionAction]
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "actions": [action.value for action in self.actions],
             "level": "collection",
-            "resources": [self.resource],
+            "resources": [self.collection],
         }
 
 
@@ -74,9 +80,22 @@ class _DatabasePermission(_Permission):
         }
 
 
+class _TenantPermission(_Permission):
+    collection: str
+    tenant: str
+    actions: List[TenantAction]
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "actions": [action.value for action in self.actions],
+            "level": "tenant",
+            "resources": [f"{self.collection}/{self.tenant}"],
+        }
+
+
 @dataclass
 class CollectionPermission:
-    resource: str
+    collection: str
     actions: List[CollectionAction]
 
 
@@ -86,10 +105,18 @@ class DatabasePermission:
 
 
 @dataclass
+class TenantPermission:
+    collection: str
+    tenant: str
+    actions: List[TenantAction]
+
+
+@dataclass
 class Role:
     name: str
     collection_permissions: Optional[List[CollectionPermission]]
     database_permissions: Optional[List[DatabasePermission]]
+    tenant_permissions: Optional[List[TenantPermission]]
 
 
 @dataclass
@@ -121,7 +148,7 @@ class PermissionsFactory:
             The collection permission.
         """
         return _CollectionPermission(
-            resource=collection,
+            collection=collection,
             actions=[actions] if isinstance(actions, CollectionAction) else actions,
         )
 
@@ -137,6 +164,26 @@ class PermissionsFactory:
         """
         return _DatabasePermission(
             actions=[actions] if isinstance(actions, DatabaseAction) else actions
+        )
+
+    @staticmethod
+    def tenant(
+        collection: str, tenant: str, actions: Union[TenantAction, List[TenantAction]]
+    ) -> _TenantPermission:
+        """Create a tenant permission to be used when creating and adding permissions to roles.
+
+        Args:
+            collection: The collection to grant permissions on.
+            tenant: The tenant to grant permissions on.1
+            actions: The actions to grant on the tenant.
+
+        Returns:
+            The tenant permission.
+        """
+        return _TenantPermission(
+            collection=collection,
+            tenant=tenant,
+            actions=[actions] if isinstance(actions, TenantAction) else actions,
         )
 
 
