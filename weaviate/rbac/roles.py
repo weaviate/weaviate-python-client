@@ -115,26 +115,22 @@ class _RolesAsync(_RolesBase):
         database_permissions: List[DatabaseAction] = []
         tenant_permissions: List[TenantsPermission] = []
         for permission in role["permissions"]:
-            if all(action in CollectionsAction.values() for action in permission["actions"]):
-                collection_permissions.extend(
+            if permission["action"] in CollectionsAction.values():
+                collection_permissions.append(
                     CollectionsPermission(
-                        collection=resource.split("/")[0],
-                        actions=[CollectionsAction(action) for action in permission["actions"]],
+                        collection=permission["resource"],
+                        action=CollectionsAction(permission["action"]),
                     )
-                    for resource in permission["resources"]
                 )
-            elif all(action in DatabaseAction.values() for action in permission["actions"]):
-                database_permissions.extend(
-                    DatabaseAction(action) for action in permission["actions"]
-                )
-            elif all(action in TenantsAction.values() for action in permission["actions"]):
-                tenant_permissions.extend(
+            elif permission["action"] in DatabaseAction.values():
+                database_permissions.append(DatabaseAction(permission["action"]))
+            elif permission["action"] in TenantsAction.values():
+                tenant_permissions.append(
                     TenantsPermission(
-                        collection=resource.split("/")[0],
-                        tenant=resource.split("/")[1],
-                        actions=[TenantsAction(action) for action in permission["actions"]],
+                        collection=permission["resource"].split("/")[0],
+                        tenant=permission["resource"].split("/")[1],
+                        action=TenantsAction(permission["action"]),
                     )
-                    for resource in permission["resources"]
                 )
             else:
                 raise ValueError(
