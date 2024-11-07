@@ -97,7 +97,7 @@ class _TenantPermission(_Permission):
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "actions": [action.value for action in self.actions],
-            "resources": [f"{self.collection};;{self.tenant}"],
+            "resources": [f"{self.collection}/{self.tenant}"],
         }
 
 
