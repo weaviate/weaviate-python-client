@@ -6,14 +6,11 @@ from abc import ABC
 from collections import deque
 from copy import copy
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, Union, cast
+from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, Union
 
 from pydantic import ValidationError
 from typing_extensions import TypeAlias
 
-from httpx import ConnectError
-
-from weaviate.cluster.types import Node
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
@@ -35,12 +32,12 @@ from weaviate.collections.classes.internal import (
     ReferenceInputs,
 )
 from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.collections.cluster import _ClusterAsync
 from weaviate.connect import ConnectionV4
 from weaviate.event_loop import _EventLoop
-from weaviate.exceptions import WeaviateBatchValidationError, EmptyResponseException
+from weaviate.exceptions import WeaviateBatchValidationError
 from weaviate.logger import logger
 from weaviate.types import UUID, VECTORS
-from weaviate.util import _decode_json_response_dict
 from weaviate.warnings import _Warnings
 
 BatchResponse = List[Dict[str, Any]]
@@ -183,7 +180,7 @@ class _BatchBase:
 
         self.__results_lock = threading.Lock()
 
-        self.__cluster = _ClusterBatch(self.__connection)
+        self.__cluster = _ClusterAsync(self.__connection)
 
         self.__batching_mode: _BatchMode = batch_mode
         self.__max_batch_size: int = 1000
@@ -360,7 +357,7 @@ class _BatchBase:
         return demonBatchSend
 
     def __dynamic_batching(self) -> None:
-        status = self.__loop.run_until_complete(self.__cluster.get_nodes_status)
+        status = self.__loop.run_until_complete(self.__cluster.rest_nodes)
         if "batchStats" not in status[0] or "queueLength" not in status[0]["batchStats"]:
             # async indexing - just send a lot
             self.__batching_mode = _FixedSizeBatching(1000, 10)
@@ -700,23 +697,3 @@ class _BatchBase:
             return
 
         raise self.__bg_thread_exception or Exception("Batch thread died unexpectedly")
-
-
-class _ClusterBatch:
-    def __init__(self, connection: ConnectionV4):
-        self._connection = connection
-
-    async def get_nodes_status(
-        self,
-    ) -> List[Node]:
-        try:
-            response = await self._connection.get(path="/nodes")
-        except ConnectError as conn_err:
-            raise ConnectError("Get nodes status failed due to connection error") from conn_err
-
-        response_typed = _decode_json_response_dict(response, "Nodes status")
-        assert response_typed is not None
-        nodes = response_typed.get("nodes")
-        if nodes is None or nodes == []:
-            raise EmptyResponseException("Nodes status response returned empty")
-        return cast(List[Node], nodes)
