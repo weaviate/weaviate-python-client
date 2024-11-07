@@ -3,7 +3,6 @@ from typing import List, Optional, Union, cast
 
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
-from weaviate.rbac.permissions import _Permissions
 from weaviate.rbac.models import (
     CollectionsAction,
     CollectionsPermission,
@@ -16,6 +15,7 @@ from weaviate.rbac.models import (
     User,
     WeaviateRole,
 )
+from weaviate.rbac.permissions import _Permissions
 
 
 class _RolesBase:
