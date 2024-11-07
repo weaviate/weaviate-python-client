@@ -4,15 +4,14 @@ from typing import List, Optional, Union, cast
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
-    CollectionActions,
-    CollectionPermission,
+    CollectionsAction,
+    CollectionsPermission,
     DatabaseAction,
-    DatabasePermission,
     Permissions,
     _Permission,
     Role,
-    TenantActions,
-    TenantPermission,
+    TenantsAction,
+    TenantsPermission,
     User,
     WeaviateRole,
 )
@@ -112,40 +111,40 @@ class _RolesAsync(_RolesBase):
         self.permissions = _Permissions(connection)
 
     def __role_from_weaviate_role(self, role: WeaviateRole) -> Role:
-        collection_permissions: List[CollectionPermission] = []
-        database_permissions: List[DatabasePermission] = []
-        tenant_permissions: List[TenantPermission] = []
+        collection_permissions: List[CollectionsPermission] = []
+        database_permissions: List[DatabaseAction] = []
+        tenant_permissions: List[TenantsPermission] = []
         for permission in role["permissions"]:
-            if permission["level"] == "collection":
+            if all(action in CollectionsAction.values() for action in permission["actions"]):
                 collection_permissions.extend(
-                    CollectionPermission(
+                    CollectionsPermission(
                         collection=resource.split("/")[0],
-                        actions=[CollectionActions(action) for action in permission["actions"]],
+                        actions=[CollectionsAction(action) for action in permission["actions"]],
                     )
                     for resource in permission["resources"]
                 )
-            elif permission["level"] == "database":
-                database_permissions.append(
-                    DatabasePermission(
-                        actions=[DatabaseAction(action) for action in permission["actions"]]
-                    )
+            elif all(action in DatabaseAction.values() for action in permission["actions"]):
+                database_permissions.extend(
+                    DatabaseAction(action) for action in permission["actions"]
                 )
-            elif permission["level"] == "tenant":
+            elif all(action in TenantsAction.values() for action in permission["actions"]):
                 tenant_permissions.extend(
-                    TenantPermission(
+                    TenantsPermission(
                         collection=resource.split("/")[0],
                         tenant=resource.split("/")[1],
-                        actions=[TenantActions(action) for action in permission["actions"]],
+                        actions=[TenantsAction(action) for action in permission["actions"]],
                     )
                     for resource in permission["resources"]
                 )
             else:
-                raise ValueError(f"Unknown permission level: {permission['level']}")
+                raise ValueError(
+                    f"The actions of role {role['name']} are mixed between levels somehow!"
+                )
         return Role(
             name=role["name"],
-            collection_permissions=cp if len(cp := collection_permissions) > 0 else None,
+            collections_permissions=cp if len(cp := collection_permissions) > 0 else None,
             database_permissions=dp if len(dp := database_permissions) > 0 else None,
-            tenant_permissions=tp if len(tp := tenant_permissions) > 0 else None,
+            tenants_permissions=tp if len(tp := tenant_permissions) > 0 else None,
         )
 
     def __user_from_weaviate_user(self, user: str) -> User:
