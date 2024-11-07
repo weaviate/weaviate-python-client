@@ -7,8 +7,8 @@ from pydantic import BaseModel
 
 
 class WeaviatePermission(TypedDict):
-    actions: List[str]
-    resources: List[str]
+    action: str
+    resource: str
 
 
 class WeaviateRole(TypedDict):
@@ -70,48 +70,48 @@ class _Permission(BaseModel):
 
 class _CollectionsPermission(_Permission):
     collection: str
-    actions: List[CollectionsAction]
+    action: CollectionsAction
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            "actions": [action.value for action in self.actions],
-            "resources": [self.collection],
+            "action": self.action,
+            "resource": self.collection,
         }
 
 
 class _DatabasePermission(_Permission):
-    actions: List[DatabaseAction]
+    action: DatabaseAction
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            "actions": [action.value for action in self.actions],
-            "resources": [],
+            "action": self.action,
+            "resource": "*",
         }
 
 
 class _TenantPermission(_Permission):
     collection: str
     tenant: str
-    actions: List[TenantsAction]
+    action: TenantsAction
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            "actions": [action.value for action in self.actions],
-            "resources": [f"{self.collection}/{self.tenant}"],
+            "action": self.action,
+            "resource": f"{self.collection}/{self.tenant}",
         }
 
 
 @dataclass
 class CollectionsPermission:
     collection: str
-    actions: List[CollectionsAction]
+    action: CollectionsAction
 
 
 @dataclass
 class TenantsPermission:
     collection: str
     tenant: str
-    actions: List[TenantsAction]
+    action: TenantsAction
 
 
 @dataclass
@@ -140,7 +140,7 @@ class PermissionsFactory:
     @staticmethod
     def collection(
         collection: str, actions: Union[CollectionsAction, List[CollectionsAction]]
-    ) -> _CollectionsPermission:
+    ) -> Sequence[_CollectionsPermission]:
         """Create a permission specific to a collection to be used when creating and adding permissions to roles.
 
         Args:
@@ -150,13 +150,15 @@ class PermissionsFactory:
         Returns:
             The collection permission.
         """
-        return _CollectionsPermission(
-            collection=collection,
-            actions=[actions] if isinstance(actions, CollectionsAction) else actions,
-        )
+        if isinstance(actions, CollectionsAction):
+            actions = [actions]
+
+        return [_CollectionsPermission(collection=collection, action=action) for action in actions]
 
     @staticmethod
-    def database(actions: Union[DatabaseAction, List[DatabaseAction]]) -> _DatabasePermission:
+    def database(
+        actions: Union[DatabaseAction, List[DatabaseAction]]
+    ) -> Sequence[_DatabasePermission]:
         """Create a database permission to be used when creating and adding permissions to roles.
 
         Args:
@@ -165,14 +167,15 @@ class PermissionsFactory:
         Returns:
             The database permission.
         """
-        return _DatabasePermission(
-            actions=[actions] if isinstance(actions, DatabaseAction) else actions
-        )
+        if isinstance(actions, DatabaseAction):
+            actions = [actions]
+
+        return [_DatabasePermission(action=action) for action in actions]
 
     @staticmethod
     def tenant(
         collection: str, tenant: str, actions: Union[TenantsAction, List[TenantsAction]]
-    ) -> _TenantPermission:
+    ) -> Sequence[_TenantPermission]:
         """Create a tenant permission to be used when creating and adding permissions to roles.
 
         Args:
@@ -183,11 +186,13 @@ class PermissionsFactory:
         Returns:
             The tenant permission.
         """
-        return _TenantPermission(
-            collection=collection,
-            tenant=tenant,
-            actions=[actions] if isinstance(actions, TenantsAction) else actions,
-        )
+        if isinstance(actions, TenantsAction):
+            actions = [actions]
+
+        return [
+            _TenantPermission(collection=collection, tenant=tenant, action=action)
+            for action in actions
+        ]
 
 
 class RBAC:
