@@ -1,14 +1,13 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Literal, Optional, Sequence, TypedDict, Union
+from typing import List, Optional, Sequence, TypedDict, Union
 
 from pydantic import BaseModel
 
 
 class WeaviatePermission(TypedDict):
     actions: List[str]
-    level: Literal["collection", "database", "tenant"]
     resources: List[str]
 
 
@@ -21,34 +20,46 @@ class _Action:
     pass
 
 
-class TenantAction(str, _Action, Enum):
-    CREATE_OBJECT = "create_object"
-    READ_OBJECT = "read_object"
-    UPDATE_OBJECT = "update_object"
-    DELETE_OBJECT = "delete_object"
+class TenantsAction(str, _Action, Enum):
+    CREATE_OBJECTS = "create_objects_tenant"
+    READ_OBJECTS = "read_objects_tenant"
+    UPDATE_OBJECTS = "update_objects_tenant"
+    DELETE_OBJECTS = "delete_objects_tenant"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in TenantsAction]
 
 
-class CollectionAction(str, _Action, Enum):
-    CREATE_TENANT = "create_tenant"
-    READ_TENANT = "read_tenant"
-    UPDATE_TENANT = "update_tenant"
-    DELETE_TENANT = "delete_tenant"
+class CollectionsAction(str, _Action, Enum):
+    CREATE_OBJECTS = "create_objects_collection"
+    READ_OBJECTS = "read_objects_collection"
+    UPDATE_OBJECTS = "update_objects_collection"
+    DELETE_OBJECTS = "delete_objects_collection"
 
-    CREATE_OBJECT = "create_object"
-    READ_OBJECT = "read_object"
-    UPDATE_OBJECT = "update_object"
-    DELETE_OBJECT = "delete_object"
+    CREATE_TENANTS = "create_tenants"
+    READ_TENANTS = "read_tenants"
+    UPDATE_TENANTS = "update_tenants"
+    DELETE_TENANTS = "delete_tenants"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in CollectionsAction]
 
 
 class DatabaseAction(str, _Action, Enum):
-    CREATE_COLLECTION = "create_collection"
-    READ_COLLECTION = "read_collection"
-    UPDATE_COLLECTION = "update_collection"
-    DELETE_COLLECTION = "delete_collection"
+    CREATE_COLLECTIONS = "create_collections"
+    READ_COLLECTIONS = "read_collections"
+    UPDATE_COLLECTIONS = "update_collections"
+    DELETE_COLLECTIONS = "delete_collections"
 
     MANAGE_CLUSTER = "manage_cluster"
     MANAGE_ROLES = "manage_roles"
     READ_ROLES = "read_roles"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in DatabaseAction]
 
 
 class _Permission(BaseModel):
@@ -57,14 +68,13 @@ class _Permission(BaseModel):
         raise NotImplementedError()
 
 
-class _CollectionPermission(_Permission):
+class _CollectionsPermission(_Permission):
     collection: str
-    actions: List[CollectionAction]
+    actions: List[CollectionsAction]
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "actions": [action.value for action in self.actions],
-            "level": "collection",
             "resources": [self.collection],
         }
 
@@ -75,7 +85,6 @@ class _DatabasePermission(_Permission):
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "actions": [action.value for action in self.actions],
-            "level": "database",
             "resources": [],
         }
 
@@ -83,40 +92,34 @@ class _DatabasePermission(_Permission):
 class _TenantPermission(_Permission):
     collection: str
     tenant: str
-    actions: List[TenantAction]
+    actions: List[TenantsAction]
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "actions": [action.value for action in self.actions],
-            "level": "tenant",
-            "resources": [f"{self.collection}/{self.tenant}"],
+            "resources": [f"{self.collection};;{self.tenant}"],
         }
 
 
 @dataclass
-class CollectionPermission:
+class CollectionsPermission:
     collection: str
-    actions: List[CollectionAction]
+    actions: List[CollectionsAction]
 
 
 @dataclass
-class DatabasePermission:
-    actions: List[DatabaseAction]
-
-
-@dataclass
-class TenantPermission:
+class TenantsPermission:
     collection: str
     tenant: str
-    actions: List[TenantAction]
+    actions: List[TenantsAction]
 
 
 @dataclass
 class Role:
     name: str
-    collection_permissions: Optional[List[CollectionPermission]]
-    database_permissions: Optional[List[DatabasePermission]]
-    tenant_permissions: Optional[List[TenantPermission]]
+    collections_permissions: Optional[List[CollectionsPermission]]
+    database_permissions: Optional[List[DatabaseAction]]
+    tenants_permissions: Optional[List[TenantsPermission]]
 
 
 @dataclass
@@ -129,15 +132,15 @@ Permissions = Union[_Permission, Sequence[_Permission]]
 
 
 class ActionsFactory:
-    collection = CollectionAction
+    collection = CollectionsAction
     database = DatabaseAction
 
 
 class PermissionsFactory:
     @staticmethod
     def collection(
-        collection: str, actions: Union[CollectionAction, List[CollectionAction]]
-    ) -> _CollectionPermission:
+        collection: str, actions: Union[CollectionsAction, List[CollectionsAction]]
+    ) -> _CollectionsPermission:
         """Create a permission specific to a collection to be used when creating and adding permissions to roles.
 
         Args:
@@ -147,9 +150,9 @@ class PermissionsFactory:
         Returns:
             The collection permission.
         """
-        return _CollectionPermission(
+        return _CollectionsPermission(
             collection=collection,
-            actions=[actions] if isinstance(actions, CollectionAction) else actions,
+            actions=[actions] if isinstance(actions, CollectionsAction) else actions,
         )
 
     @staticmethod
@@ -168,7 +171,7 @@ class PermissionsFactory:
 
     @staticmethod
     def tenant(
-        collection: str, tenant: str, actions: Union[TenantAction, List[TenantAction]]
+        collection: str, tenant: str, actions: Union[TenantsAction, List[TenantsAction]]
     ) -> _TenantPermission:
         """Create a tenant permission to be used when creating and adding permissions to roles.
 
@@ -183,7 +186,7 @@ class PermissionsFactory:
         return _TenantPermission(
             collection=collection,
             tenant=tenant,
-            actions=[actions] if isinstance(actions, TenantAction) else actions,
+            actions=[actions] if isinstance(actions, TenantsAction) else actions,
         )
 
 
