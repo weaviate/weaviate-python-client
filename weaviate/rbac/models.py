@@ -21,30 +21,30 @@ class _Action:
     pass
 
 
-class TenantAction(str, _Action, Enum):
-    CREATE_OBJECT = "create_object"
-    READ_OBJECT = "read_object"
-    UPDATE_OBJECT = "update_object"
-    DELETE_OBJECT = "delete_object"
+class TenantActions(str, _Action, Enum):
+    CREATE_OBJECTS = "create_objects"
+    READ_OBJECTS = "read_objects"
+    UPDATE_OBJECTS = "update_objects"
+    DELETE_OBJECTS = "delete_objects"
 
 
-class CollectionAction(str, _Action, Enum):
-    CREATE_TENANT = "create_tenant"
-    READ_TENANT = "read_tenant"
-    UPDATE_TENANT = "update_tenant"
-    DELETE_TENANT = "delete_tenant"
+class CollectionActions(str, _Action, Enum):
+    CREATE_TENANTS = "create_tenants"
+    READ_TENANTS = "read_tenants"
+    UPDATE_TENANTS = "update_tenants"
+    DELETE_TENANTS = "delete_tenants"
 
-    CREATE_OBJECT = "create_object"
-    READ_OBJECT = "read_object"
-    UPDATE_OBJECT = "update_object"
-    DELETE_OBJECT = "delete_object"
+    CREATE_OBJECTS = "create_objects"
+    READ_OBJECTS = "read_objects"
+    UPDATE_OBJECTS = "update_objects"
+    DELETE_OBJECTS = "delete_objects"
 
 
 class DatabaseAction(str, _Action, Enum):
-    CREATE_COLLECTION = "create_collection"
-    READ_COLLECTION = "read_collection"
-    UPDATE_COLLECTION = "update_collection"
-    DELETE_COLLECTION = "delete_collection"
+    CREATE_COLLECTION = "create_collections"
+    READ_COLLECTION = "read_collections"
+    UPDATE_COLLECTION = "update_collections"
+    DELETE_COLLECTION = "delete_collections"
 
     MANAGE_CLUSTER = "manage_cluster"
     MANAGE_ROLES = "manage_roles"
@@ -59,7 +59,7 @@ class _Permission(BaseModel):
 
 class _CollectionPermission(_Permission):
     collection: str
-    actions: List[CollectionAction]
+    actions: List[CollectionActions]
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
@@ -83,7 +83,7 @@ class _DatabasePermission(_Permission):
 class _TenantPermission(_Permission):
     collection: str
     tenant: str
-    actions: List[TenantAction]
+    actions: List[TenantActions]
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
@@ -96,7 +96,7 @@ class _TenantPermission(_Permission):
 @dataclass
 class CollectionPermission:
     collection: str
-    actions: List[CollectionAction]
+    actions: List[CollectionActions]
 
 
 @dataclass
@@ -108,7 +108,7 @@ class DatabasePermission:
 class TenantPermission:
     collection: str
     tenant: str
-    actions: List[TenantAction]
+    actions: List[TenantActions]
 
 
 @dataclass
@@ -129,14 +129,14 @@ Permissions = Union[_Permission, Sequence[_Permission]]
 
 
 class ActionsFactory:
-    collection = CollectionAction
+    collection = CollectionActions
     database = DatabaseAction
 
 
 class PermissionsFactory:
     @staticmethod
     def collection(
-        collection: str, actions: Union[CollectionAction, List[CollectionAction]]
+        collection: str, actions: Union[CollectionActions, List[CollectionActions]]
     ) -> _CollectionPermission:
         """Create a permission specific to a collection to be used when creating and adding permissions to roles.
 
@@ -149,7 +149,7 @@ class PermissionsFactory:
         """
         return _CollectionPermission(
             collection=collection,
-            actions=[actions] if isinstance(actions, CollectionAction) else actions,
+            actions=[actions] if isinstance(actions, CollectionActions) else actions,
         )
 
     @staticmethod
@@ -168,7 +168,7 @@ class PermissionsFactory:
 
     @staticmethod
     def tenant(
-        collection: str, tenant: str, actions: Union[TenantAction, List[TenantAction]]
+        collection: str, tenant: str, actions: Union[TenantActions, List[TenantActions]]
     ) -> _TenantPermission:
         """Create a tenant permission to be used when creating and adding permissions to roles.
 
@@ -183,7 +183,7 @@ class PermissionsFactory:
         return _TenantPermission(
             collection=collection,
             tenant=tenant,
-            actions=[actions] if isinstance(actions, TenantAction) else actions,
+            actions=[actions] if isinstance(actions, TenantActions) else actions,
         )
 
 

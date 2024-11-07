@@ -3,20 +3,20 @@ from typing import List, Optional, Union, cast
 
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
-from weaviate.rbac.permissions import _Permissions
 from weaviate.rbac.models import (
-    CollectionAction,
+    CollectionActions,
     CollectionPermission,
     DatabaseAction,
     DatabasePermission,
     Permissions,
     _Permission,
     Role,
-    TenantAction,
+    TenantActions,
     TenantPermission,
     User,
     WeaviateRole,
 )
+from weaviate.rbac.permissions import _Permissions
 
 
 class _RolesBase:
@@ -120,7 +120,7 @@ class _RolesAsync(_RolesBase):
                 collection_permissions.extend(
                     CollectionPermission(
                         collection=resource.split("/")[0],
-                        actions=[CollectionAction(action) for action in permission["actions"]],
+                        actions=[CollectionActions(action) for action in permission["actions"]],
                     )
                     for resource in permission["resources"]
                 )
@@ -135,7 +135,7 @@ class _RolesAsync(_RolesBase):
                     TenantPermission(
                         collection=resource.split("/")[0],
                         tenant=resource.split("/")[1],
-                        actions=[TenantAction(action) for action in permission["actions"]],
+                        actions=[TenantActions(action) for action in permission["actions"]],
                     )
                     for resource in permission["resources"]
                 )
