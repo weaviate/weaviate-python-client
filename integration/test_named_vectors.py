@@ -4,7 +4,7 @@ from typing import List, Union, Dict, Sequence
 import pytest
 
 import weaviate.classes as wvc
-from integration.conftest import CollectionFactory, OpenAICollection
+from integration.conftest import CollectionFactory, OpenAICollection, ClientFactory
 from weaviate.collections.classes.aggregate import AggregateInteger
 from weaviate.collections.classes.config import (
     PQConfig,
@@ -15,6 +15,43 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import _MultiTargetVectorJoin
 from weaviate.exceptions import WeaviateInvalidInputError
+import weaviate
+from _pytest.fixtures import SubRequest
+from typing import Generator, List, Optional, Tuple, Callable
+from integration.conftest import _sanitize_collection_name
+
+
+@pytest.fixture
+def client_factory(
+    request: SubRequest,
+) -> Generator[
+    Callable[[str, Tuple[int, int], bool], Tuple[weaviate.WeaviateClient, str]], None, None
+]:
+    name_fixtures: List[str] = []
+    client_fixture: Optional[weaviate.WeaviateClient] = None
+
+    def _factory(
+        name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
+    ) -> Tuple[weaviate.WeaviateClient, str]:
+        nonlocal client_fixture, name_fixtures
+        name_fixture = _sanitize_collection_name(request.node.name) + name
+        name_fixtures.append(name_fixture)
+        if client_fixture is None:
+            client_fixture = weaviate.connect_to_local(grpc_port=ports[1], port=ports[0])
+
+        if client_fixture.collections.exists(name_fixture):
+            client_fixture.collections.delete(name_fixture)
+            
+        return client_fixture, name_fixture
+
+    try:
+        yield _factory
+    finally:
+        if client_fixture is not None and name_fixtures is not None:
+            for name_fixture in name_fixtures:
+                client_fixture.collections.delete(name_fixture)
+        if client_fixture is not None:
+            client_fixture.close()
 
 
 def test_create_named_vectors_throws_error_in_old_version(
@@ -756,3 +793,33 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
             return_metadata=wvc.query.MetadataQuery.full(),
         )
     assert "Providing lists of lists has been deprecated" in str(e)
+
+
+def test_fetch_objects_on_reference(client_factory: ClientFactory) -> None:
+    """Test include vector on reference"""
+
+    client, _ = client_factory()
+
+    client.collections.delete(["target", "source"])
+    target = client.collections.create(
+        name="target", 
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none(name="bringYourOwn1"),
+            wvc.config.Configure.NamedVectors.none(name="bringYourOwn2"),
+        ],
+    )
+
+    source = client.collections.create(
+        name="source",
+        references=[wvc.config.ReferenceProperty(name="hasRef", target_collection='target')],
+    )
+
+    TO_UUID=target.data.insert({}, vector={"bringYourOwn1": [0, 1, 2], "bringYourOwn2": [3, 4, 5]})
+    source.data.insert({}, references={"hasRef": TO_UUID})
+    
+    objs = source.query.fetch_objects(
+        return_references=wvc.query.QueryReference(
+            link_on='hasRef', 
+            include_vector=['bringYourOwn1'])).objects
+    
+    assert objs[0].references['hasRef'].objects[0].vector == {"bringYourOwn1": [0, 1, 2]}
