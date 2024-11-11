@@ -140,8 +140,8 @@ jobs:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
       - name: Login to Docker Hub
-        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
         uses: docker/login-action@v3
+        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -199,8 +199,8 @@ jobs:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
       - name: Login to Docker Hub
-        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
         uses: docker/login-action@v3
+        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -252,8 +252,8 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - name: Login to Docker Hub
-        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
         uses: docker/login-action@v3
+        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -346,8 +346,8 @@ jobs:
         with:
           fetch-depth: 0
       - name: Login to Docker Hub
-        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
         uses: docker/login-action@v3
+        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
