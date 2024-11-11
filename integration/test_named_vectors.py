@@ -4,13 +4,14 @@ from typing import List, Union, Dict, Sequence
 import pytest
 
 import weaviate.classes as wvc
-from integration.conftest import CollectionFactory, OpenAICollection, ClientFactory
+from integration.conftest import CollectionFactory, OpenAICollection
 from weaviate.collections.classes.aggregate import AggregateInteger
 from weaviate.collections.classes.config import (
     PQConfig,
     _VectorIndexConfigHNSW,
     _VectorIndexConfigFlat,
     Vectorizers,
+    ReferenceProperty,
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import _MultiTargetVectorJoin
@@ -769,35 +770,33 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
     ],
 )
 def test_include_vector_on_references(
-    client_factory: ClientFactory, include_vector: INCLUDE_VECTOR, expected: dict
+    collection_factory: CollectionFactory, include_vector: INCLUDE_VECTOR, expected: dict
 ) -> None:
     """Test include vector on reference"""
-    dummy = client_factory()
+    dummy = collection_factory()
     if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
         pytest.skip("Named vectorizers are only supported in Weaviate v1.24.0 and higher.")
 
-    client = client_factory()
-
-    client.collections.delete(["target", "source"])
-    target = client.collections.create(
-        name="target",
+    ref_collection = collection_factory(
+        name="Target",
         vectorizer_config=[
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn1"),
             wvc.config.Configure.NamedVectors.none(name="bringYourOwn2"),
         ],
     )
 
-    source = client.collections.create(
-        name="source",
-        references=[wvc.config.ReferenceProperty(name="hasRef", target_collection="target")],
+    TO_UUID = ref_collection.data.insert(
+        properties={}, vector={"bringYourOwn1": [0, 1, 2], "bringYourOwn2": [3, 4, 5]}
     )
 
-    TO_UUID = target.data.insert(
-        {}, vector={"bringYourOwn1": [0, 1, 2], "bringYourOwn2": [3, 4, 5]}
+    collection = collection_factory(
+        name="Source",
+        references=[ReferenceProperty(name="hasRef", target_collection=ref_collection.name)],
     )
-    source.data.insert({}, references={"hasRef": TO_UUID})
 
-    objs = source.query.fetch_objects(
+    collection.data.insert({}, references={"hasRef": TO_UUID})
+
+    objs = collection.query.fetch_objects(
         return_references=wvc.query.QueryReference(link_on="hasRef", include_vector=include_vector)
     ).objects
 
