@@ -118,7 +118,7 @@ class _RolesAsync(_RolesBase):
             if permission["action"] in CollectionsAction.values():
                 collection_permissions.append(
                     CollectionsPermission(
-                        collection=permission["resource"],
+                        collection=permission["collection"],
                         action=CollectionsAction(permission["action"]),
                     )
                 )
@@ -127,8 +127,8 @@ class _RolesAsync(_RolesBase):
             elif permission["action"] in TenantsAction.values():
                 tenant_permissions.append(
                     TenantsPermission(
-                        collection=permission["resource"].split("/")[0],
-                        tenant=permission["resource"].split("/")[1],
+                        collection=permission["collection"],
+                        tenant=permission["tenant"],
                         action=TenantsAction(permission["action"]),
                     )
                 )

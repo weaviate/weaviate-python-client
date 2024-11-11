@@ -8,7 +8,10 @@ from pydantic import BaseModel
 
 class WeaviatePermission(TypedDict):
     action: str
-    resource: str
+    collection: str
+    # object: Optional[str] not used yet, needs to be named different because of shadowing `object`
+    role: str
+    tenant: str
 
 
 class WeaviateRole(TypedDict):
@@ -73,20 +76,14 @@ class _CollectionsPermission(_Permission):
     action: CollectionsAction
 
     def _to_weaviate(self) -> WeaviatePermission:
-        return {
-            "action": self.action,
-            "resource": self.collection,
-        }
+        return {"action": self.action, "collection": self.collection, "role": "*", "tenant": "*"}
 
 
 class _DatabasePermission(_Permission):
     action: DatabaseAction
 
     def _to_weaviate(self) -> WeaviatePermission:
-        return {
-            "action": self.action,
-            "resource": "*",
-        }
+        return {"action": self.action, "collection": "*", "role": "*", "tenant": "*"}
 
 
 class _TenantPermission(_Permission):
@@ -97,7 +94,9 @@ class _TenantPermission(_Permission):
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "action": self.action,
-            "resource": f"{self.collection}/{self.tenant}",
+            "collection": self.collection,
+            "tenant": self.tenant,
+            "role": "*",
         }
 
 
