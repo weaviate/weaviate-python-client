@@ -15,6 +15,7 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import _MultiTargetVectorJoin
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.types import INCLUDE_VECTOR
 
 
 def test_create_named_vectors_throws_error_in_old_version(
@@ -758,7 +759,18 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
     assert "Providing lists of lists has been deprecated" in str(e)
 
 
-def test_fetch_objects_on_reference(client_factory: ClientFactory) -> None:
+@pytest.mark.parametrize(
+    "include_vector, expected",
+    [
+        (False, {}),
+        (["bringYourOwn1"], {"bringYourOwn1": [0, 1, 2]}),
+        # TODO: to be uncommented when https://github.com/weaviate/weaviate/issues/6279 is resolved
+        # (True, {"bringYourOwn1": [0, 1, 2], "bringYourOwn2": [3, 4, 5]})
+    ],
+)
+def test_include_vector_on_references(
+    client_factory: ClientFactory, include_vector: INCLUDE_VECTOR, expected: dict
+) -> None:
     """Test include vector on reference"""
     dummy = client_factory()
     if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
@@ -786,9 +798,7 @@ def test_fetch_objects_on_reference(client_factory: ClientFactory) -> None:
     source.data.insert({}, references={"hasRef": TO_UUID})
 
     objs = source.query.fetch_objects(
-        return_references=wvc.query.QueryReference(
-            link_on="hasRef", include_vector=["bringYourOwn1"]
-        )
+        return_references=wvc.query.QueryReference(link_on="hasRef", include_vector=include_vector)
     ).objects
 
-    assert objs[0].references["hasRef"].objects[0].vector == {"bringYourOwn1": [0, 1, 2]}
+    assert objs[0].references["hasRef"].objects[0].vector == expected
