@@ -325,6 +325,15 @@ class _SQConfigCreate(_QuantizerConfigCreate):
         return "sq"
 
 
+class _LASQConfigCreate(_QuantizerConfigCreate):
+    cache: Optional[bool]
+    trainingLimit: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "lasq"
+
+
 class _PQConfigUpdate(_QuantizerConfigUpdate):
     bitCompression: Optional[bool] = Field(default=None)
     centroids: Optional[int]
@@ -355,6 +364,15 @@ class _SQConfigUpdate(_QuantizerConfigUpdate):
     @staticmethod
     def quantizer_name() -> str:
         return "sq"
+
+
+class _LASQConfigUpdate(_QuantizerConfigUpdate):
+    enabled: Optional[bool]
+    trainingLimit: Optional[int]
+
+    @staticmethod
+    def quantizer_name() -> str:
+        return "lasq"
 
 
 class _ShardingConfigCreate(_ConfigCreateModel):
@@ -1499,13 +1517,20 @@ class _SQConfig(_ConfigBase):
     training_limit: int
 
 
+@dataclass
+class _LASQConfig(_ConfigBase):
+    cache: Optional[bool]
+    training_limit: int
+
+
 BQConfig = _BQConfig
 SQConfig = _SQConfig
+LASQConfig = _LASQConfig
 
 
 @dataclass
 class _VectorIndexConfig(_ConfigBase):
-    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
+    quantizer: Optional[Union[PQConfig, BQConfig, SQConfig, LASQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -1515,6 +1540,8 @@ class _VectorIndexConfig(_ConfigBase):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _SQConfig):
             out["sq"] = {**out.pop("quantizer"), "enabled": True}
+        elif isinstance(self.quantizer, _LASQConfig):
+            out["lasq"] = {**out.pop("quantizer"), "enabled": True}
         return out
 
 
@@ -2033,6 +2060,23 @@ class _VectorIndexQuantizer:
             trainingLimit=training_limit,
         )
 
+    @staticmethod
+    def lasq(
+        cache: Optional[bool] = None,
+        training_limit: Optional[int] = None,
+    ) -> _LASQConfigCreate:
+        """Create a `_LASQConfigCreate` object to be used when defining the Locally adaptive SQ(LASQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration. Note that the arguments have no effect for HNSW.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#binary-quantization) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _LASQConfigCreate(
+            cache=cache,
+            trainingLimit=training_limit,
+        )
+
 
 class _VectorIndex:
     Quantizer = _VectorIndexQuantizer
@@ -2319,6 +2363,20 @@ class _VectorIndexQuantizerUpdate:
             enabled=enabled, rescoreLimit=rescore_limit, trainingLimit=training_limit
         )
 
+    @staticmethod
+    def lasq(
+        training_limit: Optional[int] = None,
+        enabled: bool = True,
+    ) -> _LASQConfigUpdate:
+        """Create a `_LASQConfigUpdate` object to be used when updating the Locally adaptive SQ(LASQ) configuration of Weaviate.
+
+        Use this method when defining the `quantizer` argument in the `vector_index` configuration in `collection.update()`.
+
+        Arguments:
+            See [the docs](https://weaviate.io/developers/weaviate/concepts/vector-index#hnsw-with-compression) for a more detailed view!
+        """  # noqa: D417 (missing argument descriptions in the docstring)
+        return _LASQConfigUpdate(enabled=enabled, trainingLimit=training_limit)
+
 
 class _VectorIndexUpdate:
     Quantizer = _VectorIndexQuantizerUpdate
@@ -2332,7 +2390,9 @@ class _VectorIndexUpdate:
         flat_search_cutoff: Optional[int] = None,
         filter_strategy: Optional[VectorFilterStrategy] = None,
         vector_cache_max_objects: Optional[int] = None,
-        quantizer: Optional[Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate]] = None,
+        quantizer: Optional[
+            Union[_PQConfigUpdate, _BQConfigUpdate, _SQConfigUpdate, _LASQConfigUpdate]
+        ] = None,
     ) -> _VectorIndexConfigHNSWUpdate:
         """Create an `_VectorIndexConfigHNSWUpdate` object to update the configuration of the HNSW vector index.
 

@@ -1167,6 +1167,18 @@ def test_vector_config_flat_pq() -> None:
     assert vi_dict["pq"]["segments"] == 789
 
 
+def test_vector_config_hnsw_lasq() -> None:
+    vector_index = Configure.VectorIndex.hnsw(
+        ef_construction=128,
+        quantizer=Configure.VectorIndex.Quantizer.lasq(training_limit=5012),
+    )
+
+    vi_dict = vector_index._to_dict()
+
+    assert vi_dict["efConstruction"] == 128
+    assert vi_dict["lasq"]["trainingLimit"] == 5012
+
+
 TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     (
         [Configure.NamedVectors.text2vec_contextionary(name="test", source_properties=["prop"])],
