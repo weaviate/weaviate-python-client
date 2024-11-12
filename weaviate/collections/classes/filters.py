@@ -234,7 +234,7 @@ class _FilterByProperty(_FilterBase):
     def within_geo_range(self, coordinate: GeoCoordinate, distance: float) -> _Filters:
         """Filter on whether the property is within a given range of a geo-coordinate.
 
-        See [the docs](https://weaviate.io/developers/weaviate/search/filters##by-geo-coordinates) for more details.
+        See [the docs](https://weaviate.io/developers/weaviate/search/filters#by-geo-coordinates) for more details.
         """
         return _FilterValue(
             target=self._target_path(),
