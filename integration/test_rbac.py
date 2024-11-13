@@ -20,6 +20,6 @@ def test_create_role(client_factory: ClientFactory) -> None:
         role = client.roles.by_name("CollectionCreator")
         assert role is not None
         assert role.name == "CollectionCreator"
-        assert role.database_permissions is not None
-        assert len(role.database_permissions) == 1
-        assert role.database_permissions[0] == RBAC.actions.collection.CREATE_COLLECTIONS
+        assert role.collections_permissions is not None
+        assert len(role.collections_permissions) == 1
+        assert role.collections_permissions[0] == RBAC.actions.collection.CREATE_COLLECTIONS
