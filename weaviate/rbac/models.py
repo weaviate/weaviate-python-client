@@ -45,17 +45,17 @@ class CollectionsAction(str, _Action, Enum):
     UPDATE_TENANTS = "update_tenants"
     DELETE_TENANTS = "delete_tenants"
 
+    CREATE_COLLECTIONS = "create_collections"
+    READ_COLLECTIONS = "read_collections"
+    UPDATE_COLLECTIONS = "update_collections"
+    DELETE_COLLECTIONS = "delete_collections"
+
     @staticmethod
     def values() -> List[str]:
         return [action.value for action in CollectionsAction]
 
 
 class DatabaseAction(str, _Action, Enum):
-    CREATE_COLLECTIONS = "create_collections"
-    READ_COLLECTIONS = "read_collections"
-    UPDATE_COLLECTIONS = "update_collections"
-    DELETE_COLLECTIONS = "delete_collections"
-
     MANAGE_CLUSTER = "manage_cluster"
     MANAGE_ROLES = "manage_roles"
     READ_ROLES = "read_roles"
