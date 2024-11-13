@@ -155,6 +155,8 @@ class ConnectionV4(_ConnectionBase):
             # Add warning later, when weaviate supported it for a while
             # else:
             #     _Warnings.grpc_max_msg_size_not_found()
+            await self.__telemetry()
+
         except (
             WeaviateConnectionError,
             ReadError,
@@ -189,6 +191,18 @@ class ConnectionV4(_ConnectionBase):
                 raise e
 
         self.__connected = True
+
+    async def __telemetry(self) -> None:
+        try:
+            # fire and forget, this is not critical
+            version = client_version
+            if self.embedded_db is not None:
+                version += "-embedded"
+            asyncio.ensure_future(
+                self.get(path=f"https://weaviate.gateway.scarf.sh/python/{version}")
+            )
+        except Exception:
+            pass
 
     async def __check_package_version(self) -> None:
         try:

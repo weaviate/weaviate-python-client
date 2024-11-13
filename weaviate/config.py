@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, Union
 
@@ -81,9 +82,15 @@ class AdditionalConfig(BaseModel):
     proxies: Union[str, Proxies, None] = Field(default=None)
     timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
     trust_env: bool = Field(default=False)
+    disable_telemetry: bool = Field(default=False)
 
     @property
     def timeout(self) -> Timeout:
         if isinstance(self.timeout_, tuple):
             return Timeout(query=self.timeout_[0], insert=self.timeout_[1])
         return self.timeout_
+
+    def __post_model_init__(self) -> None:
+        disable = os.getenv("DISABLE_TELEMETRY")  # env var used by weaviate
+        if disable is not None and not self.disable_telemetry:
+            self.disable_telemetry = disable.lower() == "true"
