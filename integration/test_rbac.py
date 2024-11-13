@@ -14,7 +14,7 @@ def test_create_role(client_factory: ClientFactory) -> None:
         client.roles.create(
             name="CollectionCreator",
             permissions=RBAC.permissions.collection(
-                actions=RBAC.actions.collection.CREATE_COLLECTIONS
+                collection="*", actions=RBAC.actions.collection.CREATE_COLLECTIONS
             ),
         )
         role = client.roles.by_name("CollectionCreator")
