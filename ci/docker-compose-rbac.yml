@@ -27,6 +27,4 @@ services:
       CLUSTER_DATA_BIND_PORT: "7101"
       RAFT_BOOTSTRAP_EXPECT: "1"
       AUTHORIZATION_ENABLE_RBAC: "true"
-    volumes:
-      - ./rbac/model.conf:/rbac/model.conf
 ...
