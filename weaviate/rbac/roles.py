@@ -4,11 +4,13 @@ from typing import List, Optional, Union, cast
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
+    ClusterAction,
     CollectionsAction,
     CollectionsPermission,
-    DatabaseAction,
+    RolesPermission,
     Permissions,
     _Permission,
+    RolesAction,
     Role,
     TenantsAction,
     TenantsPermission,
@@ -111,19 +113,26 @@ class _RolesAsync(_RolesBase):
         self.permissions = _Permissions(connection)
 
     def __role_from_weaviate_role(self, role: WeaviateRole) -> Role:
+        cluster_actions: List[ClusterAction] = []
         collection_permissions: List[CollectionsPermission] = []
-        database_permissions: List[DatabaseAction] = []
+        roles_permissions: List[RolesPermission] = []
         tenant_permissions: List[TenantsPermission] = []
         for permission in role["permissions"]:
-            if permission["action"] in CollectionsAction.values():
+            if permission["action"] in ClusterAction.values():
+                cluster_actions.append(ClusterAction(permission["action"]))
+            elif permission["action"] in CollectionsAction.values():
                 collection_permissions.append(
                     CollectionsPermission(
                         collection=permission["collection"],
                         action=CollectionsAction(permission["action"]),
                     )
                 )
-            elif permission["action"] in DatabaseAction.values():
-                database_permissions.append(DatabaseAction(permission["action"]))
+            elif permission["action"] in RolesAction.values():
+                roles_permissions.append(
+                    RolesPermission(
+                        role=permission["role"], action=RolesAction(permission["action"])
+                    )
+                )
             elif permission["action"] in TenantsAction.values():
                 tenant_permissions.append(
                     TenantsPermission(
@@ -138,8 +147,9 @@ class _RolesAsync(_RolesBase):
                 )
         return Role(
             name=role["name"],
+            cluster_actions=cluster_actions if len(cluster_actions) > 0 else None,
             collections_permissions=cp if len(cp := collection_permissions) > 0 else None,
-            database_permissions=dp if len(dp := database_permissions) > 0 else None,
+            roles_permissions=rp if len(rp := roles_permissions) > 0 else None,
             tenants_permissions=tp if len(tp := tenant_permissions) > 0 else None,
         )
 
