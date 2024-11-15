@@ -54,8 +54,9 @@ class RolesAction(str, _Action, Enum):
     def values() -> List[str]:
         return [action.value for action in RolesAction]
 
+
 class UsersAction(str, _Action, Enum):
-    MANAGE = "manage_users"    
+    MANAGE = "manage_users"
 
     @staticmethod
     def values() -> List[str]:
@@ -81,7 +82,13 @@ class _CollectionsPermission(_Permission):
     action: CollectionsAction
 
     def _to_weaviate(self) -> WeaviatePermission:
-        return {"action": self.action, "collection": self.collection, "role": "*", "tenant": "*", "user": "*"}
+        return {
+            "action": self.action,
+            "collection": self.collection,
+            "role": "*",
+            "tenant": "*",
+            "user": "*",
+        }
 
 
 class _RolesPermission(_Permission):
@@ -89,7 +96,28 @@ class _RolesPermission(_Permission):
     action: RolesAction
 
     def _to_weaviate(self) -> WeaviatePermission:
-        return {"action": self.action, "collection": "*", "role": self.role, "tenant": "*", "user": "*"}
+        return {
+            "action": self.action,
+            "collection": "*",
+            "role": self.role,
+            "tenant": "*",
+            "user": "*",
+        }
+
+
+class _UsersPermission(_Permission):
+    user: str
+    action: UsersAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "user": self.user,
+            "role": "*",
+            "tenant": "*",
+            "collection": "*",
+        }
+
 
 class _TenantsPermission(_Permission):
     collection: str
