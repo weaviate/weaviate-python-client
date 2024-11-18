@@ -169,6 +169,17 @@ class _RolesAsync(_RolesBase):
         """
         return [self.__role_from_weaviate_role(role) for role in await self._get_roles()]
 
+    async def exists(self, role: str) -> bool:
+        """Check if a role exists.
+
+        Args:
+            role: The name of the role to check.
+
+        Returns:
+            True if the role exists, False otherwise.
+        """
+        return await self._get_role(role) is not None
+
     async def by_name(self, role: str) -> Optional[Role]:
         """Get the permissions granted to this role.
 
