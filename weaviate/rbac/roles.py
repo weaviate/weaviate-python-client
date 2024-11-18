@@ -17,6 +17,8 @@ from weaviate.rbac.models import (
     TenantsPermission,
     User,
     WeaviateRole,
+    CollectionsDataPermission,
+    CollectionsDataAction,
 )
 from weaviate.rbac.permissions import _Permissions
 
@@ -117,6 +119,7 @@ class _RolesAsync(_RolesBase):
         cluster_actions: List[ClusterAction] = []
         users_actions: List[UsersAction] = []
         collection_permissions: List[CollectionsPermission] = []
+        collection_data_permissions: List[CollectionsDataPermission] = []
         roles_permissions: List[RolesPermission] = []
         tenant_permissions: List[TenantsPermission] = []
         for permission in role["permissions"]:
@@ -129,6 +132,13 @@ class _RolesAsync(_RolesBase):
                     CollectionsPermission(
                         collection=permission["collection"],
                         action=CollectionsAction(permission["action"]),
+                    )
+                )
+            elif permission["action"] in CollectionsDataAction.values():
+                collection_data_permissions.append(
+                    CollectionsDataPermission(
+                        collection=permission["collection"],
+                        action=CollectionsDataAction(permission["action"]),
                     )
                 )
             elif permission["action"] in RolesAction.values():
@@ -154,6 +164,9 @@ class _RolesAsync(_RolesBase):
             cluster_actions=cluster_actions if len(cluster_actions) > 0 else None,
             users_actions=users_actions if len(users_actions) > 0 else None,
             collections_permissions=cp if len(cp := collection_permissions) > 0 else None,
+            collections_data_permissions=(
+                cdp if len(cdp := collection_data_permissions) > 0 else None
+            ),
             roles_permissions=rp if len(rp := roles_permissions) > 0 else None,
             tenants_permissions=tp if len(tp := tenant_permissions) > 0 else None,
         )

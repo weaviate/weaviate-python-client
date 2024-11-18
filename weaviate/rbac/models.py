@@ -46,6 +46,17 @@ class CollectionsAction(str, _Action, Enum):
         return [action.value for action in CollectionsAction]
 
 
+class CollectionsDataAction(str, _Action, Enum):
+    CREATE = "create_data_collection_objects"
+    READ = "read_data_collection_objects"
+    UPDATE = "update_data_collection_objects"
+    DELETE = "delete_data_collection_objects"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in CollectionsDataAction]
+
+
 class RolesAction(str, _Action, Enum):
     MANAGE = "manage_roles"
     READ = "read_roles"
@@ -80,6 +91,20 @@ class _Permission(BaseModel):
 class _CollectionsPermission(_Permission):
     collection: str
     action: CollectionsAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "collection": self.collection,
+            "role": "*",
+            "tenant": "*",
+            "user": "*",
+        }
+
+
+class _CollectionsDataPermission(_Permission):
+    collection: str
+    action: CollectionsDataAction
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
@@ -141,6 +166,12 @@ class CollectionsPermission:
 
 
 @dataclass
+class CollectionsDataPermission:
+    collection: str
+    action: CollectionsDataAction
+
+
+@dataclass
 class TenantsPermission:
     collection: str
     tenant: str
@@ -159,6 +190,7 @@ class Role:
     cluster_actions: Optional[List[ClusterAction]]
     users_actions: Optional[List[UsersAction]]
     collections_permissions: Optional[List[CollectionsPermission]]
+    collections_data_permissions: Optional[List[CollectionsDataPermission]]
     tenants_permissions: Optional[List[TenantsPermission]]
     roles_permissions: Optional[List[RolesPermission]]
 
@@ -175,6 +207,7 @@ Permissions = Union[_Permission, Sequence[_Permission]]
 class ActionsFactory:
     cluster = ClusterAction
     collection = CollectionsAction
+    collection_data = CollectionsDataAction
     roles = RolesAction
     users = UsersAction
     tenants = TenantsAction
@@ -204,6 +237,32 @@ class PermissionsFactory:
 
         return [
             _CollectionsPermission(collection=collection or "*", action=action)
+            for action in actions
+        ]
+
+    @staticmethod
+    def collections_data(
+        *,
+        collection: Optional[str] = None,
+        actions: Union[CollectionsDataAction, List[CollectionsDataAction]]
+    ) -> List[_CollectionsDataPermission]:
+        """Create a permission specific to a collection to be used when creating and adding permissions to roles.
+
+        Granting this permission will implicitly grant all permissions on all tenants and objects in the collection.
+        For finer-grained control, use the `tenants` permission.
+
+        Args:
+            collection: The collection to grant permissions on. If not provided, the permission will be granted on all collections.
+            actions: The actions to grant on the collection permission.
+
+        Returns:
+            The collection permission.
+        """
+        if isinstance(actions, CollectionsDataAction):
+            actions = [actions]
+
+        return [
+            _CollectionsDataPermission(collection=collection or "*", action=action)
             for action in actions
         ]
 
