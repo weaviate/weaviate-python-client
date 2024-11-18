@@ -24,10 +24,10 @@ class _Action:
 
 
 class TenantsAction(str, _Action, Enum):
-    CREATE = "create_tenants"
-    READ = "read_tenants"
-    UPDATE = "update_tenants"
-    DELETE = "delete_tenants"
+    CREATE = "create_meta_tenants"
+    READ = "read_meta_tenants"
+    UPDATE = "update_meta_tenants"
+    DELETE = "delete_meta_tenants"
 
     @staticmethod
     def values() -> List[str]:
@@ -35,10 +35,10 @@ class TenantsAction(str, _Action, Enum):
 
 
 class CollectionsAction(str, _Action, Enum):
-    CREATE = "create_collections"
-    READ = "read_collections"
-    UPDATE = "update_collections"
-    DELETE = "delete_collections"
+    CREATE = "create_meta_collections"
+    READ = "read_meta_collections"
+    UPDATE = "update_meta_collections"
+    DELETE = "delete_meta_collections"
 
     @staticmethod
     def values() -> List[str]:
