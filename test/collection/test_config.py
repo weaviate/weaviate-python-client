@@ -1276,6 +1276,20 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        [Configure.NamedVectors.multi2vec_jinaai(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-jinaai": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.NamedVectors.text2vec_gpt4all(name="test", source_properties=["prop"])],
         {
             "test": {
