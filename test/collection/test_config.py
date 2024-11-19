@@ -363,7 +363,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         ),
         {
             "text2vec-jinaai": {
-                "model": "jina-clip-v2",
+                "model": "jina-embeddings-v3",
                 "vectorizeClassName": False,
                 "dimensions": 512,
             }
