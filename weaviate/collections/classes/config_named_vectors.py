@@ -164,7 +164,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_cohere` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings)
         for detailed usage.
 
         Arguments:
@@ -214,7 +214,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_cohere` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
         for detailed usage.
 
         Arguments:
@@ -228,8 +228,6 @@ class _NamedVectors:
                 The model to use. Defaults to `None`, which uses the server-defined default.
             `truncate`
                 The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `image_fields`
@@ -297,7 +295,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-databricks` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-databricks)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/databricks/embeddings)
         for detailed usage.
 
         Arguments:
@@ -336,7 +334,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-mistral` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-mistral)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/mistral/embeddings)
         for detailed usage.
 
         Arguments:
@@ -373,7 +371,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-ollama` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-ollama)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/ollama/embeddings)
         for detailed usage.
 
         Arguments:
@@ -420,7 +418,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_openai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-openai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai/embeddings)
         for detailed usage.
 
         Arguments:
@@ -476,7 +474,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_aws` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-aws)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
         for detailed usage.
 
         Arguments:
@@ -549,7 +547,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_clip` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings-multimodal)
         for detailed usage.
 
         Arguments:
@@ -729,7 +727,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `multi2vec_bind` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/imagebind/embeddings-multimodal)
         for detailed usage.
 
         Arguments:
@@ -800,7 +798,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_azure_openai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai-azure/embeddings)
         for detailed usage.
 
         Arguments:
@@ -835,7 +833,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_gpt4all` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/gpt4all/embeddings)
         for detailed usage.
 
         Arguments:
@@ -874,7 +872,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_huggingface` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings)
         for detailed usage.
 
         Arguments:
@@ -904,7 +902,7 @@ class _NamedVectors:
         Raises:
             `pydantic.ValidationError` if the arguments passed to the function are invalid.
                 It is important to note that some of these variables are mutually exclusive.
-                    See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface) for more details.
+                    See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings#vectorizer-parameters) for more details.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -939,7 +937,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_palm` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
         Arguments:
@@ -993,7 +991,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_palm` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-google)
+        See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
         Arguments:
@@ -1046,7 +1044,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_transformers` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-transformers)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings)
         for detailed usage.
 
         Arguments:
@@ -1093,7 +1091,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings)
         for detailed usage.
 
         Arguments:
@@ -1112,7 +1110,7 @@ class _NamedVectors:
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
-                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai#available-models) for more details.
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings#available-models) for more details.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1151,8 +1149,6 @@ class _NamedVectors:
                 Whether to vectorize the collection name. Defaults to `True`.
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `image_fields`
@@ -1188,7 +1184,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
         for detailed usage.
 
         Arguments:
@@ -1203,7 +1199,7 @@ class _NamedVectors:
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
-                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai#available-models) for more details.
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings#available-models) for more details.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `truncate`

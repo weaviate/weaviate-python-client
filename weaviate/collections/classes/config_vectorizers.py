@@ -501,7 +501,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecClipConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-clip)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings-multimodal)
         for detailed usage.
 
         Arguments:
@@ -549,7 +549,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecBindConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/imagebind/embeddings-multimodal)
         for detailed usage.
 
         Arguments:
@@ -618,7 +618,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAWSConfigCreate` object for use when vectorizing using the `text2vec-aws` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-aws)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
         for detailed usage.
 
         Arguments:
@@ -650,7 +650,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAzureOpenAIConfigCreate` object for use when vectorizing using the `text2vec-azure-openai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-azure-openai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai-azure/embeddings)
         for detailed usage.
 
         Arguments:
@@ -714,7 +714,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecCohereConfigCreate` object for use when vectorizing using the `text2vec-cohere` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings)
         for detailed usage.
 
         Arguments:
@@ -749,7 +749,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecCohereConfig` object for use when vectorizing using the `multi2vec-cohere` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
         for detailed usage.
 
         Arguments:
@@ -787,7 +787,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecDatabricksConfig` object for use when vectorizing using the `text2vec-databricks` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-databricks)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/databricks/embeddings)
         for detailed usage.
 
         Arguments:
@@ -813,7 +813,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGPT4AllConfigCreate` object for use when vectorizing using the `text2vec-gpt4all` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/gpt4all/embeddings)
         for detailed usage.
 
         Arguments:
@@ -838,7 +838,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecHuggingFaceConfigCreate` object for use when vectorizing using the `text2vec-huggingface` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings)
         for detailed usage.
 
         Arguments:
@@ -862,7 +862,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if the arguments passed to the function are invalid.
                 It is important to note that some of these variables are mutually exclusive.
-                    See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface) for more details.
+                    See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings#vectorizer-parameters) for more details.
         """
         return _Text2VecHuggingFaceConfig(
             model=model,
@@ -883,7 +883,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecMistralConfig` object for use when vectorizing using the `text2vec-mistral` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-mistral)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/mistral/embeddings)
         for detailed usage.
 
         Arguments:
@@ -903,7 +903,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecOllamaConfig` object for use when vectorizing using the `text2vec-ollama` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-ollama)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/ollama/embeddings)
         for detailed usage.
 
         Arguments:
@@ -932,7 +932,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecOpenAIConfigCreate` object for use when vectorizing using the `text2vec-openai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-openai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai/embeddings)
         for detailed usage.
 
         Arguments:
@@ -974,7 +974,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-palm` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
         Arguments:
@@ -1011,7 +1011,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-google)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
         Arguments:
@@ -1157,7 +1157,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecTransformersConfigCreate` object for use when vectorizing using the `text2vec-transformers` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-transformers)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings)
         for detailed usage.
 
         Arguments:
@@ -1192,14 +1192,14 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecJinaConfigCreate` object for use when vectorizing using the `text2vec-jinaai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings)
         for detailed usage.
 
         Arguments:
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
-                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai#available-models) for more details.
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings#available-models) for more details.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
@@ -1261,14 +1261,14 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecVoyageConfigCreate` object for use when vectorizing using the `text2vec-voyageai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
         for detailed usage.
 
         Arguments:
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
-                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai#available-models) for more details.
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings#available-models) for more details.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `truncate`
