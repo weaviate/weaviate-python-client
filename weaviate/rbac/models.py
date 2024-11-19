@@ -46,6 +46,28 @@ class CollectionsAction(str, _Action, Enum):
         return [action.value for action in CollectionsAction]
 
 
+class ObjectsCollectionAction(str, _Action, Enum):
+    CREATE = "create_data_collection_objects"
+    READ = "read_data_collection_objects"
+    UPDATE = "update_data_collection_objects"
+    DELETE = "delete_data_collection_objects"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in ObjectsCollectionAction]
+
+
+class ObjectsTenantAction(str, _Action, Enum):
+    CREATE = "create_data_tenant_objects"
+    READ = "read_data_tenant_objects"
+    UPDATE = "update_data_tenant_objects"
+    DELETE = "delete_data_tenant_objects"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in ObjectsTenantAction]
+
+
 class RolesAction(str, _Action, Enum):
     MANAGE = "manage_roles"
     READ = "read_roles"
@@ -119,10 +141,52 @@ class _UsersPermission(_Permission):
         }
 
 
+class _ClusterPermission(_Permission):
+    action: ClusterAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "role": "*",
+            "tenant": "*",
+            "user": "*",
+            "collection": "*",
+        }
+
+
 class _TenantsPermission(_Permission):
     collection: str
     tenant: str
     action: TenantsAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "collection": self.collection,
+            "tenant": self.tenant,
+            "role": "*",
+            "user": "*",
+        }
+
+
+class _ObjectsCollectionPermission(_Permission):
+    collection: str
+    action: ObjectsCollectionAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "collection": self.collection,
+            "role": "*",
+            "tenant": "*",
+            "user": "*",
+        }
+
+
+class _ObjectsTenantPermission(_Permission):
+    collection: str
+    tenant: str
+    action: ObjectsTenantAction
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
@@ -172,6 +236,128 @@ Actions = Union[_Action, Sequence[_Action]]
 Permissions = Union[_Permission, Sequence[_Permission]]
 
 
+class _ObjectsCollectionFactory:
+    @staticmethod
+    def create(collection: str) -> _ObjectsCollectionPermission:
+        return _ObjectsCollectionPermission(
+            collection=collection, action=ObjectsCollectionAction.CREATE
+        )
+
+    @staticmethod
+    def read(collection: str) -> _ObjectsCollectionPermission:
+        return _ObjectsCollectionPermission(
+            collection=collection, action=ObjectsCollectionAction.READ
+        )
+
+    @staticmethod
+    def update(collection: str) -> _ObjectsCollectionPermission:
+        return _ObjectsCollectionPermission(
+            collection=collection, action=ObjectsCollectionAction.UPDATE
+        )
+
+    @staticmethod
+    def delete(collection: str) -> _ObjectsCollectionPermission:
+        return _ObjectsCollectionPermission(
+            collection=collection, action=ObjectsCollectionAction.DELETE
+        )
+
+
+class _ObjectsTenantFactory:
+    @staticmethod
+    def create(collection: str, tenant: str) -> _ObjectsTenantPermission:
+        return _ObjectsTenantPermission(
+            collection=collection, tenant=tenant, action=ObjectsTenantAction.CREATE
+        )
+
+    @staticmethod
+    def read(collection: str, tenant: str) -> _ObjectsTenantPermission:
+        return _ObjectsTenantPermission(
+            collection=collection, tenant=tenant, action=ObjectsTenantAction.READ
+        )
+
+    @staticmethod
+    def update(collection: str, tenant: str) -> _ObjectsTenantPermission:
+        return _ObjectsTenantPermission(
+            collection=collection, tenant=tenant, action=ObjectsTenantAction.UPDATE
+        )
+
+    @staticmethod
+    def delete(collection: str, tenant: str) -> _ObjectsTenantPermission:
+        return _ObjectsTenantPermission(
+            collection=collection, tenant=tenant, action=ObjectsTenantAction.DELETE
+        )
+
+
+class _CollectionsFactory:
+    objects = _ObjectsCollectionFactory
+
+    @staticmethod
+    def create(collection: Optional[str] = None) -> _CollectionsPermission:
+        return _CollectionsPermission(collection=collection or "*", action=CollectionsAction.CREATE)
+
+    @staticmethod
+    def read(collection: Optional[str] = None) -> _CollectionsPermission:
+        return _CollectionsPermission(collection=collection or "*", action=CollectionsAction.READ)
+
+    @staticmethod
+    def update(collection: Optional[str] = None) -> _CollectionsPermission:
+        return _CollectionsPermission(collection=collection or "*", action=CollectionsAction.UPDATE)
+
+    @staticmethod
+    def delete(collection: Optional[str] = None) -> _CollectionsPermission:
+        return _CollectionsPermission(collection=collection or "*", action=CollectionsAction.DELETE)
+
+
+class _TenantsFactory:
+    objects = _ObjectsTenantFactory
+
+    @staticmethod
+    def create(collection: str, tenant: Optional[str] = None) -> _TenantsPermission:
+        return _TenantsPermission(
+            collection=collection, tenant=tenant or "*", action=TenantsAction.CREATE
+        )
+
+    @staticmethod
+    def read(collection: str, tenant: Optional[str] = None) -> _TenantsPermission:
+        return _TenantsPermission(
+            collection=collection, tenant=tenant or "*", action=TenantsAction.READ
+        )
+
+    @staticmethod
+    def update(collection: str, tenant: Optional[str] = None) -> _TenantsPermission:
+        return _TenantsPermission(
+            collection=collection, tenant=tenant or "*", action=TenantsAction.UPDATE
+        )
+
+    @staticmethod
+    def delete(collection: str, tenant: Optional[str] = None) -> _TenantsPermission:
+        return _TenantsPermission(
+            collection=collection, tenant=tenant or "*", action=TenantsAction.DELETE
+        )
+
+
+class _RolesFactory:
+    @staticmethod
+    def manage(role: Optional[str] = None) -> _RolesPermission:
+        return _RolesPermission(role=role or "*", action=RolesAction.MANAGE)
+
+    @staticmethod
+    def read(role: Optional[str] = None) -> _RolesPermission:
+        return _RolesPermission(role=role or "*", action=RolesAction.READ)
+
+
+class _UsersFactory:
+    @staticmethod
+    def manage(user: Optional[str] = None) -> _UsersPermission:
+        return _UsersPermission(user=user or "*", action=UsersAction.MANAGE)
+
+
+class _ClusterFactory:
+    @staticmethod
+    def manage() -> _ClusterPermission:
+        return _ClusterPermission(action=ClusterAction.MANAGE_CLUSTER)
+
+
 class ActionsFactory:
     cluster = ClusterAction
     collection = CollectionsAction
@@ -181,74 +367,10 @@ class ActionsFactory:
 
 
 class PermissionsFactory:
-    @staticmethod
-    def collections(
-        *,
-        collection: Optional[str] = None,
-        actions: Union[CollectionsAction, List[CollectionsAction]]
-    ) -> List[_CollectionsPermission]:
-        """Create a permission specific to a collection to be used when creating and adding permissions to roles.
-
-        Granting this permission will implicitly grant all permissions on all tenants and objects in the collection.
-        For finer-grained control, use the `tenants` permission.
-
-        Args:
-            collection: The collection to grant permissions on. If not provided, the permission will be granted on all collections.
-            actions: The actions to grant on the collection permission.
-
-        Returns:
-            The collection permission.
-        """
-        if isinstance(actions, CollectionsAction):
-            actions = [actions]
-
-        return [
-            _CollectionsPermission(collection=collection or "*", action=action)
-            for action in actions
-        ]
-
-    @staticmethod
-    def roles(
-        *, role: Optional[str] = None, actions: Union[RolesAction, List[RolesAction]]
-    ) -> List[_RolesPermission]:
-        """Create a roles permission to be used when creating and adding permissions to roles.
-
-        Args:
-            role: The role to grant permissions on. If not provided, the permission will be granted on all roles.
-            actions: The actions to grant on the roles permission.
-
-        Returns:
-            The role permission.
-        """
-        if isinstance(actions, RolesAction):
-            actions = [actions]
-
-        return [_RolesPermission(action=action, role=role or "*") for action in actions]
-
-    @staticmethod
-    def tenants(
-        *,
-        collection: str,
-        tenant: Optional[str] = None,
-        actions: Union[TenantsAction, List[TenantsAction]]
-    ) -> List[_TenantsPermission]:
-        """Create a tenant permission to be used when creating and adding permissions to roles.
-
-        Args:
-            collection: The collection to grant permissions on.
-            tenant: The tenant to grant permissions on. If not provided, the permission will be granted on all tenants in this collection.
-            actions: The actions to grant on the tenant.
-
-        Returns:
-            The tenant permission.
-        """
-        if isinstance(actions, TenantsAction):
-            actions = [actions]
-
-        return [
-            _TenantsPermission(collection=collection, tenant=tenant or "*", action=action)
-            for action in actions
-        ]
+    cluser = _ClusterFactory
+    collections = _CollectionsFactory
+    roles = _RolesFactory
+    tenants = _TenantsFactory
 
 
 class RBAC:

@@ -19,7 +19,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
     "permissions,expected",
     [
         (
-            RBAC.permissions.collections(actions=RBAC.actions.collection.CREATE),
+            RBAC.permissions.collections.create(),
             Role(
                 name="CreateAllCollections",
                 cluster_actions=None,
@@ -32,7 +32,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
             ),
         ),
         (
-            RBAC.permissions.roles(actions=RBAC.actions.roles.MANAGE),
+            RBAC.permissions.roles.manage(),
             Role(
                 name="ManageAllRoles",
                 cluster_actions=None,
@@ -43,7 +43,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
             ),
         ),
         (
-            RBAC.permissions.tenants(collection="foo", actions=RBAC.actions.tenants.READ),
+            RBAC.permissions.tenants.read(collection="foo"),
             Role(
                 name="ReadAllTenantsInFoo",
                 cluster_actions=None,
