@@ -4,17 +4,9 @@ from typing import List, Optional, Union, cast
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
-    ClusterAction,
-    CollectionsAction,
-    CollectionsPermission,
-    RolesPermission,
     Permissions,
     _Permission,
-    RolesAction,
-    UsersAction,
     Role,
-    TenantsAction,
-    TenantsPermission,
     User,
     WeaviateRole,
 )
@@ -113,51 +105,6 @@ class _RolesAsync(_RolesBase):
         super().__init__(connection)
         self.permissions = _Permissions(connection)
 
-    def __role_from_weaviate_role(self, role: WeaviateRole) -> Role:
-        cluster_actions: List[ClusterAction] = []
-        users_actions: List[UsersAction] = []
-        collection_permissions: List[CollectionsPermission] = []
-        roles_permissions: List[RolesPermission] = []
-        tenant_permissions: List[TenantsPermission] = []
-        for permission in role["permissions"]:
-            if permission["action"] in ClusterAction.values():
-                cluster_actions.append(ClusterAction(permission["action"]))
-            elif permission["action"] in UsersAction.values():
-                users_actions.append(UsersAction(permission["action"]))
-            elif permission["action"] in CollectionsAction.values():
-                collection_permissions.append(
-                    CollectionsPermission(
-                        collection=permission["collection"],
-                        action=CollectionsAction(permission["action"]),
-                    )
-                )
-            elif permission["action"] in RolesAction.values():
-                roles_permissions.append(
-                    RolesPermission(
-                        role=permission["role"], action=RolesAction(permission["action"])
-                    )
-                )
-            elif permission["action"] in TenantsAction.values():
-                tenant_permissions.append(
-                    TenantsPermission(
-                        collection=permission["collection"],
-                        tenant=permission["tenant"],
-                        action=TenantsAction(permission["action"]),
-                    )
-                )
-            else:
-                raise ValueError(
-                    f"The actions of role {role['name']} are mixed between levels somehow!"
-                )
-        return Role(
-            name=role["name"],
-            cluster_actions=cluster_actions if len(cluster_actions) > 0 else None,
-            users_actions=users_actions if len(users_actions) > 0 else None,
-            collections_permissions=cp if len(cp := collection_permissions) > 0 else None,
-            roles_permissions=rp if len(rp := roles_permissions) > 0 else None,
-            tenants_permissions=tp if len(tp := tenant_permissions) > 0 else None,
-        )
-
     def __user_from_weaviate_user(self, user: str) -> User:
         return User(name=user)
 
@@ -167,7 +114,7 @@ class _RolesAsync(_RolesBase):
         Returns:
             All roles.
         """
-        return [self.__role_from_weaviate_role(role) for role in await self._get_roles()]
+        return [Role._from_weaviate_role(role) for role in await self._get_roles()]
 
     async def exists(self, role: str) -> bool:
         """Check if a role exists.
@@ -192,7 +139,7 @@ class _RolesAsync(_RolesBase):
         r = await self._get_role(role)
         if r is None:
             return None
-        return self.__role_from_weaviate_role(r)
+        return Role._from_weaviate_role(r)
 
     async def by_user(self, user: str) -> List[Role]:
         """Get the roles assigned to a user.
@@ -203,9 +150,7 @@ class _RolesAsync(_RolesBase):
         Returns:
             A list of `Role` objects.
         """
-        return [
-            self.__role_from_weaviate_role(role) for role in await self._get_roles_of_user(user)
-        ]
+        return [Role._from_weaviate_role(role) for role in await self._get_roles_of_user(user)]
 
     async def users(self, role: str) -> List[User]:
         """Get the users that have been assigned this role.
@@ -244,7 +189,7 @@ class _RolesAsync(_RolesBase):
             "name": name,
             "permissions": [permission._to_weaviate() for permission in permissions],
         }
-        return self.__role_from_weaviate_role(await self._post_roles(role))
+        return Role._from_weaviate_role(await self._post_roles(role))
 
     async def assign(self, *, roles: Union[str, List[str]], user: str) -> None:
         """Assign roles to a user.
