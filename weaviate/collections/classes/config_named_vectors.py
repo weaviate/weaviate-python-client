@@ -39,8 +39,10 @@ from weaviate.collections.classes.config_vectorizers import (
     AWSModel,
     AWSService,
     CohereModel,
+    CohereMultimodalModel,
     CohereTruncation,
     JinaModel,
+    JinaMultimodalModel,
     Multi2VecField,
     OpenAIModel,
     OpenAIType,
@@ -51,6 +53,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecDatabricksConfig,
     _Text2VecVoyageConfig,
     _Multi2VecCohereConfig,
+    _Multi2VecJinaConfig,
 )
 from ...warnings import _Warnings
 
@@ -183,7 +186,7 @@ class _NamedVectors:
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `truncate` is not a valid value from the `CohereModel` type.
+            `pydantic.ValidationError` if `model` is not a valid value from the `CohereModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -204,7 +207,7 @@ class _NamedVectors:
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
-        model: Optional[Union[CohereModel, str]] = None,
+        model: Optional[Union[CohereMultimodalModel, str]] = None,
         truncate: Optional[CohereTruncation] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -235,7 +238,7 @@ class _NamedVectors:
                 The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `truncate` is not a valid value from the `CohereModel` type.
+            `pydantic.ValidationError` if `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1119,6 +1122,55 @@ class _NamedVectors:
                 dimensions=dimensions,
                 model=model,
                 vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def multi2vec_jinaai(
+        name: str,
+        *,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+        model: Optional[Union[JinaMultimodalModel, str]] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `multi2vec_jinaai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the `JinaMultimodalModel` type.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecJinaConfig(
+                baseURL=base_url,
+                model=model,
+                vectorizeClassName=vectorize_collection_name,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
             ),
             vector_index_config=vector_index_config,
         )

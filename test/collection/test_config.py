@@ -618,6 +618,18 @@ TEST_CONFIG_WITH_VECTORIZER_AND_PROPERTIES_PARAMETERS = [
         ],
     ),
     (
+        Configure.Vectorizer.multi2vec_jinaai(
+            model="jina-clip-v2",
+            vectorize_collection_name=False,
+        ),
+        {
+            "multi2vec-cohere": {
+                "model": "jina-clip-v2",
+                "vectorizeClassName": False,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_transformers(),
         [
             Property(

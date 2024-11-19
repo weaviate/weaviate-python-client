@@ -8,6 +8,7 @@ from typing_extensions import TypeAlias, deprecated
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _EnumLikeStr
 from ...warnings import _Warnings
 
+# See https://docs.cohere.com/docs/cohere-embed for reference
 CohereModel: TypeAlias = Literal[
     "embed-multilingual-v2.0",
     "embed-multilingual-v3.0",
@@ -18,6 +19,12 @@ CohereModel: TypeAlias = Literal[
     "multilingual-22-12",
     "embed-english-v2.0",
     "embed-english-light-v2.0",
+    "embed-english-v3.0",
+    "embed-english-light-v3.0",
+]
+CohereMultimodalModel: TypeAlias = Literal[
+    "embed-multilingual-v3.0",
+    "embed-multilingual-light-v3.0",
     "embed-english-v3.0",
     "embed-english-light-v3.0",
 ]
@@ -33,6 +40,7 @@ JinaModel: TypeAlias = Literal[
     "jina-embeddings-v2-base-code",
     "jina-embeddings-v3",
 ]
+JinaMultimodalModel: TypeAlias = Literal["jina-clip-v2",]
 VoyageModel: TypeAlias = Literal[
     "voyage-3",
     "voyage-3-lite",
@@ -113,6 +121,7 @@ class Vectorizers(str, Enum):
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_COHERE = "multi2vec-cohere"
+    MULTI2VEC_JINAAI = "multi2vec-jinaai"
     MULTI2VEC_BIND = "multi2vec-bind"
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     REF2VEC_CENTROID = "ref2vec-centroid"
@@ -382,6 +391,20 @@ class _Multi2VecCohereConfig(_Multi2VecBase):
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
     truncate: Optional[CohereTruncation]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Multi2VecJinaConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2VEC_JINAAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -705,7 +728,7 @@ class _Vectorizer:
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `truncate` is not a valid value from the `CohereModel` type.
+            `pydantic.ValidationError` if `model` is not a valid value from the `CohereModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _Text2VecCohereConfig(
             baseURL=base_url,
@@ -717,7 +740,7 @@ class _Vectorizer:
     @staticmethod
     def multi2vec_cohere(
         *,
-        model: Optional[Union[CohereModel, str]] = None,
+        model: Optional[Union[CohereMultimodalModel, str]] = None,
         truncate: Optional[CohereTruncation] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
@@ -744,7 +767,7 @@ class _Vectorizer:
                 The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `truncate` is not a valid value from the `CohereModel` type.
+            `pydantic.ValidationError` if `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _Multi2VecCohereConfig(
             baseURL=base_url,
@@ -1189,6 +1212,43 @@ class _Vectorizer:
             vectorizeClassName=vectorize_collection_name,
             baseURL=base_url,
             dimensions=dimensions,
+        )
+
+    @staticmethod
+    def multi2vec_jinaai(
+        *,
+        model: Optional[Union[JinaMultimodalModel, str]] = None,
+        vectorize_collection_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Multi2VecJinaConfig` object for use when vectorizing using the `multi2vec-jinaai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the `JinaMultimodalModel` type.
+        """
+        return _Multi2VecJinaConfig(
+            baseURL=base_url,
+            model=model,
+            vectorizeClassName=vectorize_collection_name,
+            imageFields=_map_multi2vec_fields(image_fields),
+            textFields=_map_multi2vec_fields(text_fields),
         )
 
     @staticmethod
