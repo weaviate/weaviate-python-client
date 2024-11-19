@@ -623,7 +623,7 @@ TEST_CONFIG_WITH_VECTORIZER_AND_PROPERTIES_PARAMETERS = [
             vectorize_collection_name=False,
         ),
         {
-            "multi2vec-cohere": {
+            "multi2vec-jinaai": {
                 "model": "jina-clip-v2",
                 "vectorizeClassName": False,
             }
