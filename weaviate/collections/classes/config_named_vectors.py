@@ -1132,6 +1132,7 @@ class _NamedVectors:
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[Union[JinaMultimodalModel, str]] = None,
+        dimensions: Optional[int] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
     ) -> _NamedVectorConfigCreate:
@@ -1151,6 +1152,8 @@ class _NamedVectors:
                 The model to use. Defaults to `None`, which uses the server-defined default.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
             `image_fields`
                 The image fields to use in vectorization.
             `text_fields`
@@ -1164,6 +1167,7 @@ class _NamedVectors:
             vectorizer=_Multi2VecJinaConfig(
                 baseURL=base_url,
                 model=model,
+                dimensions=dimensions,
                 vectorizeClassName=vectorize_collection_name,
                 imageFields=_map_multi2vec_fields(image_fields),
                 textFields=_map_multi2vec_fields(text_fields),

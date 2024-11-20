@@ -40,7 +40,10 @@ JinaModel: TypeAlias = Literal[
     "jina-embeddings-v2-base-code",
     "jina-embeddings-v3",
 ]
-JinaMultimodalModel: TypeAlias = Literal["jina-clip-v2",]
+JinaMultimodalModel: TypeAlias = Literal[
+    "jina-clip-v1",
+    "jina-clip-v2",
+]
 VoyageModel: TypeAlias = Literal[
     "voyage-3",
     "voyage-3-lite",
@@ -405,6 +408,7 @@ class _Multi2VecJinaConfig(_Multi2VecBase):
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
+    dimensions: Optional[int]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -1220,6 +1224,7 @@ class _Vectorizer:
         model: Optional[Union[JinaMultimodalModel, str]] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
+        dimensions: Optional[int] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
     ) -> _VectorizerConfigCreate:
@@ -1235,6 +1240,8 @@ class _Vectorizer:
                 Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
             `image_fields`
                 The image fields to use in vectorization.
             `text_fields`
@@ -1246,6 +1253,7 @@ class _Vectorizer:
         return _Multi2VecJinaConfig(
             baseURL=base_url,
             model=model,
+            dimensions=dimensions,
             vectorizeClassName=vectorize_collection_name,
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),

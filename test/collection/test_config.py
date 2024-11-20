@@ -372,11 +372,13 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     (
         Configure.Vectorizer.multi2vec_jinaai(
             model="jina-clip-v2",
+            dimensions=512,
             vectorize_collection_name=False,
         ),
         {
             "multi2vec-jinaai": {
                 "model": "jina-clip-v2",
+                "dimensions": 512,
                 "vectorizeClassName": False,
             }
         },
@@ -1276,11 +1278,16 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
-        [Configure.NamedVectors.multi2vec_jinaai(name="test", text_fields=["prop"])],
+        [
+            Configure.NamedVectors.multi2vec_jinaai(
+                name="test", dimensions=256, text_fields=["prop"]
+            )
+        ],
         {
             "test": {
                 "vectorizer": {
                     "multi2vec-jinaai": {
+                        "dimensions": 256,
                         "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
