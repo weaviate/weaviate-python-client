@@ -356,6 +356,32 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_jinaai(
+            model="jina-embeddings-v3",
+            vectorize_collection_name=False,
+            dimensions=512,
+        ),
+        {
+            "text2vec-jinaai": {
+                "model": "jina-embeddings-v3",
+                "vectorizeClassName": False,
+                "dimensions": 512,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_jinaai(
+            model="jina-clip-v2",
+            vectorize_collection_name=False,
+        ),
+        {
+            "multi2vec-jinaai": {
+                "model": "jina-clip-v2",
+                "vectorizeClassName": False,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_voyageai(
             vectorize_collection_name=False,
             model="voyage-large-2",
@@ -1241,6 +1267,20 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-cohere": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.NamedVectors.multi2vec_jinaai(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-jinaai": {
                         "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
