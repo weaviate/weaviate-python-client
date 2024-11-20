@@ -61,6 +61,7 @@ AWSService: TypeAlias = Literal[
     "bedrock",
     "sagemaker",
 ]
+WeaviateModel: TypeAlias = Literal["Snowflake/snowflake-arctic-embed-m-v1.5"]
 
 
 class Vectorizers(str, Enum):
@@ -92,6 +93,8 @@ class Vectorizers(str, Enum):
             Weaviate module backed by Jina AI text-based embedding models.
         `TEXT2VEC_VOYAGEAI`
             Weaviate module backed by Voyage AI text-based embedding models.
+        `TEXT2VEC_WEAVIATE`
+            Weaviate module backed by Weaviate's self-hosted text-based embedding models.
         `IMG2VEC_NEURAL`
             Weaviate module backed by a ResNet-50 neural network for images.
         `MULTI2VEC_CLIP`
@@ -118,6 +121,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_JINAAI = "text2vec-jinaai"
     TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
+    TEXT2VEC_WEAVIATE = "text2vec-weaviate"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
     MULTI2VEC_COHERE = "multi2vec-cohere"
@@ -337,6 +341,15 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     model: Optional[str]
     baseURL: Optional[str]
     truncate: Optional[bool]
+    vectorizeClassName: bool
+
+
+class _Text2VecWeaviateConfig(_VectorizerConfigCreate):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.TEXT2VEC_WEAVIATE, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    baseURL: Optional[str]
     vectorizeClassName: bool
 
 
@@ -1280,5 +1293,19 @@ class _Vectorizer:
             model=model,
             baseURL=base_url,
             truncate=truncate,
+            vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
+    def text2vec_weaviate(
+        *,
+        model: Optional[Union[WeaviateModel, str]] = None,
+        base_url: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """TODO: add docstrings when the documentation is available."""
+        return _Text2VecWeaviateConfig(
+            model=model,
+            baseURL=base_url,
             vectorizeClassName=vectorize_collection_name,
         )

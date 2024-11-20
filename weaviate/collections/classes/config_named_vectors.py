@@ -54,6 +54,8 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecVoyageConfig,
     _Multi2VecCohereConfig,
     _Multi2VecJinaConfig,
+    _Text2VecWeaviateConfig,
+    WeaviateModel,
 )
 from ...warnings import _Warnings
 
@@ -1213,6 +1215,27 @@ class _NamedVectors:
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 truncate=truncate,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2vec_weaviate(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model: Optional[Union[WeaviateModel, str]] = None,
+        base_url: Optional[str] = None,
+    ) -> _NamedVectorConfigCreate:
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecWeaviateConfig(
+                model=model,
+                vectorizeClassName=vectorize_collection_name,
+                baseURL=base_url,
             ),
             vector_index_config=vector_index_config,
         )
