@@ -460,7 +460,7 @@ class ActionsFactory:
 
 
 class PermissionsFactory:
-    cluser = _ClusterFactory
+    cluster = _ClusterFactory
     collections = _CollectionsFactory
     roles = _RolesFactory
     tenants = _TenantsFactory
