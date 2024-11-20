@@ -24,22 +24,11 @@ class _Action:
     pass
 
 
-class TenantsAction(str, _Action, Enum):
-    CREATE = "create_meta_tenants"
-    READ = "read_meta_tenants"
-    UPDATE = "update_meta_tenants"
-    DELETE = "delete_meta_tenants"
-
-    @staticmethod
-    def values() -> List[str]:
-        return [action.value for action in TenantsAction]
-
-
 class CollectionsAction(str, _Action, Enum):
-    CREATE = "create_meta_collections"
-    READ = "read_meta_collections"
-    UPDATE = "update_meta_collections"
-    DELETE = "delete_meta_collections"
+    CREATE = "create_schema"
+    READ = "read_schema"
+    UPDATE = "update_schema"
+    DELETE = "delete_schema"
 
     @staticmethod
     def values() -> List[str]:
@@ -101,6 +90,7 @@ class _Permission(BaseModel):
 
 class _CollectionsPermission(_Permission):
     collection: str
+    tenant: str
     action: CollectionsAction
 
     def _to_weaviate(self) -> WeaviatePermission:
@@ -108,7 +98,7 @@ class _CollectionsPermission(_Permission):
             "action": self.action,
             "collection": self.collection,
             "role": "*",
-            "tenant": "*",
+            "tenant": self.tenant,
             "user": "*",
         }
 
@@ -154,21 +144,6 @@ class _ClusterPermission(_Permission):
         }
 
 
-class _TenantsPermission(_Permission):
-    collection: str
-    tenant: str
-    action: TenantsAction
-
-    def _to_weaviate(self) -> WeaviatePermission:
-        return {
-            "action": self.action,
-            "collection": self.collection,
-            "tenant": self.tenant,
-            "role": "*",
-            "user": "*",
-        }
-
-
 class _ObjectsCollectionPermission(_Permission):
     collection: str
     action: ObjectsCollectionAction
@@ -202,6 +177,7 @@ class _ObjectsTenantPermission(_Permission):
 class CollectionsPermission:
     collection: str
     action: CollectionsAction
+    tenant: str
 
 
 @dataclass
@@ -215,13 +191,6 @@ class ObjectsTenantPermission:
     collection: str
     tenant: str
     action: ObjectsTenantAction
-
-
-@dataclass
-class TenantsPermission:
-    collection: str
-    tenant: str
-    action: TenantsAction
 
 
 @dataclass
@@ -244,7 +213,6 @@ class Role:
     objects_collection_permissions: Optional[List[ObjectsCollectionPermission]]
     objects_tenant_permissions: Optional[List[ObjectsTenantPermission]]
     roles_permissions: Optional[List[RolesPermission]]
-    tenants_permissions: Optional[List[TenantsPermission]]
     users_permissions: Optional[List[UsersPermission]]
 
     @classmethod
@@ -253,7 +221,6 @@ class Role:
         users_permissions: List[UsersPermission] = []
         collection_permissions: List[CollectionsPermission] = []
         roles_permissions: List[RolesPermission] = []
-        tenant_permissions: List[TenantsPermission] = []
         objects_collection_permissions: List[ObjectsCollectionPermission] = []
         objects_tenant_permissions: List[ObjectsTenantPermission] = []
 
@@ -270,6 +237,7 @@ class Role:
                 collection_permissions.append(
                     CollectionsPermission(
                         collection=permission["collection"],
+                        tenant=permission.get("tenant", "*"),
                         action=CollectionsAction(permission["action"]),
                     )
                 )
@@ -277,14 +245,6 @@ class Role:
                 roles_permissions.append(
                     RolesPermission(
                         role=permission["role"], action=RolesAction(permission["action"])
-                    )
-                )
-            elif permission["action"] in TenantsAction.values():
-                tenant_permissions.append(
-                    TenantsPermission(
-                        collection=permission["collection"],
-                        tenant=permission["tenant"],
-                        action=TenantsAction(permission["action"]),
                     )
                 )
             elif permission["action"] in ObjectsCollectionAction.values():
@@ -312,7 +272,6 @@ class Role:
             users_permissions=up if len(up := users_permissions) > 0 else None,
             collections_permissions=cp if len(cp := collection_permissions) > 0 else None,
             roles_permissions=rp if len(rp := roles_permissions) > 0 else None,
-            tenants_permissions=tp if len(tp := tenant_permissions) > 0 else None,
             objects_collection_permissions=(
                 ocp if len(ocp := objects_collection_permissions) > 0 else None
             ),
@@ -385,47 +344,35 @@ class _CollectionsFactory:
     objects = _ObjectsCollectionFactory
 
     @staticmethod
-    def create(collection: Optional[str] = None) -> _CollectionsPermission:
-        return _CollectionsPermission(collection=collection or "*", action=CollectionsAction.CREATE)
-
-    @staticmethod
-    def read(collection: Optional[str] = None) -> _CollectionsPermission:
-        return _CollectionsPermission(collection=collection or "*", action=CollectionsAction.READ)
-
-    @staticmethod
-    def update(collection: Optional[str] = None) -> _CollectionsPermission:
-        return _CollectionsPermission(collection=collection or "*", action=CollectionsAction.UPDATE)
-
-    @staticmethod
-    def delete(collection: Optional[str] = None) -> _CollectionsPermission:
-        return _CollectionsPermission(collection=collection or "*", action=CollectionsAction.DELETE)
-
-
-class _TenantsFactory:
-    objects = _ObjectsTenantFactory
-
-    @staticmethod
-    def create(collection: str, tenant: Optional[str] = None) -> _TenantsPermission:
-        return _TenantsPermission(
-            collection=collection, tenant=tenant or "*", action=TenantsAction.CREATE
+    def create(
+        collection: Optional[str] = None, tenant: Optional[str] = None
+    ) -> _CollectionsPermission:
+        return _CollectionsPermission(
+            collection=collection or "*", tenant=tenant or "*", action=CollectionsAction.CREATE
         )
 
     @staticmethod
-    def read(collection: str, tenant: Optional[str] = None) -> _TenantsPermission:
-        return _TenantsPermission(
-            collection=collection, tenant=tenant or "*", action=TenantsAction.READ
+    def read(
+        collection: Optional[str] = None, tenant: Optional[str] = None
+    ) -> _CollectionsPermission:
+        return _CollectionsPermission(
+            collection=collection or "*", tenant=tenant or "*", action=CollectionsAction.READ
         )
 
     @staticmethod
-    def update(collection: str, tenant: Optional[str] = None) -> _TenantsPermission:
-        return _TenantsPermission(
-            collection=collection, tenant=tenant or "*", action=TenantsAction.UPDATE
+    def update(
+        collection: Optional[str] = None, tenant: Optional[str] = None
+    ) -> _CollectionsPermission:
+        return _CollectionsPermission(
+            collection=collection or "*", tenant=tenant or "*", action=CollectionsAction.UPDATE
         )
 
     @staticmethod
-    def delete(collection: str, tenant: Optional[str] = None) -> _TenantsPermission:
-        return _TenantsPermission(
-            collection=collection, tenant=tenant or "*", action=TenantsAction.DELETE
+    def delete(
+        collection: Optional[str] = None, tenant: Optional[str] = None
+    ) -> _CollectionsPermission:
+        return _CollectionsPermission(
+            collection=collection or "*", tenant=tenant or "*", action=CollectionsAction.DELETE
         )
 
 
@@ -456,14 +403,12 @@ class ActionsFactory:
     collection = CollectionsAction
     roles = RolesAction
     users = UsersAction
-    tenants = TenantsAction
 
 
 class PermissionsFactory:
     cluser = _ClusterFactory
     collections = _CollectionsFactory
     roles = _RolesFactory
-    tenants = _TenantsFactory
     users = _UsersFactory
 
 
