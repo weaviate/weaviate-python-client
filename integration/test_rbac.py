@@ -23,12 +23,14 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
             Role(
                 name="CreateAllCollections",
                 cluster_actions=None,
-                users_actions=None,
+                users_permissions=None,
                 collections_permissions=[
                     CollectionsPermission(collection="*", action=RBAC.actions.collection.CREATE)
                 ],
                 roles_permissions=None,
                 tenants_permissions=None,
+                objects_collection_permissions=None,
+                objects_tenant_permissions=None,
             ),
         ),
         (
@@ -36,10 +38,12 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
             Role(
                 name="ManageAllRoles",
                 cluster_actions=None,
-                users_actions=None,
+                users_permissions=None,
                 collections_permissions=None,
                 roles_permissions=[RolesPermission(role="*", action=RBAC.actions.roles.MANAGE)],
                 tenants_permissions=None,
+                objects_collection_permissions=None,
+                objects_tenant_permissions=None,
             ),
         ),
         (
@@ -47,7 +51,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
             Role(
                 name="ReadAllTenantsInFoo",
                 cluster_actions=None,
-                users_actions=None,
+                users_permissions=None,
                 collections_permissions=None,
                 roles_permissions=None,
                 tenants_permissions=[
@@ -55,6 +59,8 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                         collection="foo", tenant="*", action=RBAC.actions.tenants.READ
                     )
                 ],
+                objects_collection_permissions=None,
+                objects_tenant_permissions=None,
             ),
         ),
     ],

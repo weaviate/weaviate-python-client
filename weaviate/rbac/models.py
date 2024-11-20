@@ -205,6 +205,19 @@ class CollectionsPermission:
 
 
 @dataclass
+class ObjectsCollectionPermission:
+    collection: str
+    action: ObjectsCollectionAction
+
+
+@dataclass
+class ObjectsTenantPermission:
+    collection: str
+    tenant: str
+    action: ObjectsTenantAction
+
+
+@dataclass
 class TenantsPermission:
     collection: str
     tenant: str
@@ -218,13 +231,93 @@ class RolesPermission:
 
 
 @dataclass
+class UsersPermission:
+    user: str
+    action: UsersAction
+
+
+@dataclass
 class Role:
     name: str
     cluster_actions: Optional[List[ClusterAction]]
-    users_actions: Optional[List[UsersAction]]
     collections_permissions: Optional[List[CollectionsPermission]]
-    tenants_permissions: Optional[List[TenantsPermission]]
+    objects_collection_permissions: Optional[List[ObjectsCollectionPermission]]
+    objects_tenant_permissions: Optional[List[ObjectsTenantPermission]]
     roles_permissions: Optional[List[RolesPermission]]
+    tenants_permissions: Optional[List[TenantsPermission]]
+    users_permissions: Optional[List[UsersPermission]]
+
+    @classmethod
+    def _from_weaviate_role(cls, role: WeaviateRole) -> "Role":
+        cluster_actions: List[ClusterAction] = []
+        users_permissions: List[UsersPermission] = []
+        collection_permissions: List[CollectionsPermission] = []
+        roles_permissions: List[RolesPermission] = []
+        tenant_permissions: List[TenantsPermission] = []
+        objects_collection_permissions: List[ObjectsCollectionPermission] = []
+        objects_tenant_permissions: List[ObjectsTenantPermission] = []
+
+        for permission in role["permissions"]:
+            if permission["action"] in ClusterAction.values():
+                cluster_actions.append(ClusterAction(permission["action"]))
+            elif permission["action"] in UsersAction.values():
+                users_permissions.append(
+                    UsersPermission(
+                        user=permission["user"], action=UsersAction(permission["action"])
+                    )
+                )
+            elif permission["action"] in CollectionsAction.values():
+                collection_permissions.append(
+                    CollectionsPermission(
+                        collection=permission["collection"],
+                        action=CollectionsAction(permission["action"]),
+                    )
+                )
+            elif permission["action"] in RolesAction.values():
+                roles_permissions.append(
+                    RolesPermission(
+                        role=permission["role"], action=RolesAction(permission["action"])
+                    )
+                )
+            elif permission["action"] in TenantsAction.values():
+                tenant_permissions.append(
+                    TenantsPermission(
+                        collection=permission["collection"],
+                        tenant=permission["tenant"],
+                        action=TenantsAction(permission["action"]),
+                    )
+                )
+            elif permission["action"] in ObjectsCollectionAction.values():
+                objects_collection_permissions.append(
+                    ObjectsCollectionPermission(
+                        collection=permission["collection"],
+                        action=ObjectsCollectionAction(permission["action"]),
+                    )
+                )
+            elif permission["action"] in ObjectsTenantAction.values():
+                objects_tenant_permissions.append(
+                    ObjectsTenantPermission(
+                        collection=permission["collection"],
+                        tenant=permission["tenant"],
+                        action=ObjectsTenantAction(permission["action"]),
+                    )
+                )
+            else:
+                raise ValueError(
+                    f"The actions of role {role['name']} are mixed between levels somehow!"
+                )
+        return cls(
+            name=role["name"],
+            cluster_actions=ca if len(ca := cluster_actions) > 0 else None,
+            users_permissions=up if len(up := users_permissions) > 0 else None,
+            collections_permissions=cp if len(cp := collection_permissions) > 0 else None,
+            roles_permissions=rp if len(rp := roles_permissions) > 0 else None,
+            tenants_permissions=tp if len(tp := tenant_permissions) > 0 else None,
+            objects_collection_permissions=(
+                ocp if len(ocp := objects_collection_permissions) > 0 else None
+            ),
+            objects_tenant_permissions=otp if len(otp := objects_tenant_permissions) > 0 else None,
+        )
 
 
 @dataclass
@@ -371,6 +464,7 @@ class PermissionsFactory:
     collections = _CollectionsFactory
     roles = _RolesFactory
     tenants = _TenantsFactory
+    users = _UsersFactory
 
 
 class RBAC:
