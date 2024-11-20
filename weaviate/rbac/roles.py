@@ -8,9 +8,9 @@ from weaviate.rbac.models import (
     _Permission,
     Role,
     User,
+    WeaviatePermission,
     WeaviateRole,
 )
-from weaviate.rbac.permissions import _Permissions
 
 
 class _RolesBase:
@@ -99,12 +99,28 @@ class _RolesBase:
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Revoke roles from user"),
         )
 
+    async def _add_permissions(self, permissions: List[WeaviatePermission], role: str) -> None:
+        path = "/authz/roles/add-permissions"
+
+        await self._connection.post(
+            path,
+            weaviate_object={"permissions": permissions, "name": role},
+            error_msg="Could not add permissions",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Add permissions"),
+        )
+
+    async def _remove_permissions(self, permissions: List[WeaviatePermission], role: str) -> None:
+        path = "/authz/roles/remove-permissions"
+
+        await self._connection.post(
+            path,
+            weaviate_object={"permissions": permissions, "name": role},
+            error_msg="Could not remove permissions",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Remove permissions"),
+        )
+
 
 class _RolesAsync(_RolesBase):
-    def __init__(self, connection: ConnectionV4) -> None:
-        super().__init__(connection)
-        self.permissions = _Permissions(connection)
-
     def __user_from_weaviate_user(self, user: str) -> User:
         return User(name=user)
 
@@ -208,3 +224,31 @@ class _RolesAsync(_RolesBase):
             user: The user to revoke the roles from.
         """
         await self._revoke_roles_from_user([roles] if isinstance(roles, str) else roles, user)
+
+    async def add_permissions(self, *, permissions: Permissions, role: str) -> None:
+        """Add permissions to a role.
+
+        Note: This method is an upsert operation. If the permission already exists, it will be updated. If it does not exist, it will be created.
+
+        Args:
+            permissions: The permissions to add to the role.
+            role: The role to add the permissions to.
+        """
+        if isinstance(permissions, _Permission):
+            permissions = [permissions]
+        await self._add_permissions([permission._to_weaviate() for permission in permissions], role)
+
+    async def remove_permissions(self, *, permissions: Permissions, role: str) -> None:
+        """Remove permissions from a role.
+
+        Note: This method is a downsert operation. If the permission does not exist, it will be ignored. If these permissions are the only permissions of the role, the role will be deleted.
+
+        Args:
+            permissions: The permissions to remove from the role.
+            role: The role to remove the permissions from.
+        """
+        if isinstance(permissions, _Permission):
+            permissions = [permissions]
+        await self._remove_permissions(
+            [permission._to_weaviate() for permission in permissions], role
+        )
