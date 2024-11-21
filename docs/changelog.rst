@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 4.9.4
+--------------
+This patch version includes:
+    - Add support for ``multi2vec-jinaai``
+    - Add support for ``multi2vec-cohere``
+    - Add support for time-based deletion strategy
+    - Fix type restriction on include_vector in QueryReference
+
 Version 4.9.3
 --------------
 This patch version includes:
