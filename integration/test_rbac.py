@@ -7,9 +7,7 @@ from weaviate.rbac.models import (
     Role,
     CollectionsPermission,
     RolesPermission,
-    TenantsPermission,
 )
-
 
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("existing-key")
@@ -25,10 +23,11 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 cluster_actions=None,
                 users_permissions=None,
                 collections_permissions=[
-                    CollectionsPermission(collection="*", action=RBAC.actions.collection.CREATE)
+                    CollectionsPermission(
+                        collection="*", action=RBAC.actions.collection.CREATE, tenant="*"
+                    )
                 ],
                 roles_permissions=None,
-                tenants_permissions=None,
                 objects_collection_permissions=None,
                 objects_tenant_permissions=None,
             ),
@@ -41,24 +40,6 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 users_permissions=None,
                 collections_permissions=None,
                 roles_permissions=[RolesPermission(role="*", action=RBAC.actions.roles.MANAGE)],
-                tenants_permissions=None,
-                objects_collection_permissions=None,
-                objects_tenant_permissions=None,
-            ),
-        ),
-        (
-            RBAC.permissions.tenants.read(collection="foo"),
-            Role(
-                name="ReadAllTenantsInFoo",
-                cluster_actions=None,
-                users_permissions=None,
-                collections_permissions=None,
-                roles_permissions=None,
-                tenants_permissions=[
-                    TenantsPermission(
-                        collection="foo", tenant="*", action=RBAC.actions.tenants.READ
-                    )
-                ],
                 objects_collection_permissions=None,
                 objects_tenant_permissions=None,
             ),
