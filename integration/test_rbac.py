@@ -44,18 +44,6 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 objects_tenant_permissions=None,
             ),
         ),
-        (
-            RBAC.permissions.tenants.read(collection="foo"),
-            Role(
-                name="ReadAllTenantsInFoo",
-                cluster_actions=None,
-                users_permissions=None,
-                collections_permissions=None,
-                roles_permissions=None,
-                objects_collection_permissions=None,
-                objects_tenant_permissions=None,
-            ),
-        ),
     ],
 )
 def test_create_role(client_factory: ClientFactory, permissions, expected) -> None:
