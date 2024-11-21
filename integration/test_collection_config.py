@@ -10,6 +10,7 @@ from integration.conftest import _sanitize_collection_name
 from weaviate.collections.classes.config import (
     _BQConfig,
     _SQConfig,
+    _LASQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
@@ -610,6 +611,23 @@ def test_hnsw_with_sq(collection_factory: CollectionFactory) -> None:
     assert config.vector_index_config is not None
     assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert isinstance(config.vector_index_config.quantizer, _SQConfig)
+
+
+def test_hnsw_with_lasq(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vector_index_config=Configure.VectorIndex.hnsw(
+            vector_cache_max_objects=5,
+            quantizer=Configure.VectorIndex.Quantizer.lasq(training_limit=1000000),
+        ),
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 28, 0):
+        pytest.skip("LASQ+HNSW is not supported in Weaviate versions lower than 1.28.0")
+
+    config = collection.config.get()
+    assert config.vector_index_type == VectorIndexType.HNSW
+    assert config.vector_index_config is not None
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(config.vector_index_config.quantizer, _LASQConfig)
 
 
 @pytest.mark.parametrize(
