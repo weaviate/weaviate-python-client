@@ -29,7 +29,6 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 ],
                 roles_permissions=None,
                 objects_collection_permissions=None,
-                objects_tenant_permissions=None,
             ),
         ),
         (
@@ -41,7 +40,6 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 collections_permissions=None,
                 roles_permissions=[RolesPermission(role="*", action=RBAC.actions.roles.MANAGE)],
                 objects_collection_permissions=None,
-                objects_tenant_permissions=None,
             ),
         ),
     ],
