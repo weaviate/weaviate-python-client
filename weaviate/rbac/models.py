@@ -46,17 +46,6 @@ class ObjectsCollectionAction(str, _Action, Enum):
         return [action.value for action in ObjectsCollectionAction]
 
 
-class ObjectsTenantAction(str, _Action, Enum):
-    CREATE = "create_data"
-    READ = "read_data"
-    UPDATE = "update_data"
-    DELETE = "delete_data"
-
-    @staticmethod
-    def values() -> List[str]:
-        return [action.value for action in ObjectsTenantAction]
-
-
 class RolesAction(str, _Action, Enum):
     MANAGE = "manage_roles"
     READ = "read_roles"
@@ -146,6 +135,7 @@ class _ClusterPermission(_Permission):
 
 class _ObjectsCollectionPermission(_Permission):
     collection: str
+    tenant: str
     action: ObjectsCollectionAction
 
     def _to_weaviate(self) -> WeaviatePermission:
@@ -153,22 +143,7 @@ class _ObjectsCollectionPermission(_Permission):
             "action": self.action,
             "collection": self.collection,
             "role": "*",
-            "tenant": "*",
-            "user": "*",
-        }
-
-
-class _ObjectsTenantPermission(_Permission):
-    collection: str
-    tenant: str
-    action: ObjectsTenantAction
-
-    def _to_weaviate(self) -> WeaviatePermission:
-        return {
-            "action": self.action,
-            "collection": self.collection,
             "tenant": self.tenant,
-            "role": "*",
             "user": "*",
         }
 
@@ -184,13 +159,6 @@ class CollectionsPermission:
 class ObjectsCollectionPermission:
     collection: str
     action: ObjectsCollectionAction
-
-
-@dataclass
-class ObjectsTenantPermission:
-    collection: str
-    tenant: str
-    action: ObjectsTenantAction
 
 
 @dataclass
@@ -211,7 +179,6 @@ class Role:
     cluster_actions: Optional[List[ClusterAction]]
     collections_permissions: Optional[List[CollectionsPermission]]
     objects_collection_permissions: Optional[List[ObjectsCollectionPermission]]
-    objects_tenant_permissions: Optional[List[ObjectsTenantPermission]]
     roles_permissions: Optional[List[RolesPermission]]
     users_permissions: Optional[List[UsersPermission]]
 
@@ -222,7 +189,6 @@ class Role:
         collection_permissions: List[CollectionsPermission] = []
         roles_permissions: List[RolesPermission] = []
         objects_collection_permissions: List[ObjectsCollectionPermission] = []
-        objects_tenant_permissions: List[ObjectsTenantPermission] = []
 
         for permission in role["permissions"]:
             if permission["action"] in ClusterAction.values():
@@ -254,14 +220,6 @@ class Role:
                         action=ObjectsCollectionAction(permission["action"]),
                     )
                 )
-            elif permission["action"] in ObjectsTenantAction.values():
-                objects_tenant_permissions.append(
-                    ObjectsTenantPermission(
-                        collection=permission["collection"],
-                        tenant=permission["tenant"],
-                        action=ObjectsTenantAction(permission["action"]),
-                    )
-                )
             else:
                 raise ValueError(
                     f"The actions of role {role['name']} are mixed between levels somehow!"
@@ -275,7 +233,6 @@ class Role:
             objects_collection_permissions=(
                 ocp if len(ocp := objects_collection_permissions) > 0 else None
             ),
-            objects_tenant_permissions=otp if len(otp := objects_tenant_permissions) > 0 else None,
         )
 
 
@@ -290,53 +247,27 @@ Permissions = Union[_Permission, Sequence[_Permission]]
 
 class _ObjectsCollectionFactory:
     @staticmethod
-    def create(collection: str) -> _ObjectsCollectionPermission:
+    def create(collection: str, tenant: str = "*") -> _ObjectsCollectionPermission:
         return _ObjectsCollectionPermission(
-            collection=collection, action=ObjectsCollectionAction.CREATE
+            collection=collection, action=ObjectsCollectionAction.CREATE, tenant=tenant
         )
 
     @staticmethod
-    def read(collection: str) -> _ObjectsCollectionPermission:
+    def read(collection: str, tenant: str = "*") -> _ObjectsCollectionPermission:
         return _ObjectsCollectionPermission(
-            collection=collection, action=ObjectsCollectionAction.READ
+            collection=collection, action=ObjectsCollectionAction.READ, tenant=tenant
         )
 
     @staticmethod
-    def update(collection: str) -> _ObjectsCollectionPermission:
+    def update(collection: str, tenant: str = "*") -> _ObjectsCollectionPermission:
         return _ObjectsCollectionPermission(
-            collection=collection, action=ObjectsCollectionAction.UPDATE
+            collection=collection, action=ObjectsCollectionAction.UPDATE, tenant=tenant
         )
 
     @staticmethod
-    def delete(collection: str) -> _ObjectsCollectionPermission:
+    def delete(collection: str, tenant: str = "*") -> _ObjectsCollectionPermission:
         return _ObjectsCollectionPermission(
-            collection=collection, action=ObjectsCollectionAction.DELETE
-        )
-
-
-class _ObjectsTenantFactory:
-    @staticmethod
-    def create(collection: str, tenant: str) -> _ObjectsTenantPermission:
-        return _ObjectsTenantPermission(
-            collection=collection, tenant=tenant, action=ObjectsTenantAction.CREATE
-        )
-
-    @staticmethod
-    def read(collection: str, tenant: str) -> _ObjectsTenantPermission:
-        return _ObjectsTenantPermission(
-            collection=collection, tenant=tenant, action=ObjectsTenantAction.READ
-        )
-
-    @staticmethod
-    def update(collection: str, tenant: str) -> _ObjectsTenantPermission:
-        return _ObjectsTenantPermission(
-            collection=collection, tenant=tenant, action=ObjectsTenantAction.UPDATE
-        )
-
-    @staticmethod
-    def delete(collection: str, tenant: str) -> _ObjectsTenantPermission:
-        return _ObjectsTenantPermission(
-            collection=collection, tenant=tenant, action=ObjectsTenantAction.DELETE
+            collection=collection, action=ObjectsCollectionAction.DELETE, tenant=tenant
         )
 
 
