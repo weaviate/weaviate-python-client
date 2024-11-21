@@ -36,10 +36,10 @@ class CollectionsAction(str, _Action, Enum):
 
 
 class ObjectsCollectionAction(str, _Action, Enum):
-    CREATE = "create_data_collection_objects"
-    READ = "read_data_collection_objects"
-    UPDATE = "update_data_collection_objects"
-    DELETE = "delete_data_collection_objects"
+    CREATE = "create_data"
+    READ = "read_data"
+    UPDATE = "update_data"
+    DELETE = "delete_data"
 
     @staticmethod
     def values() -> List[str]:
@@ -47,10 +47,10 @@ class ObjectsCollectionAction(str, _Action, Enum):
 
 
 class ObjectsTenantAction(str, _Action, Enum):
-    CREATE = "create_data_tenant_objects"
-    READ = "read_data_tenant_objects"
-    UPDATE = "update_data_tenant_objects"
-    DELETE = "delete_data_tenant_objects"
+    CREATE = "create_data"
+    READ = "read_data"
+    UPDATE = "update_data"
+    DELETE = "delete_data"
 
     @staticmethod
     def values() -> List[str]:
