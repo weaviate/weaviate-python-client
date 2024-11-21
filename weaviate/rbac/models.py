@@ -406,7 +406,7 @@ class ActionsFactory:
 
 
 class PermissionsFactory:
-    cluser = _ClusterFactory
+    cluster = _ClusterFactory
     collections = _CollectionsFactory
     roles = _RolesFactory
     users = _UsersFactory

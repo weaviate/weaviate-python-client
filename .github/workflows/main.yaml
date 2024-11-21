@@ -19,7 +19,6 @@ env:
   WEAVIATE_127: 1.27.1
   WEAVIATE_128: 1.28.0-dev-fa0f087
 
-
 jobs:
   lint-and-format:
     name: Run Linter and Formatter
