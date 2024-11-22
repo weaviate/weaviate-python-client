@@ -245,61 +245,59 @@ Permissions = Union[_Permission, Sequence[_Permission]]
 
 class _DataFactory:
     @staticmethod
-    def create(collection: str, tenant: str = "*") -> _DataPermission:
-        return _DataPermission(collection=collection, action=DataAction.CREATE, tenant=tenant)
+    def create(*, collection: str) -> _DataPermission:
+        return _DataPermission(collection=collection, action=DataAction.CREATE, tenant="*")
 
     @staticmethod
-    def read(collection: str, tenant: str = "*") -> _DataPermission:
-        return _DataPermission(collection=collection, action=DataAction.READ, tenant=tenant)
+    def read(*, collection: str) -> _DataPermission:
+        return _DataPermission(collection=collection, action=DataAction.READ, tenant="*")
 
     @staticmethod
-    def update(collection: str, tenant: str = "*") -> _DataPermission:
-        return _DataPermission(collection=collection, action=DataAction.UPDATE, tenant=tenant)
+    def update(*, collection: str) -> _DataPermission:
+        return _DataPermission(collection=collection, action=DataAction.UPDATE, tenant="*")
 
     @staticmethod
-    def delete(collection: str, tenant: str = "*") -> _DataPermission:
-        return _DataPermission(collection=collection, action=DataAction.DELETE, tenant=tenant)
+    def delete(*, collection: str) -> _DataPermission:
+        return _DataPermission(collection=collection, action=DataAction.DELETE, tenant="*")
 
 
 class _ConfigFactory:
     @staticmethod
-    def create(collection: Optional[str] = None, tenant: Optional[str] = None) -> _ConfigPermission:
+    def create(*, collection: Optional[str] = None) -> _ConfigPermission:
         return _ConfigPermission(
-            collection=collection or "*", tenant=tenant or "*", action=ConfigAction.CREATE
+            collection=collection or "*", tenant="*", action=ConfigAction.CREATE
         )
 
     @staticmethod
-    def read(collection: Optional[str] = None, tenant: Optional[str] = None) -> _ConfigPermission:
+    def read(*, collection: Optional[str] = None) -> _ConfigPermission:
+        return _ConfigPermission(collection=collection or "*", tenant="*", action=ConfigAction.READ)
+
+    @staticmethod
+    def update(*, collection: Optional[str] = None) -> _ConfigPermission:
         return _ConfigPermission(
-            collection=collection or "*", tenant=tenant or "*", action=ConfigAction.READ
+            collection=collection or "*", tenant="*", action=ConfigAction.UPDATE
         )
 
     @staticmethod
-    def update(collection: Optional[str] = None, tenant: Optional[str] = None) -> _ConfigPermission:
+    def delete(*, collection: Optional[str] = None) -> _ConfigPermission:
         return _ConfigPermission(
-            collection=collection or "*", tenant=tenant or "*", action=ConfigAction.UPDATE
-        )
-
-    @staticmethod
-    def delete(collection: Optional[str] = None, tenant: Optional[str] = None) -> _ConfigPermission:
-        return _ConfigPermission(
-            collection=collection or "*", tenant=tenant or "*", action=ConfigAction.DELETE
+            collection=collection or "*", tenant="*", action=ConfigAction.DELETE
         )
 
 
 class _RolesFactory:
     @staticmethod
-    def manage(role: Optional[str] = None) -> _RolesPermission:
+    def manage(*, role: Optional[str] = None) -> _RolesPermission:
         return _RolesPermission(role=role or "*", action=RolesAction.MANAGE)
 
     @staticmethod
-    def read(role: Optional[str] = None) -> _RolesPermission:
+    def read(*, role: Optional[str] = None) -> _RolesPermission:
         return _RolesPermission(role=role or "*", action=RolesAction.READ)
 
 
 class _UsersFactory:
     @staticmethod
-    def manage(user: Optional[str] = None) -> _UsersPermission:
+    def manage(*, user: Optional[str] = None) -> _UsersPermission:
         return _UsersPermission(user=user or "*", action=UsersAction.MANAGE)
 
 
