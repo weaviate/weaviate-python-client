@@ -1,10 +1,13 @@
 from typing import Optional, Sequence, cast
 
+from grpc.aio import AioRpcError  # type: ignore
+
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import TenantActivityStatus
 from weaviate.collections.grpc.retry import _Retry
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
+from weaviate.exceptions import WeaviateTenantGetError
 from weaviate.proto.v1 import tenants_pb2
 
 
@@ -25,14 +28,18 @@ class _TenantsGRPC(_BaseGRPC):
             collection=self._name,
             names=tenants_pb2.TenantNames(values=names) if names is not None else None,
         )
-        res = await _Retry().with_exponential_backoff(
-            0,
-            f"Get tenants for collection {self._name}",
-            self._connection.grpc_stub.TenantsGet,
-            request,
-            metadata=self._connection.grpc_headers(),
-            timeout=self._connection.timeout_config.query,
-        )
+        try:
+            res = await _Retry().with_exponential_backoff(
+                0,
+                f"Get tenants for collection {self._name}",
+                self._connection.grpc_stub.TenantsGet,
+                request,
+                metadata=self._connection.grpc_headers(),
+                timeout=self._connection.timeout_config.query,
+            )
+        except AioRpcError as e:
+            raise WeaviateTenantGetError(str(e))
+
         return cast(tenants_pb2.TenantsGetReply, res)
 
     def map_activity_status(self, status: tenants_pb2.TenantActivityStatus) -> TenantActivityStatus:
