@@ -18,7 +18,7 @@ env:
   WEAVIATE_124: 1.24.26
   WEAVIATE_125: 1.25.24
   WEAVIATE_126: 1.26.8
-  WEAVIATE_127: stable-v1.27-372397e
+  WEAVIATE_127: 1.27.1-8030027
 
 jobs:
   lint-and-format:
