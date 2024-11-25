@@ -38,7 +38,7 @@ class _TenantsGRPC(_BaseGRPC):
                 timeout=self._connection.timeout_config.query,
             )
         except AioRpcError as e:
-            raise WeaviateTenantGetError(str(e))
+            raise WeaviateTenantGetError(str(e)) from e
 
         return cast(tenants_pb2.TenantsGetReply, res)
 
