@@ -121,6 +121,7 @@ class ConnectionV4(_ConnectionBase):
         self.__loop = loop
 
         self._headers = {"content-type": "application/json"}
+        self.__add_weaviate_embedding_service_header(connection_params.http.host)
         if additional_headers is not None:
             _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
             self.__additional_headers = additional_headers
@@ -140,6 +141,12 @@ class ConnectionV4(_ConnectionBase):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
         self._prepare_grpc_headers()
+
+    def __add_weaviate_embedding_service_header(self, host: str) -> None:
+        if not is_weaviate_domain(host) or not isinstance(self._auth, AuthApiKey):
+            return
+        self._headers["X-Weaviate-Api-Key"] = self._auth.api_key
+        self._headers["X-Weaviate-Cluster-URL"] = "https://" + host
 
     async def connect(self, skip_init_checks: bool) -> None:
         self.__connected = True
