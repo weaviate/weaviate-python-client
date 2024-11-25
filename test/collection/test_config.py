@@ -400,14 +400,14 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_weaviate(
             vectorize_collection_name=False,
-            model="Snowflake/snowflake-arctic-embed-s",
-            base_url="https://inference.weaviate.cloud",
+            model="Snowflake/snowflake-arctic-embed-m-v1.5",
+            base_url="https://api.embedding.weaviate.io",
         ),
         {
             "text2vec-weaviate": {
                 "vectorizeClassName": False,
-                "model": "Snowflake/snowflake-arctic-embed-s",
-                "baseURL": "https://inference.weaviate.cloud",
+                "model": "Snowflake/snowflake-arctic-embed-m-v1.5",
+                "baseURL": "https://api.embedding.weaviate.io",
             }
         },
     ),
@@ -1505,7 +1505,9 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
     (
         [
             Configure.NamedVectors.text2vec_weaviate(
-                name="test", source_properties=["prop"], base_url="https://inference.weaviate.cloud"
+                name="test",
+                source_properties=["prop"],
+                base_url="https://api.embedding.weaviate.io",
             )
         ],
         {
@@ -1514,7 +1516,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                     "text2vec-weaviate": {
                         "properties": ["prop"],
                         "vectorizeClassName": True,
-                        "baseURL": "https://inference.weaviate.cloud",
+                        "baseURL": "https://api.embedding.weaviate.io",
                     }
                 },
                 "vectorIndexType": "hnsw",
