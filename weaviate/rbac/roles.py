@@ -164,7 +164,7 @@ class _RolesAsync(_RolesBase):
             user: The user ID to get the roles for.
 
         Returns:
-            A list of `Role` objects.
+            A dictionary with user names as keys and the `Role` objects as values.
         """
         return {
             role["name"]: Role._from_weaviate_role(role)
@@ -178,7 +178,7 @@ class _RolesAsync(_RolesBase):
             role: The role to get the users for.
 
         Returns:
-            A list of user IDs.
+            A dictionary with user names as keys and the `User` objects as values.
         """
         return {
             user: self.__user_from_weaviate_user(user)
