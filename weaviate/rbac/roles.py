@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
@@ -157,7 +157,7 @@ class _RolesAsync(_RolesBase):
             return None
         return Role._from_weaviate_role(r)
 
-    async def by_user(self, user: str) -> List[Role]:
+    async def by_user(self, user: str) -> Dict[str, Role]:
         """Get the roles assigned to a user.
 
         Args:
@@ -166,9 +166,12 @@ class _RolesAsync(_RolesBase):
         Returns:
             A list of `Role` objects.
         """
-        return [Role._from_weaviate_role(role) for role in await self._get_roles_of_user(user)]
+        return {
+            role["name"]: Role._from_weaviate_role(role)
+            for role in await self._get_roles_of_user(user)
+        }
 
-    async def users(self, role: str) -> List[User]:
+    async def users(self, role: str) -> Dict[str, User]:
         """Get the users that have been assigned this role.
 
         Args:
@@ -177,9 +180,10 @@ class _RolesAsync(_RolesBase):
         Returns:
             A list of user IDs.
         """
-        return [
-            self.__user_from_weaviate_user(user) for user in await self._get_users_of_role(role)
-        ]
+        return {
+            user: self.__user_from_weaviate_user(user)
+            for user in await self._get_users_of_role(role)
+        }
 
     async def delete(self, role: str) -> None:
         """Delete a role.
