@@ -36,13 +36,13 @@ def test_no_auth_provided() -> None:
 @pytest.mark.parametrize(
     "name,env_variable_name,port,scope",
     [
-        ("azure", "AZURE_CLIENT_SECRET", AZURE_PORT, None),
-        (
-            "azure",
-            "AZURE_CLIENT_SECRET",
-            AZURE_PORT,
-            "4706508f-30c2-469b-8b12-ad272b3de864/.default",
-        ),
+        # ("azure", "AZURE_CLIENT_SECRET", AZURE_PORT, None),
+        # (
+        #     "azure",
+        #     "AZURE_CLIENT_SECRET",
+        #     AZURE_PORT,
+        #     "4706508f-30c2-469b-8b12-ad272b3de864/.default",
+        # ),  expired
         ("okta", "OKTA_CLIENT_SECRET", OKTA_PORT_CC, "some_scope"),
     ],
 )

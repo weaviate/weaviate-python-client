@@ -8,6 +8,7 @@ from typing_extensions import TypeAlias, deprecated
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _EnumLikeStr
 from ...warnings import _Warnings
 
+# See https://docs.cohere.com/docs/cohere-embed for reference
 CohereModel: TypeAlias = Literal[
     "embed-multilingual-v2.0",
     "embed-multilingual-v3.0",
@@ -18,6 +19,12 @@ CohereModel: TypeAlias = Literal[
     "multilingual-22-12",
     "embed-english-v2.0",
     "embed-english-light-v2.0",
+    "embed-english-v3.0",
+    "embed-english-light-v3.0",
+]
+CohereMultimodalModel: TypeAlias = Literal[
+    "embed-multilingual-v3.0",
+    "embed-multilingual-light-v3.0",
     "embed-english-v3.0",
     "embed-english-light-v3.0",
 ]
@@ -32,6 +39,10 @@ JinaModel: TypeAlias = Literal[
     "jina-embeddings-v2-base-es",
     "jina-embeddings-v2-base-code",
     "jina-embeddings-v3",
+]
+JinaMultimodalModel: TypeAlias = Literal[
+    "jina-clip-v1",
+    "jina-clip-v2",
 ]
 VoyageModel: TypeAlias = Literal[
     "voyage-3",
@@ -112,6 +123,8 @@ class Vectorizers(str, Enum):
     TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
+    MULTI2VEC_COHERE = "multi2vec-cohere"
+    MULTI2VEC_JINAAI = "multi2vec-jinaai"
     MULTI2VEC_BIND = "multi2vec-bind"
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     REF2VEC_CENTROID = "ref2vec-centroid"
@@ -374,6 +387,36 @@ class _Multi2VecBase(_VectorizerConfigCreate):
         return ret_dict
 
 
+class _Multi2VecCohereConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2VEC_COHERE, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
+    truncate: Optional[CohereTruncation]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Multi2VecJinaConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2VEC_JINAAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
+    dimensions: Optional[int]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
 class _Multi2VecClipConfig(_Multi2VecBase):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.MULTI2VEC_CLIP, frozen=True, exclude=True
@@ -462,7 +505,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecClipConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-clip)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings-multimodal)
         for detailed usage.
 
         Arguments:
@@ -510,7 +553,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Multi2VecBindConfigCreate` object for use when vectorizing using the `multi2vec-clip` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/imagebind/embeddings-multimodal)
         for detailed usage.
 
         Arguments:
@@ -579,7 +622,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAWSConfigCreate` object for use when vectorizing using the `text2vec-aws` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-aws)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
         for detailed usage.
 
         Arguments:
@@ -611,7 +654,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAzureOpenAIConfigCreate` object for use when vectorizing using the `text2vec-azure-openai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-azure-openai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai-azure/embeddings)
         for detailed usage.
 
         Arguments:
@@ -675,7 +718,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecCohereConfigCreate` object for use when vectorizing using the `text2vec-cohere` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-cohere)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings)
         for detailed usage.
 
         Arguments:
@@ -689,13 +732,54 @@ class _Vectorizer:
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `truncate` is not a valid value from the `CohereModel` type.
+            `pydantic.ValidationError` if `model` is not a valid value from the `CohereModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _Text2VecCohereConfig(
             baseURL=base_url,
             model=model,
             truncate=truncate,
             vectorizeClassName=vectorize_collection_name,
+        )
+
+    @staticmethod
+    def multi2vec_cohere(
+        *,
+        model: Optional[Union[CohereMultimodalModel, str]] = None,
+        truncate: Optional[CohereTruncation] = None,
+        vectorize_collection_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Multi2VecCohereConfig` object for use when vectorizing using the `multi2vec-cohere` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+        """
+        return _Multi2VecCohereConfig(
+            baseURL=base_url,
+            model=model,
+            truncate=truncate,
+            vectorizeClassName=vectorize_collection_name,
+            imageFields=_map_multi2vec_fields(image_fields),
+            textFields=_map_multi2vec_fields(text_fields),
         )
 
     @staticmethod
@@ -707,7 +791,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecDatabricksConfig` object for use when vectorizing using the `text2vec-databricks` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-databricks)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/databricks/embeddings)
         for detailed usage.
 
         Arguments:
@@ -733,7 +817,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGPT4AllConfigCreate` object for use when vectorizing using the `text2vec-gpt4all` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/gpt4all/embeddings)
         for detailed usage.
 
         Arguments:
@@ -758,7 +842,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecHuggingFaceConfigCreate` object for use when vectorizing using the `text2vec-huggingface` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings)
         for detailed usage.
 
         Arguments:
@@ -782,7 +866,7 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError` if the arguments passed to the function are invalid.
                 It is important to note that some of these variables are mutually exclusive.
-                    See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-huggingface) for more details.
+                    See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings#vectorizer-parameters) for more details.
         """
         return _Text2VecHuggingFaceConfig(
             model=model,
@@ -803,7 +887,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecMistralConfig` object for use when vectorizing using the `text2vec-mistral` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-mistral)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/mistral/embeddings)
         for detailed usage.
 
         Arguments:
@@ -823,7 +907,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecOllamaConfig` object for use when vectorizing using the `text2vec-ollama` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-ollama)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/ollama/embeddings)
         for detailed usage.
 
         Arguments:
@@ -852,7 +936,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecOpenAIConfigCreate` object for use when vectorizing using the `text2vec-openai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-openai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai/embeddings)
         for detailed usage.
 
         Arguments:
@@ -894,7 +978,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-palm` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-palm)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
         Arguments:
@@ -931,7 +1015,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-google)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
         Arguments:
@@ -1077,7 +1161,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecTransformersConfigCreate` object for use when vectorizing using the `text2vec-transformers` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-transformers)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings)
         for detailed usage.
 
         Arguments:
@@ -1112,14 +1196,14 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecJinaConfigCreate` object for use when vectorizing using the `text2vec-jinaai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings)
         for detailed usage.
 
         Arguments:
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
-                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-jinaai#available-models) for more details.
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings#available-models) for more details.
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
@@ -1135,6 +1219,47 @@ class _Vectorizer:
         )
 
     @staticmethod
+    def multi2vec_jinaai(
+        *,
+        model: Optional[Union[JinaMultimodalModel, str]] = None,
+        vectorize_collection_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+        dimensions: Optional[int] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Multi2VecJinaConfig` object for use when vectorizing using the `multi2vec-jinaai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the `JinaMultimodalModel` type.
+        """
+        return _Multi2VecJinaConfig(
+            baseURL=base_url,
+            model=model,
+            dimensions=dimensions,
+            vectorizeClassName=vectorize_collection_name,
+            imageFields=_map_multi2vec_fields(image_fields),
+            textFields=_map_multi2vec_fields(text_fields),
+        )
+
+    @staticmethod
     def text2vec_voyageai(
         *,
         model: Optional[Union[VoyageModel, str]] = None,
@@ -1144,14 +1269,14 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecVoyageConfigCreate` object for use when vectorizing using the `text2vec-voyageai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
         for detailed usage.
 
         Arguments:
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
-                [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-voyageai#available-models) for more details.
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings#available-models) for more details.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `truncate`
