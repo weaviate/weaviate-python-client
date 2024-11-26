@@ -249,6 +249,14 @@ class WeaviateDeleteManyError(WeaviateQueryError):
         self.message = message
 
 
+class WeaviateTenantGetError(WeaviateQueryError):
+    """Is raised if a gRPC tenant get request to Weaviate fails in any way."""
+
+    def __init__(self, message: str):
+        super().__init__(message, "tenant get")
+        self.message = message
+
+
 class WeaviateAddInvalidPropertyError(WeaviateBaseError):
     """Is raised when adding an invalid new property."""
 

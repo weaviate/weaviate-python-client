@@ -440,7 +440,7 @@ def test_grpc_retry_logic(
     assert objs[0].properties["name"] == "test"
     assert service.search_count == 2
 
-    with pytest.raises(grpc.aio.AioRpcError):
+    with pytest.raises(weaviate.exceptions.WeaviateTenantGetError):
         # checks first call correctly handles error that isn't UNAVAILABLE
         collection.tenants.get()
 
