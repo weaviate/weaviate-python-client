@@ -6,8 +6,13 @@ from typing import List, Optional, Sequence, TypedDict, Union
 from pydantic import BaseModel
 
 
+class PermissionBackup(TypedDict):
+    backend: str
+
+
 class WeaviatePermission(TypedDict):
     action: str
+    backup: PermissionBackup
     collection: str
     # object: Optional[str] not used yet, needs to be named different because of shadowing `object`
     role: str
@@ -64,11 +69,19 @@ class UsersAction(str, _Action, Enum):
 
 
 class ClusterAction(str, _Action, Enum):
-    MANAGE_CLUSTER = "manage_cluster"
+    MANAGE = "manage_cluster"
 
     @staticmethod
     def values() -> List[str]:
         return [action.value for action in ClusterAction]
+
+
+class BackupsAction(str, _Action, Enum):
+    MANAGE = "manage_backups"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in BackupsAction]
 
 
 class _Permission(BaseModel):
@@ -85,6 +98,9 @@ class _ConfigPermission(_Permission):
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "action": self.action,
+            "backup": {
+                "backend": "*",
+            },
             "collection": self.collection,
             "role": "*",
             "tenant": self.tenant,
@@ -99,6 +115,9 @@ class _RolesPermission(_Permission):
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "action": self.action,
+            "backup": {
+                "backend": "*",
+            },
             "collection": "*",
             "role": self.role,
             "tenant": "*",
@@ -113,10 +132,30 @@ class _UsersPermission(_Permission):
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "action": self.action,
+            "backup": {
+                "backend": "*",
+            },
             "user": self.user,
             "role": "*",
             "tenant": "*",
             "collection": "*",
+        }
+
+
+class _BackupsPermission(_Permission):
+    backend: str
+    action: BackupsAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "role": "*",
+            "tenant": "*",
+            "user": "*",
+            "collection": "*",
+            "backup": {
+                "backend": self.backend,
+            },
         }
 
 
@@ -126,6 +165,9 @@ class _ClusterPermission(_Permission):
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "action": self.action,
+            "backup": {
+                "backend": "*",
+            },
             "role": "*",
             "tenant": "*",
             "user": "*",
@@ -141,6 +183,9 @@ class _DataPermission(_Permission):
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "action": self.action,
+            "backup": {
+                "backend": "*",
+            },
             "collection": self.collection,
             "role": "*",
             "tenant": self.tenant,
@@ -304,10 +349,17 @@ class _UsersFactory:
 class _ClusterFactory:
     @staticmethod
     def manage() -> _ClusterPermission:
-        return _ClusterPermission(action=ClusterAction.MANAGE_CLUSTER)
+        return _ClusterPermission(action=ClusterAction.MANAGE)
+
+
+class _BackupsFactory:
+    @staticmethod
+    def manage(*, backend: Optional[str] = None) -> _BackupsPermission:
+        return _BackupsPermission(backend=backend or "*", action=BackupsAction.MANAGE)
 
 
 class ActionsFactory:
+    backups = BackupsAction
     cluster = ClusterAction
     config = ConfigAction
     data = DataAction
@@ -316,6 +368,7 @@ class ActionsFactory:
 
 
 class PermissionsFactory:
+    backups = _BackupsFactory
     cluster = _ClusterFactory
     config = _ConfigFactory
     data = _DataFactory
