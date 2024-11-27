@@ -7,6 +7,7 @@ from weaviate.rbac.models import (
     Role,
     ConfigPermission,
     RolesPermission,
+    BackupsPermission,
 )
 
 RBAC_PORTS = (8092, 50063)
@@ -27,6 +28,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 ],
                 roles_permissions=None,
                 data_permissions=None,
+                backups_permissions=None,
             ),
         ),
         (
@@ -38,6 +40,21 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 config_permissions=None,
                 roles_permissions=[RolesPermission(role="*", action=RBAC.actions.roles.MANAGE)],
                 data_permissions=None,
+                backups_permissions=None,
+            ),
+        ),
+        (
+            RBAC.permissions.backups.manage(collection="Test"),
+            Role(
+                name="ManageAllBackups",
+                cluster_actions=None,
+                users_permissions=None,
+                config_permissions=None,
+                roles_permissions=None,
+                data_permissions=None,
+                backups_permissions=[
+                    BackupsPermission(collection="Test", action=RBAC.actions.backups.MANAGE)
+                ],
             ),
         ),
     ],
@@ -61,7 +78,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        role_name = "ExistingRole"
+        role_name = "ExistingRolePermissions"
         try:
             client.roles.create(
                 name=role_name,
@@ -97,7 +114,7 @@ def test_upsert_permissions(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        role_name = "ExistingRole"
+        role_name = "ExistingRoleUpsert"
         try:
             client.roles.add_permissions(
                 permissions=[
@@ -119,7 +136,7 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        role_name = "ExistingRole"
+        role_name = "ExistingRoleDownsert"
         try:
             client.roles.create(
                 name=role_name,
