@@ -351,6 +351,7 @@ class _Text2VecWeaviateConfig(_VectorizerConfigCreate):
     model: Optional[str]
     baseURL: Optional[str]
     vectorizeClassName: bool
+    dimensions: Optional[int]
 
 
 class _Text2VecOllamaConfig(_VectorizerConfigCreate):
@@ -1302,10 +1303,12 @@ class _Vectorizer:
         model: Optional[Union[WeaviateModel, str]] = None,
         base_url: Optional[str] = None,
         vectorize_collection_name: bool = True,
+        dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
         """TODO: add docstrings when the documentation is available."""
         return _Text2VecWeaviateConfig(
             model=model,
             baseURL=base_url,
             vectorizeClassName=vectorize_collection_name,
+            dimensions=dimensions,
         )

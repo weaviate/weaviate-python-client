@@ -1228,6 +1228,7 @@ class _NamedVectors:
         vectorize_collection_name: bool = True,
         model: Optional[Union[WeaviateModel, str]] = None,
         base_url: Optional[str] = None,
+        dimensions: Optional[int] = None,
     ) -> _NamedVectorConfigCreate:
         return _NamedVectorConfigCreate(
             name=name,
@@ -1236,6 +1237,7 @@ class _NamedVectors:
                 model=model,
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
+                dimensions=dimensions,
             ),
             vector_index_config=vector_index_config,
         )
