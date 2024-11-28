@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 
 class PermissionBackup(TypedDict):
-    backend: str
+    collection: str
 
 
 class WeaviatePermission(TypedDict):
@@ -99,7 +99,7 @@ class _ConfigPermission(_Permission):
         return {
             "action": self.action,
             "backup": {
-                "backend": "*",
+                "collection": "*",
             },
             "collection": self.collection,
             "role": "*",
@@ -116,7 +116,7 @@ class _RolesPermission(_Permission):
         return {
             "action": self.action,
             "backup": {
-                "backend": "*",
+                "collection": "*",
             },
             "collection": "*",
             "role": self.role,
@@ -133,7 +133,7 @@ class _UsersPermission(_Permission):
         return {
             "action": self.action,
             "backup": {
-                "backend": "*",
+                "collection": "*",
             },
             "user": self.user,
             "role": "*",
@@ -143,7 +143,7 @@ class _UsersPermission(_Permission):
 
 
 class _BackupsPermission(_Permission):
-    backend: str
+    collection: str
     action: BackupsAction
 
     def _to_weaviate(self) -> WeaviatePermission:
@@ -154,7 +154,7 @@ class _BackupsPermission(_Permission):
             "user": "*",
             "collection": "*",
             "backup": {
-                "backend": self.backend,
+                "collection": self.collection,
             },
         }
 
@@ -166,7 +166,7 @@ class _ClusterPermission(_Permission):
         return {
             "action": self.action,
             "backup": {
-                "backend": "*",
+                "collection": "*",
             },
             "role": "*",
             "tenant": "*",
@@ -184,7 +184,7 @@ class _DataPermission(_Permission):
         return {
             "action": self.action,
             "backup": {
-                "backend": "*",
+                "collection": "*",
             },
             "collection": self.collection,
             "role": "*",
@@ -219,6 +219,12 @@ class UsersPermission:
 
 
 @dataclass
+class BackupsPermission:
+    collection: str
+    action: BackupsAction
+
+
+@dataclass
 class Role:
     name: str
     cluster_actions: Optional[List[ClusterAction]]
@@ -226,6 +232,7 @@ class Role:
     data_permissions: Optional[List[DataPermission]]
     roles_permissions: Optional[List[RolesPermission]]
     users_permissions: Optional[List[UsersPermission]]
+    backups_permissions: Optional[List[BackupsPermission]]
 
     @classmethod
     def _from_weaviate_role(cls, role: WeaviateRole) -> "Role":
@@ -234,6 +241,7 @@ class Role:
         config_permissions: List[ConfigPermission] = []
         roles_permissions: List[RolesPermission] = []
         data_permissions: List[DataPermission] = []
+        backups_permissions: List[BackupsPermission] = []
 
         for permission in role["permissions"]:
             if permission["action"] in ClusterAction.values():
@@ -265,6 +273,13 @@ class Role:
                         action=DataAction(permission["action"]),
                     )
                 )
+            elif permission["action"] in BackupsAction.values():
+                backups_permissions.append(
+                    BackupsPermission(
+                        collection=permission["backup"]["collection"],
+                        action=BackupsAction(permission["action"]),
+                    )
+                )
             else:
                 raise ValueError(
                     f"The actions of role {role['name']} are mixed between levels somehow!"
@@ -275,7 +290,8 @@ class Role:
             users_permissions=up if len(up := users_permissions) > 0 else None,
             config_permissions=cp if len(cp := config_permissions) > 0 else None,
             roles_permissions=rp if len(rp := roles_permissions) > 0 else None,
-            data_permissions=(dp if len(dp := data_permissions) > 0 else None),
+            data_permissions=dp if len(dp := data_permissions) > 0 else None,
+            backups_permissions=bp if len(bp := backups_permissions) > 0 else None,
         )
 
 
@@ -354,8 +370,8 @@ class _ClusterFactory:
 
 class _BackupsFactory:
     @staticmethod
-    def manage(*, backend: Optional[str] = None) -> _BackupsPermission:
-        return _BackupsPermission(backend=backend or "*", action=BackupsAction.MANAGE)
+    def manage(*, collection: Optional[str] = None) -> _BackupsPermission:
+        return _BackupsPermission(collection=collection or "*", action=BackupsAction.MANAGE)
 
 
 class ActionsFactory:
