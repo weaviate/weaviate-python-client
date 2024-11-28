@@ -6,8 +6,10 @@ from weaviate.rbac.models import (
     RBAC,
     Role,
     ConfigPermission,
+    DataPermission,
     RolesPermission,
     BackupsPermission,
+    NodesPermission,
 )
 
 RBAC_PORTS = (8092, 50063)
@@ -17,32 +19,6 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
 @pytest.mark.parametrize(
     "permissions,expected",
     [
-        (
-            RBAC.permissions.config.create(),
-            Role(
-                name="CreateAllCollections",
-                cluster_actions=None,
-                users_permissions=None,
-                config_permissions=[
-                    ConfigPermission(collection="*", action=RBAC.actions.config.CREATE, tenant="*")
-                ],
-                roles_permissions=None,
-                data_permissions=None,
-                backups_permissions=None,
-            ),
-        ),
-        (
-            RBAC.permissions.roles.manage(),
-            Role(
-                name="ManageAllRoles",
-                cluster_actions=None,
-                users_permissions=None,
-                config_permissions=None,
-                roles_permissions=[RolesPermission(role="*", action=RBAC.actions.roles.MANAGE)],
-                data_permissions=None,
-                backups_permissions=None,
-            ),
-        ),
         (
             RBAC.permissions.backups.manage(collection="Test"),
             Role(
@@ -55,6 +31,95 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 backups_permissions=[
                     BackupsPermission(collection="Test", action=RBAC.actions.backups.MANAGE)
                 ],
+                nodes_permissions=None,
+            ),
+        ),
+        (
+            RBAC.permissions.cluster.read(),
+            Role(
+                name="ReadCluster",
+                cluster_actions=[RBAC.actions.cluster.READ],
+                users_permissions=None,
+                config_permissions=None,
+                roles_permissions=None,
+                data_permissions=None,
+                backups_permissions=None,
+                nodes_permissions=None,
+            ),
+        ),
+        (
+            RBAC.permissions.config.create(),
+            Role(
+                name="CreateAllCollections",
+                cluster_actions=None,
+                users_permissions=None,
+                config_permissions=[
+                    ConfigPermission(collection="*", action=RBAC.actions.config.CREATE, tenant="*")
+                ],
+                roles_permissions=None,
+                data_permissions=None,
+                backups_permissions=None,
+                nodes_permissions=None,
+            ),
+        ),
+        (
+            RBAC.permissions.data.create(collection="*"),
+            Role(
+                name="CreateAllData",
+                cluster_actions=None,
+                users_permissions=None,
+                config_permissions=None,
+                roles_permissions=None,
+                data_permissions=[DataPermission(collection="*", action=RBAC.actions.data.CREATE)],
+                backups_permissions=None,
+                nodes_permissions=None,
+            ),
+        ),
+        (
+            RBAC.permissions.nodes.read(verbosity="minimal"),
+            Role(
+                name="MinimalNodes",
+                cluster_actions=None,
+                users_permissions=None,
+                config_permissions=None,
+                roles_permissions=None,
+                data_permissions=None,
+                backups_permissions=None,
+                nodes_permissions=[
+                    NodesPermission(
+                        verbosity="minimal", action=RBAC.actions.nodes.READ, collection=None
+                    )
+                ],
+            ),
+        ),
+        (
+            RBAC.permissions.nodes.read(verbosity="verbose", collection="Test"),
+            Role(
+                name="VerboseNodes",
+                cluster_actions=None,
+                users_permissions=None,
+                config_permissions=None,
+                roles_permissions=None,
+                data_permissions=None,
+                backups_permissions=None,
+                nodes_permissions=[
+                    NodesPermission(
+                        verbosity="verbose", action=RBAC.actions.nodes.READ, collection="Test"
+                    )
+                ],
+            ),
+        ),
+        (
+            RBAC.permissions.roles.manage(),
+            Role(
+                name="ManageAllRoles",
+                cluster_actions=None,
+                users_permissions=None,
+                config_permissions=None,
+                roles_permissions=[RolesPermission(role="*", action=RBAC.actions.roles.MANAGE)],
+                data_permissions=None,
+                backups_permissions=None,
+                nodes_permissions=None,
             ),
         ),
     ],
