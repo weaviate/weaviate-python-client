@@ -2,11 +2,11 @@
 Cluster class definition.
 """
 
-from typing import List, Literal, Optional, cast
+from typing import List, Optional, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.cluster.types import Node
+from weaviate.cluster.types import Node, Verbosity
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     EmptyResponseException,
@@ -34,7 +34,7 @@ class Cluster:
     def get_nodes_status(
         self,
         class_name: Optional[str] = None,
-        output: Optional[Literal["minimal", "verbose"]] = None,
+        output: Optional[Verbosity] = None,
     ) -> List[Node]:
         """
         Get the nodes status.

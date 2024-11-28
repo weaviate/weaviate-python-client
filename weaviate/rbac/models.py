@@ -5,9 +5,16 @@ from typing import List, Optional, Sequence, TypedDict, Union
 
 from pydantic import BaseModel
 
+from weaviate.cluster.types import Verbosity
+
 
 class PermissionBackup(TypedDict):
     collection: str
+
+
+class PermissionNodes(TypedDict):
+    collection: str
+    verbosity: Verbosity
 
 
 class WeaviatePermission(TypedDict):
@@ -15,9 +22,22 @@ class WeaviatePermission(TypedDict):
     backup: PermissionBackup
     collection: str
     # object: Optional[str] not used yet, needs to be named different because of shadowing `object`
+    nodes: PermissionNodes
     role: str
     user: str
     tenant: str
+
+
+def _permission_all(action: str) -> WeaviatePermission:
+    return {
+        "action": action,
+        "backup": {"collection": "*"},
+        "collection": "*",
+        "nodes": {"collection": "*", "verbosity": "minimal"},
+        "role": "*",
+        "user": "*",
+        "tenant": "*",
+    }
 
 
 class WeaviateRole(TypedDict):
@@ -69,11 +89,19 @@ class UsersAction(str, _Action, Enum):
 
 
 class ClusterAction(str, _Action, Enum):
-    MANAGE = "manage_cluster"
+    READ = "read_cluster"
 
     @staticmethod
     def values() -> List[str]:
         return [action.value for action in ClusterAction]
+
+
+class NodesAction(str, _Action, Enum):
+    READ = "read_nodes"
+
+    @staticmethod
+    def values() -> List[str]:
+        return [action.value for action in NodesAction]
 
 
 class BackupsAction(str, _Action, Enum):
@@ -97,14 +125,24 @@ class _ConfigPermission(_Permission):
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            "action": self.action,
-            "backup": {
-                "collection": "*",
-            },
+            **_permission_all(self.action),
             "collection": self.collection,
-            "role": "*",
             "tenant": self.tenant,
-            "user": "*",
+        }
+
+
+class _NodesPermission(_Permission):
+    verbosity: Verbosity
+    collection: str
+    action: NodesAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            **_permission_all(self.action),
+            "nodes": {
+                "collection": self.collection,
+                "verbosity": self.verbosity,
+            },
         }
 
 
@@ -114,14 +152,8 @@ class _RolesPermission(_Permission):
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            "action": self.action,
-            "backup": {
-                "collection": "*",
-            },
-            "collection": "*",
+            **_permission_all(self.action),
             "role": self.role,
-            "tenant": "*",
-            "user": "*",
         }
 
 
@@ -131,14 +163,8 @@ class _UsersPermission(_Permission):
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            "action": self.action,
-            "backup": {
-                "collection": "*",
-            },
+            **_permission_all(self.action),
             "user": self.user,
-            "role": "*",
-            "tenant": "*",
-            "collection": "*",
         }
 
 
@@ -148,11 +174,7 @@ class _BackupsPermission(_Permission):
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            "action": self.action,
-            "role": "*",
-            "tenant": "*",
-            "user": "*",
-            "collection": "*",
+            **_permission_all(self.action),
             "backup": {
                 "collection": self.collection,
             },
@@ -163,16 +185,7 @@ class _ClusterPermission(_Permission):
     action: ClusterAction
 
     def _to_weaviate(self) -> WeaviatePermission:
-        return {
-            "action": self.action,
-            "backup": {
-                "collection": "*",
-            },
-            "role": "*",
-            "tenant": "*",
-            "user": "*",
-            "collection": "*",
-        }
+        return _permission_all(self.action)
 
 
 class _DataPermission(_Permission):
@@ -182,14 +195,9 @@ class _DataPermission(_Permission):
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            "action": self.action,
-            "backup": {
-                "collection": "*",
-            },
+            **_permission_all(self.action),
             "collection": self.collection,
-            "role": "*",
             "tenant": self.tenant,
-            "user": "*",
         }
 
 
@@ -225,6 +233,13 @@ class BackupsPermission:
 
 
 @dataclass
+class NodesPermission:
+    collection: Optional[str]
+    verbosity: Verbosity
+    action: NodesAction
+
+
+@dataclass
 class Role:
     name: str
     cluster_actions: Optional[List[ClusterAction]]
@@ -233,6 +248,7 @@ class Role:
     roles_permissions: Optional[List[RolesPermission]]
     users_permissions: Optional[List[UsersPermission]]
     backups_permissions: Optional[List[BackupsPermission]]
+    nodes_permissions: Optional[List[NodesPermission]]
 
     @classmethod
     def _from_weaviate_role(cls, role: WeaviateRole) -> "Role":
@@ -242,6 +258,7 @@ class Role:
         roles_permissions: List[RolesPermission] = []
         data_permissions: List[DataPermission] = []
         backups_permissions: List[BackupsPermission] = []
+        nodes_permissions: List[NodesPermission] = []
 
         for permission in role["permissions"]:
             if permission["action"] in ClusterAction.values():
@@ -280,6 +297,14 @@ class Role:
                         action=BackupsAction(permission["action"]),
                     )
                 )
+            elif permission["action"] in NodesAction.values():
+                nodes_permissions.append(
+                    NodesPermission(
+                        collection=permission["nodes"].get("collection"),
+                        verbosity=permission["nodes"]["verbosity"],
+                        action=NodesAction(permission["action"]),
+                    )
+                )
             else:
                 raise ValueError(
                     f"The actions of role {role['name']} are mixed between levels somehow!"
@@ -292,6 +317,7 @@ class Role:
             roles_permissions=rp if len(rp := roles_permissions) > 0 else None,
             data_permissions=dp if len(dp := data_permissions) > 0 else None,
             backups_permissions=bp if len(bp := backups_permissions) > 0 else None,
+            nodes_permissions=np if len(np := nodes_permissions) > 0 else None,
         )
 
 
@@ -364,8 +390,18 @@ class _UsersFactory:
 
 class _ClusterFactory:
     @staticmethod
-    def manage() -> _ClusterPermission:
-        return _ClusterPermission(action=ClusterAction.MANAGE)
+    def read() -> _ClusterPermission:
+        return _ClusterPermission(action=ClusterAction.READ)
+
+
+class _NodesFactory:
+    @staticmethod
+    def read(
+        *, collection: Optional[str] = None, verbosity: Verbosity = "minimal"
+    ) -> _NodesPermission:
+        return _NodesPermission(
+            collection=collection or "*", action=NodesAction.READ, verbosity=verbosity
+        )
 
 
 class _BackupsFactory:
@@ -379,6 +415,7 @@ class ActionsFactory:
     cluster = ClusterAction
     config = ConfigAction
     data = DataAction
+    nodes = NodesAction
     roles = RolesAction
     users = UsersAction
 
@@ -388,6 +425,7 @@ class PermissionsFactory:
     cluster = _ClusterFactory
     config = _ConfigFactory
     data = _DataFactory
+    nodes = _NodesFactory
     roles = _RolesFactory
     users = _UsersFactory
 
