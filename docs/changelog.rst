@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.9.5
+--------------
+This patch version includes:
+    - Add support for the new ``text2vec-weaviate`` module
+    - Wrap ``tenant.get`` ``AioRpcError`` in a specifc exception
+
 Version 4.9.4
 --------------
 This patch version includes:
