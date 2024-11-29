@@ -10,6 +10,13 @@ from weaviate.rbac.models import (
     User,
     WeaviatePermission,
     WeaviateRole,
+    ClusterAction,
+    UsersAction,
+    ConfigAction,
+    RolesAction,
+    DataAction,
+    BackupsAction,
+    NodesAction,
 )
 
 
@@ -256,3 +263,66 @@ class _RolesAsync(_RolesBase):
         await self._remove_permissions(
             [permission._to_weaviate() for permission in permissions], role
         )
+
+    async def has_permissions(self, *, permissions: Permissions, role: str) -> bool:
+        """Check if a role has specific permissions.
+
+        Args:
+            permissions: The permissions to check for.
+            role: The role to check the permissions of.
+
+        Returns:
+            True if the role has all the specified permissions, False otherwise.
+        """
+        if isinstance(permissions, _Permission):
+            permissions = [permissions]
+
+        role_obj = await self._get_role(role)
+        if role_obj is None:
+            return False
+
+        def normalize_permission(perm: WeaviatePermission) -> dict:
+            """Extract only the relevant fields for comparison based on action type."""
+            action = perm["action"]
+
+            if action in ClusterAction.values():
+                return {"action": action}
+            elif action in UsersAction.values():
+                return {"action": action, "user": perm["user"]}
+            elif action in ConfigAction.values():
+                return {
+                    "action": action,
+                    "collection": perm["collection"],
+                    "tenant": perm.get("tenant", "*"),
+                }
+            elif action in RolesAction.values():
+                return {"action": action, "role": perm["role"]}
+            elif action in DataAction.values():
+                return {"action": action, "collection": perm["collection"]}
+            elif action in BackupsAction.values():
+                return {"action": action, "backup": {"collection": perm["backup"]["collection"]}}
+            elif action in NodesAction.values():
+                return {
+                    "action": action,
+                    "nodes": {
+                        "collection": perm["nodes"].get("collection", "*"),
+                        "verbosity": perm["nodes"]["verbosity"],
+                    },
+                }
+            # Default case: return a dict with all fields from the permission
+            return dict(perm)
+
+        # Convert input permissions to normalized format
+        check_perms = {
+            json.dumps(normalize_permission(perm._to_weaviate()), sort_keys=True)
+            for perm in permissions
+        }
+
+        # Convert role permissions to normalized format
+        role_perms = {
+            json.dumps(normalize_permission(perm), sort_keys=True)
+            for perm in role_obj["permissions"]
+        }
+
+        # Check if all normalized input permissions exist in normalized role permissions
+        return check_perms.issubset(role_perms)

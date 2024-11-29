@@ -1,5 +1,6 @@
+from typing import Generator, List, Callable
 import pytest
-
+import weaviate
 from integration.conftest import ClientFactory
 from weaviate.auth import Auth
 from weaviate.rbac.models import (
@@ -241,3 +242,182 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
             assert role is None
         finally:
             client.roles.delete(role_name)
+
+
+@pytest.fixture
+def test_has_permissions_setup(client_factory: ClientFactory) -> Generator[Callable, None, None]:
+    created_roles = set()
+
+    def _setup(role_name: str, permissions: List[RBAC.permissions]) -> weaviate.WeaviateClient:
+        client = client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS).__enter__()
+        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
+            pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        client.roles.create(name=role_name, permissions=permissions)
+        created_roles.add(role_name)
+        return client
+
+    yield _setup
+
+    # Cleanup after all tests
+    client = client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS)
+    try:
+        for role_name in created_roles:
+            try:
+                client.roles.delete(role_name)
+            except Exception as e:
+                print(f"Warning: Failed to cleanup role {role_name}: {str(e)}")
+    finally:
+        client.close()
+
+
+@pytest.mark.parametrize(
+    "role_name,permissions,expected",
+    [
+        # Data permissions test
+        (
+            "data_role",
+            [
+                RBAC.permissions.data.read(collection="TestCollection"),
+                RBAC.permissions.data.update(collection="TestCollection"),
+            ],
+            [
+                (RBAC.permissions.data.read(collection="TestCollection"), True),
+                (RBAC.permissions.data.update(collection="TestCollection"), True),
+                (RBAC.permissions.data.delete(collection="TestCollection"), False),
+                (RBAC.permissions.data.read(collection="OtherCollection"), False),
+            ],
+        ),
+        # Config permissions test
+        (
+            "config_role",
+            [
+                RBAC.permissions.config.update(collection="TestCollection"),
+            ],
+            [
+                (RBAC.permissions.config.update(collection="TestCollection"), True),
+                (RBAC.permissions.config.update(collection="OtherCollection"), False),
+            ],
+        ),
+        # Cluster permissions test
+        (
+            "cluster_role",
+            [
+                RBAC.permissions.cluster.read(),
+            ],
+            [
+                (RBAC.permissions.cluster.read(), True),
+                (RBAC.permissions.config.update(collection="OtherCollection"), False),
+            ],
+        ),
+        # Nodes permissions test
+        (
+            "nodes_role",
+            [
+                RBAC.permissions.nodes.read(collection="TestCollection", verbosity="verbose"),
+            ],
+            [
+                (
+                    RBAC.permissions.nodes.read(collection="TestCollection", verbosity="verbose"),
+                    True,
+                ),
+                (
+                    RBAC.permissions.nodes.read(collection="OtherCollection", verbosity="minimal"),
+                    False,
+                ),
+                (
+                    RBAC.permissions.nodes.read(collection="TestCollection", verbosity="minimal"),
+                    False,
+                ),
+            ],
+        ),
+        # Users permissions test with wildcard
+        (
+            "users_role",
+            [
+                RBAC.permissions.users.manage(user="*"),
+            ],
+            [
+                (RBAC.permissions.users.manage(user="*"), True),
+                (RBAC.permissions.users.manage(user="specific_user"), False),
+            ],
+        ),
+        # Roles permissions test
+        (
+            "roles_role",
+            [
+                RBAC.permissions.roles.manage(role="newrole"),
+            ],
+            [
+                (RBAC.permissions.roles.manage(role="newrole"), True),
+                (RBAC.permissions.roles.manage(role="otherrole"), False),
+            ],
+        ),
+        # Backups permissions test
+        (
+            "backups_role",
+            [
+                RBAC.permissions.backups.manage(collection="testcollection"),
+            ],
+            [
+                (RBAC.permissions.backups.manage(collection="testcollection"), True),
+                (RBAC.permissions.backups.manage(collection="othercollection"), False),
+            ],
+        ),
+        # Multiple permission types test
+        (
+            "mixed_role",
+            [
+                RBAC.permissions.data.read(collection="TestCollection"),
+                RBAC.permissions.config.update(collection="TestCollection"),
+                RBAC.permissions.cluster.read(),
+                RBAC.permissions.nodes.read(collection="TestCollection", verbosity="verbose"),
+            ],
+            [
+                (RBAC.permissions.data.read(collection="TestCollection"), True),
+                (RBAC.permissions.config.update(collection="TestCollection"), True),
+                (RBAC.permissions.cluster.read(), True),
+                (
+                    RBAC.permissions.nodes.read(collection="TestCollection", verbosity="verbose"),
+                    True,
+                ),
+                (RBAC.permissions.nodes.read(verbosity="verbose"), False),
+                (RBAC.permissions.data.update(collection="TestCollection"), False),
+                (
+                    [
+                        RBAC.permissions.data.read(collection="TestCollection"),
+                        RBAC.permissions.config.update(collection="TestCollection"),
+                        RBAC.permissions.cluster.read(),
+                    ],
+                    True,
+                ),
+                (
+                    [
+                        RBAC.permissions.data.read(collection="TestCollection"),
+                        RBAC.permissions.data.delete(collection="TestCollection"),
+                    ],
+                    False,
+                ),
+            ],
+        ),
+    ],
+)
+def test_has_permissions(
+    test_has_permissions_setup: weaviate.WeaviateClient, role_name, permissions, expected
+):
+    """Test has_permissions with different permission combinations.
+
+    Args:
+        client: The Weaviate client
+        role_name: Name of the role to create
+        permissions: List of permissions to assign to the role
+        expected: List of (permission, expected_result) tuples to test
+    """
+    # Create role with permissions
+    client = test_has_permissions_setup(role_name, permissions)
+    # Test each permission combination
+    for permission, expected_result in expected:
+        result = client.roles.has_permissions(
+            permissions=permission,
+            role=role_name,
+        )
+        assert result == expected_result, f"Permission check failed for {permission}"
