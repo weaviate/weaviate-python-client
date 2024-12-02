@@ -8,8 +8,15 @@ from pydantic import BaseModel
 from weaviate.cluster.types import Verbosity
 
 
-class PermissionBackup(TypedDict):
+class PermissionData(TypedDict):
     collection: str
+    object: str  # noqa: A003
+    tenant: str
+
+
+class PermissionCollections(TypedDict):
+    collection: str
+    tenant: str
 
 
 class PermissionNodes(TypedDict):
@@ -17,27 +24,27 @@ class PermissionNodes(TypedDict):
     verbosity: Verbosity
 
 
-class WeaviatePermission(TypedDict):
-    action: str
-    backup: PermissionBackup
+class PermissionBackup(TypedDict):
     collection: str
-    # object: Optional[str] not used yet, needs to be named different because of shadowing `object`
-    nodes: PermissionNodes
+
+
+class PermissionRoles(TypedDict):
     role: str
-    user: str
-    tenant: str
 
 
-def _permission_all(action: str) -> WeaviatePermission:
-    return {
-        "action": action,
-        "backup": {"collection": "*"},
-        "collection": "*",
-        "nodes": {"collection": "*", "verbosity": "minimal"},
-        "role": "*",
-        "user": "*",
-        "tenant": "*",
-    }
+# action is always present in WeaviatePermission
+class WeaviatePermissionRequired(TypedDict):
+    action: str
+
+
+class WeaviatePermission(
+    WeaviatePermissionRequired, total=False
+):  # Add total=False to make all fields optional
+    data: Optional[PermissionData]
+    collections: Optional[PermissionCollections]
+    nodes: Optional[PermissionNodes]
+    backups: Optional[PermissionBackup]
+    roles: Optional[PermissionRoles]
 
 
 class WeaviateRole(TypedDict):
@@ -49,15 +56,16 @@ class _Action:
     pass
 
 
-class ConfigAction(str, _Action, Enum):
-    CREATE = "create_schema"
-    READ = "read_schema"
-    UPDATE = "update_schema"
-    DELETE = "delete_schema"
+class CollectionsAction(str, _Action, Enum):
+    CREATE = "create_collections"
+    READ = "read_collections"
+    UPDATE = "update_collections"
+    DELETE = "delete_collections"
+    MANAGE = "manage_collections"
 
     @staticmethod
     def values() -> List[str]:
-        return [action.value for action in ConfigAction]
+        return [action.value for action in CollectionsAction]
 
 
 class DataAction(str, _Action, Enum):
@@ -65,6 +73,7 @@ class DataAction(str, _Action, Enum):
     READ = "read_data"
     UPDATE = "update_data"
     DELETE = "delete_data"
+    MANAGE = "manage_data"
 
     @staticmethod
     def values() -> List[str]:
@@ -118,16 +127,18 @@ class _Permission(BaseModel):
         raise NotImplementedError()
 
 
-class _ConfigPermission(_Permission):
+class _CollectionsPermission(_Permission):
     collection: str
     tenant: str
-    action: ConfigAction
+    action: CollectionsAction
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            **_permission_all(self.action),
-            "collection": self.collection,
-            "tenant": self.tenant,
+            "action": self.action,
+            "collections": {
+                "collection": self.collection,
+                "tenant": self.tenant,
+            },
         }
 
 
@@ -138,7 +149,7 @@ class _NodesPermission(_Permission):
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            **_permission_all(self.action),
+            "action": self.action,
             "nodes": {
                 "collection": self.collection,
                 "verbosity": self.verbosity,
@@ -152,20 +163,18 @@ class _RolesPermission(_Permission):
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            **_permission_all(self.action),
-            "role": self.role,
+            "action": self.action,
+            "roles": {
+                "role": self.role,
+            },
         }
 
 
 class _UsersPermission(_Permission):
-    user: str
     action: UsersAction
 
     def _to_weaviate(self) -> WeaviatePermission:
-        return {
-            **_permission_all(self.action),
-            "user": self.user,
-        }
+        return {"action": self.action}
 
 
 class _BackupsPermission(_Permission):
@@ -174,8 +183,8 @@ class _BackupsPermission(_Permission):
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            **_permission_all(self.action),
-            "backup": {
+            "action": self.action,
+            "backups": {
                 "collection": self.collection,
             },
         }
@@ -185,27 +194,32 @@ class _ClusterPermission(_Permission):
     action: ClusterAction
 
     def _to_weaviate(self) -> WeaviatePermission:
-        return _permission_all(self.action)
+        return {
+            "action": self.action,
+        }
 
 
 class _DataPermission(_Permission):
     collection: str
     tenant: str
+    object: str  # noqa: A003
     action: DataAction
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
-            **_permission_all(self.action),
-            "collection": self.collection,
-            "tenant": self.tenant,
+            "action": self.action,
+            "data": {
+                "collection": self.collection,
+                "object": self.object,
+                "tenant": self.tenant,
+            },
         }
 
 
 @dataclass
-class ConfigPermission:
+class CollectionsPermission:
     collection: str
-    action: ConfigAction
-    tenant: str
+    action: CollectionsAction
 
 
 @dataclass
@@ -222,8 +236,12 @@ class RolesPermission:
 
 @dataclass
 class UsersPermission:
-    user: str
     action: UsersAction
+
+
+@dataclass
+class ClusterPermission:
+    action: ClusterAction
 
 
 @dataclass
@@ -242,8 +260,8 @@ class NodesPermission:
 @dataclass
 class Role:
     name: str
-    cluster_actions: Optional[List[ClusterAction]]
-    config_permissions: Optional[List[ConfigPermission]]
+    cluster_permissions: Optional[List[ClusterPermission]]
+    collections_permissions: Optional[List[CollectionsPermission]]
     data_permissions: Optional[List[DataPermission]]
     roles_permissions: Optional[List[RolesPermission]]
     users_permissions: Optional[List[UsersPermission]]
@@ -252,9 +270,9 @@ class Role:
 
     @classmethod
     def _from_weaviate_role(cls, role: WeaviateRole) -> "Role":
-        cluster_actions: List[ClusterAction] = []
+        cluster_permissions: List[ClusterPermission] = []
         users_permissions: List[UsersPermission] = []
-        config_permissions: List[ConfigPermission] = []
+        collections_permissions: List[CollectionsPermission] = []
         roles_permissions: List[RolesPermission] = []
         data_permissions: List[DataPermission] = []
         backups_permissions: List[BackupsPermission] = []
@@ -262,58 +280,65 @@ class Role:
 
         for permission in role["permissions"]:
             if permission["action"] in ClusterAction.values():
-                cluster_actions.append(ClusterAction(permission["action"]))
+                cluster_permissions.append(
+                    ClusterPermission(action=ClusterAction(permission["action"]))
+                )
             elif permission["action"] in UsersAction.values():
-                users_permissions.append(
-                    UsersPermission(
-                        user=permission["user"], action=UsersAction(permission["action"])
+                users_permissions.append(UsersPermission(action=UsersAction(permission["action"])))
+            elif permission["action"] in CollectionsAction.values():
+                collections = permission.get("collections")
+                if collections is not None:
+                    collections_permissions.append(
+                        CollectionsPermission(
+                            collection=collections["collection"],
+                            action=CollectionsAction(permission["action"]),
+                        )
                     )
-                )
-            elif permission["action"] in ConfigAction.values():
-                config_permissions.append(
-                    ConfigPermission(
-                        collection=permission["collection"],
-                        tenant=permission.get("tenant", "*"),
-                        action=ConfigAction(permission["action"]),
-                    )
-                )
             elif permission["action"] in RolesAction.values():
-                roles_permissions.append(
-                    RolesPermission(
-                        role=permission["role"], action=RolesAction(permission["action"])
+                roles = permission.get("roles")
+                if roles is not None:
+                    roles_permissions.append(
+                        RolesPermission(
+                            role=roles["role"], action=RolesAction(permission["action"])
+                        )
                     )
-                )
             elif permission["action"] in DataAction.values():
-                data_permissions.append(
-                    DataPermission(
-                        collection=permission["collection"],
-                        action=DataAction(permission["action"]),
+                data = permission.get("data")
+                if data is not None:
+                    data_permissions.append(
+                        DataPermission(
+                            collection=data["collection"],
+                            action=DataAction(permission["action"]),
+                        )
                     )
-                )
             elif permission["action"] in BackupsAction.values():
-                backups_permissions.append(
-                    BackupsPermission(
-                        collection=permission["backup"]["collection"],
-                        action=BackupsAction(permission["action"]),
+                backups = permission.get("backups")
+                if backups is not None:
+                    backups_permissions.append(
+                        BackupsPermission(
+                            collection=backups["collection"],
+                            action=BackupsAction(permission["action"]),
+                        )
                     )
-                )
             elif permission["action"] in NodesAction.values():
-                nodes_permissions.append(
-                    NodesPermission(
-                        collection=permission["nodes"].get("collection"),
-                        verbosity=permission["nodes"]["verbosity"],
-                        action=NodesAction(permission["action"]),
+                nodes = permission.get("nodes")
+                if nodes is not None:
+                    nodes_permissions.append(
+                        NodesPermission(
+                            collection=nodes.get("collection"),
+                            verbosity=nodes["verbosity"],
+                            action=NodesAction(permission["action"]),
+                        )
                     )
-                )
             else:
                 raise ValueError(
                     f"The actions of role {role['name']} are mixed between levels somehow!"
                 )
         return cls(
             name=role["name"],
-            cluster_actions=ca if len(ca := cluster_actions) > 0 else None,
+            cluster_permissions=ca if len(ca := cluster_permissions) > 0 else None,
             users_permissions=up if len(up := users_permissions) > 0 else None,
-            config_permissions=cp if len(cp := config_permissions) > 0 else None,
+            collections_permissions=cp if len(cp := collections_permissions) > 0 else None,
             roles_permissions=rp if len(rp := roles_permissions) > 0 else None,
             data_permissions=dp if len(dp := data_permissions) > 0 else None,
             backups_permissions=bp if len(bp := backups_permissions) > 0 else None,
@@ -333,42 +358,64 @@ Permissions = Union[_Permission, Sequence[_Permission]]
 class _DataFactory:
     @staticmethod
     def create(*, collection: str) -> _DataPermission:
-        return _DataPermission(collection=collection, action=DataAction.CREATE, tenant="*")
+        return _DataPermission(
+            collection=collection, tenant="*", object="*", action=DataAction.CREATE
+        )
 
     @staticmethod
     def read(*, collection: str) -> _DataPermission:
-        return _DataPermission(collection=collection, action=DataAction.READ, tenant="*")
+        return _DataPermission(
+            collection=collection, tenant="*", object="*", action=DataAction.READ
+        )
 
     @staticmethod
     def update(*, collection: str) -> _DataPermission:
-        return _DataPermission(collection=collection, action=DataAction.UPDATE, tenant="*")
+        return _DataPermission(
+            collection=collection, tenant="*", object="*", action=DataAction.UPDATE
+        )
 
     @staticmethod
     def delete(*, collection: str) -> _DataPermission:
-        return _DataPermission(collection=collection, action=DataAction.DELETE, tenant="*")
-
-
-class _ConfigFactory:
-    @staticmethod
-    def create(*, collection: Optional[str] = None) -> _ConfigPermission:
-        return _ConfigPermission(
-            collection=collection or "*", tenant="*", action=ConfigAction.CREATE
+        return _DataPermission(
+            collection=collection, tenant="*", object="*", action=DataAction.DELETE
         )
 
     @staticmethod
-    def read(*, collection: Optional[str] = None) -> _ConfigPermission:
-        return _ConfigPermission(collection=collection or "*", tenant="*", action=ConfigAction.READ)
+    def manage(*, collection: str) -> _DataPermission:
+        return _DataPermission(
+            collection=collection, tenant="*", object="*", action=DataAction.MANAGE
+        )
 
+
+class _CollectionsFactory:
     @staticmethod
-    def update(*, collection: Optional[str] = None) -> _ConfigPermission:
-        return _ConfigPermission(
-            collection=collection or "*", tenant="*", action=ConfigAction.UPDATE
+    def create(*, collection: Optional[str] = None) -> _CollectionsPermission:
+        return _CollectionsPermission(
+            collection=collection or "*", tenant="*", action=CollectionsAction.CREATE
         )
 
     @staticmethod
-    def delete(*, collection: Optional[str] = None) -> _ConfigPermission:
-        return _ConfigPermission(
-            collection=collection or "*", tenant="*", action=ConfigAction.DELETE
+    def read(*, collection: Optional[str] = None) -> _CollectionsPermission:
+        return _CollectionsPermission(
+            collection=collection or "*", tenant="*", action=CollectionsAction.READ
+        )
+
+    @staticmethod
+    def update(*, collection: Optional[str] = None) -> _CollectionsPermission:
+        return _CollectionsPermission(
+            collection=collection or "*", tenant="*", action=CollectionsAction.UPDATE
+        )
+
+    @staticmethod
+    def delete(*, collection: Optional[str] = None) -> _CollectionsPermission:
+        return _CollectionsPermission(
+            collection=collection or "*", tenant="*", action=CollectionsAction.DELETE
+        )
+
+    @staticmethod
+    def manage(*, collection: Optional[str] = None) -> _CollectionsPermission:
+        return _CollectionsPermission(
+            collection=collection or "*", tenant="*", action=CollectionsAction.MANAGE
         )
 
 
@@ -384,8 +431,8 @@ class _RolesFactory:
 
 class _UsersFactory:
     @staticmethod
-    def manage(*, user: Optional[str] = None) -> _UsersPermission:
-        return _UsersPermission(user=user or "*", action=UsersAction.MANAGE)
+    def manage() -> _UsersPermission:
+        return _UsersPermission(action=UsersAction.MANAGE)
 
 
 class _ClusterFactory:
@@ -413,7 +460,7 @@ class _BackupsFactory:
 class ActionsFactory:
     backups = BackupsAction
     cluster = ClusterAction
-    config = ConfigAction
+    collections = CollectionsAction
     data = DataAction
     nodes = NodesAction
     roles = RolesAction
@@ -423,7 +470,7 @@ class ActionsFactory:
 class PermissionsFactory:
     backups = _BackupsFactory
     cluster = _ClusterFactory
-    config = _ConfigFactory
+    collections = _CollectionsFactory
     data = _DataFactory
     nodes = _NodesFactory
     roles = _RolesFactory
