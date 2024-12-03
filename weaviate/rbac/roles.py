@@ -1,11 +1,11 @@
 import json
 from typing import Dict, List, Optional, Union, cast
 
-from weaviate.classes.rbac import PermissionsType
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
     _Permission,
+    PermissionsType,
     Role,
     User,
     WeaviatePermission,
@@ -263,9 +263,9 @@ class _RolesAsync(_RolesBase):
 def _flatten_permissions(permissions: PermissionsType) -> List[_Permission]:
     if isinstance(permissions, _Permission):
         return [permissions]
-    flattened_permissions = []
+    flattened_permissions: List[_Permission] = []
     for permission in permissions:
-        if not isinstance(permission, list):
+        if isinstance(permission, _Permission):
             flattened_permissions.append(permission)
         else:
             flattened_permissions.extend(permission)
