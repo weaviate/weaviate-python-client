@@ -25,3 +25,4 @@ scratch/
 
 *-test.sh
 *.hdf5
+*.jsonl
