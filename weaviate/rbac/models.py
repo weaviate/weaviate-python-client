@@ -464,7 +464,7 @@ class Permissions:
     @staticmethod
     def data(
         *,
-        collection: str,
+        collection: Union[str, Sequence[str]],
         create: bool = False,
         read: bool = False,
         update: bool = False,
@@ -472,22 +472,25 @@ class Permissions:
         manage: bool = False,
     ) -> List[_DataPermission]:
         permissions = []
-        if create:
-            permissions.append(_DataFactory.create(collection=collection))
-        if read:
-            permissions.append(_DataFactory.read(collection=collection))
-        if update:
-            permissions.append(_DataFactory.update(collection=collection))
-        if delete:
-            permissions.append(_DataFactory.delete(collection=collection))
-        if manage:
-            permissions.append(_DataFactory.manage(collection=collection))
+        if isinstance(collection, str):
+            collection = [collection]
+        for c in collection:
+            if create:
+                permissions.append(_DataFactory.create(collection=c))
+            if read:
+                permissions.append(_DataFactory.read(collection=c))
+            if update:
+                permissions.append(_DataFactory.update(collection=c))
+            if delete:
+                permissions.append(_DataFactory.delete(collection=c))
+            if manage:
+                permissions.append(_DataFactory.manage(collection=c))
         return permissions
 
     @staticmethod
     def collection_config(
         *,
-        collection: str,
+        collection: Union[str, Sequence[str]],
         create_collection: bool = False,
         read_config: bool = False,
         update_config: bool = False,
@@ -495,32 +498,45 @@ class Permissions:
         manage_collection: bool = False,
     ) -> List[_CollectionsPermission]:
         permissions = []
-        if create_collection:
-            permissions.append(_CollectionsFactory.create(collection=collection))
-        if read_config:
-            permissions.append(_CollectionsFactory.read(collection=collection))
-        if update_config:
-            permissions.append(_CollectionsFactory.update(collection=collection))
-        if delete_collection:
-            permissions.append(_CollectionsFactory.delete(collection=collection))
-        if manage_collection:
-            permissions.append(_CollectionsFactory.manage(collection=collection))
+        if isinstance(collection, str):
+            collection = [collection]
+        for c in collection:
+            if create_collection:
+                permissions.append(_CollectionsFactory.create(collection=c))
+            if read_config:
+                permissions.append(_CollectionsFactory.read(collection=c))
+            if update_config:
+                permissions.append(_CollectionsFactory.update(collection=c))
+            if delete_collection:
+                permissions.append(_CollectionsFactory.delete(collection=c))
+            if manage_collection:
+                permissions.append(_CollectionsFactory.manage(collection=c))
         return permissions
 
     @staticmethod
-    def roles(*, role: str, read: bool = False, manage: bool = False) -> List[_RolesPermission]:
+    def roles(
+        *, role: Union[str, Sequence[str]], read: bool = False, manage: bool = False
+    ) -> List[_RolesPermission]:
         permissions = []
-        if read:
-            permissions.append(_RolesFactory.read(role=role))
-        if manage:
-            permissions.append(_RolesFactory.manage(role=role))
+        if isinstance(role, str):
+            role = [role]
+        for r in role:
+            if read:
+                permissions.append(_RolesFactory.read(role=r))
+            if manage:
+                permissions.append(_RolesFactory.manage(role=r))
         return permissions
 
     @staticmethod
-    def backup(*, collection: str, manage: bool = False) -> List[_BackupsPermission]:
+    def backup(
+        *, collection: Union[str, Sequence[str]], manage: bool = False
+    ) -> List[_BackupsPermission]:
         permissions = []
-        if manage:
-            permissions.append(_BackupsFactory.manage(collection=collection))
+        if isinstance(collection, str):
+            collection = [collection]
+        for c in collection:
+            if manage:
+                permissions.append(_BackupsFactory.manage(collection=c))
         return permissions
 
     @staticmethod
