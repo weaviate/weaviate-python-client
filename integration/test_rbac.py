@@ -2,9 +2,9 @@ import pytest
 
 from integration.conftest import ClientFactory
 from weaviate.auth import Auth
-from weaviate.classes.rbac import Permissions
 from weaviate.rbac.models import (
     Role,
+    Permissions,
     ClusterPermission,
     CollectionsPermission,
     DataPermission,
@@ -16,7 +16,7 @@ from weaviate.rbac.models import (
     CollectionsAction,
     DataAction,
     NodesAction,
-    RolesAction
+    RolesAction,
 )
 
 RBAC_PORTS = (8092, 50063)
@@ -93,9 +93,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 data_permissions=None,
                 backups_permissions=None,
                 nodes_permissions=[
-                    NodesPermission(
-                        verbosity="minimal", action=NodesAction.READ, collection="test"
-                    )
+                    NodesPermission(verbosity="minimal", action=NodesAction.READ, collection="test")
                 ],
             ),
         ),
@@ -110,9 +108,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 data_permissions=None,
                 backups_permissions=None,
                 nodes_permissions=[
-                    NodesPermission(
-                        verbosity="verbose", action=NodesAction.READ, collection="Test"
-                    )
+                    NodesPermission(verbosity="verbose", action=NodesAction.READ, collection="Test")
                 ],
             ),
         ),
@@ -152,9 +148,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 users_permissions=None,
                 collections_permissions=None,
                 roles_permissions=None,
-                data_permissions=[
-                    DataPermission(collection="Test", action=DataAction.MANAGE)
-                ],
+                data_permissions=[DataPermission(collection="Test", action=DataAction.MANAGE)],
                 backups_permissions=None,
                 nodes_permissions=None,
             ),
@@ -238,7 +232,9 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
         try:
             client.roles.create(
                 name=role_name,
-                permissions=Permissions.collection_config(collection="*", create_collection=True, delete_collection=True),
+                permissions=Permissions.collection_config(
+                    collection="*", create_collection=True, delete_collection=True
+                ),
             )
 
             role = client.roles.by_name(role_name)

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Sequence, TypedDict, Union, cast
+from typing import List, Optional, Sequence, TypedDict, Union
 
 from pydantic import BaseModel
 
@@ -10,7 +10,7 @@ from weaviate.cluster.types import Verbosity
 
 class PermissionData(TypedDict):
     collection: str
-    object_: str
+    object: str  # noqa: A003
     tenant: str
 
 
@@ -208,14 +208,11 @@ class _DataPermission(_Permission):
     def _to_weaviate(self) -> WeaviatePermission:
         return {
             "action": self.action,
-            "data": cast(
-                PermissionData,
-                {
-                    "collection": self.collection,
-                    "object": self.object_,
-                    "tenant": self.tenant,
-                },
-            ),
+            "data": {
+                "collection": self.collection,
+                "object": self.object_,
+                "tenant": self.tenant,
+            },
         }
 
 
