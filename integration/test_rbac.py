@@ -93,12 +93,12 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 data_permissions=None,
                 backups_permissions=None,
                 nodes_permissions=[
-                    NodesPermission(verbosity="minimal", action=NodesAction.READ, collection="test")
+                    NodesPermission(verbosity="minimal", action=NodesAction.READ, collection=None)
                 ],
             ),
         ),
         (
-            Permissions.nodes(verbosity="verbose", collection="Test"),
+            Permissions.nodes(verbosity="verbose", collection="Test", read=True),
             Role(
                 name="VerboseNodes",
                 cluster_permissions=None,
