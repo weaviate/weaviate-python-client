@@ -1,11 +1,20 @@
 Changelog
 =========
 
+Version 4.9.6
+--------------
+
+This release is the last release that supports weaviate v1.23 and v1.24
+
+This patch version includes:
+    - Add support for the new ``Kagame_JA`` tokenizer
+
+
 Version 4.9.5
 --------------
 This patch version includes:
     - Add support for the new ``text2vec-weaviate`` module
-    - Wrap ``tenant.get`` ``AioRpcError`` in a specifc exception
+    - Wrap ``tenant.get`` ``AioRpcError`` in a specific exception
 
 Version 4.9.4
 --------------
