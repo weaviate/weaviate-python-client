@@ -33,7 +33,7 @@ polars>=0.20.26,<1.10.0
 
 fastapi>=0.111.0,<1.0.0
 flask[async]>=2.0.0,<3.0.0
-litestar>=2.13.0,<3.0.0
+# litestar>=2.13.0,<3.0.0 does not support python 3.13 yet - reenable when it does
 
 mypy==1.13.0
 mypy-extensions==1.0.0
