@@ -5,7 +5,6 @@ Helper functions!
 import base64
 import datetime
 import io
-import json
 import os
 import re
 import uuid as uuid_lib
@@ -182,102 +181,6 @@ def file_decoder_b64(encoded_file: str) -> bytes:
     """
 
     return base64.b64decode(encoded_file.encode("utf-8"))
-
-
-def generate_local_beacon(
-    to_uuid: Union[str, uuid_lib.UUID],
-    class_name: Optional[str] = None,
-) -> dict:
-    """
-    Generates a beacon with the given uuid and class name (only for Weaviate >= 1.14.0).
-
-    Parameters
-    ----------
-    to_uuid : str or uuid.UUID
-        The UUID for which to create a local beacon.
-    class_name : Optional[str], optional
-        The class name of the `to_uuid` object. Used with Weaviate >= 1.14.0.
-        For Weaviate < 1.14.0 use None value.
-
-    Returns
-    -------
-    dict
-        The local beacon.
-
-    Raises
-    ------
-    TypeError
-        If 'to_uuid' is not of type str.
-    ValueError
-        If the 'to_uuid' is not valid.
-    """
-
-    if isinstance(to_uuid, str):
-        try:
-            uuid = str(uuid_lib.UUID(to_uuid))
-        except ValueError:
-            raise ValueError("Uuid does not have the proper form") from None
-    elif isinstance(to_uuid, uuid_lib.UUID):
-        uuid = str(to_uuid)
-    else:
-        raise TypeError("Expected to_object_uuid of type str or uuid.UUID")
-
-    if class_name is None:
-        return {"beacon": f"weaviate://localhost/{uuid}"}  # noqa: E231
-    return {
-        "beacon": f"weaviate://localhost/{_capitalize_first_letter(class_name)}/{uuid}"  # noqa: E231
-    }
-
-
-def _get_dict_from_object(object_: Union[str, dict]) -> dict:
-    """
-    Takes an object that should describe a dict
-    e.g. a schema or an object and tries to retrieve the dict.
-
-    Parameters
-    ----------
-    object_ : str or dict
-        The object from which to retrieve the dict.
-        Can be a python dict, or the path to a json file or a url of a json file.
-
-    Returns
-    -------
-    dict
-        The object as a dict.
-
-    Raises
-    ------
-    TypeError
-        If 'object_' is neither a string nor a dict.
-    ValueError
-        If no dict can be retrieved from object.
-    """
-
-    # check if objects files is url
-    if object_ is None:
-        raise TypeError("argument is None")
-
-    if isinstance(object_, dict):
-        # Object is already a dict
-        return object_
-    if isinstance(object_, str):
-        if validators.url(object_):
-            # Object is URL
-            response = requests.get(object_)
-            if response.status_code == 200:
-                return cast(dict, response.json())
-            raise ValueError("Could not download file " + object_)
-
-        if not os.path.isfile(object_):
-            # Object is neither file nor URL
-            raise ValueError("No file found at location " + object_)
-        # Object is file
-        with open(object_, "r") as file:
-            return cast(dict, json.load(file))
-    raise TypeError(
-        "Argument is not of the supported types. Supported types are "
-        "url or file path as string or schema as dict."
-    )
 
 
 def is_weaviate_object_url(url: str) -> bool:
