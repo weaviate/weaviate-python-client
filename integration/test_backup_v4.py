@@ -19,6 +19,8 @@ from weaviate.exceptions import (
     BackupFailedException,
 )
 
+pytestmark = pytest.mark.xdist_group(name="backup")
+
 BACKEND = BackupStorage.FILESYSTEM
 
 PARAGRAPHS_IDS = [

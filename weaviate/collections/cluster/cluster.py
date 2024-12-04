@@ -3,6 +3,7 @@ from weaviate.connect import ConnectionV4
 
 from typing import List, Literal, Optional, Union, overload
 
+from weaviate.cluster.types import Verbosity
 from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST, Stats
 from weaviate.exceptions import (
     EmptyResponseError,
@@ -45,13 +46,13 @@ class _ClusterAsync(_ClusterBase):
     async def nodes(
         self,
         collection: Optional[str] = None,
-        output: Optional[Literal["minimal", "verbose"]] = None,
+        output: Optional[Verbosity] = None,
     ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]: ...
 
     async def nodes(
         self,
         collection: Optional[str] = None,
-        output: Optional[Literal["minimal", "verbose"]] = None,
+        output: Optional[Verbosity] = None,
     ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]:
         """
         Get the status of all nodes in the cluster.

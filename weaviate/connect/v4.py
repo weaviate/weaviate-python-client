@@ -121,6 +121,7 @@ class ConnectionV4(_ConnectionBase):
         self.__loop = loop
 
         self._headers = {"content-type": "application/json"}
+        self.__add_weaviate_embedding_service_header(connection_params.http.host)
         if additional_headers is not None:
             _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
             self.__additional_headers = additional_headers
@@ -140,6 +141,12 @@ class ConnectionV4(_ConnectionBase):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
 
         self._prepare_grpc_headers()
+
+    def __add_weaviate_embedding_service_header(self, wcd_host: str) -> None:
+        if not is_weaviate_domain(wcd_host) or not isinstance(self._auth, AuthApiKey):
+            return
+        self._headers["X-Weaviate-Api-Key"] = self._auth.api_key
+        self._headers["X-Weaviate-Cluster-URL"] = "https://" + wcd_host
 
     async def connect(self, skip_init_checks: bool) -> None:
         self.__connected = True
@@ -655,7 +662,17 @@ class ConnectionV4(_ConnectionBase):
 
         if self._auth is not None:
             if isinstance(self._auth, AuthApiKey):
-                self.__metadata_list.append(("authorization", self._auth.api_key))
+                if (
+                    "X-Weaviate-Cluster-URL" in self._headers
+                    and "X-Weaviate-Api-Key" in self._headers
+                ):
+                    self.__metadata_list.append(
+                        ("x-weaviate-cluster-url", self._headers["X-Weaviate-Cluster-URL"])
+                    )
+                    self.__metadata_list.append(
+                        ("x-weaviate-api-key", self._headers["X-Weaviate-Api-Key"])
+                    )
+                self.__metadata_list.append(("authorization", "Bearer " + self._auth.api_key))
             else:
                 self.__metadata_list.append(
                     ("authorization", "dummy_will_be_refreshed_for_each_call")
@@ -667,7 +684,7 @@ class ConnectionV4(_ConnectionBase):
             self.__grpc_headers = None
 
     def grpc_headers(self) -> Optional[Tuple[Tuple[str, str], ...]]:
-        if self._auth is None or not isinstance(self._auth, AuthApiKey):
+        if self._auth is None or isinstance(self._auth, AuthApiKey):
             return self.__grpc_headers
 
         assert self.__grpc_headers is not None
@@ -675,34 +692,6 @@ class ConnectionV4(_ConnectionBase):
         # auth is last entry in list, rest is static
         self.__metadata_list[len(self.__metadata_list) - 1] = ("authorization", access_token)
         return tuple(self.__metadata_list)
-
-    # async def _ping_grpc(self) -> None:
-    #     """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
-    #     if not self.is_connected():
-    #         raise WeaviateClosedClientError()
-    #     assert self._grpc_channel is not None
-    #     try:
-    #         request = self._grpc_channel.request(
-    #             "/grpc.health.v1.Health/Check",
-    #             Cardinality.UNARY_UNARY,
-    #             health_pb2.HealthCheckRequest,
-    #             health_pb2.HealthCheckResponse,
-    #             timeout=self.timeout_config.init,
-    #         )
-    #         async with request as stream:
-    #             await stream.send_message(health_pb2.HealthCheckRequest())
-    #             res = await stream.recv_message()
-    #             await stream.end()
-    #         if res is None or res.status != health_pb2.HealthCheckResponse.SERVING:
-    #             self.__connected = False
-    #             raise WeaviateGRPCUnavailableError(
-    #                 f"v{self.server_version}", self._connection_params._grpc_address
-    #             )
-    #     except Exception as e:
-    #         self.__connected = False
-    #         raise WeaviateGRPCUnavailableError(
-    #             f"v{self.server_version}", self._connection_params._grpc_address
-    #         ) from e
 
     async def _ping_grpc(self) -> None:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""

@@ -20,7 +20,7 @@ services:
       AUTHENTICATION_APIKEY_ENABLED: "true"
       AUTHENTICATION_APIKEY_ALLOWED_KEYS: "existing-key"
       AUTHENTICATION_APIKEY_USERS: "existing-user"
-      AUTHENTICATION_APIKEY_ROLES: "admin"
+      AUTHORIZATION_ADMIN_USERS: "existing-user"
       PERSISTENCE_DATA_PATH: "./data-weaviate-0"
       CLUSTER_IN_LOCALHOST: "true"
       CLUSTER_GOSSIP_BIND_PORT: "7100"

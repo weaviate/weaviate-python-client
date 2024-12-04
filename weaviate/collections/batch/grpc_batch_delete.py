@@ -2,7 +2,6 @@ from typing import List, Optional, Union, cast
 
 from grpc.aio import AioRpcError  # type: ignore
 
-
 from weaviate.collections.classes.batch import (
     DeleteManyObject,
     DeleteManyReturn,
@@ -26,7 +25,6 @@ class _BatchDeleteGRPC(_BaseGRPC):
     async def batch_delete(
         self, name: str, filters: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
     ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
-        metadata = self._get_metadata()
         try:
             assert self._connection.grpc_stub is not None
             res = await self._connection.grpc_stub.BatchDelete(
@@ -38,7 +36,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     tenant=tenant,
                     filters=_FilterToGRPC.convert(filters),
                 ),
-                metadata=metadata,
+                metadata=self._connection.grpc_headers(),
                 timeout=self._connection.timeout_config.insert,
             )
             res = cast(batch_delete_pb2.BatchDeleteReply, res)
