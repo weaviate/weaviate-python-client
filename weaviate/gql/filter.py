@@ -10,11 +10,8 @@ from enum import Enum
 from json import dumps
 from typing import Any, Tuple, Union
 
-from requests.exceptions import ConnectionError as RequestsConnectionError
-
-from weaviate.connect import Connection
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
-from weaviate.util import get_vector, _sanitize_str, _decode_json_response_dict
+from weaviate.util import get_vector, _sanitize_str
 
 VALUE_LIST_TYPES = {
     "valueStringList",
@@ -78,18 +75,6 @@ class GraphQL(ABC):
     A base abstract class for GraphQL commands, such as Get, Aggregate.
     """
 
-    def __init__(self, connection: Connection):
-        """
-        Initialize a GraphQL abstract class instance.
-
-        Parameters
-        ----------
-        connection : weaviate.connect.Connection
-            Connection object to an active and running weaviate instance.
-        """
-
-        self._connection = connection
-
     @abstractmethod
     def build(self) -> str:
         """
@@ -101,32 +86,6 @@ class GraphQL(ABC):
         str
             The query.
         """
-
-    def do(self) -> dict:
-        """
-        Builds and runs the query.
-
-        Returns
-        -------
-        dict
-            The response of the query.
-
-        Raises
-        ------
-        requests.ConnectionError
-            If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        """
-        query = self.build()
-        try:
-            response = self._connection.post(path="/graphql", weaviate_object={"query": query})
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError("Query was not successful.") from conn_err
-
-        res = _decode_json_response_dict(response, "Query was not successful")
-        assert res is not None
-        return res
 
 
 class Filter(ABC):
