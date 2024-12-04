@@ -259,3 +259,31 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
             assert role is None
         finally:
             client.roles.delete(role_name)
+
+
+def test_multiple_permissions(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
+            pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        role_name = "MultiplePermissions"
+        try:
+            required_permissions = [
+                Permissions.data(collection="test", create=True, update=True),
+                Permissions.collections(collection="test", read_config=True),
+            ]
+
+            client.roles.create(
+                name=role_name,
+                permissions=required_permissions,
+            )
+
+            role = client.roles.by_name(role_name)
+            assert role is not None
+            assert role.collections_permissions is not None
+            assert len(role.collections_permissions) == 1
+            assert role.collections_permissions[0].action == Actions.Collections.READ
+            assert len(role.data_permissions) == 2
+            assert role.data_permissions[0].action == Actions.Data.CREATE
+            assert role.data_permissions[1].action == Actions.Data.UPDATE
+        finally:
+            client.roles.delete(role_name)
