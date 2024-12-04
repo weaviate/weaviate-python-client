@@ -12,6 +12,7 @@ from weaviate.collections.collections.sync import _Collections
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
 from .connect import ConnectionV4
+from .rbac import _Roles, _RolesAsync
 from .types import NUMBER
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
@@ -27,6 +28,7 @@ class WeaviateAsyncClient(_WeaviateClientInit):
     collections: _CollectionsAsync
     backup: _BackupAsync
     cluster: _ClusterAsync
+    roles: _RolesAsync
     async def close(self) -> None: ...
     async def connect(self) -> None: ...
     def is_connected(self) -> bool: ...
@@ -44,6 +46,7 @@ class WeaviateClient(_WeaviateClientInit):
     batch: _BatchClientWrapper
     backup: _Backup
     cluster: _Cluster
+    roles: _Roles
     def close(self) -> None: ...
     def connect(self) -> None: ...
     def is_connected(self) -> bool: ...

@@ -22,6 +22,7 @@ from .connect.base import (
     ConnectionParams,
 )
 from .embedded import EmbeddedOptions
+from .rbac import _RolesAsync, _Roles
 from .types import NUMBER
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
@@ -86,6 +87,7 @@ class WeaviateClient(_WeaviateClientBase):
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
+        self.roles = _Roles(self._connection)
 
     def __enter__(self) -> "WeaviateClient":
         self.connect()  # pyright: ignore # gets patched by syncify.convert to be sync
@@ -144,6 +146,8 @@ class WeaviateAsyncClient(_WeaviateClientBase):
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.
         """
+        self.roles = _RolesAsync(self._connection)
+        """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
 
     async def __aenter__(self) -> "WeaviateAsyncClient":
         await self.connect()

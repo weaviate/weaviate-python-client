@@ -70,6 +70,7 @@ class ClientFactory(Protocol):
         self,
         headers: Optional[Dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
+        auth_credentials: Optional[weaviate.auth.AuthCredentials] = None,
     ) -> weaviate.WeaviateClient:
         """Typing for fixture."""
         ...
@@ -82,6 +83,7 @@ def client_factory() -> Generator[ClientFactory, None, None]:
     def _factory(
         headers: Optional[Dict[str, str]] = None,
         ports: Tuple[int, int] = (8080, 50051),
+        auth_credentials: Optional[weaviate.auth.AuthCredentials] = None,
     ) -> weaviate.WeaviateClient:
         nonlocal client_fixture
         if client_fixture is None:
@@ -90,6 +92,7 @@ def client_factory() -> Generator[ClientFactory, None, None]:
                 grpc_port=ports[1],
                 port=ports[0],
                 additional_config=AdditionalConfig(timeout=(60, 120)),  # for image tests
+                auth_credentials=auth_credentials,
             )
         return client_fixture
 

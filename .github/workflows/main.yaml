@@ -14,11 +14,10 @@ on:
   pull_request:
 
 env:
-  WEAVIATE_123: 1.23.16
-  WEAVIATE_124: 1.24.26
   WEAVIATE_125: 1.25.24
   WEAVIATE_126: 1.26.8
-  WEAVIATE_127: stable-v1.27-372397e
+  WEAVIATE_127: 1.27.1
+  WEAVIATE_128: 1.28.0-dev-223bafc
 
 jobs:
   lint-and-format:
@@ -121,13 +120,14 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_126},
-          { py: "3.10", weaviate: $WEAVIATE_126},
-          { py: "3.11", weaviate: $WEAVIATE_123},
-          { py: "3.11", weaviate: $WEAVIATE_124},
+          { py: "3.9", weaviate: $WEAVIATE_128},
+          { py: "3.10", weaviate: $WEAVIATE_128},
           { py: "3.11", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_127}
+          { py: "3.11", weaviate: $WEAVIATE_127},
+          { py: "3.11", weaviate: $WEAVIATE_128},
+          { py: "3.12", weaviate: $WEAVIATE_128},
+          { py: "3.13", weaviate: $WEAVIATE_128}
         ]
         optional_dependencies: [false]
     steps:
@@ -180,10 +180,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_125},
-          { py: "3.10", weaviate: $WEAVIATE_125},
-          { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.12", weaviate: $WEAVIATE_125}
+          { py: "3.9", weaviate: $WEAVIATE_128},
+          { py: "3.10", weaviate: $WEAVIATE_128},
+          { py: "3.11", weaviate: $WEAVIATE_128},
+          { py: "3.12", weaviate: $WEAVIATE_128},
+          { py: "3.13", weaviate: $WEAVIATE_128}
         ]
         optional_dependencies: [false]
     steps:
@@ -227,10 +228,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-report-integration
-      - name: Download coverage integration v3
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report-integration-v3
       - name: Download coverage integration embedded
         uses: actions/download-artifact@v4
         with:
@@ -239,7 +236,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
-          files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-integration-embedded.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
+          files: ./coverage-integration.xml, ./coverage-integration-embedded.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -275,11 +272,10 @@ jobs:
       fail-fast: false
       matrix:
         server: [
-          $WEAVIATE_123,
-          $WEAVIATE_124,
           $WEAVIATE_125,
           $WEAVIATE_126,
-          $WEAVIATE_127
+          $WEAVIATE_127,
+          $WEAVIATE_128
         ]
     steps:
       - name: Checkout
