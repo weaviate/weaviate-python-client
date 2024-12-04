@@ -1,6 +1,50 @@
 Changelog
 =========
 
+Version 4.9.6
+--------------
+
+This release is the last release that supports weaviate v1.23 and v1.24
+
+This patch version includes:
+    - Add support for the new ``Kagame_JA`` tokenizer
+
+
+Version 4.9.5
+--------------
+This patch version includes:
+    - Add support for the new ``text2vec-weaviate`` module
+    - Wrap ``tenant.get`` ``AioRpcError`` in a specific exception
+
+Version 4.9.4
+--------------
+This patch version includes:
+    - Add support for ``multi2vec-jinaai``
+    - Add support for ``multi2vec-cohere``
+    - Add support for time-based deletion strategy
+    - Fix type restriction on include_vector in QueryReference
+
+Version 4.9.3
+--------------
+This patch version includes:
+    - Fixes interface for updating generative and reranker collection settings
+
+Version 4.9.2
+--------------
+This patch version includes:
+    - Suppress gRPC library warnings for each event loop used in each process
+
+
+Version 4.9.1
+--------------
+This patch version includes:
+    - Fix event loop being used from multiple processes
+    - Add updating generative and reranker collection settings
+    - Add experimental backoff for GRPC UNAVAILABLE error codes
+    - Automatically pick up GRPC message size from Weaviate
+    - Remove octoai vectorizer and generative methods. They are shutting down
+
+
 Version 4.9.0
 --------------
 

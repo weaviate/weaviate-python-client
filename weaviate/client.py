@@ -82,7 +82,6 @@ class WeaviateClient(_WeaviateClientBase):
         self._event_loop = _EventLoopSingleton.get_instance()
         assert self._event_loop.loop is not None
         self._loop = self._event_loop.loop
-        _EventLoop.patch_exception_handler(self._loop)
 
         super().__init__(
             connection_params=connection_params,

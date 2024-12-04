@@ -6,8 +6,8 @@ from pydantic import ValidationError
 from weaviate.collections.classes.config import (
     _CollectionConfigCreate,
     DataType,
-    _GenerativeConfigCreate,
-    _RerankerConfigCreate,
+    _GenerativeProvider,
+    _RerankerProvider,
     _VectorizerConfigCreate,
     Configure,
     Property,
@@ -75,6 +75,22 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         ),
         {
             "text2vec-cohere": {
+                "model": "embed-multilingual-v2.0",
+                "truncate": "NONE",
+                "vectorizeClassName": False,
+                "baseURL": "https://api.cohere.ai/",
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_cohere(
+            model="embed-multilingual-v2.0",
+            truncate="NONE",
+            vectorize_collection_name=False,
+            base_url="https://api.cohere.ai",
+        ),
+        {
+            "multi2vec-cohere": {
                 "model": "embed-multilingual-v2.0",
                 "truncate": "NONE",
                 "vectorizeClassName": False,
@@ -340,6 +356,34 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_jinaai(
+            model="jina-embeddings-v3",
+            vectorize_collection_name=False,
+            dimensions=512,
+        ),
+        {
+            "text2vec-jinaai": {
+                "model": "jina-embeddings-v3",
+                "vectorizeClassName": False,
+                "dimensions": 512,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.multi2vec_jinaai(
+            model="jina-clip-v2",
+            dimensions=512,
+            vectorize_collection_name=False,
+        ),
+        {
+            "multi2vec-jinaai": {
+                "model": "jina-clip-v2",
+                "dimensions": 512,
+                "vectorizeClassName": False,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_voyageai(
             vectorize_collection_name=False,
             model="voyage-large-2",
@@ -352,6 +396,22 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "model": "voyage-large-2",
                 "baseURL": "https://voyage.made-up.com",
                 "truncate": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_weaviate(
+            vectorize_collection_name=False,
+            model="Snowflake/snowflake-arctic-embed-m-v1.5",
+            base_url="https://api.embedding.weaviate.io",
+            dimensions=768,
+        ),
+        {
+            "text2vec-weaviate": {
+                "vectorizeClassName": False,
+                "model": "Snowflake/snowflake-arctic-embed-m-v1.5",
+                "baseURL": "https://api.embedding.weaviate.io",
+                "dimensions": 768,
             }
         },
     ),
@@ -893,7 +953,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
     TEST_CONFIG_WITH_GENERATIVE,
 )
 def test_config_with_generative(
-    generative_config: _GenerativeConfigCreate,
+    generative_config: _GenerativeProvider,
     expected_mc: dict,
 ) -> None:
     config = _CollectionConfigCreate(name="test", generative_config=generative_config)
@@ -931,7 +991,7 @@ TEST_CONFIG_WITH_RERANKER = [
 
 @pytest.mark.parametrize("reranker_config,expected_mc", TEST_CONFIG_WITH_RERANKER)
 def test_config_with_reranker(
-    reranker_config: _RerankerConfigCreate,
+    reranker_config: _RerankerProvider,
     expected_mc: dict,
 ) -> None:
     config = _CollectionConfigCreate(name="test", reranker_config=reranker_config)
@@ -1220,6 +1280,39 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        [Configure.NamedVectors.multi2vec_cohere(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-cohere": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.multi2vec_jinaai(
+                name="test", dimensions=256, text_fields=["prop"]
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-jinaai": {
+                        "dimensions": 256,
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [Configure.NamedVectors.text2vec_gpt4all(name="test", source_properties=["prop"])],
         {
             "test": {
@@ -1412,6 +1505,29 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "truncate": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_weaviate(
+                name="test",
+                source_properties=["prop"],
+                base_url="https://api.embedding.weaviate.io",
+                dimensions=768,
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-weaviate": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "baseURL": "https://api.embedding.weaviate.io",
+                        "dimensions": 768,
                     }
                 },
                 "vectorIndexType": "hnsw",

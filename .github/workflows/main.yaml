@@ -15,10 +15,10 @@ on:
 
 env:
   WEAVIATE_123: 1.23.16
-  WEAVIATE_124: preview-rename-object-deletion-to-deletion-strategy-727ecf7
-  WEAVIATE_125: stable-v1.25-d9f6cbb
-  WEAVIATE_126: stable-v1.26-6a411a4
-  WEAVIATE_127: preview-make-grpc-msg-size-configurable-with-2gb-default-ffdbc86
+  WEAVIATE_124: 1.24.26
+  WEAVIATE_125: 1.25.24
+  WEAVIATE_126: 1.26.8
+  WEAVIATE_127: stable-v1.27-372397e
 
 jobs:
   lint-and-format:
@@ -140,8 +140,8 @@ jobs:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
       - name: Login to Docker Hub
-        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
         uses: docker/login-action@v3
+        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -170,6 +170,8 @@ jobs:
         with:
           name: coverage-report-integration-v3
           path: coverage-integration-v3.xml
+      - name: stop weaviate
+        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   integration-tests:
     name: Run Integration Tests
@@ -197,8 +199,8 @@ jobs:
           python-version: ${{ matrix.versions.py }}
           cache: 'pip' # caching pip dependencies
       - name: Login to Docker Hub
-        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
         uses: docker/login-action@v3
+        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -227,6 +229,8 @@ jobs:
         with:
           name: coverage-report-integration
           path: coverage-integration.xml
+      - name: stop weaviate
+        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   journey-tests:
     name: Run Journey Tests
@@ -248,8 +252,8 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - name: Login to Docker Hub
-        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
         uses: docker/login-action@v3
+        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -258,9 +262,11 @@ jobs:
       - name: free space
         run: sudo rm -rf /usr/local/lib/android
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
+        run: /bin/bash ci/start_weaviate_jt.sh ${{ matrix.versions.weaviate }}
       - name: Run journey tests
-        run: pytest journey_tests
+        run: ./journey_tests/run.sh
+      - name: stop weaviate
+        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   Codecov:
     needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]
@@ -340,8 +346,8 @@ jobs:
         with:
           fetch-depth: 0
       - name: Login to Docker Hub
-        if: ${{ github.triggering_actor != 'dependabot[bot]' }}
         uses: docker/login-action@v3
+        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}

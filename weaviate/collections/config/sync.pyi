@@ -14,10 +14,10 @@ from weaviate.collections.classes.config import (
     ShardTypes,
     _NamedVectorConfigUpdate,
     _MultiTenancyConfigUpdate,
+    _GenerativeProvider,
+    _RerankerProvider,
 )
-
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
-
 from weaviate.collections.config.config import _ConfigCollectionBase
 
 class _ConfigCollection(_ConfigCollectionBase):
@@ -48,6 +48,8 @@ class _ConfigCollection(_ConfigCollectionBase):
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
+        generative_config: Optional[_GenerativeProvider] = None,
+        reranker_config: Optional[_RerankerProvider] = None,
     ) -> None: ...
     def get_shards(self) -> List[ShardStatus]: ...
     def update_shards(
