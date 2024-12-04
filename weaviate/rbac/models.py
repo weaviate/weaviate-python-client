@@ -257,6 +257,17 @@ class NodesPermission:
     action: NodesAction
 
 
+PermissionsOutputType = Union[
+    ClusterPermission,
+    CollectionsPermission,
+    DataPermission,
+    RolesPermission,
+    UsersPermission,
+    BackupsPermission,
+    NodesPermission,
+]
+
+
 @dataclass
 class Role:
     name: str
@@ -267,6 +278,18 @@ class Role:
     users_permissions: List[UsersPermission]
     backups_permissions: List[BackupsPermission]
     nodes_permissions: List[NodesPermission]
+
+    @property
+    def permissions(self) -> List[PermissionsOutputType]:
+        permissions: List[PermissionsOutputType] = []
+        permissions.extend(self.cluster_permissions)
+        permissions.extend(self.collections_permissions)
+        permissions.extend(self.data_permissions)
+        permissions.extend(self.roles_permissions)
+        permissions.extend(self.users_permissions)
+        permissions.extend(self.backups_permissions)
+        permissions.extend(self.nodes_permissions)
+        return permissions
 
     @classmethod
     def _from_weaviate_role(cls, role: WeaviateRole) -> "Role":
@@ -354,7 +377,7 @@ class User:
 ActionsType = Union[_Action, Sequence[_Action]]
 
 
-PermissionsType = Union[
+PermissionsInputType = Union[
     _Permission,
     Sequence[_Permission],
     Sequence[Sequence[_Permission]],
@@ -575,7 +598,3 @@ class Permissions:
         if read:
             permissions.append(_ClusterFactory.read())
         return permissions
-
-
-class RBAC:
-    permissions = Permissions
