@@ -1,3 +1,3 @@
-from weaviate.rbac.models import RBAC
+from weaviate.rbac.models import Permissions, Actions
 
-__all__ = ["RBAC"]
+__all__ = ["Actions", "Permissions"]
