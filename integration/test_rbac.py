@@ -261,6 +261,14 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
             client.roles.delete(role_name)
 
 
+def test_own_roles(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
+            pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        roles = client.roles.get_current_roles()
+        assert len(roles) > 0
+
+
 def test_multiple_permissions(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):

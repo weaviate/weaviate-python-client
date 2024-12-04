@@ -27,6 +27,16 @@ class _RolesBase:
         )
         return cast(List[WeaviateRole], res.json())
 
+    async def _get_current_roles(self) -> List[WeaviateRole]:
+        path = "/authz/users/own-roles"
+
+        res = await self._connection.get(
+            path,
+            error_msg="Could not get roles",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own roles"),
+        )
+        return cast(List[WeaviateRole], res.json())
+
     async def _get_role(self, name: str) -> Optional[WeaviateRole]:
         path = f"/authz/roles/{name}"
 
@@ -124,13 +134,23 @@ class _RolesAsync(_RolesBase):
     def __user_from_weaviate_user(self, user: str) -> User:
         return User(name=user)
 
-    async def list_all(self) -> List[Role]:
+    async def list_all(self) -> Dict[str, Role]:
         """Get all roles.
 
         Returns:
-            All roles.
+            A dictionary with user names as keys and the `Role` objects as values.
         """
-        return [Role._from_weaviate_role(role) for role in await self._get_roles()]
+        return {role["name"]: Role._from_weaviate_role(role) for role in await self._get_roles()}
+
+    async def get_current_roles(self) -> Dict[str, Role]:
+        """Get all roles for current user.
+
+        Returns:
+            A dictionary with user names as keys and the `Role` objects as values.
+        """
+        return {
+            role["name"]: Role._from_weaviate_role(role) for role in await self._get_current_roles()
+        }
 
     async def exists(self, role: str) -> bool:
         """Check if a role exists.
