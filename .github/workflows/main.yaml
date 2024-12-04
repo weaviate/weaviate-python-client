@@ -228,10 +228,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-report-integration
-      - name: Download coverage integration v3
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-report-integration-v3
       - name: Download coverage integration embedded
         uses: actions/download-artifact@v4
         with:
@@ -240,7 +236,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
-          files: ./coverage-integration.xml, ./coverage-integration-v3.xml, ./coverage-integration-embedded.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
+          files: ./coverage-integration.xml, ./coverage-integration-embedded.xml, ./coverage-test.xml, ./coverage-mock_tests.xml
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
