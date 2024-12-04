@@ -260,13 +260,13 @@ class NodesPermission:
 @dataclass
 class Role:
     name: str
-    cluster_permissions: Optional[List[ClusterPermission]]
-    collections_permissions: Optional[List[CollectionsPermission]]
-    data_permissions: Optional[List[DataPermission]]
-    roles_permissions: Optional[List[RolesPermission]]
-    users_permissions: Optional[List[UsersPermission]]
-    backups_permissions: Optional[List[BackupsPermission]]
-    nodes_permissions: Optional[List[NodesPermission]]
+    cluster_permissions: List[ClusterPermission]
+    collections_permissions: List[CollectionsPermission]
+    data_permissions: List[DataPermission]
+    roles_permissions: List[RolesPermission]
+    users_permissions: List[UsersPermission]
+    backups_permissions: List[BackupsPermission]
+    nodes_permissions: List[NodesPermission]
 
     @classmethod
     def _from_weaviate_role(cls, role: WeaviateRole) -> "Role":
@@ -336,13 +336,13 @@ class Role:
                 )
         return cls(
             name=role["name"],
-            cluster_permissions=ca if len(ca := cluster_permissions) > 0 else None,
-            users_permissions=up if len(up := users_permissions) > 0 else None,
-            collections_permissions=cp if len(cp := collections_permissions) > 0 else None,
-            roles_permissions=rp if len(rp := roles_permissions) > 0 else None,
-            data_permissions=dp if len(dp := data_permissions) > 0 else None,
-            backups_permissions=bp if len(bp := backups_permissions) > 0 else None,
-            nodes_permissions=np if len(np := nodes_permissions) > 0 else None,
+            cluster_permissions=cluster_permissions,
+            users_permissions=users_permissions,
+            collections_permissions=collections_permissions,
+            roles_permissions=roles_permissions,
+            data_permissions=data_permissions,
+            backups_permissions=backups_permissions,
+            nodes_permissions=nodes_permissions,
         )
 
 
