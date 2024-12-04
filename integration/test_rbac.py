@@ -2,8 +2,8 @@ import pytest
 
 from integration.conftest import ClientFactory
 from weaviate.auth import Auth
+from weaviate.classes.rbac import Permissions, Actions
 from weaviate.rbac.models import (
-    RBAC,
     Role,
     ClusterPermission,
     CollectionsPermission,
@@ -21,136 +21,132 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
     "permissions,expected",
     [
         (
-            RBAC.permissions.backups.manage(collection="Test"),
+            Permissions.backup(collection="Test", manage=True),
             Role(
                 name="ManageAllBackups",
-                cluster_permissions=None,
-                users_permissions=None,
-                collections_permissions=None,
-                roles_permissions=None,
-                data_permissions=None,
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
                 backups_permissions=[
-                    BackupsPermission(collection="Test", action=RBAC.actions.backups.MANAGE)
+                    BackupsPermission(collection="Test", action=Actions.Backups.MANAGE)
                 ],
-                nodes_permissions=None,
+                nodes_permissions=[],
             ),
         ),
         (
-            RBAC.permissions.cluster.read(),
+            Permissions.cluster(read=True),
             Role(
                 name="ReadCluster",
-                cluster_permissions=[ClusterPermission(action=RBAC.actions.cluster.READ)],
-                users_permissions=None,
-                collections_permissions=None,
-                roles_permissions=None,
-                data_permissions=None,
-                backups_permissions=None,
-                nodes_permissions=None,
+                cluster_permissions=[ClusterPermission(action=Actions.Cluster.READ)],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
             ),
         ),
         (
-            RBAC.permissions.collections.create(),
+            Permissions.collections(collection="Test", create_collection=True),
             Role(
                 name="CreateAllCollections",
-                cluster_permissions=None,
-                users_permissions=None,
+                cluster_permissions=[],
+                users_permissions=[],
                 collections_permissions=[
-                    CollectionsPermission(collection="*", action=RBAC.actions.collections.CREATE)
+                    CollectionsPermission(collection="Test", action=Actions.Collections.CREATE)
                 ],
-                roles_permissions=None,
-                data_permissions=None,
-                backups_permissions=None,
-                nodes_permissions=None,
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
             ),
         ),
         (
-            RBAC.permissions.data.create(collection="*"),
+            Permissions.data(collection="*", create=True),
             Role(
                 name="CreateAllData",
-                cluster_permissions=None,
-                users_permissions=None,
-                collections_permissions=None,
-                roles_permissions=None,
-                data_permissions=[DataPermission(collection="*", action=RBAC.actions.data.CREATE)],
-                backups_permissions=None,
-                nodes_permissions=None,
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[DataPermission(collection="*", action=Actions.Data.CREATE)],
+                backups_permissions=[],
+                nodes_permissions=[],
             ),
         ),
         (
-            RBAC.permissions.nodes.read(verbosity="minimal"),
+            Permissions.nodes(collection="test", read=True, verbosity="minimal"),
             Role(
                 name="MinimalNodes",
-                cluster_permissions=None,
-                users_permissions=None,
-                collections_permissions=None,
-                roles_permissions=None,
-                data_permissions=None,
-                backups_permissions=None,
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
                 nodes_permissions=[
-                    NodesPermission(
-                        verbosity="minimal", action=RBAC.actions.nodes.READ, collection=None
-                    )
+                    NodesPermission(verbosity="minimal", action=Actions.Nodes.READ, collection=None)
                 ],
             ),
         ),
         (
-            RBAC.permissions.nodes.read(verbosity="verbose", collection="Test"),
+            Permissions.nodes(verbosity="verbose", collection="Test", read=True),
             Role(
                 name="VerboseNodes",
-                cluster_permissions=None,
-                users_permissions=None,
-                collections_permissions=None,
-                roles_permissions=None,
-                data_permissions=None,
-                backups_permissions=None,
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
                 nodes_permissions=[
                     NodesPermission(
-                        verbosity="verbose", action=RBAC.actions.nodes.READ, collection="Test"
+                        verbosity="verbose", action=Actions.Nodes.READ, collection="Test"
                     )
                 ],
             ),
         ),
         (
-            RBAC.permissions.roles.manage(),
+            Permissions.roles(role="*", manage=True),
             Role(
                 name="ManageAllRoles",
-                cluster_permissions=None,
-                users_permissions=None,
-                collections_permissions=None,
-                roles_permissions=[RolesPermission(role="*", action=RBAC.actions.roles.MANAGE)],
-                data_permissions=None,
-                backups_permissions=None,
-                nodes_permissions=None,
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[RolesPermission(role="*", action=Actions.Roles.MANAGE)],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
             ),
         ),
         (
-            RBAC.permissions.collections.manage(collection="Test"),
+            Permissions.collections(collection="Test", manage_collection=True),
             Role(
                 name="ManageTestCollection",
-                cluster_permissions=None,
-                users_permissions=None,
+                cluster_permissions=[],
+                users_permissions=[],
                 collections_permissions=[
-                    CollectionsPermission(collection="Test", action=RBAC.actions.collections.MANAGE)
+                    CollectionsPermission(collection="Test", action=Actions.Collections.MANAGE)
                 ],
-                roles_permissions=None,
-                data_permissions=None,
-                backups_permissions=None,
-                nodes_permissions=None,
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
             ),
         ),
         (
-            RBAC.permissions.data.manage(collection="Test"),
+            Permissions.data(collection="Test", manage=True),
             Role(
                 name="ManageTestData",
-                cluster_permissions=None,
-                users_permissions=None,
-                collections_permissions=None,
-                roles_permissions=None,
-                data_permissions=[
-                    DataPermission(collection="Test", action=RBAC.actions.data.MANAGE)
-                ],
-                backups_permissions=None,
-                nodes_permissions=None,
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[DataPermission(collection="Test", action=Actions.Data.MANAGE)],
+                backups_permissions=[],
+                nodes_permissions=[],
             ),
         ),
     ],
@@ -178,20 +174,18 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
         try:
             client.roles.create(
                 name=role_name,
-                permissions=[
-                    RBAC.permissions.collections.create(),
-                ],
+                permissions=Permissions.collections(collection="*", create_collection=True),
             )
             role = client.roles.by_name(role_name)
 
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
-            assert role.collections_permissions[0].action == RBAC.actions.collections.CREATE
+            assert role.collections_permissions[0].action == Actions.Collections.CREATE
 
             client.roles.add_permissions(
                 permissions=[
-                    RBAC.permissions.collections.delete(),
+                    Permissions.collections(collection="*", delete_collection=True),
                 ],
                 role=role_name,
             )
@@ -200,8 +194,8 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 2
-            assert role.collections_permissions[0].action == RBAC.actions.collections.CREATE
-            assert role.collections_permissions[1].action == RBAC.actions.collections.DELETE
+            assert role.collections_permissions[0].action == Actions.Collections.CREATE
+            assert role.collections_permissions[1].action == Actions.Collections.DELETE
         finally:
             client.roles.delete(role_name)
 
@@ -213,9 +207,7 @@ def test_upsert_permissions(client_factory: ClientFactory) -> None:
         role_name = "ExistingRoleUpsert"
         try:
             client.roles.add_permissions(
-                permissions=[
-                    RBAC.permissions.collections.create(),
-                ],
+                permissions=Permissions.collections(collection="*", create_collection=True),
                 role=role_name,
             )
 
@@ -223,7 +215,7 @@ def test_upsert_permissions(client_factory: ClientFactory) -> None:
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
-            assert role.collections_permissions[0].action == RBAC.actions.collections.CREATE
+            assert role.collections_permissions[0].action == Actions.Collections.CREATE
         finally:
             client.roles.delete(role_name)
 
@@ -236,23 +228,20 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
         try:
             client.roles.create(
                 name=role_name,
-                permissions=[
-                    RBAC.permissions.collections.create(),
-                    RBAC.permissions.collections.delete(),
-                ],
+                permissions=Permissions.collections(
+                    collection="*", create_collection=True, delete_collection=True
+                ),
             )
 
             role = client.roles.by_name(role_name)
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 2
-            assert role.collections_permissions[0].action == RBAC.actions.collections.CREATE
-            assert role.collections_permissions[1].action == RBAC.actions.collections.DELETE
+            assert role.collections_permissions[0].action == Actions.Collections.CREATE
+            assert role.collections_permissions[1].action == Actions.Collections.DELETE
 
             client.roles.remove_permissions(
-                permissions=[
-                    RBAC.permissions.collections.delete(),
-                ],
+                permissions=Permissions.collections(collection="*", delete_collection=True),
                 role=role_name,
             )
 
@@ -260,15 +249,41 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
-            assert role.collections_permissions[0].action == RBAC.actions.collections.CREATE
+            assert role.collections_permissions[0].action == Actions.Collections.CREATE
 
             client.roles.remove_permissions(
-                permissions=[
-                    RBAC.permissions.collections.create(),
-                ],
+                permissions=Permissions.collections(collection="*", create_collection=True),
                 role=role_name,
             )
             role = client.roles.by_name(role_name)
             assert role is None
+        finally:
+            client.roles.delete(role_name)
+
+
+def test_multiple_permissions(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
+            pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        role_name = "MultiplePermissions"
+        try:
+            required_permissions = [
+                Permissions.data(collection="test", create=True, update=True),
+                Permissions.collections(collection="test", read_config=True),
+            ]
+
+            client.roles.create(
+                name=role_name,
+                permissions=required_permissions,
+            )
+
+            role = client.roles.by_name(role_name)
+            assert role is not None
+            assert role.collections_permissions is not None
+            assert len(role.collections_permissions) == 1
+            assert role.collections_permissions[0].action == Actions.Collections.READ
+            assert len(role.data_permissions) == 2
+            assert role.data_permissions[0].action == Actions.Data.CREATE
+            assert role.data_permissions[1].action == Actions.Data.UPDATE
         finally:
             client.roles.delete(role_name)
