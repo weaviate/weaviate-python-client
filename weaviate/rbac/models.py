@@ -360,7 +360,7 @@ PermissionsType = Union[
     Sequence[Sequence[_Permission]],
     Sequence[Union[_Permission, Sequence[_Permission]]],
 ]
-PermissionsCreateType = Union[_Permission, Sequence[_Permission]]
+PermissionsCreateType = List[_Permission]
 
 
 class _DataFactory:
@@ -486,7 +486,7 @@ class Permissions:
         delete: bool = False,
         manage: bool = False,
     ) -> PermissionsCreateType:
-        permissions = []
+        permissions: List[_Permission] = []
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
@@ -512,7 +512,7 @@ class Permissions:
         delete_collection: bool = False,
         manage_collection: bool = False,
     ) -> PermissionsCreateType:
-        permissions = []
+        permissions: List[_Permission] = []
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
@@ -532,7 +532,7 @@ class Permissions:
     def roles(
         *, role: Union[str, Sequence[str]], read: bool = False, manage: bool = False
     ) -> PermissionsCreateType:
-        permissions = []
+        permissions: List[_Permission] = []
         if isinstance(role, str):
             role = [role]
         for r in role:
@@ -546,7 +546,7 @@ class Permissions:
     def backup(
         *, collection: Union[str, Sequence[str]], manage: bool = False
     ) -> PermissionsCreateType:
-        permissions = []
+        permissions: List[_Permission] = []
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
@@ -561,7 +561,7 @@ class Permissions:
         verbosity: Verbosity = "minimal",
         read: bool = False,
     ) -> PermissionsCreateType:
-        permissions = []
+        permissions: List[_Permission] = []
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
@@ -571,7 +571,7 @@ class Permissions:
 
     @staticmethod
     def cluster(*, read: bool = False) -> PermissionsCreateType:
-        permissions = []
+        permissions: List[_Permission] = []
         if read:
             permissions.append(_ClusterFactory.read())
         return permissions
