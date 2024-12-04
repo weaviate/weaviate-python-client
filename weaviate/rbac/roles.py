@@ -28,7 +28,7 @@ class _RolesBase:
         return cast(List[WeaviateRole], res.json())
 
     async def _get_current_roles(self) -> List[WeaviateRole]:
-        path = "/authz/users/ownRoles"
+        path = "/authz/users/own-roles"
 
         res = await self._connection.get(
             path,
