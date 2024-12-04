@@ -294,12 +294,11 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
 
             role = client.roles.by_name(role_name)
             assert role is not None
+            assert len(role.permissions) == 3
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
-            assert len(role.data_permissions) == 1
             assert role.collections_permissions[0].action == Actions.Collections.READ
             assert len(role.data_permissions) == 2
-            assert len(role.permissions) == 3
             assert role.data_permissions[0].action == Actions.Data.CREATE
             assert role.data_permissions[1].action == Actions.Data.UPDATE
         finally:
