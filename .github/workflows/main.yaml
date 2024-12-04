@@ -114,65 +114,6 @@ jobs:
           name: coverage-report-integration-embedded
           path: coverage-integration-embedded.xml
 
-  integration-tests-v3:
-    name: Run Integration Tests v3
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        versions: [
-          { py: "3.9", weaviate: $WEAVIATE_126},
-          { py: "3.10", weaviate: $WEAVIATE_126},
-          { py: "3.11", weaviate: $WEAVIATE_123},
-          { py: "3.11", weaviate: $WEAVIATE_124},
-          { py: "3.11", weaviate: $WEAVIATE_125},
-          { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_127}
-        ]
-        optional_dependencies: [false]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.versions.py }}
-          cache: 'pip' # caching pip dependencies
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        if: ${{ !github.event.pull_request.head.repo.fork && github.triggering_actor != 'dependabot[bot]' }}
-        with:
-          username: ${{secrets.DOCKER_USERNAME}}
-          password: ${{secrets.DOCKER_PASSWORD}}
-      - run: |
-          pip install -r requirements-devel.txt
-          pip install .
-      - name: free space
-        run: sudo rm -rf /usr/local/lib/android
-      - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
-      - name: Run integration tests with auth secrets
-        if: ${{ !github.event.pull_request.head.repo.fork }}
-        env:
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
-          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
-          OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
-#          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-v3.xml integration_v3
-      - name: Run integration tests without auth secrets (for forks)
-        if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration-v3.xml integration_v3
-      - name: Archive code coverage results
-        if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report-integration-v3
-          path: coverage-integration-v3.xml
-      - name: stop weaviate
-        run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
-
   integration-tests:
     name: Run Integration Tests
     runs-on: ubuntu-latest
@@ -219,7 +160,7 @@ jobs:
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
 #          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
-        run: pytest -n auto -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+        run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
         run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
@@ -269,7 +210,7 @@ jobs:
         run: /bin/bash ci/stop_weaviate.sh ${{ matrix.versions.weaviate }}
 
   Codecov:
-    needs: [Unit-Tests, Integration-Tests, Integration-Tests-v3]
+    needs: [Unit-Tests, Integration-Tests]
     runs-on: ubuntu-latest
     if: github.ref_name != 'main'
     steps:
@@ -370,7 +311,7 @@ jobs:
           OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
-        run: pytest -v -n auto integration
+        run: pytest -v -n auto --dist loadgroup integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
         run: pytest -v -n auto integration
