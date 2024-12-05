@@ -17,8 +17,7 @@ env:
   WEAVIATE_125: 1.25.24
   WEAVIATE_126: 1.26.8
   WEAVIATE_127: 1.27.1
-  WEAVIATE_128: 1.28.0-dev-223bafc
-
+  WEAVIATE_128: 1.28.0-rc.0
 jobs:
   lint-and-format:
     name: Run Linter and Formatter

@@ -5,7 +5,7 @@ from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
     _Permission,
-    PermissionsType,
+    PermissionsInputType,
     Role,
     User,
     WeaviatePermission,
@@ -213,7 +213,7 @@ class _RolesAsync(_RolesBase):
         """
         return await self._delete_role(role)
 
-    async def create(self, *, name: str, permissions: PermissionsType) -> Role:
+    async def create(self, *, name: str, permissions: PermissionsInputType) -> Role:
         """Create a new role.
 
         Args:
@@ -249,7 +249,7 @@ class _RolesAsync(_RolesBase):
         """
         await self._revoke_roles_from_user([roles] if isinstance(roles, str) else roles, user)
 
-    async def add_permissions(self, *, permissions: PermissionsType, role: str) -> None:
+    async def add_permissions(self, *, permissions: PermissionsInputType, role: str) -> None:
         """Add permissions to a role.
 
         Note: This method is an upsert operation. If the permission already exists, it will be updated. If it does not exist, it will be created.
@@ -264,7 +264,7 @@ class _RolesAsync(_RolesBase):
             [permission._to_weaviate() for permission in _flatten_permissions(permissions)], role
         )
 
-    async def remove_permissions(self, *, permissions: PermissionsType, role: str) -> None:
+    async def remove_permissions(self, *, permissions: PermissionsInputType, role: str) -> None:
         """Remove permissions from a role.
 
         Note: This method is a downsert operation. If the permission does not exist, it will be ignored. If these permissions are the only permissions of the role, the role will be deleted.
@@ -280,7 +280,7 @@ class _RolesAsync(_RolesBase):
         )
 
 
-def _flatten_permissions(permissions: PermissionsType) -> List[_Permission]:
+def _flatten_permissions(permissions: PermissionsInputType) -> List[_Permission]:
     if isinstance(permissions, _Permission):
         return [permissions]
     flattened_permissions: List[_Permission] = []

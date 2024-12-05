@@ -161,7 +161,9 @@ def test_create_role(client_factory: ClientFactory, permissions, expected) -> No
                 permissions=permissions,
             )
             role = client.roles.by_name(expected.name)
+            assert role is not None
             assert role == expected
+            assert len(role.permissions) == 1
         finally:
             client.roles.delete(expected.name)
 
@@ -181,6 +183,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
+            assert len(role.permissions) == 1
             assert role.collections_permissions[0].action == Actions.Collections.CREATE
 
             client.roles.add_permissions(
@@ -194,6 +197,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 2
+            assert len(role.permissions) == 2
             assert role.collections_permissions[0].action == Actions.Collections.CREATE
             assert role.collections_permissions[1].action == Actions.Collections.DELETE
         finally:
@@ -215,6 +219,7 @@ def test_upsert_permissions(client_factory: ClientFactory) -> None:
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
+            assert len(role.permissions) == 1
             assert role.collections_permissions[0].action == Actions.Collections.CREATE
         finally:
             client.roles.delete(role_name)
@@ -237,6 +242,7 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 2
+            assert len(role.permissions) == 2
             assert role.collections_permissions[0].action == Actions.Collections.CREATE
             assert role.collections_permissions[1].action == Actions.Collections.DELETE
 
@@ -249,6 +255,7 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
+            assert len(role.permissions) == 1
             assert role.collections_permissions[0].action == Actions.Collections.CREATE
 
             client.roles.remove_permissions(
@@ -287,6 +294,7 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
 
             role = client.roles.by_name(role_name)
             assert role is not None
+            assert len(role.permissions) == 3
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
             assert role.collections_permissions[0].action == Actions.Collections.READ
