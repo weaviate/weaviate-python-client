@@ -13,7 +13,6 @@ from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple,
 
 import httpx
 import validators
-from requests.exceptions import JSONDecodeError
 
 from weaviate.exceptions import (
     SchemaValidationError,
@@ -824,7 +823,7 @@ def _decode_json_response_dict(response: httpx.Response, location: str) -> Optio
         try:
             json_response = cast(Dict[str, Any], response.json())
             return json_response
-        except JSONDecodeError:
+        except httpx.DecodingError:
             raise ResponseCannotBeDecodedError(location, response)
 
     raise UnexpectedStatusCodeError(location, response)
@@ -840,7 +839,7 @@ def _decode_json_response_list(
         try:
             json_response = response.json()
             return cast(list, json_response)
-        except JSONDecodeError:
+        except httpx.DecodingError:
             raise ResponseCannotBeDecodedError(location, response)
     raise UnexpectedStatusCodeError(location, response)
 
