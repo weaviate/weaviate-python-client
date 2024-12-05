@@ -21,6 +21,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Img2VecNeuralConfig,
     _Multi2VecBindConfig,
     _Multi2VecClipConfig,
+    _Multi2VecVoyageaiConfig,
     _Multi2VecGoogleConfig,
     _Ref2VecCentroidConfig,
     _Text2VecAWSConfig,
@@ -48,6 +49,7 @@ from weaviate.collections.classes.config_vectorizers import (
     OpenAIType,
     Vectorizers,
     VoyageModel,
+    VoyageMultimodalModel,
     _map_multi2vec_fields,
     _VectorizerCustomConfig,
     _Text2VecDatabricksConfig,
@@ -751,6 +753,58 @@ class _NamedVectors:
                 thermalFields=_map_multi2vec_fields(thermal_fields),
                 videoFields=_map_multi2vec_fields(video_fields),
                 vectorizeClassName=vectorize_collection_name,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    def multi2vec_voyageai(
+        name: str,
+        *,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+        model: Optional[Union[VoyageMultimodalModel, str]] = None,
+        truncation: Optional[bool] = None,
+        output_encoding: Optional[str] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `multi2vec_cohere` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `truncation`
+                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecVoyageaiConfig(
+                baseURL=base_url,
+                model=model,
+                truncation=truncation,
+                output_encoding=output_encoding,
+                vectorizeClassName=vectorize_collection_name,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
             ),
             vector_index_config=vector_index_config,
         )
