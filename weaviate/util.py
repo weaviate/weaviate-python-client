@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
 
 import httpx
-import requests
 import validators
 from requests.exceptions import JSONDecodeError
 
@@ -817,9 +816,7 @@ def _to_beacons(uuids: UUIDS, to_class: str = "") -> List[Dict[str, str]]:
     return [{"beacon": f"weaviate://localhost/{to_class}{uuid_to}"} for uuid_to in uuids]
 
 
-def _decode_json_response_dict(
-    response: Union[httpx.Response, requests.Response], location: str
-) -> Optional[Dict[str, Any]]:
+def _decode_json_response_dict(response: httpx.Response, location: str) -> Optional[Dict[str, Any]]:
     if response is None:
         return None
 
@@ -834,7 +831,7 @@ def _decode_json_response_dict(
 
 
 def _decode_json_response_list(
-    response: Union[httpx.Response, requests.Response], location: str
+    response: httpx.Response, location: str
 ) -> Optional[List[Dict[str, Any]]]:
     if response is None:
         return None

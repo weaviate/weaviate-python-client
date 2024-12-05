@@ -5,8 +5,8 @@ Weaviate Exceptions.
 from json.decoder import JSONDecodeError
 from typing import Union, Tuple
 
+from grpc.aio import AioRpcError  # type: ignore
 import httpx
-import requests
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
@@ -40,7 +40,7 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
     not handled in the client implementation and suggests an error.
     """
 
-    def __init__(self, message: str, response: Union[httpx.Response, requests.Response]):
+    def __init__(self, message: str, response: Union[httpx.Response, AioRpcError]):
         """
         Is raised in case the status code returned from Weaviate is
         not handled in the client implementation and suggests an error.
@@ -55,21 +55,27 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
             `response`:
                 The request response of which the status code was unexpected.
         """
-        self._status_code: int = response.status_code
-        # Set error message
+        if isinstance(response, httpx.Response):
+            self._status_code: int = response.status_code
+            # Set error message
 
-        try:
-            body = response.json()
-        except (requests.exceptions.JSONDecodeError, httpx.DecodingError, JSONDecodeError):
-            body = None
+            try:
+                body = response.json()
+            except (httpx.DecodingError, JSONDecodeError):
+                body = None
 
-        msg = (
-            message
-            + f"! Unexpected status code: {response.status_code}, with response body: {body}."
-        )
-        if response.status_code in ERROR_CODE_EXPLANATION:
-            msg += " " + ERROR_CODE_EXPLANATION[response.status_code]
-
+            msg = (
+                message
+                + f"! Unexpected status code: {response.status_code}, with response body: {body}."
+            )
+            if response.status_code in ERROR_CODE_EXPLANATION:
+                msg += " " + ERROR_CODE_EXPLANATION[response.status_code]
+        elif isinstance(response, AioRpcError):
+            self._status_code = int(response.code().value[0])
+            msg = (
+                message
+                + f"! Unexpected status code: {response.code().value[1]}, with response body: {response.details()}."
+            )
         super().__init__(msg)
 
     @property
@@ -81,7 +87,7 @@ UnexpectedStatusCodeException = UnexpectedStatusCodeError
 
 
 class ResponseCannotBeDecodedError(WeaviateBaseError):
-    def __init__(self, location: str, response: Union[httpx.Response, requests.Response]):
+    def __init__(self, location: str, response: httpx.Response):
         """Raised when a weaviate response cannot be decoded to json
 
         Arguments:
@@ -360,10 +366,8 @@ class WeaviateRetryError(WeaviateBaseError):
         super().__init__(msg)
 
 
-class InsufficientPermissionsError(WeaviateBaseError):
+class InsufficientPermissionsError(UnexpectedStatusCodeError):
     """Is raised when a request to Weaviate fails due to insufficient permissions."""
 
-    def __init__(self, res: httpx.Response) -> None:
-        err = res.json()["error"][0]["message"]
-        msg = f"""The request to Weaviate failed due to insufficient permissions. Details: {err}"""
-        super().__init__(msg)
+    def __init__(self, res: Union[httpx.Response, AioRpcError]) -> None:
+        super().__init__("forbidden", res)

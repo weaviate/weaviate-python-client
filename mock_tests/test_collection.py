@@ -37,6 +37,7 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
     BackupCanceledError,
     InsufficientPermissionsError,
+    UnexpectedStatusCodeError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -54,9 +55,15 @@ def test_insufficient_permissions(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
     collection = client.collections.get("Test")
-    with pytest.raises(InsufficientPermissionsError) as e:
+
+    with pytest.raises(InsufficientPermissionsError) as e1:
         collection.config.get()
-    assert "this is an error" in e.value.message
+    assert "this is an error" in e1.value.message
+
+    with pytest.raises(UnexpectedStatusCodeError) as e2:
+        collection.config.get()
+    assert e2.value.status_code == 403
+
     weaviate_mock.check_assertions()
 
 
