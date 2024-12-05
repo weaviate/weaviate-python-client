@@ -34,25 +34,29 @@ from weaviate.collections.classes.config import (
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.exceptions import (
-    UnexpectedStatusCodeError,
     WeaviateStartUpError,
     BackupCanceledError,
+    InsufficientPermissionsError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
 
 
-def test_status_code_exception(weaviate_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
-    weaviate_mock.expect_request("/v1/schema/Test").respond_with_json(response_json={}, status=403)
+def test_insufficient_permissions(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    weaviate_mock.expect_request("/v1/schema/Test").respond_with_json(
+        response_json={"error": [{"message": "this is an error"}]}, status=403
+    )
 
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
     collection = client.collections.get("Test")
-    with pytest.raises(UnexpectedStatusCodeError) as e:
+    with pytest.raises(InsufficientPermissionsError) as e:
         collection.config.get()
-    assert e.value.status_code == 403
+    assert "this is an error" in e.value.message
     weaviate_mock.check_assertions()
 
 

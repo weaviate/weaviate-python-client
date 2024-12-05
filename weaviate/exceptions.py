@@ -358,3 +358,12 @@ class WeaviateRetryError(WeaviateBaseError):
     def __init__(self, message: str, count: int) -> None:
         msg = f"""The request to Weaviate failed after {count} retries. Details: {message}"""
         super().__init__(msg)
+
+
+class InsufficientPermissionsError(WeaviateBaseError):
+    """Is raised when a request to Weaviate fails due to insufficient permissions."""
+
+    def __init__(self, res: httpx.Response) -> None:
+        err = res.json()["error"][0]["message"]
+        msg = f"""The request to Weaviate failed due to insufficient permissions. Details: {err}"""
+        super().__init__(msg)

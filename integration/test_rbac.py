@@ -157,7 +157,7 @@ def test_create_role(client_factory: ClientFactory, permissions, expected) -> No
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
         try:
             client.roles.create(
-                name=expected.name,
+                role_name=expected.name,
                 permissions=permissions,
             )
             role = client.roles.by_name(expected.name)
@@ -175,7 +175,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
         role_name = "ExistingRolePermissions"
         try:
             client.roles.create(
-                name=role_name,
+                role_name=role_name,
                 permissions=Permissions.collections(collection="*", create_collection=True),
             )
             role = client.roles.by_name(role_name)
@@ -190,7 +190,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
                 permissions=[
                     Permissions.collections(collection="*", delete_collection=True),
                 ],
-                role=role_name,
+                role_name=role_name,
             )
 
             role = client.roles.by_name(role_name)
@@ -212,7 +212,7 @@ def test_upsert_permissions(client_factory: ClientFactory) -> None:
         try:
             client.roles.add_permissions(
                 permissions=Permissions.collections(collection="*", create_collection=True),
-                role=role_name,
+                role_name=role_name,
             )
 
             role = client.roles.by_name(role_name)
@@ -232,7 +232,7 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
         role_name = "ExistingRoleDownsert"
         try:
             client.roles.create(
-                name=role_name,
+                role_name=role_name,
                 permissions=Permissions.collections(
                     collection="*", create_collection=True, delete_collection=True
                 ),
@@ -248,7 +248,7 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
 
             client.roles.remove_permissions(
                 permissions=Permissions.collections(collection="*", delete_collection=True),
-                role=role_name,
+                role_name=role_name,
             )
 
             role = client.roles.by_name(role_name)
@@ -260,7 +260,7 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
 
             client.roles.remove_permissions(
                 permissions=Permissions.collections(collection="*", create_collection=True),
-                role=role_name,
+                role_name=role_name,
             )
             role = client.roles.by_name(role_name)
             assert role is None
@@ -288,7 +288,7 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
             ]
 
             client.roles.create(
-                name=role_name,
+                role_name=role_name,
                 permissions=required_permissions,
             )
 
