@@ -17,7 +17,7 @@ sphinx-rtd-theme==3.0.2
 autodoc-pydantic==2.2.0
 importlib_metadata==8.5.0
 
-pytest==8.3.3
+pytest==8.3.4
 pytest-cov==6.0.0
 pytest-asyncio==0.24.0
 pytest-benchmark==5.1.0
