@@ -6,7 +6,7 @@ from typing import List, Literal, Optional, cast
 
 from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.cluster.types import Node
+from weaviate.cluster.types import Node, ClusterStats
 from weaviate.connect import Connection
 from weaviate.exceptions import (
     EmptyResponseException,
@@ -79,3 +79,33 @@ class Cluster:
         if nodes is None or nodes == []:
             raise EmptyResponseException("Nodes status response returned empty")
         return cast(List[Node], nodes)
+
+    def get_cluster_statistics(self) -> ClusterStats:
+        """
+        Get the cluster statistics including Raft consensus information.
+
+        Returns
+        -------
+        ClusterStats
+            Statistics about the cluster including Raft consensus information.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        weaviate.EmptyResponseException
+            If the response is empty.
+        """
+        try:
+            response = self._connection.get(path="/cluster/statistics")
+        except RequestsConnectionError as conn_err:
+            raise RequestsConnectionError(
+                "Get cluster statistics failed due to connection error"
+            ) from conn_err
+
+        response_typed = _decode_json_response_dict(response, "Cluster statistics")
+        if response_typed is None:
+            raise EmptyResponseException("Cluster statistics response returned empty")
+        return cast(ClusterStats, response_typed)
