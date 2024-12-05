@@ -221,11 +221,30 @@ class CollectionsPermission:
     collection: str
     action: CollectionsAction
 
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "collections": {
+                "collection": self.collection,
+                "tenant": "*",
+            },
+        }
+
 
 @dataclass
 class DataPermission:
     collection: str
     action: DataAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "data": {
+                "collection": self.collection,
+                "object": "*",
+                "tenant": "*",
+            },
+        }
 
 
 @dataclass
@@ -233,15 +252,29 @@ class RolesPermission:
     role: str
     action: RolesAction
 
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "roles": {
+                "role": self.role,
+            },
+        }
+
 
 @dataclass
 class UsersPermission:
     action: UsersAction
 
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {"action": self.action}
+
 
 @dataclass
 class ClusterPermission:
     action: ClusterAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {"action": self.action}
 
 
 @dataclass
@@ -249,12 +282,29 @@ class BackupsPermission:
     collection: str
     action: BackupsAction
 
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "backups": {
+                "collection": self.collection,
+            },
+        }
+
 
 @dataclass
 class NodesPermission:
     collection: Optional[str]
     verbosity: Verbosity
     action: NodesAction
+
+    def _to_weaviate(self) -> WeaviatePermission:
+        return {
+            "action": self.action,
+            "nodes": {
+                "collection": self.collection or "*",
+                "verbosity": self.verbosity,
+            },
+        }
 
 
 PermissionsOutputType = Union[
