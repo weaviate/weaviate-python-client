@@ -57,6 +57,7 @@ from weaviate.exceptions import (
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
     WeaviateTimeoutError,
+    InsufficientPermissionsError,
 )
 from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.util import (
@@ -474,6 +475,8 @@ class ConnectionV4(_ConnectionBase):
                 timeout=self.__get_timeout(method, is_gql_query),
             )
             res = await self._client.send(req)
+            if res.status_code == 403:
+                raise InsufficientPermissionsError(res)
             if status_codes is not None and res.status_code not in status_codes.ok:
                 raise UnexpectedStatusCodeError(error_msg, response=res)
             return cast(Response, res)

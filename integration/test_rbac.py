@@ -190,7 +190,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
                 permissions=[
                     Permissions.collections(collection="*", delete_collection=True),
                 ],
-                role=role_name,
+                role_name=role_name,
             )
 
             role = client.roles.by_name(role_name)
@@ -212,7 +212,7 @@ def test_upsert_permissions(client_factory: ClientFactory) -> None:
         try:
             client.roles.add_permissions(
                 permissions=Permissions.collections(collection="*", create_collection=True),
-                role=role_name,
+                role_name=role_name,
             )
 
             role = client.roles.by_name(role_name)
@@ -248,7 +248,7 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
 
             client.roles.remove_permissions(
                 permissions=Permissions.collections(collection="*", delete_collection=True),
-                role=role_name,
+                role_name=role_name,
             )
 
             role = client.roles.by_name(role_name)
@@ -260,7 +260,7 @@ def test_downsert_permissions(client_factory: ClientFactory) -> None:
 
             client.roles.remove_permissions(
                 permissions=Permissions.collections(collection="*", create_collection=True),
-                role=role_name,
+                role_name=role_name,
             )
             role = client.roles.by_name(role_name)
             assert role is None

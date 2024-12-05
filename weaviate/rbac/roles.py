@@ -152,27 +152,27 @@ class _RolesAsync(_RolesBase):
             role["name"]: Role._from_weaviate_role(role) for role in await self._get_current_roles()
         }
 
-    async def exists(self, role: str) -> bool:
+    async def exists(self, role_name: str) -> bool:
         """Check if a role exists.
 
         Args:
-            role: The name of the role to check.
+            role_name: The name of the role to check.
 
         Returns:
             True if the role exists, False otherwise.
         """
-        return await self._get_role(role) is not None
+        return await self._get_role(role_name) is not None
 
-    async def by_name(self, role: str) -> Optional[Role]:
+    async def by_name(self, role_name: str) -> Optional[Role]:
         """Get the permissions granted to this role.
 
         Args:
-            role: The name of the role to get the permissions for.
+            role_name: The name of the role to get the permissions for.
 
         Returns:
             A `Role` object or `None` if it does not exist.
         """
-        r = await self._get_role(role)
+        r = await self._get_role(role_name)
         if r is None:
             return None
         return Role._from_weaviate_role(r)
@@ -191,54 +191,56 @@ class _RolesAsync(_RolesBase):
             for role in await self._get_roles_of_user(user)
         }
 
-    async def users(self, role: str) -> Dict[str, User]:
+    async def users(self, user_name: str) -> Dict[str, User]:
         """Get the users that have been assigned this role.
 
         Args:
-            role: The role to get the users for.
+            user_name: The role to get the users for.
 
         Returns:
             A dictionary with user names as keys and the `User` objects as values.
         """
         return {
             user: self.__user_from_weaviate_user(user)
-            for user in await self._get_users_of_role(role)
+            for user in await self._get_users_of_role(user_name)
         }
 
-    async def delete(self, role: str) -> None:
+    async def delete(self, role_name: str) -> None:
         """Delete a role.
 
         Args:
-            role: The name of the role to delete.
+            role_name: The name of the role to delete.
         """
-        return await self._delete_role(role)
+        return await self._delete_role(role_name)
 
-    async def create(self, *, name: str, permissions: PermissionsInputType) -> Role:
+    async def create(self, *, role_name: str, permissions: PermissionsInputType) -> Role:
         """Create a new role.
 
         Args:
-            name: The name of the role.
+            role_name: The name of the role.
             permissions: The permissions of the role.
 
         Returns:
             The created role.
         """
         role: WeaviateRole = {
-            "name": name,
+            "name": role_name,
             "permissions": [
                 permission._to_weaviate() for permission in _flatten_permissions(permissions)
             ],
         }
         return Role._from_weaviate_role(await self._post_roles(role))
 
-    async def assign(self, *, roles: Union[str, List[str]], user: str) -> None:
+    async def assign(self, *, role_names: Union[str, List[str]], user: str) -> None:
         """Assign roles to a user.
 
         Args:
-            roles: The roles to assign to the user.
+            role_names: The names of the roles to assign to the user.
             user: The user to assign the roles to.
         """
-        await self._assign_roles_to_user([roles] if isinstance(roles, str) else roles, user)
+        await self._assign_roles_to_user(
+            [role_names] if isinstance(role_names, str) else role_names, user
+        )
 
     async def revoke(self, *, roles: Union[str, List[str]], user: str) -> None:
         """Revoke roles from a user.
@@ -249,34 +251,38 @@ class _RolesAsync(_RolesBase):
         """
         await self._revoke_roles_from_user([roles] if isinstance(roles, str) else roles, user)
 
-    async def add_permissions(self, *, permissions: PermissionsInputType, role: str) -> None:
+    async def add_permissions(self, *, permissions: PermissionsInputType, role_name: str) -> None:
         """Add permissions to a role.
 
         Note: This method is an upsert operation. If the permission already exists, it will be updated. If it does not exist, it will be created.
 
         Args:
             permissions: The permissions to add to the role.
-            role: The role to add the permissions to.
+            role_name: The name of the role to add the permissions to.
         """
         if isinstance(permissions, _Permission):
             permissions = [permissions]
         await self._add_permissions(
-            [permission._to_weaviate() for permission in _flatten_permissions(permissions)], role
+            [permission._to_weaviate() for permission in _flatten_permissions(permissions)],
+            role_name,
         )
 
-    async def remove_permissions(self, *, permissions: PermissionsInputType, role: str) -> None:
+    async def remove_permissions(
+        self, *, permissions: PermissionsInputType, role_name: str
+    ) -> None:
         """Remove permissions from a role.
 
         Note: This method is a downsert operation. If the permission does not exist, it will be ignored. If these permissions are the only permissions of the role, the role will be deleted.
 
         Args:
             permissions: The permissions to remove from the role.
-            role: The role to remove the permissions from.
+            role_name: The name of the role to remove the permissions from.
         """
         if isinstance(permissions, _Permission):
             permissions = [permissions]
         await self._remove_permissions(
-            [permission._to_weaviate() for permission in _flatten_permissions(permissions)], role
+            [permission._to_weaviate() for permission in _flatten_permissions(permissions)],
+            role_name,
         )
 
 
