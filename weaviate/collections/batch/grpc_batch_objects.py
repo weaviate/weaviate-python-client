@@ -22,6 +22,7 @@ from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
     WeaviateInvalidInputError,
+    InsufficientPermissionsError,
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.util import _datetime_to_string, _get_vector_v4
@@ -152,6 +153,8 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except AioRpcError as e:
+            if e.code().name == "PERMISSION_DENIED":
+                raise InsufficientPermissionsError(e)
             raise WeaviateBatchError(str(e)) from e
 
     def __translate_properties_from_python_to_grpc(

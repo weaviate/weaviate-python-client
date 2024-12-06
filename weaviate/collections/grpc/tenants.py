@@ -7,7 +7,7 @@ from weaviate.collections.classes.tenants import TenantActivityStatus
 from weaviate.collections.grpc.retry import _Retry
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateTenantGetError
+from weaviate.exceptions import WeaviateTenantGetError, InsufficientPermissionsError
 from weaviate.proto.v1 import tenants_pb2
 
 
@@ -38,6 +38,8 @@ class _TenantsGRPC(_BaseGRPC):
                 timeout=self._connection.timeout_config.query,
             )
         except AioRpcError as e:
+            if e.code().name == "PERMISSION_DENIED":
+                raise InsufficientPermissionsError(e)
             raise WeaviateTenantGetError(str(e)) from e
 
         return cast(tenants_pb2.TenantsGetReply, res)

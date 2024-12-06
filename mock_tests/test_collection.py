@@ -460,3 +460,17 @@ def test_grpc_retry_logic(
     assert len(tenants) == 1
     assert tenants[0].name == "tenant1"
     assert service.tenants_count == 2
+
+
+def test_grpc_forbidden_exception(forbidden: weaviate.collections.Collection) -> None:
+    with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
+        forbidden.query.fetch_objects()
+
+    with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
+        forbidden.tenants.get()
+
+    with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
+        forbidden.data.delete_many(where=wvc.query.Filter.by_property("name").equal("test"))
+
+    with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
+        forbidden.data.insert_many([{"name": "test"}])

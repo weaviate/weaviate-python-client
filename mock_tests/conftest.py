@@ -15,6 +15,7 @@ import weaviate
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.proto.v1 import (
     batch_pb2,
+    batch_delete_pb2,
     properties_pb2,
     tenants_pb2,
     search_get_pb2,
@@ -310,3 +311,42 @@ def retries(
     service = MockRetriesWeaviateService()
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
     return weaviate_client.collections.get("RetriesCollection"), service
+
+
+class MockForbiddenWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
+    def Search(
+        self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
+    ) -> search_get_pb2.SearchReply:
+        context.set_code(grpc.StatusCode.PERMISSION_DENIED)
+        context.set_details("Permission denied")
+        return search_get_pb2.SearchReply()
+
+    def TenantsGet(
+        self, request: tenants_pb2.TenantsGetRequest, context: ServicerContext
+    ) -> tenants_pb2.TenantsGetReply:
+        context.set_code(grpc.StatusCode.PERMISSION_DENIED)
+        context.set_details("Permission denied")
+        return tenants_pb2.TenantsGetReply()
+
+    def BatchObjects(
+        self, request: batch_pb2.BatchObjectsRequest, context: grpc.ServicerContext
+    ) -> batch_pb2.BatchObjectsReply:
+        context.set_code(grpc.StatusCode.PERMISSION_DENIED)
+        context.set_details("Permission denied")
+        return batch_pb2.BatchObjectsReply()
+
+    def BatchDelete(
+        self, request: batch_delete_pb2.BatchDeleteRequest, context: grpc.ServicerContext
+    ) -> batch_delete_pb2.BatchDeleteReply:
+        context.set_code(grpc.StatusCode.PERMISSION_DENIED)
+        context.set_details("Permission denied")
+        return batch_delete_pb2.BatchDeleteReply()
+
+
+@pytest.fixture(scope="function")
+def forbidden(
+    weaviate_client: weaviate.WeaviateClient, start_grpc_server: grpc.Server
+) -> weaviate.collections.Collection:
+    service = MockForbiddenWeaviateService()
+    weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
+    return weaviate_client.collections.get("ForbiddenCollection")
