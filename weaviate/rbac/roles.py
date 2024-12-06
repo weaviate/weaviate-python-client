@@ -191,18 +191,18 @@ class _RolesAsync(_RolesBase):
             for role in await self._get_roles_of_user(user)
         }
 
-    async def assigned_users(self, user_name: str) -> Dict[str, User]:
+    async def assigned_users(self, role_name: str) -> Dict[str, User]:
         """Get the users that have been assigned this role.
 
         Args:
-            user_name: The role to get the users for.
+            role_name: The role to get the users for.
 
         Returns:
             A dictionary with user names as keys and the `User` objects as values.
         """
         return {
             user: self.__user_from_weaviate_user(user)
-            for user in await self._get_users_of_role(user_name)
+            for user in await self._get_users_of_role(role_name)
         }
 
     async def delete(self, role_name: str) -> None:
