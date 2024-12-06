@@ -48,7 +48,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.retry import _Retry
-from weaviate.collections.grpc.shared import _BaseGRPC
+from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     InsufficientPermissionsError,
@@ -812,7 +812,7 @@ class _QueryGRPC(_BaseGRPC):
             )
             return cast(search_get_pb2.SearchReply, res)
         except AioRpcError as e:
-            if e.code().name == "PERMISSION_DENIED":
+            if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
         except WeaviateRetryError as e:

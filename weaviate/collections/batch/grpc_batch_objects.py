@@ -15,7 +15,7 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.grpc.shared import _BaseGRPC
+from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateBatchError,
@@ -153,7 +153,7 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except AioRpcError as e:
-            if e.code().name == "PERMISSION_DENIED":
+            if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
             raise WeaviateBatchError(str(e)) from e
 
