@@ -757,6 +757,7 @@ class _NamedVectors:
             vector_index_config=vector_index_config,
         )
 
+    @staticmethod
     def multi2vec_voyageai(
         name: str,
         *,
@@ -769,9 +770,9 @@ class _NamedVectors:
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
     ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `multi2vec_cohere` model.
+        """Create a named vector using the `multi2vec_voyageai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings-multimodal)
         for detailed usage.
 
         Arguments:
@@ -793,7 +794,7 @@ class _NamedVectors:
                 The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+            `pydantic.ValidationError` if `model` is not a valid value from the `VoyageaiMultimodalModel` type.
         """
         return _NamedVectorConfigCreate(
             name=name,

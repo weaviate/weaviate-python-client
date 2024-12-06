@@ -107,7 +107,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             base_url="https://api.voyageai.com",
         ),
         {
-            "multi2vec-cohere": {
+            "multi2vec-voyageai": {
                 "model": "voyage-multimodal-3",
                 "truncation": False,
                 "output_encoding": None,
