@@ -242,14 +242,16 @@ class _RolesAsync(_RolesBase):
             [role_names] if isinstance(role_names, str) else role_names, user
         )
 
-    async def revoke(self, *, roles: Union[str, List[str]], user: str) -> None:
+    async def revoke(self, *, role_names: Union[str, List[str]], user: str) -> None:
         """Revoke roles from a user.
 
         Args:
-            roles: The roles to revoke from the user.
+            role_names: The names of the roles to revoke from the user.
             user: The user to revoke the roles from.
         """
-        await self._revoke_roles_from_user([roles] if isinstance(roles, str) else roles, user)
+        await self._revoke_roles_from_user(
+            [role_names] if isinstance(role_names, str) else role_names, user
+        )
 
     async def add_permissions(self, *, permissions: PermissionsInputType, role_name: str) -> None:
         """Add permissions to a role.
