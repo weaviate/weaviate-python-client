@@ -102,7 +102,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         Configure.Vectorizer.multi2vec_voyageai(
             model="voyage-multimodal-3",
             truncation=False,
-            output_encoding=None,
+            output_encoding=True,
             vectorize_collection_name=False,
             base_url="https://api.voyageai.com",
         ),
@@ -110,7 +110,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             "multi2vec-voyageai": {
                 "model": "voyage-multimodal-3",
                 "truncation": False,
-                "output_encoding": None,
+                "output_encoding": True,
                 "vectorizeClassName": False,
                 "baseURL": "https://api.voyageai.com",
             }
