@@ -16,6 +16,7 @@ from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
+from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS
 
 from weaviate.connect.v4 import ConnectionV4
@@ -132,24 +133,30 @@ class _BatchClientWrapper(_BatchWrapper):
 
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchClient]:
         if self._vectorizer_batching is None or not self._vectorizer_batching:
-            configs = self.__config.list_all(simple=True)
+            try:
+                configs = self.__config.list_all(simple=True)
 
-            vectorizer_batching = False
-            for config in configs.values():
-                if config.vector_config is not None:
-                    vectorizer_batching = False
-                    for vec_config in config.vector_config.values():
-                        if vec_config.vectorizer.vectorizer is not Vectorizers.NONE:
-                            vectorizer_batching = True
-                            break
-                    vectorizer_batching = vectorizer_batching
-                else:
-                    vectorizer_batching = any(
-                        config.vectorizer_config is not None for config in configs.values()
-                    )
-                if vectorizer_batching:
-                    break
-            self._vectorizer_batching = vectorizer_batching
+                vectorizer_batching = False
+                for config in configs.values():
+                    if config.vector_config is not None:
+                        vectorizer_batching = False
+                        for vec_config in config.vector_config.values():
+                            if vec_config.vectorizer.vectorizer is not Vectorizers.NONE:
+                                vectorizer_batching = True
+                                break
+                        vectorizer_batching = vectorizer_batching
+                    else:
+                        vectorizer_batching = any(
+                            config.vectorizer_config is not None for config in configs.values()
+                        )
+                    if vectorizer_batching:
+                        break
+                self._vectorizer_batching = vectorizer_batching
+            except UnexpectedStatusCodeError as e:
+                # we might not have the rights to query all collections
+                if e.status_code != 403:
+                    raise e
+                self._vectorizer_batching = False
 
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
