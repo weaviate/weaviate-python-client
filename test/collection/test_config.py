@@ -99,6 +99,24 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.multi2vec_voyageai(
+            model="voyage-multimodal-3",
+            truncation=False,
+            output_encoding="base64",
+            vectorize_collection_name=False,
+            base_url="https://api.voyageai.com",
+        ),
+        {
+            "multi2vec-voyageai": {
+                "model": "voyage-multimodal-3",
+                "truncation": False,
+                "output_encoding": "base64",
+                "vectorizeClassName": False,
+                "baseURL": "https://api.voyageai.com/",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_gpt4all(),
         {
             "text2vec-gpt4all": {
@@ -1285,6 +1303,20 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "multi2vec-cohere": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [Configure.NamedVectors.multi2vec_voyageai(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-voyageai": {
                         "vectorizeClassName": True,
                         "textFields": ["prop"],
                     }
