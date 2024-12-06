@@ -112,7 +112,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "truncation": False,
                 "output_encoding": "base64",
                 "vectorizeClassName": False,
-                "baseURL": "https://api.voyageai.com",
+                "baseURL": "https://api.voyageai.com/",
             }
         },
     ),
