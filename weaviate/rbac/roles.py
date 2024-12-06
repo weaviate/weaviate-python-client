@@ -142,8 +142,8 @@ class _RolesAsync(_RolesBase):
         """
         return {role["name"]: Role._from_weaviate_role(role) for role in await self._get_roles()}
 
-    async def get_current_roles(self) -> Dict[str, Role]:
-        """Get all roles for current user.
+    async def of_current_user(self) -> Dict[str, Role]:
+        """Get all roles for current user. The user is determined by the API key supplied to the client.
 
         Returns:
             A dictionary with user names as keys and the `Role` objects as values.
@@ -191,7 +191,7 @@ class _RolesAsync(_RolesBase):
             for role in await self._get_roles_of_user(user)
         }
 
-    async def users(self, user_name: str) -> Dict[str, User]:
+    async def assigned_users(self, user_name: str) -> Dict[str, User]:
         """Get the users that have been assigned this role.
 
         Args:
