@@ -2,7 +2,7 @@ import datetime
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, TypeVar, Union, cast, Optional
+from typing import Any, Dict, Mapping, Sequence, Tuple, TypeVar, Union, cast, Optional
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -16,7 +16,7 @@ from weaviate.types import NUMBER
 # from grpclib.client import Channel
 
 
-JSONPayload = Union[dict, list]
+JSONPayload = Union[Mapping[str, Any], Sequence[Any]]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
 

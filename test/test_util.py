@@ -2,6 +2,7 @@ import unittest
 import uuid as uuid_lib
 from copy import deepcopy
 from unittest.mock import patch, Mock
+
 import pytest
 
 from test.util import check_error_message
@@ -10,13 +11,11 @@ from weaviate.util import (
     generate_uuid5,
     image_decoder_b64,
     image_encoder_b64,
-    generate_local_beacon,
     is_object_url,
     is_weaviate_object_url,
     get_vector,
     get_valid_uuid,
     get_domain_from_weaviate_url,
-    _get_dict_from_object,
     _is_sub_schema,
     parse_version_string,
     is_weaviate_too_old,
@@ -113,108 +112,6 @@ schema_company = {
 
 
 class TestUtil(unittest.TestCase):
-    def test_generate_local_beacon(self):
-        """
-        Test the `generate_local_beacon` function.
-        """
-
-        type_error_message = "Expected to_object_uuid of type str or uuid.UUID"
-        value_error_message = "Uuid does not have the proper form"
-        # wrong data type
-        with self.assertRaises(TypeError) as error:
-            generate_local_beacon(None)
-        check_error_message(self, error, type_error_message)
-        # wrong value
-        with self.assertRaises(ValueError) as error:
-            generate_local_beacon("Leeroy Jenkins")
-        check_error_message(self, error, value_error_message)
-
-        beacon = generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35a")
-        self.assertTrue("beacon" in beacon)
-        self.assertEqual(
-            beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35a"
-        )
-
-        beacon = generate_local_beacon("fcf33178-1b5d-5174-b2e7-04a2129dd35b")
-        self.assertTrue("beacon" in beacon)
-        self.assertEqual(
-            beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b"
-        )
-
-        beacon = generate_local_beacon("fcf331781b5d5174b2e704a2129dd35b")
-        self.assertTrue("beacon" in beacon)
-        self.assertEqual(
-            beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b"
-        )
-
-        beacon = generate_local_beacon(uuid_lib.UUID("fcf33178-1b5d-5174-b2e7-04a2129dd35b"))
-        self.assertTrue("beacon" in beacon)
-        self.assertEqual(
-            beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b"
-        )
-
-        beacon = generate_local_beacon(uuid_lib.UUID("fcf331781b5d5174b2e704a2129dd35b"))
-        self.assertTrue("beacon" in beacon)
-        self.assertEqual(
-            beacon["beacon"], "weaviate://localhost/fcf33178-1b5d-5174-b2e7-04a2129dd35b"
-        )
-
-        beacon = generate_local_beacon(uuid_lib.UUID("fcf331781b5d5174b2e704a2129dd35b"), "Test1")
-        self.assertTrue("beacon" in beacon)
-        self.assertEqual(
-            beacon["beacon"], "weaviate://localhost/Test1/fcf33178-1b5d-5174-b2e7-04a2129dd35b"
-        )
-
-        beacon = generate_local_beacon(uuid_lib.UUID("fcf331781b5d5174b2e704a2129dd35b"), "test2")
-        self.assertTrue("beacon" in beacon)
-        self.assertEqual(
-            beacon["beacon"], "weaviate://localhost/Test2/fcf33178-1b5d-5174-b2e7-04a2129dd35b"
-        )
-
-    def test__get_dict_from_object(self):
-        """
-        Test the `_get_dict_from_object` function.
-        """
-
-        none_error_message = "argument is None"
-        file_error_message = "No file found at location "
-        url_error_message = "Could not download file "
-        type_error_message = (
-            "Argument is not of the supported types. Supported types are "
-            "url or file path as string or schema as dict."
-        )
-        # test wrong type None
-        with self.assertRaises(TypeError) as error:
-            _get_dict_from_object(None)
-        check_error_message(self, error, none_error_message)
-        # wrong data type
-        with self.assertRaises(TypeError) as error:
-            _get_dict_from_object([{"key": 1234}])
-        check_error_message(self, error, type_error_message)
-        # wrong path
-        with self.assertRaises(ValueError) as error:
-            _get_dict_from_object("not_a_path_or_url.txt")
-        check_error_message(self, error, file_error_message + "not_a_path_or_url.txt")
-        # wrong URL or non existing one or failure of requests.get
-        with patch("weaviate.util.requests") as mock_obj:
-            result_mock = Mock()
-            result_mock.status_code = 404
-            mock_obj.get.return_value = result_mock
-            with self.assertRaises(ValueError) as error:
-                _get_dict_from_object("http://www.url.com")
-            check_error_message(self, error, url_error_message + "http://www.url.com")
-            mock_obj.get.assert_called()
-
-        # valid calls
-        self.assertEqual(_get_dict_from_object({"key": "val"}), {"key": "val"})
-        # read from file
-        path = "/".join(__file__.split("/")[:-1])
-        self.assertEqual(
-            _get_dict_from_object(f"{path}/schema/schema_company.json"), schema_company
-        )
-        # read from URL
-        path = "https://raw.githubusercontent.com/semi-technologies/weaviate-python-client/main/test/schema/schema_company.json"
-        self.assertEqual(_get_dict_from_object(path), schema_company)
 
     def test_is_weaviate_object_url(self):
         """
