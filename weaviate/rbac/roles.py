@@ -231,7 +231,7 @@ class _RolesAsync(_RolesBase):
         }
         return Role._from_weaviate_role(await self._post_roles(role))
 
-    async def assign(self, *, role_names: Union[str, List[str]], user: str) -> None:
+    async def assign_to_user(self, *, role_names: Union[str, List[str]], user: str) -> None:
         """Assign roles to a user.
 
         Args:
@@ -242,7 +242,7 @@ class _RolesAsync(_RolesBase):
             [role_names] if isinstance(role_names, str) else role_names, user
         )
 
-    async def revoke(self, *, role_names: Union[str, List[str]], user: str) -> None:
+    async def revoke_from_user(self, *, role_names: Union[str, List[str]], user: str) -> None:
         """Revoke roles from a user.
 
         Args:
