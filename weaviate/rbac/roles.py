@@ -5,6 +5,7 @@ from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
     _Permission,
+    PermissionsOutputType,
     PermissionsInputType,
     Role,
     User,
@@ -128,6 +129,17 @@ class _RolesBase:
             error_msg="Could not remove permissions",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Remove permissions"),
         )
+
+    async def _has_permission(self, permission: WeaviatePermission, role: str) -> bool:
+        path = f"/authz/roles/{role}/has-permission"
+
+        res = await self._connection.post(
+            path,
+            weaviate_object=permission,
+            error_msg="Could not check permission",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Check permission"),
+        )
+        return cast(bool, res.json())
 
 
 class _RolesAsync(_RolesBase):
@@ -286,6 +298,20 @@ class _RolesAsync(_RolesBase):
             [permission._to_weaviate() for permission in _flatten_permissions(permissions)],
             role_name,
         )
+
+    async def has_permission(
+        self, *, permission: Union[_Permission, PermissionsOutputType], role: str
+    ) -> bool:
+        """Check if a role has a specific permission.
+
+        Args:
+            permission: The permission to check.
+            role: The role to check the permission for.
+
+        Returns:
+            True if the role has the permission, False otherwise.
+        """
+        return await self._has_permission(permission._to_weaviate(), role)
 
 
 def _flatten_permissions(permissions: PermissionsInputType) -> List[_Permission]:
