@@ -110,21 +110,21 @@ class _RolesBase:
         )
 
     async def _add_permissions(self, permissions: List[WeaviatePermission], role: str) -> None:
-        path = "/authz/roles/add-permissions"
+        path = f"/authz/roles/{role}/add-permissions"
 
         await self._connection.post(
             path,
-            weaviate_object={"permissions": permissions, "name": role},
+            weaviate_object={"permissions": permissions},
             error_msg="Could not add permissions",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Add permissions"),
         )
 
     async def _remove_permissions(self, permissions: List[WeaviatePermission], role: str) -> None:
-        path = "/authz/roles/remove-permissions"
+        path = f"/authz/roles/{role}/remove-permissions"
 
         await self._connection.post(
             path,
-            weaviate_object={"permissions": permissions, "name": role},
+            weaviate_object={"permissions": permissions},
             error_msg="Could not remove permissions",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Remove permissions"),
         )
