@@ -204,6 +204,42 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
             client.roles.delete(role_name)
 
 
+def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
+            pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        role_name = "ExistingRolePermissions"
+        try:
+            client.roles.create(
+                role_name=role_name,
+                permissions=Permissions.collections(
+                    collection="*", create_collection=True, delete_collection=True
+                ),
+            )
+            role = client.roles.by_name(role_name)
+
+            assert role is not None
+            assert role.collections_permissions is not None
+            assert len(role.collections_permissions) == 2
+            assert len(role.permissions) == 2
+
+            client.roles.remove_permissions(
+                permissions=[
+                    Permissions.collections(collection="*", delete_collection=True),
+                ],
+                role_name=role_name,
+            )
+
+            role = client.roles.by_name(role_name)
+            assert role is not None
+            assert role.collections_permissions is not None
+            assert len(role.collections_permissions) == 1
+            assert len(role.permissions) == 1
+            assert role.collections_permissions[0].action == Actions.Collections.CREATE
+        finally:
+            client.roles.delete(role_name)
+
+
 def test_own_roles(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
