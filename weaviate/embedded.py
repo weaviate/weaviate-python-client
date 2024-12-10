@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-import requests
+import httpx
 import validators
 
 from weaviate import exceptions
@@ -88,9 +88,7 @@ class _EmbeddedBase:
             self._parsed_weaviate_version = version_tag
             self._set_download_url_from_version_tag(version_tag)
         elif self.options.version == "latest":
-            response = requests.get(
-                "https://api.github.com/repos/weaviate/weaviate/releases/latest"
-            )
+            response = httpx.get("https://api.github.com/repos/weaviate/weaviate/releases/latest")
             latest = _decode_json_response_dict(response, "get tag of latest weaviate release")
             assert latest is not None
             self._set_download_url_from_version_tag(latest["tag_name"])

@@ -61,7 +61,6 @@ class _AggregateAsync:
     def _query(self) -> AggregateBuilder:
         return AggregateBuilder(
             self.__name,
-            self._connection,  # type: ignore # not being used since we query manually in _do
         )
 
     def _to_aggregate_result(

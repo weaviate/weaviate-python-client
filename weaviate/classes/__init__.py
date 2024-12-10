@@ -1,7 +1,6 @@
-from .config import ConsistencyLevel
-
 # make sure to import all classes that should be available in the weaviate module
-from . import aggregate, batch, config, data, generics, init, query, tenants  # noqa: F401
+from . import aggregate, batch, config, data, generics, init, query, tenants, rbac  # noqa: F401
+from .config import ConsistencyLevel
 
 __all__ = [
     "aggregate",
@@ -13,4 +12,5 @@ __all__ = [
     "init",
     "query",
     "tenants",
+    "rbac",
 ]
