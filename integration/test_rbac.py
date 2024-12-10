@@ -144,7 +144,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        role_name = "ExistingRolePermissions"
+        role_name = "ExistingRolePermissionsAdd"
         try:
             client.roles.create(
                 role_name=role_name,
@@ -180,7 +180,7 @@ def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        role_name = "ExistingRolePermissions"
+        role_name = "ExistingRolePermissionsRemove"
         try:
             client.roles.create(
                 role_name=role_name,
