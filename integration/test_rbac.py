@@ -237,5 +237,12 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
             assert len(role.data_permissions) == 2
             assert role.data_permissions[0].action == Actions.Data.CREATE
             assert role.data_permissions[1].action == Actions.Data.UPDATE
+
+            assert client.roles.has_permission(
+                permission=role.collections_permissions[0], role=role_name
+            )
+            assert client.roles.has_permission(
+                permission=required_permissions[1][0], role=role_name
+            )
         finally:
             client.roles.delete(role_name)
