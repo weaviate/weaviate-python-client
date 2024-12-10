@@ -121,34 +121,6 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 nodes_permissions=[],
             ),
         ),
-        (
-            Permissions.collections(collection="Test", manage_collection=True),
-            Role(
-                name="ManageTestCollection",
-                cluster_permissions=[],
-                users_permissions=[],
-                collections_permissions=[
-                    CollectionsPermission(collection="Test", action=Actions.Collections.MANAGE)
-                ],
-                roles_permissions=[],
-                data_permissions=[],
-                backups_permissions=[],
-                nodes_permissions=[],
-            ),
-        ),
-        (
-            Permissions.data(collection="Test", manage=True),
-            Role(
-                name="ManageTestData",
-                cluster_permissions=[],
-                users_permissions=[],
-                collections_permissions=[],
-                roles_permissions=[],
-                data_permissions=[DataPermission(collection="Test", action=Actions.Data.MANAGE)],
-                backups_permissions=[],
-                nodes_permissions=[],
-            ),
-        ),
     ],
 )
 def test_create_role(client_factory: ClientFactory, permissions, expected) -> None:

@@ -461,12 +461,6 @@ class _DataFactory:
             collection=collection, tenant="*", object_="*", action=DataAction.DELETE
         )
 
-    @staticmethod
-    def manage(*, collection: str) -> _DataPermission:
-        return _DataPermission(
-            collection=collection, tenant="*", object_="*", action=DataAction.MANAGE
-        )
-
 
 class _CollectionsFactory:
     @staticmethod
@@ -491,12 +485,6 @@ class _CollectionsFactory:
     def delete(*, collection: Optional[str] = None) -> _CollectionsPermission:
         return _CollectionsPermission(
             collection=collection or "*", tenant="*", action=CollectionsAction.DELETE
-        )
-
-    @staticmethod
-    def manage(*, collection: Optional[str] = None) -> _CollectionsPermission:
-        return _CollectionsPermission(
-            collection=collection or "*", tenant="*", action=CollectionsAction.MANAGE
         )
 
 
@@ -557,7 +545,6 @@ class Permissions:
         read: bool = False,
         update: bool = False,
         delete: bool = False,
-        manage: bool = False,
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
         if isinstance(collection, str):
@@ -571,8 +558,6 @@ class Permissions:
                 permissions.append(_DataFactory.update(collection=c))
             if delete:
                 permissions.append(_DataFactory.delete(collection=c))
-            if manage:
-                permissions.append(_DataFactory.manage(collection=c))
         return permissions
 
     @staticmethod
@@ -583,7 +568,6 @@ class Permissions:
         read_config: bool = False,
         update_config: bool = False,
         delete_collection: bool = False,
-        manage_collection: bool = False,
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
         if isinstance(collection, str):
@@ -597,8 +581,6 @@ class Permissions:
                 permissions.append(_CollectionsFactory.update(collection=c))
             if delete_collection:
                 permissions.append(_CollectionsFactory.delete(collection=c))
-            if manage_collection:
-                permissions.append(_CollectionsFactory.manage(collection=c))
         return permissions
 
     @staticmethod
