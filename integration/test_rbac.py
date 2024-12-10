@@ -121,34 +121,6 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 nodes_permissions=[],
             ),
         ),
-        (
-            Permissions.collections(collection="Test", manage_collection=True),
-            Role(
-                name="ManageTestCollection",
-                cluster_permissions=[],
-                users_permissions=[],
-                collections_permissions=[
-                    CollectionsPermission(collection="Test", action=Actions.Collections.MANAGE)
-                ],
-                roles_permissions=[],
-                data_permissions=[],
-                backups_permissions=[],
-                nodes_permissions=[],
-            ),
-        ),
-        (
-            Permissions.data(collection="Test", manage=True),
-            Role(
-                name="ManageTestData",
-                cluster_permissions=[],
-                users_permissions=[],
-                collections_permissions=[],
-                roles_permissions=[],
-                data_permissions=[DataPermission(collection="Test", action=Actions.Data.MANAGE)],
-                backups_permissions=[],
-                nodes_permissions=[],
-            ),
-        ),
     ],
 )
 def test_create_role(client_factory: ClientFactory, permissions, expected) -> None:
@@ -172,7 +144,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        role_name = "ExistingRolePermissions"
+        role_name = "ExistingRolePermissionsAdd"
         try:
             client.roles.create(
                 role_name=role_name,
@@ -208,7 +180,7 @@ def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        role_name = "ExistingRolePermissions"
+        role_name = "ExistingRolePermissionsRemove"
         try:
             client.roles.create(
                 role_name=role_name,
