@@ -1,6 +1,21 @@
 Changelog
 =========
 
+Version 4.10.0
+--------------
+
+This minor version includes:
+    - Support for new 1.28 features:
+        - RBAC (experimental, breaking changes are expected)
+    - Add VoyageAI's new multimodal embedding model
+    - Remove copy of v3-client. If you are still using v4 code please either:
+        - Update your code to v4: https://weaviate.io/developers/weaviate/client-libraries/python/v3_v4_migration
+        - Use the v3-client directly: weaviate-client>=3.26.7;<4.0.0
+    - Upgrade protobuf to v5
+    - Add support for python 3.13
+    - Weaviate v1.23 and v1.24 are NOT supported anymore
+
+
 Version 4.9.6
 --------------
 
