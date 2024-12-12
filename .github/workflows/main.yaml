@@ -14,6 +14,7 @@ on:
   pull_request:
 
 env:
+  WEAVIATE_124: 1.24.26
   WEAVIATE_125: 1.25.24
   WEAVIATE_126: 1.26.8
   WEAVIATE_127: 1.27.1
@@ -119,13 +120,10 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_128},
-          { py: "3.10", weaviate: $WEAVIATE_128},
-          { py: "3.11", weaviate: $WEAVIATE_125},
+          { py: "3.9", weaviate: $WEAVIATE_124},
+          { py: "3.10", weaviate: $WEAVIATE_125},
           { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.11", weaviate: $WEAVIATE_127},
-          { py: "3.11", weaviate: $WEAVIATE_128},
-          { py: "3.12", weaviate: $WEAVIATE_128},
+          { py: "3.12", weaviate: $WEAVIATE_127},
           { py: "3.13", weaviate: $WEAVIATE_128}
         ]
         optional_dependencies: [false]
