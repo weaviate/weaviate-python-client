@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.10.1
+--------------
+This patch version includes:
+    - Fixes compatibility with ``httpx`` to 0.28.X which requires updating the minimum required version to 0.26.0
+    - Remove outdated docs
+
 Version 4.10.0
 --------------
 
