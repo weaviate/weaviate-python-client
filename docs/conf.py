@@ -7,7 +7,7 @@ import contextlib
 import os
 import sys
 
-from pkg_resources import DistributionNotFound, get_distribution
+from importlib.metadata import version, PackageNotFoundError
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -28,15 +28,14 @@ def chdir(directory):
 
 
 try:
-    dist = get_distribution("weaviate")
-except DistributionNotFound:
+    dist = version("weaviate")
+except PackageNotFoundError:
     # The project is not installed in readthedocs environment. Read the version with setuptools_scm.
     import setuptools_scm
 
     with chdir(".."):
         release = setuptools_scm.get_version()
-else:
-    release = dist.version
+
 
 # -- Project information -----------------------------------------------------
 
