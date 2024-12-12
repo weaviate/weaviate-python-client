@@ -7,7 +7,8 @@ import contextlib
 import os
 import sys
 
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as version_func
 
 # -- Path setup --------------------------------------------------------------
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -28,7 +29,7 @@ def chdir(directory):
 
 
 try:
-    dist = version("weaviate")
+    version = version_func("weaviate")
 except PackageNotFoundError:
     # The project is not installed in readthedocs environment. Read the version with setuptools_scm.
     import setuptools_scm
