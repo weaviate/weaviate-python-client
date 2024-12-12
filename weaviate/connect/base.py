@@ -1,7 +1,6 @@
 import datetime
 import os
 import time
-from abc import ABC, abstractmethod
 from typing import Any, Dict, Mapping, Sequence, Tuple, TypeVar, Union, cast, Optional
 from urllib.parse import urlparse
 
@@ -139,17 +138,7 @@ class ConnectionParams(BaseModel):
         return f"{self._http_scheme}://{self.http.host}:{self.http.port}"
 
 
-class _ConnectionBase(ABC):
-    @abstractmethod
-    def get_current_bearer_token(self) -> str:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_proxies(self) -> dict:
-        raise NotImplementedError
-
-
-def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> dict:
+def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> Dict[str, str]:
     """
     Get proxies as dict, compatible with 'requests' library.
     NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'

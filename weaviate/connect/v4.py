@@ -44,7 +44,6 @@ from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
     JSONPayload,
-    _ConnectionBase,
     _get_proxies,
 )
 from weaviate.connect.integrations import _IntegrationConfig
@@ -87,7 +86,7 @@ class _ExpectedStatusCodes:
             self.ok = self.ok_in
 
 
-class ConnectionV4(_ConnectionBase):
+class ConnectionV4:
     """
     Connection class used to communicate to a weaviate instance.
     """
@@ -217,7 +216,7 @@ class ConnectionV4(_ConnectionBase):
             self._headers.update(integration._to_header())
             self.__additional_headers.update(integration._to_header())
 
-    def __make_mounts(self) -> Dict[str, AsyncHTTPTransport]:
+    def _make_mounts(self) -> Dict[str, AsyncHTTPTransport]:
         return {
             f"{key}://" if key == "http" or key == "https" else key: AsyncHTTPTransport(
                 limits=Limits(
@@ -235,7 +234,7 @@ class ConnectionV4(_ConnectionBase):
     def __make_async_client(self) -> AsyncClient:
         return AsyncClient(
             headers=self._headers,
-            mounts=self.__make_mounts(),
+            mounts=self._make_mounts(),
             trust_env=self.__trust_env,
         )
 
@@ -596,7 +595,7 @@ class ConnectionV4(_ConnectionBase):
         """
         return str(self._weaviate_version)
 
-    def get_proxies(self) -> dict:
+    def get_proxies(self) -> Dict[str, str]:
         return self._proxies
 
     @property
