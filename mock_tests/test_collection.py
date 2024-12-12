@@ -34,25 +34,36 @@ from weaviate.collections.classes.config import (
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.exceptions import (
-    UnexpectedStatusCodeError,
     WeaviateStartUpError,
     BackupCanceledError,
+    InsufficientPermissionsError,
+    UnexpectedStatusCodeError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
 REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
 
 
-def test_status_code_exception(weaviate_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
-    weaviate_mock.expect_request("/v1/schema/Test").respond_with_json(response_json={}, status=403)
+def test_insufficient_permissions(
+    weaviate_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    weaviate_mock.expect_request("/v1/schema/Test").respond_with_json(
+        response_json={"error": [{"message": "this is an error"}]}, status=403
+    )
 
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
     collection = client.collections.get("Test")
-    with pytest.raises(UnexpectedStatusCodeError) as e:
+
+    with pytest.raises(InsufficientPermissionsError) as e1:
         collection.config.get()
-    assert e.value.status_code == 403
+    assert "this is an error" in e1.value.message
+
+    with pytest.raises(UnexpectedStatusCodeError) as e2:
+        collection.config.get()
+    assert e2.value.status_code == 403
+
     weaviate_mock.check_assertions()
 
 
@@ -449,3 +460,17 @@ def test_grpc_retry_logic(
     assert len(tenants) == 1
     assert tenants[0].name == "tenant1"
     assert service.tenants_count == 2
+
+
+def test_grpc_forbidden_exception(forbidden: weaviate.collections.Collection) -> None:
+    with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
+        forbidden.query.fetch_objects()
+
+    with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
+        forbidden.tenants.get()
+
+    with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
+        forbidden.data.delete_many(where=wvc.query.Filter.by_property("name").equal("test"))
+
+    with pytest.raises(weaviate.exceptions.InsufficientPermissionsError):
+        forbidden.data.insert_many([{"name": "test"}])
