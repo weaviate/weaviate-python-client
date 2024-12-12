@@ -35,7 +35,6 @@ from . import (
     connect,
     embedded,
     exceptions,
-    gql,
     outputs,
     types,
 )
@@ -69,7 +68,6 @@ __all__ = [
     "connect",
     "embedded",
     "exceptions",
-    "gql",
     "outputs",
     "types",
     "use_async_with_custom",

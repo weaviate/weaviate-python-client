@@ -38,6 +38,10 @@ jobs:
         run: |
           python -m build
           python -m twine check dist/*
+      - name: Build the docs (results don't matter)
+        run: |
+          cd docs
+          python -m sphinx -T -b html -d _build/doctrees -D language=en . html
 
   type-checking:
     name: Run Type Checking
@@ -308,7 +312,6 @@ jobs:
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
         run: pytest -v -n auto integration
-
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
