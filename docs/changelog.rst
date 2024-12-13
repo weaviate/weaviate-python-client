@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.20.2
+--------------
+This patch version includes:
+    - Fixes issue with query parameters in ``cluster.nodes`` method due to dependence on bugged behaviour of ``httpx`` that was fixed in ``0.28.0``
+
 Version 4.10.1
 --------------
 This patch version includes:
