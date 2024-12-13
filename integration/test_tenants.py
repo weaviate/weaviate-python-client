@@ -22,6 +22,20 @@ from weaviate.collections.tenants import TenantCreateInputType
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 
 
+def test_shards_on_tenants(client_factory: ClientFactory, collection_factory: CollectionFactory):
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        multi_tenancy_config=Configure.multi_tenancy(enabled=True),
+    )
+    collection.tenants.create(Tenant(name="tenant1"))
+    client = client_factory()
+    count = sum(
+        len(node.shards) for node in client.cluster.nodes(collection.name, output="verbose")
+    )
+
+    assert count == 1
+
+
 @pytest.mark.parametrize("tenant", ["tenant1", Tenant(name="tenant1")])
 def test_delete_by_id_tenant(
     collection_factory: CollectionFactory, tenant: Union[str, Tenant]
