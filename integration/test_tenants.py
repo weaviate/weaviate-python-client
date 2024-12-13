@@ -22,16 +22,18 @@ from weaviate.collections.tenants import TenantCreateInputType
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 
 
-def test_shards_on_tenants(client_factory: ClientFactory, collection_factory: CollectionFactory):
+def test_shards_on_tenants(
+    client_factory: ClientFactory, collection_factory: CollectionFactory
+) -> None:
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     collection.tenants.create(Tenant(name="tenant1"))
     client = client_factory()
-    count = sum(
-        len(node.shards) for node in client.cluster.nodes(collection.name, output="verbose")
-    )
+
+    nodes = client.cluster.nodes(collection.name, output="verbose")
+    count = sum(len(node.shards) for node in nodes)
 
     assert count == 1
 

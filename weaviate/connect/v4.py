@@ -568,7 +568,7 @@ class ConnectionV4:
         return await self.__send(
             "GET",
             url=self.url + self._api_version_path + path,
-            params=params if params is not None else {},
+            params=params,
             error_msg=error_msg,
             status_codes=status_codes,
         )
