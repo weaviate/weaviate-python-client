@@ -825,3 +825,9 @@ def test_filter_by_ref_and_multi_ref(collection_factory: CollectionFactory) -> N
     ).objects
 
     assert objects[0].uuid == uuid23
+
+
+def test_auto_capitalize_by_ref_multi_target() -> None:
+    result = Filter.by_ref_multi_target(link_on="ref1", target_collection="test")
+    target_collection_stored = result._FilterByRef__target.target_collection
+    assert target_collection_stored == "Test"

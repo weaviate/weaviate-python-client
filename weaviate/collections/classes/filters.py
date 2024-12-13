@@ -538,6 +538,7 @@ class Filter:
     @staticmethod
     def by_ref_multi_target(link_on: str, target_collection: str) -> _FilterByRef:
         """Define a filter based on a reference to be used when querying and deleting from a collection."""
+        target_collection = _capitalize_first_letter(target_collection)
         return _FilterByRef(_MultiTargetRef(link_on=link_on, target_collection=target_collection))
 
     @staticmethod
