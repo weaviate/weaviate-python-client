@@ -165,19 +165,19 @@ def test_embedded_create_restore_backup(tmp_path_factory: pytest.TempPathFactory
     collection_name = "BackedUp"
     backup_id = "backup0"
 
-    try:
-        client = weaviate.connect_to_embedded(
-            persistence_data_path=tmp_path_factory.mktemp("data"),
-            port=8164,
-            grpc_port=50500,
-            environment_variables={
-                "ENABLE_MODULES": "backup-filesystem",
-                "BACKUP_FILESYSTEM_PATH": tmp_path_factory.mktemp("backup"),
-                "DISABLE_TELEMETRY": "true",
-            },
-            version="latest",
-        )
+    client = weaviate.connect_to_embedded(
+        persistence_data_path=tmp_path_factory.mktemp("data"),
+        port=8164,
+        grpc_port=50500,
+        environment_variables={
+            "ENABLE_MODULES": "backup-filesystem",
+            "BACKUP_FILESYSTEM_PATH": tmp_path_factory.mktemp("backup"),
+            "DISABLE_TELEMETRY": "true",
+        },
+        version="latest",
+    )
 
+    try:
         col = client.collections.create(collection_name)
         with col.batch.dynamic() as batch:
             for i in range(num_objects):
