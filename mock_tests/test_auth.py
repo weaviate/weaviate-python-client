@@ -34,13 +34,14 @@ def test_user_password(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.S
         "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
     ).respond_with_json({"classes": []})
 
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.AuthClientPassword(user, pw),
-    )
-    client.collections.list_all()  # some call that includes authorization
+    ) as client:
+        client.collections.list_all()  # some call that includes authorization
+    weaviate_auth_mock.check_assertions()
 
 
 def test_bearer_token(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
@@ -49,13 +50,15 @@ def test_bearer_token(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Se
         "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
     ).respond_with_json({"classes": []})
 
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.AuthBearerToken(ACCESS_TOKEN, refresh_token=REFRESH_TOKEN),
-    )
-    client.collections.list_all()  # some call that includes authorization
+    ) as client:
+        client.collections.list_all()  # some call that includes authorization
+
+    weaviate_auth_mock.check_assertions()
 
 
 def test_client_credentials(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server):
@@ -67,13 +70,15 @@ def test_client_credentials(weaviate_auth_mock: HTTPServer, start_grpc_server: g
         "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
     ).respond_with_json({"classes": []})
 
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.AuthClientCredentials(client_secret=CLIENT_SECRET, scope=SCOPE),
-    )
-    client.collections.list_all()  # some call that includes authorization
+    ) as client:
+        client.collections.list_all()  # some call that includes authorization
+
+    weaviate_auth_mock.check_assertions()
 
 
 @pytest.mark.parametrize("header_name", ["Authorization", "authorization"])
@@ -97,7 +102,7 @@ def test_auth_header_priority(
 
     weaviate_auth_mock.expect_request("/v1/schema").respond_with_handler(handler)
 
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
@@ -105,8 +110,10 @@ def test_auth_header_priority(
             access_token=ACCESS_TOKEN, refresh_token="SOMETHING"
         ),
         headers={header_name: "Bearer " + bearer_token},
-    )
-    client.collections.list_all()  # some call that includes authorization
+    ) as client:
+        client.collections.list_all()  # some call that includes authorization
+
+    weaviate_auth_mock.check_assertions()
 
     w = [w for w in recwarn if str(w.message).startswith("Auth004")]
     assert len(w) == 1
@@ -129,16 +136,17 @@ def test_refresh(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server)
             "refresh_token": REFRESH_TOKEN + str(time.time()),
         }
     )
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.AuthBearerToken(
             ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1
         ),
-    )
-    # client gets a new token 5s before expiration
-    client.collections.list_all()  # some call that includes authorization
+    ) as client:
+        # client gets a new token 5s before expiration
+        client.collections.list_all()  # some call that includes authorization
+    weaviate_auth_mock.check_assertions()
 
 
 def test_refresh_of_refresh(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
@@ -168,20 +176,21 @@ def test_refresh_of_refresh(weaviate_auth_mock: HTTPServer, start_grpc_server: g
 
     weaviate_auth_mock.expect_request("/auth").respond_with_handler(handler)
 
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.AuthBearerToken(
             ACCESS_TOKEN, refresh_token=REFRESH_TOKEN + str(refresh_calls), expires_in=1
         ),
-    )
-    # client gets a new token 5s before expiration
-    time.sleep(5)
-    client.collections.list_all()  # some call that includes authorization
+    ) as client:
+        # client gets a new token 5s before expiration
+        time.sleep(5)
+        client.collections.list_all()
 
     # make sure that refresh token was actually refreshed and used again
     assert refresh_calls > 1
+    weaviate_auth_mock.check_assertions()
 
 
 def test_auth_header_without_weaviate_auth(
@@ -193,13 +202,14 @@ def test_auth_header_without_weaviate_auth(
         "/v1/schema", headers={"Authorization": "Bearer " + bearer_token}
     ).respond_with_json({"classes": []})
 
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         headers={"Authorization": "Bearer " + bearer_token},
-    )
-    client.collections.list_all()  # some call that includes authorization
+    ) as client:
+        client.collections.list_all()  # some call that includes authorization
+    weaviate_mock.check_assertions()
 
 
 def test_auth_header_with_catchall_proxy(
@@ -211,15 +221,16 @@ def test_auth_header_with_catchall_proxy(
         "JsonCannotParseThis"
     )
 
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.AuthClientPassword(
             username="test-username", password="test-password"
         ),
-    )
-    client.collections.list_all()  # some call that includes authorization
+    ) as client:
+        client.collections.list_all()  # some call that includes authorization
+    weaviate_mock.check_assertions()
 
     w = [w for w in recwarn if str(w.message).startswith("Auth005")]
     assert len(w) == 1
@@ -260,17 +271,17 @@ def test_token_refresh_timeout(
         "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN + "_1"}
     ).respond_with_json({"classes": []})
 
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.AuthBearerToken(
             ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1  # force immediate refresh
         ),
-    )
-
-    time.sleep(9)  # sleep longer than the timeout, to give client time to retry
-    client.collections.list_all()
+    ) as client:
+        time.sleep(9)  # sleep longer than the timeout, to give client time to retry
+        client.collections.list_all()
+    weaviate_auth_mock.check_assertions()
 
     w = [w for w in recwarn if str(w.message).startswith("Con001")]
     assert len(w) == 1
@@ -307,13 +318,13 @@ def test_with_simple_auth_no_oidc_via_additional_headers(
         "/v1/schema", headers={"Authorization": "Bearer " + "Super-secret-key"}
     ).respond_with_json({"classes": []})
 
-    client = weaviate.connect_to_local(
+    with weaviate.connect_to_local(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         headers={"Authorization": "Bearer " + "Super-secret-key"},
-    )
-    client.collections.list_all()
+    ) as client:
+        client.collections.list_all()
 
     weaviate_mock.check_assertions()
 
