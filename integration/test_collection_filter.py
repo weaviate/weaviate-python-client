@@ -825,4 +825,3 @@ def test_filter_by_ref_and_multi_ref(collection_factory: CollectionFactory) -> N
     ).objects
 
     assert objects[0].uuid == uuid23
-
