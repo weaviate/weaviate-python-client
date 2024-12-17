@@ -87,6 +87,7 @@ def test_filter_bitwise_or_assignment() -> None:
     assert f4.filters[0].filters == or_direct.filters[0].filters
     assert f4.filters[1] == f3
 
+
 def test_auto_capitalize_first_letter_by_ref_multi_target() -> None:
     result = Filter.by_ref_multi_target(link_on="ref1", target_collection="test")
     target_collection_stored = result._FilterByRef__target.target_collection
