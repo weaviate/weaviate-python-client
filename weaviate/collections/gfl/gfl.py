@@ -37,7 +37,7 @@ class _GFLBase:
     def __init__(self, connection: ConnectionV4, name: str):
         self._connection = connection
         self._name = name
-        self._gfl_host = "https://gfl.labs.weaviate.io"
+        self._gfl_host = connection.gfl_host or "https://gfl.labs.weaviate.io"
         self._cluster_host = connection.url.replace(":443", "")
         self._headers = {"Content-Type": "application/json"}
         self._headers.update(connection.additional_headers)

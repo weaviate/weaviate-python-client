@@ -102,6 +102,7 @@ class ConnectionV4(_ConnectionBase):
         connection_config: ConnectionConfig,
         loop: asyncio.AbstractEventLoop,  # required for background token refresh
         embedded_db: Optional[EmbeddedV4] = None,
+        gfl_host: str = None
     ):
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
@@ -119,6 +120,7 @@ class ConnectionV4(_ConnectionBase):
         self._grpc_max_msg_size: Optional[int] = None
         self.__connected = False
         self.__loop = loop
+        self.gfl_host = gfl_host
 
         self._headers = {"content-type": "application/json"}
         self.__add_weaviate_embedding_service_header(connection_params.http.host)

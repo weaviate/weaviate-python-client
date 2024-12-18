@@ -83,6 +83,7 @@ class _WeaviateClientInit:
             proxies=config.proxies,
             trust_env=config.trust_env,
             loop=self._loop,
+            gfl_host=config.gfl_host
         )
 
         self.integrations = _Integrations(self._connection)

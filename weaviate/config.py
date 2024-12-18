@@ -81,6 +81,7 @@ class AdditionalConfig(BaseModel):
     proxies: Union[str, Proxies, None] = Field(default=None)
     timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
     trust_env: bool = Field(default=False)
+    gfl_host: str | None = None
 
     @property
     def timeout(self) -> Timeout:
