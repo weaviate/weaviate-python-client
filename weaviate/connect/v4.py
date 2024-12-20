@@ -44,7 +44,6 @@ from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
     JSONPayload,
-    _ConnectionBase,
     _get_proxies,
 )
 from weaviate.connect.integrations import _IntegrationConfig
@@ -57,6 +56,7 @@ from weaviate.exceptions import (
     WeaviateGRPCUnavailableError,
     WeaviateStartUpError,
     WeaviateTimeoutError,
+    InsufficientPermissionsError,
 )
 from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.util import (
@@ -86,7 +86,7 @@ class _ExpectedStatusCodes:
             self.ok = self.ok_in
 
 
-class ConnectionV4(_ConnectionBase):
+class ConnectionV4:
     """
     Connection class used to communicate to a weaviate instance.
     """
@@ -216,7 +216,7 @@ class ConnectionV4(_ConnectionBase):
             self._headers.update(integration._to_header())
             self.__additional_headers.update(integration._to_header())
 
-    def __make_mounts(self) -> Dict[str, AsyncHTTPTransport]:
+    def _make_mounts(self) -> Dict[str, AsyncHTTPTransport]:
         return {
             f"{key}://" if key == "http" or key == "https" else key: AsyncHTTPTransport(
                 limits=Limits(
@@ -234,7 +234,7 @@ class ConnectionV4(_ConnectionBase):
     def __make_async_client(self) -> AsyncClient:
         return AsyncClient(
             headers=self._headers,
-            mounts=self.__make_mounts(),
+            mounts=self._make_mounts(),
             trust_env=self.__trust_env,
         )
 
@@ -474,6 +474,8 @@ class ConnectionV4(_ConnectionBase):
                 timeout=self.__get_timeout(method, is_gql_query),
             )
             res = await self._client.send(req)
+            if res.status_code == 403:
+                raise InsufficientPermissionsError(res)
             if status_codes is not None and res.status_code not in status_codes.ok:
                 raise UnexpectedStatusCodeError(error_msg, response=res)
             return cast(Response, res)
@@ -566,7 +568,7 @@ class ConnectionV4(_ConnectionBase):
         return await self.__send(
             "GET",
             url=self.url + self._api_version_path + path,
-            params=params if params is not None else {},
+            params=params,
             error_msg=error_msg,
             status_codes=status_codes,
         )
@@ -593,7 +595,7 @@ class ConnectionV4(_ConnectionBase):
         """
         return str(self._weaviate_version)
 
-    def get_proxies(self) -> dict:
+    def get_proxies(self) -> Dict[str, str]:
         return self._proxies
 
     @property
