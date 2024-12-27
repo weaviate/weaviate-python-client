@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from weaviate.backup.backup import (
     BackupConfigCreate,
@@ -9,6 +9,7 @@ from weaviate.backup.backup import (
 from weaviate.backup.backup import (
     _BackupAsync,
 )
+from weaviate.backup.dynamic_path import DynamicPathType
 from weaviate.connect import ConnectionV4
 
 
@@ -29,7 +30,7 @@ class _CollectionBackupAsync(_CollectionBackupBase):
         backup_id: str,
         backend: BackupStorage,
         wait_for_completion: bool = False,
-        config: Optional[BackupConfigCreate] = None,
+        config: Optional[Union[BackupConfigCreate, DynamicPathType]] = None,
     ) -> BackupStatusReturn:
         """Create a backup of this collection.
 
@@ -68,7 +69,7 @@ class _CollectionBackupAsync(_CollectionBackupBase):
         backup_id: str,
         backend: BackupStorage,
         wait_for_completion: bool = False,
-        config: Optional[BackupConfigRestore] = None,
+        config: Optional[Union[BackupConfigRestore, DynamicPathType]] = None,
     ) -> BackupStatusReturn:
         """
         Restore a backup of all/per class Weaviate objects.
@@ -103,7 +104,9 @@ class _CollectionBackupAsync(_CollectionBackupBase):
             error=restore.error, status=restore.status, path=restore.path, id=backup_id
         )
 
-    async def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+    async def get_create_status(
+        self, backup_id: str, backend: BackupStorage, dynamic_path: Optional[DynamicPathType] = None
+    ) -> BackupStatusReturn:
         """Check if a started backup job has completed.
 
         Arguments:
@@ -112,14 +115,16 @@ class _CollectionBackupAsync(_CollectionBackupBase):
                 NOTE: Case insensitive.
             `backend`
                 The backend storage where the backup was created.
+            `dynamic_path`
+                The dynamic path of the backup. By default None.
 
         Returns:
             A `BackupStatusReturn` object that contains the backup creation status response.
         """
-        return await self._backup.get_create_status(backup_id, backend)
+        return await self._backup.get_create_status(backup_id, backend, dynamic_path)
 
     async def get_restore_status(
-        self, backup_id: str, backend: BackupStorage
+        self, backup_id: str, backend: BackupStorage, dynamic_path: Optional[DynamicPathType] = None
     ) -> BackupStatusReturn:
         """Check if a started classification job has completed.
 
@@ -129,8 +134,10 @@ class _CollectionBackupAsync(_CollectionBackupBase):
                 NOTE: Case insensitive.
             `backend`
                 The backend storage where to create the backup.
+            `dynamic_path`
+                The dynamic path of the backup. By default None.
 
         Returns:
             A `BackupStatusReturn` object that contains the backup restore status response.
         """
-        return await self._backup.get_restore_status(backup_id, backend)
+        return await self._backup.get_restore_status(backup_id, backend, dynamic_path)
