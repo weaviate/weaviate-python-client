@@ -11,6 +11,7 @@ from weaviate.rbac.models import (
     RolesPermission,
     BackupsPermission,
     NodesPermission,
+    TenantsPermission,
 )
 
 RBAC_PORTS = (8092, 50063)
@@ -33,6 +34,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                     BackupsPermission(collection="Test", action=Actions.Backups.MANAGE)
                 ],
                 nodes_permissions=[],
+                tenants_permissions=[],
             ),
         ),
         (
@@ -46,6 +48,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 data_permissions=[],
                 backups_permissions=[],
                 nodes_permissions=[],
+                tenants_permissions=[],
             ),
         ),
         (
@@ -61,6 +64,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 data_permissions=[],
                 backups_permissions=[],
                 nodes_permissions=[],
+                tenants_permissions=[],
             ),
         ),
         (
@@ -74,6 +78,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 data_permissions=[DataPermission(collection="*", action=Actions.Data.CREATE)],
                 backups_permissions=[],
                 nodes_permissions=[],
+                tenants_permissions=[],
             ),
         ),
         (
@@ -89,6 +94,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 nodes_permissions=[
                     NodesPermission(verbosity="minimal", action=Actions.Nodes.READ, collection=None)
                 ],
+                tenants_permissions=[],
             ),
         ),
         (
@@ -106,6 +112,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                         verbosity="verbose", action=Actions.Nodes.READ, collection="Test"
                     )
                 ],
+                tenants_permissions=[],
             ),
         ),
         (
@@ -119,6 +126,23 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 data_permissions=[],
                 backups_permissions=[],
                 nodes_permissions=[],
+                tenants_permissions=[],
+            ),
+        ),
+        (
+            Permissions.tenants(collection="*", read=True),
+            Role(
+                name="TenantsReadRole",
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[
+                    TenantsPermission(collection="*", action=Actions.Tenants.READ)
+                ],
             ),
         ),
     ],
@@ -128,6 +152,7 @@ def test_create_role(client_factory: ClientFactory, permissions, expected) -> No
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
         try:
+            client.roles.delete(expected.name)
             client.roles.create(
                 role_name=expected.name,
                 permissions=permissions,
