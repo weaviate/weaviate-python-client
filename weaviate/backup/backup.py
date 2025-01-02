@@ -4,10 +4,11 @@ Backup class definition.
 
 from enum import Enum
 from time import sleep
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, Dict, Any, cast, get_args
 
 from pydantic import BaseModel, Field
 
+from weaviate.backup.dynamic_path import _DynamicPathConfig, DynamicPathType
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.exceptions import (
@@ -62,6 +63,15 @@ class BackupStatus(str, Enum):
 class _BackupConfigBase(BaseModel):
     CPUPercentage: Optional[int] = Field(default=None, alias="cpu_percentage")
 
+    def _to_dict(self) -> Dict[str, Any]:
+        ret = cast(dict, self.model_dump(exclude_none=True, exclude={"dynamic_path"}))
+
+        for key, val in ret.items():
+            if isinstance(val, _DynamicPathConfig):
+                ret[key] = val._to_dict()
+
+        return ret
+
 
 class BackupConfigCreate(_BackupConfigBase):
     """Options to configure the backup when creating a backup."""
@@ -70,10 +80,19 @@ class BackupConfigCreate(_BackupConfigBase):
     CompressionLevel: Optional[BackupCompressionLevel] = Field(
         default=None, alias="compression_level"
     )
+    dynamic_path: Optional[DynamicPathType] = Field(default=None)
 
 
 class BackupConfigRestore(_BackupConfigBase):
     """Options to configure the backup when restoring a backup."""
+
+    dynamic_path: Optional[DynamicPathType] = Field(default=None)
+
+
+class BackupConfigCancel(_BackupConfigBase):
+    """Options to configure the backup when cancelling a backup."""
+
+    dynamic_path: Optional[DynamicPathType] = Field(default=None)
 
 
 class BackupStatusReturn(BaseModel):
@@ -104,7 +123,7 @@ class _BackupAsync:
         include_collections: Optional[Union[List[str], str]] = None,
         exclude_collections: Optional[Union[List[str], str]] = None,
         wait_for_completion: bool = False,
-        config: Optional[BackupConfigCreate] = None,
+        config: Optional[Union[BackupConfigCreate, DynamicPathType]] = None,
     ) -> BackupReturn:
         """Create a backup of all/per collection Weaviate objects.
 
@@ -157,8 +176,9 @@ class _BackupAsync:
             "include": include_collections,
             "exclude": exclude_collections,
         }
+        dynamic_path: Optional[DynamicPathType] = None
 
-        if config is not None:
+        if config is not None and isinstance(config, BackupConfigCreate):
             if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigCreate", str(self._connection._weaviate_version), "1.25.0"
@@ -167,7 +187,14 @@ class _BackupAsync:
                 raise WeaviateInvalidInputError(
                     f"Expected 'config' to be of type 'BackupConfigCreate', but got {type(config)}."
                 )
-            payload["config"] = config.model_dump()
+            payload["config"] = config._to_dict()
+            if isinstance(config, BackupConfigCreate) and config.dynamic_path is not None:
+                payload["config"].update(config.dynamic_path._to_dict())
+                dynamic_path = config.dynamic_path
+
+        if config is not None and isinstance(config, get_args(DynamicPathType)):
+            payload["config"].update(config._to_dict())
+            dynamic_path = config
 
         path = f"/backups/{backend.value}"
 
@@ -182,8 +209,7 @@ class _BackupAsync:
         if wait_for_completion:
             while True:
                 status = await self.__get_create_status(
-                    backup_id=backup_id,
-                    backend=backend,
+                    backup_id=backup_id, backend=backend, dynamic_path=dynamic_path
                 )
                 create_status["status"] = status.status
                 if status.status == BackupStatus.SUCCESS:
@@ -200,7 +226,7 @@ class _BackupAsync:
         return BackupReturn(**create_status)
 
     async def __get_create_status(
-        self, backup_id: str, backend: BackupStorage
+        self, backup_id: str, backend: BackupStorage, dynamic_path: Optional[DynamicPathType] = None
     ) -> BackupStatusReturn:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
@@ -208,9 +234,14 @@ class _BackupAsync:
         )
 
         path = f"/backups/{backend.value}/{backup_id}"
+        params: Dict[str, str] = {}
+        if dynamic_path is not None:
+            params.update(dynamic_path._to_dict())
 
         response = await self._connection.get(
-            path=path, error_msg="Backup creation status failed due to connection error."
+            path=path,
+            params=params,
+            error_msg="Backup creation status failed due to connection error.",
         )
 
         typed_response = _decode_json_response_dict(response, "Backup status check")
@@ -219,7 +250,9 @@ class _BackupAsync:
         typed_response["id"] = backup_id
         return BackupStatusReturn(**typed_response)
 
-    async def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+    async def get_create_status(
+        self, backup_id: str, backend: BackupStorage, dynamic_path: Optional[DynamicPathType] = None
+    ) -> BackupStatusReturn:
         """
         Checks if a started backup job has completed.
 
@@ -230,12 +263,14 @@ class _BackupAsync:
             NOTE: Case insensitive.
         backend : BackupStorage eNUM
             The backend storage where the backup was created.
+        dynamic_path: DynamicPathType
+            The configuration of the dynamic path. By default None.
 
         Returns
         -------
          A `BackupStatusReturn` object that contains the backup creation status response.
         """
-        return await self.__get_create_status(backup_id, backend)
+        return await self.__get_create_status(backup_id, backend, dynamic_path)
 
     async def restore(
         self,
@@ -244,7 +279,7 @@ class _BackupAsync:
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
-        config: Optional[BackupConfigRestore] = None,
+        config: Optional[Union[BackupConfigRestore, DynamicPathType]] = None,
     ) -> BackupReturn:
         """
         Restore a backup of all/per collection Weaviate objects.
@@ -296,8 +331,9 @@ class _BackupAsync:
             "include": include_collections,
             "exclude": exclude_collections,
         }
+        dynamic_type: Optional[DynamicPathType] = None
 
-        if config is not None:
+        if config is not None and isinstance(config, BackupConfigRestore):
             if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigRestore", str(self._connection._weaviate_version), "1.25.0"
@@ -306,7 +342,14 @@ class _BackupAsync:
                 raise WeaviateInvalidInputError(
                     f"Expected 'config' to be of type 'BackupConfigRestore', but got {type(config)}."
                 )
-            payload["config"] = config.model_dump()
+            payload["config"] = config._to_dict()
+            if config.dynamic_path is not None:
+                payload["config"].update(config.dynamic_path._to_dict())
+                dynamic_type = config.dynamic_path
+
+        if config is not None and isinstance(config, get_args(DynamicPathType)):
+            payload["config"].update(config._to_dict())
+            dynamic_type = config
 
         path = f"/backups/{backend.value}/{backup_id}/restore"
         response = await self._connection.post(
@@ -319,8 +362,7 @@ class _BackupAsync:
         if wait_for_completion:
             while True:
                 status = await self.__get_restore_status(
-                    backup_id=backup_id,
-                    backend=backend,
+                    backup_id=backup_id, backend=backend, dynamic_path=dynamic_type
                 )
                 restore_status["status"] = status.status
                 if status.status == BackupStatus.SUCCESS:
@@ -338,7 +380,7 @@ class _BackupAsync:
         return BackupReturn(**restore_status)
 
     async def __get_restore_status(
-        self, backup_id: str, backend: BackupStorage
+        self, backup_id: str, backend: BackupStorage, dynamic_path: Optional[DynamicPathType] = None
     ) -> BackupStatusReturn:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
@@ -346,8 +388,14 @@ class _BackupAsync:
         )
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
+        params: Dict[str, str] = {}
+        if dynamic_path is not None:
+            params.update(dynamic_path._to_dict())
+
         response = await self._connection.get(
-            path=path, error_msg="Backup restore status failed due to connection error."
+            path=path,
+            params=params,
+            error_msg="Backup restore status failed due to connection error.",
         )
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
@@ -356,7 +404,7 @@ class _BackupAsync:
         return BackupStatusReturn(**typed_response)
 
     async def get_restore_status(
-        self, backup_id: str, backend: BackupStorage
+        self, backup_id: str, backend: BackupStorage, dynamic_path: Optional[DynamicPathType] = None
     ) -> BackupStatusReturn:
         """
         Checks if a started restore job has completed.
@@ -368,22 +416,45 @@ class _BackupAsync:
             NOTE: Case insensitive.
         backend : BackupStorage
             The backend storage where to create the backup.
+        dynamic_path: DynamicPathType
+            The configuration of the backup status. By default None.
 
         Returns
         -------
          A `BackupStatusReturn` object that contains the backup restore status response.
         """
-        return await self.__get_restore_status(backup_id, backend)
+        return await self.__get_restore_status(backup_id, backend, dynamic_path)
 
-    async def __cancel_backup(self, backup_id: str, backend: BackupStorage) -> bool:
+    async def __cancel_backup(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        config: Optional[Union[BackupConfigCancel, DynamicPathType]],
+    ) -> bool:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
             backend=backend,
         )
         path = f"/backups/{backend.value}/{backup_id}"
+        params: Dict[str, str] = {}
+
+        if config is not None and isinstance(config, BackupConfigCancel):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigCancel", str(self._connection._weaviate_version), "1.25.2"
+                )
+            if not isinstance(config, BackupConfigCancel):
+                raise WeaviateInvalidInputError(
+                    f"Expected 'config' to be of type 'BackupConfigCancel', but got {type(config)}."
+                )
+            if config.dynamic_path is not None:
+                params.update(config.dynamic_path._to_dict())
+        if config is not None and isinstance(config, get_args(DynamicPathType)):
+            params.update(config._to_dict())
 
         response = await self._connection.delete(
             path=path,
+            params=params,
             error_msg="Backup cancel failed due to connection error.",
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
         )
@@ -396,17 +467,24 @@ class _BackupAsync:
                 raise EmptyResponseException()
             return False  # did not exist
 
-    async def cancel(self, backup_id: str, backend: BackupStorage) -> bool:
+    async def cancel(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        config: Optional[Union[BackupConfigCancel, DynamicPathType]] = None,
+    ) -> bool:
         """
         Cancels a running backup.
 
         Parameters
         ----------
-        backup_id : str
+        backup_id:
             The identifier name of the backup.
             NOTE: Case insensitive.
-        backend : BackupStorage
+        backend:
             The backend storage where to create the backup.
+        config:
+            The configuration of the backup cancellation. By default None.
 
         Raises
         ------
@@ -417,7 +495,7 @@ class _BackupAsync:
         -------
          A bool indicating if the cancellation was successful.
         """
-        return await self.__cancel_backup(backup_id, backend)
+        return await self.__cancel_backup(backup_id, backend, config)
 
     async def __list_backups(self, backend: BackupStorage) -> List[BackupReturn]:
         _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
