@@ -672,7 +672,9 @@ class _BatchBase:
             )
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
+        self.__loop.run_until_complete(self.__uuid_lookup_lock.acquire)
         self.__uuid_lookup.add(str(batch_object.uuid))
+        self.__loop.run_until_complete(self.__release_asyncio_lock, self.__uuid_lookup_lock)
         self.__batch_objects.add(batch_object._to_internal())
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do
