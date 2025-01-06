@@ -1,6 +1,66 @@
 Changelog
 =========
 
+Version 4.10.2
+--------------
+This patch version includes:
+    - Fixes issue with query parameters in ``cluster.nodes`` method due to dependence on bugged behaviour of ``httpx`` that was fixed in ``0.28.0``
+
+Version 4.10.1
+--------------
+This patch version includes:
+    - Fixes compatibility with ``httpx`` to 0.28.X which requires updating the minimum required version to 0.26.0
+    - Remove outdated docs
+
+Version 4.10.0
+--------------
+
+This minor version includes:
+    - Support for new 1.28 features:
+        - RBAC (experimental, breaking changes are expected)
+    - Add VoyageAI's new multimodal embedding model
+    - Remove copy of v3-client. If you are still using v4 code please either:
+        - Update your code to v4: https://weaviate.io/developers/weaviate/client-libraries/python/v3_v4_migration
+        - Use the v3-client directly: weaviate-client>=3.26.7;<4.0.0
+    - Upgrade protobuf to v5
+    - Add support for python 3.13
+    - Weaviate v1.23 and v1.24 are NOT supported anymore
+
+
+Version 4.9.6
+--------------
+
+This release is the last release that supports weaviate v1.23 and v1.24
+
+This patch version includes:
+    - Add support for the new ``Kagame_JA`` tokenizer
+
+
+Version 4.9.5
+--------------
+This patch version includes:
+    - Add support for the new ``text2vec-weaviate`` module
+    - Wrap ``tenant.get`` ``AioRpcError`` in a specific exception
+
+Version 4.9.4
+--------------
+This patch version includes:
+    - Add support for ``multi2vec-jinaai``
+    - Add support for ``multi2vec-cohere``
+    - Add support for time-based deletion strategy
+    - Fix type restriction on include_vector in QueryReference
+
+Version 4.9.3
+--------------
+This patch version includes:
+    - Fixes interface for updating generative and reranker collection settings
+
+Version 4.9.2
+--------------
+This patch version includes:
+    - Suppress gRPC library warnings for each event loop used in each process
+
+
 Version 4.9.1
 --------------
 This patch version includes:

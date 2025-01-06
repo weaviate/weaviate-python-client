@@ -17,7 +17,7 @@ from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
 
 if TYPE_CHECKING:
-    from .base import _ConnectionBase
+    from . import ConnectionV4
 
 AUTH_DEFAULT_TIMEOUT = 5
 OIDC_CONFIG = Dict[str, Union[str, List[str]]]
@@ -28,7 +28,7 @@ class _Auth:
         self,
         oidc_config: OIDC_CONFIG,
         credentials: AuthCredentials,
-        connection: _ConnectionBase,
+        connection: ConnectionV4,
     ) -> None:
         self._credentials: AuthCredentials = credentials
         self._connection = connection
@@ -48,7 +48,7 @@ class _Auth:
 
     @classmethod
     async def use(
-        cls, oidc_config: OIDC_CONFIG, credentials: AuthCredentials, connection: _ConnectionBase
+        cls, oidc_config: OIDC_CONFIG, credentials: AuthCredentials, connection: ConnectionV4
     ) -> _Auth:
         auth = cls(oidc_config, credentials, connection)
         auth._token_endpoint = await auth._get_token_endpoint()
@@ -76,7 +76,7 @@ class _Auth:
     async def _get_token_endpoint(self) -> str:
         if self._token_endpoint is not None:
             return self._token_endpoint
-        async with httpx.AsyncClient(proxies=self._connection.get_proxies()) as client:
+        async with httpx.AsyncClient(mounts=self._connection._make_mounts()) as client:
             response_auth = await client.get(self._open_id_config_url)
         response_auth_json = _decode_json_response_dict(response_auth, "Get token endpoint")
         assert response_auth_json is not None

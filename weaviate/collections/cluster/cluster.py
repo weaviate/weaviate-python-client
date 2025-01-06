@@ -1,8 +1,10 @@
+from httpx import Response
 from weaviate.connect import ConnectionV4
 
 
 from typing import List, Literal, Optional, Union, overload
 
+from weaviate.cluster.types import Verbosity
 from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST, Stats
 from weaviate.exceptions import (
     EmptyResponseError,
@@ -45,13 +47,13 @@ class _ClusterAsync(_ClusterBase):
     async def nodes(
         self,
         collection: Optional[str] = None,
-        output: Optional[Literal["minimal", "verbose"]] = None,
+        output: Optional[Verbosity] = None,
     ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]: ...
 
     async def nodes(
         self,
         collection: Optional[str] = None,
-        output: Optional[Literal["minimal", "verbose"]] = None,
+        output: Optional[Verbosity] = None,
     ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]:
         """
         Get the status of all nodes in the cluster.
@@ -74,12 +76,15 @@ class _ClusterAsync(_ClusterBase):
                 If the response is empty.
         """
         path = "/nodes"
+        params = None
         if collection is not None:
             path += "/" + _capitalize_first_letter(collection)
         if output is not None:
-            path += f"?output={output}"
+            params = {"output": output}
 
-        response = await self._connection.get(path=path, error_msg="Get nodes status failed")
+        response: Response = await self._connection.get(
+            path=path, params=params, error_msg="Get nodes status failed"
+        )
         response_typed = _decode_json_response_dict(response, "Nodes status")
         assert response_typed is not None
 
