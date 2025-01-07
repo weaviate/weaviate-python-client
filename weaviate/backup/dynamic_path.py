@@ -19,21 +19,21 @@ class _DynamicPathFilesystem(_DynamicPathConfig):
 
 
 class _DynamicPathS3(_DynamicPathConfig):
-    """The dynamic path of a backup for filesystem."""
+    """The dynamic path of a backup for S3."""
 
     path: str
     bucket: str
 
 
 class _DynamicPathGCP(_DynamicPathConfig):
-    """The dynamic path of a backup for filesystem."""
+    """The dynamic path of a backup for GCP."""
 
     path: str
     bucket: str
 
 
 class _DynamicPathAzure(_DynamicPathConfig):
-    """The dynamic path of a backup for filesystem."""
+    """The dynamic path of a backup for Azure."""
 
     path: str
     bucket: str
