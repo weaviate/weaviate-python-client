@@ -308,6 +308,24 @@ class _BatchBase:
                     self.__release_asyncio_lock, self.__active_requests_lock
                 )
 
+                start = time.time()
+                while (len_o := len(self.__batch_objects)) < self.__recommended_num_objects and (
+                    len_r := len(self.__batch_references)
+                ) < self.__recommended_num_refs:
+                    # wait for more objects to be added up to the recommended number
+                    time.sleep(0.01)
+                    if (
+                        self.__shut_background_thread_down is not None
+                        and self.__shut_background_thread_down.is_set()
+                    ):
+                        # shutdown was requested, exit the loop
+                        break
+                    if time.time() - start >= 1 and (
+                        len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
+                    ):
+                        # no new objects were added in the last second, exit the loop
+                        break
+
                 objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
                 refs = self.__batch_references.pop_items(
                     self.__recommended_num_refs,
