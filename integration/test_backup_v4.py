@@ -356,12 +356,12 @@ def test_backup_and_restore_with_collection(
 
     conf_create: Optional[wvc.backup.BackupConfigCreate] = None
     conf_restore: Optional[wvc.backup.BackupConfigRestore] = None
-    dynamic_conf: Optional[wvc.backup.DynamicPath] = None
+    dynamic_conf: Optional[wvc.backup.BackupLocation] = None
     if dynamic_path:
         if client._connection._weaviate_version.is_lower_than(1, 27, 2):
             pytest.skip("Cancel backups is only supported from 1.27.2")
 
-        dynamic_conf = wvc.backup.DynamicPath.FileSystem(path=str(tmp_path))
+        dynamic_conf = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
         conf_create = wvc.backup.BackupConfigCreate(dynamic_path=dynamic_conf)
         conf_restore = wvc.backup.BackupConfigRestore(dynamic_path=dynamic_conf)
 
@@ -490,42 +490,42 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
 #     assert backup_id in [b.backup_id for b in backups]
 
 
-@pytest.mark.parametrize("dynamic_path", [False, True])
+@pytest.mark.parametrize("dynamic_backup_location", [False, True])
 def test_cancel_backup(
-    client: weaviate.WeaviateClient, dynamic_path: bool, tmp_path: pathlib.Path
+    client: weaviate.WeaviateClient, dynamic_backup_location, tmp_path: pathlib.Path
 ) -> None:
     """Create and restore backup without waiting."""
     backup_id = _create_backup_id()
     if client._connection._weaviate_version.is_lower_than(1, 24, 25):
         pytest.skip("Cancel backups is only supported from 1.24.25")
 
-    conf_cancel: Optional[wvc.backup.BackupConfigCancel] = None
-    conf_create: Optional[wvc.backup.BackupConfigCreate] = None
-    dynamic_conf: Optional[wvc.backup.DynamicPath] = None
-    if dynamic_path:
+    backup_location: Optional[wvc.backup.BackupLocation] = None
+    if dynamic_backup_location:
         if client._connection._weaviate_version.is_lower_than(1, 27, 2):
             pytest.skip("Cancel backups is only supported from 1.27.2")
 
-        dynamic_conf = wvc.backup.DynamicPath.FileSystem(path=str(tmp_path))
-        conf_cancel = wvc.backup.BackupConfigCancel(dynamic_path=dynamic_conf)
-        conf_create = wvc.backup.BackupConfigCreate(dynamic_path=dynamic_conf)
+        backup_location = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
 
-    resp = client.backup.create(backup_id=backup_id, backend=BACKEND, config=conf_create)
+    resp = client.backup.create(
+        backup_id=backup_id, backend=BACKEND, backup_location=backup_location
+    )
     assert resp.status == BackupStatus.STARTED
 
-    assert client.backup.cancel(backup_id=backup_id, backend=BACKEND, config=conf_cancel)
+    assert client.backup.cancel(
+        backup_id=backup_id, backend=BACKEND, backup_location=backup_location
+    )
 
     # async process
     start = time.time()
     while time.time() - start < 5:
         status_resp = client.backup.get_create_status(
-            backup_id=backup_id, backend=BACKEND, dynamic_path=dynamic_conf
+            backup_id=backup_id, backend=BACKEND, backup_location=backup_location
         )
         if status_resp.status == BackupStatus.CANCELED:
             break
         time.sleep(0.1)
     status_resp = client.backup.get_create_status(
-        backup_id=backup_id, backend=BACKEND, dynamic_path=dynamic_conf
+        backup_id=backup_id, backend=BACKEND, backup_location=backup_location
     )
     # there can be a race between the cancel and the backup completion
     assert status_resp.status == BackupStatus.CANCELED or status_resp.status == BackupStatus.SUCCESS

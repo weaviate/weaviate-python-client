@@ -1,18 +1,16 @@
 from weaviate.backup.backup import (
     BackupCompressionLevel,
-    BackupConfigCancel,
     BackupConfigCreate,
     BackupConfigRestore,
     BackupStorage,
 )
-from weaviate.backup.dynamic_path import DynamicPath
+from weaviate.backup.backup_location import BackupLocation
 
 
 __all__ = [
     "BackupCompressionLevel",
-    "BackupConfigCancel",
     "BackupConfigCreate",
     "BackupConfigRestore",
     "BackupStorage",
-    "DynamicPath",
+    "BackupLocation",
 ]

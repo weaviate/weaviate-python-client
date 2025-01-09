@@ -6,9 +6,8 @@ from weaviate.backup.backup import (
     BackupStatusReturn,
     BackupConfigCreate,
     BackupConfigRestore,
-    BackupConfigCancel,
 )
-from weaviate.backup.dynamic_path import DynamicPathType
+from weaviate.backup.backup_location import BackupLocationType
 from weaviate.connect import ConnectionV4
 
 class _Backup:
@@ -21,7 +20,7 @@ class _Backup:
         self,
         backup_id: str,
         backend: BackupStorage,
-        config: Optional[Union[BackupConfigCancel, DynamicPathType]] = None,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> bool: ...
     def create(
         self,
@@ -30,10 +29,14 @@ class _Backup:
         include_collections: Optional[Union[List[str], str]] = None,
         exclude_collections: Optional[Union[List[str], str]] = None,
         wait_for_completion: bool = False,
-        config: Optional[Union[BackupConfigCreate, DynamicPathType]] = None,
+        config: Optional[BackupConfigCreate] = None,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> BackupReturn: ...
     def get_create_status(
-        self, backup_id: str, backend: BackupStorage, config: Optional[DynamicPathType] = None
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn: ...
     def restore(
         self,
@@ -42,8 +45,12 @@ class _Backup:
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
-        config: Optional[Union[BackupConfigRestore, DynamicPathType]] = None,
+        config: Optional[BackupConfigRestore] = None,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> BackupReturn: ...
     def get_restore_status(
-        self, backup_id: str, backend: BackupStorage, dynamic_path: Optional[DynamicPathType] = None
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn: ...
