@@ -348,7 +348,7 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(
             )
 
 
-@pytest.mark.parametrize("dynamic_path", [False, True])
+@pytest.mark.parametrize("dynamic_backup_location", [False, True])
 def test_backup_and_restore_with_collection(
     client: weaviate.WeaviateClient, dynamic_backup_location: bool, tmp_path: pathlib.Path
 ) -> None:
