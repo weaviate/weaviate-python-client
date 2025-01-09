@@ -350,26 +350,28 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(
 
 @pytest.mark.parametrize("dynamic_path", [False, True])
 def test_backup_and_restore_with_collection(
-    client: weaviate.WeaviateClient, dynamic_path: bool, tmp_path: pathlib.Path
+    client: weaviate.WeaviateClient, dynamic_backup_location: bool, tmp_path: pathlib.Path
 ) -> None:
     backup_id = _create_backup_id()
 
     conf_create: Optional[wvc.backup.BackupConfigCreate] = None
     conf_restore: Optional[wvc.backup.BackupConfigRestore] = None
-    dynamic_conf: Optional[wvc.backup.BackupLocation] = None
-    if dynamic_path:
+    backup_location: Optional[wvc.backup.BackupLocation] = None
+    if dynamic_backup_location:
         if client._connection._weaviate_version.is_lower_than(1, 27, 2):
             pytest.skip("Cancel backups is only supported from 1.27.2")
 
-        dynamic_conf = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
-        conf_create = wvc.backup.BackupConfigCreate(dynamic_path=dynamic_conf)
-        conf_restore = wvc.backup.BackupConfigRestore(dynamic_path=dynamic_conf)
+        backup_location = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
 
     article = client.collections.get("Article")
 
     # create backup
     create = article.backup.create(
-        backup_id=backup_id, backend=BACKEND, wait_for_completion=True, config=conf_create
+        backup_id=backup_id,
+        backend=BACKEND,
+        wait_for_completion=True,
+        config=conf_create,
+        backup_location=backup_location,
     )
     assert create.status == BackupStatus.SUCCESS
 
@@ -377,7 +379,7 @@ def test_backup_and_restore_with_collection(
 
     # check create status
     create_status = article.backup.get_create_status(
-        backup_id=backup_id, backend=BACKEND, dynamic_path=dynamic_conf
+        backup_id=backup_id, backend=BACKEND, backup_location=backup_location
     )
     assert create_status.status == BackupStatus.SUCCESS
 
@@ -386,7 +388,11 @@ def test_backup_and_restore_with_collection(
 
     # restore backup
     restore = article.backup.restore(
-        backup_id=backup_id, backend=BACKEND, wait_for_completion=True, config=conf_restore
+        backup_id=backup_id,
+        backend=BACKEND,
+        wait_for_completion=True,
+        config=conf_restore,
+        backup_location=backup_location,
     )
     assert restore.status == BackupStatus.SUCCESS
 
@@ -394,7 +400,7 @@ def test_backup_and_restore_with_collection(
     assert len(article) == len(ARTICLES_IDS)
 
     # check restore status
-    restore_status = article.backup.get_restore_status(backup_id, BACKEND, dynamic_conf)
+    restore_status = article.backup.get_restore_status(backup_id, BACKEND, backup_location)
     assert restore_status.status == BackupStatus.SUCCESS
 
 
