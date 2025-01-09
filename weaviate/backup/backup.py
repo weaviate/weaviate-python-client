@@ -171,7 +171,7 @@ class _BackupAsync:
             "exclude": exclude_collections,
         }
 
-        if config is not None and isinstance(config, BackupConfigCreate):
+        if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigCreate", str(self._connection._weaviate_version), "1.25.0"
@@ -183,6 +183,13 @@ class _BackupAsync:
             payload["config"] = config._to_dict()
 
         if backup_location is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigCreate dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
+                )
+
             payload["config"].update(backup_location._to_dict())
 
         path = f"/backups/{backend.value}"
@@ -228,6 +235,13 @@ class _BackupAsync:
         path = f"/backups/{backend.value}/{backup_id}"
         params: Dict[str, str] = {}
         if backup_location is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigCreateStatus dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
+                )
+
             params.update(backup_location._to_dict())
 
         response = await self._connection.get(
@@ -330,7 +344,7 @@ class _BackupAsync:
             "exclude": exclude_collections,
         }
 
-        if config is not None and isinstance(config, BackupConfigRestore):
+        if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigRestore", str(self._connection._weaviate_version), "1.25.0"
@@ -342,6 +356,13 @@ class _BackupAsync:
             payload["config"] = config._to_dict()
 
         if backup_location is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigRestore dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
+                )
+
             payload["config"].update(backup_location._to_dict())
 
         path = f"/backups/{backend.value}/{backup_id}/restore"
@@ -386,6 +407,12 @@ class _BackupAsync:
 
         params: Dict[str, str] = {}
         if backup_location is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigRestore status dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
+                )
             params.update(backup_location._to_dict())
 
         response = await self._connection.get(
@@ -440,7 +467,9 @@ class _BackupAsync:
         if backup_location is not None:
             if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCancel", str(self._connection._weaviate_version), "1.27.2"
+                    "BackupConfigCancel dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
                 )
             params.update(backup_location._to_dict())
 
