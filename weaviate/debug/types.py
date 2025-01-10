@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from weaviate.types import uuid_package
 
 
-class DebugObject(BaseModel):
+class DebugRESTObject(BaseModel):
     collection: str = Field(..., alias="class")
     creation_time: datetime = Field(..., alias="creationTimeUnix")
     last_update_time: datetime = Field(..., alias="lastUpdateTimeUnix")

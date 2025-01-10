@@ -3,7 +3,7 @@ from typing import Dict, Optional
 from weaviate.classes.config import ConsistencyLevel
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
-from weaviate.debug.types import DebugObject
+from weaviate.debug.types import DebugRESTObject
 from weaviate.types import UUID
 
 
@@ -16,7 +16,7 @@ class _DebugBase:
 
 
 class _DebugAsync(_DebugBase):
-    async def get_object(
+    async def get_object_over_rest(
         self,
         collection: str,
         uuid: UUID,
@@ -24,7 +24,12 @@ class _DebugAsync(_DebugBase):
         consistency_level: Optional[ConsistencyLevel] = None,
         nodename: Optional[str] = None,
         tenant: Optional[str] = None,
-    ) -> Optional[DebugObject]:
+    ) -> Optional[DebugRESTObject]:
+        """Use the REST API endpoint /objects/{className}/{id} to retrieve an object directly from the database without search.
+
+        The key difference between `debug.get_object_over_rest` and `query.fetch_object_by_id` is the underlying protocol.
+        This method uses REST while that method uses gRPC.
+        """
         path = f"/objects/{collection}/{str(uuid)}"
 
         params: Dict[str, str] = {}
@@ -43,4 +48,4 @@ class _DebugAsync(_DebugBase):
         )
         if res.status_code == 404:
             return None
-        return DebugObject(**res.json())
+        return DebugRESTObject(**res.json())

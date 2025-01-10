@@ -1,7 +1,7 @@
 from integration.conftest import ClientFactory, CollectionFactory
 
 from weaviate.classes.config import DataType, Property
-from weaviate.classes.debug import DebugObject
+from weaviate.classes.debug import DebugRESTObject
 
 
 def test_get_object_single_node(
@@ -14,7 +14,7 @@ def test_get_object_single_node(
 
     debug_obj = client.debug.get_object(collection.name, uuid)
     assert debug_obj is not None
-    assert isinstance(debug_obj, DebugObject)
+    assert isinstance(debug_obj, DebugRESTObject)
     assert str(debug_obj.uuid) == str(uuid)
 
     non_existant_uuid = "00000000-0000-0000-0000-000000000000"

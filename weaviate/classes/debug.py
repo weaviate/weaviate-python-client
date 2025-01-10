@@ -1,5 +1,5 @@
-from weaviate.debug.types import DebugObject
+from weaviate.debug.types import DebugRESTObject
 
 __all__ = [
-    "DebugObject",
+    "DebugRESTObject",
 ]
