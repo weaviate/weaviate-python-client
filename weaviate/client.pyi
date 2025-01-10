@@ -12,6 +12,7 @@ from weaviate.collections.collections.sync import _Collections
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
 from .connect import ConnectionV4
+from .debug import _Debug, _DebugAsync
 from .rbac import _Roles, _RolesAsync
 from .types import NUMBER
 
@@ -25,9 +26,10 @@ from weaviate.client_base import _WeaviateClientInit
 
 class WeaviateAsyncClient(_WeaviateClientInit):
     _connection: ConnectionV4
-    collections: _CollectionsAsync
     backup: _BackupAsync
+    collections: _CollectionsAsync
     cluster: _ClusterAsync
+    debug: _DebugAsync
     roles: _RolesAsync
     async def close(self) -> None: ...
     async def connect(self) -> None: ...
@@ -42,10 +44,11 @@ class WeaviateAsyncClient(_WeaviateClientInit):
 
 class WeaviateClient(_WeaviateClientInit):
     _connection: ConnectionV4
-    collections: _Collections
-    batch: _BatchClientWrapper
     backup: _Backup
+    batch: _BatchClientWrapper
+    collections: _Collections
     cluster: _Cluster
+    debug: _Debug
     roles: _Roles
     def close(self) -> None: ...
     def connect(self) -> None: ...

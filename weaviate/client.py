@@ -21,6 +21,7 @@ from .config import AdditionalConfig
 from .connect.base import (
     ConnectionParams,
 )
+from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
 from .rbac import _RolesAsync, _Roles
 from .types import NUMBER
@@ -87,7 +88,12 @@ class WeaviateClient(_WeaviateClientBase):
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
+        self.debug = _Debug(self._connection)
+        """This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
+
+        We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
         self.roles = _Roles(self._connection)
+        """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
 
     def __enter__(self) -> "WeaviateClient":
         self.connect()  # pyright: ignore # gets patched by syncify.convert to be sync
@@ -146,6 +152,10 @@ class WeaviateAsyncClient(_WeaviateClientBase):
 
         Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.
         """
+        self.debug = _DebugAsync(self._connection)
+        """This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
+
+        We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
         self.roles = _RolesAsync(self._connection)
         """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
 
