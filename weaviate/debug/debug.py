@@ -22,7 +22,7 @@ class _DebugAsync(_DebugBase):
         uuid: UUID,
         *,
         consistency_level: Optional[ConsistencyLevel] = None,
-        nodename: Optional[str] = None,
+        node_name: Optional[str] = None,
         tenant: Optional[str] = None,
     ) -> Optional[DebugRESTObject]:
         """Use the REST API endpoint /objects/{className}/{id} to retrieve an object directly from the database without search.
@@ -35,8 +35,8 @@ class _DebugAsync(_DebugBase):
         params: Dict[str, str] = {}
         if consistency_level is not None:
             params["consistency"] = consistency_level.value
-        if nodename is not None:
-            params["nodename"] = nodename
+        if node_name is not None:
+            params["node_name"] = node_name
         if tenant is not None:
             params["tenant"] = tenant
 
