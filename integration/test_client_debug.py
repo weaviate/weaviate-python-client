@@ -12,13 +12,13 @@ def test_get_object_single_node(
 
     uuid = collection.data.insert({"name": "John Doe"})
 
-    debug_obj = client.debug.get_object(collection.name, uuid)
+    debug_obj = client.debug.get_object_over_rest(collection.name, uuid)
     assert debug_obj is not None
     assert isinstance(debug_obj, DebugRESTObject)
     assert str(debug_obj.uuid) == str(uuid)
 
     non_existant_uuid = "00000000-0000-0000-0000-000000000000"
-    debug_obj = client.debug.get_object(collection.name, non_existant_uuid)
+    debug_obj = client.debug.get_object_over_rest(collection.name, non_existant_uuid)
     assert debug_obj is None
 
 
@@ -33,6 +33,6 @@ def test_get_object_multi_node(
     uuid = collection.data.insert({"name": "John Doe"})
 
     for nodename in ["node1", "node2", "node3"]:
-        debug_obj = client.debug.get_object(collection.name, uuid, nodename=nodename)
+        debug_obj = client.debug.get_object_over_rest(collection.name, uuid, nodename=nodename)
         assert debug_obj is not None
         assert str(debug_obj.uuid) == str(uuid)

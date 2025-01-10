@@ -6,7 +6,7 @@ from weaviate.debug.types import DebugRESTObject
 from weaviate.types import UUID
 
 class _Debug(_DebugBase):
-    def get_object(
+    def get_object_over_rest(
         self,
         collection: str,
         uuid: UUID,
