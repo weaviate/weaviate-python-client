@@ -15,10 +15,10 @@ on:
 
 env:
   WEAVIATE_124: 1.24.26
-  WEAVIATE_125: 1.25.24
-  WEAVIATE_126: 1.26.8
-  WEAVIATE_127: 1.27.1
-  WEAVIATE_128: preview-rbac-tenant-operation-permissions-be88593
+  WEAVIATE_125: 1.25.29
+  WEAVIATE_126: 1.26.13
+  WEAVIATE_127: 1.27.9
+  WEAVIATE_128: 1.28.2-49afad0
 jobs:
   lint-and-format:
     name: Run Linter and Formatter
