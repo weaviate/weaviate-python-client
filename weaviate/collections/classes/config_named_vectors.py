@@ -852,6 +852,7 @@ class _NamedVectors:
         source_properties: Optional[List[str]] = None,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
+        dimensions: Optional[int] = None,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_azure_openai` model.
 
@@ -873,6 +874,7 @@ class _NamedVectors:
             source_properties=source_properties,
             vectorizer=_Text2VecAzureOpenAIConfig(
                 baseURL=base_url,
+                dimensions=dimensions,
                 resourceName=resource_name,
                 deploymentId=deployment_id,
                 vectorizeClassName=vectorize_collection_name,
