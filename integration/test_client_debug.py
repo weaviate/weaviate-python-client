@@ -32,7 +32,7 @@ def test_get_object_multi_node(
 
     uuid = collection.data.insert({"name": "John Doe"})
 
-    for nodename in ["node1", "node2", "node3"]:
-        debug_obj = client.debug.get_object_over_rest(collection.name, uuid, nodename=nodename)
+    for node_name in ["node1", "node2", "node3"]:
+        debug_obj = client.debug.get_object_over_rest(collection.name, uuid, node_name=node_name)
         assert debug_obj is not None
         assert str(debug_obj.uuid) == str(uuid)

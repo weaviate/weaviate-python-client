@@ -12,6 +12,6 @@ class _Debug(_DebugBase):
         uuid: UUID,
         *,
         consistency_level: Optional[ConsistencyLevel] = None,
-        nodename: Optional[str] = None,
+        node_name: Optional[str] = None,
         tenant: Optional[str] = None,
     ) -> Optional[DebugRESTObject]: ...
