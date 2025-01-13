@@ -319,6 +319,15 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.text2vec_google_aistudio(),
+        {
+            "text2vec-palm": {
+                "apiEndpoint": "generativelanguage.googleapis.com",
+                "vectorizeClassName": True,
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_palm(
             project_id="project",
             api_endpoint="api.google.com",
@@ -1501,6 +1510,26 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                 "vectorizer": {
                     "text2vec-palm": {
                         "projectId": "project",
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_google_aistudio(
+                name="test",
+                source_properties=["prop"],
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-palm": {
+                        "apiEndpoint": "generativelanguage.googleapis.com",
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                     }
