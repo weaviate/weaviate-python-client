@@ -1088,6 +1088,53 @@ class _NamedVectors:
         )
 
     @staticmethod
+    def text2vec_google_aistudio(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model_id: Optional[str] = None,
+        title_property: Optional[str] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `text2vec_palm` model.
+
+        See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default.
+            `title_property`
+                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
+
+        Raises:
+            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecGoogleConfig(
+                projectId=None,
+                apiEndpoint="generativelanguage.googleapis.com",
+                modelId=model_id,
+                vectorizeClassName=vectorize_collection_name,
+                titleProperty=title_property,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
     def text2vec_transformers(
         name: str,
         *,
