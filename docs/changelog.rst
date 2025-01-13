@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Version 4.10.3
+--------------
+This patch version includes:
+    - Add experimental debug namespace
+    - Add support for dynamic backup location
+    - Fix potential deadlock in batching
+    - Fix backup and restore for embedded mode
+    - Add extra method for text2vec_google_aistudio
+
 Version 4.10.2
 --------------
 This patch version includes:
