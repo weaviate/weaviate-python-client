@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.10.4
+--------------
+This patch version incldues:
+    - Fix missing dimensions parameter in text2vec-azure-openai
+
 Version 4.10.3
 --------------
 This patch version includes:
