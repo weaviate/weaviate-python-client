@@ -2,6 +2,7 @@ from typing import Dict, List, Optional
 
 from weaviate.collections.classes.batch import (
     ErrorReference,
+    BatchReference,
     _BatchReference,
     BatchReferenceReturn,
 )
@@ -45,7 +46,7 @@ class _BatchREST:
         errors = {
             idx: ErrorReference(
                 message=entry["result"]["errors"]["error"][0]["message"],
-                reference=references[idx],
+                reference=BatchReference._from_internal(references[idx]),
             )
             for idx, entry in enumerate(payload)
             if entry["result"]["status"] == "FAILED"

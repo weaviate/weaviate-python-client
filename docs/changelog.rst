@@ -1,6 +1,20 @@
 Changelog
 =========
 
+Version 4.10.4
+--------------
+This patch version incldues:
+    - Fix missing dimensions parameter in text2vec-azure-openai
+
+Version 4.10.3
+--------------
+This patch version includes:
+    - Add experimental debug namespace
+    - Add support for dynamic backup location
+    - Fix potential deadlock in batching
+    - Fix backup and restore for embedded mode
+    - Add extra method for text2vec_google_aistudio
+
 Version 4.10.2
 --------------
 This patch version includes:

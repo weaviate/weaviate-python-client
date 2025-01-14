@@ -209,6 +209,7 @@ class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
     resourceName: str
     deploymentId: str
     vectorizeClassName: bool
+    dimensions: Optional[int]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -306,7 +307,7 @@ class _Text2VecGoogleConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_PALM, frozen=True, exclude=True
     )
-    projectId: str
+    projectId: Optional[str]
     apiEndpoint: Optional[str]
     modelId: Optional[str]
     vectorizeClassName: bool
@@ -685,6 +686,7 @@ class _Vectorizer:
         deployment_id: str,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
+        dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAzureOpenAIConfigCreate` object for use when vectorizing using the `text2vec-azure-openai` model.
 
@@ -700,12 +702,15 @@ class _Vectorizer:
                 Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
         """
         return _Text2VecAzureOpenAIConfig(
             baseURL=base_url,
+            dimensions=dimensions,
             resourceName=resource_name,
             deploymentId=deployment_id,
             vectorizeClassName=vectorize_collection_name,
@@ -1079,6 +1084,36 @@ class _Vectorizer:
         return _Text2VecGoogleConfig(
             projectId=project_id,
             apiEndpoint=api_endpoint,
+            modelId=model_id,
+            vectorizeClassName=vectorize_collection_name,
+            titleProperty=title_property,
+        )
+
+    @staticmethod
+    def text2vec_google_aistudio(
+        model_id: Optional[str] = None,
+        title_property: Optional[str] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecGoogleConfig` object for use when vectorizing using the `text2vec-google` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
+        for detailed usage.
+
+        Arguments:
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default.
+            `title_property`
+                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+
+        Raises:
+            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+        """
+        return _Text2VecGoogleConfig(
+            projectId=None,
+            apiEndpoint="generativelanguage.googleapis.com",
             modelId=model_id,
             vectorizeClassName=vectorize_collection_name,
             titleProperty=title_property,

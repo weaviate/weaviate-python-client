@@ -10,6 +10,7 @@ from grpc.aio import AioRpcError  # type: ignore
 from weaviate.collections.classes.batch import (
     ErrorObject,
     _BatchObject,
+    BatchObject,
     BatchObjectReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
@@ -117,7 +118,9 @@ class _BatchGRPC(_BaseGRPC):
         for idx, weav_obj in enumerate(weaviate_objs):
             obj = objects[idx]
             if idx in errors:
-                error = ErrorObject(errors[idx], obj, original_uuid=obj.uuid)
+                error = ErrorObject(
+                    errors[idx], BatchObject._from_internal(obj), original_uuid=obj.uuid
+                )
                 return_errors[obj.index] = error
                 all_responses[idx] = error
             else:
