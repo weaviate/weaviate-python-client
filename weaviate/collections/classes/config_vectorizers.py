@@ -209,6 +209,7 @@ class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
     resourceName: str
     deploymentId: str
     vectorizeClassName: bool
+    dimensions: Optional[int]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
@@ -685,6 +686,7 @@ class _Vectorizer:
         deployment_id: str,
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
+        dimensions: Optional[int] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAzureOpenAIConfigCreate` object for use when vectorizing using the `text2vec-azure-openai` model.
 
@@ -700,12 +702,15 @@ class _Vectorizer:
                 Whether to vectorize the collection name. Defaults to `True`.
             `base_url`
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
         """
         return _Text2VecAzureOpenAIConfig(
             baseURL=base_url,
+            dimensions=dimensions,
             resourceName=resource_name,
             deploymentId=deployment_id,
             vectorizeClassName=vectorize_collection_name,
