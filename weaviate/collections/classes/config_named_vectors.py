@@ -848,11 +848,11 @@ class _NamedVectors:
         resource_name: str,
         deployment_id: str,
         *,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        source_properties: Optional[List[str]] = None,
-        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_azure_openai` model.
 
@@ -862,6 +862,14 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
+            `resource_name`
+                The resource name to use, REQUIRED.
+            `deployment_id`
+                The deployment ID to use, REQUIRED.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
             `source_properties`
                 Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
