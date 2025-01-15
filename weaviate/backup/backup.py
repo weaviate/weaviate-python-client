@@ -189,7 +189,8 @@ class _BackupAsync:
                     str(self._connection._weaviate_version),
                     "1.27.2",
                 )
-
+            if "config" not in payload:
+                payload["config"] = {}
             payload["config"].update(backup_location._to_dict())
 
         path = f"/backups/{backend.value}"
@@ -363,6 +364,8 @@ class _BackupAsync:
                     "1.27.2",
                 )
 
+            if "config" not in payload:
+                payload["config"] = {}
             payload["config"].update(backup_location._to_dict())
 
         path = f"/backups/{backend.value}/{backup_id}/restore"
