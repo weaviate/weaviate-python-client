@@ -154,7 +154,7 @@ class _CollectionsPermission(_Permission):
         return {
             "action": self.action,
             "collections": {
-                "collection": self.collection,
+                "collection": _capitalize_first_letter(self.collection),
                 "tenant": self.tenant,
             },
         }
@@ -168,7 +168,7 @@ class TenantsPermission(_Permission):
         return {
             "action": self.action,
             "tenants": {
-                "collection": self.collection,
+                "collection": _capitalize_first_letter(self.collection),
                 "tenant": "*",
             },
         }
@@ -183,7 +183,7 @@ class _NodesPermission(_Permission):
         return {
             "action": self.action,
             "nodes": {
-                "collection": self.collection,
+                "collection": _capitalize_first_letter(self.collection),
                 "verbosity": self.verbosity,
             },
         }
@@ -318,7 +318,7 @@ class BackupsPermission:
         return {
             "action": self.action,
             "backups": {
-                "collection": self.collection,
+                "collection": _capitalize_first_letter(self.collection),
             },
         }
 
@@ -333,7 +333,7 @@ class NodesPermission:
         return {
             "action": self.action,
             "nodes": {
-                "collection": self.collection or "*",
+                "collection": _capitalize_first_letter(self.collection or "*"),
                 "verbosity": self.verbosity,
             },
         }
