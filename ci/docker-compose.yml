@@ -21,13 +21,12 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'text2vec-contextionary'
-      ENABLE_MODULES: text2vec-contextionary,backup-filesystem,img2vec-neural,generative-dummy,generative-anyscale,reranker-dummy,reranker-cohere
+      ENABLE_MODULES: text2vec-contextionary,backup-filesystem,generative-dummy,generative-anyscale,reranker-dummy,reranker-cohere
       BACKUP_FILESYSTEM_PATH: "/tmp/backups"
       CLUSTER_GOSSIP_BIND_PORT: "7100"
       CLUSTER_DATA_BIND_PORT: "7101"
       CLUSTER_HOSTNAME: "node1"
       AUTOSCHEMA_ENABLED: 'false'
-      IMAGE_INFERENCE_API: "http://i2v-neural:8080"
       DISABLE_TELEMETRY: 'true'
       DISABLE_LAZY_LOAD_SHARDS: 'true'
       GRPC_MAX_MESSAGE_SIZE: 100000000  # 100mb
@@ -41,6 +40,4 @@ services:
     image: semitechnologies/contextionary:en0.16.0-v1.2.0
     ports:
       - 9999:9999
-  i2v-neural:
-    image: semitechnologies/img2vec-pytorch:resnet50
 ...

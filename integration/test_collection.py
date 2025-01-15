@@ -1276,6 +1276,9 @@ def test_near_text_offset(collection_factory: CollectionFactory) -> None:
     assert objects[0].properties["value"] == "apple cake"
 
 
+@pytest.mark.skip(
+    "img2vec-neural removed from CI. This test should go in the e2e-tests repo instead"
+)
 @pytest.mark.parametrize(
     "image_maker",
     [
@@ -1330,6 +1333,9 @@ def test_near_image(
     assert objects3[0].uuid == uuid2
 
 
+@pytest.mark.skip(
+    "img2vec-neural removed from CI. This test should go in the e2e-tests repo instead"
+)
 @pytest.mark.parametrize(
     "image_maker",
     [

@@ -570,6 +570,9 @@ def test_near_text_missing_param(collection_factory: CollectionFactory) -> None:
     )
 
 
+@pytest.mark.skip(
+    "img2vec-neural removed from CI. This test should go in the e2e-tests repo instead"
+)
 @pytest.mark.parametrize("option", [{"object_limit": 1}, {"certainty": 0.9}, {"distance": 0.1}])
 def test_near_image_aggregation(collection_factory: CollectionFactory, option: dict) -> None:
     collection = collection_factory(
@@ -591,6 +594,9 @@ def test_near_image_aggregation(collection_factory: CollectionFactory, option: d
     assert res.properties["rating"].maximum == 9
 
 
+@pytest.mark.skip(
+    "img2vec-neural removed from CI. This test should go in the e2e-tests repo instead"
+)
 def test_near_image_missing_param(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         properties=[
