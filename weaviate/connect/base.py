@@ -111,6 +111,7 @@ class ConnectionParams(BaseModel):
         opts = [
             ("grpc.max_send_message_length", grpc_msg_size),
             ("grpc.max_receive_message_length", grpc_msg_size),
+            ("grpc.default_authority", self.grpc.host),
         ]
 
         if (p := proxies.get("grpc")) is not None:
