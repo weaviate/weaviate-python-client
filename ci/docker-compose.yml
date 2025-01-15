@@ -27,7 +27,6 @@ services:
       CLUSTER_DATA_BIND_PORT: "7101"
       CLUSTER_HOSTNAME: "node1"
       AUTOSCHEMA_ENABLED: 'false'
-      IMAGE_INFERENCE_API: "http://i2v-neural:8080"
       DISABLE_TELEMETRY: 'true'
       DISABLE_LAZY_LOAD_SHARDS: 'true'
       GRPC_MAX_MESSAGE_SIZE: 100000000  # 100mb
