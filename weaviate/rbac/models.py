@@ -6,6 +6,7 @@ from typing import List, Optional, Sequence, TypedDict, Union
 from pydantic import BaseModel
 
 from weaviate.cluster.types import Verbosity
+from weaviate.util import _capitalize_first_letter
 
 
 class PermissionData(TypedDict):
@@ -216,7 +217,7 @@ class _BackupsPermission(_Permission):
         return {
             "action": self.action,
             "backups": {
-                "collection": self.collection,
+                "collection": _capitalize_first_letter(self.collection),
             },
         }
 
@@ -240,7 +241,7 @@ class _DataPermission(_Permission):
         return {
             "action": self.action,
             "data": {
-                "collection": self.collection,
+                "collection": _capitalize_first_letter(self.collection),
                 "object": self.object_,
                 "tenant": self.tenant,
             },
@@ -256,7 +257,7 @@ class CollectionsPermission:
         return {
             "action": self.action,
             "collections": {
-                "collection": self.collection,
+                "collection": _capitalize_first_letter(self.collection),
                 "tenant": "*",
             },
         }
@@ -271,7 +272,7 @@ class DataPermission:
         return {
             "action": self.action,
             "data": {
-                "collection": self.collection,
+                "collection": _capitalize_first_letter(self.collection),
                 "object": "*",
                 "tenant": "*",
             },
