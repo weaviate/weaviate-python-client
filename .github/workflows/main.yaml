@@ -13,12 +13,17 @@ on:
       - publishing.md
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   WEAVIATE_124: 1.24.26
   WEAVIATE_125: 1.25.29
   WEAVIATE_126: 1.26.13
   WEAVIATE_127: 1.27.9
   WEAVIATE_128: 1.28.2-264499f
+
 jobs:
   lint-and-format:
     name: Run Linter and Formatter
