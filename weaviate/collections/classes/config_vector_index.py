@@ -8,7 +8,7 @@ from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
     _ConfigUpdateModel,
     _QuantizerConfigCreate,
-    _QuantizerConfigUpdate,
+    _QuantizerConfigUpdate, _MultivectorConfigCreate,
 )
 from weaviate.collections.classes.config_vectorizers import VectorDistances
 
@@ -83,6 +83,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
     flatSearchCutoff: Optional[int]
     maxConnections: Optional[int]
     vectorCacheMaxObjects: Optional[int]
+    multi_vector: Optional[_MultivectorConfigCreate]
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:

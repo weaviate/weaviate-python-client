@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, cast
+from typing import Any, Dict, cast, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -66,6 +66,11 @@ class _ConfigBase:
                 continue
             out[key] = v.to_dict() if isinstance(v, _ConfigBase) else v
         return out
+
+
+class _MultivectorConfigCreate(_ConfigCreateModel):
+    enabled: bool = Field(default=False)
+    aggregation: Optional[str]
 
 
 class _QuantizerConfigCreate(_ConfigCreateModel):

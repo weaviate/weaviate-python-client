@@ -22,7 +22,7 @@ from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
     _ConfigUpdateModel,
     _QuantizerConfigUpdate,
-    _EnumLikeStr,
+    _EnumLikeStr, _MultivectorConfigCreate,
 )
 from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorConfigCreate,
@@ -1975,6 +1975,15 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         ret_dict["properties"] = existing_props
 
 
+class _MultiVector:
+    @staticmethod
+    def colbert(enabled: bool=True, aggregation: Optional[str] = None )-> _MultivectorConfigCreate:
+        return _MultivectorConfigCreate(
+            enabled=enabled,
+            aggregation=aggregation
+        )
+
+
 class _VectorIndexQuantizer:
     @staticmethod
     def pq(
@@ -2040,6 +2049,7 @@ class _VectorIndexQuantizer:
 
 class _VectorIndex:
     Quantizer = _VectorIndexQuantizer
+    MultiVector = _MultiVector
 
     @staticmethod
     def none() -> _VectorIndexConfigSkipCreate:
@@ -2066,6 +2076,7 @@ class _VectorIndex:
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
+        multi_vector: Optional[_MultivectorConfigCreate] = None,
     ) -> _VectorIndexConfigHNSWCreate:
         """Create a `_VectorIndexConfigHNSWCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 
@@ -2087,6 +2098,7 @@ class _VectorIndex:
             maxConnections=max_connections,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
+            multi_vector=multi_vector
         )
 
     @staticmethod
