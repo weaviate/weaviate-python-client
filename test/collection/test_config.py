@@ -431,6 +431,22 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     (
         Configure.Vectorizer.text2vec_weaviate(
             vectorize_collection_name=False,
+            model="Snowflake/snowflake-arctic-embed-l-v2.0",
+            base_url="https://api.embedding.weaviate.io",
+            dimensions=1024,
+        ),
+        {
+            "text2vec-weaviate": {
+                "vectorizeClassName": False,
+                "model": "Snowflake/snowflake-arctic-embed-l-v2.0",
+                "baseURL": "https://api.embedding.weaviate.io",
+                "dimensions": 1024,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_weaviate(
+            vectorize_collection_name=False,
             model="Snowflake/snowflake-arctic-embed-m-v1.5",
             base_url="https://api.embedding.weaviate.io",
             dimensions=768,
