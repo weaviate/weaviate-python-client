@@ -102,7 +102,7 @@ class ConnectionV4(_ConnectionBase):
         connection_config: ConnectionConfig,
         loop: asyncio.AbstractEventLoop,  # required for background token refresh
         embedded_db: Optional[EmbeddedV4] = None,
-        gfl_host: str = None
+        gfl_host: Optional[str] = None,
     ):
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
