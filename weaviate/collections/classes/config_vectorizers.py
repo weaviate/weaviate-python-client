@@ -65,7 +65,9 @@ AWSService: TypeAlias = Literal[
     "bedrock",
     "sagemaker",
 ]
-WeaviateModel: TypeAlias = Literal["Snowflake/snowflake-arctic-embed-m-v1.5"]
+WeaviateModel: TypeAlias = Literal[
+    "Snowflake/snowflake-arctic-embed-l-v2.0", "Snowflake/snowflake-arctic-embed-m-v1.5"
+]
 
 
 class Vectorizers(str, Enum):
