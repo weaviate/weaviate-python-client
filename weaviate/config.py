@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import logging
 from typing import Optional, Tuple, Union
 
 from pydantic import BaseModel, Field
@@ -81,6 +82,10 @@ class AdditionalConfig(BaseModel):
     proxies: Union[str, Proxies, None] = Field(default=None)
     timeout_: Union[Tuple[int, int], Timeout] = Field(default_factory=Timeout, alias="timeout")
     trust_env: bool = Field(default=False)
+    logger: Optional[logging.Logger] = Field(
+        default=None,
+        description="Optional user-provided logger object for HTTP request/response logging."
+    )
 
     @property
     def timeout(self) -> Timeout:

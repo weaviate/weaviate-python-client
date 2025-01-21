@@ -39,7 +39,8 @@ from weaviate.auth import (
     AuthApiKey,
     AuthClientCredentials,
 )
-from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
+from weaviate.config import AdditionalConfig, ConnectionConfig, Proxies, Timeout as TimeoutConfig
+from weaviate.logger import log_http_event
 from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
@@ -102,7 +103,22 @@ class ConnectionV4:
         connection_config: ConnectionConfig,
         loop: asyncio.AbstractEventLoop,  # required for background token refresh
         embedded_db: Optional[EmbeddedV4] = None,
+        additional_config: Optional[AdditionalConfig] = None,
     ):
+        """Initialize the ConnectionV4 instance.
+        
+        Args:
+            connection_params: Connection parameters for the Weaviate instance
+            auth_client_secret: Authentication credentials
+            timeout_config: Timeout configuration
+            proxies: Proxy configuration
+            trust_env: Whether to trust environment variables
+            additional_headers: Additional HTTP headers
+            connection_config: Connection configuration
+            loop: Event loop for async operations
+            embedded_db: Optional embedded database instance
+            additional_config: Additional configuration including logger
+        """
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
         self._api_version_path = "/v1"
@@ -119,6 +135,7 @@ class ConnectionV4:
         self._grpc_max_msg_size: Optional[int] = None
         self.__connected = False
         self.__loop = loop
+        self._additional_config = additional_config
 
         self._headers = {"content-type": "application/json"}
         self.__add_weaviate_embedding_service_header(connection_params.http.host)
@@ -232,13 +249,31 @@ class ConnectionV4:
         }
 
     def __make_async_client(self) -> AsyncClient:
-        return AsyncClient(
+        """Create an async HTTP client with proper configuration and event hooks.
+        
+        Returns:
+            AsyncClient: The configured httpx AsyncClient instance
+        """
+        client = AsyncClient(
             headers=self._headers,
             mounts=self._make_mounts(),
             trust_env=self.__trust_env,
         )
+        
+        # Set up logging if configured
+        additional_config = getattr(self, '_additional_config', None)
+        if additional_config is not None:
+            logger = getattr(additional_config, 'logger', None)
+            if logger is not None:
+                client.event_hooks = {
+                    "response": [
+                        lambda resp: log_http_event(logger, resp)
+                    ]
+                }
+        return client
 
     def __make_clients(self) -> None:
+        """Create the HTTP client with proper configuration and event hooks."""
         self._client = self.__make_async_client()
 
     async def _open_connections_rest(
