@@ -148,7 +148,7 @@ def test_logger_with_collection_operations(
         collection.data.insert({"name": "test"})
 
         # Query data
-        results = collection.query.fetch_objects()
+        collection.query.fetch_objects()  # Execute query to generate logs
 
         # Verify logs for each operation
         create_logs = [log for log in custom_logger.logs if "POST" in log and name in log]
