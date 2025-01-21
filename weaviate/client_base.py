@@ -38,6 +38,10 @@ class _WeaviateClientInit:
         additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
     ) -> None:
+        print("DEBUG: Initializing WeaviateClientBase with additional_config:", additional_config)
+        print("DEBUG: Additional config type:", type(additional_config))
+        if additional_config is not None and hasattr(additional_config, 'logger'):
+            print("DEBUG: Logger from additional_config:", additional_config.logger)
         """Initialise a WeaviateClient/WeaviateClientAsync class instance to use when interacting with Weaviate.
 
         Use this specific initializer when you want to create a custom Client specific to your Weaviate setup.
@@ -83,6 +87,7 @@ class _WeaviateClientInit:
             proxies=config.proxies,
             trust_env=config.trust_env,
             loop=self._loop,
+            additional_config=additional_config,  # Pass the full additional_config to ensure logger is available
         )
 
         self.integrations = _Integrations(self._connection)
