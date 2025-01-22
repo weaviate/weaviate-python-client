@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union, Dict, cast
+from typing import ClassVar, List, Literal, Mapping, Optional, Sequence, Type, Union, Dict, cast
 
 from pydantic import ConfigDict, Field
 
@@ -228,9 +228,36 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+class _MultiVectorQuery(_WeaviateInput):
+    tensor: Sequence[Sequence[float]]
+
+
+class _ManyVectorsQuery(_WeaviateInput):
+    vectors: Sequence[Sequence[float]]
+
+
 NearVectorInputType = Union[
-    Sequence[NUMBER], Dict[str, Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]]
+    Sequence[NUMBER],
+    Sequence[Sequence[NUMBER]],
+    Mapping[
+        str,
+        Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]], _MultiVectorQuery, _ManyVectorsQuery],
+    ],
 ]
+
+
+class NearVectorQuery:
+    """Factory class to use when defining near vector queries with multiple vectors in `near_vector()` and `hybrid()` methods."""
+
+    @staticmethod
+    def multi_vector(tensor: Sequence[Sequence[float]]) -> _MultiVectorQuery:
+        """Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
+        return _MultiVectorQuery(tensor=tensor)
+
+    @staticmethod
+    def many_vectors(vectors: Sequence[Sequence[float]]) -> _ManyVectorsQuery:
+        """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
+        return _ManyVectorsQuery(vectors=vectors)
 
 
 class _HybridNearBase(_WeaviateInput):

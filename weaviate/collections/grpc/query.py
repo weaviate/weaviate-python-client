@@ -24,6 +24,8 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
     _MultiTargetVectorJoin,
+    _MultiVectorQuery,
+    _ManyVectorsQuery,
     HybridFusion,
     _QueryReferenceMultiTarget,
     _MetadataQuery,
@@ -48,7 +50,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.retry import _Retry
-from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
+from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, PERMISSION_DENIED
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     InsufficientPermissionsError,
@@ -946,10 +948,13 @@ class _QueryGRPC(_BaseGRPC):
         else:
             return target_vector.to_grpc_target_vector(self._connection._weaviate_version), None
 
-    @staticmethod
     def __vector_per_target(
-        vector: NearVectorInputType, targets: Optional[search_get_pb2.Targets], argument_name: str
+        self,
+        vector: NearVectorInputType,
+        targets: Optional[search_get_pb2.Targets],
+        argument_name: str,
     ) -> Tuple[Optional[Dict[str, bytes]], Optional[bytes]]:
+        """@deprecated in 1.27.0, included for BC until 1.27.0 is no longer supported."""  # noqa: D401
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
                                 - a list of numbers
@@ -977,7 +982,11 @@ class _QueryGRPC(_BaseGRPC):
 
             return vector_per_target, None
         else:
-            if len(vector) == 0:
+            if (
+                isinstance(vector, _MultiVectorQuery)
+                or isinstance(vector, _ManyVectorsQuery)
+                or len(vector) == 0
+            ):
                 raise invalid_nv_exception
 
             if _is_1d_vector(vector):
@@ -991,9 +1000,11 @@ class _QueryGRPC(_BaseGRPC):
                     keys and lists of numbers as values."""
                 )
 
-    @staticmethod
     def __vector_for_target(
-        vector: NearVectorInputType, targets: Optional[search_get_pb2.Targets], argument_name: str
+        self,
+        vector: NearVectorInputType,
+        targets: Optional[search_get_pb2.Targets],
+        argument_name: str,
     ) -> Tuple[
         Optional[List[search_get_pb2.VectorForTarget]], Optional[bytes], Optional[List[str]]
     ]:
@@ -1006,7 +1017,7 @@ class _QueryGRPC(_BaseGRPC):
 
         vector_for_target: List[search_get_pb2.VectorForTarget] = []
 
-        def add_vector(val: List[float], target_name: str) -> None:
+        def add_vector(val: Sequence[float], target_name: str) -> None:
             vec = _get_vector_v4(val)
 
             if (
@@ -1016,11 +1027,16 @@ class _QueryGRPC(_BaseGRPC):
             ):
                 raise invalid_nv_exception
 
-            vector_for_target.append(
-                search_get_pb2.VectorForTarget(
-                    name=target_name, vector_bytes=struct.pack("{}f".format(len(vec)), *vec)
+            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+                vector_for_target.append(
+                    search_get_pb2.VectorForTarget(name=target_name, vector_bytes=_Pack.single(vec))
                 )
-            )
+            else:
+                vector_for_target.append(
+                    search_get_pb2.VectorForTarget(
+                        name=target_name, vectors=_Pack.vectors({target_name: vec})
+                    )
+                )
 
         if isinstance(vector, dict):
             if (
@@ -1033,11 +1049,26 @@ class _QueryGRPC(_BaseGRPC):
             for key, value in vector.items():
                 # typing tools do not understand the type narrowing here
                 if _is_1d_vector(value):
-                    val: List[float] = cast(List[float], value)
+                    val = value
                     add_vector(val, key)
                     target_vectors_tmp.append(key)
+                elif isinstance(value, _MultiVectorQuery):
+                    vector_for_target.append(
+                        search_get_pb2.VectorForTarget(
+                            name=key,
+                            vectors=_Pack.vectors({key: value.tensor}),
+                        )
+                    )
+                elif isinstance(value, _ManyVectorsQuery):
+                    vector_for_target.append(
+                        search_get_pb2.VectorForTarget(
+                            name=key,
+                            vectors=_Pack.vectors({key: vector for vector in value.vectors}),
+                        )
+                    )
+                    target_vectors_tmp.append(key)
                 else:
-                    vals: List[List[float]] = cast(List[List[float]], value)
+                    vals = cast(Sequence[Sequence[NUMBER]], value)
                     for inner_vector in vals:
                         add_vector(inner_vector, key)
                         target_vectors_tmp.append(key)

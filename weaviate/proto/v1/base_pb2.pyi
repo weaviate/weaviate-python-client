@@ -20,10 +20,19 @@ class ConsistencyLevel(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     CONSISTENCY_LEVEL_QUORUM: _ClassVar[ConsistencyLevel]
     CONSISTENCY_LEVEL_ALL: _ClassVar[ConsistencyLevel]
 
+class VectorType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    VECTOR_TYPE_UNSPECIFIED: _ClassVar[VectorType]
+    VECTOR_TYPE_SINGLE_FP32: _ClassVar[VectorType]
+    VECTOR_TYPE_MULTI_FP32: _ClassVar[VectorType]
+
 CONSISTENCY_LEVEL_UNSPECIFIED: ConsistencyLevel
 CONSISTENCY_LEVEL_ONE: ConsistencyLevel
 CONSISTENCY_LEVEL_QUORUM: ConsistencyLevel
 CONSISTENCY_LEVEL_ALL: ConsistencyLevel
+VECTOR_TYPE_UNSPECIFIED: VectorType
+VECTOR_TYPE_SINGLE_FP32: VectorType
+VECTOR_TYPE_MULTI_FP32: VectorType
 
 class NumberArrayProperties(_message.Message):
     __slots__ = ("values", "prop_name", "values_bytes")
@@ -319,16 +328,19 @@ class GeoCoordinatesFilter(_message.Message):
     ) -> None: ...
 
 class Vectors(_message.Message):
-    __slots__ = ("name", "index", "vector_bytes")
+    __slots__ = ("name", "index", "vector_bytes", "type")
     NAME_FIELD_NUMBER: _ClassVar[int]
     INDEX_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    TYPE_FIELD_NUMBER: _ClassVar[int]
     name: str
     index: int
     vector_bytes: bytes
+    type: VectorType
     def __init__(
         self,
         name: _Optional[str] = ...,
         index: _Optional[int] = ...,
         vector_bytes: _Optional[bytes] = ...,
+        type: _Optional[_Union[VectorType, str]] = ...,
     ) -> None: ...

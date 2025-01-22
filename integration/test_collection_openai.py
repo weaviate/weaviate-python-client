@@ -588,7 +588,7 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
         reranker_config=Configure.Reranker.transformers(),
         vectorizer_config=Configure.Vectorizer.text2vec_openai(),
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        ports=(8079, 50050),
+        ports=(8086, 50057),
         headers={"X-OpenAI-Api-Key": api_key},
     )
     if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):

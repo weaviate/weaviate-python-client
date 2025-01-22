@@ -72,6 +72,14 @@ class _VectorIndexConfigSkipCreate(_VectorIndexConfigCreate):
         return VectorIndexType.HNSW
 
 
+class _MultiVectorConfigCreateBase(_ConfigCreateModel):
+    enabled: bool = Field(default=True)
+
+
+class _MultiVectorConfigCreate(_MultiVectorConfigCreateBase):
+    aggregation: Optional[str]
+
+
 class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
     cleanupIntervalSeconds: Optional[int]
     dynamicEfMin: Optional[int]
@@ -83,6 +91,7 @@ class _VectorIndexConfigHNSWCreate(_VectorIndexConfigCreate):
     flatSearchCutoff: Optional[int]
     maxConnections: Optional[int]
     vectorCacheMaxObjects: Optional[int]
+    multivector: Optional[_MultiVectorConfigCreate]
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:

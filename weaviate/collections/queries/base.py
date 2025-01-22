@@ -49,15 +49,12 @@ from weaviate.collections.classes.types import (
     TReferences,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
-from weaviate.collections.queries.byteops import _ByteOps
+from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.proto.v1 import search_get_pb2, properties_pb2
+from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
 from weaviate.types import INCLUDE_VECTOR
-from weaviate.util import (
-    file_encoder_b64,
-    _datetime_from_weaviate_str,
-)
+from weaviate.util import file_encoder_b64, _datetime_from_weaviate_str
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
@@ -149,7 +146,7 @@ class _Base(Generic[Properties, References]):
     def __extract_vector_for_object(
         self,
         add_props: "search_get_pb2.MetadataResult",
-    ) -> Dict[str, List[float]]:
+    ) -> Dict[str, Union[List[float], List[List[float]]]]:
         if (
             len(add_props.vector_bytes) == 0
             and len(add_props.vector) == 0
@@ -160,9 +157,14 @@ class _Base(Generic[Properties, References]):
         if len(add_props.vector_bytes) > 0:
             return {"default": _ByteOps.decode_float32s(add_props.vector_bytes)}
 
-        vecs = {}
+        vecs: Dict[str, Union[List[float], List[List[float]]]] = {}
         for vec in add_props.vectors:
-            vecs[vec.name] = _ByteOps.decode_float32s(vec.vector_bytes)
+            if vec.type == base_pb2.VECTOR_TYPE_SINGLE_FP32:
+                vecs[vec.name] = _Unpack.single(vec.vector_bytes)
+            elif vec.type == base_pb2.VECTOR_TYPE_MULTI_FP32:
+                vecs[vec.name] = _Unpack.multi(vec.vector_bytes)
+            else:
+                vecs[vec.name] = _Unpack.single(vec.vector_bytes)
         return vecs
 
     def __extract_generated_for_object(
