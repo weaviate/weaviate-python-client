@@ -11,6 +11,7 @@ from weaviate.collections.classes.config import (
     PQConfig,
     _VectorIndexConfigHNSW,
     _VectorIndexConfigFlat,
+    _MultiVectorConfig,
     Vectorizers,
     ReferenceProperty,
 )
@@ -827,11 +828,19 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
             wvc.config.Configure.NamedVectors.none(
                 name="colbert",
                 vector_index_config=wvc.config.Configure.VectorIndex.hnsw(
-                    multi_vector=wvc.config.Configure.VectorIndex.MultiVector.colbert()
+                    multi_vector=wvc.config.Configure.VectorIndex.MultiVector.multivector()
                 ),
             ),
         ],
     )
+
+    config = collection.config.get()
+    assert config.vector_config is not None
+    assert isinstance(config.vector_config["colbert"].vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(
+        config.vector_config["colbert"].vector_index_config.multi_vector, _MultiVectorConfig
+    )
+    assert config.vector_config["colbert"].vector_index_config.multi_vector.aggregation == "maxSim"
 
     collection.data.insert({}, vector={"colbert": [[1, 2], [4, 5]]})
     assert len(collection) == 1

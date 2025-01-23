@@ -1509,7 +1509,16 @@ SQConfig = _SQConfig
 
 
 @dataclass
+class _MultiVectorConfig(_ConfigBase):
+    aggregation: str
+
+
+MultiVector = _MultiVectorConfig
+
+
+@dataclass
 class _VectorIndexConfig(_ConfigBase):
+    multi_vector: Optional[_MultiVectorConfig]
     quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1520,6 +1529,8 @@ class _VectorIndexConfig(_ConfigBase):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _SQConfig):
             out["sq"] = {**out.pop("quantizer"), "enabled": True}
+        if self.multi_vector is not None:
+            out["multivector"] = self.multi_vector.to_dict()
         return out
 
 
@@ -1978,7 +1989,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 
 class _VectorIndexMultiVector:
     @staticmethod
-    def colbert(
+    def multivector(
         aggregation: Union[Literal["maxSim"], str, None] = None,
     ) -> _MultiVectorConfigCreate:
         return _MultiVectorConfigCreate(
@@ -2062,6 +2073,7 @@ class _VectorIndex:
         return _VectorIndexConfigSkipCreate(
             distance=None,
             quantizer=None,
+            multivector=None,
         )
 
     @staticmethod
@@ -2120,6 +2132,7 @@ class _VectorIndex:
             distance=distance_metric,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
+            multivector=None,
         )
 
     @staticmethod
@@ -2137,7 +2150,12 @@ class _VectorIndex:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigDynamicCreate(
-            distance=distance_metric, threshold=threshold, hnsw=hnsw, flat=flat, quantizer=None
+            distance=distance_metric,
+            threshold=threshold,
+            hnsw=hnsw,
+            flat=flat,
+            quantizer=None,
+            multivector=None,
         )
 
 
