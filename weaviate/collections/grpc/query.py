@@ -1073,26 +1073,14 @@ class _QueryGRPC(_BaseGRPC):
                         )
                     )
                 elif isinstance(value, _ManyVectorsQuery):
-                    vector_for_target.append(
-                        search_get_pb2.VectorForTarget(
-                            name=key,
-                            vectors=[
-                                base_pb2.Vectors(
-                                    name=key,
-                                    vector_bytes=_Pack.single(vec),
-                                    type=base_pb2.VECTOR_TYPE_SINGLE_FP32,
-                                )
-                                for vec in value.vectors
-                            ],
-                        )
-                    )
-                    target_vectors_tmp.append(key)
+                    for vec in value.vectors:
+                        add_vector(vec, key)
+                        target_vectors_tmp.append(key)
                 else:
                     vals = cast(Sequence[Sequence[NUMBER]], value)
                     for inner_vector in vals:
                         add_vector(inner_vector, key)
                         target_vectors_tmp.append(key)
-
             return vector_for_target, None, target_vectors_tmp
         else:
             if _is_1d_vector(vector):
