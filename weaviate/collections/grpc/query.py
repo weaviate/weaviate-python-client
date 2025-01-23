@@ -59,7 +59,7 @@ from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateRetryError,
 )
-from weaviate.proto.v1 import search_get_pb2
+from weaviate.proto.v1 import base_pb2, search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4, _is_1d_vector
 from weaviate.validator import _ValidateArgument, _validate_input, _ExtraTypes
@@ -1034,7 +1034,14 @@ class _QueryGRPC(_BaseGRPC):
             else:
                 vector_for_target.append(
                     search_get_pb2.VectorForTarget(
-                        name=target_name, vectors=_Pack.vectors({target_name: vec})
+                        name=target_name,
+                        vectors=[
+                            base_pb2.Vectors(
+                                name=target_name,
+                                vector_bytes=_Pack.single(vec),
+                                type=base_pb2.VECTOR_TYPE_SINGLE_FP32,
+                            )
+                        ],
                     )
                 )
 
@@ -1056,14 +1063,27 @@ class _QueryGRPC(_BaseGRPC):
                     vector_for_target.append(
                         search_get_pb2.VectorForTarget(
                             name=key,
-                            vectors=_Pack.vectors({key: value.tensor}),
+                            vectors=[
+                                base_pb2.Vectors(
+                                    name=key,
+                                    vector_bytes=_Pack.multi(value.tensor),
+                                    type=base_pb2.VECTOR_TYPE_MULTI_FP32,
+                                )
+                            ],
                         )
                     )
                 elif isinstance(value, _ManyVectorsQuery):
                     vector_for_target.append(
                         search_get_pb2.VectorForTarget(
                             name=key,
-                            vectors=_Pack.vectors({key: vector for vector in value.vectors}),
+                            vectors=[
+                                base_pb2.Vectors(
+                                    name=key,
+                                    vector_bytes=_Pack.single(vec),
+                                    type=base_pb2.VECTOR_TYPE_SINGLE_FP32,
+                                )
+                                for vec in value.vectors
+                            ],
                         )
                     )
                     target_vectors_tmp.append(key)

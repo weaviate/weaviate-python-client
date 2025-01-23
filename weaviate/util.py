@@ -9,7 +9,8 @@ import os
 import re
 import uuid as uuid_lib
 from pathlib import Path
-from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, TypeGuard, cast
+from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
+from typing_extensions import TypeGuard
 
 import httpx
 import validators

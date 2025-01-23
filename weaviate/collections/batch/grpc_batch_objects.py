@@ -49,8 +49,12 @@ class _BatchGRPC(_BaseGRPC):
         if vectors is None or _is_1d_vector(vectors):
             return None
         # pylance fails to type narrow TypeGuard in _is_1d_vector properly
-        v = cast(Mapping[str, Sequence[float] | Sequence[Sequence[float]]], vectors)
-        return _Pack.vectors(v)
+        vectors = cast(Mapping[str, Sequence[float] | Sequence[Sequence[float]]], vectors)
+        return [
+            base_pb2.Vectors(name=name, vector_bytes=packing.bytes_, type=packing.type_)
+            for name, vec_or_vecs in vectors.items()
+            if (packing := _Pack.parse_single_or_multi_vec(vec_or_vecs))
+        ]
 
     def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
         return [

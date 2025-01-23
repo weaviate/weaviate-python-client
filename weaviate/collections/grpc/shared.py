@@ -1,5 +1,4 @@
 import struct
-from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import List, Optional, Sequence, Union
 from typing_extensions import TypeGuard
@@ -90,16 +89,6 @@ class _Pack:
             return _Packing(bytes_=_Pack.single(vector), type_=base_pb2.VECTOR_TYPE_SINGLE_FP32)
         else:
             raise WeaviateInvalidInputError(f"Invalid vectors: {vector}")
-
-    @staticmethod
-    def vectors(
-        vectors: Mapping[str, Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]]
-    ) -> List[base_pb2.Vectors]:
-        return [
-            base_pb2.Vectors(name=name, vector_bytes=packing.bytes_, type=packing.type_)
-            for name, vec_or_vecs in vectors.items()
-            if (packing := _Pack.parse_single_or_multi_vec(vec_or_vecs))
-        ]
 
     @staticmethod
     def single(vector: Sequence[NUMBER]) -> bytes:
