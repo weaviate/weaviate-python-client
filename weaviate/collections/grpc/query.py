@@ -802,12 +802,7 @@ class _QueryGRPC(_BaseGRPC):
     async def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
         try:
             assert self._connection.grpc_stub is not None
-            # Log the gRPC request if a logger is configured
-            if hasattr(self._connection, '_additional_config') and self._connection._additional_config is not None:
-                logger = getattr(self._connection._additional_config, 'logger', None)
-                if logger is not None and hasattr(logger, 'debug'):
-                    from weaviate.logger import log_grpc_event
-                    log_grpc_event(logger, "Search", request, None)  # Response will be logged by interceptor
+
             res = await _Retry(4).with_exponential_backoff(
                 0,
                 f"Searching in collection {request.collection}",

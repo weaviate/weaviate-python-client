@@ -118,16 +118,13 @@ class ConnectionParams(BaseModel):
             options: list = [*opts, ("grpc.http_proxy", p)]
         else:
             options = opts
-        # Add logging interceptor if logger is configured
-        interceptors = []
-        if hasattr(self, '_additional_config') and self._additional_config is not None:
-            logger = getattr(self._additional_config, 'logger', None)
-            if logger is not None and hasattr(logger, 'debug'):
-                from weaviate.logger import grpc_logging_interceptor
-                interceptors.append(
-                    lambda continuation, client_call_details, request: 
-                    grpc_logging_interceptor(continuation, client_call_details, request, logger)
-                )
+
+        # Add environment-based logging interceptor
+        from weaviate.logger import grpc_logging_interceptor
+        interceptors = [
+            lambda continuation, client_call_details, request: 
+            grpc_logging_interceptor(continuation, client_call_details, request)
+        ]
 
         if self.grpc.secure:
             return grpc.aio.secure_channel(

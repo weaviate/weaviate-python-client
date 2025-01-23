@@ -33,14 +33,12 @@ def _mask_sensitive_headers(headers: Dict[str, str], is_response: bool = False) 
         masked[key] = value
     return masked
 
-def log_http_event(logger: Any, response: httpx.Response) -> None:
-    """Log HTTP request and response details using the provided logger.
+def log_http_event(response: httpx.Response) -> None:
+    """Log HTTP request and response details using the default logger.
     
     Args:
-        logger: Logger object to use for logging (must support debug method)
         response: The httpx Response object containing both request and response info
     """
-    print("DEBUG: log_http_event called with logger:", logger)
     try:
         request = response.request
         
@@ -77,11 +75,10 @@ def log_http_event(logger: Any, response: httpx.Response) -> None:
     except Exception as e:
         logger.debug(f"Error logging HTTP event: {str(e)}")
 
-def log_grpc_event(logger: Any, method_name: str, request: Any, response: Any) -> None:
-    """Log gRPC request and response details.
+def log_grpc_event(method_name: str, request: Any, response: Any) -> None:
+    """Log gRPC request and response details using the default logger.
     
     Args:
-        logger: Logger object to use for logging (must support debug method)
         method_name: The name of the gRPC method being called
         request: The gRPC request object
         response: The gRPC response object (may be None for request-only logging)
@@ -112,7 +109,6 @@ async def grpc_logging_interceptor(
     continuation: Any,
     client_call_details: grpc.aio.ClientCallDetails,
     request: Any,
-    logger: Optional[Any] = None,
 ) -> Union[UnaryUnaryCall, UnaryStreamCall, StreamUnaryCall, StreamStreamCall]:
     """gRPC interceptor for logging requests and responses.
     
@@ -120,21 +116,16 @@ async def grpc_logging_interceptor(
         continuation: The RPC continuation function
         client_call_details: Contains RPC method details
         request: The request being made
-        logger: Optional logger to use for logging
     
     Returns:
         The result of the RPC call
     """
-    if logger is None:
-        return await continuation(client_call_details, request)
-    
     method_name = client_call_details.method
     try:
         call = await continuation(client_call_details, request)
         response = await call
-        log_grpc_event(logger, method_name, request, response)
+        log_grpc_event(method_name, request, response)
         return call
     except Exception as e:
-        if logger:
-            logger.debug(f"gRPC Error in {method_name}: {e}")
+        logger.debug(f"gRPC Error in {method_name}: {e}")
         raise
