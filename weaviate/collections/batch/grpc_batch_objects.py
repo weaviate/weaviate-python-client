@@ -2,8 +2,7 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
-from typing_extensions import cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 
 from google.protobuf.struct_pb2 import Struct
 from grpc.aio import AioRpcError  # type: ignore
@@ -50,7 +49,7 @@ class _BatchGRPC(_BaseGRPC):
         if vectors is None or _is_1d_vector(vectors):
             return None
         # pylance fails to type narrow TypeGuard in _is_1d_vector properly
-        vectors = cast(Mapping[str, Sequence[float] | Sequence[Sequence[float]]], vectors)
+        vectors = cast(Mapping[str, Union[Sequence[float], Sequence[Sequence[float]]]], vectors)
         return [
             base_pb2.Vectors(name=name, vector_bytes=packing.bytes_, type=packing.type_)
             for name, vec_or_vecs in vectors.items()
