@@ -8,7 +8,7 @@ from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.proto.v1 import search_get_pb2
 from weaviate.str_enum import BaseEnum
 from weaviate.types import INCLUDE_VECTOR, UUID, NUMBER
-from weaviate.util import _ServerVersion, _get_vector_v4, _is_1d_vector
+from weaviate.util import _ServerVersion
 
 
 class HybridFusion(str, BaseEnum):
@@ -447,14 +447,6 @@ class HybridVector:
         Returns:
             A `_HybridNearVector` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
         """
-        if isinstance(vector, dict):
-            for key, val in vector.items():
-                if _is_1d_vector(val):
-                    vector[key] = _get_vector_v4(val)
-                else:
-                    vector[key] = [_get_vector_v4(v) for v in val]
-        else:
-            vector = _get_vector_v4(vector)
         return _HybridNearVector(vector=vector, distance=distance, certainty=certainty)
 
 

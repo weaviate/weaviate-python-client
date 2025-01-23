@@ -1989,7 +1989,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 
 class _VectorIndexMultiVector:
     @staticmethod
-    def multivector(
+    def multi_vector(
         aggregation: Union[Literal["maxSim"], str, None] = None,
     ) -> _MultiVectorConfigCreate:
         return _MultiVectorConfigCreate(

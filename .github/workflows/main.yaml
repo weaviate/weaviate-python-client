@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # WEAVIATE_124: 1.24.26
+  WEAVIATE_124: 1.24.26
   WEAVIATE_125: 1.25.29
   WEAVIATE_126: 1.26.13
   WEAVIATE_127: 1.27.9
@@ -279,6 +279,7 @@ jobs:
       fail-fast: false
       matrix:
         server: [
+          $WEAVIATE_124,
           $WEAVIATE_125,
           $WEAVIATE_126,
           $WEAVIATE_127,
