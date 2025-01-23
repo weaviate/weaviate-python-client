@@ -10,7 +10,7 @@ from weaviate.collections.classes.grpc import (
     NearMediaType,
     QueryNested,
     QueryReference,
-    NearVectorQuery,
+    NearVector,
     Rerank,
     Sort,
 )
@@ -28,7 +28,7 @@ __all__ = [
     "NearMediaType",
     "QueryNested",
     "QueryReference",
-    "NearVectorQuery",
+    "NearVector",
     "Rerank",
     "Sort",
     "TargetVectors",

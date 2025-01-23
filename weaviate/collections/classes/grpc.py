@@ -246,7 +246,7 @@ NearVectorInputType = Union[
 ]
 
 
-class NearVectorQuery:
+class NearVector:
     """Factory class to use when defining near vector queries with multiple vectors in `near_vector()` and `hybrid()` methods."""
 
     @staticmethod
