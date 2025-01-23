@@ -2,7 +2,8 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing_extensions import cast
 
 from google.protobuf.struct_pb2 import Struct
 from grpc.aio import AioRpcError  # type: ignore
