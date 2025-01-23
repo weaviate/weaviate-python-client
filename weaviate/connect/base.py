@@ -120,11 +120,8 @@ class ConnectionParams(BaseModel):
             options = opts
 
         # Add environment-based logging interceptor
-        from weaviate.logger import grpc_logging_interceptor
-        interceptors = [
-            lambda continuation, client_call_details, request: 
-            grpc_logging_interceptor(continuation, client_call_details, request)
-        ]
+        from weaviate.logger import GrpcLoggingInterceptor
+        interceptors = [GrpcLoggingInterceptor()]
 
         if self.grpc.secure:
             return grpc.aio.secure_channel(

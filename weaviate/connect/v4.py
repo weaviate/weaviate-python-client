@@ -119,7 +119,7 @@ class ConnectionV4:
             connection_config: Connection configuration
             loop: Event loop for async operations
             embedded_db: Optional embedded database instance
-            additional_config: Additional configuration including logger
+            additional_config: Additional configuration
         """
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
