@@ -20,10 +20,12 @@ from weaviate.collections.cluster import _Cluster
 from weaviate.collections.config import _ConfigCollection
 from weaviate.collections.data import _DataCollection
 from weaviate.collections.generate import _GenerateCollection
+from weaviate.collections.grpc.aggregate import _AggregateGRPC
 from weaviate.collections.iterator import _IteratorInputs, _ObjectIterator
 from weaviate.collections.query import _QueryCollection
 from weaviate.collections.tenants import _Tenants
 from weaviate.connect import ConnectionV4
+from weaviate.event_loop import _EventLoopSingleton
 from weaviate.types import UUID
 
 from .base import _CollectionBase
@@ -77,6 +79,9 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             references,
         )
 
+        self.__aggregate_grpc = _AggregateGRPC(
+            connection, name, tenant, consistency_level, validate_arguments
+        )
         self.__cluster = _Cluster(connection)
 
         config = _ConfigCollection(
@@ -140,9 +145,14 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
 
     def __len__(self) -> int:
-        total = self.aggregate.over_all(total_count=True).total_count
-        assert total is not None
-        return total
+        if self._connection._weaviate_version.is_lower_than(1, 28, 4):
+            total = self.aggregate.over_all(total_count=True).total_count
+            assert total is not None
+            return total
+        else:
+            return _EventLoopSingleton.get_instance().run_until_complete(
+                self.__aggregate_grpc.meta_count
+            )
 
     def __str__(self) -> str:
         config = self.config.get()

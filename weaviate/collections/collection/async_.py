@@ -18,6 +18,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.data import _DataCollectionAsync
 from weaviate.collections.generate import _GenerateCollectionAsync
+from weaviate.collections.grpc.aggregate import _AggregateGRPC
 from weaviate.collections.iterator import _IteratorInputs, _ObjectAIterator
 from weaviate.collections.tenants import _TenantsAsync
 from weaviate.connect import ConnectionV4
@@ -74,6 +75,9 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
             references,
         )
 
+        self.__aggregate_grpc = _AggregateGRPC(
+            connection, name, tenant, consistency_level, validate_arguments
+        )
         self.__cluster = _ClusterAsync(connection)
 
         self.aggregate = _AggregateCollectionAsync(connection, name, consistency_level, tenant)
@@ -103,9 +107,12 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
 
     async def length(self) -> int:
         """Get the total number of objects in the collection."""
-        total = (await self.aggregate.over_all(total_count=True)).total_count
-        assert total is not None
-        return total
+        if self._connection._weaviate_version.is_lower_than(1, 28, 4):
+            total = (await self.aggregate.over_all(total_count=True)).total_count
+            assert total is not None
+            return total
+        else:
+            return await self.__aggregate_grpc.meta_count()
 
     async def to_string(self) -> str:
         """Return a string representation of the collection object."""

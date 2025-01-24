@@ -34,6 +34,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
 from weaviate.collections.filters import _FilterToREST
+from weaviate.collections.grpc.aggregate import _AggregateGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
@@ -57,6 +58,13 @@ class _AggregateAsync:
         self.__name = name
         self._tenant = tenant
         self._consistency_level = consistency_level
+        self._grpc = _AggregateGRPC(
+            connection=connection,
+            name=name,
+            tenant=tenant,
+            consistency_level=consistency_level,
+            validate_arguments=False,
+        )
 
     def _query(self) -> AggregateBuilder:
         return AggregateBuilder(
