@@ -273,8 +273,21 @@ class _HybridNearText(_HybridNearBase):
     move_away: Optional[Move] = None
 
 
-class _HybridNearVector(_HybridNearBase):
+class _HybridNearVector:  # can't be a Pydantic model because of validation issues parsing numpy, pd, pl arrays/series
     vector: NearVectorInputType
+    distance: Optional[float]
+    certainty: Optional[float]
+
+    def __init__(
+        self,
+        *,
+        vector: NearVectorInputType,
+        distance: Optional[float] = None,
+        certainty: Optional[float] = None,
+    ) -> None:
+        self.vector = vector
+        self.distance = distance
+        self.certainty = certainty
 
 
 HybridVectorType = Union[NearVectorInputType, _HybridNearText, _HybridNearVector]
