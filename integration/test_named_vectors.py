@@ -851,6 +851,13 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
     ).objects
     assert len(objs) == 1
 
+    objs = collection.query.hybrid(
+        None,
+        vector={"colbert": wvc.query.NearVector.multi_vector([[1, 2], [3, 4]])},
+        target_vector="colbert",
+    ).objects
+    assert len(objs) == 1
+
 
 def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
     api_key = os.environ.get("JINAAI_APIKEY")
