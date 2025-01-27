@@ -63,7 +63,7 @@ class _ByteOps:
 @dataclass
 class _Packing:
     bytes_: bytes
-    type_: base_pb2.VectorType
+    type_: base_pb2.Vectors.VectorType
 
 
 class _Pack:
@@ -84,9 +84,13 @@ class _Pack:
         vector: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
     ) -> _Packing:
         if _Pack.is_multi(vector):
-            return _Packing(bytes_=_Pack.multi(vector), type_=base_pb2.VECTOR_TYPE_MULTI_FP32)
+            return _Packing(
+                bytes_=_Pack.multi(vector), type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32
+            )
         elif _Pack.is_single(vector):
-            return _Packing(bytes_=_Pack.single(vector), type_=base_pb2.VECTOR_TYPE_SINGLE_FP32)
+            return _Packing(
+                bytes_=_Pack.single(vector), type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32
+            )
         else:
             raise WeaviateInvalidInputError(f"Invalid vectors: {vector}")
 

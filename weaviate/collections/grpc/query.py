@@ -1039,7 +1039,7 @@ class _QueryGRPC(_BaseGRPC):
                             base_pb2.Vectors(
                                 name=target_name,
                                 vector_bytes=_Pack.single(vec),
-                                type=base_pb2.VECTOR_TYPE_SINGLE_FP32,
+                                type=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
                             )
                         ],
                     )
@@ -1067,7 +1067,7 @@ class _QueryGRPC(_BaseGRPC):
                                 base_pb2.Vectors(
                                     name=key,
                                     vector_bytes=_Pack.multi(value.tensor),
-                                    type=base_pb2.VECTOR_TYPE_MULTI_FP32,
+                                    type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
                                 )
                             ],
                         )

@@ -159,9 +159,9 @@ class _Base(Generic[Properties, References]):
 
         vecs: Dict[str, Union[List[float], List[List[float]]]] = {}
         for vec in add_props.vectors:
-            if vec.type == base_pb2.VECTOR_TYPE_SINGLE_FP32:
+            if vec.type == base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32:
                 vecs[vec.name] = _Unpack.single(vec.vector_bytes)
-            elif vec.type == base_pb2.VECTOR_TYPE_MULTI_FP32:
+            elif vec.type == base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32:
                 vecs[vec.name] = _Unpack.multi(vec.vector_bytes)
             else:
                 vecs[vec.name] = _Unpack.single(vec.vector_bytes)
