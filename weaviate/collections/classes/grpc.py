@@ -228,12 +228,19 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
-class _MultiVectorQuery(_WeaviateInput):
+class _MultidimensionalQuery(_WeaviateInput):
     tensor: Sequence[Sequence[float]]
 
 
-class _ManyVectorsQuery(_WeaviateInput):
+class _ListOfVectorsQuery(_WeaviateInput):
     vectors: Sequence[Sequence[float]]
+
+
+MultidimensionalQuery = _MultidimensionalQuery
+"""Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
+
+ListOfVectorsQuery = _ListOfVectorsQuery
+"""Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
 
 
 NearVectorInputType = Union[
@@ -241,23 +248,26 @@ NearVectorInputType = Union[
     Sequence[Sequence[NUMBER]],
     Mapping[
         str,
-        Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]], _MultiVectorQuery, _ManyVectorsQuery],
+        Union[
+            Sequence[NUMBER], Sequence[Sequence[NUMBER]], MultidimensionalQuery, ListOfVectorsQuery
+        ],
     ],
 ]
+"""Define the input types that can be used in a near vector search."""
 
 
 class NearVector:
     """Factory class to use when defining near vector queries with multiple vectors in `near_vector()` and `hybrid()` methods."""
 
     @staticmethod
-    def multidimensional(tensor: Sequence[Sequence[float]]) -> _MultiVectorQuery:
+    def multidimensional(tensor: Sequence[Sequence[float]]) -> _MultidimensionalQuery:
         """Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
-        return _MultiVectorQuery(tensor=tensor)
+        return _MultidimensionalQuery(tensor=tensor)
 
     @staticmethod
-    def list_of_vectors(vectors: Sequence[Sequence[float]]) -> _ManyVectorsQuery:
+    def list_of_vectors(vectors: Sequence[Sequence[float]]) -> _ListOfVectorsQuery:
         """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
-        return _ManyVectorsQuery(vectors=vectors)
+        return _ListOfVectorsQuery(vectors=vectors)
 
 
 class _HybridNearBase(_WeaviateInput):

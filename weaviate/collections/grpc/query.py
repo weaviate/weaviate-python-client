@@ -24,8 +24,8 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
     _MultiTargetVectorJoin,
-    _MultiVectorQuery,
-    _ManyVectorsQuery,
+    _MultidimensionalQuery,
+    _ListOfVectorsQuery,
     HybridFusion,
     _QueryReferenceMultiTarget,
     _MetadataQuery,
@@ -983,8 +983,8 @@ class _QueryGRPC(_BaseGRPC):
             return vector_per_target, None
         else:
             if (
-                isinstance(vector, _MultiVectorQuery)
-                or isinstance(vector, _ManyVectorsQuery)
+                isinstance(vector, _MultidimensionalQuery)
+                or isinstance(vector, _ListOfVectorsQuery)
                 or len(vector) == 0
             ):
                 raise invalid_nv_exception
@@ -1059,7 +1059,7 @@ class _QueryGRPC(_BaseGRPC):
                     val = value
                     add_vector(val, key)
                     target_vectors_tmp.append(key)
-                elif isinstance(value, _MultiVectorQuery):
+                elif isinstance(value, _MultidimensionalQuery):
                     vector_for_target.append(
                         search_get_pb2.VectorForTarget(
                             name=key,
@@ -1072,7 +1072,7 @@ class _QueryGRPC(_BaseGRPC):
                             ],
                         )
                     )
-                elif isinstance(value, _ManyVectorsQuery):
+                elif isinstance(value, _ListOfVectorsQuery):
                     for vec in value.vectors:
                         add_vector(vec, key)
                         target_vectors_tmp.append(key)
