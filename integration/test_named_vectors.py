@@ -695,7 +695,7 @@ def test_same_target_vector_multiple_input(
         (
             {
                 "first": [0, 1],
-                "second": wvc.query.NearVector.many_vectors([[1, 0, 0], [0, 0, 1]]),
+                "second": wvc.query.NearVector.list_of_vectors([[1, 0, 0], [0, 0, 1]]),
             },
             ["first", "second"],
         ),
@@ -846,14 +846,14 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
     assert len(collection) == 1
 
     objs = collection.query.near_vector(
-        {"colbert": wvc.query.NearVector.multi_vector([[1, 2], [3, 4]])},
+        {"colbert": wvc.query.NearVector.multidimensional([[1, 2], [3, 4]])},
         target_vector="colbert",
     ).objects
     assert len(objs) == 1
 
     objs = collection.query.hybrid(
         None,
-        vector={"colbert": wvc.query.NearVector.multi_vector([[1, 2], [3, 4]])},
+        vector={"colbert": wvc.query.NearVector.multidimensional([[1, 2], [3, 4]])},
         target_vector="colbert",
     ).objects
     assert len(objs) == 1
@@ -895,7 +895,11 @@ def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
     assert len(objs) == 1
 
     objs = collection.query.near_vector(
-        {"colbert": wvc.query.NearVector.multi_vector([[e + 0.01 for e in vec] for vec in vecs])},
+        {
+            "colbert": wvc.query.NearVector.multidimensional(
+                [[e + 0.01 for e in vec] for vec in vecs]
+            )
+        },
         target_vector="colbert",
     ).objects
     assert len(objs) == 1
