@@ -112,7 +112,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
             assert total is not None
             return total
         else:
-            return await self.__aggregate_grpc.meta_count()
+            return await self.__aggregate_grpc.objects_count()
 
     async def to_string(self) -> str:
         """Return a string representation of the collection object."""

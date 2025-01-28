@@ -9,7 +9,8 @@ from typing_extensions import TypeVar
 
 from pydantic import BaseModel, Field
 
-from weaviate.collections.classes.types import _WeaviateInput
+from weaviate.collections.classes.types import _WeaviateInput, GeoCoordinate
+from weaviate.proto.v1 import aggregate_pb2
 
 N = TypeVar("N", int, float)
 
@@ -67,12 +68,11 @@ class AggregateBoolean:
     total_true: Optional[int]
 
 
-# Aggregate references currently bugged on Weaviate's side
-# @dataclass
-# class AggregateReference:
-#     """The aggregation result for a cross-reference property."""
+@dataclass
+class AggregateReference:
+    """The aggregation result for a cross-reference property."""
 
-#     pointing_to: Optional[str]
+    pointing_to: Optional[List[str]]
 
 
 @dataclass
@@ -92,7 +92,7 @@ AggregateResult = Union[
     AggregateText,
     AggregateBoolean,
     AggregateDate,
-    # AggregateReference, # Aggregate references currently bugged on Weaviate's side
+    AggregateReference,
 ]
 
 AProperties = Dict[str, AggregateResult]
@@ -111,7 +111,9 @@ class GroupedBy:
     """The property that the collection was grouped by."""
 
     prop: str
-    value: str
+    value: Union[
+        str, int, float, bool, List[str], List[int], List[float], List[bool], GeoCoordinate
+    ]
 
 
 @dataclass
@@ -133,6 +135,12 @@ class AggregateGroupByReturn:
 class _MetricsBase(BaseModel):
     property_name: str
     count: bool
+
+    def to_gql(self) -> str:
+        raise NotImplementedError
+
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        raise NotImplementedError
 
 
 class _MetricsText(_MetricsBase):
@@ -156,6 +164,16 @@ class _MetricsText(_MetricsBase):
             ]
         )
         return f"{self.property_name} {{ {body} }}"
+
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            text=aggregate_pb2.AggregateRequest.Aggregation.Text(
+                count=self.count,
+                top_occurences=self.top_occurrences_count,
+                top_occurences_limit=self.min_occurrences,
+            ),
+        )
 
 
 class _MetricsNum(_MetricsBase):
@@ -182,11 +200,35 @@ class _MetricsNum(_MetricsBase):
 
 
 class _MetricsInteger(_MetricsNum):
-    pass
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            int=aggregate_pb2.AggregateRequest.Aggregation.Integer(
+                count=self.count,
+                maximum=self.maximum,
+                mean=self.mean,
+                median=self.median,
+                minimum=self.minimum,
+                mode=self.mode,
+                sum=self.sum_,
+            ),
+        )
 
 
 class _MetricsNumber(_MetricsNum):
-    pass
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            number=aggregate_pb2.AggregateRequest.Aggregation.Number(
+                count=self.count,
+                maximum=self.maximum,
+                mean=self.mean,
+                median=self.median,
+                minimum=self.minimum,
+                mode=self.mode,
+                sum=self.sum_,
+            ),
+        )
 
 
 class _MetricsBoolean(_MetricsBase):
@@ -207,6 +249,18 @@ class _MetricsBoolean(_MetricsBase):
         )
         return f"{self.property_name} {{ {body} }}"
 
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            boolean=aggregate_pb2.AggregateRequest.Aggregation.Boolean(
+                count=self.count,
+                percentage_false=self.percentage_false,
+                percentage_true=self.percentage_true,
+                total_false=self.total_false,
+                total_true=self.total_true,
+            ),
+        )
+
 
 class _MetricsDate(_MetricsBase):
     maximum: bool
@@ -226,19 +280,38 @@ class _MetricsDate(_MetricsBase):
         )
         return f"{self.property_name} {{ {body} }}"
 
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            date=aggregate_pb2.AggregateRequest.Aggregation.Date(
+                count=self.count,
+                maximum=self.maximum,
+                median=self.median,
+                minimum=self.minimum,
+                mode=self.mode,
+            ),
+        )
 
-# Aggregate references currently bugged on Weaviate's side
-# class _MetricsReference(BaseModel):
-#     property_name: str
-#     pointing_to: bool
 
-#     def to_gql(self) -> str:
-#         body = " ".join(
-#             [
-#                 "pointingTo" if self.pointing_to else "",
-#             ]
-#         )
-#         return f"{self.property_name} {{ {body} }}"
+class _MetricsReference(BaseModel):
+    property_name: str
+    pointing_to: bool
+
+    def to_gql(self) -> str:
+        body = " ".join(
+            [
+                "pointingTo" if self.pointing_to else "",
+            ]
+        )
+        return f"{self.property_name} {{ {body} }}"
+
+    def to_grpc(self) -> aggregate_pb2.AggregateRequest.Aggregation:
+        return aggregate_pb2.AggregateRequest.Aggregation(
+            property=self.property_name,
+            reference=aggregate_pb2.AggregateRequest.Aggregation.Reference(
+                pointing_to=self.pointing_to,
+            ),
+        )
 
 
 _Metrics = Union[
@@ -247,7 +320,7 @@ _Metrics = Union[
     _MetricsNumber,
     _MetricsDate,
     _MetricsBoolean,
-    # _MetricsReference, # Aggregate references currently bugged on Weaviate's side
+    _MetricsReference,
 ]
 
 PropertiesMetrics = Union[_Metrics, List[_Metrics]]
@@ -258,6 +331,12 @@ class GroupByAggregate(_WeaviateInput):
 
     prop: str
     limit: Optional[int] = Field(default=None)
+
+    def _to_grpc(self) -> aggregate_pb2.AggregateRequest.GroupBy:
+        return aggregate_pb2.AggregateRequest.GroupBy(
+            collection="",
+            property=self.prop,
+        )
 
 
 class Metrics:

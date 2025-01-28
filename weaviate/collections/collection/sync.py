@@ -151,7 +151,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             return total
         else:
             return _EventLoopSingleton.get_instance().run_until_complete(
-                self.__aggregate_grpc.meta_count
+                self.__aggregate_grpc.objects_count
             )
 
     def __str__(self) -> str:

@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import List, Optional, cast
 
 from grpc.aio import AioRpcError  # type: ignore
 
@@ -11,7 +11,7 @@ from weaviate.exceptions import (
     WeaviateQueryError,
     WeaviateRetryError,
 )
-from weaviate.proto.v1 import aggregate_pb2
+from weaviate.proto.v1 import aggregate_pb2, base_pb2
 
 
 class _AggregateGRPC(_BaseGRPC):
@@ -28,14 +28,41 @@ class _AggregateGRPC(_BaseGRPC):
         self._tenant = tenant
         self._validate_arguments = validate_arguments
 
-    async def meta_count(self) -> int:
-        res = await self.__call(self.__create_request(meta_count=True))
-        return res.result.groups[0].count
+    async def objects_count(self) -> int:
+        res = await self.__call(self.__create_request(objects_count=True))
+        return res.result.groups[0].objects_count
 
-    def __create_request(self, *, meta_count: bool = False) -> aggregate_pb2.AggregateRequest:
+    async def over_all(
+        self,
+        *,
+        aggregations: List[aggregate_pb2.AggregateRequest.Aggregation],
+        filters: Optional[base_pb2.Filters],
+        group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy],
+        objects_count: bool = False,
+    ) -> aggregate_pb2.AggregateReply:
+        return await self.__call(
+            self.__create_request(
+                aggregations=aggregations,
+                filters=filters,
+                group_by=group_by,
+                objects_count=objects_count,
+            )
+        )
+
+    def __create_request(
+        self,
+        *,
+        aggregations: Optional[List[aggregate_pb2.AggregateRequest.Aggregation]] = None,
+        filters: Optional[base_pb2.Filters] = None,
+        group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy] = None,
+        objects_count: bool = False,
+    ) -> aggregate_pb2.AggregateRequest:
         return aggregate_pb2.AggregateRequest(
             collection=self._name,
-            meta_count=meta_count,
+            aggregations=aggregations,
+            filters=filters,
+            group_by=group_by,
+            objects_count=objects_count,
             tenant=self._tenant,
         )
 
