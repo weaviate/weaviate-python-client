@@ -24,6 +24,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Multi2VecVoyageaiConfig,
     _Multi2VecGoogleConfig,
     _Ref2VecCentroidConfig,
+    _Text2ColbertJinaAIConfig,
     _Text2VecAWSConfig,
     _Text2VecAzureOpenAIConfig,
     _Text2VecCohereConfig,
@@ -153,6 +154,46 @@ class _NamedVectors:
                 vectorizer=_EnumLikeStr(module_name), module_config=module_config
             ),
             vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2colbert_jinaai(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model: Optional[str] = None,
+        dimensions: Optional[int] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `text2colbert_jinaai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/colbert)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vector_index_config=vector_index_config,
+            vectorizer=_Text2ColbertJinaAIConfig(
+                model=model, dimensions=dimensions, vectorizeClassName=vectorize_collection_name
+            ),
         )
 
     @staticmethod
@@ -1205,8 +1246,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings)
-        for detailed usage.
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings) for detailed usage.
 
         Arguments:
             `name`
@@ -1223,8 +1263,6 @@ class _NamedVectors:
                 The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
-                See the
-                [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings#available-models) for more details.
         """
         return _NamedVectorConfigCreate(
             name=name,

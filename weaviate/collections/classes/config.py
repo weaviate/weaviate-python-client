@@ -31,6 +31,7 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
+    _MultiVectorConfigCreate,
     VectorIndexType as VectorIndexTypeAlias,
     VectorFilterStrategy,
 )
@@ -1508,7 +1509,16 @@ SQConfig = _SQConfig
 
 
 @dataclass
+class _MultiVectorConfig(_ConfigBase):
+    aggregation: str
+
+
+MultiVector = _MultiVectorConfig
+
+
+@dataclass
 class _VectorIndexConfig(_ConfigBase):
+    multi_vector: Optional[_MultiVectorConfig]
     quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1519,6 +1529,8 @@ class _VectorIndexConfig(_ConfigBase):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _SQConfig):
             out["sq"] = {**out.pop("quantizer"), "enabled": True}
+        if self.multi_vector is not None:
+            out["multivector"] = self.multi_vector.to_dict()
         return out
 
 
@@ -1975,6 +1987,16 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         ret_dict["properties"] = existing_props
 
 
+class _VectorIndexMultiVector:
+    @staticmethod
+    def multi_vector(
+        aggregation: Union[Literal["maxSim"], str, None] = None,
+    ) -> _MultiVectorConfigCreate:
+        return _MultiVectorConfigCreate(
+            aggregation=aggregation,
+        )
+
+
 class _VectorIndexQuantizer:
     @staticmethod
     def pq(
@@ -2039,6 +2061,7 @@ class _VectorIndexQuantizer:
 
 
 class _VectorIndex:
+    MultiVector = _VectorIndexMultiVector
     Quantizer = _VectorIndexQuantizer
 
     @staticmethod
@@ -2050,6 +2073,7 @@ class _VectorIndex:
         return _VectorIndexConfigSkipCreate(
             distance=None,
             quantizer=None,
+            multivector=None,
         )
 
     @staticmethod
@@ -2066,6 +2090,7 @@ class _VectorIndex:
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
+        multi_vector: Optional[_MultiVectorConfigCreate] = None,
     ) -> _VectorIndexConfigHNSWCreate:
         """Create a `_VectorIndexConfigHNSWCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 
@@ -2087,6 +2112,7 @@ class _VectorIndex:
             maxConnections=max_connections,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
+            multivector=multi_vector,
         )
 
     @staticmethod
@@ -2106,6 +2132,7 @@ class _VectorIndex:
             distance=distance_metric,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
+            multivector=None,
         )
 
     @staticmethod
@@ -2123,7 +2150,12 @@ class _VectorIndex:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigDynamicCreate(
-            distance=distance_metric, threshold=threshold, hnsw=hnsw, flat=flat, quantizer=None
+            distance=distance_metric,
+            threshold=threshold,
+            hnsw=hnsw,
+            flat=flat,
+            quantizer=None,
+            multivector=None,
         )
 
 

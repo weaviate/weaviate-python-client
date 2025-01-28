@@ -1,3 +1,4 @@
+import os
 import uuid
 from typing import List, Union, Dict, Sequence
 
@@ -10,11 +11,12 @@ from weaviate.collections.classes.config import (
     PQConfig,
     _VectorIndexConfigHNSW,
     _VectorIndexConfigFlat,
+    _MultiVectorConfig,
     Vectorizers,
     ReferenceProperty,
 )
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.grpc import _MultiTargetVectorJoin
+from weaviate.collections.classes.grpc import _MultiTargetVectorJoin, _ListOfVectorsQuery
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import INCLUDE_VECTOR
 
@@ -690,6 +692,13 @@ def test_same_target_vector_multiple_input(
     "near_vector,target_vector",
     [
         ({"first": [0, 1], "second": [[1, 0, 0], [0, 0, 1]]}, ["first", "second"]),
+        (
+            {
+                "first": [0, 1],
+                "second": wvc.query.NearVector.list_of_vectors([[1, 0, 0], [0, 0, 1]]),
+            },
+            ["first", "second"],
+        ),
         ({"first": [[0, 1], [0, 1]], "second": [1, 0, 0]}, ["first", "second"]),
         (
             {"first": [[0, 1], [0, 1]], "second": [[1, 0, 0], [0, 0, 1]]},
@@ -703,7 +712,7 @@ def test_same_target_vector_multiple_input(
 )
 def test_same_target_vector_multiple_input_combinations(
     collection_factory: CollectionFactory,
-    near_vector: Dict[str, Union[Sequence[float], Sequence[Sequence[float]]]],
+    near_vector: Dict[str, Union[Sequence[float], Sequence[Sequence[float]], _ListOfVectorsQuery]],
     target_vector: List[str],
 ) -> None:
     dummy = collection_factory("dummy")
@@ -801,3 +810,99 @@ def test_include_vector_on_references(
     ).objects
 
     assert objs[0].references["hasRef"].objects[0].vector == expected
+
+
+def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory()
+    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
+        pytest.skip("ColBERT vectors are only supported in Weaviate v1.29.0 and higher.")
+
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(
+                name="title",
+                data_type=wvc.config.DataType.TEXT,
+            )
+        ],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none(
+                name="colbert",
+                vector_index_config=wvc.config.Configure.VectorIndex.hnsw(
+                    multi_vector=wvc.config.Configure.VectorIndex.MultiVector.multi_vector()
+                ),
+            ),
+        ],
+    )
+
+    config = collection.config.get()
+    assert config.vector_config is not None
+    assert isinstance(config.vector_config["colbert"].vector_index_config, _VectorIndexConfigHNSW)
+    assert isinstance(
+        config.vector_config["colbert"].vector_index_config.multi_vector, _MultiVectorConfig
+    )
+    assert config.vector_config["colbert"].vector_index_config.multi_vector.aggregation == "maxSim"
+
+    collection.data.insert({}, vector={"colbert": [[1, 2], [4, 5]]})
+    assert len(collection) == 1
+
+    objs = collection.query.near_vector(
+        {"colbert": wvc.query.NearVector.multidimensional([[1, 2], [3, 4]])},
+        target_vector="colbert",
+    ).objects
+    assert len(objs) == 1
+
+    objs = collection.query.hybrid(
+        None,
+        vector={"colbert": wvc.query.NearVector.multidimensional([[1, 2], [3, 4]])},
+        target_vector="colbert",
+    ).objects
+    assert len(objs) == 1
+
+
+def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
+    api_key = os.environ.get("JINAAI_APIKEY")
+    if api_key is None:
+        pytest.skip("No JinaAI API key found.")
+
+    dummy = collection_factory(ports=(8086, 50057), headers={"X-Jinaai-Api-Key": api_key})
+    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
+        pytest.skip("ColBERT vectors are only supported in Weaviate v1.29.0 and higher.")
+
+    collection = collection_factory(
+        properties=[
+            wvc.config.Property(
+                name="title",
+                data_type=wvc.config.DataType.TEXT,
+            )
+        ],
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.text2colbert_jinaai(
+                name="colbert",
+            )
+        ],
+    )
+
+    uuid = collection.data.insert({"title": "Hello World"})
+    assert len(collection) == 1
+    obj = collection.query.fetch_object_by_id(uuid, include_vector=["colbert"])
+    vecs = obj.vector["colbert"]
+    assert isinstance(vecs[0], list)
+
+    objs = collection.query.near_text("Hello", target_vector="colbert").objects
+    assert len(objs) == 1
+
+    objs = collection.query.hybrid("Hello", target_vector="colbert").objects
+    assert len(objs) == 1
+
+    objs = collection.query.near_vector(
+        {
+            "colbert": wvc.query.NearVector.multidimensional(
+                [[e + 0.01 for e in vec] for vec in vecs]
+            )
+        },
+        target_vector="colbert",
+    ).objects
+    assert len(objs) == 1
+
+    objs = collection.query.near_object(uuid, target_vector="colbert").objects
+    assert len(objs) == 1

@@ -307,6 +307,7 @@ class Hybrid(_message.Message):
         "near_vector",
         "targets",
         "vector_distance",
+        "vectors",
     )
 
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -329,6 +330,7 @@ class Hybrid(_message.Message):
     NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
     TARGETS_FIELD_NUMBER: _ClassVar[int]
     VECTOR_DISTANCE_FIELD_NUMBER: _ClassVar[int]
+    VECTORS_FIELD_NUMBER: _ClassVar[int]
     query: str
     properties: _containers.RepeatedScalarFieldContainer[str]
     vector: _containers.RepeatedScalarFieldContainer[float]
@@ -340,6 +342,7 @@ class Hybrid(_message.Message):
     near_vector: NearVector
     targets: Targets
     vector_distance: float
+    vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
     def __init__(
         self,
         query: _Optional[str] = ...,
@@ -353,6 +356,7 @@ class Hybrid(_message.Message):
         near_vector: _Optional[_Union[NearVector, _Mapping]] = ...,
         targets: _Optional[_Union[Targets, _Mapping]] = ...,
         vector_distance: _Optional[float] = ...,
+        vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...,
     ) -> None: ...
 
 class NearTextSearch(_message.Message):
@@ -561,13 +565,18 @@ class RefPropertiesRequest(_message.Message):
     ) -> None: ...
 
 class VectorForTarget(_message.Message):
-    __slots__ = ("name", "vector_bytes")
+    __slots__ = ("name", "vector_bytes", "vectors")
     NAME_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    VECTORS_FIELD_NUMBER: _ClassVar[int]
     name: str
     vector_bytes: bytes
+    vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
     def __init__(
-        self, name: _Optional[str] = ..., vector_bytes: _Optional[bytes] = ...
+        self,
+        name: _Optional[str] = ...,
+        vector_bytes: _Optional[bytes] = ...,
+        vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...,
     ) -> None: ...
 
 class NearVector(_message.Message):
@@ -580,6 +589,7 @@ class NearVector(_message.Message):
         "targets",
         "vector_per_target",
         "vector_for_targets",
+        "vectors",
     )
 
     class VectorPerTargetEntry(_message.Message):
@@ -598,6 +608,7 @@ class NearVector(_message.Message):
     TARGETS_FIELD_NUMBER: _ClassVar[int]
     VECTOR_PER_TARGET_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FOR_TARGETS_FIELD_NUMBER: _ClassVar[int]
+    VECTORS_FIELD_NUMBER: _ClassVar[int]
     vector: _containers.RepeatedScalarFieldContainer[float]
     certainty: float
     distance: float
@@ -606,6 +617,7 @@ class NearVector(_message.Message):
     targets: Targets
     vector_per_target: _containers.ScalarMap[str, bytes]
     vector_for_targets: _containers.RepeatedCompositeFieldContainer[VectorForTarget]
+    vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
     def __init__(
         self,
         vector: _Optional[_Iterable[float]] = ...,
@@ -616,6 +628,7 @@ class NearVector(_message.Message):
         targets: _Optional[_Union[Targets, _Mapping]] = ...,
         vector_per_target: _Optional[_Mapping[str, bytes]] = ...,
         vector_for_targets: _Optional[_Iterable[_Union[VectorForTarget, _Mapping]]] = ...,
+        vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...,
     ) -> None: ...
 
 class NearObject(_message.Message):

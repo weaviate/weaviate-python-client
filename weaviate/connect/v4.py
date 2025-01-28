@@ -359,7 +359,9 @@ class ConnectionV4:
             ):
                 # use refresh token when available
                 try:
-                    if "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
+                    if self._client is None:
+                        pass
+                    elif "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
                         assert isinstance(self._client, AsyncOAuth2Client)
                         self._client.token = asyncio.run_coroutine_threadsafe(
                             self._client.refresh_token(
