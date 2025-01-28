@@ -33,14 +33,23 @@ class QueryAgentError(Exception):
 
 
 class QueryAgent:
+    """Agent class for performing agentic queries against Weaviate collections."""
+
     def __init__(
         self,
         client: Union[WeaviateClient, WeaviateAsyncClient],
         collections: List[Union[str, CollectionDescription]],
+        agents_host: Union[str, None] = None,
     ):
+        """Initialize a QueryAgent.
+
+        Args:
+            client: A Weaviate client instance (sync or async)
+            collections: List of collection names or CollectionDescription objects the agent has access to
+        """
         self._client = client
         self._connection = client._connection
-        self._agents_host = "https://gfl.labs.weaviate.io"
+        self._agents_host = agents_host or "https://gfl.labs.weaviate.io"
         self._collections = collections
 
         # check if all collections have the same URL
@@ -62,7 +71,15 @@ class QueryAgent:
         query: str,
         view_properties: Optional[List[str]] = None,
     ) -> WeaviateSearchAgentSimpleResponse:
+        """Execute a agentic query against the specified collections.
 
+        Args:
+            query: The natural language query string
+            view_properties: Optional list of property names which the agent has the ability to view
+
+        Returns:
+            A WeaviateSearchAgentSimpleResponse object containing search results and analysis
+        """
         request_body = {
             "query": query,
             "weaviate_cloud_details": {

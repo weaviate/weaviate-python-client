@@ -1,3 +1,6 @@
-from .query import QueryAgent
+from .query import QueryAgent, WeaviateSearchAgentSimpleResponse
 
-__all__ = ["QueryAgent"]
+__all__ = [
+    "QueryAgent",
+    "WeaviateSearchAgentSimpleResponse",
+]
