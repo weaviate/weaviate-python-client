@@ -842,7 +842,7 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
     )
     assert config.vector_config["colbert"].vector_index_config.multi_vector.aggregation == "maxSim"
 
-    collection.data.insert({}, vector={"colbert": [[1, 2], [4, 5]]})
+    collection.data.insert_many([DataObject({}, vector={"colbert": [[1, 2], [4, 5]]})])
     assert len(collection) == 1
 
     objs = collection.query.near_vector(
