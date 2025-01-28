@@ -16,7 +16,7 @@ from weaviate.collections.classes.config import (
     ReferenceProperty,
 )
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.grpc import _MultiTargetVectorJoin, _ManyVectorsQuery
+from weaviate.collections.classes.grpc import _MultiTargetVectorJoin, _ListOfVectorsQuery
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import INCLUDE_VECTOR
 
@@ -712,7 +712,7 @@ def test_same_target_vector_multiple_input(
 )
 def test_same_target_vector_multiple_input_combinations(
     collection_factory: CollectionFactory,
-    near_vector: Dict[str, Union[Sequence[float], Sequence[Sequence[float]], _ManyVectorsQuery]],
+    near_vector: Dict[str, Union[Sequence[float], Sequence[Sequence[float]], _ListOfVectorsQuery]],
     target_vector: List[str],
 ) -> None:
     dummy = collection_factory("dummy")
