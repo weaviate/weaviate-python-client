@@ -178,6 +178,8 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by generative models deployed on Ollama infrastructure.
         `OPENAI`
             Weaviate module backed by OpenAI and Azure-OpenAI generative models.
+        `ZHIPUAI`
+            Weaviate module backed by ZhipuAI generative models.
         `PALM`
             Weaviate module backed by PaLM generative models.
     """
@@ -191,6 +193,7 @@ class GenerativeSearches(str, Enum):
     MISTRAL = "generative-mistral"
     OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
+    ZHIPUAI = "generative-zhipuai"
     PALM = "generative-palm"  # rename to google once all versions support it
 
 
@@ -489,6 +492,22 @@ class _GenerativeOllama(_GenerativeProvider):
     apiEndpoint: Optional[str]
 
 
+class _GenerativeZhipuAIConfigBase(_GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.ZHIPUAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    maxTokensProperty: Optional[int]
+    temperatureProperty: Optional[float]
+    topPProperty: Optional[float]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
 class _GenerativeOpenAIConfigBase(_GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
@@ -753,6 +772,24 @@ class _Generative:
                 The model to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeOllama(model=model, apiEndpoint=api_endpoint)
+
+    @staticmethod
+    def zhipuai(
+            model: Optional[str] = None,
+            max_tokens: Optional[int] = None,
+            temperature: Optional[float] = None,
+            top_p: Optional[float] = None,
+            base_url: Optional[AnyHttpUrl] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_Generative
+        """
+        return _GenerativeZhipuAIConfigBase(
+            baseURL=base_url,
+            maxTokensProperty=max_tokens,
+            model=model,
+            temperatureProperty=temperature,
+            topPProperty=top_p,
+        )
 
     @staticmethod
     def openai(
