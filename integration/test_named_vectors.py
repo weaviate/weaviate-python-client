@@ -831,6 +831,9 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
                     multi_vector=wvc.config.Configure.VectorIndex.MultiVector.multi_vector()
                 ),
             ),
+            wvc.config.Configure.NamedVectors.none(
+                name="regular",
+            ),
         ],
     )
 
