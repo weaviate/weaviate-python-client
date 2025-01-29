@@ -1072,6 +1072,7 @@ class _QueryGRPC(_BaseGRPC):
                             ],
                         )
                     )
+                    target_vectors_tmp.append(key)
                 elif isinstance(value, _ListOfVectorsQuery):
                     for vec in value.vectors:
                         add_vector(vec, key)
