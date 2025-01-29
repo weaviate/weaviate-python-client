@@ -1,4 +1,5 @@
 from weaviate.proto.v1 import base_pb2 as _base_pb2
+from weaviate.proto.v1 import base_search_pb2 as _base_search_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -22,6 +23,16 @@ class AggregateRequest(_message.Message):
         "group_by",
         "limit",
         "filters",
+        "hybrid",
+        "near_vector",
+        "near_object",
+        "near_text",
+        "near_image",
+        "near_audio",
+        "near_video",
+        "near_depth",
+        "near_thermal",
+        "near_imu",
     )
 
     class Aggregation(_message.Message):
@@ -211,6 +222,16 @@ class AggregateRequest(_message.Message):
     GROUP_BY_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     FILTERS_FIELD_NUMBER: _ClassVar[int]
+    HYBRID_FIELD_NUMBER: _ClassVar[int]
+    NEAR_VECTOR_FIELD_NUMBER: _ClassVar[int]
+    NEAR_OBJECT_FIELD_NUMBER: _ClassVar[int]
+    NEAR_TEXT_FIELD_NUMBER: _ClassVar[int]
+    NEAR_IMAGE_FIELD_NUMBER: _ClassVar[int]
+    NEAR_AUDIO_FIELD_NUMBER: _ClassVar[int]
+    NEAR_VIDEO_FIELD_NUMBER: _ClassVar[int]
+    NEAR_DEPTH_FIELD_NUMBER: _ClassVar[int]
+    NEAR_THERMAL_FIELD_NUMBER: _ClassVar[int]
+    NEAR_IMU_FIELD_NUMBER: _ClassVar[int]
     collection: str
     tenant: str
     objects_count: bool
@@ -219,6 +240,16 @@ class AggregateRequest(_message.Message):
     group_by: AggregateRequest.GroupBy
     limit: int
     filters: _base_pb2.Filters
+    hybrid: _base_search_pb2.Hybrid
+    near_vector: _base_search_pb2.NearVector
+    near_object: _base_search_pb2.NearObject
+    near_text: _base_search_pb2.NearTextSearch
+    near_image: _base_search_pb2.NearImageSearch
+    near_audio: _base_search_pb2.NearAudioSearch
+    near_video: _base_search_pb2.NearVideoSearch
+    near_depth: _base_search_pb2.NearDepthSearch
+    near_thermal: _base_search_pb2.NearThermalSearch
+    near_imu: _base_search_pb2.NearIMUSearch
     def __init__(
         self,
         collection: _Optional[str] = ...,
@@ -229,6 +260,16 @@ class AggregateRequest(_message.Message):
         group_by: _Optional[_Union[AggregateRequest.GroupBy, _Mapping]] = ...,
         limit: _Optional[int] = ...,
         filters: _Optional[_Union[_base_pb2.Filters, _Mapping]] = ...,
+        hybrid: _Optional[_Union[_base_search_pb2.Hybrid, _Mapping]] = ...,
+        near_vector: _Optional[_Union[_base_search_pb2.NearVector, _Mapping]] = ...,
+        near_object: _Optional[_Union[_base_search_pb2.NearObject, _Mapping]] = ...,
+        near_text: _Optional[_Union[_base_search_pb2.NearTextSearch, _Mapping]] = ...,
+        near_image: _Optional[_Union[_base_search_pb2.NearImageSearch, _Mapping]] = ...,
+        near_audio: _Optional[_Union[_base_search_pb2.NearAudioSearch, _Mapping]] = ...,
+        near_video: _Optional[_Union[_base_search_pb2.NearVideoSearch, _Mapping]] = ...,
+        near_depth: _Optional[_Union[_base_search_pb2.NearDepthSearch, _Mapping]] = ...,
+        near_thermal: _Optional[_Union[_base_search_pb2.NearThermalSearch, _Mapping]] = ...,
+        near_imu: _Optional[_Union[_base_search_pb2.NearIMUSearch, _Mapping]] = ...,
     ) -> None: ...
 
 class AggregateReply(_message.Message):

@@ -50,7 +50,7 @@ class _OverAllAsync(_AggregateAsync):
         if isinstance(group_by, str):
             group_by = GroupByAggregate(prop=group_by)
 
-        if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+        if self._connection._weaviate_version.is_lower_than(1, 28, 4):
             # use gql, remove once 1.29 is the minimum supported version
             builder = self._base(return_metrics, filters, total_count)
             builder = self._add_groupby_to_builder(builder, group_by)
@@ -70,9 +70,10 @@ class _OverAllAsync(_AggregateAsync):
                 ),
                 filters=_FilterToGRPC.convert(filters) if filters is not None else None,
                 group_by=group_by._to_grpc() if group_by is not None else None,
+                limit=group_by.limit if group_by is not None else None,
                 objects_count=total_count,
             )
-            return self._to_result(reply)
+            return self._to_result(reply, group_by is not None)
 
 
 @syncify.convert

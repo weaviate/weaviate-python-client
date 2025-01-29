@@ -5,7 +5,7 @@ from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union, Dic
 from pydantic import ConfigDict, Field
 
 from weaviate.collections.classes.types import _WeaviateInput
-from weaviate.proto.v1 import search_get_pb2
+from weaviate.proto.v1 import base_search_pb2
 from weaviate.str_enum import BaseEnum
 from weaviate.types import INCLUDE_VECTOR, UUID, NUMBER
 from weaviate.util import _ServerVersion, _get_vector_v4, _is_1d_vector
@@ -269,19 +269,19 @@ class _MultiTargetVectorJoin:
     target_vectors: List[str]
     weights: Optional[Dict[str, Union[float, List[float]]]] = None
 
-    def to_grpc_target_vector(self, version: _ServerVersion) -> search_get_pb2.Targets:
+    def to_grpc_target_vector(self, version: _ServerVersion) -> base_search_pb2.Targets:
         combination = self.combination
         if combination == _MultiTargetVectorJoinEnum.AVERAGE:
-            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_AVERAGE
+            combination_grpc = base_search_pb2.COMBINATION_METHOD_TYPE_AVERAGE
         elif combination == _MultiTargetVectorJoinEnum.SUM:
-            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_SUM
+            combination_grpc = base_search_pb2.COMBINATION_METHOD_TYPE_SUM
         elif combination == _MultiTargetVectorJoinEnum.RELATIVE_SCORE:
-            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_RELATIVE_SCORE
+            combination_grpc = base_search_pb2.COMBINATION_METHOD_TYPE_RELATIVE_SCORE
         elif combination == _MultiTargetVectorJoinEnum.MANUAL_WEIGHTS:
-            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_MANUAL
+            combination_grpc = base_search_pb2.COMBINATION_METHOD_TYPE_MANUAL
         else:
             assert combination == _MultiTargetVectorJoinEnum.MINIMUM
-            combination_grpc = search_get_pb2.COMBINATION_METHOD_TYPE_MIN
+            combination_grpc = base_search_pb2.COMBINATION_METHOD_TYPE_MIN
 
         if version.is_lower_than(1, 27, 0):
             if self.weights is not None and any(isinstance(w, list) for w in self.weights.values()):
@@ -291,28 +291,30 @@ class _MultiTargetVectorJoin:
             # mypy does not seem to understand the type narrowing right above
             weights_typed = cast(Optional[Dict[str, float]], self.weights)
 
-            return search_get_pb2.Targets(
+            return base_search_pb2.Targets(
                 target_vectors=self.target_vectors,
                 weights=weights_typed,
                 combination=combination_grpc,
             )
         else:
-            weights: List[search_get_pb2.WeightsForTarget] = []
+            weights: List[base_search_pb2.WeightsForTarget] = []
             target_vectors: List[str] = self.target_vectors
             if self.weights is not None:
                 target_vectors = []
                 for target, weight in self.weights.items():
                     if isinstance(weight, list):
                         for w in weight:
-                            weights.append(search_get_pb2.WeightsForTarget(target=target, weight=w))
+                            weights.append(
+                                base_search_pb2.WeightsForTarget(target=target, weight=w)
+                            )
                             target_vectors.append(target)
                     else:
                         weights.append(
-                            search_get_pb2.WeightsForTarget(target=target, weight=weight)
+                            base_search_pb2.WeightsForTarget(target=target, weight=weight)
                         )
                         target_vectors.append(target)
 
-            return search_get_pb2.Targets(
+            return base_search_pb2.Targets(
                 target_vectors=target_vectors,
                 weights_for_targets=weights,
                 combination=combination_grpc,

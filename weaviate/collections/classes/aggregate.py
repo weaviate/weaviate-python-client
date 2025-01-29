@@ -576,24 +576,24 @@ class Metrics:
         )
 
     # Aggregate references currently bugged on Weaviate's side
-    # def reference(
-    #     self,
-    #     pointing_to: bool = False,
-    # ) -> _MetricsReference:
-    #     """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
+    def reference(
+        self,
+        pointing_to: bool = False,
+    ) -> _MetricsReference:
+        """Define the metrics to be returned for a cross-reference property when aggregating over a collection.
 
-    #     If none of the arguments are provided then all metrics will be returned.
+        If none of the arguments are provided then all metrics will be returned.
 
-    #     Arguments:
-    #         `pointing_to`
-    #             Whether to include the collection names that this property references.
+        Arguments:
+            `pointing_to`
+                Whether to include the collection names that this property references.
 
-    #     Returns:
-    #         A `_MetricsReference` object that includes the metrics to be returned.
-    #     """
-    #     if not any([pointing_to]):
-    #         pointing_to = True
-    #     return _MetricsReference(
-    #         property_name=self.__property,
-    #         pointing_to=pointing_to,
-    #     )
+        Returns:
+            A `_MetricsReference` object that includes the metrics to be returned.
+        """
+        if not any([pointing_to]):
+            pointing_to = True
+        return _MetricsReference(
+            property_name=self.__property,
+            pointing_to=pointing_to,
+        )

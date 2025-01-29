@@ -47,7 +47,7 @@ class _BatchGRPC(_BaseGRPC):
     """
 
     def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
-        super().__init__(connection, consistency_level)
+        super().__init__(connection, consistency_level, False)
 
     def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
         def pack_vector(vector: Any) -> bytes:

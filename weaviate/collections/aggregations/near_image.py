@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from weaviate import syncify
-from weaviate.collections.aggregations.aggregate import _AggregateAsync
+from weaviate.collections.aggregations.aggregate import _AggregateAsync, _parse_media
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -11,6 +11,7 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.filters import _FilterToGRPC
 from weaviate.types import NUMBER
 
 
@@ -66,17 +67,44 @@ class _NearImageAsync(_AggregateAsync):
             if (return_metrics is None or isinstance(return_metrics, list))
             else [return_metrics]
         )
-        builder = self._base(return_metrics, filters, total_count)
-        builder = self._add_groupby_to_builder(builder, group_by)
-        builder = self._add_near_image_to_builder(
-            builder, near_image, certainty, distance, object_limit, target_vector
-        )
-        res = await self._do(builder)
-        return (
-            self._to_aggregate_result(res, return_metrics)
-            if group_by is None
-            else self._to_group_by_result(res, return_metrics)
-        )
+
+        if isinstance(group_by, str):
+            group_by = GroupByAggregate(prop=group_by)
+
+        if self._connection._weaviate_version.is_lower_than(1, 28, 4):
+            # use gql, remove once 1.29 is the minimum supported version
+
+            builder = self._base(return_metrics, filters, total_count)
+            builder = self._add_groupby_to_builder(builder, group_by)
+            builder = self._add_near_image_to_builder(
+                builder, near_image, certainty, distance, object_limit, target_vector
+            )
+            res = await self._do(builder)
+            return (
+                self._to_aggregate_result(res, return_metrics)
+                if group_by is None
+                else self._to_group_by_result(res, return_metrics)
+            )
+        else:
+            # use grpc
+            reply = await self._grpc.near_media(
+                media=_parse_media(near_image),
+                type_="image",
+                certainty=certainty,
+                distance=distance,
+                target_vector=target_vector,
+                aggregations=(
+                    [metric.to_grpc() for metric in return_metrics]
+                    if return_metrics is not None
+                    else []
+                ),
+                filters=_FilterToGRPC.convert(filters) if filters is not None else None,
+                group_by=group_by._to_grpc() if group_by is not None else None,
+                limit=group_by.limit if group_by is not None else None,
+                objects_count=total_count,
+                object_limit=object_limit,
+            )
+            return self._to_result(reply, group_by is not None)
 
 
 @syncify.convert

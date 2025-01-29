@@ -88,11 +88,25 @@ class _AggregateAsync:
             )
 
     def _to_result(
-        self, response: aggregate_pb2.AggregateReply
+        self, response: aggregate_pb2.AggregateReply, is_group_by: bool
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
         if len(response.result.groups) == 0:
             raise WeaviateQueryError("No results found in the aggregation query!", "gRPC")
-        if len(response.result.groups) == 1:
+        if is_group_by:
+            AggregateGroupByReturn(
+                groups=[
+                    AggregateGroup(
+                        grouped_by=self.__parse_grouped_by_value(group.grouped_by),
+                        properties={
+                            aggregation.property: self.__parse_property_grpc(aggregation)
+                            for aggregation in group.aggregations.aggregations
+                        },
+                        total_count=group.objects_count,
+                    )
+                    for group in response.result.groups
+                ]
+            )
+        else:
             result = response.result.groups[0]
             return AggregateReturn(
                 properties={
@@ -245,55 +259,55 @@ class _AggregateAsync:
     def __parse_property_grpc(
         aggregation: aggregate_pb2.AggregateGroup.Aggregations.Aggregation,
     ) -> AggregateResult:
-        if (a := aggregation.text) is not None:
+        if aggregation.HasField("text"):
             return AggregateText(
-                count=a.count,
+                count=aggregation.text.count,
                 top_occurrences=[
                     TopOccurrence(
                         count=top_occurrence.occurs,
                         value=top_occurrence.value,
                     )
-                    for top_occurrence in a.top_occurences.items
+                    for top_occurrence in aggregation.text.top_occurences.items
                 ],
             )
-        elif (a := aggregation.int) is not None:
+        elif aggregation.HasField("int"):
             return AggregateInteger(
-                count=a.count,
-                maximum=a.maximum,
-                mean=a.mean,
-                median=a.median,
-                minimum=a.minimum,
-                mode=a.mode,
-                sum_=a.sum,
+                count=aggregation.int.count,
+                maximum=aggregation.int.maximum,
+                mean=aggregation.int.mean,
+                median=aggregation.int.median,
+                minimum=aggregation.int.minimum,
+                mode=aggregation.int.mode,
+                sum_=aggregation.int.sum,
             )
-        elif (a := aggregation.number) is not None:
+        elif aggregation.HasField("number"):
             return AggregateNumber(
-                count=a.count,
-                maximum=a.maximum,
-                mean=a.mean,
-                median=a.median,
-                minimum=a.minimum,
-                mode=a.mode,
-                sum_=a.sum,
+                count=aggregation.number.count,
+                maximum=aggregation.number.maximum,
+                mean=aggregation.number.mean,
+                median=aggregation.number.median,
+                minimum=aggregation.number.minimum,
+                mode=aggregation.number.mode,
+                sum_=aggregation.number.sum,
             )
-        elif (a := aggregation.boolean) is not None:
+        elif aggregation.HasField("boolean"):
             return AggregateBoolean(
-                count=a.count,
-                percentage_false=a.percentage_false,
-                percentage_true=a.percentage_true,
-                total_false=a.total_false,
-                total_true=a.total_true,
+                count=aggregation.boolean.count,
+                percentage_false=aggregation.boolean.percentage_false,
+                percentage_true=aggregation.boolean.percentage_true,
+                total_false=aggregation.boolean.total_false,
+                total_true=aggregation.boolean.total_true,
             )
-        elif (a := aggregation.date) is not None:
+        elif aggregation.HasField("date"):
             return AggregateDate(
-                count=a.count,
-                maximum=a.maximum,
-                median=a.median,
-                minimum=a.minimum,
-                mode=a.mode,
+                count=aggregation.date.count,
+                maximum=aggregation.date.maximum,
+                median=aggregation.date.median,
+                minimum=aggregation.date.minimum,
+                mode=aggregation.date.mode,
             )
-        elif (a := aggregation.reference) is not None:
-            return AggregateReference(pointing_to=list(a.pointing_to))
+        elif aggregation.HasField("reference"):
+            return AggregateReference(pointing_to=list(aggregation.reference.pointing_to))
         else:
             raise ValueError(
                 f"Unknown aggregation type {aggregation} encountered in _Aggregate.__parse_property_grpc()"
