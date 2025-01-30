@@ -18,8 +18,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from weaviate.proto.v1 import base_pb2 as v1_dot_base__pb2
+
+
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x14v1/base_search.proto\x12\x0bweaviate.v1"2\n\x10WeightsForTarget\x12\x0e\n\x06target\x18\x01 \x01(\t\x12\x0e\n\x06weight\x18\x02 \x01(\x02"\xfa\x01\n\x07Targets\x12\x16\n\x0etarget_vectors\x18\x01 \x03(\t\x12\x33\n\x0b\x63ombination\x18\x02 \x01(\x0e\x32\x1e.weaviate.v1.CombinationMethod\x12\x36\n\x07weights\x18\x03 \x03(\x0b\x32!.weaviate.v1.Targets.WeightsEntryB\x02\x18\x01\x12:\n\x13weights_for_targets\x18\x04 \x03(\x0b\x32\x1d.weaviate.v1.WeightsForTarget\x1a.\n\x0cWeightsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01"5\n\x0fVectorForTarget\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x14\n\x0cvector_bytes\x18\x02 \x01(\x0c"\xc5\x03\n\x06Hybrid\x12\r\n\x05query\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x03(\t\x12\x12\n\x06vector\x18\x03 \x03(\x02\x42\x02\x18\x01\x12\r\n\x05\x61lpha\x18\x04 \x01(\x02\x12\x33\n\x0b\x66usion_type\x18\x05 \x01(\x0e\x32\x1e.weaviate.v1.Hybrid.FusionType\x12\x14\n\x0cvector_bytes\x18\x06 \x01(\x0c\x12\x1a\n\x0etarget_vectors\x18\x07 \x03(\tB\x02\x18\x01\x12.\n\tnear_text\x18\x08 \x01(\x0b\x32\x1b.weaviate.v1.NearTextSearch\x12,\n\x0bnear_vector\x18\t \x01(\x0b\x32\x17.weaviate.v1.NearVector\x12%\n\x07targets\x18\n \x01(\x0b\x32\x14.weaviate.v1.Targets\x12\x19\n\x0fvector_distance\x18\x14 \x01(\x02H\x00"a\n\nFusionType\x12\x1b\n\x17\x46USION_TYPE_UNSPECIFIED\x10\x00\x12\x16\n\x12\x46USION_TYPE_RANKED\x10\x01\x12\x1e\n\x1a\x46USION_TYPE_RELATIVE_SCORE\x10\x02\x42\x0b\n\tthreshold"\x82\x03\n\nNearVector\x12\x12\n\x06vector\x18\x01 \x03(\x02\x42\x02\x18\x01\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x14\n\x0cvector_bytes\x18\x04 \x01(\x0c\x12\x1a\n\x0etarget_vectors\x18\x05 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x06 \x01(\x0b\x32\x14.weaviate.v1.Targets\x12K\n\x11vector_per_target\x18\x07 \x03(\x0b\x32,.weaviate.v1.NearVector.VectorPerTargetEntryB\x02\x18\x01\x12\x38\n\x12vector_for_targets\x18\x08 \x03(\x0b\x32\x1c.weaviate.v1.VectorForTarget\x1a\x36\n\x14VectorPerTargetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c:\x02\x38\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance"\xa5\x01\n\nNearObject\x12\n\n\x02id\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xf0\x02\n\x0eNearTextSearch\x12\r\n\x05query\x18\x01 \x03(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x36\n\x07move_to\x18\x04 \x01(\x0b\x32 .weaviate.v1.NearTextSearch.MoveH\x02\x88\x01\x01\x12\x38\n\tmove_away\x18\x05 \x01(\x0b\x32 .weaviate.v1.NearTextSearch.MoveH\x03\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x06 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x07 \x01(\x0b\x32\x14.weaviate.v1.Targets\x1a\x36\n\x04Move\x12\r\n\x05\x66orce\x18\x01 \x01(\x02\x12\x10\n\x08\x63oncepts\x18\x02 \x03(\t\x12\r\n\x05uuids\x18\x03 \x03(\tB\x0c\n\n_certaintyB\x0b\n\t_distanceB\n\n\x08_move_toB\x0c\n\n_move_away"\xad\x01\n\x0fNearImageSearch\x12\r\n\x05image\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xad\x01\n\x0fNearAudioSearch\x12\r\n\x05\x61udio\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xad\x01\n\x0fNearVideoSearch\x12\r\n\x05video\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xad\x01\n\x0fNearDepthSearch\x12\r\n\x05\x64\x65pth\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xb1\x01\n\x11NearThermalSearch\x12\x0f\n\x07thermal\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xa9\x01\n\rNearIMUSearch\x12\x0b\n\x03imu\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance")\n\x04\x42M25\x12\r\n\x05query\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x03(\t*\xee\x01\n\x11\x43ombinationMethod\x12"\n\x1e\x43OMBINATION_METHOD_UNSPECIFIED\x10\x00\x12\x1f\n\x1b\x43OMBINATION_METHOD_TYPE_SUM\x10\x01\x12\x1f\n\x1b\x43OMBINATION_METHOD_TYPE_MIN\x10\x02\x12#\n\x1f\x43OMBINATION_METHOD_TYPE_AVERAGE\x10\x03\x12*\n&COMBINATION_METHOD_TYPE_RELATIVE_SCORE\x10\x04\x12"\n\x1e\x43OMBINATION_METHOD_TYPE_MANUAL\x10\x05\x42t\n#io.weaviate.client.grpc.protocol.v1B\x17WeaviateProtoBaseSearchZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3'
+    b'\n\x14v1/base_search.proto\x12\x0bweaviate.v1\x1a\rv1/base.proto"2\n\x10WeightsForTarget\x12\x0e\n\x06target\x18\x01 \x01(\t\x12\x0e\n\x06weight\x18\x02 \x01(\x02"\xfa\x01\n\x07Targets\x12\x16\n\x0etarget_vectors\x18\x01 \x03(\t\x12\x33\n\x0b\x63ombination\x18\x02 \x01(\x0e\x32\x1e.weaviate.v1.CombinationMethod\x12\x36\n\x07weights\x18\x03 \x03(\x0b\x32!.weaviate.v1.Targets.WeightsEntryB\x02\x18\x01\x12:\n\x13weights_for_targets\x18\x04 \x03(\x0b\x32\x1d.weaviate.v1.WeightsForTarget\x1a.\n\x0cWeightsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01"`\n\x0fVectorForTarget\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x18\n\x0cvector_bytes\x18\x02 \x01(\x0c\x42\x02\x18\x01\x12%\n\x07vectors\x18\x03 \x03(\x0b\x32\x14.weaviate.v1.Vectors"\xf0\x03\n\x06Hybrid\x12\r\n\x05query\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x03(\t\x12\x12\n\x06vector\x18\x03 \x03(\x02\x42\x02\x18\x01\x12\r\n\x05\x61lpha\x18\x04 \x01(\x02\x12\x33\n\x0b\x66usion_type\x18\x05 \x01(\x0e\x32\x1e.weaviate.v1.Hybrid.FusionType\x12\x18\n\x0cvector_bytes\x18\x06 \x01(\x0c\x42\x02\x18\x01\x12\x1a\n\x0etarget_vectors\x18\x07 \x03(\tB\x02\x18\x01\x12.\n\tnear_text\x18\x08 \x01(\x0b\x32\x1b.weaviate.v1.NearTextSearch\x12,\n\x0bnear_vector\x18\t \x01(\x0b\x32\x17.weaviate.v1.NearVector\x12%\n\x07targets\x18\n \x01(\x0b\x32\x14.weaviate.v1.Targets\x12\x19\n\x0fvector_distance\x18\x14 \x01(\x02H\x00\x12%\n\x07vectors\x18\x15 \x03(\x0b\x32\x14.weaviate.v1.Vectors"a\n\nFusionType\x12\x1b\n\x17\x46USION_TYPE_UNSPECIFIED\x10\x00\x12\x16\n\x12\x46USION_TYPE_RANKED\x10\x01\x12\x1e\n\x1a\x46USION_TYPE_RELATIVE_SCORE\x10\x02\x42\x0b\n\tthreshold"\xad\x03\n\nNearVector\x12\x12\n\x06vector\x18\x01 \x03(\x02\x42\x02\x18\x01\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x18\n\x0cvector_bytes\x18\x04 \x01(\x0c\x42\x02\x18\x01\x12\x1a\n\x0etarget_vectors\x18\x05 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x06 \x01(\x0b\x32\x14.weaviate.v1.Targets\x12K\n\x11vector_per_target\x18\x07 \x03(\x0b\x32,.weaviate.v1.NearVector.VectorPerTargetEntryB\x02\x18\x01\x12\x38\n\x12vector_for_targets\x18\x08 \x03(\x0b\x32\x1c.weaviate.v1.VectorForTarget\x12%\n\x07vectors\x18\t \x03(\x0b\x32\x14.weaviate.v1.Vectors\x1a\x36\n\x14VectorPerTargetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x0c:\x02\x38\x01\x42\x0c\n\n_certaintyB\x0b\n\t_distance"\xa5\x01\n\nNearObject\x12\n\n\x02id\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xf0\x02\n\x0eNearTextSearch\x12\r\n\x05query\x18\x01 \x03(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x36\n\x07move_to\x18\x04 \x01(\x0b\x32 .weaviate.v1.NearTextSearch.MoveH\x02\x88\x01\x01\x12\x38\n\tmove_away\x18\x05 \x01(\x0b\x32 .weaviate.v1.NearTextSearch.MoveH\x03\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x06 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x07 \x01(\x0b\x32\x14.weaviate.v1.Targets\x1a\x36\n\x04Move\x12\r\n\x05\x66orce\x18\x01 \x01(\x02\x12\x10\n\x08\x63oncepts\x18\x02 \x03(\t\x12\r\n\x05uuids\x18\x03 \x03(\tB\x0c\n\n_certaintyB\x0b\n\t_distanceB\n\n\x08_move_toB\x0c\n\n_move_away"\xad\x01\n\x0fNearImageSearch\x12\r\n\x05image\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xad\x01\n\x0fNearAudioSearch\x12\r\n\x05\x61udio\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xad\x01\n\x0fNearVideoSearch\x12\r\n\x05video\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xad\x01\n\x0fNearDepthSearch\x12\r\n\x05\x64\x65pth\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xb1\x01\n\x11NearThermalSearch\x12\x0f\n\x07thermal\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance"\xa9\x01\n\rNearIMUSearch\x12\x0b\n\x03imu\x18\x01 \x01(\t\x12\x16\n\tcertainty\x18\x02 \x01(\x01H\x00\x88\x01\x01\x12\x15\n\x08\x64istance\x18\x03 \x01(\x01H\x01\x88\x01\x01\x12\x1a\n\x0etarget_vectors\x18\x04 \x03(\tB\x02\x18\x01\x12%\n\x07targets\x18\x05 \x01(\x0b\x32\x14.weaviate.v1.TargetsB\x0c\n\n_certaintyB\x0b\n\t_distance")\n\x04\x42M25\x12\r\n\x05query\x18\x01 \x01(\t\x12\x12\n\nproperties\x18\x02 \x03(\t*\xee\x01\n\x11\x43ombinationMethod\x12"\n\x1e\x43OMBINATION_METHOD_UNSPECIFIED\x10\x00\x12\x1f\n\x1b\x43OMBINATION_METHOD_TYPE_SUM\x10\x01\x12\x1f\n\x1b\x43OMBINATION_METHOD_TYPE_MIN\x10\x02\x12#\n\x1f\x43OMBINATION_METHOD_TYPE_AVERAGE\x10\x03\x12*\n&COMBINATION_METHOD_TYPE_RELATIVE_SCORE\x10\x04\x12"\n\x1e\x43OMBINATION_METHOD_TYPE_MANUAL\x10\x05\x42t\n#io.weaviate.client.grpc.protocol.v1B\x17WeaviateProtoBaseSearchZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3'
 )
 
 _globals = globals()
@@ -34,14 +37,20 @@ if not _descriptor._USE_C_DESCRIPTORS:
     _globals["_TARGETS_WEIGHTSENTRY"]._serialized_options = b"8\001"
     _globals["_TARGETS"].fields_by_name["weights"]._loaded_options = None
     _globals["_TARGETS"].fields_by_name["weights"]._serialized_options = b"\030\001"
+    _globals["_VECTORFORTARGET"].fields_by_name["vector_bytes"]._loaded_options = None
+    _globals["_VECTORFORTARGET"].fields_by_name["vector_bytes"]._serialized_options = b"\030\001"
     _globals["_HYBRID"].fields_by_name["vector"]._loaded_options = None
     _globals["_HYBRID"].fields_by_name["vector"]._serialized_options = b"\030\001"
+    _globals["_HYBRID"].fields_by_name["vector_bytes"]._loaded_options = None
+    _globals["_HYBRID"].fields_by_name["vector_bytes"]._serialized_options = b"\030\001"
     _globals["_HYBRID"].fields_by_name["target_vectors"]._loaded_options = None
     _globals["_HYBRID"].fields_by_name["target_vectors"]._serialized_options = b"\030\001"
     _globals["_NEARVECTOR_VECTORPERTARGETENTRY"]._loaded_options = None
     _globals["_NEARVECTOR_VECTORPERTARGETENTRY"]._serialized_options = b"8\001"
     _globals["_NEARVECTOR"].fields_by_name["vector"]._loaded_options = None
     _globals["_NEARVECTOR"].fields_by_name["vector"]._serialized_options = b"\030\001"
+    _globals["_NEARVECTOR"].fields_by_name["vector_bytes"]._loaded_options = None
+    _globals["_NEARVECTOR"].fields_by_name["vector_bytes"]._serialized_options = b"\030\001"
     _globals["_NEARVECTOR"].fields_by_name["target_vectors"]._loaded_options = None
     _globals["_NEARVECTOR"].fields_by_name["target_vectors"]._serialized_options = b"\030\001"
     _globals["_NEARVECTOR"].fields_by_name["vector_per_target"]._loaded_options = None
@@ -64,42 +73,42 @@ if not _descriptor._USE_C_DESCRIPTORS:
     ]._serialized_options = b"\030\001"
     _globals["_NEARIMUSEARCH"].fields_by_name["target_vectors"]._loaded_options = None
     _globals["_NEARIMUSEARCH"].fields_by_name["target_vectors"]._serialized_options = b"\030\001"
-    _globals["_COMBINATIONMETHOD"]._serialized_start = 2881
-    _globals["_COMBINATIONMETHOD"]._serialized_end = 3119
-    _globals["_WEIGHTSFORTARGET"]._serialized_start = 37
-    _globals["_WEIGHTSFORTARGET"]._serialized_end = 87
-    _globals["_TARGETS"]._serialized_start = 90
-    _globals["_TARGETS"]._serialized_end = 340
-    _globals["_TARGETS_WEIGHTSENTRY"]._serialized_start = 294
-    _globals["_TARGETS_WEIGHTSENTRY"]._serialized_end = 340
-    _globals["_VECTORFORTARGET"]._serialized_start = 342
-    _globals["_VECTORFORTARGET"]._serialized_end = 395
-    _globals["_HYBRID"]._serialized_start = 398
-    _globals["_HYBRID"]._serialized_end = 851
-    _globals["_HYBRID_FUSIONTYPE"]._serialized_start = 741
-    _globals["_HYBRID_FUSIONTYPE"]._serialized_end = 838
-    _globals["_NEARVECTOR"]._serialized_start = 854
-    _globals["_NEARVECTOR"]._serialized_end = 1240
-    _globals["_NEARVECTOR_VECTORPERTARGETENTRY"]._serialized_start = 1159
-    _globals["_NEARVECTOR_VECTORPERTARGETENTRY"]._serialized_end = 1213
-    _globals["_NEAROBJECT"]._serialized_start = 1243
-    _globals["_NEAROBJECT"]._serialized_end = 1408
-    _globals["_NEARTEXTSEARCH"]._serialized_start = 1411
-    _globals["_NEARTEXTSEARCH"]._serialized_end = 1779
-    _globals["_NEARTEXTSEARCH_MOVE"]._serialized_start = 1672
-    _globals["_NEARTEXTSEARCH_MOVE"]._serialized_end = 1726
-    _globals["_NEARIMAGESEARCH"]._serialized_start = 1782
-    _globals["_NEARIMAGESEARCH"]._serialized_end = 1955
-    _globals["_NEARAUDIOSEARCH"]._serialized_start = 1958
-    _globals["_NEARAUDIOSEARCH"]._serialized_end = 2131
-    _globals["_NEARVIDEOSEARCH"]._serialized_start = 2134
-    _globals["_NEARVIDEOSEARCH"]._serialized_end = 2307
-    _globals["_NEARDEPTHSEARCH"]._serialized_start = 2310
-    _globals["_NEARDEPTHSEARCH"]._serialized_end = 2483
-    _globals["_NEARTHERMALSEARCH"]._serialized_start = 2486
-    _globals["_NEARTHERMALSEARCH"]._serialized_end = 2663
-    _globals["_NEARIMUSEARCH"]._serialized_start = 2666
-    _globals["_NEARIMUSEARCH"]._serialized_end = 2835
-    _globals["_BM25"]._serialized_start = 2837
-    _globals["_BM25"]._serialized_end = 2878
+    _globals["_COMBINATIONMETHOD"]._serialized_start = 3025
+    _globals["_COMBINATIONMETHOD"]._serialized_end = 3263
+    _globals["_WEIGHTSFORTARGET"]._serialized_start = 52
+    _globals["_WEIGHTSFORTARGET"]._serialized_end = 102
+    _globals["_TARGETS"]._serialized_start = 105
+    _globals["_TARGETS"]._serialized_end = 355
+    _globals["_TARGETS_WEIGHTSENTRY"]._serialized_start = 309
+    _globals["_TARGETS_WEIGHTSENTRY"]._serialized_end = 355
+    _globals["_VECTORFORTARGET"]._serialized_start = 357
+    _globals["_VECTORFORTARGET"]._serialized_end = 453
+    _globals["_HYBRID"]._serialized_start = 456
+    _globals["_HYBRID"]._serialized_end = 952
+    _globals["_HYBRID_FUSIONTYPE"]._serialized_start = 842
+    _globals["_HYBRID_FUSIONTYPE"]._serialized_end = 939
+    _globals["_NEARVECTOR"]._serialized_start = 955
+    _globals["_NEARVECTOR"]._serialized_end = 1384
+    _globals["_NEARVECTOR_VECTORPERTARGETENTRY"]._serialized_start = 1303
+    _globals["_NEARVECTOR_VECTORPERTARGETENTRY"]._serialized_end = 1357
+    _globals["_NEAROBJECT"]._serialized_start = 1387
+    _globals["_NEAROBJECT"]._serialized_end = 1552
+    _globals["_NEARTEXTSEARCH"]._serialized_start = 1555
+    _globals["_NEARTEXTSEARCH"]._serialized_end = 1923
+    _globals["_NEARTEXTSEARCH_MOVE"]._serialized_start = 1816
+    _globals["_NEARTEXTSEARCH_MOVE"]._serialized_end = 1870
+    _globals["_NEARIMAGESEARCH"]._serialized_start = 1926
+    _globals["_NEARIMAGESEARCH"]._serialized_end = 2099
+    _globals["_NEARAUDIOSEARCH"]._serialized_start = 2102
+    _globals["_NEARAUDIOSEARCH"]._serialized_end = 2275
+    _globals["_NEARVIDEOSEARCH"]._serialized_start = 2278
+    _globals["_NEARVIDEOSEARCH"]._serialized_end = 2451
+    _globals["_NEARDEPTHSEARCH"]._serialized_start = 2454
+    _globals["_NEARDEPTHSEARCH"]._serialized_end = 2627
+    _globals["_NEARTHERMALSEARCH"]._serialized_start = 2630
+    _globals["_NEARTHERMALSEARCH"]._serialized_end = 2807
+    _globals["_NEARIMUSEARCH"]._serialized_start = 2810
+    _globals["_NEARIMUSEARCH"]._serialized_end = 2979
+    _globals["_BM25"]._serialized_start = 2981
+    _globals["_BM25"]._serialized_end = 3022
 # @@protoc_insertion_point(module_scope)

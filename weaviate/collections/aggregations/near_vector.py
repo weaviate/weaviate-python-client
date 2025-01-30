@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import List, Optional, Union, cast
 
 from weaviate import syncify
 from weaviate.collections.aggregations.aggregate import _AggregateAsync
@@ -82,6 +82,15 @@ class _NearVectorAsync(_AggregateAsync):
                     str(self._connection._weaviate_version),
                     "1.29.0",
                 )
+            if isinstance(near_vector[0], list):
+                raise WeaviateUnsupportedFeatureError(
+                    "A `near_vector` argument other than a list of floats",
+                    str(self._connection._weaviate_version),
+                    "1.29.0",
+                )
+            near_vector = cast(
+                List[float], near_vector
+            )  # pylance cannot type narrow the immediately above check
             if not isinstance(target_vector, str):
                 raise WeaviateUnsupportedFeatureError(
                     "A `target_vector` argument other than a string",

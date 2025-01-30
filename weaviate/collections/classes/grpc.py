@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import ClassVar, List, Literal, Optional, Sequence, Type, Union, Dict, cast
+from typing import ClassVar, List, Literal, Mapping, Optional, Sequence, Type, Union, Dict, cast
 
 from pydantic import ConfigDict, Field
 
@@ -8,7 +8,7 @@ from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.proto.v1 import base_search_pb2
 from weaviate.str_enum import BaseEnum
 from weaviate.types import INCLUDE_VECTOR, UUID, NUMBER
-from weaviate.util import _ServerVersion, _get_vector_v4, _is_1d_vector
+from weaviate.util import _ServerVersion
 
 
 class HybridFusion(str, BaseEnum):
@@ -228,9 +228,46 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+class _MultidimensionalQuery(_WeaviateInput):
+    tensor: Sequence[Sequence[float]]
+
+
+class _ListOfVectorsQuery(_WeaviateInput):
+    vectors: Sequence[Sequence[float]]
+
+
+MultidimensionalQuery = _MultidimensionalQuery
+"""Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
+
+ListOfVectorsQuery = _ListOfVectorsQuery
+"""Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
+
+
 NearVectorInputType = Union[
-    Sequence[NUMBER], Dict[str, Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]]
+    Sequence[NUMBER],
+    Sequence[Sequence[NUMBER]],
+    Mapping[
+        str,
+        Union[
+            Sequence[NUMBER], Sequence[Sequence[NUMBER]], MultidimensionalQuery, ListOfVectorsQuery
+        ],
+    ],
 ]
+"""Define the input types that can be used in a near vector search."""
+
+
+class NearVector:
+    """Factory class to use when defining near vector queries with multiple vectors in `near_vector()` and `hybrid()` methods."""
+
+    @staticmethod
+    def multidimensional(tensor: Sequence[Sequence[float]]) -> _MultidimensionalQuery:
+        """Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
+        return _MultidimensionalQuery(tensor=tensor)
+
+    @staticmethod
+    def list_of_vectors(vectors: Sequence[Sequence[float]]) -> _ListOfVectorsQuery:
+        """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
+        return _ListOfVectorsQuery(vectors=vectors)
 
 
 class _HybridNearBase(_WeaviateInput):
@@ -246,8 +283,21 @@ class _HybridNearText(_HybridNearBase):
     move_away: Optional[Move] = None
 
 
-class _HybridNearVector(_HybridNearBase):
+class _HybridNearVector:  # can't be a Pydantic model because of validation issues parsing numpy, pd, pl arrays/series
     vector: NearVectorInputType
+    distance: Optional[float]
+    certainty: Optional[float]
+
+    def __init__(
+        self,
+        *,
+        vector: NearVectorInputType,
+        distance: Optional[float] = None,
+        certainty: Optional[float] = None,
+    ) -> None:
+        self.vector = vector
+        self.distance = distance
+        self.certainty = certainty
 
 
 HybridVectorType = Union[NearVectorInputType, _HybridNearText, _HybridNearVector]
@@ -422,14 +472,6 @@ class HybridVector:
         Returns:
             A `_HybridNearVector` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
         """
-        if isinstance(vector, dict):
-            for key, val in vector.items():
-                if _is_1d_vector(val):
-                    vector[key] = _get_vector_v4(val)
-                else:
-                    vector[key] = [_get_vector_v4(v) for v in val]
-        else:
-            vector = _get_vector_v4(vector)
         return _HybridNearVector(vector=vector, distance=distance, certainty=certainty)
 
 

@@ -22,7 +22,8 @@ env:
   WEAVIATE_125: 1.25.29
   WEAVIATE_126: 1.26.13
   WEAVIATE_127: 1.27.9
-  WEAVIATE_128: 1.28.4-73ecf75
+  WEAVIATE_128: 1.28.3
+  WEAVIATE_129: 1.29.0-dev-5dc00ba
 
 jobs:
   lint-and-format:
@@ -54,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         folder: ["weaviate"]
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         folder: ["test", "mock_tests"]
     steps:
       - uses: actions/checkout@v4
@@ -98,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -129,11 +130,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_124},
-          { py: "3.10", weaviate: $WEAVIATE_125},
-          { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_127},
-          { py: "3.13", weaviate: $WEAVIATE_128}
+          { py: "3.9", weaviate: $WEAVIATE_129},
+          { py: "3.10", weaviate: $WEAVIATE_129},
+          { py: "3.11", weaviate: $WEAVIATE_129},
+          { py: "3.12", weaviate: $WEAVIATE_129},
+          { py: "3.13", weaviate: $WEAVIATE_129}
         ]
         optional_dependencies: [false]
     steps:
@@ -186,11 +187,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_128},
-          { py: "3.10", weaviate: $WEAVIATE_128},
-          { py: "3.11", weaviate: $WEAVIATE_128},
-          { py: "3.12", weaviate: $WEAVIATE_128},
-          { py: "3.13", weaviate: $WEAVIATE_128}
+          { py: "3.9", weaviate: $WEAVIATE_129},
+          { py: "3.10", weaviate: $WEAVIATE_129},
+          { py: "3.11", weaviate: $WEAVIATE_129},
+          { py: "3.12", weaviate: $WEAVIATE_129},
+          { py: "3.13", weaviate: $WEAVIATE_129}
         ]
         optional_dependencies: [false]
     steps:
@@ -278,10 +279,12 @@ jobs:
       fail-fast: false
       matrix:
         server: [
+          $WEAVIATE_124,
           $WEAVIATE_125,
           $WEAVIATE_126,
           $WEAVIATE_127,
-          $WEAVIATE_128
+          $WEAVIATE_128,
+          $WEAVIATE_129
         ]
     steps:
       - name: Checkout

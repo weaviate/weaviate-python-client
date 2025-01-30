@@ -38,6 +38,7 @@ def test_queries_with_rerank(collection_factory: CollectionFactory) -> None:
         vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_openai(),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
         headers={"X-OpenAI-Api-Key": api_key},
+        ports=(8086, 50057),
     )
     if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
         pytest.skip("Reranking requires Weaviate 1.23.1 or higher")
@@ -95,6 +96,7 @@ def test_queries_with_rerank_and_group_by(collection_factory: CollectionFactory)
         ),
         properties=[wvc.config.Property(name="text", data_type=wvc.config.DataType.TEXT)],
         headers={"X-OpenAI-Api-Key": api_key},
+        ports=(8086, 50057),
     )
     if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
         pytest.skip("Reranking requires Weaviate 1.23.1 or higher")

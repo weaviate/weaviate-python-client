@@ -10,6 +10,7 @@ import re
 import uuid as uuid_lib
 from pathlib import Path
 from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
+from typing_extensions import TypeGuard
 
 import httpx
 import validators
@@ -883,12 +884,23 @@ def __is_list_type(inputs: Any) -> bool:
     )
 
 
-def _is_1d_vector(inputs: Any) -> bool:
+def _is_1d_vector(inputs: Any) -> TypeGuard[Sequence[float]]:
     try:
         if len(inputs) == 0:
             return False
     except TypeError:
         return False
     if __is_list_type(inputs):
-        return not __is_list_type(inputs[0])  # 2D vectors are not 1D vectors
+        return not __is_list_type(inputs[0])
+    return False
+
+
+def _is_2d_vector(inputs: Any) -> TypeGuard[List[List[float]]]:
+    try:
+        if len(inputs) == 0:
+            return False
+    except TypeError:
+        return False
+    if __is_list_type(inputs):
+        return __is_list_type(inputs[0])
     return False

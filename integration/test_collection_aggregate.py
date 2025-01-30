@@ -665,13 +665,13 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     groups = res.groups
     assert len(groups) == 2
     assert groups[0].grouped_by.prop == "int"
-    assert groups[0].grouped_by.value == "1" or groups[1].grouped_by.value == "1"
+    assert groups[0].grouped_by.value == 1 or groups[1].grouped_by.value == 1
     assert isinstance(groups[0].properties["text"], AggregateText)
     assert groups[0].properties["text"].count == 1
     assert isinstance(groups[0].properties["int"], AggregateInteger)
     assert groups[0].properties["int"].count == 1
     assert groups[1].grouped_by.prop == "int"
-    assert groups[1].grouped_by.value == "2" or groups[0].grouped_by.value == "2"
+    assert groups[1].grouped_by.value == 2 or groups[0].grouped_by.value == 2
     assert isinstance(groups[1].properties["text"], AggregateText)
     assert groups[1].properties["text"].count == 1
     assert isinstance(groups[1].properties["int"], AggregateInteger)

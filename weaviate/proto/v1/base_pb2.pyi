@@ -319,16 +319,29 @@ class GeoCoordinatesFilter(_message.Message):
     ) -> None: ...
 
 class Vectors(_message.Message):
-    __slots__ = ("name", "index", "vector_bytes")
+    __slots__ = ("name", "index", "vector_bytes", "type")
+
+    class VectorType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+        __slots__ = ()
+        VECTOR_TYPE_UNSPECIFIED: _ClassVar[Vectors.VectorType]
+        VECTOR_TYPE_SINGLE_FP32: _ClassVar[Vectors.VectorType]
+        VECTOR_TYPE_MULTI_FP32: _ClassVar[Vectors.VectorType]
+
+    VECTOR_TYPE_UNSPECIFIED: Vectors.VectorType
+    VECTOR_TYPE_SINGLE_FP32: Vectors.VectorType
+    VECTOR_TYPE_MULTI_FP32: Vectors.VectorType
     NAME_FIELD_NUMBER: _ClassVar[int]
     INDEX_FIELD_NUMBER: _ClassVar[int]
     VECTOR_BYTES_FIELD_NUMBER: _ClassVar[int]
+    TYPE_FIELD_NUMBER: _ClassVar[int]
     name: str
     index: int
     vector_bytes: bytes
+    type: Vectors.VectorType
     def __init__(
         self,
         name: _Optional[str] = ...,
         index: _Optional[int] = ...,
         vector_bytes: _Optional[bytes] = ...,
+        type: _Optional[_Union[Vectors.VectorType, str]] = ...,
     ) -> None: ...

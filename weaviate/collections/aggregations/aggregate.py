@@ -55,6 +55,7 @@ class _AggregateAsync:
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
+        validate_arguments: bool,
     ):
         self._connection = connection
         self.__name = name
@@ -65,7 +66,7 @@ class _AggregateAsync:
             name=name,
             tenant=tenant,
             consistency_level=consistency_level,
-            validate_arguments=False,
+            validate_arguments=validate_arguments,
         )
 
     def _query(self) -> AggregateBuilder:

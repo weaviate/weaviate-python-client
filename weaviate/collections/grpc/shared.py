@@ -6,14 +6,19 @@ from typing import (
     List,
     Literal,
     Optional,
+    Sequence,
     Union,
     cast,
     Tuple,
     get_args,
 )
+from dataclasses import dataclass
+from typing_extensions import TypeGuard
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
+    _MultidimensionalQuery,
+    _ListOfVectorsQuery,
     _MultiTargetVectorJoin,
     _HybridNearText,
     _HybridNearVector,
@@ -33,7 +38,11 @@ from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4, _is_1d_vector
 from weaviate.validator import _ValidateArgument, _validate_input, _ExtraTypes
 
+
 PERMISSION_DENIED = "PERMISSION_DENIED"
+
+UINT32_LEN = 4
+UINT64_LEN = 8
 
 
 class _BaseGRPC:
@@ -101,10 +110,13 @@ class _BaseGRPC:
         else:
             return target_vector.to_grpc_target_vector(self._connection._weaviate_version), None
 
-    @staticmethod
     def _vector_per_target(
-        vector: NearVectorInputType, targets: Optional[base_search_pb2.Targets], argument_name: str
+        self,
+        vector: NearVectorInputType,
+        targets: Optional[base_search_pb2.Targets],
+        argument_name: str,
     ) -> Tuple[Optional[Dict[str, bytes]], Optional[bytes]]:
+        """@deprecated in 1.27.0, included for BC until 1.27.0 is no longer supported."""  # noqa: D401
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
                                 - a list of numbers
@@ -132,7 +144,11 @@ class _BaseGRPC:
 
             return vector_per_target, None
         else:
-            if len(vector) == 0:
+            if (
+                isinstance(vector, _MultidimensionalQuery)
+                or isinstance(vector, _ListOfVectorsQuery)
+                or len(vector) == 0
+            ):
                 raise invalid_nv_exception
 
             if _is_1d_vector(vector):
@@ -146,9 +162,11 @@ class _BaseGRPC:
                     keys and lists of numbers as values."""
                 )
 
-    @staticmethod
     def _vector_for_target(
-        vector: NearVectorInputType, targets: Optional[base_search_pb2.Targets], argument_name: str
+        self,
+        vector: NearVectorInputType,
+        targets: Optional[base_search_pb2.Targets],
+        argument_name: str,
     ) -> Tuple[
         Optional[List[base_search_pb2.VectorForTarget]], Optional[bytes], Optional[List[str]]
     ]:
@@ -161,7 +179,7 @@ class _BaseGRPC:
 
         vector_for_target: List[base_search_pb2.VectorForTarget] = []
 
-        def add_vector(val: List[float], target_name: str) -> None:
+        def add_vector(val: Sequence[float], target_name: str) -> None:
             vec = _get_vector_v4(val)
 
             if (
@@ -171,11 +189,25 @@ class _BaseGRPC:
             ):
                 raise invalid_nv_exception
 
-            vector_for_target.append(
-                base_search_pb2.VectorForTarget(
-                    name=target_name, vector_bytes=struct.pack("{}f".format(len(vec)), *vec)
+            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+                vector_for_target.append(
+                    base_search_pb2.VectorForTarget(
+                        name=target_name, vector_bytes=_Pack.single(vec)
+                    )
                 )
-            )
+            else:
+                vector_for_target.append(
+                    base_search_pb2.VectorForTarget(
+                        name=target_name,
+                        vectors=[
+                            base_pb2.Vectors(
+                                name=target_name,
+                                vector_bytes=_Pack.single(vec),
+                                type=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
+                            )
+                        ],
+                    )
+                )
 
         if isinstance(vector, dict):
             if (
@@ -188,15 +220,32 @@ class _BaseGRPC:
             for key, value in vector.items():
                 # typing tools do not understand the type narrowing here
                 if _is_1d_vector(value):
-                    val: List[float] = cast(List[float], value)
+                    val = value
                     add_vector(val, key)
                     target_vectors_tmp.append(key)
+                elif isinstance(value, _MultidimensionalQuery):
+                    vector_for_target.append(
+                        base_search_pb2.VectorForTarget(
+                            name=key,
+                            vectors=[
+                                base_pb2.Vectors(
+                                    name=key,
+                                    vector_bytes=_Pack.multi(value.tensor),
+                                    type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                                )
+                            ],
+                        )
+                    )
+                    target_vectors_tmp.append(key)
+                elif isinstance(value, _ListOfVectorsQuery):
+                    for vec in value.vectors:
+                        add_vector(vec, key)
+                        target_vectors_tmp.append(key)
                 else:
-                    vals: List[List[float]] = cast(List[List[float]], value)
+                    vals = cast(Sequence[Sequence[NUMBER]], value)
                     for inner_vector in vals:
                         add_vector(inner_vector, key)
                         target_vectors_tmp.append(key)
-
             return vector_for_target, None, target_vectors_tmp
         else:
             if _is_1d_vector(vector):
@@ -588,3 +637,85 @@ class _BaseGRPC:
             if query is not None or vector is not None
             else None
         )
+
+
+class _ByteOps:
+    @staticmethod
+    def decode_float32s(byte_vector: bytes) -> List[float]:
+        return [
+            float(val) for val in struct.unpack(f"{len(byte_vector)//UINT32_LEN}f", byte_vector)
+        ]
+
+    @staticmethod
+    def decode_float64s(byte_vector: bytes) -> List[float]:
+        return [
+            float(val) for val in struct.unpack(f"{len(byte_vector)//UINT64_LEN}d", byte_vector)
+        ]
+
+    @staticmethod
+    def decode_int64s(byte_vector: bytes) -> List[int]:
+        return [int(val) for val in struct.unpack(f"{len(byte_vector)//UINT64_LEN}q", byte_vector)]
+
+
+@dataclass
+class _Packing:
+    bytes_: bytes
+    type_: base_pb2.Vectors.VectorType
+
+
+class _Pack:
+    @staticmethod
+    def is_multi(
+        v: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
+    ) -> TypeGuard[List[List[NUMBER]]]:
+        return len(v) > 0 and isinstance(v[0], list)
+
+    @staticmethod
+    def is_single(
+        v: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
+    ) -> TypeGuard[List[NUMBER]]:
+        return len(v) > 0 and (isinstance(v[0], float) or isinstance(v[0], int))
+
+    @staticmethod
+    def parse_single_or_multi_vec(
+        vector: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
+    ) -> _Packing:
+        if _Pack.is_multi(vector):
+            return _Packing(
+                bytes_=_Pack.multi(vector), type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32
+            )
+        elif _Pack.is_single(vector):
+            return _Packing(
+                bytes_=_Pack.single(vector), type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32
+            )
+        else:
+            raise WeaviateInvalidInputError(f"Invalid vectors: {vector}")
+
+    @staticmethod
+    def single(vector: Sequence[NUMBER]) -> bytes:
+        vector_list = _get_vector_v4(vector)
+        return struct.pack("{}f".format(len(vector_list)), *vector_list)
+
+    @staticmethod
+    def multi(vector: Sequence[Sequence[NUMBER]]) -> bytes:
+        vector_list = [item for sublist in vector for item in sublist]
+        return struct.pack("<H", len(vector[0])) + struct.pack(
+            "{}f".format(len(vector_list)), *vector_list
+        )
+
+
+class _Unpack:
+    @staticmethod
+    def single(byte_vector: bytes) -> List[float]:
+        return _ByteOps.decode_float32s(byte_vector)
+
+    @staticmethod
+    def multi(byte_vector: bytes) -> List[List[float]]:
+        dim_bytes = byte_vector[:2]
+        dim = int(struct.unpack("<H", dim_bytes)[0])
+        byte_vector = byte_vector[2:]
+        how_many = len(byte_vector) // (dim * UINT32_LEN)
+        return [
+            _ByteOps.decode_float32s(byte_vector[i * dim * UINT32_LEN : (i + 1) * dim * UINT32_LEN])
+            for i in range(how_many)
+        ]
