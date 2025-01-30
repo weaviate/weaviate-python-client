@@ -14,7 +14,7 @@ from weaviate.collections.classes.grpc import (
     NearVectorInputType,
 )
 from weaviate.collections.filters import _FilterToGRPC
-from weaviate.exceptions import WeaviateUnsupportedFeatureError
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import NUMBER
 
 
@@ -77,25 +77,19 @@ class _NearVectorAsync(_AggregateAsync):
             # use gql, remove once 1.29 is the minimum supported version
 
             if not isinstance(near_vector, list):
-                raise WeaviateUnsupportedFeatureError(
-                    "A `near_vector` argument other than a list of floats",
-                    str(self._connection._weaviate_version),
-                    "1.29.0",
+                raise WeaviateInvalidInputError(
+                    "A `near_vector` argument other than a list of float is not supported in <v1.28.4",
                 )
             if isinstance(near_vector[0], list):
-                raise WeaviateUnsupportedFeatureError(
-                    "A `near_vector` argument other than a list of floats",
-                    str(self._connection._weaviate_version),
-                    "1.29.0",
+                raise WeaviateInvalidInputError(
+                    "A `near_vector` argument other than a list of floats is not supported in <v1.28.4",
                 )
             near_vector = cast(
                 List[float], near_vector
             )  # pylance cannot type narrow the immediately above check
             if not isinstance(target_vector, str):
-                raise WeaviateUnsupportedFeatureError(
-                    "A `target_vector` argument other than a string",
-                    str(self._connection._weaviate_version),
-                    "1.29.0",
+                raise WeaviateInvalidInputError(
+                    "A `target_vector` argument other than a string is not supported in <v1.28.4",
                 )
 
             builder = self._base(return_metrics, filters, total_count)
