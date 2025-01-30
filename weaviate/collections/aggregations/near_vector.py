@@ -87,7 +87,7 @@ class _NearVectorAsync(_AggregateAsync):
             near_vector = cast(
                 List[float], near_vector
             )  # pylance cannot type narrow the immediately above check
-            if not isinstance(target_vector, str):
+            if target_vector is not None and not isinstance(target_vector, str):
                 raise WeaviateInvalidInputError(
                     "A `target_vector` argument other than a string is not supported in <v1.28.4",
                 )
