@@ -19,6 +19,6 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'text2vec-openai'
-      ENABLE_MODULES: 'text2colbert-jinaai,text2vec-openai,generative-openai,text2vec-cohere,generative-cohere'
+      ENABLE_MODULES: 'text2colbert-jinaai,text2vec-openai,generative-openai,text2vec-cohere,generative-cohere,reranker-cohere'
       CLUSTER_HOSTNAME: 'node1'
       DISABLE_TELEMETRY: 'true'
