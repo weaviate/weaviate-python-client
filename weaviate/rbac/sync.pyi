@@ -1,7 +1,6 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 from weaviate.rbac.models import (
-    _Permission,
     PermissionsOutputType,
     PermissionsInputType,
     Role,
@@ -22,6 +21,11 @@ class _Roles(_RolesBase):
     def revoke_from_user(self, *, role_names: Union[str, List[str]], user: str) -> None: ...
     def add_permissions(self, *, permissions: PermissionsInputType, role_name: str) -> None: ...
     def remove_permissions(self, *, permissions: PermissionsInputType, role_name: str) -> None: ...
-    def has_permission(
-        self, *, permission: Union[_Permission, PermissionsOutputType], role: str
+    def has_permissions(
+        self,
+        *,
+        permissions: Union[
+            PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
+        ],
+        role: str
     ) -> bool: ...
