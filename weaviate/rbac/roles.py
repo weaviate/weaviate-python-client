@@ -29,14 +29,14 @@ class _RolesBase:
         return cast(List[WeaviateRole], res.json())
 
     async def _get_current_roles(self) -> List[WeaviateRole]:
-        path = "/authz/users/own-roles"
+        path = "/users/own-info"
 
         res = await self._connection.get(
             path,
             error_msg="Could not get roles",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own roles"),
         )
-        return cast(List[WeaviateRole], res.json())
+        return cast(List[WeaviateRole], res.json()["roles"])
 
     async def _get_role(self, name: str) -> Optional[WeaviateRole]:
         path = f"/authz/roles/{name}"
