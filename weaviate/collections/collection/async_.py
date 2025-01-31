@@ -105,12 +105,9 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
 
     async def length(self) -> int:
         """Get the total number of objects in the collection."""
-        if self._connection._weaviate_version.is_lower_than(1, 28, 4):
-            total = (await self.aggregate.over_all(total_count=True)).total_count
-            assert total is not None
-            return total
-        else:
-            return await self.aggregate._grpc.objects_count()
+        total = (await self.aggregate.over_all(total_count=True)).total_count
+        assert total is not None
+        return total
 
     async def to_string(self) -> str:
         """Return a string representation of the collection object."""

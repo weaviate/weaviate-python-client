@@ -43,6 +43,7 @@ from weaviate.proto.v1 import aggregate_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import file_encoder_b64, _decode_json_response_dict
 from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.warnings import _Warnings
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -94,7 +95,7 @@ class _AggregateAsync:
         if len(response.result.groups) == 0:
             raise WeaviateQueryError("No results found in the aggregation query!", "gRPC")
         if is_group_by:
-            AggregateGroupByReturn(
+            return AggregateGroupByReturn(
                 groups=[
                     AggregateGroup(
                         grouped_by=self.__parse_grouped_by_value(group.grouped_by),
@@ -116,25 +117,21 @@ class _AggregateAsync:
                 },
                 total_count=result.objects_count,
             )
-        return AggregateGroupByReturn(
-            groups=[
-                AggregateGroup(
-                    grouped_by=self.__parse_grouped_by_value(group.grouped_by),
-                    properties={
-                        aggregation.property: self.__parse_property_grpc(aggregation)
-                        for aggregation in group.aggregations.aggregations
-                    },
-                    total_count=group.objects_count,
-                )
-                for group in response.result.groups
-            ]
-        )
 
     def __parse_grouped_by_value(
         self, grouped_by: aggregate_pb2.AggregateGroup.GroupedBy
     ) -> GroupedBy:
         value: Union[
-            str, int, float, bool, List[str], List[int], List[float], List[bool], GeoCoordinate
+            str,
+            int,
+            float,
+            bool,
+            List[str],
+            List[int],
+            List[float],
+            List[bool],
+            GeoCoordinate,
+            None,
         ]
         if grouped_by.HasField("text"):
             value = grouped_by.text
@@ -159,9 +156,8 @@ class _AggregateAsync:
                 longitude=v.longitude,
             )
         else:
-            raise ValueError(
-                f"Unknown grouped by type {grouped_by} encountered in _Aggregate.__parse_grouped_by_value()"
-            )
+            value = None
+            _Warnings.unknown_type_encountered(grouped_by.WhichOneof("GroupedBy"))
         return GroupedBy(prop=grouped_by.path[0], value=value)
 
     def _to_group_by_result(

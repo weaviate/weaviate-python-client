@@ -112,7 +112,7 @@ class GroupedBy:
 
     prop: str
     value: Union[
-        str, int, float, bool, List[str], List[int], List[float], List[bool], GeoCoordinate
+        str, int, float, bool, List[str], List[int], List[float], List[bool], GeoCoordinate, None
     ]
 
 
@@ -586,7 +586,7 @@ class Metrics:
 
         Arguments:
             `pointing_to`
-                Whether to include the collection names that this property references.
+                The UUIDs of the objects that are being pointed to.
 
         Returns:
             A `_MetricsReference` object that includes the metrics to be returned.
