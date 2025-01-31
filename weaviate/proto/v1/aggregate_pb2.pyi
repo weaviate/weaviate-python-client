@@ -273,28 +273,7 @@ class AggregateRequest(_message.Message):
     ) -> None: ...
 
 class AggregateReply(_message.Message):
-    __slots__ = ("took", "result")
-
-    class Result(_message.Message):
-        __slots__ = ("groups",)
-        GROUPS_FIELD_NUMBER: _ClassVar[int]
-        groups: _containers.RepeatedCompositeFieldContainer[AggregateGroup]
-        def __init__(
-            self, groups: _Optional[_Iterable[_Union[AggregateGroup, _Mapping]]] = ...
-        ) -> None: ...
-
-    TOOK_FIELD_NUMBER: _ClassVar[int]
-    RESULT_FIELD_NUMBER: _ClassVar[int]
-    took: float
-    result: AggregateReply.Result
-    def __init__(
-        self,
-        took: _Optional[float] = ...,
-        result: _Optional[_Union[AggregateReply.Result, _Mapping]] = ...,
-    ) -> None: ...
-
-class AggregateGroup(_message.Message):
-    __slots__ = ("objects_count", "aggregations", "grouped_by")
+    __slots__ = ("took", "single_result", "grouped_results")
 
     class Aggregations(_message.Message):
         __slots__ = ("aggregations",)
@@ -380,14 +359,14 @@ class AggregateGroup(_message.Message):
 
                     ITEMS_FIELD_NUMBER: _ClassVar[int]
                     items: _containers.RepeatedCompositeFieldContainer[
-                        AggregateGroup.Aggregations.Aggregation.Text.TopOccurrences.TopOccurrence
+                        AggregateReply.Aggregations.Aggregation.Text.TopOccurrences.TopOccurrence
                     ]
                     def __init__(
                         self,
                         items: _Optional[
                             _Iterable[
                                 _Union[
-                                    AggregateGroup.Aggregations.Aggregation.Text.TopOccurrences.TopOccurrence,
+                                    AggregateReply.Aggregations.Aggregation.Text.TopOccurrences.TopOccurrence,
                                     _Mapping,
                                 ]
                             ]
@@ -399,14 +378,14 @@ class AggregateGroup(_message.Message):
                 TOP_OCCURENCES_FIELD_NUMBER: _ClassVar[int]
                 count: int
                 type: str
-                top_occurences: AggregateGroup.Aggregations.Aggregation.Text.TopOccurrences
+                top_occurences: AggregateReply.Aggregations.Aggregation.Text.TopOccurrences
                 def __init__(
                     self,
                     count: _Optional[int] = ...,
                     type: _Optional[str] = ...,
                     top_occurences: _Optional[
                         _Union[
-                            AggregateGroup.Aggregations.Aggregation.Text.TopOccurrences, _Mapping
+                            AggregateReply.Aggregations.Aggregation.Text.TopOccurrences, _Mapping
                         ]
                     ] = ...,
                 ) -> None: ...
@@ -484,102 +463,138 @@ class AggregateGroup(_message.Message):
             DATE_FIELD_NUMBER: _ClassVar[int]
             REFERENCE_FIELD_NUMBER: _ClassVar[int]
             property: str
-            int: AggregateGroup.Aggregations.Aggregation.Integer
-            number: AggregateGroup.Aggregations.Aggregation.Number
-            text: AggregateGroup.Aggregations.Aggregation.Text
-            boolean: AggregateGroup.Aggregations.Aggregation.Boolean
-            date: AggregateGroup.Aggregations.Aggregation.Date
-            reference: AggregateGroup.Aggregations.Aggregation.Reference
+            int: AggregateReply.Aggregations.Aggregation.Integer
+            number: AggregateReply.Aggregations.Aggregation.Number
+            text: AggregateReply.Aggregations.Aggregation.Text
+            boolean: AggregateReply.Aggregations.Aggregation.Boolean
+            date: AggregateReply.Aggregations.Aggregation.Date
+            reference: AggregateReply.Aggregations.Aggregation.Reference
             def __init__(
                 self,
                 property: _Optional[str] = ...,
                 int: _Optional[
-                    _Union[AggregateGroup.Aggregations.Aggregation.Integer, _Mapping]
+                    _Union[AggregateReply.Aggregations.Aggregation.Integer, _Mapping]
                 ] = ...,
                 number: _Optional[
-                    _Union[AggregateGroup.Aggregations.Aggregation.Number, _Mapping]
+                    _Union[AggregateReply.Aggregations.Aggregation.Number, _Mapping]
                 ] = ...,
                 text: _Optional[
-                    _Union[AggregateGroup.Aggregations.Aggregation.Text, _Mapping]
+                    _Union[AggregateReply.Aggregations.Aggregation.Text, _Mapping]
                 ] = ...,
                 boolean: _Optional[
-                    _Union[AggregateGroup.Aggregations.Aggregation.Boolean, _Mapping]
+                    _Union[AggregateReply.Aggregations.Aggregation.Boolean, _Mapping]
                 ] = ...,
                 date: _Optional[
-                    _Union[AggregateGroup.Aggregations.Aggregation.Date, _Mapping]
+                    _Union[AggregateReply.Aggregations.Aggregation.Date, _Mapping]
                 ] = ...,
                 reference: _Optional[
-                    _Union[AggregateGroup.Aggregations.Aggregation.Reference, _Mapping]
+                    _Union[AggregateReply.Aggregations.Aggregation.Reference, _Mapping]
                 ] = ...,
             ) -> None: ...
 
         AGGREGATIONS_FIELD_NUMBER: _ClassVar[int]
         aggregations: _containers.RepeatedCompositeFieldContainer[
-            AggregateGroup.Aggregations.Aggregation
+            AggregateReply.Aggregations.Aggregation
         ]
         def __init__(
             self,
             aggregations: _Optional[
-                _Iterable[_Union[AggregateGroup.Aggregations.Aggregation, _Mapping]]
+                _Iterable[_Union[AggregateReply.Aggregations.Aggregation, _Mapping]]
             ] = ...,
         ) -> None: ...
 
-    class GroupedBy(_message.Message):
-        __slots__ = (
-            "path",
-            "text",
-            "int",
-            "boolean",
-            "number",
-            "texts",
-            "ints",
-            "booleans",
-            "numbers",
-            "geo",
-        )
-        PATH_FIELD_NUMBER: _ClassVar[int]
-        TEXT_FIELD_NUMBER: _ClassVar[int]
-        INT_FIELD_NUMBER: _ClassVar[int]
-        BOOLEAN_FIELD_NUMBER: _ClassVar[int]
-        NUMBER_FIELD_NUMBER: _ClassVar[int]
-        TEXTS_FIELD_NUMBER: _ClassVar[int]
-        INTS_FIELD_NUMBER: _ClassVar[int]
-        BOOLEANS_FIELD_NUMBER: _ClassVar[int]
-        NUMBERS_FIELD_NUMBER: _ClassVar[int]
-        GEO_FIELD_NUMBER: _ClassVar[int]
-        path: _containers.RepeatedScalarFieldContainer[str]
-        text: str
-        int: int
-        boolean: bool
-        number: float
-        texts: _base_pb2.TextArray
-        ints: _base_pb2.IntArray
-        booleans: _base_pb2.BooleanArray
-        numbers: _base_pb2.NumberArray
-        geo: _base_pb2.GeoCoordinatesFilter
+    class Single(_message.Message):
+        __slots__ = ("objects_count", "aggregations")
+        OBJECTS_COUNT_FIELD_NUMBER: _ClassVar[int]
+        AGGREGATIONS_FIELD_NUMBER: _ClassVar[int]
+        objects_count: int
+        aggregations: AggregateReply.Aggregations
         def __init__(
             self,
-            path: _Optional[_Iterable[str]] = ...,
-            text: _Optional[str] = ...,
-            int: _Optional[int] = ...,
-            boolean: bool = ...,
-            number: _Optional[float] = ...,
-            texts: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
-            ints: _Optional[_Union[_base_pb2.IntArray, _Mapping]] = ...,
-            booleans: _Optional[_Union[_base_pb2.BooleanArray, _Mapping]] = ...,
-            numbers: _Optional[_Union[_base_pb2.NumberArray, _Mapping]] = ...,
-            geo: _Optional[_Union[_base_pb2.GeoCoordinatesFilter, _Mapping]] = ...,
+            objects_count: _Optional[int] = ...,
+            aggregations: _Optional[_Union[AggregateReply.Aggregations, _Mapping]] = ...,
         ) -> None: ...
 
-    OBJECTS_COUNT_FIELD_NUMBER: _ClassVar[int]
-    AGGREGATIONS_FIELD_NUMBER: _ClassVar[int]
-    GROUPED_BY_FIELD_NUMBER: _ClassVar[int]
-    objects_count: int
-    aggregations: AggregateGroup.Aggregations
-    grouped_by: AggregateGroup.GroupedBy
+    class Group(_message.Message):
+        __slots__ = ("objects_count", "aggregations", "grouped_by")
+
+        class GroupedBy(_message.Message):
+            __slots__ = (
+                "path",
+                "text",
+                "int",
+                "boolean",
+                "number",
+                "texts",
+                "ints",
+                "booleans",
+                "numbers",
+                "geo",
+            )
+            PATH_FIELD_NUMBER: _ClassVar[int]
+            TEXT_FIELD_NUMBER: _ClassVar[int]
+            INT_FIELD_NUMBER: _ClassVar[int]
+            BOOLEAN_FIELD_NUMBER: _ClassVar[int]
+            NUMBER_FIELD_NUMBER: _ClassVar[int]
+            TEXTS_FIELD_NUMBER: _ClassVar[int]
+            INTS_FIELD_NUMBER: _ClassVar[int]
+            BOOLEANS_FIELD_NUMBER: _ClassVar[int]
+            NUMBERS_FIELD_NUMBER: _ClassVar[int]
+            GEO_FIELD_NUMBER: _ClassVar[int]
+            path: _containers.RepeatedScalarFieldContainer[str]
+            text: str
+            int: int
+            boolean: bool
+            number: float
+            texts: _base_pb2.TextArray
+            ints: _base_pb2.IntArray
+            booleans: _base_pb2.BooleanArray
+            numbers: _base_pb2.NumberArray
+            geo: _base_pb2.GeoCoordinatesFilter
+            def __init__(
+                self,
+                path: _Optional[_Iterable[str]] = ...,
+                text: _Optional[str] = ...,
+                int: _Optional[int] = ...,
+                boolean: bool = ...,
+                number: _Optional[float] = ...,
+                texts: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
+                ints: _Optional[_Union[_base_pb2.IntArray, _Mapping]] = ...,
+                booleans: _Optional[_Union[_base_pb2.BooleanArray, _Mapping]] = ...,
+                numbers: _Optional[_Union[_base_pb2.NumberArray, _Mapping]] = ...,
+                geo: _Optional[_Union[_base_pb2.GeoCoordinatesFilter, _Mapping]] = ...,
+            ) -> None: ...
+
+        OBJECTS_COUNT_FIELD_NUMBER: _ClassVar[int]
+        AGGREGATIONS_FIELD_NUMBER: _ClassVar[int]
+        GROUPED_BY_FIELD_NUMBER: _ClassVar[int]
+        objects_count: int
+        aggregations: AggregateReply.Aggregations
+        grouped_by: AggregateReply.Group.GroupedBy
+        def __init__(
+            self,
+            objects_count: _Optional[int] = ...,
+            aggregations: _Optional[_Union[AggregateReply.Aggregations, _Mapping]] = ...,
+            grouped_by: _Optional[_Union[AggregateReply.Group.GroupedBy, _Mapping]] = ...,
+        ) -> None: ...
+
+    class Grouped(_message.Message):
+        __slots__ = ("groups",)
+        GROUPS_FIELD_NUMBER: _ClassVar[int]
+        groups: _containers.RepeatedCompositeFieldContainer[AggregateReply.Group]
+        def __init__(
+            self, groups: _Optional[_Iterable[_Union[AggregateReply.Group, _Mapping]]] = ...
+        ) -> None: ...
+
+    TOOK_FIELD_NUMBER: _ClassVar[int]
+    SINGLE_RESULT_FIELD_NUMBER: _ClassVar[int]
+    GROUPED_RESULTS_FIELD_NUMBER: _ClassVar[int]
+    took: float
+    single_result: AggregateReply.Single
+    grouped_results: AggregateReply.Grouped
     def __init__(
         self,
-        objects_count: _Optional[int] = ...,
-        aggregations: _Optional[_Union[AggregateGroup.Aggregations, _Mapping]] = ...,
-        grouped_by: _Optional[_Union[AggregateGroup.GroupedBy, _Mapping]] = ...,
+        took: _Optional[float] = ...,
+        single_result: _Optional[_Union[AggregateReply.Single, _Mapping]] = ...,
+        grouped_results: _Optional[_Union[AggregateReply.Grouped, _Mapping]] = ...,
     ) -> None: ...

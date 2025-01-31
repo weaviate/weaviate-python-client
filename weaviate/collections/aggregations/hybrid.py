@@ -115,7 +115,7 @@ class _HybridAsync(_AggregateAsync):
                 limit=group_by.limit if group_by is not None else None,
                 objects_count=total_count,
             )
-            return self._to_result(reply, group_by is not None)
+            return self._to_result(reply)
 
 
 @syncify.convert

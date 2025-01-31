@@ -90,11 +90,17 @@ class _AggregateAsync:
             )
 
     def _to_result(
-        self, response: aggregate_pb2.AggregateReply, is_group_by: bool
+        self, response: aggregate_pb2.AggregateReply
     ) -> Union[AggregateReturn, AggregateGroupByReturn]:
-        if len(response.result.groups) == 0:
-            raise WeaviateQueryError("No results found in the aggregation query!", "gRPC")
-        if is_group_by:
+        if response.HasField("single_result"):
+            return AggregateReturn(
+                properties={
+                    aggregation.property: self.__parse_property_grpc(aggregation)
+                    for aggregation in response.single_result.aggregations.aggregations
+                },
+                total_count=response.single_result.objects_count,
+            )
+        if response.HasField("grouped_results"):
             return AggregateGroupByReturn(
                 groups=[
                     AggregateGroup(
@@ -105,21 +111,15 @@ class _AggregateAsync:
                         },
                         total_count=group.objects_count,
                     )
-                    for group in response.result.groups
+                    for group in response.grouped_results.groups
                 ]
             )
         else:
-            result = response.result.groups[0]
-            return AggregateReturn(
-                properties={
-                    aggregation.property: self.__parse_property_grpc(aggregation)
-                    for aggregation in result.aggregations.aggregations
-                },
-                total_count=result.objects_count,
-            )
+            _Warnings.unknown_type_encountered(response.WhichOneof("result"))
+            return AggregateReturn(properties={}, total_count=None)
 
     def __parse_grouped_by_value(
-        self, grouped_by: aggregate_pb2.AggregateGroup.GroupedBy
+        self, grouped_by: aggregate_pb2.AggregateReply.Group.GroupedBy
     ) -> GroupedBy:
         value: Union[
             str,
@@ -157,7 +157,7 @@ class _AggregateAsync:
             )
         else:
             value = None
-            _Warnings.unknown_type_encountered(grouped_by.WhichOneof("GroupedBy"))
+            _Warnings.unknown_type_encountered(grouped_by.WhichOneof("value"))
         return GroupedBy(prop=grouped_by.path[0], value=value)
 
     def _to_group_by_result(
@@ -254,7 +254,7 @@ class _AggregateAsync:
 
     @staticmethod
     def __parse_property_grpc(
-        aggregation: aggregate_pb2.AggregateGroup.Aggregations.Aggregation,
+        aggregation: aggregate_pb2.AggregateReply.Aggregations.Aggregation,
     ) -> AggregateResult:
         if aggregation.HasField("text"):
             return AggregateText(

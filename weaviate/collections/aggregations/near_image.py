@@ -104,7 +104,7 @@ class _NearImageAsync(_AggregateAsync):
                 objects_count=total_count,
                 object_limit=object_limit,
             )
-            return self._to_result(reply, group_by is not None)
+            return self._to_result(reply)
 
 
 @syncify.convert

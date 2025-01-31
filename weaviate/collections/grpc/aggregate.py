@@ -37,7 +37,7 @@ class _AggregateGRPC(_BaseGRPC):
 
     async def objects_count(self) -> int:
         res = await self.__call(self.__create_request(objects_count=True))
-        return res.result.groups[0].objects_count
+        return res.single_result.objects_count
 
     def hybrid(
         self,
