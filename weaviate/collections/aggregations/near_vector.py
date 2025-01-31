@@ -73,7 +73,7 @@ class _NearVectorAsync(_AggregateAsync):
         if isinstance(group_by, str):
             group_by = GroupByAggregate(prop=group_by)
 
-        if self._connection._weaviate_version.is_lower_than(1, 28, 4):
+        if self._connection._weaviate_version.is_lower_than(1, 29, 0):
             # use gql, remove once 1.29 is the minimum supported version
 
             if not isinstance(near_vector, list):

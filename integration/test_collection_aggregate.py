@@ -205,7 +205,7 @@ def test_over_all_with_filters_ref(collection_factory: CollectionFactory) -> Non
         filters=Filter.by_ref("ref").by_property("text").equal("one"),
         return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
     )
-    if collection._connection._weaviate_version.is_lower_than(1, 28, 4):
+    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
         with pytest.raises(WeaviateInvalidInputError):
             query()
     else:
@@ -217,7 +217,7 @@ def test_over_all_with_filters_ref(collection_factory: CollectionFactory) -> Non
 
 def test_wrong_aggregation(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
-    if collection._connection._weaviate_version.is_at_least(1, 28, 4):
+    if collection._connection._weaviate_version.is_at_least(1, 29, 0):
         pytest.skip("GQL is only used for versions 1.28.4 and lower")
     with pytest.raises(WeaviateQueryError) as e:
         collection.aggregate.over_all(total_count=False)
@@ -665,7 +665,7 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     groups = res.groups
     assert len(groups) == 2
     assert groups[0].grouped_by.prop == "int"
-    if collection._connection._weaviate_version.is_lower_than(1, 28, 4):
+    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
         assert groups[0].grouped_by.value == "1" or groups[1].grouped_by.value == "1"
     else:
         assert groups[0].grouped_by.value == 1 or groups[1].grouped_by.value == 1
@@ -674,7 +674,7 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     assert isinstance(groups[0].properties["int"], AggregateInteger)
     assert groups[0].properties["int"].count == 1
     assert groups[1].grouped_by.prop == "int"
-    if collection._connection._weaviate_version.is_lower_than(1, 28, 4):
+    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
         assert groups[1].grouped_by.value == "2" or groups[0].grouped_by.value == "2"
     else:
         assert groups[1].grouped_by.value == 2 or groups[0].grouped_by.value == 2
