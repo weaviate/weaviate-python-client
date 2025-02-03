@@ -1,10 +1,12 @@
+import asyncio
 import json
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Sequence, Union, cast
 
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
-    _Permission,
+    _OutputPermission,
+    _InputPermission,
     PermissionsOutputType,
     PermissionsInputType,
     Role,
@@ -274,7 +276,7 @@ class _RolesAsync(_RolesBase):
             permissions: The permissions to add to the role.
             role_name: The name of the role to add the permissions to.
         """
-        if isinstance(permissions, _Permission):
+        if isinstance(permissions, _InputPermission):
             permissions = [permissions]
         await self._add_permissions(
             [permission._to_weaviate() for permission in _flatten_permissions(permissions)],
@@ -292,17 +294,22 @@ class _RolesAsync(_RolesBase):
             permissions: The permissions to remove from the role.
             role_name: The name of the role to remove the permissions from.
         """
-        if isinstance(permissions, _Permission):
+        if isinstance(permissions, _InputPermission):
             permissions = [permissions]
         await self._remove_permissions(
             [permission._to_weaviate() for permission in _flatten_permissions(permissions)],
             role_name,
         )
 
-    async def has_permission(
-        self, *, permission: Union[_Permission, PermissionsOutputType], role: str
+    async def has_permissions(
+        self,
+        *,
+        permissions: Union[
+            PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
+        ],
+        role: str,
     ) -> bool:
-        """Check if a role has a specific permission.
+        """Check if a role has a specific set of permission.
 
         Args:
             permission: The permission to check.
@@ -311,15 +318,26 @@ class _RolesAsync(_RolesBase):
         Returns:
             True if the role has the permission, False otherwise.
         """
-        return await self._has_permission(permission._to_weaviate(), role)
+        return all(
+            await asyncio.gather(
+                *[
+                    self._has_permission(permission._to_weaviate(), role)
+                    for permission in _flatten_permissions(permissions)
+                ]
+            )
+        )
 
 
-def _flatten_permissions(permissions: PermissionsInputType) -> List[_Permission]:
-    if isinstance(permissions, _Permission):
+def _flatten_permissions(
+    permissions: Union[PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]]
+) -> List[Union[_InputPermission, _OutputPermission]]:
+    if isinstance(permissions, _InputPermission) or isinstance(permissions, _OutputPermission):
         return [permissions]
-    flattened_permissions: List[_Permission] = []
+    flattened_permissions: List[Union[_InputPermission, _OutputPermission]] = []
     for permission in permissions:
-        if isinstance(permission, _Permission):
+        if isinstance(permission, _InputPermission):
+            flattened_permissions.append(permission)
+        elif isinstance(permission, _OutputPermission):
             flattened_permissions.append(permission)
         else:
             flattened_permissions.extend(permission)

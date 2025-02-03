@@ -271,11 +271,15 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
             assert role.data_permissions[0].action == Actions.Data.CREATE
             assert role.data_permissions[1].action == Actions.Data.UPDATE
 
-            assert client.roles.has_permission(
-                permission=role.collections_permissions[0], role=role_name
+            assert client.roles.has_permissions(
+                permissions=role.collections_permissions[0], role=role_name
             )
-            assert client.roles.has_permission(
-                permission=required_permissions[1][0], role=role_name
+            assert client.roles.has_permissions(permissions=role.data_permissions, role=role_name)
+            assert client.roles.has_permissions(
+                permissions=required_permissions[1][0], role=role_name
             )
+            assert client.roles.has_permissions(permissions=required_permissions[0], role=role_name)
+            assert client.roles.has_permissions(permissions=required_permissions[1], role=role_name)
+            assert client.roles.has_permissions(permissions=required_permissions, role=role_name)
         finally:
             client.roles.delete(role_name)
