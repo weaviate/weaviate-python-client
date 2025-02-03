@@ -7,7 +7,15 @@ from pydantic import BaseModel
 from typing_extensions import NotRequired
 
 from weaviate.cluster.types import Verbosity
+from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
+
+
+class RoleScope(str, BaseEnum):
+    """Scope of the role permission."""
+
+    MATCH = "match"
+    ALL = "all"
 
 
 class PermissionData(TypedDict):
@@ -293,6 +301,7 @@ class DataPermission(_OutputPermission):
 class RolesPermission(_OutputPermission):
     role: str
     action: RolesAction
+    scope: Optional[RoleScope]
 
     def _to_weaviate(self) -> WeaviatePermission:
         return {
@@ -440,9 +449,12 @@ class Role:
             elif permission["action"] in RolesAction.values():
                 roles = permission.get("roles")
                 if roles is not None:
+                    scope = roles.get("scope")
                     roles_permissions.append(
                         RolesPermission(
-                            role=roles["role"], action=RolesAction(permission["action"])
+                            role=roles["role"],
+                            action=RolesAction(permission["action"]),
+                            scope=RoleScope(scope) if scope else None,
                         )
                     )
             elif permission["action"] in DataAction.values():
@@ -701,7 +713,7 @@ class Permissions:
         *,
         role: Union[str, Sequence[str]],
         read: bool = False,
-        manage: Optional[Union[str, bool]] = None,
+        manage: Optional[Union[RoleScope, bool]] = None,
     ) -> PermissionsCreateType:
         permissions: List[_InputPermission] = []
         if isinstance(role, str):
