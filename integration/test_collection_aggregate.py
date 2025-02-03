@@ -201,17 +201,24 @@ def test_over_all_with_filters_ref(collection_factory: CollectionFactory) -> Non
     assert res.properties["text"].count == 1
     assert res.properties["text"].top_occurrences[0].value == "two"
 
-    with pytest.raises(WeaviateInvalidInputError):
-        res = collection.aggregate.over_all(
-            filters=Filter.by_ref("ref")
-            .by_property("text")
-            .equal("one"),  # gRPC-compat API not support by GQL aggregation
-            return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
-        )
+    query = lambda: collection.aggregate.over_all(
+        filters=Filter.by_ref("ref").by_property("text").equal("one"),
+        return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
+    )
+    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
+        with pytest.raises(WeaviateInvalidInputError):
+            query()
+    else:
+        res = query()
+        assert isinstance(res.properties["text"], AggregateText)
+        assert res.properties["text"].count == 1
+        assert res.properties["text"].top_occurrences[0].value == "two"
 
 
 def test_wrong_aggregation(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
+    if collection._connection._weaviate_version.is_at_least(1, 29, 0):
+        pytest.skip("GQL is only used for versions 1.28.4 and lower")
     with pytest.raises(WeaviateQueryError) as e:
         collection.aggregate.over_all(total_count=False)
     assert (
@@ -658,13 +665,19 @@ def test_group_by_aggregation_argument(collection_factory: CollectionFactory) ->
     groups = res.groups
     assert len(groups) == 2
     assert groups[0].grouped_by.prop == "int"
-    assert groups[0].grouped_by.value == "1" or groups[1].grouped_by.value == "1"
+    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
+        assert groups[0].grouped_by.value == "1" or groups[1].grouped_by.value == "1"
+    else:
+        assert groups[0].grouped_by.value == 1 or groups[1].grouped_by.value == 1
     assert isinstance(groups[0].properties["text"], AggregateText)
     assert groups[0].properties["text"].count == 1
     assert isinstance(groups[0].properties["int"], AggregateInteger)
     assert groups[0].properties["int"].count == 1
     assert groups[1].grouped_by.prop == "int"
-    assert groups[1].grouped_by.value == "2" or groups[0].grouped_by.value == "2"
+    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
+        assert groups[1].grouped_by.value == "2" or groups[0].grouped_by.value == "2"
+    else:
+        assert groups[1].grouped_by.value == 2 or groups[0].grouped_by.value == 2
     assert isinstance(groups[1].properties["text"], AggregateText)
     assert groups[1].properties["text"].count == 1
     assert isinstance(groups[1].properties["int"], AggregateInteger)

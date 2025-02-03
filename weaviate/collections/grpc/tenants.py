@@ -18,7 +18,7 @@ class _TenantsGRPC(_BaseGRPC):
         name: str,
         consistency_level: Optional[ConsistencyLevel],
     ):
-        super().__init__(connection, consistency_level)
+        super().__init__(connection, consistency_level, False)
         self._name: str = name
 
     async def get(self, names: Optional[Sequence[str]]) -> tenants_pb2.TenantsGetReply:

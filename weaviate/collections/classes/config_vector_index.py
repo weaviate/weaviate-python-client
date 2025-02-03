@@ -38,8 +38,17 @@ class VectorIndexType(str, Enum):
     DYNAMIC = "dynamic"
 
 
+class _MultiVectorConfigCreateBase(_ConfigCreateModel):
+    enabled: bool = Field(default=True)
+
+
+class _MultiVectorConfigCreate(_MultiVectorConfigCreateBase):
+    aggregation: Optional[str]
+
+
 class _VectorIndexConfigCreate(_ConfigCreateModel):
     distance: Optional[VectorDistances]
+    multivector: Optional[_MultiVectorConfigCreate]
     quantizer: Optional[_QuantizerConfigCreate] = Field(exclude=True)
 
     @staticmethod
