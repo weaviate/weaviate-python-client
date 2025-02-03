@@ -4,6 +4,7 @@ from enum import Enum
 from typing import List, Optional, Sequence, TypedDict, Union
 
 from pydantic import BaseModel
+from typing_extensions import NotRequired
 
 from weaviate.cluster.types import Verbosity
 from weaviate.util import _capitalize_first_letter
@@ -36,6 +37,7 @@ class PermissionBackup(TypedDict):
 
 class PermissionRoles(TypedDict):
     role: str
+    scope: NotRequired[str]
 
 
 # action is always present in WeaviatePermission
@@ -191,14 +193,16 @@ class _NodesPermission(_InputPermission):
 
 class _RolesPermission(_InputPermission):
     role: str
+    scope: Optional[str] = None
     action: RolesAction
 
     def _to_weaviate(self) -> WeaviatePermission:
+        roles: PermissionRoles = {"role": self.role}
+        if self.scope is not None:
+            roles["scope"] = self.scope
         return {
             "action": self.action,
-            "roles": {
-                "role": self.role,
-            },
+            "roles": roles,
         }
 
 
@@ -575,8 +579,8 @@ class _TenantsFactory:
 
 class _RolesFactory:
     @staticmethod
-    def manage(*, role: Optional[str] = None) -> _RolesPermission:
-        return _RolesPermission(role=role or "*", action=RolesAction.MANAGE)
+    def manage(*, role: Optional[str] = None, scope: Optional[str] = None) -> _RolesPermission:
+        return _RolesPermission(role=role or "*", action=RolesAction.MANAGE, scope=scope)
 
     @staticmethod
     def read(*, role: Optional[str] = None) -> _RolesPermission:
@@ -694,7 +698,10 @@ class Permissions:
 
     @staticmethod
     def roles(
-        *, role: Union[str, Sequence[str]], read: bool = False, manage: bool = False
+        *,
+        role: Union[str, Sequence[str]],
+        read: bool = False,
+        manage: Optional[Union[str, bool]] = None,
     ) -> PermissionsCreateType:
         permissions: List[_InputPermission] = []
         if isinstance(role, str):
@@ -702,8 +709,11 @@ class Permissions:
         for r in role:
             if read:
                 permissions.append(_RolesFactory.read(role=r))
-            if manage:
-                permissions.append(_RolesFactory.manage(role=r))
+            if manage is not None:
+                if isinstance(manage, bool):
+                    permissions.append(_RolesFactory.manage(role=r))
+                else:
+                    permissions.append(_RolesFactory.manage(role=r, scope=manage))
         return permissions
 
     @staticmethod
