@@ -192,7 +192,7 @@ class _Base(Generic[Properties, References]):
             return [
                 self.__parse_nonref_properties_result(val) for val in value.object_values.values
             ]
-        _Warnings.unknown_type_encountered(value.WhichOneof("Value"))
+        _Warnings.unknown_type_encountered(value.WhichOneof("value"))
         return None
 
     def __deserialize_list_value_prop_123(self, value: properties_pb2.ListValue) -> List[Any]:
@@ -248,7 +248,7 @@ class _Base(Generic[Properties, References]):
         if value.HasField("null_value"):
             return None
 
-        _Warnings.unknown_type_encountered(value.WhichOneof("Value"))
+        _Warnings.unknown_type_encountered(value.WhichOneof("value"))
         return None
 
     def __parse_nonref_properties_result(

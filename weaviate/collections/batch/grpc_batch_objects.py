@@ -38,7 +38,7 @@ class _BatchGRPC(_BaseGRPC):
     """
 
     def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
-        super().__init__(connection, consistency_level)
+        super().__init__(connection, consistency_level, False)
 
     def __single_vec(self, vectors: Optional[VECTORS]) -> Optional[bytes]:
         if not _is_1d_vector(vectors):

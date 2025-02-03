@@ -1,18 +1,18 @@
 import pytest
-from typing import Awaitable
+from typing import Awaitable, Callable
 from weaviate.connect import ConnectionV4
 from weaviate.collections.aggregate import _AggregateCollectionAsync
 from weaviate.exceptions import WeaviateInvalidInputError
 
 
-async def _test_aggregate(aggregate: Awaitable) -> None:
+async def _test_aggregate(aggregate: Callable[[], Awaitable]) -> None:
     with pytest.raises(WeaviateInvalidInputError):
         await aggregate()
 
 
 @pytest.mark.asyncio
 async def test_bad_aggregate_inputs(connection: ConnectionV4) -> None:
-    aggregate = _AggregateCollectionAsync(connection, "dummy", None, None)
+    aggregate = _AggregateCollectionAsync(connection, "dummy", None, None, False)
     # over_all
     await _test_aggregate(lambda: aggregate.over_all(filters="wrong"))
     await _test_aggregate(lambda: aggregate.over_all(group_by=42))
