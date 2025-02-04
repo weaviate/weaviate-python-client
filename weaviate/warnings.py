@@ -1,7 +1,7 @@
 import warnings
 from datetime import datetime
 from importlib.metadata import version, PackageNotFoundError
-from typing import Optional
+from typing import Any, Optional
 
 try:
     __version__ = version("weaviate-client")
@@ -323,6 +323,14 @@ class _Warnings:
         warnings.warn(
             message="""Con005: Could not retrieve the maximum GRPC message size from the weaviate server. Using the default
             value of 10mb. If you need a larger message size, please update weaviate.""",
+            category=UserWarning,
+            stacklevel=1,
+        )
+
+    @staticmethod
+    def unknown_permission_encountered(permission: Any) -> None:
+        warnings.warn(
+            message=f"""RBAC001: Unknown permission {permission} received, skipping value.""",
             category=UserWarning,
             stacklevel=1,
         )
