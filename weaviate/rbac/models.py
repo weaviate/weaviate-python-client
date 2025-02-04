@@ -48,6 +48,10 @@ class PermissionRoles(TypedDict):
     scope: NotRequired[str]
 
 
+class PermissionsUsers(TypedDict):
+    users: str
+
+
 # action is always present in WeaviatePermission
 class WeaviatePermissionRequired(TypedDict):
     action: str
@@ -62,6 +66,7 @@ class WeaviatePermission(
     backups: Optional[PermissionBackup]
     roles: Optional[PermissionRoles]
     tenants: Optional[PermissionsTenants]
+    users: Optional[PermissionsUsers]
 
 
 class WeaviateRole(TypedDict):
@@ -118,7 +123,7 @@ class RolesAction(str, _Action, Enum):
 
 
 class UsersAction(str, _Action, Enum):
-    MANAGE = "manage_users"
+    ASSIGN_AND_REVOKE = "assign_and_revoke_users"
 
     @staticmethod
     def values() -> List[str]:
@@ -216,9 +221,10 @@ class _RolesPermission(_InputPermission):
 
 class _UsersPermission(_InputPermission):
     action: UsersAction
+    users: str
 
     def _to_weaviate(self) -> WeaviatePermission:
-        return {"action": self.action}
+        return {"action": self.action, "users": {"users": self.users}}
 
 
 class _BackupsPermission(_InputPermission):
@@ -315,9 +321,10 @@ class RolesPermission(_OutputPermission):
 @dataclass
 class UsersPermission(_OutputPermission):
     action: UsersAction
+    user: str
 
     def _to_weaviate(self) -> WeaviatePermission:
-        return {"action": self.action}
+        return {"action": self.action, "users": {"users": self.user}}
 
 
 @dataclass
@@ -427,7 +434,13 @@ class Role:
                     ClusterPermission(action=ClusterAction(permission["action"]))
                 )
             elif permission["action"] in UsersAction.values():
-                users_permissions.append(UsersPermission(action=UsersAction(permission["action"])))
+                users = permission.get("users")
+                if users is not None:
+                    users_permissions.append(
+                        UsersPermission(
+                            action=UsersAction(permission["action"]), user=users["users"]
+                        )
+                    )
             elif permission["action"] in CollectionsAction.values():
                 collections = permission.get("collections")
                 if collections is not None:
@@ -601,8 +614,8 @@ class _RolesFactory:
 
 class _UsersFactory:
     @staticmethod
-    def manage() -> _UsersPermission:
-        return _UsersPermission(action=UsersAction.MANAGE)
+    def assign_and_revoke(user: str) -> _UsersPermission:
+        return _UsersPermission(action=UsersAction.ASSIGN_AND_REVOKE, users=user)
 
 
 class _ClusterFactory:
@@ -635,6 +648,7 @@ class Actions:
     Nodes = NodesAction
     Backups = BackupsAction
     Tenants = TenantsAction
+    Users = UsersAction
 
 
 class Permissions:
@@ -726,6 +740,18 @@ class Permissions:
                     permissions.append(_RolesFactory.manage(role=r))
                 else:
                     permissions.append(_RolesFactory.manage(role=r, scope=manage))
+        return permissions
+
+    @staticmethod
+    def users(
+        *, user: Union[str, Sequence[str]], assign_and_revoke: bool = False
+    ) -> PermissionsCreateType:
+        permissions: List[_InputPermission] = []
+        if isinstance(user, str):
+            user = [user]
+        for u in user:
+            if assign_and_revoke:
+                permissions.append(_UsersFactory.assign_and_revoke(user=u))
         return permissions
 
     @staticmethod
