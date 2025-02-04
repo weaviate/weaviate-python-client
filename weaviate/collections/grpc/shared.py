@@ -6,7 +6,6 @@ from typing import (
     List,
     Literal,
     Optional,
-    Sequence,
     Union,
     cast,
     Tuple,
@@ -27,6 +26,9 @@ from weaviate.collections.classes.grpc import (
     Move,
     TargetVectorJoinType,
     NearVectorInputType,
+    OneDimensionalVectorType,
+    TwoDimensionalVectorType,
+    PrimitiveVectorType,
 )
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
@@ -35,8 +37,8 @@ from weaviate.exceptions import (
 )
 from weaviate.proto.v1 import base_search_pb2, base_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.util import _get_vector_v4, _is_1d_vector
-from weaviate.validator import _ValidateArgument, _validate_input, _ExtraTypes
+from weaviate.util import _get_vector_v4
+from weaviate.validator import _is_valid, _ValidateArgument, _validate_input, _ExtraTypes
 
 
 PERMISSION_DENIED = "PERMISSION_DENIED"
@@ -179,7 +181,7 @@ class _BaseGRPC:
 
         vector_for_target: List[base_search_pb2.VectorForTarget] = []
 
-        def add_vector(val: Sequence[float], target_name: str) -> None:
+        def add_1d_vector(val: OneDimensionalVectorType, target_name: str) -> None:
             vec = _get_vector_v4(val)
 
             if (
@@ -209,6 +211,53 @@ class _BaseGRPC:
                     )
                 )
 
+        def add_2d_vector(
+            value: Union[_MultidimensionalQuery, TwoDimensionalVectorType], key: str
+        ) -> None:
+            if isinstance(value, _MultidimensionalQuery):
+                vals = [_get_vector_v4(v) for v in value.tensor]
+            else:
+                vals = [_get_vector_v4(v) for v in value]
+            vector_for_target.append(
+                base_search_pb2.VectorForTarget(
+                    name=key,
+                    vectors=[
+                        base_pb2.Vectors(
+                            name=key,
+                            vector_bytes=_Pack.multi(vals),
+                            type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                        )
+                    ],
+                )
+            )
+
+        def add_list_of_vectors(value: _ListOfVectorsQuery, key: str) -> None:
+            if _ListOfVectorsQuery.is_one_dimensional(value):
+                vectors = [
+                    base_pb2.Vectors(
+                        name=key,
+                        vector_bytes=_Pack.multi([_get_vector_v4(v) for v in value.vectors]),
+                        type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                    )
+                ]
+            elif _ListOfVectorsQuery.is_two_dimensional(value):
+                vectors = [
+                    base_pb2.Vectors(
+                        name=key,
+                        vector_bytes=_Pack.multi([_get_vector_v4(v) for v in vecs]),
+                        type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                    )
+                    for vecs in value.vectors
+                ]
+            else:
+                raise WeaviateInvalidInputError(f"Invalid list of vectors: {value}")
+            vector_for_target.append(
+                base_search_pb2.VectorForTarget(
+                    name=key,
+                    vectors=vectors,
+                )
+            )
+
         if isinstance(vector, dict):
             if (
                 len(vector) == 0
@@ -218,34 +267,17 @@ class _BaseGRPC:
                 raise invalid_nv_exception
             target_vectors_tmp: List[str] = []
             for key, value in vector.items():
-                # typing tools do not understand the type narrowing here
                 if _is_1d_vector(value):
-                    val = value
-                    add_vector(val, key)
+                    add_1d_vector(value, key)
                     target_vectors_tmp.append(key)
-                elif isinstance(value, _MultidimensionalQuery):
-                    vector_for_target.append(
-                        base_search_pb2.VectorForTarget(
-                            name=key,
-                            vectors=[
-                                base_pb2.Vectors(
-                                    name=key,
-                                    vector_bytes=_Pack.multi(value.tensor),
-                                    type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
-                                )
-                            ],
-                        )
-                    )
+                elif _is_2d_vector(value) or isinstance(value, _MultidimensionalQuery):
+                    add_2d_vector(value, key)
                     target_vectors_tmp.append(key)
                 elif isinstance(value, _ListOfVectorsQuery):
-                    for vec in value.vectors:
-                        add_vector(vec, key)
-                        target_vectors_tmp.append(key)
+                    add_list_of_vectors(value, key)
+                    target_vectors_tmp.append(key)
                 else:
-                    vals = cast(Sequence[Sequence[NUMBER]], value)
-                    for inner_vector in vals:
-                        add_vector(inner_vector, key)
-                        target_vectors_tmp.append(key)
+                    raise invalid_nv_exception
             return vector_for_target, None, target_vectors_tmp
         else:
             if _is_1d_vector(vector):
@@ -665,21 +697,15 @@ class _Packing:
 
 class _Pack:
     @staticmethod
-    def is_multi(
-        v: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
-    ) -> TypeGuard[List[List[NUMBER]]]:
+    def is_multi(v: PrimitiveVectorType) -> TypeGuard[List[List[NUMBER]]]:
         return len(v) > 0 and isinstance(v[0], list)
 
     @staticmethod
-    def is_single(
-        v: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
-    ) -> TypeGuard[List[NUMBER]]:
+    def is_single(v: PrimitiveVectorType) -> TypeGuard[List[NUMBER]]:
         return len(v) > 0 and (isinstance(v[0], float) or isinstance(v[0], int))
 
     @staticmethod
-    def parse_single_or_multi_vec(
-        vector: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
-    ) -> _Packing:
+    def parse_single_or_multi_vec(vector: PrimitiveVectorType) -> _Packing:
         if _Pack.is_multi(vector):
             return _Packing(
                 bytes_=_Pack.multi(vector), type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32
@@ -692,12 +718,12 @@ class _Pack:
             raise WeaviateInvalidInputError(f"Invalid vectors: {vector}")
 
     @staticmethod
-    def single(vector: Sequence[NUMBER]) -> bytes:
+    def single(vector: OneDimensionalVectorType) -> bytes:
         vector_list = _get_vector_v4(vector)
         return struct.pack("{}f".format(len(vector_list)), *vector_list)
 
     @staticmethod
-    def multi(vector: Sequence[Sequence[NUMBER]]) -> bytes:
+    def multi(vector: TwoDimensionalVectorType) -> bytes:
         vector_list = [item for sublist in vector for item in sublist]
         return struct.pack("<H", len(vector[0])) + struct.pack(
             "{}f".format(len(vector_list)), *vector_list
@@ -719,3 +745,44 @@ class _Unpack:
             _ByteOps.decode_float32s(byte_vector[i * dim * UINT32_LEN : (i + 1) * dim * UINT32_LEN])
             for i in range(how_many)
         ]
+
+
+def _is_1d_vector(inputs: Any) -> TypeGuard[OneDimensionalVectorType]:
+    try:
+        if len(inputs) == 0:
+            return False
+    except TypeError:
+        return False
+    if __is_list_type(inputs):
+        return not __is_list_type(inputs[0])
+    return False
+
+
+def _is_2d_vector(inputs: Any) -> TypeGuard[TwoDimensionalVectorType]:
+    try:
+        if len(inputs) == 0:
+            return False
+    except TypeError:
+        return False
+    if __is_list_type(inputs):
+        return __is_list_type(inputs[0])
+    return False
+
+
+def __is_list_type(inputs: Any) -> bool:
+    try:
+        if len(inputs) == 0:
+            return False
+    except TypeError:
+        return False
+
+    return any(
+        _is_valid(types, inputs)
+        for types in [
+            List,
+            _ExtraTypes.TF,
+            _ExtraTypes.PANDAS,
+            _ExtraTypes.NUMPY,
+            _ExtraTypes.POLARS,
+        ]
+    )

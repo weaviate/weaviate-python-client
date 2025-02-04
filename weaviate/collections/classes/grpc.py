@@ -1,6 +1,19 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import ClassVar, List, Literal, Mapping, Optional, Sequence, Type, Union, Dict, cast
+from typing import (
+    ClassVar,
+    Generic,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    Dict,
+    cast,
+)
+from typing_extensions import TypeGuard, TypeVar
 
 from pydantic import ConfigDict, Field
 
@@ -228,12 +241,38 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
+OneDimensionalVectorType = Sequence[NUMBER]
+"""Represents a one-dimensional vector, e.g. one produced by `text2vec-jinaai`"""
+TwoDimensionalVectorType = Sequence[Sequence[NUMBER]]
+"""Represents a two-dimensional vector, e.g. one produced by `text2colbert-jinaai"""
+
+
+V = TypeVar("V", OneDimensionalVectorType, TwoDimensionalVectorType)
+
+
 class _MultidimensionalQuery(_WeaviateInput):
-    tensor: Sequence[Sequence[float]]
+    tensor: TwoDimensionalVectorType
 
 
-class _ListOfVectorsQuery(_WeaviateInput):
-    vectors: Sequence[Sequence[float]]
+class _ListOfVectorsQuery(Generic[V], _WeaviateInput):
+    vectors: Sequence[V]
+
+    @staticmethod
+    def is_one_dimensional(
+        self_: "_ListOfVectorsQuery",
+    ) -> TypeGuard["_ListOfVectorsQuery[OneDimensionalVectorType]"]:
+        return len(self_.vectors) > 0 and isinstance(self_.vectors[0], Sequence)
+
+    @staticmethod
+    def is_two_dimensional(
+        self_: "_ListOfVectorsQuery",
+    ) -> TypeGuard["_ListOfVectorsQuery[TwoDimensionalVectorType]"]:
+        return (
+            len(self_.vectors) > 0
+            and isinstance(self_.vectors[0], Sequence)
+            and len(self_.vectors[0]) > 0
+            and isinstance(self_.vectors[0][0], Sequence)
+        )
 
 
 MultidimensionalQuery = _MultidimensionalQuery
@@ -243,13 +282,19 @@ ListOfVectorsQuery = _ListOfVectorsQuery
 """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
 
 
+PrimitiveVectorType = Union[OneDimensionalVectorType, TwoDimensionalVectorType]
+
 NearVectorInputType = Union[
-    Sequence[NUMBER],
-    Sequence[Sequence[NUMBER]],
+    OneDimensionalVectorType,
+    TwoDimensionalVectorType,
     Mapping[
         str,
         Union[
-            Sequence[NUMBER], Sequence[Sequence[NUMBER]], MultidimensionalQuery, ListOfVectorsQuery
+            OneDimensionalVectorType,
+            TwoDimensionalVectorType,
+            MultidimensionalQuery,
+            ListOfVectorsQuery[OneDimensionalVectorType],
+            ListOfVectorsQuery[TwoDimensionalVectorType],
         ],
     ],
 ]
@@ -260,14 +305,14 @@ class NearVector:
     """Factory class to use when defining near vector queries with multiple vectors in `near_vector()` and `hybrid()` methods."""
 
     @staticmethod
-    def multidimensional(tensor: Sequence[Sequence[float]]) -> _MultidimensionalQuery:
+    def multidimensional(vectors: TwoDimensionalVectorType) -> _MultidimensionalQuery:
         """Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
-        return _MultidimensionalQuery(tensor=tensor)
+        return _MultidimensionalQuery(tensor=vectors)
 
     @staticmethod
-    def list_of_vectors(vectors: Sequence[Sequence[float]]) -> _ListOfVectorsQuery:
+    def list_of_vectors(*vectors: V) -> _ListOfVectorsQuery[V]:
         """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
-        return _ListOfVectorsQuery(vectors=vectors)
+        return _ListOfVectorsQuery[V](vectors=vectors)
 
 
 class _HybridNearBase(_WeaviateInput):
