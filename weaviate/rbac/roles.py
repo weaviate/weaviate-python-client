@@ -148,14 +148,14 @@ class _RolesAsync(_RolesBase):
             return None
         return Role._from_weaviate_role(r)
 
-    async def get_assigned_user_names(self, role_name: str) -> List[str]:
-        """Get the names of user that have been assigned this role.
+    async def get_assigned_user_ids(self, role_name: str) -> List[str]:
+        """Get the ids of user that have been assigned this role.
 
         Args:
             role_name: The role to get the users for.
 
         Returns:
-            A list of names.
+            A list of ids.
         """
         return list(await self._get_users_of_role(role_name))
 

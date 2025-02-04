@@ -316,3 +316,13 @@ def test_role_scope(client_factory: ClientFactory, scope: RoleScope) -> None:
         assert role is not None
         assert len(role.permissions) == 1
         assert role.roles_permissions[0].scope == scope
+
+
+def test_get_assigned_users(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
+            pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        client.users.assign_roles(user_id="existing-user", role_names="viewer")
+        assigned_users = client.roles.get_assigned_user_ids("viewer")
+        assert len(assigned_users) == 1
+        assert assigned_users[0] == "existing-user"
