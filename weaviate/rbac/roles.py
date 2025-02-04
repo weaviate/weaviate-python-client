@@ -134,7 +134,7 @@ class _RolesAsync(_RolesBase):
         """
         return await self._get_role(role_name) is not None
 
-    async def by_name(self, role_name: str) -> Optional[Role]:
+    async def get(self, role_name: str) -> Optional[Role]:
         """Get the permissions granted to this role.
 
         Args:
