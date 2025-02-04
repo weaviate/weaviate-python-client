@@ -12,6 +12,7 @@ from weaviate.rbac.models import (
     BackupsPermission,
     NodesPermission,
     TenantsPermission,
+    UsersPermission,
 )
 
 RBAC_PORTS = (8092, 50063)
@@ -145,6 +146,22 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 tenants_permissions=[
                     TenantsPermission(collection="*", action=Actions.Tenants.READ)
                 ],
+            ),
+        ),
+        (
+            Permissions.users(user="*", assign_and_revoke=True),
+            Role(
+                name="UserAssignRole",
+                cluster_permissions=[],
+                users_permissions=[
+                    UsersPermission(user="*", action=Actions.Users.ASSIGN_AND_REVOKE)
+                ],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
             ),
         ),
     ],
