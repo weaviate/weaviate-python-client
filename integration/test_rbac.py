@@ -2,7 +2,7 @@ import pytest
 
 from integration.conftest import ClientFactory
 from weaviate.auth import Auth
-from weaviate.classes.rbac import Permissions, Actions
+from weaviate.classes.rbac import Permissions, Actions, RoleScope
 from weaviate.rbac.models import (
     Role,
     ClusterPermission,
@@ -122,7 +122,9 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],
-                roles_permissions=[RolesPermission(role="*", action=Actions.Roles.MANAGE)],
+                roles_permissions=[
+                    RolesPermission(role="*", action=Actions.Roles.MANAGE, scope=RoleScope.MATCH)
+                ],
                 data_permissions=[],
                 backups_permissions=[],
                 nodes_permissions=[],
@@ -283,3 +285,21 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
             assert client.roles.has_permissions(permissions=required_permissions, role=role_name)
         finally:
             client.roles.delete(role_name)
+
+
+@pytest.mark.parametrize("scope", [RoleScope.ALL, RoleScope.MATCH])
+def test_role_scope(client_factory: ClientFactory, scope: RoleScope) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 28, 4):
+            pytest.skip("This test requires Weaviate 1.28.4 or higher")
+        role_name = "role_permission_with_scope"
+        client.roles.delete(role_name)
+        client.roles.create(
+            role_name=role_name,
+            permissions=Permissions.roles(role="test", manage=scope),
+        )
+
+        role = client.roles.by_name(role_name)
+        assert role is not None
+        assert len(role.permissions) == 1
+        assert role.roles_permissions[0].scope == scope

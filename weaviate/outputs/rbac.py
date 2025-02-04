@@ -7,6 +7,7 @@ from weaviate.rbac.models import (
     NodesPermission,
     RolesPermission,
     UsersPermission,
+    RoleScope,
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "DataPermission",
     "NodesPermission",
     "RolesPermission",
+    "RoleScope",
     "UsersPermission",
 ]
