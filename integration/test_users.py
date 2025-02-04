@@ -21,6 +21,5 @@ def test_get_users(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        user = client.users.get_my_roles()
-        assert len(user.roles) > 0
-        assert user.name == "existing-user"
+        roles = client.users.get_roles("existing-user")
+        assert len(roles) > 0
