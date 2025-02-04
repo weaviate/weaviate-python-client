@@ -1,9 +1,11 @@
+from typing import List
 import pytest
 
 from integration.conftest import ClientFactory
 from weaviate.auth import Auth
 from weaviate.classes.rbac import Permissions, Actions, RoleScope
 from weaviate.rbac.models import (
+    _InputPermission,
     Role,
     ClusterPermission,
     CollectionsPermission,
@@ -166,7 +168,9 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
         ),
     ],
 )
-def test_create_role(client_factory: ClientFactory, permissions, expected) -> None:
+def test_create_role(
+    client_factory: ClientFactory, permissions: List[_InputPermission], expected
+) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
@@ -176,7 +180,7 @@ def test_create_role(client_factory: ClientFactory, permissions, expected) -> No
                 role_name=expected.name,
                 permissions=permissions,
             )
-            role = client.roles.by_name(expected.name)
+            role = client.roles.get(expected.name)
             assert role is not None
             assert role == expected
             assert len(role.permissions) == 1
@@ -194,7 +198,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
                 role_name=role_name,
                 permissions=Permissions.collections(collection="*", create_collection=True),
             )
-            role = client.roles.by_name(role_name)
+            role = client.roles.get(role_name)
 
             assert role is not None
             assert role.collections_permissions is not None
@@ -209,7 +213,7 @@ def test_add_permissions_to_existing(client_factory: ClientFactory) -> None:
                 role_name=role_name,
             )
 
-            role = client.roles.by_name(role_name)
+            role = client.roles.get(role_name)
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 2
@@ -232,7 +236,7 @@ def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None
                     collection="*", create_collection=True, delete_collection=True
                 ),
             )
-            role = client.roles.by_name(role_name)
+            role = client.roles.get(role_name)
 
             assert role is not None
             assert role.collections_permissions is not None
@@ -246,7 +250,7 @@ def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None
                 role_name=role_name,
             )
 
-            role = client.roles.by_name(role_name)
+            role = client.roles.get(role_name)
             assert role is not None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
@@ -272,7 +276,7 @@ def test_multiple_permissions(client_factory: ClientFactory) -> None:
                 permissions=required_permissions,
             )
 
-            role = client.roles.by_name(role_name)
+            role = client.roles.get(role_name)
             assert role is not None
             assert len(role.permissions) == 3
             assert role.collections_permissions is not None
@@ -308,7 +312,7 @@ def test_role_scope(client_factory: ClientFactory, scope: RoleScope) -> None:
             permissions=Permissions.roles(role="test", manage=scope),
         )
 
-        role = client.roles.by_name(role_name)
+        role = client.roles.get(role_name)
         assert role is not None
         assert len(role.permissions) == 1
         assert role.roles_permissions[0].scope == scope
