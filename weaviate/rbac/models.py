@@ -525,7 +525,7 @@ class Role:
 
 @dataclass
 class User:
-    name: str
+    user_id: str
     roles: Dict[str, Role]
 
 

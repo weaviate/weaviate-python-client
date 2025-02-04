@@ -57,7 +57,7 @@ class _UsersBase:
 
 class _UsersAsync(_UsersBase):
 
-    async def get_roles(self, user_name: str) -> Dict[str, Role]:
+    async def get_roles(self, user_id: str) -> Dict[str, Role]:
         """Get the roles assigned to a user.
 
         Args:
@@ -68,7 +68,7 @@ class _UsersAsync(_UsersBase):
         """
         return {
             role["name"]: Role._from_weaviate_role(role)
-            for role in await self._get_roles_of_user(user_name)
+            for role in await self._get_roles_of_user(user_id)
         }
 
     async def get_my_user(self) -> User:
@@ -79,28 +79,28 @@ class _UsersAsync(_UsersBase):
         """
         user = await self._get_current_user()
         return User(
-            name=user["username"],
+            user_id=user["username"],
             roles={role["name"]: Role._from_weaviate_role(role) for role in user["roles"]},
         )
 
-    async def assign_roles(self, *, user_name: str, role_names: Union[str, List[str]]) -> None:
+    async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Assign roles to a user.
 
         Args:
             role_names: The names of the roles to assign to the user.
-            user_name: The user to assign the roles to.
+            user_id: The user to assign the roles to.
         """
         await self._assign_roles_to_user(
-            [role_names] if isinstance(role_names, str) else role_names, user_name
+            [role_names] if isinstance(role_names, str) else role_names, user_id
         )
 
-    async def revoke_roles(self, *, user_name: str, role_names: Union[str, List[str]]) -> None:
+    async def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Revoke roles from a user.
 
         Args:
             role_names: The names of the roles to revoke from the user.
-            user_name: The user to revoke the roles from.
+            user_id: The user to revoke the roles from.
         """
         await self._revoke_roles_from_user(
-            [role_names] if isinstance(role_names, str) else role_names, user_name
+            [role_names] if isinstance(role_names, str) else role_names, user_id
         )

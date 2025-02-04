@@ -14,7 +14,7 @@ def test_own_user(client_factory: ClientFactory) -> None:
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
         user = client.users.get_my_user()
         assert len(user.roles) > 0
-        assert user.name == "existing-user"
+        assert user.user_id == "existing-user"
 
 
 def test_get_users(client_factory: ClientFactory) -> None:
