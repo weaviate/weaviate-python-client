@@ -306,16 +306,19 @@ def test_role_scope(client_factory: ClientFactory, scope: RoleScope) -> None:
         if client._connection._weaviate_version.is_lower_than(1, 28, 4):
             pytest.skip("This test requires Weaviate 1.28.4 or higher")
         role_name = "role_permission_with_scope"
-        client.roles.delete(role_name)
-        client.roles.create(
-            role_name=role_name,
-            permissions=Permissions.roles(role="test", manage=scope),
-        )
+        try:
+            client.roles.delete(role_name)
+            client.roles.create(
+                role_name=role_name,
+                permissions=Permissions.roles(role="test", manage=scope),
+            )
 
-        role = client.roles.get(role_name)
-        assert role is not None
-        assert len(role.permissions) == 1
-        assert role.roles_permissions[0].scope == scope
+            role = client.roles.get(role_name)
+            assert role is not None
+            assert len(role.permissions) == 1
+            assert role.roles_permissions[0].scope == scope
+        finally:
+            client.roles.delete(role_name)
 
 
 def test_get_assigned_users(client_factory: ClientFactory) -> None:
