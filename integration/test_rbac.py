@@ -1,7 +1,7 @@
 from typing import List
 import pytest
 
-from integration.conftest import ClientFactory
+from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
 from weaviate.classes.rbac import Permissions, Actions, RoleScope
 from weaviate.rbac.models import (
@@ -306,7 +306,7 @@ def test_role_scope(client_factory: ClientFactory, scope: RoleScope, request: Su
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 4):
             pytest.skip("This test requires Weaviate 1.28.4 or higher")
-        role_name = request.node.name + "role_permission_with_scope"
+        role_name = _sanitize_collection_name(request.node.name) + "_scope"
         try:
             client.roles.delete(role_name)
             client.roles.create(
