@@ -57,14 +57,14 @@ class _UsersBase:
 
 class _UsersAsync(_UsersBase):
 
-    async def get_roles(self, user_id: str) -> Dict[str, Role]:
+    async def get_assigned_roles(self, user_id: str) -> Dict[str, Role]:
         """Get the roles assigned to a user.
 
         Args:
-            user_name: The user ID to get the roles for.
+            user_id: The user ID to get the roles for.
 
         Returns:
-            A dictionary with user names as keys and the `Role` objects as values.
+            A dictionary with role names as keys and the `Role` objects as values.
         """
         return {
             role["name"]: Role._from_weaviate_role(role)
