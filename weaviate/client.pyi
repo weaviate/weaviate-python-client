@@ -9,6 +9,10 @@ from weaviate.backup.sync import _Backup
 from weaviate.collections.classes.internal import _RawGQLReturn
 from weaviate.collections.collections.async_ import _CollectionsAsync
 from weaviate.collections.collections.sync import _Collections
+
+from weaviate.users.users import _UsersAsync
+
+from weaviate.users.sync import _Users
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
 from .connect import ConnectionV4
@@ -31,6 +35,7 @@ class WeaviateAsyncClient(_WeaviateClientInit):
     cluster: _ClusterAsync
     debug: _DebugAsync
     roles: _RolesAsync
+    users: _UsersAsync
     async def close(self) -> None: ...
     async def connect(self) -> None: ...
     def is_connected(self) -> bool: ...
@@ -50,6 +55,8 @@ class WeaviateClient(_WeaviateClientInit):
     cluster: _Cluster
     debug: _Debug
     roles: _Roles
+    users: _Users
+
     def close(self) -> None: ...
     def connect(self) -> None: ...
     def is_connected(self) -> bool: ...

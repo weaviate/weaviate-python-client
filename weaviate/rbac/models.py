@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Sequence, TypedDict, Union
+from typing import Dict, List, Optional, Sequence, TypedDict, Union
 
 from pydantic import BaseModel
 from typing_extensions import NotRequired
@@ -9,6 +9,9 @@ from typing_extensions import NotRequired
 from weaviate.cluster.types import Verbosity
 from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
+
+
+from weaviate.warnings import _Warnings
 
 
 class RoleScope(str, BaseEnum):
@@ -72,6 +75,12 @@ class WeaviatePermission(
 class WeaviateRole(TypedDict):
     name: str
     permissions: List[WeaviatePermission]
+
+
+class WeaviateUser(TypedDict):
+    username: str
+    roles: List[WeaviateRole]
+    groups: List[str]
 
 
 class _Action:
@@ -499,9 +508,8 @@ class Role:
                         )
                     )
             else:
-                raise ValueError(
-                    f"The actions of role {role['name']} are mixed between levels somehow!"
-                )
+                _Warnings.unknown_permission_encountered(permission)
+
         return cls(
             name=role["name"],
             cluster_permissions=cluster_permissions,
@@ -517,7 +525,8 @@ class Role:
 
 @dataclass
 class User:
-    name: str
+    user_id: str
+    roles: Dict[str, Role]
 
 
 ActionsType = Union[_Action, Sequence[_Action]]
