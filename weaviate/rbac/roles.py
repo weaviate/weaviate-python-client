@@ -5,8 +5,7 @@ from typing import Dict, List, Optional, Sequence, Union, cast
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
-    _OutputPermission,
-    _InputPermission,
+    _Permission,
     PermissionsOutputType,
     PermissionsInputType,
     Role,
@@ -194,7 +193,7 @@ class _RolesAsync(_RolesBase):
             permissions: The permissions to add to the role.
             role_name: The name of the role to add the permissions to.
         """
-        if isinstance(permissions, _InputPermission):
+        if isinstance(permissions, _Permission):
             permissions = [permissions]
         await self._add_permissions(
             [permission._to_weaviate() for permission in _flatten_permissions(permissions)],
@@ -212,7 +211,7 @@ class _RolesAsync(_RolesBase):
             permissions: The permissions to remove from the role.
             role_name: The name of the role to remove the permissions from.
         """
-        if isinstance(permissions, _InputPermission):
+        if isinstance(permissions, _Permission):
             permissions = [permissions]
         await self._remove_permissions(
             [permission._to_weaviate() for permission in _flatten_permissions(permissions)],
@@ -248,14 +247,12 @@ class _RolesAsync(_RolesBase):
 
 def _flatten_permissions(
     permissions: Union[PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]]
-) -> List[Union[_InputPermission, _OutputPermission]]:
-    if isinstance(permissions, _InputPermission) or isinstance(permissions, _OutputPermission):
+) -> List[_Permission]:
+    if isinstance(permissions, _Permission):
         return [permissions]
-    flattened_permissions: List[Union[_InputPermission, _OutputPermission]] = []
+    flattened_permissions: List[_Permission] = []
     for permission in permissions:
-        if isinstance(permission, _InputPermission):
-            flattened_permissions.append(permission)
-        elif isinstance(permission, _OutputPermission):
+        if isinstance(permission, _Permission):
             flattened_permissions.append(permission)
         else:
             flattened_permissions.extend(permission)
