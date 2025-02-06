@@ -441,10 +441,6 @@ class Role:
             else:
                 _Warnings.unknown_permission_encountered(permission)
 
-        # unify permissions with common resource
-        for perm in cluster_permissions:
-            cluster_permissions[0].actions.add(perm.actions.pop())
-
         return cls(
             name=role["name"],
             cluster_permissions=_join_permissions(cluster_permissions),
