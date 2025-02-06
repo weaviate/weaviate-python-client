@@ -243,6 +243,7 @@ def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
         role_name = "ExistingRolePermissionsRemove"
+        client.roles.delete(role_name)
         try:
             client.roles.create(
                 role_name=role_name,
@@ -254,8 +255,9 @@ def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None
 
             assert role is not None
             assert role.collections_permissions is not None
-            assert len(role.collections_permissions) == 2
-            assert len(role.permissions) == 2
+            assert len(role.collections_permissions) == 1
+            assert len(role.collections_permissions[0].actions) == 2
+            assert len(role.permissions) == 1
 
             client.roles.remove_permissions(
                 permissions=[
@@ -269,7 +271,7 @@ def test_remove_permissions_from_existing(client_factory: ClientFactory) -> None
             assert role.collections_permissions is not None
             assert len(role.collections_permissions) == 1
             assert len(role.permissions) == 1
-            assert role.collections_permissions[0].actions == Actions.Collections.CREATE
+            assert role.collections_permissions[0].actions == {Actions.Collections.CREATE}
         finally:
             client.roles.delete(role_name)
 
