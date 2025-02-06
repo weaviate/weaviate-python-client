@@ -205,8 +205,13 @@ class _BaseGRPC:
                         ],
                     )
                 )
+            target_vectors_tmp.append(key)
 
         def add_2d_vector(value: TwoDimensionalVectorType, key: str) -> None:
+            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+                for v in value:
+                    add_1d_vector(v, key)
+                return
             vector_for_target.append(
                 base_search_pb2.VectorForTarget(
                     name=key,
@@ -219,9 +224,18 @@ class _BaseGRPC:
                     ],
                 )
             )
+            target_vectors_tmp.append(key)
 
         def add_list_of_vectors(value: _ListOfVectorsQuery, key: str) -> None:
-            if _ListOfVectorsQuery.is_one_dimensional(value):
+            if _ListOfVectorsQuery.is_one_dimensional(
+                value
+            ) and self._connection._weaviate_version.is_lower_than(1, 29, 0):
+                for v in value.vectors:
+                    add_1d_vector(v, key)
+                return
+            elif _ListOfVectorsQuery.is_one_dimensional(
+                value
+            ) and self._connection._weaviate_version.is_at_least(1, 29, 0):
                 vectors = [
                     base_pb2.Vectors(
                         name=key,
@@ -258,13 +272,10 @@ class _BaseGRPC:
             for key, value in vector.items():
                 if _is_1d_vector(value):
                     add_1d_vector(value, key)
-                    target_vectors_tmp.append(key)
                 elif _is_2d_vector(value):
                     add_2d_vector(value, key)
-                    target_vectors_tmp.append(key)
                 elif isinstance(value, _ListOfVectorsQuery):
                     add_list_of_vectors(value, key)
-                    target_vectors_tmp.append(key)
                 else:
                     raise invalid_nv_exception
             return vector_for_target, None, target_vectors_tmp
