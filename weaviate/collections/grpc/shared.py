@@ -16,7 +16,6 @@ from typing_extensions import TypeGuard
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    _MultidimensionalQuery,
     _ListOfVectorsQuery,
     _MultiTargetVectorJoin,
     _HybridNearText,
@@ -146,11 +145,7 @@ class _BaseGRPC:
 
             return vector_per_target, None
         else:
-            if (
-                isinstance(vector, _MultidimensionalQuery)
-                or isinstance(vector, _ListOfVectorsQuery)
-                or len(vector) == 0
-            ):
+            if isinstance(vector, _ListOfVectorsQuery) or len(vector) == 0:
                 raise invalid_nv_exception
 
             if _is_1d_vector(vector):
@@ -211,20 +206,14 @@ class _BaseGRPC:
                     )
                 )
 
-        def add_2d_vector(
-            value: Union[_MultidimensionalQuery, TwoDimensionalVectorType], key: str
-        ) -> None:
-            if isinstance(value, _MultidimensionalQuery):
-                vals = [_get_vector_v4(v) for v in value.tensor]
-            else:
-                vals = [_get_vector_v4(v) for v in value]
+        def add_2d_vector(value: TwoDimensionalVectorType, key: str) -> None:
             vector_for_target.append(
                 base_search_pb2.VectorForTarget(
                     name=key,
                     vectors=[
                         base_pb2.Vectors(
                             name=key,
-                            vector_bytes=_Pack.multi(vals),
+                            vector_bytes=_Pack.multi([_get_vector_v4(v) for v in value]),
                             type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
                         )
                     ],
@@ -270,7 +259,7 @@ class _BaseGRPC:
                 if _is_1d_vector(value):
                     add_1d_vector(value, key)
                     target_vectors_tmp.append(key)
-                elif _is_2d_vector(value) or isinstance(value, _MultidimensionalQuery):
+                elif _is_2d_vector(value):
                     add_2d_vector(value, key)
                     target_vectors_tmp.append(key)
                 elif isinstance(value, _ListOfVectorsQuery):
@@ -362,6 +351,7 @@ class _BaseGRPC:
                     targets, target_vectors = self._recompute_target_vector_to_grpc(
                         target_vector, target_vectors_tmp
                     )
+                    print(targets, target_vectors)
         return base_search_pb2.NearVector(
             vector_bytes=near_vector_grpc,
             certainty=certainty,

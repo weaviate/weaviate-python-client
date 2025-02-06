@@ -18,6 +18,7 @@ from typing_extensions import TypeGuard, TypeVar
 from pydantic import ConfigDict, Field
 
 from weaviate.collections.classes.types import _WeaviateInput
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_search_pb2
 from weaviate.str_enum import BaseEnum
 from weaviate.types import INCLUDE_VECTOR, UUID, NUMBER
@@ -246,43 +247,32 @@ OneDimensionalVectorType = Sequence[NUMBER]
 TwoDimensionalVectorType = Sequence[Sequence[NUMBER]]
 """Represents a two-dimensional vector, e.g. one produced by `text2colbert-jinaai"""
 
+PrimitiveVectorType = Union[OneDimensionalVectorType, TwoDimensionalVectorType]
+
 
 V = TypeVar("V", OneDimensionalVectorType, TwoDimensionalVectorType)
 
 
-class _MultidimensionalQuery(_WeaviateInput):
-    tensor: TwoDimensionalVectorType
-
-
 class _ListOfVectorsQuery(Generic[V], _WeaviateInput):
+    dimensionality: Literal["1D", "2D"]
     vectors: Sequence[V]
 
     @staticmethod
     def is_one_dimensional(
         self_: "_ListOfVectorsQuery",
     ) -> TypeGuard["_ListOfVectorsQuery[OneDimensionalVectorType]"]:
-        return len(self_.vectors) > 0 and isinstance(self_.vectors[0], Sequence)
+        return self_.dimensionality == "1D"
 
     @staticmethod
     def is_two_dimensional(
         self_: "_ListOfVectorsQuery",
     ) -> TypeGuard["_ListOfVectorsQuery[TwoDimensionalVectorType]"]:
-        return (
-            len(self_.vectors) > 0
-            and isinstance(self_.vectors[0], Sequence)
-            and len(self_.vectors[0]) > 0
-            and isinstance(self_.vectors[0][0], Sequence)
-        )
+        return self_.dimensionality == "2D"
 
-
-MultidimensionalQuery = _MultidimensionalQuery
-"""Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
 
 ListOfVectorsQuery = _ListOfVectorsQuery
 """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
 
-
-PrimitiveVectorType = Union[OneDimensionalVectorType, TwoDimensionalVectorType]
 
 NearVectorInputType = Union[
     OneDimensionalVectorType,
@@ -292,27 +282,29 @@ NearVectorInputType = Union[
         Union[
             OneDimensionalVectorType,
             TwoDimensionalVectorType,
-            MultidimensionalQuery,
             ListOfVectorsQuery[OneDimensionalVectorType],
             ListOfVectorsQuery[TwoDimensionalVectorType],
         ],
     ],
 ]
-"""Define the input types that can be used in a near vector search."""
+"""Define the input types that can be used in a near vector search"""
 
 
 class NearVector:
     """Factory class to use when defining near vector queries with multiple vectors in `near_vector()` and `hybrid()` methods."""
 
     @staticmethod
-    def multidimensional(vectors: TwoDimensionalVectorType) -> _MultidimensionalQuery:
-        """Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
-        return _MultidimensionalQuery(tensor=vectors)
-
-    @staticmethod
     def list_of_vectors(*vectors: V) -> _ListOfVectorsQuery[V]:
         """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
-        return _ListOfVectorsQuery[V](vectors=vectors)
+        if len(vectors) > 0 and len(vectors[0]) > 0:
+            try:
+                len(cast(Sequence[TwoDimensionalVectorType], vectors)[0][0])
+                dimensionality: Literal["1D", "2D"] = "2D"
+            except TypeError:
+                dimensionality = "1D"
+            return _ListOfVectorsQuery[V](dimensionality=dimensionality, vectors=vectors)
+        else:
+            raise WeaviateInvalidInputError(f"At least one vector must be given, got: {vectors}")
 
 
 class _HybridNearBase(_WeaviateInput):

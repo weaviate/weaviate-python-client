@@ -845,17 +845,19 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
     )
     assert config.vector_config["colbert"].vector_index_config.multi_vector.aggregation == "maxSim"
 
-    collection.data.insert_many([DataObject({}, vector={"colbert": [[1, 2], [4, 5]]})])
+    collection.data.insert_many(
+        [DataObject({}, vector={"regular": [1, 2], "colbert": [[1, 2], [4, 5]]})]
+    )
     assert len(collection) == 1
 
     objs = collection.query.near_vector(
-        {"regular": [[1, 2], [3, 4]]},
+        {"regular": [[1, 2], [2, 1]]},
         target_vector="regular",
     ).objects
     assert len(objs) == 1
 
     objs = collection.query.near_vector(
-        {"colbert": wvc.query.NearVector.multidimensional([[1, 2], [3, 4]])},
+        {"colbert": [[1, 2], [3, 4]]},
         target_vector="colbert",
     ).objects
     assert len(objs) == 1
@@ -869,13 +871,6 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
     objs = collection.query.hybrid(
         None,
         vector={"colbert": [[1, 2], [3, 4]]},
-        target_vector="colbert",
-    ).objects
-    assert len(objs) == 1
-
-    objs = collection.query.hybrid(
-        None,
-        vector={"colbert": wvc.query.NearVector.multidimensional([[1, 2], [3, 4]])},
         target_vector="colbert",
     ).objects
     assert len(objs) == 1

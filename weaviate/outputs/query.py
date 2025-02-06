@@ -10,7 +10,6 @@ from weaviate.collections.classes.grpc import (
     Sorting,
     NearVectorInputType,
     TargetVectorJoinType,
-    MultidimensionalQuery,
     ListOfVectorsQuery,
 )
 
@@ -61,7 +60,6 @@ __all__ = [
     "ListOfVectorsQuery",
     "MetadataReturn",
     "MetadataSingleObjectReturn",
-    "MultidimensionalQuery",
     "NearVectorInputType",
     "Object",
     "ObjectSingleReturn",
