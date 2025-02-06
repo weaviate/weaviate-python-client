@@ -165,7 +165,7 @@ ActionT = TypeVar("ActionT", bound=Enum)
 
 
 class _Permission(BaseModel, Generic[ActionT]):
-    action: Set[ActionT]
+    actions: Set[ActionT]
 
     @abstractmethod
     def _to_weaviate(self) -> List[WeaviatePermission]:
@@ -185,7 +185,7 @@ class _CollectionsPermission(_Permission[CollectionsAction]):
                     "tenant": self.tenant,
                 },
             }
-            for action in self.action
+            for action in self.actions
         ]
 
 
@@ -201,7 +201,7 @@ class _TenantsPermission(_Permission[TenantsAction]):
                     "tenant": "*",
                 },
             }
-            for action in self.action
+            for action in self.actions
         ]
 
 
@@ -218,7 +218,7 @@ class _NodesPermission(_Permission[NodesAction]):
                     "verbosity": self.verbosity,
                 },
             }
-            for action in self.action
+            for action in self.actions
         ]
 
 
@@ -235,7 +235,7 @@ class _RolesPermission(_Permission[RolesAction]):
                 "action": action,
                 "roles": roles,
             }
-            for action in self.action
+            for action in self.actions
         ]
 
 
@@ -243,7 +243,7 @@ class _UsersPermission(_Permission[UsersAction]):
     users: str
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
-        return [{"action": action, "users": {"users": self.users}} for action in self.action]
+        return [{"action": action, "users": {"users": self.users}} for action in self.actions]
 
 
 class _BackupsPermission(_Permission[BackupsAction]):
@@ -257,7 +257,7 @@ class _BackupsPermission(_Permission[BackupsAction]):
                     "collection": _capitalize_first_letter(self.collection),
                 },
             }
-            for action in self.action
+            for action in self.actions
         ]
 
 
@@ -268,7 +268,7 @@ class _ClusterPermission(_Permission[ClusterAction]):
             {
                 "action": action,
             }
-            for action in self.action
+            for action in self.actions
         ]
 
 
@@ -283,7 +283,7 @@ class _DataPermission(_Permission[DataAction]):
                     "collection": _capitalize_first_letter(self.collection),
                 },
             }
-            for action in self.action
+            for action in self.actions
         ]
 
 
@@ -370,14 +370,14 @@ class Role:
         for permission in role["permissions"]:
             if permission["action"] in ClusterAction.values():
                 cluster_permissions.append(
-                    ClusterPermissionOutput(action={ClusterAction(permission["action"])})
+                    ClusterPermissionOutput(actions={ClusterAction(permission["action"])})
                 )
             elif permission["action"] in UsersAction.values():
                 users = permission.get("users")
                 if users is not None:
                     users_permissions.append(
                         UsersPermissionOutput(
-                            action={UsersAction(permission["action"])}, users=users["users"]
+                            actions={UsersAction(permission["action"])}, users=users["users"]
                         )
                     )
             elif permission["action"] in CollectionsAction.values():
@@ -387,7 +387,7 @@ class Role:
                         CollectionsPermissionOutput(
                             collection=collections["collection"],
                             tenant=collections.get("tenant", "*"),
-                            action={CollectionsAction(permission["action"])},
+                            actions={CollectionsAction(permission["action"])},
                         )
                     )
             elif permission["action"] in TenantsAction.values():
@@ -396,7 +396,7 @@ class Role:
                     tenants_permissions.append(
                         TenantsPermissionOutput(
                             collection=tenants["collection"],
-                            action={TenantsAction(permission["action"])},
+                            actions={TenantsAction(permission["action"])},
                         )
                     )
             elif permission["action"] in RolesAction.values():
@@ -406,7 +406,7 @@ class Role:
                     roles_permissions.append(
                         RolesPermissionOutput(
                             role=roles["role"],
-                            action={RolesAction(permission["action"])},
+                            actions={RolesAction(permission["action"])},
                             scope=RoleScope(scope) if scope else None,
                         )
                     )
@@ -416,7 +416,7 @@ class Role:
                     data_permissions.append(
                         DataPermissionOutput(
                             collection=data["collection"],
-                            action={DataAction(permission["action"])},
+                            actions={DataAction(permission["action"])},
                         )
                     )
             elif permission["action"] in BackupsAction.values():
@@ -425,7 +425,7 @@ class Role:
                     backups_permissions.append(
                         BackupsPermissionOutput(
                             collection=backups["collection"],
-                            action={BackupsAction(permission["action"])},
+                            actions={BackupsAction(permission["action"])},
                         )
                     )
             elif permission["action"] in NodesAction.values():
@@ -435,7 +435,7 @@ class Role:
                         NodesPermissionOutput(
                             collection=nodes.get("collection", "*"),
                             verbosity=nodes["verbosity"],
-                            action={NodesAction(permission["action"])},
+                            actions={NodesAction(permission["action"])},
                         )
                     )
             else:
@@ -443,35 +443,37 @@ class Role:
 
         # unify permissions with common resource
         for perm in cluster_permissions:
-            cluster_permissions[0].action.add(perm.action.pop())
+            cluster_permissions[0].actions.add(perm.actions.pop())
 
         return cls(
             name=role["name"],
-            cluster_permissions=_unify_permissions(cluster_permissions),
-            users_permissions=_unify_permissions(users_permissions),
-            collections_permissions=_unify_permissions(collections_permissions),
-            roles_permissions=_unify_permissions(roles_permissions),
-            data_permissions=_unify_permissions(data_permissions),
-            backups_permissions=_unify_permissions(backups_permissions),
-            nodes_permissions=_unify_permissions(nodes_permissions),
-            tenants_permissions=_unify_permissions(tenants_permissions),
+            cluster_permissions=_join_permissions(cluster_permissions),
+            users_permissions=_join_permissions(users_permissions),
+            collections_permissions=_join_permissions(collections_permissions),
+            roles_permissions=_join_permissions(roles_permissions),
+            data_permissions=_join_permissions(data_permissions),
+            backups_permissions=_join_permissions(backups_permissions),
+            nodes_permissions=_join_permissions(nodes_permissions),
+            tenants_permissions=_join_permissions(tenants_permissions),
         )
 
 
 T = TypeVar("T", bound=_Permission)
 
 
-def _unify_permissions(permissions: List[T]) -> List[T]:
+def _join_permissions(permissions: List[T]) -> List[T]:
+    # permissions with the same resource can be combined and then have multiple actions
     unified: Dict[str, int] = {}
-
     for i, perm in enumerate(permissions):
         resource = ""
         for field in perm.model_fields_set:
-            if field == "action":
+            if (
+                field == "actions"
+            ):  # action is the one field that is not part of the resource and which we want to combine
                 continue
             resource += field + str(getattr(perm, field)) + "#"
         if resource in unified:
-            permissions[unified[resource]].action.add(perm.action.pop())
+            permissions[unified[resource]].actions.add(perm.actions.pop())
         else:
             unified[resource] = i
 
@@ -526,18 +528,18 @@ class Permissions:
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
-            permission = _DataPermission(collection=c, action=set())
+            permission = _DataPermission(collection=c, actions=set())
 
             if create:
-                permission.action.add(DataAction.CREATE)
+                permission.actions.add(DataAction.CREATE)
             if read:
-                permission.action.add(DataAction.READ)
+                permission.actions.add(DataAction.READ)
             if update:
-                permission.action.add(DataAction.UPDATE)
+                permission.actions.add(DataAction.UPDATE)
             if delete:
-                permission.action.add(DataAction.DELETE)
+                permission.actions.add(DataAction.DELETE)
 
-            if len(permission.action) > 0:
+            if len(permission.actions) > 0:
                 permissions.append(permission)
         return permissions
 
@@ -554,17 +556,17 @@ class Permissions:
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
-            permission = _CollectionsPermission(collection=c, tenant="*", action=set())
+            permission = _CollectionsPermission(collection=c, tenant="*", actions=set())
 
             if create_collection:
-                permission.action.add(CollectionsAction.CREATE)
+                permission.actions.add(CollectionsAction.CREATE)
             if read_config:
-                permission.action.add(CollectionsAction.READ)
+                permission.actions.add(CollectionsAction.READ)
             if update_config:
-                permission.action.add(CollectionsAction.UPDATE)
+                permission.actions.add(CollectionsAction.UPDATE)
             if delete_collection:
-                permission.action.add(CollectionsAction.DELETE)
-            if len(permission.action) > 0:
+                permission.actions.add(CollectionsAction.DELETE)
+            if len(permission.actions) > 0:
                 permissions.append(permission)
         return permissions
 
@@ -581,17 +583,17 @@ class Permissions:
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
-            permission = _TenantsPermission(collection=c, action=set())
+            permission = _TenantsPermission(collection=c, actions=set())
             if create:
-                permission.action.add(TenantsAction.CREATE)
+                permission.actions.add(TenantsAction.CREATE)
             if read:
-                permission.action.add(TenantsAction.READ)
+                permission.actions.add(TenantsAction.READ)
             if update:
-                permission.action.add(TenantsAction.UPDATE)
+                permission.actions.add(TenantsAction.UPDATE)
             if delete:
-                permission.action.add(TenantsAction.DELETE)
+                permission.actions.add(TenantsAction.DELETE)
 
-            if len(permission.action) > 0:
+            if len(permission.actions) > 0:
                 permissions.append(permission)
 
         return permissions
@@ -607,14 +609,14 @@ class Permissions:
         if isinstance(role, str):
             role = [role]
         for r in role:
-            permission = _RolesPermission(role=r, action=set())
+            permission = _RolesPermission(role=r, actions=set())
             if read:
-                permission.action.add(RolesAction.READ)
+                permission.actions.add(RolesAction.READ)
             if manage is not None:
-                permission.action.add(RolesAction.MANAGE)
+                permission.actions.add(RolesAction.MANAGE)
                 if isinstance(manage, RoleScope):
                     permission.scope = manage
-            if len(permission.action) > 0:
+            if len(permission.actions) > 0:
                 permissions.append(permission)
 
         return permissions
@@ -627,12 +629,12 @@ class Permissions:
         if isinstance(user, str):
             user = [user]
         for u in user:
-            permission = _UsersPermission(users=u, action=set())
+            permission = _UsersPermission(users=u, actions=set())
 
             if assign_and_revoke:
-                permission.action.add(UsersAction.ASSIGN_AND_REVOKE)
+                permission.actions.add(UsersAction.ASSIGN_AND_REVOKE)
 
-            if len(permission.action) > 0:
+            if len(permission.actions) > 0:
                 permissions.append(permission)
 
         return permissions
@@ -645,11 +647,11 @@ class Permissions:
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
-            permission = _BackupsPermission(collection=c, action=set())
+            permission = _BackupsPermission(collection=c, actions=set())
 
             if manage:
-                permission.action.add(BackupsAction.MANAGE)
-            if len(permission.action) > 0:
+                permission.actions.add(BackupsAction.MANAGE)
+            if len(permission.actions) > 0:
                 permissions.append(permission)
         return permissions
 
@@ -664,11 +666,11 @@ class Permissions:
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
-            permission = _NodesPermission(collection=c, verbosity=verbosity, action=set())
+            permission = _NodesPermission(collection=c, verbosity=verbosity, actions=set())
 
             if read:
-                permission.action.add(NodesAction.READ)
-            if len(permission.action) > 0:
+                permission.actions.add(NodesAction.READ)
+            if len(permission.actions) > 0:
                 permissions.append(permission)
 
         return permissions
@@ -676,5 +678,5 @@ class Permissions:
     @staticmethod
     def cluster(*, read: bool = False) -> PermissionsCreateType:
         if read:
-            return [_ClusterPermission(action={ClusterAction.READ})]
+            return [_ClusterPermission(actions={ClusterAction.READ})]
         return []
