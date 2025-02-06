@@ -608,7 +608,7 @@ class Permissions:
             permission = _RolesPermission(role=r, actions=set())
             if read:
                 permission.actions.add(RolesAction.READ)
-            if manage is not None:
+            if manage is not None and (not isinstance(manage, bool) or manage):
                 permission.actions.add(RolesAction.MANAGE)
                 if isinstance(manage, RoleScope):
                     permission.scope = manage
