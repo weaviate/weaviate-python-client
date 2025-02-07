@@ -743,7 +743,9 @@ def test_same_target_vector_multiple_input_combinations(
 
 def test_deprecated_syntax(collection_factory: CollectionFactory):
     dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_at_least(1, 29, 0):
+    if dummy._connection._weaviate_version.is_at_least(
+        1, 29, 0
+    ) and dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
         pytest.skip(
             "Syntax was deprecated between 1.27 and 1.29. Now it's allowed for multivector (colbert) searches"
         )
