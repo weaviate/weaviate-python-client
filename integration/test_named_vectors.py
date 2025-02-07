@@ -738,8 +738,10 @@ def test_same_target_vector_multiple_input_combinations(
 
 def test_deprecated_syntax(collection_factory: CollectionFactory):
     dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
-        pytest.skip("Multi vector per target is not supported in versions lower than 1.27.0")
+    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
+        pytest.skip(
+            "Syntax was deprecated between 1.27 and 1.29. Now it's allowed for multivector (colbert) searches"
+        )
 
     collection = collection_factory(
         properties=[],
@@ -924,10 +926,10 @@ def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
     vecs = obj.vector["colbert"]
     assert isinstance(vecs[0], list)
 
-    objs = collection.query.near_text("Hello", target_vector="colbert").objects
+    objs = collection.query.near_text("Hello").objects
     assert len(objs) == 1
 
-    objs = collection.query.hybrid("Hello", target_vector="colbert").objects
+    objs = collection.query.hybrid("Hello").objects
     assert len(objs) == 1
 
     objs = collection.query.near_vector(
@@ -935,5 +937,8 @@ def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
     ).objects
     assert len(objs) == 1
 
-    objs = collection.query.near_object(uuid, target_vector="colbert").objects
+    objs = collection.query.near_vector([[e + 0.01 for e in vec] for vec in vecs]).objects
+    assert len(objs) == 1
+
+    objs = collection.query.near_object(uuid).objects
     assert len(objs) == 1

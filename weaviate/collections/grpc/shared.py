@@ -285,15 +285,10 @@ class _BaseGRPC:
                     raise invalid_nv_exception
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector), None
             else:
-                if self._connection._weaviate_version.is_lower_than(1, 29, 0):
-                    raise WeaviateInvalidInputError(
-                        """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
-                        keys and lists of numbers as values."""
-                    )
-                assert _is_2d_vector(vector)
-                assert targets is not None
-                add_2d_vector(vector, targets.target_vectors[0])
-                return vector_for_target, None, target_vectors
+                raise WeaviateInvalidInputError(
+                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
+                    keys and lists of numbers as values."""
+                )
 
     def _parse_near_options(
         self,
@@ -345,12 +340,37 @@ class _BaseGRPC:
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
         if _is_1d_vector(near_vector) and len(near_vector) > 0:
-            # fast path for simple vector
-            near_vector_grpc: Optional[bytes] = struct.pack(
-                "{}f".format(len(near_vector)), *near_vector
-            )
+            # fast path for simple single-vector
+            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+                near_vector_grpc: Optional[bytes] = struct.pack(
+                    "{}f".format(len(near_vector)), *near_vector
+                )
+                vector_per_target_tmp = None
+                vector_for_targets = None
+                vectors = None
+            else:
+                near_vector_grpc = None
+                vector_per_target_tmp = None
+                vector_for_targets = None
+                vectors = [
+                    base_pb2.Vectors(
+                        vector_bytes=_Pack.single(near_vector),
+                        type=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
+                    )
+                ]
+        elif _is_2d_vector(near_vector) and self._connection._weaviate_version.is_at_least(
+            1, 29, 0
+        ):
+            # fast path for simple multi-vector
+            near_vector_grpc = None
             vector_per_target_tmp = None
             vector_for_targets = None
+            vectors = [
+                base_pb2.Vectors(
+                    vector_bytes=_Pack.multi(near_vector),
+                    type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                )
+            ]
         else:
             if self._connection._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, near_vector_grpc = self._vector_per_target(
@@ -366,6 +386,7 @@ class _BaseGRPC:
                     targets, target_vectors = self._recompute_target_vector_to_grpc(
                         target_vector, target_vectors_tmp
                     )
+            vectors = None
         return base_search_pb2.NearVector(
             vector_bytes=near_vector_grpc,
             certainty=certainty,
@@ -374,6 +395,7 @@ class _BaseGRPC:
             target_vectors=target_vectors,
             vector_per_target=vector_per_target_tmp,
             vector_for_targets=vector_for_targets,
+            vectors=vectors,
         )
 
     @staticmethod
