@@ -17,7 +17,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.grpc import _MultiTargetVectorJoin, _ListOfVectorsQuery
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.types import INCLUDE_VECTOR
 
 
@@ -633,17 +633,22 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
         ],
     )
 
-    with pytest.raises(WeaviateInvalidInputError):
-        collection.query.near_vector([[1.0, 0.0], [1.0, 0.0, 0.0]])
+    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
+        # gets checked in the client for validity
+        with pytest.raises(WeaviateInvalidInputError):
+            collection.query.near_vector([[1.0, 0.0], [1.0, 0.0, 0.0]])
+        with pytest.raises(WeaviateInvalidInputError):
+            collection.query.near_vector([[[1.0, 0.0], [1.0, 0.0]], [1.0, 0.0, 0.0]])
+    else:
+        # throws an error in the server instead as implicit multi vector is understood now as using multi-vectors
+        with pytest.raises(WeaviateQueryError):
+            collection.query.near_vector([[1.0, 0.0], [1.0, 0.0, 0.0]])
 
     with pytest.raises(WeaviateInvalidInputError):
         collection.query.near_vector({"first": [1.0, 0.0], "second": [1.0, 0.0, 0.0]})
 
     with pytest.raises(WeaviateInvalidInputError):
         collection.query.near_vector({"first": [[1.0, 0.0], [1.0, 0.0]], "second": [1.0, 0.0, 0.0]})
-
-    with pytest.raises(WeaviateInvalidInputError):
-        collection.query.near_vector([[[1.0, 0.0], [1.0, 0.0]], [1.0, 0.0, 0.0]])
 
 
 @pytest.mark.parametrize(
@@ -738,7 +743,7 @@ def test_same_target_vector_multiple_input_combinations(
 
 def test_deprecated_syntax(collection_factory: CollectionFactory):
     dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
+    if dummy._connection._weaviate_version.is_at_least(1, 29, 0):
         pytest.skip(
             "Syntax was deprecated between 1.27 and 1.29. Now it's allowed for multivector (colbert) searches"
         )

@@ -723,20 +723,12 @@ class _Packing:
 
 class _Pack:
     @staticmethod
-    def is_multi(v: PrimitiveVectorType) -> TypeGuard[List[List[NUMBER]]]:
-        return len(v) > 0 and isinstance(v[0], list)
-
-    @staticmethod
-    def is_single(v: PrimitiveVectorType) -> TypeGuard[List[NUMBER]]:
-        return len(v) > 0 and (isinstance(v[0], float) or isinstance(v[0], int))
-
-    @staticmethod
     def parse_single_or_multi_vec(vector: PrimitiveVectorType) -> _Packing:
-        if _Pack.is_multi(vector):
+        if _is_2d_vector(vector):
             return _Packing(
                 bytes_=_Pack.multi(vector), type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32
             )
-        elif _Pack.is_single(vector):
+        elif _is_1d_vector(vector):
             return _Packing(
                 bytes_=_Pack.single(vector), type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32
             )
@@ -791,7 +783,7 @@ def _is_2d_vector(inputs: Any) -> TypeGuard[TwoDimensionalVectorType]:
     except TypeError:
         return False
     if __is_list_type(inputs):
-        return __is_list_type(inputs[0])
+        return _is_1d_vector(inputs[0])
     return False
 
 
