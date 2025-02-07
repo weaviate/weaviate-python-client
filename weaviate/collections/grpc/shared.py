@@ -175,8 +175,9 @@ class _BaseGRPC:
         )
 
         vector_for_target: List[base_search_pb2.VectorForTarget] = []
+        target_vectors: List[str] = []
 
-        def add_1d_vector(val: OneDimensionalVectorType, target_name: str) -> None:
+        def add_1d_vector(val: OneDimensionalVectorType, key: str) -> None:
             vec = _get_vector_v4(val)
 
             if (
@@ -188,24 +189,22 @@ class _BaseGRPC:
 
             if self._connection._weaviate_version.is_lower_than(1, 29, 0):
                 vector_for_target.append(
-                    base_search_pb2.VectorForTarget(
-                        name=target_name, vector_bytes=_Pack.single(vec)
-                    )
+                    base_search_pb2.VectorForTarget(name=key, vector_bytes=_Pack.single(vec))
                 )
             else:
                 vector_for_target.append(
                     base_search_pb2.VectorForTarget(
-                        name=target_name,
+                        name=key,
                         vectors=[
                             base_pb2.Vectors(
-                                name=target_name,
+                                name=key,
                                 vector_bytes=_Pack.single(vec),
                                 type=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
                             )
                         ],
                     )
                 )
-            target_vectors_tmp.append(key)
+            target_vectors.append(key)
 
         def add_2d_vector(value: TwoDimensionalVectorType, key: str) -> None:
             if self._connection._weaviate_version.is_lower_than(1, 29, 0):
@@ -224,7 +223,7 @@ class _BaseGRPC:
                     ],
                 )
             )
-            target_vectors_tmp.append(key)
+            target_vectors.append(key)
 
         def add_list_of_vectors(value: _ListOfVectorsQuery, key: str) -> None:
             if _ListOfVectorsQuery.is_one_dimensional(
@@ -260,7 +259,7 @@ class _BaseGRPC:
                     vectors=vectors,
                 )
             )
-            target_vectors_tmp.append(key)
+            target_vectors.append(key)
 
         if isinstance(vector, dict):
             if (
@@ -269,7 +268,6 @@ class _BaseGRPC:
                 or len(set(targets.target_vectors)) != len(vector)
             ):
                 raise invalid_nv_exception
-            target_vectors_tmp: List[str] = []
             for key, value in vector.items():
                 if _is_1d_vector(value):
                     add_1d_vector(value, key)
@@ -279,7 +277,7 @@ class _BaseGRPC:
                     add_list_of_vectors(value, key)
                 else:
                     raise invalid_nv_exception
-            return vector_for_target, None, target_vectors_tmp
+            return vector_for_target, None, target_vectors
         else:
             if _is_1d_vector(vector):
                 near_vector = _get_vector_v4(vector)
@@ -287,10 +285,15 @@ class _BaseGRPC:
                     raise invalid_nv_exception
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector), None
             else:
-                raise WeaviateInvalidInputError(
-                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
-                    keys and lists of numbers as values."""
-                )
+                if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+                    raise WeaviateInvalidInputError(
+                        """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
+                        keys and lists of numbers as values."""
+                    )
+                assert _is_2d_vector(vector)
+                assert targets is not None
+                add_2d_vector(vector, targets.target_vectors[0])
+                return vector_for_target, None, target_vectors
 
     def _parse_near_options(
         self,
@@ -363,7 +366,6 @@ class _BaseGRPC:
                     targets, target_vectors = self._recompute_target_vector_to_grpc(
                         target_vector, target_vectors_tmp
                     )
-                    print(targets, target_vectors)
         return base_search_pb2.NearVector(
             vector_bytes=near_vector_grpc,
             certainty=certainty,

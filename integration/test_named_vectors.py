@@ -851,6 +851,18 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
     assert len(collection) == 1
 
     objs = collection.query.near_vector(
+        [1, 2],
+        target_vector="regular",
+    ).objects
+    assert len(objs) == 1
+
+    objs = collection.query.near_vector(
+        [[1, 2], [3, 4]],
+        target_vector="colbert",
+    ).objects
+    assert len(objs) == 1
+
+    objs = collection.query.near_vector(
         {"regular": [[1, 2], [2, 1]]},
         target_vector="regular",
     ).objects
