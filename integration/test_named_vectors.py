@@ -919,12 +919,7 @@ def test_colbert_vectors_jinaai(collection_factory: CollectionFactory) -> None:
     assert len(objs) == 1
 
     objs = collection.query.near_vector(
-        {
-            "colbert": wvc.query.NearVector.multidimensional(
-                [[e + 0.01 for e in vec] for vec in vecs]
-            )
-        },
-        target_vector="colbert",
+        {"colbert": [[e + 0.01 for e in vec] for vec in vecs]}, target_vector="colbert"
     ).objects
     assert len(objs) == 1
 

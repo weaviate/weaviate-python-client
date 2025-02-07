@@ -84,14 +84,12 @@ class _Base(Generic[Properties, References]):
         self._references = references
         self._validate_arguments = validate_arguments
 
-        self.__uses_125_api = self._connection._weaviate_version.is_at_least(1, 25, 0)
         self._query = _QueryGRPC(
             self._connection,
             self._name,
             self.__tenant,
             self.__consistency_level,
             validate_arguments=self._validate_arguments,
-            uses_125_api=self.__uses_125_api,
         )
 
     def __retrieve_timestamp(
@@ -224,7 +222,7 @@ class _Base(Generic[Properties, References]):
         if value.HasField("list_value"):
             return (
                 self.__deserialize_list_value_prop_125(value.list_value)
-                if self.__uses_125_api
+                if self._connection._weaviate_version.is_at_least(1, 25, 0)
                 else self.__deserialize_list_value_prop_123(value.list_value)
             )
         if value.HasField("object_value"):

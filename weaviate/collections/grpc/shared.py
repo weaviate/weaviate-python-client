@@ -260,6 +260,7 @@ class _BaseGRPC:
                     vectors=vectors,
                 )
             )
+            target_vectors_tmp.append(key)
 
         if isinstance(vector, dict):
             if (
