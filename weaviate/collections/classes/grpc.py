@@ -253,7 +253,7 @@ PrimitiveVectorType = Union[OneDimensionalVectorType, TwoDimensionalVectorType]
 V = TypeVar("V", OneDimensionalVectorType, TwoDimensionalVectorType)
 
 
-class _ListOfVectorsQuery(Generic[V], _WeaviateInput):
+class _ListOfVectorsQuery(_WeaviateInput, Generic[V]):
     dimensionality: Literal["1D", "2D"]
     vectors: Sequence[V]
 
