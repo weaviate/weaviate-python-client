@@ -439,7 +439,6 @@ class _QueryGRPC(_BaseGRPC):
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
             uses_125_api=self._connection._weaviate_version.is_at_least(1, 25, 0),
-            uses_127_api=self._connection._weaviate_version.is_at_least(1, 27, 0),
             collection=self._name,
             limit=limit,
             offset=offset,
