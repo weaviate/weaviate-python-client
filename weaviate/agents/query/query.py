@@ -12,11 +12,19 @@ from weaviate.agents.query.models import (
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
 
 
-class WeaviateSearchAgentSimpleResponse(BaseModel):
+class AggregationResultWithCollection(AggregationResult):
+    collection: str
+
+
+class QueryResultWithCollection(QueryResult):
+    collection: str
+
+
+class QueryAgentResponse(BaseModel):
     original_query: str
     collection_names: list[str]
-    searches: list[list[QueryResult]]
-    aggregations: list[list[AggregationResult]]
+    searches: list[list[QueryResultWithCollection]]
+    aggregations: list[list[AggregationResultWithCollection]]
     usage: Usage
     total_time: float
     search_answer: str | None
@@ -57,7 +65,7 @@ class QueryAgent:
 
         self._headers = {"Content-Type": "application/json"}
         self._headers.update(self._connection.additional_headers)
-        self._timeout = 40
+        self._timeout = 60
 
         self._cluster_host = self.base_url.replace(":443", "")
 
@@ -70,15 +78,16 @@ class QueryAgent:
         self,
         query: str,
         view_properties: Optional[List[str]] = None,
-    ) -> WeaviateSearchAgentSimpleResponse:
+        context: Optional[QueryAgentResponse] = None,
+    ) -> QueryAgentResponse:
         """Execute a agentic query against the specified collections.
 
         Args:
             query: The natural language query string
             view_properties: Optional list of property names which the agent has the ability to view
-
+            context: Optional context of type QueryAgentResponse
         Returns:
-            A WeaviateSearchAgentSimpleResponse object containing search results and analysis
+            A QueryAgentResponse object containing search results and analysis
         """
         request_body = {
             "query": query,
@@ -89,11 +98,11 @@ class QueryAgent:
             "collection_names": [
                 c.name if isinstance(c, CollectionDescription) else c for c in self._collections
             ],
-            "agent_type": "simple",
             "headers": self._headers,
             "collection_view_properties": view_properties,
             "limit": 20,
             "tenant": None,
+            "previous_response": context.model_dump() if context else None,
         }
 
         response = httpx.post(
@@ -108,4 +117,4 @@ class QueryAgent:
                 f"Query agent returned status code {response.status_code} with response {response.text}"
             )
 
-        return WeaviateSearchAgentSimpleResponse(**response.json())
+        return QueryAgentResponse(**response.json())
