@@ -98,16 +98,9 @@ def log_http_event(response: httpx.Response) -> None:
     Args:
         response: The httpx Response object containing both request and response info
     """
-    # Get logger and ensure it's properly configured for each request
-    current_logger = logging.getLogger("weaviate-client")
-    
-    # Check environment variable directly to ensure we catch runtime changes
-    log_level = os.getenv("WEAVIATE_LOG_LEVEL", "INFO").upper()
-    if log_level != "DEBUG":
-        current_logger.setLevel(logging.INFO)
+    if logger.getEffectiveLevel() > logging.DEBUG:
         return
-        
-    current_logger.setLevel(logging.DEBUG)
+    
     request = response.request
     
     # Build log message parts

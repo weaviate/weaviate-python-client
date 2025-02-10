@@ -247,14 +247,8 @@ class ConnectionV4:
         }
 
     def __make_async_client(self) -> AsyncClient:
-        """Create an async HTTP client with proper configuration and event hooks.
-        
-        Returns:
-            AsyncClient: The configured httpx AsyncClient instance with logging hooks
-        """
-        event_hooks = {"response": []}
-        event_hooks["response"].append(log_http_event)
-        
+        """Create an async HTTP client with proper configuration and event hooks."""
+        event_hooks = {"response": [log_http_event]}
         return AsyncClient(
             headers=self._headers,
             mounts=self._make_mounts(),
