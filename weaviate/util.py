@@ -5,6 +5,7 @@ Helper functions!
 import base64
 import datetime
 import io
+import logging
 import os
 import re
 import uuid as uuid_lib
@@ -522,7 +523,8 @@ def check_batch_result(
     for result in results:
         if "result" in result and "errors" in result["result"]:
             if "error" in result["result"]["errors"]:
-                print(result["result"]["errors"])
+                logger = logging.getLogger("weaviate-client")
+                logger.debug("Batch result errors: %s", result["result"]["errors"])
 
 
 def _check_positive_num(

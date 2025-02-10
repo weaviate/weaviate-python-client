@@ -59,7 +59,6 @@ class WeaviateClient(_WeaviateClientBase):
         embedded_options: Optional[EmbeddedOptions] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         additional_headers: Optional[dict] = None,
-        additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
     ) -> None:
         self._event_loop = _EventLoopSingleton.get_instance()
@@ -71,7 +70,6 @@ class WeaviateClient(_WeaviateClientBase):
             embedded_options=embedded_options,
             auth_client_secret=auth_client_secret,
             additional_headers=additional_headers,
-            additional_config=additional_config,
             skip_init_checks=skip_init_checks,
         )
 
@@ -128,7 +126,6 @@ class WeaviateAsyncClient(_WeaviateClientBase):
         embedded_options: Optional[EmbeddedOptions] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         additional_headers: Optional[dict] = None,
-        additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
     ) -> None:
         self._loop = asyncio.get_event_loop()
@@ -139,7 +136,6 @@ class WeaviateAsyncClient(_WeaviateClientBase):
             embedded_options=embedded_options,
             auth_client_secret=auth_client_secret,
             additional_headers=additional_headers,
-            additional_config=additional_config,
             skip_init_checks=skip_init_checks,
         )
 

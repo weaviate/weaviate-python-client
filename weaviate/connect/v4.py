@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
-import textwrap
 import time
 from copy import copy
 from dataclasses import dataclass, field
@@ -17,7 +15,6 @@ from authlib.integrations.httpx_client import (  # type: ignore
 from grpc.aio import Channel  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
 
-# from grpclib.client import Channel
 from httpx import (
     AsyncClient,
     AsyncHTTPTransport,
@@ -41,8 +38,8 @@ from weaviate.auth import (
     AuthApiKey,
     AuthClientCredentials,
 )
-from weaviate.config import AdditionalConfig, ConnectionConfig, Proxies, Timeout as TimeoutConfig
-from weaviate.logger import log_http_event
+from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
+from weaviate.logger import log_http_event, logger
 from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
@@ -109,15 +106,18 @@ class ConnectionV4:
         """Initialize the ConnectionV4 instance.
         
         Args:
-            connection_params: Connection parameters for the Weaviate instance
-            auth_client_secret: Authentication credentials
-            timeout_config: Timeout configuration
-            proxies: Proxy configuration
-            trust_env: Whether to trust environment variables
-            additional_headers: Additional HTTP headers
-            connection_config: Connection configuration
-            loop: Event loop for async operations
-            embedded_db: Optional embedded database instance
+            connection_params: Connection parameters for the Weaviate instance (host, port, protocol)
+            auth_client_secret: Authentication credentials for OIDC or API key auth
+            timeout_config: Timeout configuration for HTTP requests and operations
+            proxies: Proxy configuration for HTTP and gRPC connections
+            trust_env: Whether to trust environment variables for proxy settings
+            additional_headers: Additional HTTP headers for API keys and custom metadata
+            connection_config: Connection pool and retry configuration
+            loop: Event loop for async operations and token refresh
+            embedded_db: Optional embedded database instance for local testing
+            
+        Note: HTTP request/response logging is controlled via the WEAVIATE_LOG_LEVEL environment variable.
+        Set WEAVIATE_LOG_LEVEL=DEBUG to enable detailed request/response logging with sensitive data masking.
         """
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
@@ -250,24 +250,17 @@ class ConnectionV4:
         """Create an async HTTP client with proper configuration and event hooks.
         
         Returns:
-            AsyncClient: The configured httpx AsyncClient instance
+            AsyncClient: The configured httpx AsyncClient instance with logging hooks
         """
         event_hooks = {"response": []}
-        # Add environment-based logging hook
-        async def log_response(response: Response) -> None:
-            from weaviate.logger import log_http_event
-            log_http_event(response)
-        event_hooks["response"].append(log_response)
-
-        # Create client with configured hooks
-        client = AsyncClient(
+        event_hooks["response"].append(log_http_event)
+        
+        return AsyncClient(
             headers=self._headers,
             mounts=self._make_mounts(),
             trust_env=self.__trust_env,
             event_hooks=event_hooks,
         )
-
-        return client
 
     def __make_clients(self) -> None:
         """Create the HTTP client with proper configuration and event hooks."""
@@ -497,7 +490,6 @@ class ConnectionV4:
             self.embedded_db.ensure_running()
         assert self._client is not None
         try:
-
             req = self._client.build_request(
                 method,
                 url,
@@ -507,7 +499,6 @@ class ConnectionV4:
                 timeout=self.__get_timeout(method, is_gql_query),
             )
             res = await self._client.send(req)
-
             if res.status_code == 403:
                 raise InsufficientPermissionsError(res)
             if status_codes is not None and res.status_code not in status_codes.ok:
@@ -520,7 +511,6 @@ class ConnectionV4:
         except ReadTimeout as read_err:
             raise WeaviateTimeoutError(error_msg) from read_err
         except Exception as e:
-
             raise e
 
     async def delete(
