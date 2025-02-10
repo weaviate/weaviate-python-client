@@ -20,7 +20,7 @@ from weaviate.rbac.models import (
 from _pytest.fixtures import SubRequest
 
 RBAC_PORTS = (8092, 50063)
-RBAC_AUTH_CREDS = Auth.api_key("existing-key")
+RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
 
 @pytest.mark.parametrize(
@@ -127,7 +127,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
             ),
         ),
         (
-            Permissions.roles(role="*", manage=True),
+            Permissions.roles(role="*", create=True),
             Role(
                 name="ManageAllRoles",
                 cluster_permissions=[],
@@ -135,7 +135,7 @@ RBAC_AUTH_CREDS = Auth.api_key("existing-key")
                 collections_permissions=[],
                 roles_permissions=[
                     RolesPermissionOutput(
-                        role="*", actions={Actions.Roles.MANAGE}, scope=RoleScope.MATCH
+                        role="*", actions={Actions.Roles.CREATE}, scope=RoleScope.MATCH
                     )
                 ],
                 data_permissions=[],
@@ -326,7 +326,7 @@ def test_role_scope(client_factory: ClientFactory, scope: RoleScope, request: Su
             client.roles.delete(role_name)
             client.roles.create(
                 role_name=role_name,
-                permissions=Permissions.roles(role="test", manage=scope),
+                permissions=Permissions.roles(role="test", scope=scope, read=True),
             )
 
             role = client.roles.get(role_name)
@@ -341,10 +341,10 @@ def test_get_assigned_users(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        client.users.assign_roles(user_id="existing-user", role_names="viewer")
+        client.users.assign_roles(user_id="admin-user", role_names="viewer")
         assigned_users = client.roles.get_assigned_user_ids("viewer")
         assert len(assigned_users) == 1
-        assert assigned_users[0] == "existing-user"
+        assert assigned_users[0] == "admin-user"
 
 
 def test_permission_output_as_input(client_factory: ClientFactory) -> None:
@@ -355,7 +355,7 @@ def test_permission_output_as_input(client_factory: ClientFactory) -> None:
         try:
             client.roles.create(
                 role_name=role_name,
-                permissions=Permissions.roles(role="test", manage=True),
+                permissions=Permissions.roles(role="test", read=True),
             )
             role = client.roles.get(role_name)
             assert role is not None

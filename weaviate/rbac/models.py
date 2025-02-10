@@ -121,8 +121,11 @@ class DataAction(str, _Action, Enum):
 
 
 class RolesAction(str, _Action, Enum):
-    MANAGE = "manage_roles"
+    MANAGE = "manage_roles"  # backward compatibility, remove in a bit
+    CREATE = "create_roles"
     READ = "read_roles"
+    UPDATE = "update_roles"
+    DELETE = "delete_roles"
 
     @staticmethod
     def values() -> List[str]:
@@ -598,8 +601,11 @@ class Permissions:
     def roles(
         *,
         role: Union[str, Sequence[str]],
+        create: bool = False,
         read: bool = False,
-        manage: Optional[Union[RoleScope, bool]] = None,
+        update: bool = False,
+        delete: bool = False,
+        scope: Optional[RoleScope] = None,
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
         if isinstance(role, str):
@@ -608,10 +614,14 @@ class Permissions:
             permission = _RolesPermission(role=r, actions=set())
             if read:
                 permission.actions.add(RolesAction.READ)
-            if manage is not None and (not isinstance(manage, bool) or manage):
-                permission.actions.add(RolesAction.MANAGE)
-                if isinstance(manage, RoleScope):
-                    permission.scope = manage
+            if create:
+                permission.actions.add(RolesAction.CREATE)
+            if update:
+                permission.actions.add(RolesAction.UPDATE)
+            if delete:
+                permission.actions.add(RolesAction.DELETE)
+            if scope is not None:
+                permission.scope = scope.value
             if len(permission.actions) > 0:
                 permissions.append(permission)
 
