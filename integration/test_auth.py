@@ -22,8 +22,14 @@ WCS_PORT_GRPC = 50056
 
 
 def is_auth_enabled(url: str) -> bool:
-    response = httpx.get("http://" + url + "/v1/.well-known/openid-configuration")
-    return response.status_code == 200
+    # First try with container name for Docker network
+    try:
+        response = httpx.get("http://mock-oidc/.well-known/openid-configuration")
+        return response.status_code == 200
+    except:
+        # Fallback to direct URL for local development
+        response = httpx.get("http://" + url + "/v1/.well-known/openid-configuration")
+        return response.status_code == 200
 
 
 def test_no_auth_provided() -> None:

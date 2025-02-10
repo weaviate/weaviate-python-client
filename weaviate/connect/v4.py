@@ -105,7 +105,6 @@ class ConnectionV4:
         connection_config: ConnectionConfig,
         loop: asyncio.AbstractEventLoop,  # required for background token refresh
         embedded_db: Optional[EmbeddedV4] = None,
-        additional_config: Optional[AdditionalConfig] = None,
     ):
         """Initialize the ConnectionV4 instance.
         
@@ -119,7 +118,6 @@ class ConnectionV4:
             connection_config: Connection configuration
             loop: Event loop for async operations
             embedded_db: Optional embedded database instance
-            additional_config: Additional configuration
         """
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
@@ -137,8 +135,6 @@ class ConnectionV4:
         self._grpc_max_msg_size: Optional[int] = None
         self.__connected = False
         self.__loop = loop
-        self._additional_config = additional_config
-
         self._headers = {"content-type": "application/json"}
         self.__add_weaviate_embedding_service_header(connection_params.http.host)
         if additional_headers is not None:

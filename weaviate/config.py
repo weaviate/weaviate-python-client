@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-import logging
 from typing import Optional, Tuple, Union
 
 from pydantic import BaseModel, Field

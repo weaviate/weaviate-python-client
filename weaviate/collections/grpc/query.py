@@ -57,7 +57,7 @@ from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateRetryError,
 )
-from weaviate.proto.v1 import search_get_pb2, search_get_pb2_grpc
+from weaviate.proto.v1 import search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4, _is_1d_vector
 from weaviate.validator import _ValidateArgument, _validate_input, _ExtraTypes
