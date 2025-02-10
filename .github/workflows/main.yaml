@@ -22,7 +22,7 @@ env:
   WEAVIATE_125: 1.25.29
   WEAVIATE_126: 1.26.13
   WEAVIATE_127: 1.27.9
-  WEAVIATE_128: stable-v1.28-2a3e040
+  WEAVIATE_128: preview-rbac-flatten-manage-roles-into-cud-f4c8b7c
 
 jobs:
   lint-and-format:
