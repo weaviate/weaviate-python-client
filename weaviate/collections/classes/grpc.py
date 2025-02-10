@@ -1,10 +1,24 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import ClassVar, List, Literal, Mapping, Optional, Sequence, Type, Union, Dict, cast
+from typing import (
+    ClassVar,
+    Generic,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    Dict,
+    cast,
+)
+from typing_extensions import TypeGuard, TypeVar
 
 from pydantic import ConfigDict, Field
 
 from weaviate.collections.classes.types import _WeaviateInput
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_search_pb2
 from weaviate.str_enum import BaseEnum
 from weaviate.types import INCLUDE_VECTOR, UUID, NUMBER
@@ -228,46 +242,69 @@ class Rerank(_WeaviateInput):
     query: Optional[str] = Field(default=None)
 
 
-class _MultidimensionalQuery(_WeaviateInput):
-    tensor: Sequence[Sequence[float]]
+OneDimensionalVectorType = Sequence[NUMBER]
+"""Represents a one-dimensional vector, e.g. one produced by `text2vec-jinaai`"""
+TwoDimensionalVectorType = Sequence[Sequence[NUMBER]]
+"""Represents a two-dimensional vector, e.g. one produced by `text2colbert-jinaai"""
+
+PrimitiveVectorType = Union[OneDimensionalVectorType, TwoDimensionalVectorType]
 
 
-class _ListOfVectorsQuery(_WeaviateInput):
-    vectors: Sequence[Sequence[float]]
+V = TypeVar("V", OneDimensionalVectorType, TwoDimensionalVectorType)
 
 
-MultidimensionalQuery = _MultidimensionalQuery
-"""Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
+class _ListOfVectorsQuery(_WeaviateInput, Generic[V]):
+    dimensionality: Literal["1D", "2D"]
+    vectors: Sequence[V]
+
+    @staticmethod
+    def is_one_dimensional(
+        self_: "_ListOfVectorsQuery",
+    ) -> TypeGuard["_ListOfVectorsQuery[OneDimensionalVectorType]"]:
+        return self_.dimensionality == "1D"
+
+    @staticmethod
+    def is_two_dimensional(
+        self_: "_ListOfVectorsQuery",
+    ) -> TypeGuard["_ListOfVectorsQuery[TwoDimensionalVectorType]"]:
+        return self_.dimensionality == "2D"
+
 
 ListOfVectorsQuery = _ListOfVectorsQuery
 """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
 
 
 NearVectorInputType = Union[
-    Sequence[NUMBER],
-    Sequence[Sequence[NUMBER]],
+    OneDimensionalVectorType,
+    TwoDimensionalVectorType,
     Mapping[
         str,
         Union[
-            Sequence[NUMBER], Sequence[Sequence[NUMBER]], MultidimensionalQuery, ListOfVectorsQuery
+            OneDimensionalVectorType,
+            TwoDimensionalVectorType,
+            ListOfVectorsQuery[OneDimensionalVectorType],
+            ListOfVectorsQuery[TwoDimensionalVectorType],
         ],
     ],
 ]
-"""Define the input types that can be used in a near vector search."""
+"""Define the input types that can be used in a near vector search"""
 
 
 class NearVector:
     """Factory class to use when defining near vector queries with multiple vectors in `near_vector()` and `hybrid()` methods."""
 
     @staticmethod
-    def multidimensional(tensor: Sequence[Sequence[float]]) -> _MultidimensionalQuery:
-        """Define a multi-vector query to be used within a near vector search, i.e. a single vector over a multi-vector space."""
-        return _MultidimensionalQuery(tensor=tensor)
-
-    @staticmethod
-    def list_of_vectors(vectors: Sequence[Sequence[float]]) -> _ListOfVectorsQuery:
+    def list_of_vectors(*vectors: V) -> _ListOfVectorsQuery[V]:
         """Define a many-vectors query to be used within a near vector search, i.e. multiple vectors over a single-vector space."""
-        return _ListOfVectorsQuery(vectors=vectors)
+        if len(vectors) > 0 and len(vectors[0]) > 0:
+            try:
+                len(cast(Sequence[TwoDimensionalVectorType], vectors)[0][0])
+                dimensionality: Literal["1D", "2D"] = "2D"
+            except TypeError:
+                dimensionality = "1D"
+            return _ListOfVectorsQuery[V](dimensionality=dimensionality, vectors=vectors)
+        else:
+            raise WeaviateInvalidInputError(f"At least one vector must be given, got: {vectors}")
 
 
 class _HybridNearBase(_WeaviateInput):

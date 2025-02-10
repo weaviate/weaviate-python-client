@@ -86,12 +86,10 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
-        uses_125_api: bool,
     ):
         super().__init__(connection, consistency_level, validate_arguments)
         self._name: str = name
         self._tenant = tenant
-        self.__uses_125_api = uses_125_api
 
     def get(
         self,
@@ -440,7 +438,7 @@ class _QueryGRPC(_BaseGRPC):
 
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
-            uses_125_api=self.__uses_125_api,
+            uses_125_api=self._connection._weaviate_version.is_at_least(1, 25, 0),
             collection=self._name,
             limit=limit,
             offset=offset,

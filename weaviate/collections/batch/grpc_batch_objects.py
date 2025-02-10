@@ -16,7 +16,7 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, PERMISSION_DENIED
+from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, PERMISSION_DENIED, _is_1d_vector
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateBatchError,
@@ -27,7 +27,7 @@ from weaviate.exceptions import (
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.types import VECTORS
-from weaviate.util import _datetime_to_string, _is_1d_vector
+from weaviate.util import _datetime_to_string
 
 
 class _BatchGRPC(_BaseGRPC):

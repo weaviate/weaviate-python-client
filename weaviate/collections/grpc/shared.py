@@ -6,7 +6,6 @@ from typing import (
     List,
     Literal,
     Optional,
-    Sequence,
     Union,
     cast,
     Tuple,
@@ -17,7 +16,6 @@ from typing_extensions import TypeGuard
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    _MultidimensionalQuery,
     _ListOfVectorsQuery,
     _MultiTargetVectorJoin,
     _HybridNearText,
@@ -27,6 +25,9 @@ from weaviate.collections.classes.grpc import (
     Move,
     TargetVectorJoinType,
     NearVectorInputType,
+    OneDimensionalVectorType,
+    TwoDimensionalVectorType,
+    PrimitiveVectorType,
 )
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
@@ -35,8 +36,8 @@ from weaviate.exceptions import (
 )
 from weaviate.proto.v1 import base_search_pb2, base_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.util import _get_vector_v4, _is_1d_vector
-from weaviate.validator import _ValidateArgument, _validate_input, _ExtraTypes
+from weaviate.util import _get_vector_v4
+from weaviate.validator import _is_valid, _ValidateArgument, _validate_input, _ExtraTypes
 
 
 PERMISSION_DENIED = "PERMISSION_DENIED"
@@ -144,11 +145,7 @@ class _BaseGRPC:
 
             return vector_per_target, None
         else:
-            if (
-                isinstance(vector, _MultidimensionalQuery)
-                or isinstance(vector, _ListOfVectorsQuery)
-                or len(vector) == 0
-            ):
+            if isinstance(vector, _ListOfVectorsQuery) or len(vector) == 0:
                 raise invalid_nv_exception
 
             if _is_1d_vector(vector):
@@ -178,8 +175,9 @@ class _BaseGRPC:
         )
 
         vector_for_target: List[base_search_pb2.VectorForTarget] = []
+        target_vectors: List[str] = []
 
-        def add_vector(val: Sequence[float], target_name: str) -> None:
+        def add_1d_vector(val: OneDimensionalVectorType, key: str) -> None:
             vec = _get_vector_v4(val)
 
             if (
@@ -191,23 +189,77 @@ class _BaseGRPC:
 
             if self._connection._weaviate_version.is_lower_than(1, 29, 0):
                 vector_for_target.append(
-                    base_search_pb2.VectorForTarget(
-                        name=target_name, vector_bytes=_Pack.single(vec)
-                    )
+                    base_search_pb2.VectorForTarget(name=key, vector_bytes=_Pack.single(vec))
                 )
             else:
                 vector_for_target.append(
                     base_search_pb2.VectorForTarget(
-                        name=target_name,
+                        name=key,
                         vectors=[
                             base_pb2.Vectors(
-                                name=target_name,
+                                name=key,
                                 vector_bytes=_Pack.single(vec),
                                 type=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
                             )
                         ],
                     )
                 )
+            target_vectors.append(key)
+
+        def add_2d_vector(value: TwoDimensionalVectorType, key: str) -> None:
+            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+                for v in value:
+                    add_1d_vector(v, key)
+                return
+            vector_for_target.append(
+                base_search_pb2.VectorForTarget(
+                    name=key,
+                    vectors=[
+                        base_pb2.Vectors(
+                            name=key,
+                            vector_bytes=_Pack.multi([_get_vector_v4(v) for v in value]),
+                            type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                        )
+                    ],
+                )
+            )
+            target_vectors.append(key)
+
+        def add_list_of_vectors(value: _ListOfVectorsQuery, key: str) -> None:
+            if _ListOfVectorsQuery.is_one_dimensional(
+                value
+            ) and self._connection._weaviate_version.is_lower_than(1, 29, 0):
+                for v in value.vectors:
+                    add_1d_vector(v, key)
+                return
+            elif _ListOfVectorsQuery.is_one_dimensional(
+                value
+            ) and self._connection._weaviate_version.is_at_least(1, 29, 0):
+                vectors = [
+                    base_pb2.Vectors(
+                        name=key,
+                        vector_bytes=_Pack.multi([_get_vector_v4(v) for v in value.vectors]),
+                        type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                    )
+                ]
+            elif _ListOfVectorsQuery.is_two_dimensional(value):
+                vectors = [
+                    base_pb2.Vectors(
+                        name=key,
+                        vector_bytes=_Pack.multi([_get_vector_v4(v) for v in vecs]),
+                        type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                    )
+                    for vecs in value.vectors
+                ]
+            else:
+                raise WeaviateInvalidInputError(f"Invalid list of vectors: {value}")
+            vector_for_target.append(
+                base_search_pb2.VectorForTarget(
+                    name=key,
+                    vectors=vectors,
+                )
+            )
+            target_vectors.append(key)
 
         if isinstance(vector, dict):
             if (
@@ -216,37 +268,16 @@ class _BaseGRPC:
                 or len(set(targets.target_vectors)) != len(vector)
             ):
                 raise invalid_nv_exception
-            target_vectors_tmp: List[str] = []
             for key, value in vector.items():
-                # typing tools do not understand the type narrowing here
                 if _is_1d_vector(value):
-                    val = value
-                    add_vector(val, key)
-                    target_vectors_tmp.append(key)
-                elif isinstance(value, _MultidimensionalQuery):
-                    vector_for_target.append(
-                        base_search_pb2.VectorForTarget(
-                            name=key,
-                            vectors=[
-                                base_pb2.Vectors(
-                                    name=key,
-                                    vector_bytes=_Pack.multi(value.tensor),
-                                    type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
-                                )
-                            ],
-                        )
-                    )
-                    target_vectors_tmp.append(key)
+                    add_1d_vector(value, key)
+                elif _is_2d_vector(value):
+                    add_2d_vector(value, key)
                 elif isinstance(value, _ListOfVectorsQuery):
-                    for vec in value.vectors:
-                        add_vector(vec, key)
-                        target_vectors_tmp.append(key)
+                    add_list_of_vectors(value, key)
                 else:
-                    vals = cast(Sequence[Sequence[NUMBER]], value)
-                    for inner_vector in vals:
-                        add_vector(inner_vector, key)
-                        target_vectors_tmp.append(key)
-            return vector_for_target, None, target_vectors_tmp
+                    raise invalid_nv_exception
+            return vector_for_target, None, target_vectors
         else:
             if _is_1d_vector(vector):
                 near_vector = _get_vector_v4(vector)
@@ -309,12 +340,37 @@ class _BaseGRPC:
         targets, target_vectors = self.__target_vector_to_grpc(target_vector)
 
         if _is_1d_vector(near_vector) and len(near_vector) > 0:
-            # fast path for simple vector
-            near_vector_grpc: Optional[bytes] = struct.pack(
-                "{}f".format(len(near_vector)), *near_vector
-            )
+            # fast path for simple single-vector
+            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+                near_vector_grpc: Optional[bytes] = struct.pack(
+                    "{}f".format(len(near_vector)), *near_vector
+                )
+                vector_per_target_tmp = None
+                vector_for_targets = None
+                vectors = None
+            else:
+                near_vector_grpc = None
+                vector_per_target_tmp = None
+                vector_for_targets = None
+                vectors = [
+                    base_pb2.Vectors(
+                        vector_bytes=_Pack.single(near_vector),
+                        type=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
+                    )
+                ]
+        elif _is_2d_vector(near_vector) and self._connection._weaviate_version.is_at_least(
+            1, 29, 0
+        ):
+            # fast path for simple multi-vector
+            near_vector_grpc = None
             vector_per_target_tmp = None
             vector_for_targets = None
+            vectors = [
+                base_pb2.Vectors(
+                    vector_bytes=_Pack.multi(near_vector),
+                    type=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
+                )
+            ]
         else:
             if self._connection._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, near_vector_grpc = self._vector_per_target(
@@ -330,6 +386,7 @@ class _BaseGRPC:
                     targets, target_vectors = self._recompute_target_vector_to_grpc(
                         target_vector, target_vectors_tmp
                     )
+            vectors = None
         return base_search_pb2.NearVector(
             vector_bytes=near_vector_grpc,
             certainty=certainty,
@@ -338,6 +395,7 @@ class _BaseGRPC:
             target_vectors=target_vectors,
             vector_per_target=vector_per_target_tmp,
             vector_for_targets=vector_for_targets,
+            vectors=vectors,
         )
 
     @staticmethod
@@ -665,26 +723,12 @@ class _Packing:
 
 class _Pack:
     @staticmethod
-    def is_multi(
-        v: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
-    ) -> TypeGuard[List[List[NUMBER]]]:
-        return len(v) > 0 and isinstance(v[0], list)
-
-    @staticmethod
-    def is_single(
-        v: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
-    ) -> TypeGuard[List[NUMBER]]:
-        return len(v) > 0 and (isinstance(v[0], float) or isinstance(v[0], int))
-
-    @staticmethod
-    def parse_single_or_multi_vec(
-        vector: Union[Sequence[NUMBER], Sequence[Sequence[NUMBER]]]
-    ) -> _Packing:
-        if _Pack.is_multi(vector):
+    def parse_single_or_multi_vec(vector: PrimitiveVectorType) -> _Packing:
+        if _is_2d_vector(vector):
             return _Packing(
                 bytes_=_Pack.multi(vector), type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32
             )
-        elif _Pack.is_single(vector):
+        elif _is_1d_vector(vector):
             return _Packing(
                 bytes_=_Pack.single(vector), type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32
             )
@@ -692,12 +736,12 @@ class _Pack:
             raise WeaviateInvalidInputError(f"Invalid vectors: {vector}")
 
     @staticmethod
-    def single(vector: Sequence[NUMBER]) -> bytes:
+    def single(vector: OneDimensionalVectorType) -> bytes:
         vector_list = _get_vector_v4(vector)
         return struct.pack("{}f".format(len(vector_list)), *vector_list)
 
     @staticmethod
-    def multi(vector: Sequence[Sequence[NUMBER]]) -> bytes:
+    def multi(vector: TwoDimensionalVectorType) -> bytes:
         vector_list = [item for sublist in vector for item in sublist]
         return struct.pack("<H", len(vector[0])) + struct.pack(
             "{}f".format(len(vector_list)), *vector_list
@@ -719,3 +763,44 @@ class _Unpack:
             _ByteOps.decode_float32s(byte_vector[i * dim * UINT32_LEN : (i + 1) * dim * UINT32_LEN])
             for i in range(how_many)
         ]
+
+
+def _is_1d_vector(inputs: Any) -> TypeGuard[OneDimensionalVectorType]:
+    try:
+        if len(inputs) == 0:
+            return False
+    except TypeError:
+        return False
+    if __is_list_type(inputs):
+        return not __is_list_type(inputs[0])
+    return False
+
+
+def _is_2d_vector(inputs: Any) -> TypeGuard[TwoDimensionalVectorType]:
+    try:
+        if len(inputs) == 0:
+            return False
+    except TypeError:
+        return False
+    if __is_list_type(inputs):
+        return _is_1d_vector(inputs[0])
+    return False
+
+
+def __is_list_type(inputs: Any) -> bool:
+    try:
+        if len(inputs) == 0:
+            return False
+    except TypeError:
+        return False
+
+    return any(
+        _is_valid(types, inputs)
+        for types in [
+            List,
+            _ExtraTypes.TF,
+            _ExtraTypes.PANDAS,
+            _ExtraTypes.NUMPY,
+            _ExtraTypes.POLARS,
+        ]
+    )
