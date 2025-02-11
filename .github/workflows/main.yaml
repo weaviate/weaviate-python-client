@@ -19,10 +19,10 @@ concurrency:
 
 env:
   WEAVIATE_124: 1.24.26
-  WEAVIATE_125: 1.25.29
-  WEAVIATE_126: 1.26.13
-  WEAVIATE_127: 1.27.9
-  WEAVIATE_128: preview-rbac-flatten-manage-roles-into-cud-f4c8b7c
+  WEAVIATE_125: 1.25.30
+  WEAVIATE_126: 1.26.14
+  WEAVIATE_127: 1.27.12
+  WEAVIATE_128: stable-v1.28-9075f00
 
 jobs:
   lint-and-format:
