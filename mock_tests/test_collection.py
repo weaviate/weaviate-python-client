@@ -170,6 +170,7 @@ def test_missing_multi_tenancy_config(
         quantizer=None,
         distance_metric=VectorDistances.COSINE,
         vector_cache_max_objects=10,
+        multi_vector=None,
     )
     vic.distance = vic.distance_metric
     response_json = CollectionConfig(

@@ -49,15 +49,12 @@ from weaviate.collections.classes.types import (
     TReferences,
 )
 from weaviate.collections.grpc.query import _QueryGRPC
-from weaviate.collections.queries.byteops import _ByteOps
+from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.proto.v1 import search_get_pb2, properties_pb2
+from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
 from weaviate.types import INCLUDE_VECTOR
-from weaviate.util import (
-    file_encoder_b64,
-    _datetime_from_weaviate_str,
-)
+from weaviate.util import file_encoder_b64, _datetime_from_weaviate_str
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
@@ -87,14 +84,12 @@ class _Base(Generic[Properties, References]):
         self._references = references
         self._validate_arguments = validate_arguments
 
-        self.__uses_125_api = self._connection._weaviate_version.is_at_least(1, 25, 0)
         self._query = _QueryGRPC(
             self._connection,
             self._name,
             self.__tenant,
             self.__consistency_level,
             validate_arguments=self._validate_arguments,
-            uses_125_api=self.__uses_125_api,
         )
 
     def __retrieve_timestamp(
@@ -149,7 +144,7 @@ class _Base(Generic[Properties, References]):
     def __extract_vector_for_object(
         self,
         add_props: "search_get_pb2.MetadataResult",
-    ) -> Dict[str, List[float]]:
+    ) -> Dict[str, Union[List[float], List[List[float]]]]:
         if (
             len(add_props.vector_bytes) == 0
             and len(add_props.vector) == 0
@@ -160,9 +155,14 @@ class _Base(Generic[Properties, References]):
         if len(add_props.vector_bytes) > 0:
             return {"default": _ByteOps.decode_float32s(add_props.vector_bytes)}
 
-        vecs = {}
+        vecs: Dict[str, Union[List[float], List[List[float]]]] = {}
         for vec in add_props.vectors:
-            vecs[vec.name] = _ByteOps.decode_float32s(vec.vector_bytes)
+            if vec.type == base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32:
+                vecs[vec.name] = _Unpack.single(vec.vector_bytes)
+            elif vec.type == base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32:
+                vecs[vec.name] = _Unpack.multi(vec.vector_bytes)
+            else:
+                vecs[vec.name] = _Unpack.single(vec.vector_bytes)
         return vecs
 
     def __extract_generated_for_object(
@@ -190,7 +190,7 @@ class _Base(Generic[Properties, References]):
             return [
                 self.__parse_nonref_properties_result(val) for val in value.object_values.values
             ]
-        _Warnings.unknown_type_encountered(value.WhichOneof("Value"))
+        _Warnings.unknown_type_encountered(value.WhichOneof("value"))
         return None
 
     def __deserialize_list_value_prop_123(self, value: properties_pb2.ListValue) -> List[Any]:
@@ -222,7 +222,7 @@ class _Base(Generic[Properties, References]):
         if value.HasField("list_value"):
             return (
                 self.__deserialize_list_value_prop_125(value.list_value)
-                if self.__uses_125_api
+                if self._connection._weaviate_version.is_at_least(1, 25, 0)
                 else self.__deserialize_list_value_prop_123(value.list_value)
             )
         if value.HasField("object_value"):
@@ -246,7 +246,7 @@ class _Base(Generic[Properties, References]):
         if value.HasField("null_value"):
             return None
 
-        _Warnings.unknown_type_encountered(value.WhichOneof("Value"))
+        _Warnings.unknown_type_encountered(value.WhichOneof("value"))
         return None
 
     def __parse_nonref_properties_result(

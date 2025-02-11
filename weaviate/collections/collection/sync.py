@@ -90,6 +90,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             name=name,
             consistency_level=consistency_level,
             tenant=tenant,
+            validate_arguments=validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
         self.backup = _CollectionBackup(
