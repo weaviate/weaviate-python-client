@@ -5,8 +5,7 @@ from typing import Dict, List, Optional, Sequence, Union, cast
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
-    _OutputPermission,
-    _InputPermission,
+    _Permission,
     PermissionsOutputType,
     PermissionsInputType,
     Role,
@@ -177,11 +176,13 @@ class _RolesAsync(_RolesBase):
         Returns:
             The created role.
         """
+        perms = []
+        for perm in _flatten_permissions(permissions):
+            perms.extend(perm._to_weaviate())
+
         role: WeaviateRole = {
             "name": role_name,
-            "permissions": [
-                permission._to_weaviate() for permission in _flatten_permissions(permissions)
-            ],
+            "permissions": perms,
         }
         return Role._from_weaviate_role(await self._post_roles(role))
 
@@ -194,12 +195,14 @@ class _RolesAsync(_RolesBase):
             permissions: The permissions to add to the role.
             role_name: The name of the role to add the permissions to.
         """
-        if isinstance(permissions, _InputPermission):
+        if isinstance(permissions, _Permission):
             permissions = [permissions]
-        await self._add_permissions(
-            [permission._to_weaviate() for permission in _flatten_permissions(permissions)],
-            role_name,
-        )
+
+        perms = []
+        for perm in _flatten_permissions(permissions):
+            perms.extend(perm._to_weaviate())
+
+        await self._add_permissions(perms, role_name)
 
     async def remove_permissions(
         self, *, permissions: PermissionsInputType, role_name: str
@@ -212,12 +215,14 @@ class _RolesAsync(_RolesBase):
             permissions: The permissions to remove from the role.
             role_name: The name of the role to remove the permissions from.
         """
-        if isinstance(permissions, _InputPermission):
+        if isinstance(permissions, _Permission):
             permissions = [permissions]
-        await self._remove_permissions(
-            [permission._to_weaviate() for permission in _flatten_permissions(permissions)],
-            role_name,
-        )
+
+        perms = []
+        for perm in _flatten_permissions(permissions):
+            perms.extend(perm._to_weaviate())
+
+        await self._remove_permissions(perms, role_name)
 
     async def has_permissions(
         self,
@@ -236,26 +241,23 @@ class _RolesAsync(_RolesBase):
         Returns:
             True if the role has the permission, False otherwise.
         """
+        perms = []
+        for perm in _flatten_permissions(permissions):
+            perms.extend(perm._to_weaviate())
+
         return all(
-            await asyncio.gather(
-                *[
-                    self._has_permission(permission._to_weaviate(), role)
-                    for permission in _flatten_permissions(permissions)
-                ]
-            )
+            await asyncio.gather(*[self._has_permission(permission, role) for permission in perms])
         )
 
 
 def _flatten_permissions(
     permissions: Union[PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]]
-) -> List[Union[_InputPermission, _OutputPermission]]:
-    if isinstance(permissions, _InputPermission) or isinstance(permissions, _OutputPermission):
+) -> List[_Permission]:
+    if isinstance(permissions, _Permission):
         return [permissions]
-    flattened_permissions: List[Union[_InputPermission, _OutputPermission]] = []
+    flattened_permissions: List[_Permission] = []
     for permission in permissions:
-        if isinstance(permission, _InputPermission):
-            flattened_permissions.append(permission)
-        elif isinstance(permission, _OutputPermission):
+        if isinstance(permission, _Permission):
             flattened_permissions.append(permission)
         else:
             flattened_permissions.extend(permission)

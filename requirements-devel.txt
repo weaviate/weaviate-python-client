@@ -9,16 +9,16 @@ pydantic==2.8.0
 build
 twine
 wheel
-importlib_metadata==8.5.0
+importlib_metadata==8.6.1
 setuptools_scm
 Sphinx>=7.0.0
 sphinx-rtd-theme==3.0.2
 autodoc-pydantic==2.2.0
-importlib_metadata==8.5.0
+importlib_metadata==8.6.1
 
 pytest==8.3.4
 pytest-cov==6.0.0
-pytest-asyncio==0.25.2
+pytest-asyncio==0.25.3
 pytest-benchmark==5.1.0
 pytest-profiling==1.8.1
 coverage==7.6.10

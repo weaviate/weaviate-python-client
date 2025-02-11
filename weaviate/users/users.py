@@ -80,7 +80,11 @@ class _UsersAsync(_UsersBase):
         user = await self._get_current_user()
         return User(
             user_id=user["username"],
-            roles={role["name"]: Role._from_weaviate_role(role) for role in user["roles"]},
+            roles=(
+                {role["name"]: Role._from_weaviate_role(role) for role in user["roles"]}
+                if user["roles"] is not None
+                else {}
+            ),
         )
 
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
