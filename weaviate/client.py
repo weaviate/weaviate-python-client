@@ -11,6 +11,10 @@ from weaviate import syncify
 from weaviate.backup.backup import _BackupAsync
 from weaviate.backup.sync import _Backup
 from weaviate.event_loop import _EventLoopSingleton, _EventLoop
+
+from weaviate.users.users import _UsersAsync
+
+from weaviate.users.sync import _Users
 from .auth import AuthCredentials
 from .client_base import _WeaviateClientBase
 from .collections.batch.client import _BatchClientWrapper
@@ -93,6 +97,9 @@ class WeaviateClient(_WeaviateClientBase):
         self.roles = _Roles(self._connection)
         """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
 
+        self.users = _Users(self._connection)
+        """This namespace contains all functionality to manage Weaviate users."""
+
     def __enter__(self) -> "WeaviateClient":
         self.connect()  # pyright: ignore # gets patched by syncify.convert to be sync
         return self
@@ -154,6 +161,9 @@ class WeaviateAsyncClient(_WeaviateClientBase):
         We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
         self.roles = _RolesAsync(self._connection)
         """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
+
+        self.users = _UsersAsync(self._connection)
+        """This namespace contains all functionality to manage Weaviate users."""
 
     async def __aenter__(self) -> "WeaviateAsyncClient":
         await self.connect()

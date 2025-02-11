@@ -18,9 +18,9 @@ services:
     environment:
       ENABLE_MODULES: "generative-dummy,reranker-dummy"
       AUTHENTICATION_APIKEY_ENABLED: "true"
-      AUTHENTICATION_APIKEY_ALLOWED_KEYS: "existing-key"
-      AUTHENTICATION_APIKEY_USERS: "existing-user"
-      AUTHORIZATION_ADMIN_USERS: "existing-user"
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: "admin-key"
+      AUTHENTICATION_APIKEY_USERS: "admin-user"
+      AUTHORIZATION_ADMIN_USERS: "admin-user"
       PERSISTENCE_DATA_PATH: "./data-weaviate-0"
       CLUSTER_IN_LOCALHOST: "true"
       CLUSTER_GOSSIP_BIND_PORT: "7100"

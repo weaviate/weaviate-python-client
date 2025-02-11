@@ -22,7 +22,7 @@ env:
   WEAVIATE_125: 1.25.29
   WEAVIATE_126: 1.26.13
   WEAVIATE_127: 1.27.9
-  WEAVIATE_128: 1.28.2-2c00437
+  WEAVIATE_128: preview-rbac-flatten-manage-roles-into-cud-f4c8b7c
 
 jobs:
   lint-and-format:
@@ -154,8 +154,6 @@ jobs:
       - run: |
           pip install -r requirements-devel.txt
           pip install .
-      - name: free space
-        run: sudo rm -rf /usr/local/lib/android
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
       - name: Run integration tests with auth secrets
@@ -207,8 +205,6 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - run: pip install -r requirements-devel.txt
       - run: pip install .
-      - name: free space
-        run: sudo rm -rf /usr/local/lib/android
       - name: start weaviate
         run: /bin/bash ci/start_weaviate_jt.sh ${{ matrix.versions.weaviate }}
       - name: Run journey tests
@@ -301,8 +297,6 @@ jobs:
       - run: |
           pip install weaviate_client-*.whl
           pip install -r requirements-devel.txt  # install test dependencies
-      - name: free space
-        run: sudo rm -rf /usr/local/lib/android
       - run: rm -r weaviate
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
