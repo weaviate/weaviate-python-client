@@ -97,6 +97,8 @@ class Vectorizers(str, Enum):
             Weaviate module backed by Jina AI text-based embedding models.
         `TEXT2VEC_VOYAGEAI`
             Weaviate module backed by Voyage AI text-based embedding models.
+        `TEXT2VEC_NVIDIA`
+            Weaviate module backed by NVIDIA text-based embedding models.
         `TEXT2VEC_WEAVIATE`
             Weaviate module backed by Weaviate's self-hosted text-based embedding models.
         `IMG2VEC_NEURAL`
@@ -130,6 +132,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_JINAAI = "text2vec-jinaai"
     TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
+    TEXT2VEC_NVIDIA = "text2vec-nvidia"
     TEXT2VEC_WEAVIATE = "text2vec-weaviate"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
@@ -357,7 +360,7 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
 
 class _Text2VecNvidiaConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
-        default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
+        default=Vectorizers.TEXT2VEC_NVIDIA, frozen=True, exclude=True
     )
     model: Optional[str]
     baseURL: Optional[str]
@@ -1503,7 +1506,7 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecNvidiaConfigCreate` object for use when vectorizing using the `text2vec-nvidia` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
         for detailed usage.
 
         Arguments:
