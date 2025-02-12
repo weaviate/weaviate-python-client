@@ -121,6 +121,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_MISTRAL = "text2vec-mistral"
+    TEXT2VEC_NVIDIA = "text2vec-nvidia"
     TEXT2VEC_OLLAMA = "text2vec-ollama"
     TEXT2VEC_OPENAI = "text2vec-openai"
     TEXT2VEC_PALM = "text2vec-palm"  # change to google once 1.27 is the lowest supported version
@@ -351,6 +352,14 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     truncate: Optional[bool]
     vectorizeClassName: bool
 
+class _Text2VecNvidiaConfig(_VectorizerConfigCreate):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.TEXT2VEC_VOYAGEAI, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    baseURL: Optional[str]
+    truncate: Optional[bool]
+    vectorizeClassName: bool
 
 class _Text2VecWeaviateConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
@@ -1419,4 +1428,36 @@ class _Vectorizer:
             baseURL=base_url,
             vectorizeClassName=vectorize_collection_name,
             dimensions=dimensions,
+        )
+
+    @staticmethod
+    def text2vec_nvidia(
+        *,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        truncate: Optional[bool] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecNvidiaConfigCreate` object for use when vectorizing using the `text2vec-nvidia` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+                See the
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings#available-models) for more details.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _Text2VecNvidiaConfig(
+            model=model,
+            baseURL=base_url,
+            truncate=truncate,
+            vectorizeClassName=vectorize_collection_name,
         )
