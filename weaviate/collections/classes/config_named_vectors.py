@@ -811,7 +811,7 @@ class _NamedVectors:
             ),
             vector_index_config=vector_index_config,
         )
-    
+
     @staticmethod
     def multi2vec_nvidia(
         name: str,

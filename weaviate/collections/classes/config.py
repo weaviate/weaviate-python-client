@@ -473,6 +473,7 @@ class _GenerativeMistral(_GenerativeProvider):
     model: Optional[str]
     maxTokens: Optional[int]
 
+
 class _GenerativeNvidia(_GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
@@ -481,6 +482,7 @@ class _GenerativeNvidia(_GenerativeProvider):
     model: Optional[str]
     maxTokens: Optional[int]
     baseURL: Optional[str]
+
 
 class _GenerativeFriendliai(_GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
@@ -746,7 +748,7 @@ class _Generative:
                 The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
-    
+
     @staticmethod
     def nvidia(
         *,

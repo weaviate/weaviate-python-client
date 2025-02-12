@@ -112,7 +112,7 @@ class Vectorizers(str, Enum):
         `MULTI2VEC_VOYAGEAI`
             Weaviate module backed by a Voyage AI multimodal embedding models.
         `MULTI2VEC_NVIDIA`
-            Weaviate module backed by NVIDIA multimodal embedding models.    
+            Weaviate module backed by NVIDIA multimodal embedding models.
         `REF2VEC_CENTROID`
             Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
     """
@@ -358,6 +358,7 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     truncate: Optional[bool]
     vectorizeClassName: bool
 
+
 class _Text2VecNvidiaConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_NVIDIA, frozen=True, exclude=True
@@ -366,6 +367,7 @@ class _Text2VecNvidiaConfig(_VectorizerConfigCreate):
     baseURL: Optional[str]
     truncate: Optional[bool]
     vectorizeClassName: bool
+
 
 class _Text2VecWeaviateConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
@@ -496,6 +498,7 @@ class _Multi2VecVoyageaiConfig(_Multi2VecBase):
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
         return ret_dict
+
 
 class _Multi2VecNvidiaConfig(_Multi2VecBase):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
@@ -895,7 +898,7 @@ class _Vectorizer:
             imageFields=_map_multi2vec_fields(image_fields),
             textFields=_map_multi2vec_fields(text_fields),
         )
-    
+
     @staticmethod
     def multi2vec_nvidia(
         *,

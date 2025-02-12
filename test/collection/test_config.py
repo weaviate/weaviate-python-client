@@ -446,7 +446,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
             }
         },
     ),
-        (
+    (
         Configure.Vectorizer.text2vec_nvidia(
             vectorize_collection_name=False,
             model="nvidia/nv-embed-v1",
@@ -1624,7 +1624,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             }
         },
     ),
-        (
+    (
         [
             Configure.NamedVectors.text2vec_nvidia(
                 name="test", source_properties=["prop"], truncate=True
