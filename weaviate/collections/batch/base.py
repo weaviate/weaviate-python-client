@@ -1,3 +1,4 @@
+import asyncio
 import math
 import threading
 import time
@@ -161,11 +162,12 @@ class _BatchBase:
         batch_mode: _BatchMode,
         event_loop: _EventLoop,
         vectorizer_batching: bool,
-        objects_: Optional[ObjectsBatchRequest] = None,
+        objects: Optional[ObjectsBatchRequest] = None,
         references: Optional[ReferencesBatchRequest] = None,
     ) -> None:
-        self.__batch_objects = objects_ or ObjectsBatchRequest()
+        self.__batch_objects = objects or ObjectsBatchRequest()
         self.__batch_references = references or ReferencesBatchRequest()
+
         self.__connection = connection
         self.__consistency_level: Optional[ConsistencyLevel] = consistency_level
         self.__vectorizer_batching = vectorizer_batching
@@ -174,14 +176,11 @@ class _BatchBase:
         self.__batch_rest = _BatchREST(connection, self.__consistency_level)
 
         # lookup table for objects that are currently being processed - is used to not send references from objects that have not been added yet
-        self.__uuid_lookup_lock = threading.Lock()
         self.__uuid_lookup: Set[str] = set()
 
         # we do not want that users can access the results directly as they are not thread-safe
         self.__results_for_wrapper_backup = results
         self.__results_for_wrapper = _BatchDataWrapper()
-
-        self.__results_lock = threading.Lock()
 
         self.__cluster = _ClusterBatch(self.__connection)
 
@@ -221,7 +220,6 @@ class _BatchBase:
         self.__recommended_num_refs: int = 50
 
         self.__active_requests = 0
-        self.__active_requests_lock = threading.Lock()
 
         # dynamic batching
         self.__time_last_scale_up: float = 0
@@ -233,8 +231,20 @@ class _BatchBase:
         # do 62 secs to give us some buffer to the "per-minute" calculation
         self.__fix_rate_batching_base_time = 62
 
+        self.__loop.run_until_complete(self.__make_asyncio_locks)
+
         self.__bg_thread = self.__start_bg_threads()
         self.__bg_thread_exception: Optional[Exception] = None
+
+    async def __make_asyncio_locks(self) -> None:
+        """Create the locks in the context of the running event loop so that internal `asyncio.get_event_loop()` calls work."""
+        self.__active_requests_lock = asyncio.Lock()
+        self.__uuid_lookup_lock = asyncio.Lock()
+        self.__results_lock = asyncio.Lock()
+
+    async def __release_asyncio_lock(self, lock: asyncio.Lock) -> None:
+        """Release the lock in the context of the running event loop so that internal `asyncio.get_event_loop()` calls work."""
+        return lock.release()
 
     @property
     def number_errors(self) -> int:
@@ -292,16 +302,35 @@ class _BatchBase:
                 self.__time_stamp_last_request = time.time()
 
                 self._batch_send = True
-                self.__active_requests_lock.acquire()
+                self.__loop.run_until_complete(self.__active_requests_lock.acquire)
                 self.__active_requests += 1
-                self.__active_requests_lock.release()
+                self.__loop.run_until_complete(
+                    self.__release_asyncio_lock, self.__active_requests_lock
+                )
+
+                start = time.time()
+                while (len_o := len(self.__batch_objects)) < self.__recommended_num_objects and (
+                    len_r := len(self.__batch_references)
+                ) < self.__recommended_num_refs:
+                    # wait for more objects to be added up to the recommended number
+                    time.sleep(0.01)
+                    if (
+                        self.__shut_background_thread_down is not None
+                        and self.__shut_background_thread_down.is_set()
+                    ):
+                        # shutdown was requested, exit the loop
+                        break
+                    if time.time() - start >= 1 and (
+                        len_o == len(self.__batch_objects) or len_r == len(self.__batch_references)
+                    ):
+                        # no new objects were added in the last second, exit the loop
+                        break
 
                 objs = self.__batch_objects.pop_items(self.__recommended_num_objects)
-                self.__uuid_lookup_lock.acquire()
                 refs = self.__batch_references.pop_items(
-                    self.__recommended_num_refs, uuid_lookup=self.__uuid_lookup
+                    self.__recommended_num_refs,
+                    uuid_lookup=self.__uuid_lookup,
                 )
-                self.__uuid_lookup_lock.release()
                 # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
                 self.__loop.schedule(
                     self.__send_batch,
@@ -349,6 +378,7 @@ class _BatchBase:
             try:
                 self.__batch_send()
             except Exception as e:
+                logger.error(e)
                 self.__bg_thread_exception = e
 
         demonBatchSend = threading.Thread(
@@ -357,6 +387,7 @@ class _BatchBase:
             name="BgBatchScheduler",
         )
         demonBatchSend.start()
+
         return demonBatchSend
 
     def __dynamic_batching(self) -> None:
@@ -459,10 +490,24 @@ class _BatchBase:
                 response_obj = await self.__batch_grpc.objects(
                     objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
+                if response_obj.has_errors:
+                    logger.error(
+                        {
+                            "message": f"Failed to send {len(response_obj.errors)} in a batch of {len(objs)}",
+                            "errors": {err.message for err in response_obj.errors.values()},
+                        }
+                    )
             except Exception as e:
                 errors_obj = {
-                    idx: ErrorObject(message=repr(e), object_=obj) for idx, obj in enumerate(objs)
+                    idx: ErrorObject(message=repr(e), object_=BatchObject._from_internal(obj))
+                    for idx, obj in enumerate(objs)
                 }
+                logger.error(
+                    {
+                        "message": f"Failed to send all objects in a batch of {len(objs)}",
+                        "error": repr(e),
+                    }
+                )
                 response_obj = BatchObjectReturn(
                     _all_responses=list(errors_obj.values()),
                     elapsed_seconds=time.time() - start,
@@ -509,7 +554,9 @@ class _BatchBase:
                 )
 
                 readd_objects = [
-                    err.object_ for i, err in response_obj.errors.items() if i in readded_objects
+                    err.object_._to_internal()
+                    for i, err in response_obj.errors.items()
+                    if i in readded_objects
                 ]
                 readded_uuids = {obj.uuid for obj in readd_objects}
 
@@ -541,8 +588,8 @@ class _BatchBase:
                     )
                 else:
                     # sleep a bit to recover from the rate limit in other cases
-                    time.sleep(2**highest_retry_count)
-            self.__uuid_lookup_lock.acquire()
+                    await asyncio.sleep(2**highest_retry_count)
+            await self.__uuid_lookup_lock.acquire()
             self.__uuid_lookup.difference_update(
                 obj.uuid for obj in objs if obj.uuid not in readded_uuids
             )
@@ -561,7 +608,7 @@ class _BatchBase:
                         "message": "There have been more than 30 failed object batches. Further errors will not be logged.",
                     }
                 )
-            self.__results_lock.acquire()
+            await self.__results_lock.acquire()
             self.__results_for_wrapper.results.objs += response_obj
             self.__results_for_wrapper.failed_objects.extend(response_obj.errors.values())
             self.__results_lock.release()
@@ -573,7 +620,9 @@ class _BatchBase:
                 response_ref = await self.__batch_rest.references(references=refs)
             except Exception as e:
                 errors_ref = {
-                    idx: ErrorReference(message=repr(e), reference=ref)
+                    idx: ErrorReference(
+                        message=repr(e), reference=BatchReference._from_internal(ref)
+                    )
                     for idx, ref in enumerate(refs)
                 }
                 response_ref = BatchReferenceReturn(
@@ -595,12 +644,12 @@ class _BatchBase:
                         "message": "There have been more than 30 failed reference batches. Further errors will not be logged.",
                     }
                 )
-            self.__results_lock.acquire()
+            await self.__results_lock.acquire()
             self.__results_for_wrapper.results.refs += response_ref
             self.__results_for_wrapper.failed_references.extend(response_ref.errors.values())
             self.__results_lock.release()
 
-        self.__active_requests_lock.acquire()
+        await self.__active_requests_lock.acquire()
         self.__active_requests -= 1
         self.__active_requests_lock.release()
 
@@ -641,9 +690,7 @@ class _BatchBase:
             )
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
-        self.__uuid_lookup_lock.acquire()
         self.__uuid_lookup.add(str(batch_object.uuid))
-        self.__uuid_lookup_lock.release()
         self.__batch_objects.add(batch_object._to_internal())
 
         # block if queue gets too long or weaviate is overloaded - reading files is faster them sending them so we do

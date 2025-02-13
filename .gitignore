@@ -7,6 +7,7 @@ weaviate_client.egg-info
 tmp
 build/
 docs/_build
+docs/html
 *.pyc
 ./docker-compose.yml
 .DS_Store
@@ -25,3 +26,4 @@ scratch/
 
 *-test.sh
 *.hdf5
+*.jsonl

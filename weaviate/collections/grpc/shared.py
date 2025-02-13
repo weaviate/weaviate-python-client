@@ -4,6 +4,8 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.connect import ConnectionV4
 from weaviate.proto.v1 import base_pb2
 
+PERMISSION_DENIED = "PERMISSION_DENIED"
+
 
 class _BaseGRPC:
     def __init__(

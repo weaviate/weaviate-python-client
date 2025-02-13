@@ -21,6 +21,8 @@ from weaviate.collections.classes.config_vectorizers import (
     _Img2VecNeuralConfig,
     _Multi2VecBindConfig,
     _Multi2VecClipConfig,
+    _Multi2VecVoyageaiConfig,
+    _Multi2VecNvidiaConfig,
     _Multi2VecGoogleConfig,
     _Ref2VecCentroidConfig,
     _Text2VecAWSConfig,
@@ -31,6 +33,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecHuggingFaceConfig,
     _Text2VecJinaConfig,
     _Text2VecMistralConfig,
+    _Text2VecNvidiaConfig,
     _Text2VecOllamaConfig,
     _Text2VecOpenAIConfig,
     _Text2VecGoogleConfig,
@@ -48,6 +51,7 @@ from weaviate.collections.classes.config_vectorizers import (
     OpenAIType,
     Vectorizers,
     VoyageModel,
+    VoyageMultimodalModel,
     _map_multi2vec_fields,
     _VectorizerCustomConfig,
     _Text2VecDatabricksConfig,
@@ -756,6 +760,112 @@ class _NamedVectors:
         )
 
     @staticmethod
+    def multi2vec_voyageai(
+        name: str,
+        *,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+        model: Optional[Union[VoyageMultimodalModel, str]] = None,
+        truncation: Optional[bool] = None,
+        output_encoding: Optional[str] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `multi2vec_voyageai` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings-multimodal)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `truncation`
+                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the `VoyageaiMultimodalModel` type.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecVoyageaiConfig(
+                baseURL=base_url,
+                model=model,
+                truncation=truncation,
+                output_encoding=output_encoding,
+                vectorizeClassName=vectorize_collection_name,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def multi2vec_nvidia(
+        name: str,
+        *,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+        model: Optional[str] = None,
+        truncation: Optional[bool] = None,
+        output_encoding: Optional[str] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `multi2vec_nvidia` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings-multimodal)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `truncation`
+                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the `NvidiaMultimodalModel` type.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecNvidiaConfig(
+                baseURL=base_url,
+                model=model,
+                truncation=truncation,
+                output_encoding=output_encoding,
+                vectorizeClassName=vectorize_collection_name,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
     def ref2vec_centroid(
         name: str,
         reference_properties: List[str],
@@ -793,10 +903,11 @@ class _NamedVectors:
         resource_name: str,
         deployment_id: str,
         *,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        source_properties: Optional[List[str]] = None,
-        vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
+        dimensions: Optional[int] = None,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec_azure_openai` model.
 
@@ -806,6 +917,14 @@ class _NamedVectors:
         Arguments:
             `name`
                 The name of the named vector.
+            `resource_name`
+                The resource name to use, REQUIRED.
+            `deployment_id`
+                The deployment ID to use, REQUIRED.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
             `source_properties`
                 Which properties should be included when vectorizing. By default all text properties are included.
             `vector_index_config`
@@ -818,6 +937,7 @@ class _NamedVectors:
             source_properties=source_properties,
             vectorizer=_Text2VecAzureOpenAIConfig(
                 baseURL=base_url,
+                dimensions=dimensions,
                 resourceName=resource_name,
                 deploymentId=deployment_id,
                 vectorizeClassName=vectorize_collection_name,
@@ -1025,6 +1145,53 @@ class _NamedVectors:
             vectorizer=_Text2VecGoogleConfig(
                 projectId=project_id,
                 apiEndpoint=api_endpoint,
+                modelId=model_id,
+                vectorizeClassName=vectorize_collection_name,
+                titleProperty=title_property,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2vec_google_aistudio(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model_id: Optional[str] = None,
+        title_property: Optional[str] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `text2vec_palm` model.
+
+        See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model_id`
+                The model ID to use. Defaults to `None`, which uses the server-defined default.
+            `title_property`
+                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
+
+        Raises:
+            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecGoogleConfig(
+                projectId=None,
+                apiEndpoint="generativelanguage.googleapis.com",
                 modelId=model_id,
                 vectorizeClassName=vectorize_collection_name,
                 titleProperty=title_property,
@@ -1242,6 +1409,52 @@ class _NamedVectors:
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 dimensions=dimensions,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2vec_nvidia(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        truncate: Optional[bool] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `text2vec-nvidia` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+                See the
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings#available-models) for more details.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecNvidiaConfig(
+                model=model,
+                vectorizeClassName=vectorize_collection_name,
+                baseURL=base_url,
+                truncate=truncate,
             ),
             vector_index_config=vector_index_config,
         )

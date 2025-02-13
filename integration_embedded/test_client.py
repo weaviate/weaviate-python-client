@@ -158,3 +158,37 @@ def test_embedded_startup_with_blocked_grpc_port(tmp_path_factory: pytest.TempPa
             )
     finally:
         client.close()
+
+
+def test_embedded_create_restore_backup(tmp_path_factory: pytest.TempPathFactory) -> None:
+    num_objects = 10
+    collection_name = "BackedUp"
+    backup_id = "backup0"
+
+    client = weaviate.connect_to_embedded(
+        persistence_data_path=tmp_path_factory.mktemp("data"),
+        port=8164,
+        grpc_port=50500,
+        environment_variables={
+            "ENABLE_MODULES": "backup-filesystem",
+            "BACKUP_FILESYSTEM_PATH": tmp_path_factory.mktemp("backup"),
+            "DISABLE_TELEMETRY": "true",
+        },
+        version="latest",
+    )
+
+    try:
+        col = client.collections.create(collection_name)
+        with col.batch.dynamic() as batch:
+            for i in range(num_objects):
+                batch.add_object(properties={"text": f"text-{i}"})
+        assert len(col) == num_objects
+
+        col.backup.create(backup_id=backup_id, backend="filesystem", wait_for_completion=True)
+        client.collections.delete(collection_name)
+        col.backup.restore(backup_id=backup_id, backend="filesystem", wait_for_completion=True)
+
+        assert len(col) == num_objects
+        client.collections.delete(collection_name)
+    finally:
+        client.close()
