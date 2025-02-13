@@ -132,7 +132,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "truncation": False,
                 "output_encoding": "base64",
                 "vectorizeClassName": False,
-                "baseURL": "https://integrate.api.nvidia.com",
+                "baseURL": "https://integrate.api.nvidia.com/",
             }
         },
     ),
