@@ -132,7 +132,6 @@ class Vectorizers(str, Enum):
     TEXT2VEC_TRANSFORMERS = "text2vec-transformers"
     TEXT2VEC_JINAAI = "text2vec-jinaai"
     TEXT2VEC_VOYAGEAI = "text2vec-voyageai"
-    TEXT2VEC_NVIDIA = "text2vec-nvidia"
     TEXT2VEC_WEAVIATE = "text2vec-weaviate"
     IMG2VEC_NEURAL = "img2vec-neural"
     MULTI2VEC_CLIP = "multi2vec-clip"
