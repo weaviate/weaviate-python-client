@@ -782,6 +782,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-openai": {}},
     ),
     (
+        Configure.Generative.nvidia(),
+        {"generative-nvidia": {}},
+    ),
+    (
         Configure.Generative.anyscale(),
         {"generative-anyscale": {}},
     ),
