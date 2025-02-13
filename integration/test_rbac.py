@@ -91,25 +91,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             ),
         ),
         (
-            Permissions.nodes(collection="test", read=True, verbosity="minimal"),
-            Role(
-                name="MinimalNodes",
-                cluster_permissions=[],
-                users_permissions=[],
-                collections_permissions=[],
-                roles_permissions=[],
-                data_permissions=[],
-                backups_permissions=[],
-                nodes_permissions=[
-                    NodesPermissionOutput(
-                        verbosity="minimal", actions={Actions.Nodes.READ}, collection="*"
-                    )
-                ],
-                tenants_permissions=[],
-            ),
-        ),
-        (
-            Permissions.nodes(verbosity="verbose", collection="Test", read=True),
+            Permissions.Nodes.verbose(collection="Test", read=True),
             Role(
                 name="VerboseNodes",
                 cluster_permissions=[],
@@ -121,6 +103,24 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[
                     NodesPermissionOutput(
                         verbosity="verbose", actions={Actions.Nodes.READ}, collection="Test"
+                    )
+                ],
+                tenants_permissions=[],
+            ),
+        ),
+        (
+            Permissions.Nodes.minimal(read=True),
+            Role(
+                name="VerboseNodes",
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[
+                    NodesPermissionOutput(
+                        verbosity="minimal", actions={Actions.Nodes.READ}, collection="*"
                     )
                 ],
                 tenants_permissions=[],
