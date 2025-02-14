@@ -111,7 +111,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
         (
             Permissions.Nodes.minimal(read=True),
             Role(
-                name="VerboseNodes",
+                name="MinimalNodes",
                 cluster_permissions=[],
                 users_permissions=[],
                 collections_permissions=[],

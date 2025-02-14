@@ -540,7 +540,7 @@ class NodesPermissions:
 
         if read:
             permissions: List[_Permission] = [
-                _NodesPermission(collection="*", verbosity="minimal", actions=set())
+                _NodesPermission(collection="*", verbosity="minimal", actions={NodesAction.READ})
             ]
             return permissions
         return []
