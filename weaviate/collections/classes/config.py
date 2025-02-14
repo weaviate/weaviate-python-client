@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import (
     Any,
     ClassVar,
@@ -52,8 +51,9 @@ from weaviate.collections.classes.config_vectorizers import VectorDistances as V
 from weaviate.collections.classes.config_vectorizers import Vectorizers as VectorizersAlias
 from weaviate.collections.classes.config_vectorizers import _Vectorizer, _VectorizerConfigCreate
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
-from ...warnings import _Warnings
+from weaviate.warnings import _Warnings
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
@@ -66,7 +66,7 @@ AWSService: TypeAlias = Literal[
 ]
 
 
-class ConsistencyLevel(str, Enum):
+class ConsistencyLevel(str, BaseEnum):
     """The consistency levels when writing to Weaviate with replication enabled.
 
     Attributes:
@@ -80,7 +80,7 @@ class ConsistencyLevel(str, Enum):
     QUORUM = "QUORUM"
 
 
-class DataType(str, Enum):
+class DataType(str, BaseEnum):
     """The available primitive data types in Weaviate.
 
     Attributes:
@@ -122,7 +122,7 @@ class DataType(str, Enum):
     OBJECT_ARRAY = "object[]"
 
 
-class Tokenization(str, Enum):
+class Tokenization(str, BaseEnum):
     """The available inverted index tokenization methods for text properties in Weaviate.
 
     Attributes:
@@ -154,7 +154,7 @@ class Tokenization(str, Enum):
     KAGOME_KR = "kagome_kr"
 
 
-class GenerativeSearches(str, Enum):
+class GenerativeSearches(str, BaseEnum):
     """The available generative search modules in Weaviate.
 
     These modules generate text from text-based inputs.
@@ -195,7 +195,7 @@ class GenerativeSearches(str, Enum):
     PALM = "generative-palm"  # rename to google once all versions support it
 
 
-class Rerankers(str, Enum):
+class Rerankers(str, BaseEnum):
     """The available reranker modules in Weaviate.
 
     These modules rerank the results of a search query.
@@ -221,7 +221,7 @@ class Rerankers(str, Enum):
     JINAAI = "reranker-jinaai"
 
 
-class StopwordsPreset(str, Enum):
+class StopwordsPreset(str, BaseEnum):
     """Preset stopwords to use in the `Stopwords` class.
 
     Attributes:
@@ -235,7 +235,7 @@ class StopwordsPreset(str, Enum):
     EN = "en"
 
 
-class ReplicationDeletionStrategy(str, Enum):
+class ReplicationDeletionStrategy(str, BaseEnum):
     """How object deletions in multi node environments should be resolved.
 
     Attributes:
@@ -250,7 +250,7 @@ class ReplicationDeletionStrategy(str, Enum):
     TIME_BASED_RESOLUTION = "TimeBasedResolution"
 
 
-class PQEncoderType(str, Enum):
+class PQEncoderType(str, BaseEnum):
     """Type of the PQ encoder.
 
     Attributes:
@@ -264,7 +264,7 @@ class PQEncoderType(str, Enum):
     TILE = "tile"
 
 
-class PQEncoderDistribution(str, Enum):
+class PQEncoderDistribution(str, BaseEnum):
     """Distribution of the PQ encoder.
 
     Attributes:
@@ -278,7 +278,7 @@ class PQEncoderDistribution(str, Enum):
     NORMAL = "normal"
 
 
-class MultiVectorAggregation(str, Enum):
+class MultiVectorAggregation(str, BaseEnum):
     """Aggregation type to use for multivector indices.
 
     Attributes:
