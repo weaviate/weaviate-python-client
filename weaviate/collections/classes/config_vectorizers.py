@@ -99,6 +99,8 @@ class Vectorizers(str, Enum):
             Weaviate module backed by Jina AI text-based embedding models.
         `TEXT2VEC_VOYAGEAI`
             Weaviate module backed by Voyage AI text-based embedding models.
+        `TEXT2VEC_NVIDIA`
+            Weaviate module backed by NVIDIA text-based embedding models.
         `TEXT2VEC_WEAVIATE`
             Weaviate module backed by Weaviate's self-hosted text-based embedding models.
         `IMG2VEC_NEURAL`
@@ -111,6 +113,8 @@ class Vectorizers(str, Enum):
             Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
         `MULTI2VEC_VOYAGEAI`
             Weaviate module backed by a Voyage AI multimodal embedding models.
+        `MULTI2VEC_NVIDIA`
+            Weaviate module backed by NVIDIA multimodal embedding models.
         `REF2VEC_CENTROID`
             Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
     """
@@ -124,6 +128,7 @@ class Vectorizers(str, Enum):
     TEXT2VEC_GPT4ALL = "text2vec-gpt4all"
     TEXT2VEC_HUGGINGFACE = "text2vec-huggingface"
     TEXT2VEC_MISTRAL = "text2vec-mistral"
+    TEXT2VEC_NVIDIA = "text2vec-nvidia"
     TEXT2VEC_OLLAMA = "text2vec-ollama"
     TEXT2VEC_OPENAI = "text2vec-openai"
     TEXT2VEC_PALM = "text2vec-palm"  # change to google once 1.27 is the lowest supported version
@@ -138,6 +143,7 @@ class Vectorizers(str, Enum):
     MULTI2VEC_BIND = "multi2vec-bind"
     MULTI2VEC_PALM = "multi2vec-palm"  # change to google once 1.27 is the lowest supported version
     MULTI2VEC_VOYAGEAI = "multi2vec-voyageai"
+    MULTI2VEC_NVIDIA = "multi2vec-nvidia"
     REF2VEC_CENTROID = "ref2vec-centroid"
 
 
@@ -364,6 +370,16 @@ class _Text2VecVoyageConfig(_VectorizerConfigCreate):
     vectorizeClassName: bool
 
 
+class _Text2VecNvidiaConfig(_VectorizerConfigCreate):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.TEXT2VEC_NVIDIA, frozen=True, exclude=True
+    )
+    model: Optional[str]
+    baseURL: Optional[str]
+    truncate: Optional[bool]
+    vectorizeClassName: bool
+
+
 class _Text2VecWeaviateConfig(_VectorizerConfigCreate):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.TEXT2VEC_WEAVIATE, frozen=True, exclude=True
@@ -482,6 +498,22 @@ class _Multi2VecBindConfig(_Multi2VecBase):
 class _Multi2VecVoyageaiConfig(_Multi2VecBase):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
         default=Vectorizers.MULTI2VEC_VOYAGEAI, frozen=True, exclude=True
+    )
+    baseURL: Optional[AnyHttpUrl]
+    model: Optional[str]
+    truncation: Optional[bool]
+    output_encoding: Optional[str]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
+
+class _Multi2VecNvidiaConfig(_Multi2VecBase):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.MULTI2VEC_NVIDIA, frozen=True, exclude=True
     )
     baseURL: Optional[AnyHttpUrl]
     model: Optional[str]
@@ -869,6 +901,51 @@ class _Vectorizer:
             `pydantic.ValidationError` if `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _Multi2VecVoyageaiConfig(
+            baseURL=base_url,
+            model=model,
+            truncation=truncation,
+            output_encoding=output_encoding,
+            vectorizeClassName=vectorize_collection_name,
+            imageFields=_map_multi2vec_fields(image_fields),
+            textFields=_map_multi2vec_fields(text_fields),
+        )
+
+    @staticmethod
+    def multi2vec_nvidia(
+        *,
+        model: Optional[str] = None,
+        truncation: Optional[bool] = None,
+        output_encoding: Optional[str],
+        vectorize_collection_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Multi2VecNvidiaConfig` object for use when vectorizing using the `multi2vec-nvidia` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings-multimodal)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            `output_encoding`
+                Format in which the embeddings are encoded. Defaults to `None`, so the embeddings are represented as a list of floating-point numbers.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the `NvidiaMultimodalModel` type or if `truncate` is not a valid value from the `NvidiaTruncation` type.
+        """
+        return _Multi2VecNvidiaConfig(
             baseURL=base_url,
             model=model,
             truncation=truncation,
@@ -1431,4 +1508,36 @@ class _Vectorizer:
             baseURL=base_url,
             vectorizeClassName=vectorize_collection_name,
             dimensions=dimensions,
+        )
+
+    @staticmethod
+    def text2vec_nvidia(
+        *,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        truncate: Optional[bool] = None,
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
+        """Create a `_Text2VecNvidiaConfigCreate` object for use when vectorizing using the `text2vec-nvidia` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+                See the
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings#available-models) for more details.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+        """
+        return _Text2VecNvidiaConfig(
+            model=model,
+            baseURL=base_url,
+            truncate=truncate,
+            vectorizeClassName=vectorize_collection_name,
         )

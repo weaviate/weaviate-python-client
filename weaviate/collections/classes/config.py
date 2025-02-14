@@ -175,6 +175,8 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by FriendliAI generative models.
         `MISTRAL`
             Weaviate module backed by Mistral generative models.
+        `NVIDIA`
+            Weaviate module backed by NVIDIA generative models.
         `OLLAMA`
             Weaviate module backed by generative models deployed on Ollama infrastructure.
         `OPENAI`
@@ -190,6 +192,7 @@ class GenerativeSearches(str, Enum):
     DATABRICKS = "generative-databricks"
     FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
+    NVIDIA = "generative-nvidia"
     OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
     PALM = "generative-palm"  # rename to google once all versions support it
@@ -472,6 +475,16 @@ class _GenerativeMistral(_GenerativeProvider):
     maxTokens: Optional[int]
 
 
+class _GenerativeNvidia(_GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
+    )
+    temperature: Optional[float]
+    model: Optional[str]
+    maxTokens: Optional[int]
+    baseURL: Optional[str]
+
+
 class _GenerativeFriendliai(_GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
@@ -736,6 +749,31 @@ class _Generative:
                 The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
+
+    @staticmethod
+    def nvidia(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> _GenerativeProvider:
+        """
+        Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
+
+        Arguments:
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeNvidia(
+            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
 
     @staticmethod
     def ollama(

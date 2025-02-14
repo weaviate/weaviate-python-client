@@ -119,6 +119,24 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.multi2vec_nvidia(
+            model="nvidia/nvclip",
+            truncation=False,
+            output_encoding="base64",
+            vectorize_collection_name=False,
+            base_url="https://integrate.api.nvidia.com",
+        ),
+        {
+            "multi2vec-nvidia": {
+                "model": "nvidia/nvclip",
+                "truncation": False,
+                "output_encoding": "base64",
+                "vectorizeClassName": False,
+                "baseURL": "https://integrate.api.nvidia.com/",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_gpt4all(),
         {
             "text2vec-gpt4all": {
@@ -424,6 +442,22 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "vectorizeClassName": False,
                 "model": "voyage-large-2",
                 "baseURL": "https://voyage.made-up.com",
+                "truncate": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_nvidia(
+            vectorize_collection_name=False,
+            model="nvidia/nv-embed-v1",
+            truncate=False,
+            base_url="https://integrate.api.nvidia.com",
+        ),
+        {
+            "text2vec-nvidia": {
+                "vectorizeClassName": False,
+                "model": "nvidia/nv-embed-v1",
+                "baseURL": "https://integrate.api.nvidia.com",
                 "truncate": False,
             }
         },
@@ -762,6 +796,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
     (
         Configure.Generative.openai(),
         {"generative-openai": {}},
+    ),
+    (
+        Configure.Generative.nvidia(),
+        {"generative-nvidia": {}},
     ),
     (
         Configure.Generative.anyscale(),
@@ -1355,6 +1393,20 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        [Configure.NamedVectors.multi2vec_nvidia(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-nvidia": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [
             Configure.NamedVectors.multi2vec_jinaai(
                 name="test", dimensions=256, text_fields=["prop"]
@@ -1583,6 +1635,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-voyageai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "truncate": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_nvidia(
+                name="test", source_properties=["prop"], truncate=True
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-nvidia": {
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "truncate": True,
