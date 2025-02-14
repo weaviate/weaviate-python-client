@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Union, cast
 from weaviate.collections.classes.config import (
     _BQConfig,
     _SQConfig,
+    _LASQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _NamedVectorConfig,
@@ -117,8 +118,8 @@ def __get_vector_index_type(schema: Dict[str, Any]) -> Optional[VectorIndexType]
 
 def __get_quantizer_config(
     config: Dict[str, Any]
-) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig]]:
-    quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig]] = None
+) -> Optional[Union[_PQConfig, _BQConfig, _SQConfig, _LASQConfig]]:
+    quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig, _LASQConfig]] = None
     if "bq" in config and config["bq"]["enabled"]:
         # values are not present for bq+hnsw
         quantizer = _BQConfig(
@@ -144,6 +145,11 @@ def __get_quantizer_config(
                     config["pq"].get("encoder", {}).get("distribution")
                 ),
             ),
+        )
+    elif "lasq" in config and config["lasq"].get("enabled"):
+        quantizer = _LASQConfig(
+            cache=config["lasq"].get("cache"),
+            training_limit=config["lasq"].get("trainingLimit"),
         )
     return quantizer
 
