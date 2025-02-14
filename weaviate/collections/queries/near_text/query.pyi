@@ -321,7 +321,6 @@ class _NearTextQuery(Generic[Properties, References], _Base[Properties, Referenc
         group_by: Literal[None] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
-        multi_target_fusion_method: Optional[Literal["Sum", "Average", "Minimum"]] = None,
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
