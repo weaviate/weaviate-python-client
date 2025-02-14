@@ -513,7 +513,42 @@ class Actions:
     Users = UsersAction
 
 
+class NodesPermissions:
+    @staticmethod
+    def verbose(
+        *,
+        collection: Union[str, Sequence[str]],
+        read: bool = False,
+    ) -> PermissionsCreateType:
+        permissions: List[_Permission] = []
+        if isinstance(collection, str):
+            collection = [collection]
+        for c in collection:
+            permission = _NodesPermission(collection=c, verbosity="verbose", actions=set())
+
+            if read:
+                permission.actions.add(NodesAction.READ)
+            if len(permission.actions) > 0:
+                permissions.append(permission)
+
+        return permissions
+
+    @staticmethod
+    def minimal(
+        *,
+        read: bool = False,
+    ) -> PermissionsCreateType:
+
+        if read:
+            permissions: List[_Permission] = [
+                _NodesPermission(collection="*", verbosity="minimal", actions={NodesAction.READ})
+            ]
+            return permissions
+        return []
+
+
 class Permissions:
+    Nodes = NodesPermissions
 
     @staticmethod
     def data(
@@ -662,26 +697,6 @@ class Permissions:
                 permission.actions.add(BackupsAction.MANAGE)
             if len(permission.actions) > 0:
                 permissions.append(permission)
-        return permissions
-
-    @staticmethod
-    def nodes(
-        *,
-        collection: Union[str, Sequence[str]],
-        verbosity: Verbosity = "minimal",
-        read: bool = False,
-    ) -> PermissionsCreateType:
-        permissions: List[_Permission] = []
-        if isinstance(collection, str):
-            collection = [collection]
-        for c in collection:
-            permission = _NodesPermission(collection=c, verbosity=verbosity, actions=set())
-
-            if read:
-                permission.actions.add(NodesAction.READ)
-            if len(permission.actions) > 0:
-                permissions.append(permission)
-
         return permissions
 
     @staticmethod
