@@ -133,6 +133,7 @@ class RolesAction(str, _Action, Enum):
 
 
 class UsersAction(str, _Action, Enum):
+    READ = "read_users"
     ASSIGN_AND_REVOKE = "assign_and_revoke_users"
 
     @staticmethod
@@ -629,7 +630,7 @@ class Permissions:
 
     @staticmethod
     def users(
-        *, user: Union[str, Sequence[str]], assign_and_revoke: bool = False
+        *, user: Union[str, Sequence[str]], read: bool = False, assign_and_revoke: bool = False
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
         if isinstance(user, str):
@@ -637,6 +638,8 @@ class Permissions:
         for u in user:
             permission = _UsersPermission(users=u, actions=set())
 
+            if read:
+                permission.actions.add(UsersAction.READ)
             if assign_and_revoke:
                 permission.actions.add(UsersAction.ASSIGN_AND_REVOKE)
 
