@@ -278,6 +278,17 @@ class PQEncoderDistribution(str, Enum):
     NORMAL = "normal"
 
 
+class MultiVectorAggregation(str, Enum):
+    """Aggregation type to use for multivector indices.
+
+    Attributes:
+        `MAX_SIM`
+            Maximum similarity.
+    """
+
+    MAX_SIM = "maxSim"
+
+
 class _PQEncoderConfigCreate(_ConfigCreateModel):
     type_: Optional[PQEncoderType] = Field(serialization_alias="type")
     distribution: Optional[PQEncoderDistribution]
@@ -1990,10 +2001,10 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 class _VectorIndexMultiVector:
     @staticmethod
     def multi_vector(
-        aggregation: Union[Literal["maxSim"], str, None] = None,
+        aggregation: Optional[MultiVectorAggregation] = None,
     ) -> _MultiVectorConfigCreate:
         return _MultiVectorConfigCreate(
-            aggregation=aggregation,
+            aggregation=aggregation.value if aggregation is not None else None,
         )
 
 

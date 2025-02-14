@@ -837,7 +837,9 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
             wvc.config.Configure.NamedVectors.none(
                 name="colbert",
                 vector_index_config=wvc.config.Configure.VectorIndex.hnsw(
-                    multi_vector=wvc.config.Configure.VectorIndex.MultiVector.multi_vector()
+                    multi_vector=wvc.config.Configure.VectorIndex.MultiVector.multi_vector(
+                        aggregation=wvc.config.MultiVectorAggregation.MAX_SIM
+                    )
                 ),
             ),
             wvc.config.Configure.NamedVectors.none(
