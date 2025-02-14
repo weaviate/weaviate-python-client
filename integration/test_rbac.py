@@ -163,12 +163,14 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
             ),
         ),
         (
-            Permissions.users(user="*", assign_and_revoke=True),
+            Permissions.users(user="*", assign_and_revoke=True, read=True),
             Role(
                 name="UserAssignRole",
                 cluster_permissions=[],
                 users_permissions=[
-                    UsersPermissionOutput(users="*", actions={Actions.Users.ASSIGN_AND_REVOKE})
+                    UsersPermissionOutput(
+                        users="*", actions={Actions.Users.ASSIGN_AND_REVOKE, Actions.Users.READ}
+                    )
                 ],
                 collections_permissions=[],
                 roles_permissions=[],
