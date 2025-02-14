@@ -1,3 +1,4 @@
+from weaviate.proto.v1 import aggregate_pb2 as _aggregate_pb2
 from weaviate.proto.v1 import batch_pb2 as _batch_pb2
 from weaviate.proto.v1 import batch_delete_pb2 as _batch_delete_pb2
 from weaviate.proto.v1 import search_get_pb2 as _search_get_pb2

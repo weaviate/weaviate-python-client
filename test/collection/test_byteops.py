@@ -1,4 +1,4 @@
-from weaviate.collections.queries.byteops import _ByteOps
+from weaviate.collections.grpc.shared import _ByteOps
 
 
 def test_decode_float32s():
