@@ -78,6 +78,7 @@ class QueryAgent:
         self,
         query: str,
         view_properties: Optional[List[str]] = None,
+        system_prompt: Optional[str] = None,
         context: Optional[QueryAgentResponse] = None,
     ) -> QueryAgentResponse:
         """Execute a agentic query against the specified collections.
@@ -102,6 +103,7 @@ class QueryAgent:
             "collection_view_properties": view_properties,
             "limit": 20,
             "tenant": None,
+            "system_prompt": system_prompt if system_prompt else None,
             "previous_response": context.model_dump() if context else None,
         }
 
