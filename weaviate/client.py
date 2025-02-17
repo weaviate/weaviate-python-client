@@ -18,6 +18,7 @@ from weaviate.users.sync import _Users
 from .auth import AuthCredentials
 from .client_base import _WeaviateClientBase
 from .collections.batch.client import _BatchClientWrapper
+from .collections.batch.grpc_stream import _BatchStream
 from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections.async_ import _CollectionsAsync
 from .collections.collections.sync import _Collections
@@ -165,7 +166,7 @@ class WeaviateAsyncClient(_WeaviateClientBase):
         We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
         self.roles = _RolesAsync(self._connection)
         """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
-
+        self.stream = _BatchStream(self._connection)
         self.users = _UsersAsync(self._connection)
         """This namespace contains all functionality to manage Weaviate users."""
 

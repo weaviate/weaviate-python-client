@@ -25,6 +25,37 @@ class BatchObjectsRequest(_message.Message):
         consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...,
     ) -> None: ...
 
+class BatchStart(_message.Message):
+    __slots__ = ("consistency_level", "concurrency")
+    CONSISTENCY_LEVEL_FIELD_NUMBER: _ClassVar[int]
+    CONCURRENCY_FIELD_NUMBER: _ClassVar[int]
+    consistency_level: _base_pb2.ConsistencyLevel
+    concurrency: int
+    def __init__(
+        self,
+        consistency_level: _Optional[_Union[_base_pb2.ConsistencyLevel, str]] = ...,
+        concurrency: _Optional[int] = ...,
+    ) -> None: ...
+
+class BatchStop(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class BatchMessage(_message.Message):
+    __slots__ = ("init", "object", "sentinel")
+    INIT_FIELD_NUMBER: _ClassVar[int]
+    OBJECT_FIELD_NUMBER: _ClassVar[int]
+    SENTINEL_FIELD_NUMBER: _ClassVar[int]
+    init: BatchStart
+    object: BatchObject
+    sentinel: BatchStop
+    def __init__(
+        self,
+        init: _Optional[_Union[BatchStart, _Mapping]] = ...,
+        object: _Optional[_Union[BatchObject, _Mapping]] = ...,
+        sentinel: _Optional[_Union[BatchStop, _Mapping]] = ...,
+    ) -> None: ...
+
 class BatchObject(_message.Message):
     __slots__ = ("uuid", "vector", "properties", "collection", "tenant", "vector_bytes", "vectors")
 

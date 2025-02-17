@@ -22,8 +22,9 @@ env:
   WEAVIATE_125: 1.25.30
   WEAVIATE_126: 1.26.14
   WEAVIATE_127: 1.27.12
-  WEAVIATE_128: stable-v1.28-f4a0eeb
-  WEAVIATE_129: 1.29.0-rc.2
+  WEAVIATE_128: 1.28.6
+  WEAVIATE_129: 1.29.0
+  WEAVIATE_130: 1.30.0-dev-bb2ef6e
 
 jobs:
   lint-and-format:
@@ -130,11 +131,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_129},
-          { py: "3.10", weaviate: $WEAVIATE_129},
-          { py: "3.11", weaviate: $WEAVIATE_129},
-          { py: "3.12", weaviate: $WEAVIATE_129},
-          { py: "3.13", weaviate: $WEAVIATE_129}
+          { py: "3.9", weaviate: $WEAVIATE_130},
+          { py: "3.10", weaviate: $WEAVIATE_130},
+          { py: "3.11", weaviate: $WEAVIATE_130},
+          { py: "3.12", weaviate: $WEAVIATE_130},
+          { py: "3.13", weaviate: $WEAVIATE_130}
         ]
         optional_dependencies: [false]
     steps:
@@ -185,11 +186,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_129},
-          { py: "3.10", weaviate: $WEAVIATE_129},
-          { py: "3.11", weaviate: $WEAVIATE_129},
-          { py: "3.12", weaviate: $WEAVIATE_129},
-          { py: "3.13", weaviate: $WEAVIATE_129}
+          { py: "3.9", weaviate: $WEAVIATE_130},
+          { py: "3.10", weaviate: $WEAVIATE_130},
+          { py: "3.11", weaviate: $WEAVIATE_130},
+          { py: "3.12", weaviate: $WEAVIATE_130},
+          { py: "3.13", weaviate: $WEAVIATE_130}
         ]
         optional_dependencies: [false]
     steps:
@@ -280,7 +281,8 @@ jobs:
           $WEAVIATE_126,
           $WEAVIATE_127,
           $WEAVIATE_128,
-          $WEAVIATE_129
+          $WEAVIATE_129,
+          $WEAVIATE_130
         ]
     steps:
       - name: Checkout

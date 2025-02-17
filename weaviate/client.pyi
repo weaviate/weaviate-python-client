@@ -13,6 +13,7 @@ from weaviate.collections.collections.sync import _Collections
 from weaviate.users.users import _UsersAsync
 
 from weaviate.users.sync import _Users
+from .collections.batch import _BatchStream
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
 from .connect import ConnectionV4
@@ -35,6 +36,7 @@ class WeaviateAsyncClient(_WeaviateClientInit):
     cluster: _ClusterAsync
     debug: _DebugAsync
     roles: _RolesAsync
+    stream: _BatchStream
     users: _UsersAsync
     async def close(self) -> None: ...
     async def connect(self) -> None: ...
