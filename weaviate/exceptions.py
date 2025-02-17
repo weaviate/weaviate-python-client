@@ -5,8 +5,8 @@ Weaviate Exceptions.
 from json.decoder import JSONDecodeError
 from typing import Union, Tuple
 
-from grpc.aio import AioRpcError  # type: ignore
 import httpx
+from grpc.aio import AioRpcError  # type: ignore
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
@@ -96,7 +96,7 @@ class ResponseCannotBeDecodedError(WeaviateBaseError):
             `response`:
                 The request response of which the status code was unexpected.
         """
-        msg = f"Cannot decode response from weaviate {response} with content {response.text} for request from {location}"
+        msg = f"Cannot decode response from weaviate {response} with content '{response.text}' for request from {location}"
         super().__init__(msg)
         self._status_code: int = response.status_code
 
