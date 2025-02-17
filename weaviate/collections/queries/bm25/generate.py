@@ -42,7 +42,7 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
-        """Perform retrieval-augmented generation (RaG) on the results of a keyword-based BM25 search of objects in this collection.
+        """Perform retrieval-augmented generation (RAG) on the results of a keyword-based BM25 search of objects in this collection.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
 
@@ -50,12 +50,12 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
             `query`
                 The keyword-based query to search for, REQUIRED. If None, a normal search will be performed.
             `single_prompt`
-                The prompt to use for RaG on each object individually.
+                The prompt to use for generative query on each object individually.
             `grouped_task`
-                The prompt to use for RaG on the entire result set.
+                The prompt to use for generative query on the entire result set.
             `grouped_properties`
-                The properties to use in the RaG on the entire result set.
-            `dynamic_rag`
+                The properties to use in the generative query on the entire result set.
+            `generative_provider`
                 The provider-specific options used to customize the generation step of the RAG query. Use the `DynamicRAG` factory to create a suitably object for your use-case.
             `query_properties`
                 The properties to search in. If not specified, all properties are searched.

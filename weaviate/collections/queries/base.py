@@ -95,6 +95,8 @@ class _Base(Generic[Properties, References]):
             self.__tenant,
             self.__consistency_level,
             validate_arguments=self._validate_arguments,
+            uses_125_api=self.__uses_125_api,
+            uses_127_api=self.__uses_127_api,
         )
 
     def __retrieve_timestamp(

@@ -676,9 +676,8 @@ class GenerativeProvider:
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-        is_azure: Optional[bool] = False,
     ) -> _GenerativeProviderDynamic:
-        """Create a `_GenerativeOpenAI` object for use when performing AI generation using the `generative-openai` module.
+        """Create a `_GenerativeOpenAI` object for use when performing AI generation using the OpenAI-backed `generative-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
         for detailed usage.
@@ -720,5 +719,65 @@ class GenerativeProvider:
             stop=stop,
             temperature=temperature,
             top_p=top_p,
-            is_azure=is_azure or False,
+            is_azure=False,
+        )
+
+    @staticmethod
+    def openai_azure(
+        *,
+        api_version: Optional[str] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+        deployment_id: Optional[str] = None,
+        frequency_penalty: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        presence_penalty: Optional[float] = None,
+        resource_name: Optional[str] = None,
+        stop: Optional[List[str]] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeProviderDynamic:
+        """Create a `_GenerativeOpenAI` object for use when performing AI generation using the Azure-backed `generative-openai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
+        for detailed usage.
+
+        Arguments:
+            `api_version`
+                The API version to use. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            `deployment_id`
+                The deployment ID to use. Defaults to `None`, which uses the server-defined default
+            `frequency_penalty`
+                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `presence_penalty`
+                The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            `resource_name`
+                The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
+            `stop`
+                The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+
+        """
+        return _GenerativeOpenAI(
+            api_version=api_version,
+            base_url=base_url,
+            deployment_id=deployment_id,
+            frequency_penalty=frequency_penalty,
+            max_tokens=max_tokens,
+            model=model,
+            presence_penalty=presence_penalty,
+            resource_name=resource_name,
+            stop=stop,
+            temperature=temperature,
+            top_p=top_p,
+            is_azure=True,
         )

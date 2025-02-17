@@ -37,7 +37,7 @@ class _FetchObjectsByIDsGenerateAsync(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
-        """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects matching the provided IDs in this collection.
+        """Perform retrieval-augmented generation (RAG) on the results of a simple get query of objects matching the provided IDs in this collection.
 
         See the docstring of `fetch_objects` for more information on the arguments.
         """

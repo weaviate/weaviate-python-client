@@ -213,10 +213,10 @@ class _Generative:
         self.generative_provider = generative_provider
 
     def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
-        if server_version.is_lower_than(1, 27, 1):  # TODO: change to 1.28.0 when it drops
+        if server_version.is_lower_than(1, 27, 0):
             if self.generative_provider is not None:
                 raise WeaviateInvalidInputError(
-                    "Dynamic RAG is not supported in this Weaviate version. Please upgrade your server to >=1.28.0"
+                    "Dynamic RAG is not supported in this Weaviate version. Please upgrade your server to >=1.27.0"
                 )
             return generative_pb2.GenerativeSearch(
                 single_response_prompt=self.single,

@@ -42,7 +42,7 @@ class _NearObjectGenerateAsync(Generic[Properties, References], _Base[Properties
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
-        """Perform retrieval-augmented generation (RaG) on the results of a by-object object search in this collection using a vector-based similarity search.
+        """Perform retrieval-augmented generation (RAG) on the results of a by-object object search in this collection using a vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#nearobject) for a more detailed explanation.
 
@@ -50,12 +50,12 @@ class _NearObjectGenerateAsync(Generic[Properties, References], _Base[Properties
             `near_object`
                 The UUID of the object to search on, REQUIRED.
             `single_prompt`
-                The prompt to use for RaG on each object individually.
+                The prompt to use for generative query on each object individually.
             `grouped_task`
-                The prompt to use for RaG on the entire result set.
+                The prompt to use for generative query on the entire result set.
             `grouped_properties`
-                The properties to use in the RaG on the entire result set.
-            `dynamic_rag`
+                The properties to use in the generative query on the entire result set.
+            `generative_provider`
                 The provider-specific options used to customize the generation step of the RAG query. Use the `DynamicRAG` factory to create a suitably object for your use-case.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
