@@ -2,7 +2,6 @@ from typing import List, Optional, Union, cast
 
 from grpc.aio import AioRpcError  # type: ignore
 
-
 from weaviate.collections.classes.batch import (
     DeleteManyObject,
     DeleteManyReturn,
@@ -10,10 +9,10 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
-from weaviate.collections.grpc.shared import _BaseGRPC
+from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
 from weaviate.collections.queries.base import _WeaviateUUIDInt
 from weaviate.connect import ConnectionV4
-from weaviate.exceptions import WeaviateDeleteManyError
+from weaviate.exceptions import WeaviateDeleteManyError, InsufficientPermissionsError
 from weaviate.proto.v1 import batch_delete_pb2
 
 
@@ -26,7 +25,6 @@ class _BatchDeleteGRPC(_BaseGRPC):
     async def batch_delete(
         self, name: str, filters: _Filters, verbose: bool, dry_run: bool, tenant: Optional[str]
     ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
-        metadata = self._get_metadata()
         try:
             assert self._connection.grpc_stub is not None
             res = await self._connection.grpc_stub.BatchDelete(
@@ -38,7 +36,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
                     tenant=tenant,
                     filters=_FilterToGRPC.convert(filters),
                 ),
-                metadata=metadata,
+                metadata=self._connection.grpc_headers(),
                 timeout=self._connection.timeout_config.insert,
             )
             res = cast(batch_delete_pb2.BatchDeleteReply, res)
@@ -64,4 +62,6 @@ class _BatchDeleteGRPC(_BaseGRPC):
                 )
 
         except AioRpcError as e:
+            if e.code().name == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(e)
             raise WeaviateDeleteManyError(str(e))

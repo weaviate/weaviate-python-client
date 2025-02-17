@@ -48,9 +48,10 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.retry import _Retry
-from weaviate.collections.grpc.shared import _BaseGRPC
+from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
+    InsufficientPermissionsError,
     WeaviateQueryError,
     WeaviateUnsupportedFeatureError,
     WeaviateInvalidInputError,
@@ -815,7 +816,11 @@ class _QueryGRPC(_BaseGRPC):
                 timeout=self._connection.timeout_config.query,
             )
             return cast(search_get_pb2.SearchReply, res)
-        except (AioRpcError, WeaviateRetryError) as e:
+        except AioRpcError as e:
+            if e.code().name == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(e)
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+        except WeaviateRetryError as e:
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:

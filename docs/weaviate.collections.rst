@@ -29,14 +29,6 @@ weaviate.collections.aggregate module
    :undoc-members:
    :show-inheritance:
 
-weaviate.collections.base module
---------------------------------
-
-.. automodule:: weaviate.collections.base
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 weaviate.collections.collection module
 --------------------------------------
 
@@ -81,14 +73,6 @@ weaviate.collections.iterator module
 ------------------------------------
 
 .. automodule:: weaviate.collections.iterator
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.collections.orm module
--------------------------------
-
-.. automodule:: weaviate.collections.orm
    :members:
    :undoc-members:
    :show-inheritance:

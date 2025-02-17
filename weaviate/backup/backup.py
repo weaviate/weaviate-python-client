@@ -4,12 +4,12 @@ Backup class definition.
 
 from enum import Enum
 from time import sleep
-from typing import Optional, Union, List, Tuple, Any, Dict
+from typing import Optional, Union, List, Tuple, Dict, Any, cast
 
 from pydantic import BaseModel, Field
-from requests.exceptions import ConnectionError as RequestsConnectionError
 
-from weaviate.connect import Connection, ConnectionV4
+from weaviate.backup.backup_location import _BackupLocationConfig, BackupLocationType
+from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
@@ -63,6 +63,15 @@ class BackupStatus(str, Enum):
 class _BackupConfigBase(BaseModel):
     CPUPercentage: Optional[int] = Field(default=None, alias="cpu_percentage")
 
+    def _to_dict(self) -> Dict[str, Any]:
+        ret = cast(dict, self.model_dump(exclude_none=True))
+
+        for key, val in ret.items():
+            if isinstance(val, _BackupLocationConfig):
+                ret[key] = val._to_dict()
+
+        return ret
+
 
 class BackupConfigCreate(_BackupConfigBase):
     """Options to configure the backup when creating a backup."""
@@ -106,6 +115,7 @@ class _BackupAsync:
         exclude_collections: Optional[Union[List[str], str]] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> BackupReturn:
         """Create a backup of all/per collection Weaviate objects.
 
@@ -126,6 +136,8 @@ class _BackupAsync:
             Whether to wait until the backup is done. By default False.
         config: BackupConfigCreate, optional
             The configuration of the backup creation. By default None.
+        backup_location:
+            The dynamic location of a backup. By default None.
 
         Returns
         -------
@@ -168,7 +180,18 @@ class _BackupAsync:
                 raise WeaviateInvalidInputError(
                     f"Expected 'config' to be of type 'BackupConfigCreate', but got {type(config)}."
                 )
-            payload["config"] = config.model_dump()
+            payload["config"] = config._to_dict()
+
+        if backup_location is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigCreate dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
+                )
+            if "config" not in payload:
+                payload["config"] = {}
+            payload["config"].update(backup_location._to_dict())
 
         path = f"/backups/{backend.value}"
 
@@ -183,8 +206,7 @@ class _BackupAsync:
         if wait_for_completion:
             while True:
                 status = await self.__get_create_status(
-                    backup_id=backup_id,
-                    backend=backend,
+                    backup_id=backup_id, backend=backend, backup_location=backup_location
                 )
                 create_status["status"] = status.status
                 if status.status == BackupStatus.SUCCESS:
@@ -201,7 +223,10 @@ class _BackupAsync:
         return BackupReturn(**create_status)
 
     async def __get_create_status(
-        self, backup_id: str, backend: BackupStorage
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
@@ -209,9 +234,21 @@ class _BackupAsync:
         )
 
         path = f"/backups/{backend.value}/{backup_id}"
+        params: Dict[str, str] = {}
+        if backup_location is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigCreateStatus dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
+                )
+
+            params.update(backup_location._to_dict())
 
         response = await self._connection.get(
-            path=path, error_msg="Backup creation status failed due to connection error."
+            path=path,
+            params=params,
+            error_msg="Backup creation status failed due to connection error.",
         )
 
         typed_response = _decode_json_response_dict(response, "Backup status check")
@@ -220,7 +257,12 @@ class _BackupAsync:
         typed_response["id"] = backup_id
         return BackupStatusReturn(**typed_response)
 
-    async def get_create_status(self, backup_id: str, backend: BackupStorage) -> BackupStatusReturn:
+    async def get_create_status(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
+    ) -> BackupStatusReturn:
         """
         Checks if a started backup job has completed.
 
@@ -231,12 +273,14 @@ class _BackupAsync:
             NOTE: Case insensitive.
         backend : BackupStorage eNUM
             The backend storage where the backup was created.
+        backup_location: BackupLocationType
+            The dynamic location of a backup. By default None.
 
         Returns
         -------
          A `BackupStatusReturn` object that contains the backup creation status response.
         """
-        return await self.__get_create_status(backup_id, backend)
+        return await self.__get_create_status(backup_id, backend, backup_location)
 
     async def restore(
         self,
@@ -246,6 +290,7 @@ class _BackupAsync:
         exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> BackupReturn:
         """
         Restore a backup of all/per collection Weaviate objects.
@@ -268,6 +313,8 @@ class _BackupAsync:
             Whether to wait until the backup restore is done.
         config: BackupConfigRestore, optional
             The configuration of the backup restoration. By default None.
+        backup_location:
+            The dynamic location of a backup. By default None.
 
         Returns
         -------
@@ -307,7 +354,19 @@ class _BackupAsync:
                 raise WeaviateInvalidInputError(
                     f"Expected 'config' to be of type 'BackupConfigRestore', but got {type(config)}."
                 )
-            payload["config"] = config.model_dump()
+            payload["config"] = config._to_dict()
+
+        if backup_location is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigRestore dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
+                )
+
+            if "config" not in payload:
+                payload["config"] = {}
+            payload["config"].update(backup_location._to_dict())
 
         path = f"/backups/{backend.value}/{backup_id}/restore"
         response = await self._connection.post(
@@ -320,8 +379,7 @@ class _BackupAsync:
         if wait_for_completion:
             while True:
                 status = await self.__get_restore_status(
-                    backup_id=backup_id,
-                    backend=backend,
+                    backup_id=backup_id, backend=backend, backup_location=backup_location
                 )
                 restore_status["status"] = status.status
                 if status.status == BackupStatus.SUCCESS:
@@ -339,7 +397,10 @@ class _BackupAsync:
         return BackupReturn(**restore_status)
 
     async def __get_restore_status(
-        self, backup_id: str, backend: BackupStorage
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
@@ -347,8 +408,20 @@ class _BackupAsync:
         )
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
+        params: Dict[str, str] = {}
+        if backup_location is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigRestore status dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
+                )
+            params.update(backup_location._to_dict())
+
         response = await self._connection.get(
-            path=path, error_msg="Backup restore status failed due to connection error."
+            path=path,
+            params=params,
+            error_msg="Backup restore status failed due to connection error.",
         )
         typed_response = _decode_json_response_dict(response, "Backup restore status check")
         if typed_response is None:
@@ -357,34 +430,55 @@ class _BackupAsync:
         return BackupStatusReturn(**typed_response)
 
     async def get_restore_status(
-        self, backup_id: str, backend: BackupStorage
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn:
         """
         Checks if a started restore job has completed.
 
         Parameters
         ----------
-        backup_id : str
+        backup_id:
             The identifier name of the backup.
             NOTE: Case insensitive.
-        backend : BackupStorage
+        backend:
             The backend storage where to create the backup.
+        backup_location:
+            The dynamic location of a backup. By default None.
 
         Returns
         -------
          A `BackupStatusReturn` object that contains the backup restore status response.
         """
-        return await self.__get_restore_status(backup_id, backend)
+        return await self.__get_restore_status(backup_id, backend, backup_location)
 
-    async def __cancel_backup(self, backup_id: str, backend: BackupStorage) -> bool:
+    async def __cancel_backup(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType],
+    ) -> bool:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
             backend=backend,
         )
         path = f"/backups/{backend.value}/{backup_id}"
+        params: Dict[str, str] = {}
+
+        if backup_location is not None:
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
+                raise WeaviateUnsupportedFeatureError(
+                    "BackupConfigCancel dynamic backup location",
+                    str(self._connection._weaviate_version),
+                    "1.27.2",
+                )
+            params.update(backup_location._to_dict())
 
         response = await self._connection.delete(
             path=path,
+            params=params,
             error_msg="Backup cancel failed due to connection error.",
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
         )
@@ -397,17 +491,24 @@ class _BackupAsync:
                 raise EmptyResponseException()
             return False  # did not exist
 
-    async def cancel(self, backup_id: str, backend: BackupStorage) -> bool:
+    async def cancel(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
+    ) -> bool:
         """
         Cancels a running backup.
 
         Parameters
         ----------
-        backup_id : str
+        backup_id:
             The identifier name of the backup.
             NOTE: Case insensitive.
-        backend : BackupStorage
+        backend:
             The backend storage where to create the backup.
+        backup_location:
+            The dynamic location of a backup. By default None.
 
         Raises
         ------
@@ -418,7 +519,7 @@ class _BackupAsync:
         -------
          A bool indicating if the cancellation was successful.
         """
-        return await self.__cancel_backup(backup_id, backend)
+        return await self.__cancel_backup(backup_id, backend, backup_location)
 
     async def __list_backups(self, backend: BackupStorage) -> List[BackupReturn]:
         _, backend = _get_and_validate_get_status(backend=backend, backup_id="dummy")
@@ -447,287 +548,6 @@ class _BackupAsync:
     #      A list of `BackupStatusReturn` objects that contain the backup restore status responses.
     #     """
     #     return await self.__list_backups(backend)
-
-
-class Backup:
-    """
-    Backup class used to schedule and/or check the status of
-    a backup process of Weaviate objects.
-    """
-
-    def __init__(self, connection: Connection):
-        """
-        Initialize a Classification class instance.
-
-        Parameters
-        ----------
-        connection : weaviate.connect.Connection
-            Connection object to an active and running Weaviate instance.
-        """
-
-        self._connection = connection
-
-    def create(
-        self,
-        backup_id: str,
-        backend: str,
-        include_classes: Union[List[str], str, None] = None,
-        exclude_classes: Union[List[str], str, None] = None,
-        wait_for_completion: bool = False,
-    ) -> dict:
-        """
-        Create a backup of all/per class Weaviate objects.
-
-        Parameters
-        ----------
-        backup_id : str
-            The identifier name of the backup.
-            NOTE: Case insensitive.
-        backend : str
-            The backend storage where to create the backup. Currently available options are:
-                "filesystem", "s3", "gcs" and "azure".
-            NOTE: Case insensitive.
-        include_classes : Union[List[str], str, None], optional
-            The class/list of classes to be included in the backup. If not specified all classes
-            will be included. Either `include_classes` or `exclude_classes` can be set.
-            By default None.
-        exclude_classes : Union[List[str], str, None], optional
-            The class/list of classes to be excluded in the backup. Either `include_classes` or
-            `exclude_classes` can be set. By default None.
-        wait_for_completion : bool, optional
-            Whether to wait until the backup is done. By default False.
-
-        Returns
-        -------
-        dict
-            Backup creation response.
-
-        Raises
-        ------
-        requests.ConnectionError
-            If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        TypeError
-            One of the arguments have a wrong type.
-        ValueError
-            'backend' does not have an accepted value.
-        """
-
-        (
-            backup_id,
-            backend,
-            include_classes,
-            exclude_classes,
-        ) = _get_and_validate_create_restore_arguments(
-            backup_id=backup_id,
-            backend=backend,
-            include_classes=include_classes,
-            exclude_classes=exclude_classes,
-            wait_for_completion=wait_for_completion,
-        )
-
-        payload = {
-            "id": backup_id,
-            "include": include_classes,
-            "exclude": exclude_classes,
-        }
-        path = f"/backups/{backend.value}"
-
-        try:
-            response = self._connection.post(
-                path=path,
-                weaviate_object=payload,
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Backup creation failed due to connection error."
-            ) from conn_err
-
-        create_status = _decode_json_response_dict(response, "Backup creation")
-        assert create_status is not None
-        if wait_for_completion:
-            while True:
-                status: dict = self.get_create_status(
-                    backup_id=backup_id,
-                    backend=backend,
-                )
-                create_status.update(status)
-                if status["status"] == "SUCCESS":
-                    break
-                if status["status"] == "FAILED":
-                    raise BackupFailedException(f"Backup failed: {create_status}")
-                sleep(1)
-        return create_status
-
-    def get_create_status(self, backup_id: str, backend: str) -> Dict[str, Any]:
-        """
-        Checks if a started classification job has completed.
-
-        Parameters
-        ----------
-        backup_id : str
-            The identifier name of the backup.
-            NOTE: Case insensitive.
-        backend : str
-            The backend storage where the backup was created. Currently available options are:
-                "filesystem", "s3", "gcs" and "azure".
-            NOTE: Case insensitive.
-
-        Returns
-        -------
-        dict
-            Status of the backup create.
-        """
-
-        backup_id, backend = _get_and_validate_get_status(
-            backup_id=backup_id,
-            backend=backend,
-        )
-
-        path = f"/backups/{backend.value}/{backup_id}"
-
-        try:
-            response = self._connection.get(
-                path=path,
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Backup creation status failed due to connection error."
-            ) from conn_err
-
-        typed_response = _decode_json_response_dict(response, "Backup status check")
-        if typed_response is None:
-            raise EmptyResponseException()
-        return typed_response
-
-    def restore(
-        self,
-        backup_id: str,
-        backend: str,
-        include_classes: Union[List[str], str, None] = None,
-        exclude_classes: Union[List[str], str, None] = None,
-        wait_for_completion: bool = False,
-    ) -> dict:
-        """
-        Restore a backup of all/per class Weaviate objects.
-
-        Parameters
-        ----------
-        backup_id : str
-            The identifier name of the backup.
-            NOTE: Case insensitive.
-        backend : str
-            The backend storage from where to restore the backup. Currently available options are:
-                "filesystem", "s3", "gcs" and "azure".
-            NOTE: Case insensitive.
-        include_classes : Union[List[str], str, None], optional
-            The class/list of classes to be included in the backup restore. If not specified all
-            classes will be included (that were backup-ed). Either `include_classes` or
-            `exclude_classes` can be set. By default None.
-        exclude_classes : Union[List[str], str, None], optional
-            The class/list of classes to be excluded in the backup restore.
-            Either `include_classes` or `exclude_classes` can be set. By default None.
-        wait_for_completion : bool, optional
-            Whether to wait until the backup restore is done.
-
-        Returns
-        -------
-        dict
-            Backup restore response.
-
-        Raises
-        ------
-        requests.ConnectionError
-            If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        """
-
-        (
-            backup_id,
-            backend,
-            include_classes,
-            exclude_classes,
-        ) = _get_and_validate_create_restore_arguments(
-            backup_id=backup_id,
-            backend=backend,
-            include_classes=include_classes,
-            exclude_classes=exclude_classes,
-            wait_for_completion=wait_for_completion,
-        )
-
-        payload = {
-            "config": {},
-            "include": include_classes,
-            "exclude": exclude_classes,
-        }
-        path = f"/backups/{backend.value}/{backup_id}/restore"
-
-        try:
-            response = self._connection.post(
-                path=path,
-                weaviate_object=payload,
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Backup restore failed due to connection error."
-            ) from conn_err
-        restore_status = _decode_json_response_dict(response, "Backup restore")
-        assert restore_status is not None
-        if wait_for_completion:
-            while True:
-                status: dict = self.get_restore_status(
-                    backup_id=backup_id,
-                    backend=backend,
-                )
-                restore_status.update(status)
-                if status["status"] == "SUCCESS":
-                    break
-                if status["status"] == "FAILED":
-                    raise BackupFailedException(f"Backup restore failed: {restore_status}")
-                sleep(1)
-        return restore_status
-
-    def get_restore_status(self, backup_id: str, backend: str) -> Dict[str, Any]:
-        """
-        Checks if a started classification job has completed.
-
-        Parameters
-        ----------
-        backup_id : str
-            The identifier name of the backup.
-            NOTE: Case insensitive.
-        backend : str
-            The backend storage where to create the backup. Currently available options are:
-                "filesystem", "s3", "gcs" and "azure".
-            NOTE: Case insensitive.
-
-        Returns
-        -------
-        dict
-            Status of the backup create.
-        """
-
-        backup_id, backend = _get_and_validate_get_status(
-            backup_id=backup_id,
-            backend=backend,
-        )
-        path = f"/backups/{backend.value}/{backup_id}/restore"
-
-        try:
-            response = self._connection.get(
-                path=path,
-            )
-        except RequestsConnectionError as conn_err:
-            raise RequestsConnectionError(
-                "Backup restore status failed due to connection error."
-            ) from conn_err
-
-        typed_response = _decode_json_response_dict(response, "Backup restore status check")
-        if typed_response is None:
-            raise EmptyResponseException()
-        return typed_response
 
 
 def _get_and_validate_create_restore_arguments(

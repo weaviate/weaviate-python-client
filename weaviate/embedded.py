@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-import requests
+import httpx
 import validators
 
 from weaviate import exceptions
@@ -88,9 +88,7 @@ class _EmbeddedBase:
             self._parsed_weaviate_version = version_tag
             self._set_download_url_from_version_tag(version_tag)
         elif self.options.version == "latest":
-            response = requests.get(
-                "https://api.github.com/repos/weaviate/weaviate/releases/latest"
-            )
+            response = httpx.get("https://api.github.com/repos/weaviate/weaviate/releases/latest")
             latest = _decode_json_response_dict(response, "get tag of latest weaviate release")
             assert latest is not None
             self._set_download_url_from_version_tag(latest["tag_name"])
@@ -207,16 +205,32 @@ class _EmbeddedBase:
         my_env.setdefault("AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED", "true")
         my_env.setdefault("QUERY_DEFAULTS_LIMIT", "20")
         my_env.setdefault("PERSISTENCE_DATA_PATH", self.options.persistence_data_path)
-        # Bug with weaviate requires setting gossip and data bind port
-        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(get_random_port()))
+        my_env.setdefault("PROFILING_PORT", str(get_random_port()))
+        # Limitation with weaviate server requires setting
+        # data_bind_port to gossip_bind_port + 1
+        gossip_bind_port = get_random_port()
+        data_bind_port = gossip_bind_port + 1
+        my_env.setdefault("CLUSTER_GOSSIP_BIND_PORT", str(gossip_bind_port))
+        my_env.setdefault("CLUSTER_DATA_BIND_PORT", str(data_bind_port))
         my_env.setdefault("GRPC_PORT", str(self.grpc_port))
         my_env.setdefault("RAFT_BOOTSTRAP_EXPECT", str(1))
         my_env.setdefault("CLUSTER_IN_LOCALHOST", str(True))
 
-        raft_port = get_random_port()
+        # Each call to `get_random_port()` will likely result in
+        # a port 1 higher than the last time it was called. With
+        # this, we end up with raft_port == gossip_bind_port + 1,
+        # which is the same as data_bind_port. This kind of
+        # configuration leads to failed cross cluster communication.
+        # Although the current version of embedded does not support
+        # multi-node instances, the backup process communication
+        # passes through the internal cluster server, and will fail.
+        #
+        # So we here we ensure that raft_port never collides with
+        # data_bind_port.
+        raft_port = data_bind_port + 1
+        raft_internal_rpc_port = raft_port + 1
         my_env.setdefault("RAFT_PORT", str(raft_port))
-        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(raft_port + 1))
-        my_env.setdefault("PROFILING_PORT", str(get_random_port()))
+        my_env.setdefault("RAFT_INTERNAL_RPC_PORT", str(raft_internal_rpc_port))
 
         my_env.setdefault(
             "ENABLE_MODULES",
@@ -224,8 +238,8 @@ class _EmbeddedBase:
             "reranker-cohere",
         )
 
-        # have a deterministic hostname in case of changes in the network name. This allows to run multiple parallel
-        # instances
+        # have a deterministic hostname in case of changes in the network name.
+        # This allows to run multiple parallel instances
         cluster_hostname = f"Embedded_at_{self.options.port}"
         my_env.setdefault("CLUSTER_HOSTNAME", cluster_hostname)
         my_env.setdefault("RAFT_JOIN", f"{cluster_hostname}:{raft_port}")
@@ -245,6 +259,8 @@ class _EmbeddedBase:
                     str(self.options.port),
                     "--scheme",
                     "http",
+                    "--read-timeout=600s",
+                    "--write-timeout=600s",
                 ],
                 env=my_env,
             )

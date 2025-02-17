@@ -34,3 +34,6 @@ class Node(TypedDict):
     stats: Stats
     status: str
     version: str
+
+
+Verbosity = Literal["minimal", "verbose"]

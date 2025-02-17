@@ -1,8 +1,7 @@
 import datetime
 import os
 import time
-from abc import ABC, abstractmethod
-from typing import Dict, Tuple, TypeVar, Union, cast, Optional
+from typing import Any, Dict, Mapping, Sequence, Tuple, TypeVar, Union, cast, Optional
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
@@ -16,7 +15,7 @@ from weaviate.types import NUMBER
 # from grpclib.client import Channel
 
 
-JSONPayload = Union[dict, list]
+JSONPayload = Union[Mapping[str, Any], Sequence[Any]]
 TIMEOUT_TYPE_RETURN = Tuple[NUMBER, NUMBER]
 MAX_GRPC_MESSAGE_LENGTH = 104858000  # 10mb, needs to be synchronized with GRPC server
 
@@ -112,6 +111,7 @@ class ConnectionParams(BaseModel):
         opts = [
             ("grpc.max_send_message_length", grpc_msg_size),
             ("grpc.max_receive_message_length", grpc_msg_size),
+            ("grpc.default_authority", self.grpc.host),
         ]
 
         if (p := proxies.get("grpc")) is not None:
@@ -139,17 +139,7 @@ class ConnectionParams(BaseModel):
         return f"{self._http_scheme}://{self.http.host}:{self.http.port}"
 
 
-class _ConnectionBase(ABC):
-    @abstractmethod
-    def get_current_bearer_token(self) -> str:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_proxies(self) -> dict:
-        raise NotImplementedError
-
-
-def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> dict:
+def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> Dict[str, str]:
     """
     Get proxies as dict, compatible with 'requests' library.
     NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'

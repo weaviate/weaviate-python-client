@@ -2,51 +2,23 @@
 Client class definition.
 """
 
-import asyncio
 from typing import Optional, Tuple, Union, Dict, Any
-
-from httpx import HTTPError as HttpxError
-from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from weaviate.backup.backup import _BackupAsync
 from weaviate.backup.sync import _Backup
-from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
-
-from weaviate.integrations import _Integrations
-
-from weaviate import syncify
-from .auth import AuthCredentials
-from .backup import Backup
-from .batch import Batch
-from .classification import Classification
-from .cluster import Cluster
+from weaviate.collections.classes.internal import _RawGQLReturn
 from weaviate.collections.collections.async_ import _CollectionsAsync
 from weaviate.collections.collections.sync import _Collections
+
+from weaviate.users.users import _UsersAsync
+
+from weaviate.users.sync import _Users
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
-from .config import AdditionalConfig, Config
-from .connect import Connection, ConnectionV4
-from .connect.base import (
-    ConnectionParams,
-    ProtocolParams,
-    TIMEOUT_TYPE_RETURN,
-)
-from .connect.v4 import _ExpectedStatusCodes
-from .contextionary import Contextionary
-from .data import DataObject
-from .embedded import EmbeddedV3, EmbeddedV4, EmbeddedOptions
-from .exceptions import (
-    UnexpectedStatusCodeError,
-    WeaviateClosedClientError,
-    WeaviateConnectionError,
-)
-from .gql import Query
-from .schema import Schema
-from weaviate.event_loop import _EventLoopSingleton
+from .connect import ConnectionV4
+from .debug import _Debug, _DebugAsync
+from .rbac import _Roles, _RolesAsync
 from .types import NUMBER
-from .util import _decode_json_response_dict, _get_valid_timeout_config, _type_request_response
-from .validator import _validate_input, _ValidateArgument
-from .warnings import _Warnings
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
@@ -58,9 +30,12 @@ from weaviate.client_base import _WeaviateClientInit
 
 class WeaviateAsyncClient(_WeaviateClientInit):
     _connection: ConnectionV4
-    collections: _CollectionsAsync
     backup: _BackupAsync
+    collections: _CollectionsAsync
     cluster: _ClusterAsync
+    debug: _DebugAsync
+    roles: _RolesAsync
+    users: _UsersAsync
     async def close(self) -> None: ...
     async def connect(self) -> None: ...
     def is_connected(self) -> bool: ...
@@ -74,10 +49,14 @@ class WeaviateAsyncClient(_WeaviateClientInit):
 
 class WeaviateClient(_WeaviateClientInit):
     _connection: ConnectionV4
-    collections: _Collections
-    batch: _BatchClientWrapper
     backup: _Backup
+    batch: _BatchClientWrapper
+    collections: _Collections
     cluster: _Cluster
+    debug: _Debug
+    roles: _Roles
+    users: _Users
+
     def close(self) -> None: ...
     def connect(self) -> None: ...
     def is_connected(self) -> bool: ...
@@ -90,30 +69,4 @@ class WeaviateClient(_WeaviateClientInit):
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None: ...
 
 class Client:
-    _connection: Connection
-    classification: Classification
-    schema: Schema
-    contextionary: Contextionary
-    batch: Batch
-    data_object: DataObject
-    query: Query
-    backup: Backup
-    cluster: Cluster
-    @property
-    def timeout_config(self) -> TIMEOUT_TYPE_RETURN: ...
-    def is_ready(self) -> bool: ...
-    def is_live(self) -> bool: ...
-    def get_meta(self) -> dict: ...
-    def get_open_id_configuration(self) -> Optional[Dict[str, Any]]: ...
-    def __init__(
-        self,
-        url: Optional[str] = None,
-        auth_client_secret: Optional[AuthCredentials] = None,
-        timeout_config: TIMEOUT_TYPE = (10, 60),
-        proxies: Union[dict, str, None] = None,
-        trust_env: bool = False,
-        additional_headers: Optional[dict] = None,
-        startup_period: Optional[int] = None,
-        embedded_options: Optional[EmbeddedOptions] = None,
-        additional_config: Optional[Config] = None,
-    ) -> None: ...
+    def __init__(self) -> None: ...

@@ -137,6 +137,8 @@ class Tokenization(str, Enum):
             Tokenize using GSE (for Chinese and Japanese).
         `TRIGRAM`
             Tokenize into trigrams.
+        `KAGOME_JA`
+            Tokenize using the 'Kagome' tokenizer (for Japanese).
         `KAGOME_KR`
             Tokenize using the 'Kagome' tokenizer and a Korean MeCab dictionary (for Korean).
     """
@@ -147,6 +149,7 @@ class Tokenization(str, Enum):
     FIELD = "field"
     GSE = "gse"
     TRIGRAM = "trigram"
+    KAGOME_JA = "kagome_ja"
     KAGOME_KR = "kagome_kr"
 
 
@@ -171,6 +174,8 @@ class GenerativeSearches(str, Enum):
             Weaviate module backed by FriendliAI generative models.
         `MISTRAL`
             Weaviate module backed by Mistral generative models.
+        `NVIDIA`
+            Weaviate module backed by NVIDIA generative models.
         `OLLAMA`
             Weaviate module backed by generative models deployed on Ollama infrastructure.
         `OPENAI`
@@ -186,6 +191,7 @@ class GenerativeSearches(str, Enum):
     DATABRICKS = "generative-databricks"
     FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
+    NVIDIA = "generative-nvidia"
     OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
     PALM = "generative-palm"  # rename to google once all versions support it
@@ -243,6 +249,7 @@ class ReplicationDeletionStrategy(str, Enum):
 
     DELETE_ON_CONFLICT = "DeleteOnConflict"
     NO_AUTOMATED_RESOLUTION = "NoAutomatedResolution"
+    TIME_BASED_RESOLUTION = "TimeBasedResolution"
 
 
 class PQEncoderType(str, Enum):
@@ -465,6 +472,16 @@ class _GenerativeMistral(_GenerativeProvider):
     temperature: Optional[float]
     model: Optional[str]
     maxTokens: Optional[int]
+
+
+class _GenerativeNvidia(_GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
+    )
+    temperature: Optional[float]
+    model: Optional[str]
+    maxTokens: Optional[int]
+    baseURL: Optional[str]
 
 
 class _GenerativeFriendliai(_GenerativeProvider):
@@ -731,6 +748,31 @@ class _Generative:
                 The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
+
+    @staticmethod
+    def nvidia(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> _GenerativeProvider:
+        """
+        Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
+
+        Arguments:
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeNvidia(
+            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
 
     @staticmethod
     def ollama(

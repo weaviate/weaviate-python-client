@@ -4,24 +4,26 @@ import time
 import uuid as uuid_package
 from typing import Any, Dict, List, Optional, Union, cast
 
-from grpc.aio import AioRpcError  # type: ignore
 from google.protobuf.struct_pb2 import Struct
+from grpc.aio import AioRpcError  # type: ignore
 
 from weaviate.collections.classes.batch import (
     ErrorObject,
     _BatchObject,
+    BatchObject,
     BatchObjectReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
 from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
-from weaviate.collections.grpc.shared import _BaseGRPC
+from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
+from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateBatchError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
     WeaviateInvalidInputError,
+    InsufficientPermissionsError,
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.util import _datetime_to_string, _get_vector_v4
@@ -116,7 +118,9 @@ class _BatchGRPC(_BaseGRPC):
         for idx, weav_obj in enumerate(weaviate_objs):
             obj = objects[idx]
             if idx in errors:
-                error = ErrorObject(errors[idx], obj, original_uuid=obj.uuid)
+                error = ErrorObject(
+                    errors[idx], BatchObject._from_internal(obj), original_uuid=obj.uuid
+                )
                 return_errors[obj.index] = error
                 all_responses[idx] = error
             else:
@@ -135,7 +139,6 @@ class _BatchGRPC(_BaseGRPC):
     async def __send_batch(
         self, batch: List[batch_pb2.BatchObject], timeout: Union[int, float]
     ) -> Dict[int, str]:
-        metadata = self._get_metadata()
         try:
             assert self._connection.grpc_stub is not None
             res = await self._connection.grpc_stub.BatchObjects(
@@ -143,7 +146,7 @@ class _BatchGRPC(_BaseGRPC):
                     objects=batch,
                     consistency_level=self._consistency_level,
                 ),
-                metadata=metadata,
+                metadata=self._connection.grpc_headers(),
                 timeout=timeout,
             )
             res = cast(batch_pb2.BatchObjectsReply, res)
@@ -153,6 +156,8 @@ class _BatchGRPC(_BaseGRPC):
                 objects[result.index] = result.error
             return objects
         except AioRpcError as e:
+            if e.code().name == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(e)
             raise WeaviateBatchError(str(e)) from e
 
     def __translate_properties_from_python_to_grpc(

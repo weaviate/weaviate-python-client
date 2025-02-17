@@ -13,16 +13,9 @@ Subpackages
    :maxdepth: 4
 
    weaviate.backup
-   weaviate.batch
-   weaviate.classification
-   weaviate.cluster
    weaviate.collections
    weaviate.connect
-   weaviate.contextionary
-   weaviate.data
-   weaviate.gql
-   weaviate.proto
-   weaviate.schema
+   weaviate.rbac
 
 Submodules
 ----------
@@ -67,13 +60,6 @@ weaviate.embedded module
    :undoc-members:
    :show-inheritance:
 
-weaviate.error\_msgs module
----------------------------
-
-.. automodule:: weaviate.error_msgs
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 weaviate.exceptions module
 --------------------------
@@ -95,14 +81,6 @@ weaviate.util module
 --------------------
 
 .. automodule:: weaviate.util
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.warnings module
-------------------------
-
-.. automodule:: weaviate.warnings
    :members:
    :undoc-members:
    :show-inheritance:
