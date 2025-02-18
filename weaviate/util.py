@@ -5,6 +5,7 @@ Helper functions!
 import base64
 import datetime
 import io
+import json
 import os
 import re
 import uuid as uuid_lib
@@ -823,7 +824,7 @@ def _decode_json_response_dict(response: httpx.Response, location: str) -> Optio
         try:
             json_response = cast(Dict[str, Any], response.json())
             return json_response
-        except httpx.DecodingError:
+        except (httpx.DecodingError, json.decoder.JSONDecodeError):
             raise ResponseCannotBeDecodedError(location, response)
 
     raise UnexpectedStatusCodeError(location, response)
@@ -839,7 +840,7 @@ def _decode_json_response_list(
         try:
             json_response = response.json()
             return cast(list, json_response)
-        except httpx.DecodingError:
+        except (httpx.DecodingError, json.decoder.JSONDecodeError):
             raise ResponseCannotBeDecodedError(location, response)
     raise UnexpectedStatusCodeError(location, response)
 
