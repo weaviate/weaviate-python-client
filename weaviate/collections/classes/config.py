@@ -660,6 +660,12 @@ class _RerankerNvidiaConfig(_RerankerProvider):
     model: Optional[str] = Field(default=None)
     baseURL: Optional[AnyHttpUrl]
 
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
+
 
 class _Generative:
     """Use this factory class to create the correct object for the `generative_config` argument in the `collections.create()` method.
