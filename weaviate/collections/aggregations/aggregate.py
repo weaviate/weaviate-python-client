@@ -14,7 +14,7 @@ from weaviate.collections.classes.aggregate import (
     AggregateDate,
     AggregateInteger,
     AggregateNumber,
-    # AggregateReference, # Aggregate references currently bugged on Weaviate's side
+    AggregateReference,
     AggregateText,
     AggregateGroup,
     AggregateGroupByReturn,
@@ -25,7 +25,7 @@ from weaviate.collections.classes.aggregate import (
     _MetricsDate,
     _MetricsNumber,
     _MetricsInteger,
-    # _MetricsReference, # Aggregate references currently bugged on Weaviate's side
+    _MetricsReference,
     _MetricsText,
     GroupedBy,
     TopOccurrence,
@@ -33,13 +33,17 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
+from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.filters import _FilterToREST
+from weaviate.collections.grpc.aggregate import _AggregateGRPC
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
+from weaviate.proto.v1 import aggregate_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import file_encoder_b64, _decode_json_response_dict
 from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.warnings import _Warnings
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -52,11 +56,19 @@ class _AggregateAsync:
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
+        validate_arguments: bool,
     ):
         self._connection = connection
         self.__name = name
         self._tenant = tenant
         self._consistency_level = consistency_level
+        self._grpc = _AggregateGRPC(
+            connection=connection,
+            name=name,
+            tenant=tenant,
+            consistency_level=consistency_level,
+            validate_arguments=validate_arguments,
+        )
 
     def _query(self) -> AggregateBuilder:
         return AggregateBuilder(
@@ -76,6 +88,77 @@ class _AggregateAsync:
             raise ValueError(
                 f"There was an error accessing the {e} key when parsing the GraphQL response: {response}"
             )
+
+    def _to_result(
+        self, response: aggregate_pb2.AggregateReply
+    ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+        if response.HasField("single_result"):
+            return AggregateReturn(
+                properties={
+                    aggregation.property: self.__parse_property_grpc(aggregation)
+                    for aggregation in response.single_result.aggregations.aggregations
+                },
+                total_count=response.single_result.objects_count,
+            )
+        if response.HasField("grouped_results"):
+            return AggregateGroupByReturn(
+                groups=[
+                    AggregateGroup(
+                        grouped_by=self.__parse_grouped_by_value(group.grouped_by),
+                        properties={
+                            aggregation.property: self.__parse_property_grpc(aggregation)
+                            for aggregation in group.aggregations.aggregations
+                        },
+                        total_count=group.objects_count,
+                    )
+                    for group in response.grouped_results.groups
+                ]
+            )
+        else:
+            _Warnings.unknown_type_encountered(response.WhichOneof("result"))
+            return AggregateReturn(properties={}, total_count=None)
+
+    def __parse_grouped_by_value(
+        self, grouped_by: aggregate_pb2.AggregateReply.Group.GroupedBy
+    ) -> GroupedBy:
+        value: Union[
+            str,
+            int,
+            float,
+            bool,
+            List[str],
+            List[int],
+            List[float],
+            List[bool],
+            GeoCoordinate,
+            None,
+        ]
+        if grouped_by.HasField("text"):
+            value = grouped_by.text
+        elif grouped_by.HasField("int"):
+            value = grouped_by.int
+        elif grouped_by.HasField("number"):
+            value = grouped_by.number
+        elif grouped_by.HasField("boolean"):
+            value = grouped_by.boolean
+        elif grouped_by.HasField("texts"):
+            value = list(grouped_by.texts.values)
+        elif grouped_by.HasField("ints"):
+            value = list(grouped_by.ints.values)
+        elif grouped_by.HasField("numbers"):
+            value = list(grouped_by.numbers.values)
+        elif grouped_by.HasField("booleans"):
+            value = list(grouped_by.booleans.values)
+        elif grouped_by.HasField("geo"):
+            v = grouped_by.geo
+            value = GeoCoordinate(
+                latitude=v.latitude,
+                longitude=v.longitude,
+            )
+        else:
+            value = None
+            _Warnings.unknown_type_encountered(grouped_by.WhichOneof("value"))
+        return GroupedBy(prop=grouped_by.path[0], value=value)
 
     def _to_group_by_result(
         self, response: dict, metrics: Optional[List[_Metrics]]
@@ -108,13 +191,13 @@ class _AggregateAsync:
         props: AProperties = {}
         for metric in metrics:
             if metric.property_name in result:
-                props[metric.property_name] = self.__parse_property(
+                props[metric.property_name] = self.__parse_property_gql(
                     result[metric.property_name], metric
                 )
         return props
 
     @staticmethod
-    def __parse_property(property_: dict, metric: _Metrics) -> AggregateResult:
+    def __parse_property_gql(property_: dict, metric: _Metrics) -> AggregateResult:
         if isinstance(metric, _MetricsText):
             return AggregateText(
                 count=property_.get("count"),
@@ -162,12 +245,69 @@ class _AggregateAsync:
                 minimum=property_.get("minimum"),
                 mode=property_.get("mode"),
             )
-        # Aggregate references currently bugged on Weaviate's side
-        # elif isinstance(metric, _MetricsReference):
-        #     return AggregateReference(pointing_to=property_.get("pointingTo"))
+        elif isinstance(metric, _MetricsReference):
+            return AggregateReference(pointing_to=property_.get("pointingTo"))
         else:
             raise ValueError(
                 f"Unknown aggregation type {metric} encountered in _Aggregate.__parse_property() for property {property_}"
+            )
+
+    @staticmethod
+    def __parse_property_grpc(
+        aggregation: aggregate_pb2.AggregateReply.Aggregations.Aggregation,
+    ) -> AggregateResult:
+        if aggregation.HasField("text"):
+            return AggregateText(
+                count=aggregation.text.count,
+                top_occurrences=[
+                    TopOccurrence(
+                        count=top_occurrence.occurs,
+                        value=top_occurrence.value,
+                    )
+                    for top_occurrence in aggregation.text.top_occurences.items
+                ],
+            )
+        elif aggregation.HasField("int"):
+            return AggregateInteger(
+                count=aggregation.int.count,
+                maximum=aggregation.int.maximum,
+                mean=aggregation.int.mean,
+                median=aggregation.int.median,
+                minimum=aggregation.int.minimum,
+                mode=aggregation.int.mode,
+                sum_=aggregation.int.sum,
+            )
+        elif aggregation.HasField("number"):
+            return AggregateNumber(
+                count=aggregation.number.count,
+                maximum=aggregation.number.maximum,
+                mean=aggregation.number.mean,
+                median=aggregation.number.median,
+                minimum=aggregation.number.minimum,
+                mode=aggregation.number.mode,
+                sum_=aggregation.number.sum,
+            )
+        elif aggregation.HasField("boolean"):
+            return AggregateBoolean(
+                count=aggregation.boolean.count,
+                percentage_false=aggregation.boolean.percentage_false,
+                percentage_true=aggregation.boolean.percentage_true,
+                total_false=aggregation.boolean.total_false,
+                total_true=aggregation.boolean.total_true,
+            )
+        elif aggregation.HasField("date"):
+            return AggregateDate(
+                count=aggregation.date.count,
+                maximum=aggregation.date.maximum,
+                median=aggregation.date.median,
+                minimum=aggregation.date.minimum,
+                mode=aggregation.date.mode,
+            )
+        elif aggregation.HasField("reference"):
+            return AggregateReference(pointing_to=list(aggregation.reference.pointing_to))
+        else:
+            raise ValueError(
+                f"Unknown aggregation type {aggregation} encountered in _Aggregate.__parse_property_grpc()"
             )
 
     @staticmethod

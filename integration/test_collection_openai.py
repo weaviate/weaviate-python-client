@@ -578,18 +578,18 @@ def test_openai_batch_upload(openai_collection: OpenAICollection, request: SubRe
 
 
 def test_queries_with_rerank_and_generative(collection_factory: CollectionFactory) -> None:
-    api_key = os.environ.get("OPENAI_APIKEY")
+    api_key = os.environ.get("COHERE_APIKEY")
     if api_key is None:
-        pytest.skip("No OpenAI API key found.")
+        pytest.skip("No Cohere API key found.")
 
     collection = collection_factory(
         name="Test_test_queries_with_rerank_and_generative",
-        generative_config=Configure.Generative.openai(),
-        reranker_config=Configure.Reranker.transformers(),
-        vectorizer_config=Configure.Vectorizer.text2vec_openai(),
+        generative_config=Configure.Generative.cohere(),
+        reranker_config=Configure.Reranker.cohere(),
+        vectorizer_config=Configure.Vectorizer.text2vec_cohere(),
         properties=[Property(name="text", data_type=DataType.TEXT)],
-        ports=(8079, 50050),
-        headers={"X-OpenAI-Api-Key": api_key},
+        ports=(8086, 50057),
+        headers={"X-Cohere-Api-Key": api_key},
     )
     if collection._connection._weaviate_version < _ServerVersion(1, 23, 1):
         pytest.skip("Generative reranking requires Weaviate 1.23.1 or higher")
