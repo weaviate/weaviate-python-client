@@ -215,6 +215,8 @@ class Rerankers(str, BaseEnum):
             Weaviate module backed by VoyageAI reranking models.
         `JINAAI`
             Weaviate module backed by JinaAI reranking models.
+        `NVIDIA`
+            Weaviate module backed by NVIDIA reranking models.
     """
 
     NONE = "none"
@@ -222,6 +224,7 @@ class Rerankers(str, BaseEnum):
     TRANSFORMERS = "reranker-transformers"
     VOYAGEAI = "reranker-voyageai"
     JINAAI = "reranker-jinaai"
+    NVIDIA = "reranker-nvidia"
 
 
 class StopwordsPreset(str, BaseEnum):
@@ -648,6 +651,20 @@ class _RerankerVoyageAIConfig(_RerankerProvider):
         default=Rerankers.VOYAGEAI, frozen=True, exclude=True
     )
     model: Optional[Union[RerankerVoyageAIModel, str]] = Field(default=None)
+
+
+class _RerankerNvidiaConfig(_RerankerProvider):
+    reranker: Union[Rerankers, _EnumLikeStr] = Field(
+        default=Rerankers.NVIDIA, frozen=True, exclude=True
+    )
+    model: Optional[str] = Field(default=None)
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
 
 
 class _Generative:
@@ -1120,7 +1137,7 @@ class _Reranker:
     ) -> _RerankerProvider:
         """Create a `_RerankerCohereConfig` object for use when reranking using the `reranker-cohere` module.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-cohere)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/reranker)
         for detailed usage.
 
         Arguments:
@@ -1135,7 +1152,7 @@ class _Reranker:
     ) -> _RerankerProvider:
         """Create a `_RerankerJinaAIConfig` object for use when reranking using the `reranker-jinaai` module.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-jinaai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/reranker)
         for detailed usage.
 
         Arguments:
@@ -1150,7 +1167,7 @@ class _Reranker:
     ) -> _RerankerProvider:
         """Create a `_RerankerVoyageAIConfig` object for use when reranking using the `reranker-voyageai` module.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/reranker-voyageai)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/reranker)
         for detailed usage.
 
         Arguments:
@@ -1158,6 +1175,24 @@ class _Reranker:
                 The model to use. Defaults to `None`, which uses the server-defined default
         """
         return _RerankerVoyageAIConfig(model=model)
+
+    @staticmethod
+    def nvidia(
+        model: Optional[str] = None,
+        base_url: Optional[AnyHttpUrl] = None,
+    ) -> _RerankerProvider:
+        """Create a `_RerankerNvidiaConfig` object for use when reranking using the `reranker-nvidia` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/reranker)
+        for detailed usage.
+
+        Arguments:
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `baseurl`
+                The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default.
+        """
+        return _RerankerNvidiaConfig(model=model, baseURL=base_url)
 
 
 class _CollectionConfigCreateBase(_ConfigCreateModel):

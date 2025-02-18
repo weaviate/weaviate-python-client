@@ -1064,6 +1064,48 @@ TEST_CONFIG_WITH_RERANKER = [
         },
     ),
     (
+        Configure.Reranker.voyageai(),
+        {
+            "reranker-voyageai": {},
+        },
+    ),
+    (
+        Configure.Reranker.voyageai(model="rerank-lite-1"),
+        {
+            "reranker-voyageai": {"model": "rerank-lite-1"},
+        },
+    ),
+    (
+        Configure.Reranker.jinaai(),
+        {
+            "reranker-jinaai": {},
+        },
+    ),
+    (
+        Configure.Reranker.jinaai(model="jina-reranker-v2-base-multilingual"),
+        {
+            "reranker-jinaai": {"model": "jina-reranker-v2-base-multilingual"},
+        },
+    ),
+    (
+        Configure.Reranker.nvidia(),
+        {
+            "reranker-nvidia": {},
+        },
+    ),
+    (
+        Configure.Reranker.nvidia(
+            model="nvidia/llama-3.2-nv-rerankqa-1b-v2",
+            base_url="https://integrate.api.nvidia.com/v1",
+        ),
+        {
+            "reranker-nvidia": {
+                "model": "nvidia/llama-3.2-nv-rerankqa-1b-v2",
+                "baseURL": "https://integrate.api.nvidia.com/v1",
+            },
+        },
+    ),
+    (
         Configure.Reranker.transformers(),
         {
             "reranker-transformers": {},
