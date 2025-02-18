@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import (
     Any,
     ClassVar,
@@ -31,6 +30,7 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
+    _MultiVectorConfigCreate,
     VectorIndexType as VectorIndexTypeAlias,
     VectorFilterStrategy,
 )
@@ -51,8 +51,9 @@ from weaviate.collections.classes.config_vectorizers import VectorDistances as V
 from weaviate.collections.classes.config_vectorizers import Vectorizers as VectorizersAlias
 from weaviate.collections.classes.config_vectorizers import _Vectorizer, _VectorizerConfigCreate
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
-from ...warnings import _Warnings
+from weaviate.warnings import _Warnings
 
 # BC for direct imports
 Vectorizers: TypeAlias = VectorizersAlias
@@ -65,7 +66,7 @@ AWSService: TypeAlias = Literal[
 ]
 
 
-class ConsistencyLevel(str, Enum):
+class ConsistencyLevel(str, BaseEnum):
     """The consistency levels when writing to Weaviate with replication enabled.
 
     Attributes:
@@ -79,7 +80,7 @@ class ConsistencyLevel(str, Enum):
     QUORUM = "QUORUM"
 
 
-class DataType(str, Enum):
+class DataType(str, BaseEnum):
     """The available primitive data types in Weaviate.
 
     Attributes:
@@ -121,7 +122,7 @@ class DataType(str, Enum):
     OBJECT_ARRAY = "object[]"
 
 
-class Tokenization(str, Enum):
+class Tokenization(str, BaseEnum):
     """The available inverted index tokenization methods for text properties in Weaviate.
 
     Attributes:
@@ -153,7 +154,7 @@ class Tokenization(str, Enum):
     KAGOME_KR = "kagome_kr"
 
 
-class GenerativeSearches(str, Enum):
+class GenerativeSearches(str, BaseEnum):
     """The available generative search modules in Weaviate.
 
     These modules generate text from text-based inputs.
@@ -197,7 +198,7 @@ class GenerativeSearches(str, Enum):
     PALM = "generative-palm"  # rename to google once all versions support it
 
 
-class Rerankers(str, Enum):
+class Rerankers(str, BaseEnum):
     """The available reranker modules in Weaviate.
 
     These modules rerank the results of a search query.
@@ -223,7 +224,7 @@ class Rerankers(str, Enum):
     JINAAI = "reranker-jinaai"
 
 
-class StopwordsPreset(str, Enum):
+class StopwordsPreset(str, BaseEnum):
     """Preset stopwords to use in the `Stopwords` class.
 
     Attributes:
@@ -237,7 +238,7 @@ class StopwordsPreset(str, Enum):
     EN = "en"
 
 
-class ReplicationDeletionStrategy(str, Enum):
+class ReplicationDeletionStrategy(str, BaseEnum):
     """How object deletions in multi node environments should be resolved.
 
     Attributes:
@@ -252,7 +253,7 @@ class ReplicationDeletionStrategy(str, Enum):
     TIME_BASED_RESOLUTION = "TimeBasedResolution"
 
 
-class PQEncoderType(str, Enum):
+class PQEncoderType(str, BaseEnum):
     """Type of the PQ encoder.
 
     Attributes:
@@ -266,7 +267,7 @@ class PQEncoderType(str, Enum):
     TILE = "tile"
 
 
-class PQEncoderDistribution(str, Enum):
+class PQEncoderDistribution(str, BaseEnum):
     """Distribution of the PQ encoder.
 
     Attributes:
@@ -278,6 +279,17 @@ class PQEncoderDistribution(str, Enum):
 
     LOG_NORMAL = "log-normal"
     NORMAL = "normal"
+
+
+class MultiVectorAggregation(str, BaseEnum):
+    """Aggregation type to use for multivector indices.
+
+    Attributes:
+        `MAX_SIM`
+            Maximum similarity.
+    """
+
+    MAX_SIM = "maxSim"
 
 
 class _PQEncoderConfigCreate(_ConfigCreateModel):
@@ -1546,7 +1558,16 @@ SQConfig = _SQConfig
 
 
 @dataclass
+class _MultiVectorConfig(_ConfigBase):
+    aggregation: str
+
+
+MultiVector = _MultiVectorConfig
+
+
+@dataclass
 class _VectorIndexConfig(_ConfigBase):
+    multi_vector: Optional[_MultiVectorConfig]
     quantizer: Optional[Union[PQConfig, BQConfig, SQConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1557,6 +1578,8 @@ class _VectorIndexConfig(_ConfigBase):
             out["bq"] = {**out.pop("quantizer"), "enabled": True}
         elif isinstance(self.quantizer, _SQConfig):
             out["sq"] = {**out.pop("quantizer"), "enabled": True}
+        if self.multi_vector is not None:
+            out["multivector"] = self.multi_vector.to_dict()
         return out
 
 
@@ -2013,6 +2036,16 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         ret_dict["properties"] = existing_props
 
 
+class _VectorIndexMultiVector:
+    @staticmethod
+    def multi_vector(
+        aggregation: Optional[MultiVectorAggregation] = None,
+    ) -> _MultiVectorConfigCreate:
+        return _MultiVectorConfigCreate(
+            aggregation=aggregation.value if aggregation is not None else None,
+        )
+
+
 class _VectorIndexQuantizer:
     @staticmethod
     def pq(
@@ -2077,6 +2110,7 @@ class _VectorIndexQuantizer:
 
 
 class _VectorIndex:
+    MultiVector = _VectorIndexMultiVector
     Quantizer = _VectorIndexQuantizer
 
     @staticmethod
@@ -2088,6 +2122,7 @@ class _VectorIndex:
         return _VectorIndexConfigSkipCreate(
             distance=None,
             quantizer=None,
+            multivector=None,
         )
 
     @staticmethod
@@ -2104,6 +2139,7 @@ class _VectorIndex:
         max_connections: Optional[int] = None,
         vector_cache_max_objects: Optional[int] = None,
         quantizer: Optional[_QuantizerConfigCreate] = None,
+        multi_vector: Optional[_MultiVectorConfigCreate] = None,
     ) -> _VectorIndexConfigHNSWCreate:
         """Create a `_VectorIndexConfigHNSWCreate` object to be used when defining the HNSW vector index configuration of Weaviate.
 
@@ -2125,6 +2161,7 @@ class _VectorIndex:
             maxConnections=max_connections,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
+            multivector=multi_vector,
         )
 
     @staticmethod
@@ -2144,6 +2181,7 @@ class _VectorIndex:
             distance=distance_metric,
             vectorCacheMaxObjects=vector_cache_max_objects,
             quantizer=quantizer,
+            multivector=None,
         )
 
     @staticmethod
@@ -2161,7 +2199,12 @@ class _VectorIndex:
             See [the docs](https://weaviate.io/developers/weaviate/configuration/indexes#how-to-configure-hnsw) for a more detailed view!
         """  # noqa: D417 (missing argument descriptions in the docstring)
         return _VectorIndexConfigDynamicCreate(
-            distance=distance_metric, threshold=threshold, hnsw=hnsw, flat=flat, quantizer=None
+            distance=distance_metric,
+            threshold=threshold,
+            hnsw=hnsw,
+            flat=flat,
+            quantizer=None,
+            multivector=None,
         )
 
 

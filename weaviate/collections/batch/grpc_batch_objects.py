@@ -2,7 +2,7 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 
 from google.protobuf.struct_pb2 import Struct
 from grpc.aio import AioRpcError  # type: ignore
@@ -16,7 +16,7 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
+from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, PERMISSION_DENIED, _is_1d_vector
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateBatchError,
@@ -26,17 +26,8 @@ from weaviate.exceptions import (
     InsufficientPermissionsError,
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
-from weaviate.util import _datetime_to_string, _get_vector_v4
-
-
-def _pack_named_vectors(vectors: Dict[str, List[float]]) -> List[base_pb2.Vectors]:
-    return [
-        base_pb2.Vectors(
-            name=name,
-            vector_bytes=struct.pack("{}f".format(len(vector)), *vector),
-        )
-        for name, vector in vectors.items()
-    ]
+from weaviate.types import VECTORS
+from weaviate.util import _datetime_to_string
 
 
 class _BatchGRPC(_BaseGRPC):
@@ -47,21 +38,28 @@ class _BatchGRPC(_BaseGRPC):
     """
 
     def __init__(self, connection: ConnectionV4, consistency_level: Optional[ConsistencyLevel]):
-        super().__init__(connection, consistency_level)
+        super().__init__(connection, consistency_level, False)
+
+    def __single_vec(self, vectors: Optional[VECTORS]) -> Optional[bytes]:
+        if not _is_1d_vector(vectors):
+            return None
+        return _Pack.single(vectors)
+
+    def __multi_vec(self, vectors: Optional[VECTORS]) -> Optional[List[base_pb2.Vectors]]:
+        if vectors is None or _is_1d_vector(vectors):
+            return None
+        # pylance fails to type narrow TypeGuard in _is_1d_vector properly
+        vectors = cast(Mapping[str, Union[Sequence[float], Sequence[Sequence[float]]]], vectors)
+        return [
+            base_pb2.Vectors(name=name, vector_bytes=packing.bytes_, type=packing.type_)
+            for name, vec_or_vecs in vectors.items()
+            if (packing := _Pack.parse_single_or_multi_vec(vec_or_vecs))
+        ]
 
     def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
-        def pack_vector(vector: Any) -> bytes:
-            vector_list = _get_vector_v4(vector)
-            return struct.pack("{}f".format(len(vector_list)), *vector_list)
-
         return [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                vector_bytes=(
-                    pack_vector(obj.vector)
-                    if obj.vector is not None and isinstance(obj.vector, list)
-                    else None
-                ),
                 uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
                 properties=(
                     self.__translate_properties_from_python_to_grpc(
@@ -72,11 +70,8 @@ class _BatchGRPC(_BaseGRPC):
                     else None
                 ),
                 tenant=obj.tenant,
-                vectors=(
-                    _pack_named_vectors(obj.vector)
-                    if obj.vector is not None and isinstance(obj.vector, dict)
-                    else None
-                ),
+                vector_bytes=self.__single_vec(obj.vector),
+                vectors=self.__multi_vec(obj.vector),
             )
             for obj in objects
         ]

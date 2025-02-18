@@ -5,6 +5,7 @@ Helper functions!
 import base64
 import datetime
 import io
+import json
 import os
 import re
 import uuid as uuid_lib
@@ -22,7 +23,6 @@ from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import NUMBER, UUIDS, TIME
-from weaviate.validator import _is_valid, _ExtraTypes
 from weaviate.warnings import _Warnings
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
@@ -823,7 +823,7 @@ def _decode_json_response_dict(response: httpx.Response, location: str) -> Optio
         try:
             json_response = cast(Dict[str, Any], response.json())
             return json_response
-        except httpx.DecodingError:
+        except (httpx.DecodingError, json.decoder.JSONDecodeError):
             raise ResponseCannotBeDecodedError(location, response)
 
     raise UnexpectedStatusCodeError(location, response)
@@ -839,7 +839,7 @@ def _decode_json_response_list(
         try:
             json_response = response.json()
             return cast(list, json_response)
-        except httpx.DecodingError:
+        except (httpx.DecodingError, json.decoder.JSONDecodeError):
             raise ResponseCannotBeDecodedError(location, response)
     raise UnexpectedStatusCodeError(location, response)
 
@@ -862,33 +862,3 @@ def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
             "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
             "%Y-%m-%dT%H:%M:%S%z",
         )
-
-
-def __is_list_type(inputs: Any) -> bool:
-    try:
-        if len(inputs) == 0:
-            return False
-    except TypeError:
-        return False
-
-    return any(
-        _is_valid(types, inputs)
-        for types in [
-            List,
-            _ExtraTypes.TF,
-            _ExtraTypes.PANDAS,
-            _ExtraTypes.NUMPY,
-            _ExtraTypes.POLARS,
-        ]
-    )
-
-
-def _is_1d_vector(inputs: Any) -> bool:
-    try:
-        if len(inputs) == 0:
-            return False
-    except TypeError:
-        return False
-    if __is_list_type(inputs):
-        return not __is_list_type(inputs[0])  # 2D vectors are not 1D vectors
-    return False

@@ -120,6 +120,7 @@ class Vectorizers(str, Enum):
     """
 
     NONE = "none"
+    TEXT2COLBERT_JINAAI = "text2colbert-jinaai"
     TEXT2VEC_AWS = "text2vec-aws"
     TEXT2VEC_COHERE = "text2vec-cohere"
     TEXT2VEC_CONTEXTIONARY = "text2vec-contextionary"
@@ -174,6 +175,15 @@ class VectorDistances(str, Enum):
 
 class _VectorizerConfigCreate(_ConfigCreateModel):
     vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(default=..., exclude=True)
+
+
+class _Text2ColbertJinaAIConfig(_VectorizerConfigCreate):
+    vectorizer: Union[Vectorizers, _EnumLikeStr] = Field(
+        default=Vectorizers.TEXT2COLBERT_JINAAI, frozen=True, exclude=True
+    )
+    vectorizeClassName: bool
+    model: Optional[str]
+    dimensions: Optional[int]
 
 
 class _Text2VecContextionaryConfig(_VectorizerConfigCreate):
