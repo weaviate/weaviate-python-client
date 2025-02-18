@@ -1183,7 +1183,7 @@ class _Reranker:
     ) -> _RerankerProvider:
         """Create a `_RerankerNvidiaConfig` object for use when reranking using the `reranker-nvidia` module.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/reranker)
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/reranker)
         for detailed usage.
 
         Arguments:
