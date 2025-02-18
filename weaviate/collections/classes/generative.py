@@ -18,10 +18,13 @@ from weaviate.proto.v1.generative_pb2 import (
     GenerativeFriendliAI,
     GenerativeGoogle,
     GenerativeMistral,
+    GenerativeNvidia,
     GenerativeOllama,
     GenerativeOpenAI,
     GenerativeProvider as GenerativeProviderGRPC,
 )
+from weaviate.types import BLOB_INPUT
+from weaviate.util import file_encoder_b64
 
 
 class _GenerativeProviderDynamic(BaseModel):
@@ -48,6 +51,7 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
     top_k: Optional[int]
     top_p: Optional[float]
     stop_sequences: Optional[List[str]]
+    images: Optional[List[str]]
 
     def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
@@ -59,6 +63,7 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
                 top_k=self.top_k,
                 top_p=self.top_p,
                 stop_sequences=self._parse_liststr(self.stop_sequences),
+                images=self._parse_liststr(self.images),
             )
         )
 
@@ -92,6 +97,7 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
     target_model: Optional[str]
     target_variant: Optional[str]
     temperature: Optional[float]
+    images: Optional[List[str]]
 
     def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
@@ -103,6 +109,7 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
                 target_model=self.target_model,
                 target_variant=self.target_variant,
                 temperature=self.temperature,
+                images=self._parse_liststr(self.images),
             )
         )
 
@@ -215,6 +222,28 @@ class _GenerativeMistral(_GenerativeProviderDynamic):
         )
 
 
+class _GenerativeNvidia(_GenerativeProviderDynamic):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
+    )
+    base_url: Optional[AnyHttpUrl]
+    max_tokens: Optional[int]
+    model: Optional[str]
+    temperature: Optional[float]
+    top_p: Optional[float]
+
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
+            nvidia=GenerativeNvidia(
+                base_url=self._parse_anyhttpurl(self.base_url),
+                max_tokens=self.max_tokens,
+                model=self.model,
+                temperature=self.temperature,
+                top_p=self.top_p,
+            )
+        )
+
+
 class _GenerativeOllama(_GenerativeProviderDynamic):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
@@ -222,6 +251,7 @@ class _GenerativeOllama(_GenerativeProviderDynamic):
     api_endpoint: Optional[AnyHttpUrl]
     model: Optional[str]
     temperature: Optional[float]
+    images: Optional[List[str]]
 
     def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
@@ -229,6 +259,7 @@ class _GenerativeOllama(_GenerativeProviderDynamic):
                 api_endpoint=self._parse_anyhttpurl(self.api_endpoint),
                 model=self.model,
                 temperature=self.temperature,
+                images=self._parse_liststr(self.images),
             )
         )
 
@@ -249,6 +280,7 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
     stop: Optional[List[str]]
     temperature: Optional[float]
     top_p: Optional[float]
+    images: Optional[List[str]]
 
     def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
@@ -265,6 +297,7 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
                 temperature=self.temperature,
                 top_p=self.top_p,
                 is_azure=self.is_azure,
+                images=self._parse_liststr(self.images),
             )
         )
 
@@ -285,6 +318,7 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_k: Optional[int]
     top_p: Optional[float]
+    images: Optional[List[str]]
 
     def _parse_api_endpoint(self, url: Optional[AnyHttpUrl]) -> Optional[str]:
         return (
@@ -308,8 +342,15 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
                 temperature=self.temperature,
                 top_k=self.top_k,
                 top_p=self.top_p,
+                images=self._parse_liststr(self.images),
             )
         )
+
+
+class _GenerativeProviderMedia:
+    @staticmethod
+    def base64(media: BLOB_INPUT) -> str:
+        return file_encoder_b64(media)
 
 
 class GenerativeProvider:
@@ -318,6 +359,8 @@ class GenerativeProvider:
     Each staticmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.
     """
+
+    Media = _GenerativeProviderMedia
 
     @staticmethod
     def anthropic(
@@ -329,6 +372,7 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
+        images: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """
         Create a `_GenerativeAnthropic` object for use when performing dynamic AI generation using the `generative-anthropic` module.
@@ -346,6 +390,9 @@ class GenerativeProvider:
                 The top K to use. Defaults to `None`, which uses the server-defined default
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
+            `images`
+                Either the names of the images to use, or the base64-encoded images themselves. To easily convert an image saved as a file or in a buffer
+                then use the `GenerativeProvider.Media.base64` method.
         """
         return _GenerativeAnthropic(
             base_url=base_url,
@@ -355,6 +402,7 @@ class GenerativeProvider:
             temperature=temperature,
             top_k=top_k,
             top_p=top_p,
+            images=images,
         )
 
     @staticmethod
@@ -386,6 +434,7 @@ class GenerativeProvider:
         target_model: Optional[str] = None,
         target_variant: Optional[str] = None,
         temperature: Optional[float] = None,
+        images: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
 
@@ -402,6 +451,11 @@ class GenerativeProvider:
             `service`
                 The AWS service to use. Defaults to `None`, which uses the server-defined default
             TODO: add docs for these new params
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `images`
+                Either the names of the images to use, or the base64-encoded images themselves. To easily convert an image saved as a file or in a buffer
+                then use the `GenerativeProvider.Media.base64` method.
         """
         return _GenerativeAWS(
             model=model,
@@ -411,6 +465,7 @@ class GenerativeProvider:
             target_model=target_model,
             target_variant=target_variant,
             temperature=temperature,
+            images=images,
         )
 
     @staticmethod
@@ -563,6 +618,7 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
+        images: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """Create a `_GenerativeGoogle` object for use when performing AI generation using the `generative-google` module.
 
@@ -594,6 +650,9 @@ class GenerativeProvider:
                 The top K to use. Defaults to `None`, which uses the server-defined default
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
+            `images`
+                Either the names of the images to use, or the base64-encoded images themselves. To easily convert an image saved as a file or in a buffer
+                then use the `GenerativeProvider.Media.base64` method.
         """
         return _GenerativeGoogle(
             api_endpoint=api_endpoint,
@@ -608,6 +667,7 @@ class GenerativeProvider:
             temperature=temperature,
             top_k=top_k,
             top_p=top_p,
+            images=images,
         )
 
     @staticmethod
@@ -642,11 +702,44 @@ class GenerativeProvider:
         )
 
     @staticmethod
+    def nvidia(
+        *,
+        base_url: Optional[AnyHttpUrl] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeProviderDynamic:
+        """
+        Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-nvidia` module.
+
+        Arguments:
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P value to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeNvidia(
+            base_url=base_url,
+            max_tokens=max_tokens,
+            model=model,
+            temperature=temperature,
+            top_p=top_p,
+        )
+
+    @staticmethod
     def ollama(
         *,
         api_endpoint: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
+        images: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """
         Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
@@ -659,8 +752,13 @@ class GenerativeProvider:
                 The model to use. Defaults to `None`, which uses the server-defined default
             `temperature`
                 The temperature to use. Defaults to `None`, which uses the server-defined default
+            `images`
+                Either the names of the images to use, or the base64-encoded images themselves. To easily convert an image saved as a file or in a buffer
+                then use the `GenerativeProvider.Media.base64` method.
         """
-        return _GenerativeOllama(api_endpoint=api_endpoint, model=model, temperature=temperature)
+        return _GenerativeOllama(
+            api_endpoint=api_endpoint, model=model, temperature=temperature, images=images
+        )
 
     @staticmethod
     def openai(
@@ -676,6 +774,7 @@ class GenerativeProvider:
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        images: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the OpenAI-backed `generative-openai` module.
 
@@ -705,6 +804,9 @@ class GenerativeProvider:
                 The temperature to use. Defaults to `None`, which uses the server-defined default
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
+            `images`
+                Either the names of the images to use, or the base64-encoded images themselves. To easily convert an image saved as a file or in a buffer
+                then use the `GenerativeProvider.Media.base64` method.
 
         """
         return _GenerativeOpenAI(
@@ -720,6 +822,7 @@ class GenerativeProvider:
             temperature=temperature,
             top_p=top_p,
             is_azure=False,
+            images=images,
         )
 
     @staticmethod
@@ -736,6 +839,7 @@ class GenerativeProvider:
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        images: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the Azure-backed `generative-openai` module.
 
@@ -765,7 +869,9 @@ class GenerativeProvider:
                 The temperature to use. Defaults to `None`, which uses the server-defined default
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
-
+            `images`
+                Either the names of the images to use, or the base64-encoded images themselves. To easily convert an image saved as a file or in a buffer
+                then use the `GenerativeProvider.Media.base64` method.
         """
         return _GenerativeOpenAI(
             api_version=api_version,
@@ -780,4 +886,5 @@ class GenerativeProvider:
             temperature=temperature,
             top_p=top_p,
             is_azure=True,
+            images=images,
         )
