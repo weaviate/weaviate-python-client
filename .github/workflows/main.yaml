@@ -22,7 +22,7 @@ env:
   WEAVIATE_125: 1.25.30
   WEAVIATE_126: 1.26.14
   WEAVIATE_127: 1.27.12
-  WEAVIATE_128: 1.28.4
+  WEAVIATE_128: 1.28.6
   WEAVIATE_129: 1.29.0
 
 jobs:
@@ -243,7 +243,6 @@ jobs:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
-
   build-package:
     name: Build package
     runs-on: ubuntu-latest
@@ -303,17 +302,8 @@ jobs:
       - run: rm -r weaviate
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
-      - name: Run integration tests with auth secrets
-        if: ${{ !github.event.pull_request.head.repo.fork }}
-        env:
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
-          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
-          OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
+      - name: Run integration tests without auth secrets (auth tests ran in previous job)
         run: pytest -v -n auto --dist loadgroup integration
-      - name: Run integration tests without auth secrets (for forks)
-        if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v -n auto integration
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
