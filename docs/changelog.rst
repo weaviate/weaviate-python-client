@@ -1,6 +1,21 @@
 Changelog
 =========
 
+Version 4.11.0
+--------------
+
+This minor version includes:
+    - Support for new 1.29 features:
+        - RBAC is ready for production
+        - Multi-dimensional/COLBert vectors  experimental, breaking changes are expected)
+        - Aggregations are using GRPC now
+    - Improved exception handling for errors returned by Weaviate
+    - Add support for NVIDIA modules:
+        - multi2vec-nvidia
+        - text2vec-nvidia
+         - generative-nvidia
+
+
 Version 4.10.4
 --------------
 This patch version incldues:
