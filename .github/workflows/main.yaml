@@ -303,8 +303,7 @@ jobs:
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
       - name: Run integration tests without auth secrets (auth tests ran in previous job)
-        if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v -n auto integration
+        run: pytest -v -n auto --dist loadgroup integration
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
