@@ -40,6 +40,9 @@ class _GenerativeProviderDynamic(BaseModel):
         return TextArray(values=values) if values is not None else None
 
 
+GenerativeProviderDynamic = _GenerativeProviderDynamic
+
+
 class _GenerativeAnthropic(_GenerativeProviderDynamic):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANTHROPIC, frozen=True, exclude=True
