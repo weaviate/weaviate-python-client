@@ -54,12 +54,8 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
-    "sphinx.ext.autosummary",
     "sphinxcontrib.autodoc_pydantic",
 ]
-
-# Autosummary settings
-autosummary_generate = True
 
 # Autodoc settings for pydantic
 autodoc_pydantic_model_show_json = False
