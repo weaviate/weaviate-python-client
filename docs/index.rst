@@ -56,6 +56,7 @@ Method Index
 .. toctree::
    :maxdepth: 2
    :hidden:
+   :caption: Contents:
 
    weaviate
    changelog
