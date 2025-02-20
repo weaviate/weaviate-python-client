@@ -3,7 +3,7 @@ Weaviate Exceptions.
 """
 
 from json.decoder import JSONDecodeError
-from typing import Union, Tuple
+from typing import Tuple, Union
 
 import httpx
 from grpc.aio import AioRpcError  # type: ignore
@@ -371,3 +371,12 @@ class InsufficientPermissionsError(UnexpectedStatusCodeError):
 
     def __init__(self, res: Union[httpx.Response, AioRpcError]) -> None:
         super().__init__("forbidden", res)
+
+
+class WeaviateAgentsNotInstalledError(ImportError):
+    """Error raised when trying to use Weaviate Agents without the required dependencies."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            'Weaviate Agents (Alpha) functionality requires additional dependencies. Please install them using: "pip install weaviate-client[agents]"'
+        )

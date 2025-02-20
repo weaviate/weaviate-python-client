@@ -4,27 +4,13 @@ Weaviate Python Client Library used to interact with a Weaviate instance.
 
 import os
 import sys
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 try:
     __version__ = version("weaviate-client")
 except PackageNotFoundError:
     __version__ = "unknown version"
-
-from .client import Client, WeaviateAsyncClient, WeaviateClient
-from .collections.batch.client import BatchClient, ClientBatchingContextManager
-from .connect.helpers import (
-    connect_to_custom,
-    connect_to_embedded,
-    connect_to_local,
-    connect_to_wcs,
-    connect_to_weaviate_cloud,
-    use_async_with_custom,
-    use_async_with_embedded,
-    use_async_with_local,
-    use_async_with_weaviate_cloud,
-)
 
 from . import (
     auth,
@@ -39,7 +25,19 @@ from . import (
     outputs,
     types,
 )
-
+from .client import Client, WeaviateAsyncClient, WeaviateClient
+from .collections.batch.client import BatchClient, ClientBatchingContextManager
+from .connect.helpers import (
+    connect_to_custom,
+    connect_to_embedded,
+    connect_to_local,
+    connect_to_wcs,
+    connect_to_weaviate_cloud,
+    use_async_with_custom,
+    use_async_with_embedded,
+    use_async_with_local,
+    use_async_with_weaviate_cloud,
+)
 
 if not sys.warnoptions:
     from warnings import simplefilter
