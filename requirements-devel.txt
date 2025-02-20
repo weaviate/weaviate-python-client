@@ -50,4 +50,4 @@ flake8-comprehensions==3.16.0
 flake8-builtins==2.5.0
 black==24.10.0
 
-weaviate-agents>=0.2.0,<1.0.0
+weaviate-agents>=0.2.5,<1.0.0
