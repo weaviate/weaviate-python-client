@@ -52,7 +52,7 @@ from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
+from weaviate.proto.v1 import base_pb2, generative_pb2, search_get_pb2, properties_pb2
 from weaviate.types import INCLUDE_VECTOR
 from weaviate.util import file_encoder_b64, _datetime_from_weaviate_str
 from weaviate.validator import _validate_input, _ValidateArgument
@@ -84,12 +84,16 @@ class _Base(Generic[Properties, References]):
         self._references = references
         self._validate_arguments = validate_arguments
 
+        self.__uses_125_api = self._connection._weaviate_version.is_at_least(1, 25, 0)
+        self.__uses_127_api = self._connection._weaviate_version.is_at_least(1, 27, 0)
         self._query = _QueryGRPC(
             self._connection,
             self._name,
             self.__tenant,
             self.__consistency_level,
             validate_arguments=self._validate_arguments,
+            uses_125_api=self.__uses_125_api,
+            uses_127_api=self.__uses_127_api,
         )
 
     def __retrieve_timestamp(
@@ -165,11 +169,16 @@ class _Base(Generic[Properties, References]):
                 vecs[vec.name] = _Unpack.single(vec.vector_bytes)
         return vecs
 
-    def __extract_generated_for_object(
+    def __extract_generated_from_metadata(
         self,
-        add_props: "search_get_pb2.MetadataResult",
+        add_props: search_get_pb2.MetadataResult,
     ) -> Optional[str]:
         return add_props.generative if add_props.generative_present else None
+
+    def __extract_generated_from_generative(
+        self, generative: generative_pb2.GenerativeResult
+    ) -> Optional[str]:
+        return generative.values[0].result if len(generative.values) > 0 else None
 
     def __deserialize_list_value_prop_125(
         self, value: properties_pb2.ListValue
@@ -306,6 +315,7 @@ class _Base(Generic[Properties, References]):
         self,
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
+        gen: generative_pb2.GenerativeResult,
         options: _QueryOptions,
     ) -> GenerativeObject[Any, Any]:
         return GenerativeObject(
@@ -325,7 +335,11 @@ class _Base(Generic[Properties, References]):
             ),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else {},
-            generated=self.__extract_generated_for_object(meta),
+            generated=(
+                self.__extract_generated_from_generative(gen)
+                if self.__uses_127_api
+                else self.__extract_generated_from_metadata(meta)
+            ),
         )
 
     def __result_to_group(
@@ -435,7 +449,9 @@ class _Base(Generic[Properties, References]):
     ]:
         return GenerativeReturn(
             objects=[
-                self.__result_to_generative_object(obj.properties, obj.metadata, options)
+                self.__result_to_generative_object(
+                    obj.properties, obj.metadata, obj.generative, options
+                )
                 for obj in res.results
             ],
             generated=(
