@@ -27,7 +27,6 @@ class PermissionData(TypedDict):
 
 class PermissionCollections(TypedDict):
     collection: str
-    tenant: str
 
 
 class PermissionsTenants(TypedDict):
@@ -178,7 +177,6 @@ class _Permission(BaseModel, Generic[ActionT]):
 
 class _CollectionsPermission(_Permission[CollectionsAction]):
     collection: str
-    tenant: str
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
@@ -186,7 +184,6 @@ class _CollectionsPermission(_Permission[CollectionsAction]):
                 "action": action,
                 "collections": {
                     "collection": _capitalize_first_letter(self.collection),
-                    "tenant": self.tenant,
                 },
             }
             for action in self.actions
@@ -390,7 +387,6 @@ class Role:
                     collections_permissions.append(
                         CollectionsPermissionOutput(
                             collection=collections["collection"],
-                            tenant=collections.get("tenant", "*"),
                             actions={CollectionsAction(permission["action"])},
                         )
                     )
@@ -591,7 +587,7 @@ class Permissions:
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
-            permission = _CollectionsPermission(collection=c, tenant="*", actions=set())
+            permission = _CollectionsPermission(collection=c, actions=set())
 
             if create_collection:
                 permission.actions.add(CollectionsAction.CREATE)
