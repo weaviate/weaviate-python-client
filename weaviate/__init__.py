@@ -4,7 +4,7 @@ Weaviate Python Client Library used to interact with a Weaviate instance.
 
 import os
 import sys
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 try:
@@ -12,19 +12,6 @@ try:
 except PackageNotFoundError:
     __version__ = "unknown version"
 
-from .client import Client, WeaviateAsyncClient, WeaviateClient
-from .collections.batch.client import BatchClient, ClientBatchingContextManager
-from .connect.helpers import (
-    connect_to_custom,
-    connect_to_embedded,
-    connect_to_local,
-    connect_to_wcs,
-    connect_to_weaviate_cloud,
-    use_async_with_custom,
-    use_async_with_embedded,
-    use_async_with_local,
-    use_async_with_weaviate_cloud,
-)
 from . import (
     auth,
     backup,
@@ -37,6 +24,19 @@ from . import (
     exceptions,
     outputs,
     types,
+)
+from .client import Client, WeaviateAsyncClient, WeaviateClient
+from .collections.batch.client import BatchClient, ClientBatchingContextManager
+from .connect.helpers import (
+    connect_to_custom,
+    connect_to_embedded,
+    connect_to_local,
+    connect_to_wcs,
+    connect_to_weaviate_cloud,
+    use_async_with_custom,
+    use_async_with_embedded,
+    use_async_with_local,
+    use_async_with_weaviate_cloud,
 )
 
 if not sys.warnoptions:
@@ -75,6 +75,15 @@ __all__ = [
     "use_async_with_local",
     "use_async_with_weaviate_cloud",
 ]
+
+try:
+    import weaviate_agents as agents
+
+    sys.modules["weaviate.agents"] = agents
+    __all__.append("agents")
+except ImportError:
+    pass
+
 
 deprs = [
     "Collection",
