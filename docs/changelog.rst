@@ -1142,11 +1142,11 @@ Version 3.12.0
 --------------
 This minor version includes:
 
-- Adds with_generate in :meth:`~weaviate.gql.get.GetBuilder` which allows to use the generative openai module. Needs Weaviate with version >=v1.17.3.
+- Adds :meth:`~weaviate.gql.get.GetBuilder.with_generate` in :class:`~weaviate.gql.get.GetBuilder` which allows to use the generative openai module. Needs Weaviate with version >=v1.17.3.
 
 - Fix for empty OIDC scopes
 
-- New startup_period parameter in :meth:`~weaviate.client.Client`. The client will wait for the given timeout for
+- New `startup_period` parameter in :class:`~weaviate.client.Client`. The client will wait for the given timeout for
   Weaviate to start. By default 5 seconds.
 
 - Improved error messages for where filters and authentication.
