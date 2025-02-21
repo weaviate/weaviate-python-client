@@ -2,6 +2,8 @@
 
 from urllib.parse import urlparse
 from typing import Dict, Optional, Tuple
+from typing_extensions import deprecated as typing_deprecated
+from deprecation import deprecated as docstring_deprecated
 
 from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
@@ -89,8 +91,15 @@ def connect_to_weaviate_cloud(
             skip_init_checks=skip_init_checks,
         )
     )
-
-
+@docstring_deprecated(
+    deprecated_in="4.6.2",
+    details="""
+This method is deprecated and will be removed in a future release. Use :func:`connect_to_weaviate_cloud` instead.
+""",
+)
+@typing_deprecated(
+        "This method is deprecated and will be removed in a future release. Use `connect_to_weaviate_cloud` instead."
+)
 def connect_to_wcs(
     cluster_url: str,
     auth_credentials: Optional[AuthCredentials],
@@ -98,50 +107,6 @@ def connect_to_wcs(
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
-    """
-    Connect to a Weaviate Cloud (WCD) instance. This method is deprecated and will be removed in a future release. Use `connect_to_weaviate_cloud` instead.
-
-    This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
-    you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
-    in a `with` statement, which will automatically close the connection when the context is exited. See the examples below for details.
-
-    Arguments:
-        `cluster_url`
-            The WCD cluster URL or hostname to connect to. Usually in the form: rAnD0mD1g1t5.something.weaviate.cloud
-        `auth_credentials`
-            The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
-            a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
-            or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
-        `headers`
-            Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorization.
-        `additional_config`
-            This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
-        `skip_init_checks`
-            Whether to skip the initialization checks when connecting to Weaviate.
-
-    Returns
-        `weaviate.WeaviateClient`
-            The client connected to the cluster with the required parameters set appropriately.
-
-    Examples:
-        >>> import weaviate
-        >>> client = weaviate.connect_to_wcs(
-        ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
-        ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
-        ... )
-        >>> client.is_ready()
-        True
-        >>> client.close() # Close the connection when you are done with it.
-        ################## With Context Manager #############################
-        >>> import weaviate
-        >>> with weaviate.connect_to_wcs(
-        ...     cluster_url="rAnD0mD1g1t5.something.weaviate.cloud",
-        ...     auth_credentials=weaviate.classes.init.Auth.api_key("my-api-key"),
-        ... ) as client:
-        ...     client.is_ready()
-        True
-        >>> # The connection is automatically closed when the context is exited.
-    """
     return connect_to_weaviate_cloud(
         cluster_url, auth_credentials, headers, additional_config, skip_init_checks
     )
