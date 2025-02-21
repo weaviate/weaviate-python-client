@@ -373,7 +373,7 @@ class InsufficientPermissionsError(UnexpectedStatusCodeError):
         super().__init__("forbidden", res)
 
 
-class WeaviateAgentsNotInstalledError(ImportError):
+class WeaviateAgentsNotInstalledError(WeaviateBaseError):
     """Error raised when trying to use Weaviate Agents without the required dependencies."""
 
     def __init__(self) -> None:
