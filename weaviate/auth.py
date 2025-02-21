@@ -115,10 +115,22 @@ AuthCredentials = Union[OidcAuth, _APIKey]
 
 # required to ease v3 -> v4 transition
 AuthApiKey = _APIKey
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""
+.. deprecated:: 1.2
+    Use :meth:`~weaviate.auth.Auth.api_key` instead.
+"""
 AuthBearerToken = _BearerToken
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""
+.. deprecated:: 1.2
+    Use :meth:`~weaviate.auth.Auth.bearer_token` instead.
+"""
 AuthClientCredentials = _ClientCredentials
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""
+.. deprecated:: 1.2
+    Use :meth:`~weaviate.auth.Auth.client_credentials` instead.
+"""
 AuthClientPassword = _ClientPassword
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""
+.. deprecated:: 1.2
+    Use :meth:`~weaviate.auth.Auth.client_password` instead.
+"""

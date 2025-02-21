@@ -3,6 +3,7 @@ Weaviate Packages
 
 .. automodule:: weaviate
    :members:
+   :exclude-members: Client
    :undoc-members:
    :show-inheritance:
 

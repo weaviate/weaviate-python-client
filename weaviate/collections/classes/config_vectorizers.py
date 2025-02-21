@@ -2,8 +2,10 @@ import warnings
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
+from deprecation import deprecated as docstring_deprecated
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
-from typing_extensions import TypeAlias, deprecated
+from typing_extensions import TypeAlias
+from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _EnumLikeStr
 from ...warnings import _Warnings
@@ -1156,8 +1158,14 @@ class _Vectorizer:
         )
 
     @staticmethod
-    @deprecated(
-        "This method is deprecated and will be removed in Q2 25. Please use `text2vec_google` instead."
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="""
+This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._Vectorizer.text2vec_google` instead.
+""",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '25. Please use `text2vec_google` instead."
     )
     def text2vec_palm(
         project_id: str,
@@ -1262,8 +1270,14 @@ class _Vectorizer:
         )
 
     @staticmethod
-    @deprecated(
-        "This method is deprecated and will be removed in Q2 25. Please use `multi2vec_google` instead."
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="""
+This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._Vectorizer.multi2vec_google` instead.
+""",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '25. Please use `multi2vec_google` instead."
     )
     def multi2vec_palm(
         *,

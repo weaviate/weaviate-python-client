@@ -13,8 +13,10 @@ from typing import (
     cast,
 )
 
+from deprecation import deprecated as docstring_deprecated
 from pydantic import AnyHttpUrl, Field, ValidationInfo, field_validator
-from typing_extensions import TypeAlias, deprecated
+from typing_extensions import TypeAlias
+from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import (
     _ConfigBase,
@@ -959,8 +961,14 @@ class _Generative:
         )
 
     @staticmethod
-    @deprecated(
-        "This method is deprecated and will be removed in Q2 25. Please use `google` instead."
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="""
+This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._Generative.google` instead.
+""",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '25. Please use `google` instead."
     )
     def palm(
         project_id: str,
