@@ -75,7 +75,7 @@ class WeaviateRole(TypedDict):
 
 
 class WeaviateUser(TypedDict):
-    username: str
+    user_id: str
     roles: Optional[List[WeaviateRole]]
     groups: List[str]
 
