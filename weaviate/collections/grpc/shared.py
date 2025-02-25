@@ -155,7 +155,9 @@ class _BaseGRPC:
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
             else:
                 raise WeaviateInvalidInputError(
-                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
+                    """This input appears to be a nested list of embeddings. If you are trying to search with a multi-vector embedding,
+                    check the shape of your input. If you are trying to provide multiple target vectors,
+                    provide a dictionary with target names as keys and lists of provide a dictionary with target names as
                     keys and lists of numbers as values."""
                 )
 
@@ -286,7 +288,9 @@ class _BaseGRPC:
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector), None
             else:
                 raise WeaviateInvalidInputError(
-                    """Providing lists of lists has been deprecated. Please provide a dictionary with target names as
+                    """This input appears to be a nested list of embeddings. If you are trying to search with a multi-vector embedding,
+                    check the shape of your input. If you are trying to provide multiple target vectors,
+                    provide a dictionary with target names as keys and lists of provide a dictionary with target names as
                     keys and lists of numbers as values."""
                 )
 
