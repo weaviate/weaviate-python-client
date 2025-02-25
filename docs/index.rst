@@ -32,9 +32,9 @@ Learning Resources
 Here are some learning resources to get you started or upgrade your Weaviate skills:
 
 - `Quickstart with Weaviate <https://weaviate.io/developers/weaviate/quickstart>`_
-- `Weaviate Academy <https://weaviate.io/developers/academyaviate-python-client-e85d14f19e4f>`_
+- `Weaviate Academy <https://weaviate.io/developers/academy>`_
 - `Similarity search recipies with Weaviate <https://github.com/weaviate/recipes/tree/main/weaviate-features/similarity-search>`_
-- `Weaviate documentation <https://weaviate.io/developers/weaviate>`_`
+- `Weaviate documentation <https://weaviate.io/developers/weaviate>`_
 
 Support
 -------
@@ -59,6 +59,7 @@ Method Index
    :hidden:
    :caption: Contents:
 
-   weaviate
+   modules
+   weaviate.exceptions
    changelog
    genindex
