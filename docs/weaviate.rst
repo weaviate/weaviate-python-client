@@ -12,13 +12,13 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   .. weaviate.backup
-   .. weaviate.classes
-   .. weaviate.cluster
-   .. weaviate.collections
-   .. weaviate.connect
-   .. weaviate.rbac
-   .. weaviate.users
+   weaviate.backup
+..    weaviate.classes
+..    weaviate.cluster
+..    weaviate.collections
+..    weaviate.connect
+..    weaviate.rbac
+..    weaviate.users
 
 Submodules
 ----------

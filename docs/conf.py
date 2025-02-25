@@ -53,7 +53,7 @@ author = "Weaviate"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
-    "sphinx.ext.autosectionlabel",
+    # "sphinx.ext.autosectionlabel",
     "sphinxcontrib.autodoc_pydantic",
 ]
 
@@ -79,6 +79,10 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.rst"]
+
+suppress_warnings = [
+    "docutils",
+]
 
 # -- Options for HTML output -------------------------------------------------
 
