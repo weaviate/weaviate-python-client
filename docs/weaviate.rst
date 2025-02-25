@@ -1,11 +1,10 @@
-Weaviate Packages
-=================
+weaviate package
+================
 
 .. automodule:: weaviate
    :members:
    :exclude-members: Client
    :undoc-members:
-   :show-inheritance:
 
 Subpackages
 -----------
@@ -13,75 +12,35 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   weaviate.backup
-   weaviate.collections
-   weaviate.connect
-   weaviate.rbac
+   .. weaviate.backup
+   .. weaviate.classes
+   .. weaviate.cluster
+   .. weaviate.collections
+   .. weaviate.connect
+   .. weaviate.rbac
+   .. weaviate.users
 
 Submodules
 ----------
 
-weaviate.auth module
---------------------
+weaviate.auth
+^^^^^^^^^^^^^
 
 .. automodule:: weaviate.auth
    :members:
    :undoc-members:
-   :show-inheritance:
+   :private-members:
 
-weaviate.classes module
------------------------
-
-.. automodule:: weaviate.classes
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.client module
-----------------------
-
-.. automodule:: weaviate.client
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.config module
-----------------------
+weaviate.config 
+^^^^^^^^^^^^^^^
 
 .. automodule:: weaviate.config
    :members:
    :undoc-members:
-   :show-inheritance:
 
-weaviate.embedded module
-------------------------
+weaviate.embedded
+^^^^^^^^^^^^^^^^^
 
 .. automodule:: weaviate.embedded
    :members:
    :undoc-members:
-   :show-inheritance:
-
-
-weaviate.exceptions module
---------------------------
-
-.. automodule:: weaviate.exceptions
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.types module
----------------------
-
-.. automodule:: weaviate.types
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-weaviate.util module
---------------------
-
-.. automodule:: weaviate.util
-   :members:
-   :undoc-members:
-   :show-inheritance:
