@@ -155,10 +155,10 @@ class _BaseGRPC:
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector)
             else:
                 raise WeaviateInvalidInputError(
-                    """This input appears to be a nested list of embeddings. If you are trying to search with a multi-vector embedding,
-                    check the shape of your input. If you are trying to provide multiple target vectors,
-                    provide a dictionary with target names as keys and lists of provide a dictionary with target names as
-                    keys and lists of numbers as values."""
+                    """This input appears to be a nested list of embeddings.
+                    If you are trying to search with a multi-vector embedding, check the shape of your input.
+                    If you are trying to provide multiple target vectors,
+                    provide a dictionary with target names as keys and embeddings as values."""
                 )
 
     def _vector_for_target(
@@ -288,10 +288,10 @@ class _BaseGRPC:
                 return None, struct.pack("{}f".format(len(near_vector)), *near_vector), None
             else:
                 raise WeaviateInvalidInputError(
-                    """This input appears to be a nested list of embeddings. If you are trying to search with a multi-vector embedding,
-                    check the shape of your input. If you are trying to provide multiple target vectors,
-                    provide a dictionary with target names as keys and lists of provide a dictionary with target names as
-                    keys and lists of numbers as values."""
+                    """This input appears to be a nested list of embeddings.
+                    If you are trying to search with a multi-vector embedding, check the shape of your input.
+                    If you are trying to provide multiple target vectors,
+                    provide a dictionary with target names as keys and embeddings as values."""
                 )
 
     def _parse_near_options(
