@@ -72,7 +72,7 @@ class WeaviateStub(object):
         self.Batch = channel.stream_stream(
             "/weaviate.v1.Weaviate/Batch",
             request_serializer=v1_dot_batch__pb2.BatchMessage.SerializeToString,
-            response_deserializer=v1_dot_batch__pb2.BatchObjectsReply.FromString,
+            response_deserializer=v1_dot_batch__pb2.BatchError.FromString,
             _registered_method=True,
         )
 
@@ -147,7 +147,7 @@ def add_WeaviateServicer_to_server(servicer, server):
         "Batch": grpc.stream_stream_rpc_method_handler(
             servicer.Batch,
             request_deserializer=v1_dot_batch__pb2.BatchMessage.FromString,
-            response_serializer=v1_dot_batch__pb2.BatchObjectsReply.SerializeToString,
+            response_serializer=v1_dot_batch__pb2.BatchError.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -329,7 +329,7 @@ class Weaviate(object):
             target,
             "/weaviate.v1.Weaviate/Batch",
             v1_dot_batch__pb2.BatchMessage.SerializeToString,
-            v1_dot_batch__pb2.BatchObjectsReply.FromString,
+            v1_dot_batch__pb2.BatchError.FromString,
             options,
             channel_credentials,
             insecure,

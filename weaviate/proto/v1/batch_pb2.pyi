@@ -42,17 +42,17 @@ class BatchStop(_message.Message):
     def __init__(self) -> None: ...
 
 class BatchMessage(_message.Message):
-    __slots__ = ("init", "object", "sentinel")
+    __slots__ = ("init", "request", "sentinel")
     INIT_FIELD_NUMBER: _ClassVar[int]
-    OBJECT_FIELD_NUMBER: _ClassVar[int]
+    REQUEST_FIELD_NUMBER: _ClassVar[int]
     SENTINEL_FIELD_NUMBER: _ClassVar[int]
     init: BatchStart
-    object: BatchObject
+    request: BatchObjectsRequest
     sentinel: BatchStop
     def __init__(
         self,
         init: _Optional[_Union[BatchStart, _Mapping]] = ...,
-        object: _Optional[_Union[BatchObject, _Mapping]] = ...,
+        request: _Optional[_Union[BatchObjectsRequest, _Mapping]] = ...,
         sentinel: _Optional[_Union[BatchStop, _Mapping]] = ...,
     ) -> None: ...
 
@@ -185,6 +185,14 @@ class BatchObject(_message.Message):
         vector_bytes: _Optional[bytes] = ...,
         vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...,
     ) -> None: ...
+
+class BatchError(_message.Message):
+    __slots__ = ("index", "error")
+    INDEX_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    index: int
+    error: str
+    def __init__(self, index: _Optional[int] = ..., error: _Optional[str] = ...) -> None: ...
 
 class BatchObjectsReply(_message.Message):
     __slots__ = ("took", "errors")

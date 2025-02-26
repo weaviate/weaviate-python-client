@@ -1,4 +1,5 @@
-from typing import Any, AsyncGenerator, Coroutine, List, Optional, Union, cast
+from collections import deque
+from typing import Any, AsyncGenerator, List, Optional, Union, cast
 
 from grpc.aio import AioRpcError, EOF, StreamStreamCall  # type: ignore
 from pydantic import ValidationError
@@ -11,7 +12,7 @@ from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateBatchValidationError
-from weaviate.event_loop import _EventLoopSingleton
+from weaviate.event_loop import _EventLoopSingleton, Future
 from weaviate.proto.v1 import batch_pb2
 from weaviate.types import UUID, VECTORS
 
@@ -69,7 +70,11 @@ class _BatchStreamAsync(_BatchGRPC):
 
     async def _add_object(self, obj: _BatchObject) -> None:
         assert self.__stream is not None
-        await self.__stream.write(batch_pb2.BatchMessage(object=self._grpc_object(obj)))
+        await self.__stream.write(
+            batch_pb2.BatchMessage(
+                request=batch_pb2.BatchObjectsRequest(objects=[self._grpc_object(obj)])
+            )
+        )
 
     async def _read_replies(self) -> AsyncGenerator[batch_pb2.BatchObjectsReply, None]:
         assert self.__stream is not None
@@ -157,7 +162,9 @@ class _BatchStream(_BatchGRPC):
         self.__objs_count = 0
         self.__errors: List[batch_pb2.BatchObjectsReply.BatchError] = []
         self.__loop = _EventLoopSingleton.get_instance()
-        self.__coros: List[Coroutine] = []
+        self.__objs: deque[batch_pb2.BatchObject] = deque()
+        self.__future: Optional[Future] = None
+        self.__batch_size = 1000
 
     @property
     def errors(self) -> List[batch_pb2.BatchObjectsReply.BatchError]:
@@ -189,6 +196,10 @@ class _BatchStream(_BatchGRPC):
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         assert self.__stream is not None
+        if self.__future is not None:
+            self.__future.result()  # wait for the previous batch to finish
+        if len(self.__objs) > 0:
+            self.__loop.run_until_complete(self.__send)
         self.__loop.run_until_complete(
             self.__stream.write, batch_pb2.BatchMessage(sentinel=batch_pb2.BatchStop())
         )
@@ -199,12 +210,25 @@ class _BatchStream(_BatchGRPC):
         async for _ in self._read_replies():
             pass
 
-    async def _add_object(self, obj: _BatchObject) -> None:
+    async def __send(self) -> None:
         assert self.__stream is not None
         try:
-            await self.__stream.write(batch_pb2.BatchMessage(object=self._grpc_object(obj)))
+            await self.__stream.write(
+                batch_pb2.BatchMessage(
+                    request=batch_pb2.BatchObjectsRequest(
+                        objects=(self.__objs.popleft() for _ in range(self.__batch_size))
+                    )
+                )
+            )
         except AioRpcError as e:
             print(e)
+
+    def __add_object(self, obj: _BatchObject) -> None:
+        if len(self.__objs) >= self.__batch_size:
+            if self.__future is not None:
+                self.__future.result()  # wait for the previous batch to finish
+            self.__future = self.__loop.schedule(self.__send)
+        self.__objs.append(self._grpc_object(obj))
 
     async def _read_replies(self) -> AsyncGenerator[batch_pb2.BatchObjectsReply, None]:
         assert self.__stream is not None
@@ -276,5 +300,5 @@ class _BatchStream(_BatchGRPC):
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         assert batch_object.uuid is not None
-        self.__loop.run_until_complete(self._add_object, batch_object._to_internal())
+        self.__add_object(batch_object._to_internal())
         return batch_object.uuid
