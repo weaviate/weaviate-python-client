@@ -168,7 +168,6 @@ class _WeaviateClientBase(_WeaviateClientInit):
                 return True
             return False
         except Exception as e:
-            print(e)
             return False
 
     async def is_ready(self) -> bool:
@@ -178,7 +177,6 @@ class _WeaviateClientBase(_WeaviateClientInit):
                 return True
             return False
         except Exception as e:
-            print(e)
             return False
 
     async def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
