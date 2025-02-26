@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 from weaviate.warnings import _Warnings
 
@@ -74,8 +74,8 @@ class Tenant(BaseModel):
         alias="activity_status",
         exclude=True,
     )
-    activityStatus: _TenantActivistatusServerValues = Field(
-        init_var=False, default=_TenantActivistatusServerValues.HOT
+    _activityStatus: _TenantActivistatusServerValues = PrivateAttr(
+          default=_TenantActivistatusServerValues.HOT
     )
 
     @property
@@ -100,7 +100,7 @@ class Tenant(BaseModel):
                 _Warnings.deprecated_tenant_type("FROZEN", "OFFLOADED")
             self.activityStatusInternal = TenantActivityStatus.OFFLOADED
         if user_input:
-            self.activityStatus = _TenantActivistatusServerValues.from_string(
+            self._activityStatus = _TenantActivistatusServerValues.from_string(
                 self.activityStatusInternal.value
             )
 
@@ -175,8 +175,8 @@ class TenantCreate(BaseModel):
         alias="activity_status",
         exclude=True,
     )
-    activityStatus: _TenantActivistatusServerValues = Field(
-        init_var=False, default=_TenantActivistatusServerValues.HOT
+    _activityStatus: _TenantActivistatusServerValues = PrivateAttr(
+          default=_TenantActivistatusServerValues.HOT
     )
 
     @property
@@ -191,7 +191,7 @@ class TenantCreate(BaseModel):
         elif self.activityStatusInternal == TenantCreateActivityStatus.COLD:
             _Warnings.deprecated_tenant_type("COLD", "INACTIVE")
             self.activityStatusInternal = TenantCreateActivityStatus.INACTIVE
-        self.activityStatus = _TenantActivistatusServerValues.from_string(
+        self._activityStatus = _TenantActivistatusServerValues.from_string(
             self.activityStatusInternal.value
         )
 
@@ -211,8 +211,8 @@ class TenantUpdate(BaseModel):
     activityStatusInternal: TenantUpdateActivityStatus = Field(
         default=TenantUpdateActivityStatus.ACTIVE, alias="activity_status", exclude=True
     )
-    activityStatus: _TenantActivistatusServerValues = Field(
-        init_var=False, default=_TenantActivistatusServerValues.HOT
+    _activityStatus: _TenantActivistatusServerValues = PrivateAttr(
+          default=_TenantActivistatusServerValues.HOT
     )
 
     @property
@@ -230,6 +230,6 @@ class TenantUpdate(BaseModel):
         elif self.activityStatusInternal == TenantUpdateActivityStatus.FROZEN:
             _Warnings.deprecated_tenant_type("FROZEN", "OFFLOADED")
             self.activityStatusInternal = TenantUpdateActivityStatus.OFFLOADED
-        self.activityStatus = _TenantActivistatusServerValues.from_string(
+        self._activityStatus = _TenantActivistatusServerValues.from_string(
             self.activityStatusInternal.value
         )
