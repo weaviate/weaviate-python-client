@@ -180,6 +180,13 @@ class _Base(Generic[Properties, References]):
     ) -> Optional[str]:
         return generative.values[0].result if len(generative.values) > 0 else None
 
+    def __extract_generated_from_reply(self, res: search_get_pb2.SearchReply) -> Optional[str]:
+        if (
+            res.generative_grouped_result != ""
+        ):  # for BC, is deprecated in favour of generative_grouped_results
+            return res.generative_grouped_result
+        return self.__extract_generated_from_generative(res.generative_grouped_results)
+
     def __deserialize_list_value_prop_125(
         self, value: properties_pb2.ListValue
     ) -> Optional[List[Any]]:
@@ -454,9 +461,7 @@ class _Base(Generic[Properties, References]):
                 )
                 for obj in res.results
             ],
-            generated=(
-                res.generative_grouped_result if res.generative_grouped_result != "" else None
-            ),
+            generated=self.__extract_generated_from_reply(res),
         )
 
     def _result_to_generative_return(
