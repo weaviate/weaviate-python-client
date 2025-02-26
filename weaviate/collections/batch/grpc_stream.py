@@ -1,5 +1,6 @@
+import asyncio
 from collections import deque
-from typing import Any, AsyncGenerator, List, Optional, Union, cast
+from typing import Any, AsyncGenerator, Generator, List, Optional, Union, cast
 
 from grpc.aio import AioRpcError, EOF, StreamStreamCall  # type: ignore
 from pydantic import ValidationError
@@ -11,23 +12,27 @@ from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import ConnectionV4
+from weaviate.connect.base import MAX_GRPC_MESSAGE_LENGTH
 from weaviate.exceptions import WeaviateBatchValidationError
-from weaviate.event_loop import _EventLoopSingleton, Future
+from weaviate.event_loop import _EventLoop, Future
 from weaviate.proto.v1 import batch_pb2
 from weaviate.types import UUID, VECTORS
 
 
-class _BatchStreamAsync(_BatchGRPC):
+class _BatchStreamBase(_BatchGRPC):
     def __init__(
         self,
         connection: ConnectionV4,
     ):
         super().__init__(connection, None)
-        self.__stream: Optional[
+        self._stream: Optional[
             StreamStreamCall[batch_pb2.BatchMessage, batch_pb2.BatchObjectsReply]
         ] = None
-        self.__objs_count = 0
-        self.__errors: List[batch_pb2.BatchObjectsReply.BatchError] = []
+        self._objs_count = 0
+        self._errors: List[batch_pb2.BatchObjectsReply.BatchError] = []
+        self._objs: deque[batch_pb2.BatchObject] = deque()
+        self._max_batch_size = 1000
+        self._max_msg_size = MAX_GRPC_MESSAGE_LENGTH
 
     @property
     def errors(self) -> List[batch_pb2.BatchObjectsReply.BatchError]:
@@ -38,20 +43,79 @@ class _BatchStreamAsync(_BatchGRPC):
             `List[batch_pb2.BatchObjectsReply.BatchError]`
                 The list of errors that occurred during the batch operation.
         """
-        return self.__errors
+        return self._errors
 
-    async def __aenter__(
-        self, consistency_level: Optional[ConsistencyLevel] = None
-    ) -> "_BatchStreamAsync":
+    def _make_stream(self) -> StreamStreamCall[batch_pb2.BatchMessage, batch_pb2.BatchObjectsReply]:
         assert self._connection.grpc_stub is not None
-        self.__stream = cast(
+        return cast(
             StreamStreamCall[batch_pb2.BatchMessage, batch_pb2.BatchObjectsReply],
             self._connection.grpc_stub.Batch(
                 metadata=self._connection.grpc_headers(),
                 timeout=self._connection.timeout_config.insert,
             ),
         )
-        await self.__stream.write(
+
+    async def _wait(self) -> None:
+        async for _ in self._read_replies():
+            pass
+
+    async def _send(self) -> None:
+        assert self._stream is not None
+        try:
+            await self._stream.write(
+                batch_pb2.BatchMessage(
+                    request=batch_pb2.BatchObjectsRequest(objects=self.__batch_generator())
+                )
+            )
+        except AioRpcError as e:
+            print(e)
+
+    async def _exit(self) -> None:
+        if len(self._objs) > 0:
+            await self._send()
+        assert self._stream is not None
+        await self._stream.write(batch_pb2.BatchMessage(sentinel=batch_pb2.BatchStop()))
+        await self._stream.done_writing()
+        await self._wait()
+
+    def __batch_generator(self) -> Generator[batch_pb2.BatchObject, None, None]:
+        count = 0
+        total_bytes = 0
+        while len(self._objs) > 0 and count < self._max_batch_size:
+            obj = self._objs.popleft()
+            total_bytes += obj.ByteSize()
+            if total_bytes > self._max_msg_size:
+                break
+            yield obj
+            count += 1
+
+    async def _read_replies(self) -> AsyncGenerator[batch_pb2.BatchObjectsReply, None]:
+        assert self._stream is not None
+        while True:
+            try:
+                reply = await self._stream.read()
+                if reply == EOF:
+                    return
+                assert isinstance(reply, batch_pb2.BatchObjectsReply)
+                self._errors.extend(reply.errors)
+            except AioRpcError as e:
+                raise e
+            yield reply
+
+
+class _BatchStreamAsync(_BatchStreamBase):
+    def __init__(
+        self,
+        connection: ConnectionV4,
+    ):
+        super().__init__(connection)
+        self.__task: Optional[asyncio.Task[None]] = None
+
+    async def __aenter__(
+        self, consistency_level: Optional[ConsistencyLevel] = None
+    ) -> "_BatchStreamAsync":
+        self._stream = self._make_stream()
+        await self._stream.write(
             batch_pb2.BatchMessage(
                 init=batch_pb2.BatchStart(consistency_level=consistency_level, concurrency=2)
             )
@@ -59,35 +123,16 @@ class _BatchStreamAsync(_BatchGRPC):
         return self
 
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        assert self.__stream is not None
-        await self.__stream.write(batch_pb2.BatchMessage(sentinel=batch_pb2.BatchStop()))
-        await self.__stream.done_writing()
-        await self.__wait()
+        if self.__task is not None:
+            await self.__task  # wait for the previous batch to finish if still running
+        await self._exit()
 
-    async def __wait(self) -> None:
-        async for _ in self._read_replies():
-            pass
-
-    async def _add_object(self, obj: _BatchObject) -> None:
-        assert self.__stream is not None
-        await self.__stream.write(
-            batch_pb2.BatchMessage(
-                request=batch_pb2.BatchObjectsRequest(objects=[self._grpc_object(obj)])
-            )
-        )
-
-    async def _read_replies(self) -> AsyncGenerator[batch_pb2.BatchObjectsReply, None]:
-        assert self.__stream is not None
-        while True:
-            try:
-                reply = await self.__stream.read()
-                if reply == EOF:
-                    return
-                assert isinstance(reply, batch_pb2.BatchObjectsReply)
-                self.__errors.extend(reply.errors)
-            except AioRpcError as e:
-                raise e
-            yield reply
+    async def __add_object(self, obj: _BatchObject) -> None:
+        if len(self._objs) >= self._max_batch_size:
+            if self.__task is not None:
+                await self.__task  # wait for the previous batch to finish if still running
+            self.__task = asyncio.create_task(self._send())
+        self._objs.append(self._grpc_object(obj))
 
     async def add_object(
         self,
@@ -140,54 +185,29 @@ class _BatchStreamAsync(_BatchGRPC):
                 uuid=uuid,
                 vector=vector,
                 tenant=tenant,
-                index=self.__objs_count,
+                index=self._objs_count,
             )
-            self.__objs_count += 1
+            self._objs_count += 1
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         assert batch_object.uuid is not None
-        await self._add_object(batch_object._to_internal())
+        await self.__add_object(batch_object._to_internal())
         return batch_object.uuid
 
 
-class _BatchStream(_BatchGRPC):
-    def __init__(
-        self,
-        connection: ConnectionV4,
-    ):
-        super().__init__(connection, None)
-        self.__stream: Optional[
-            StreamStreamCall[batch_pb2.BatchMessage, batch_pb2.BatchObjectsReply]
-        ] = None
-        self.__objs_count = 0
-        self.__errors: List[batch_pb2.BatchObjectsReply.BatchError] = []
-        self.__loop = _EventLoopSingleton.get_instance()
-        self.__objs: deque[batch_pb2.BatchObject] = deque()
+class _BatchStream(_BatchStreamBase):
+    def __init__(self, connection: ConnectionV4, event_loop: _EventLoop):
+        super().__init__(connection)
+        self.__loop = event_loop
         self.__future: Optional[Future] = None
-        self.__batch_size = 1000
-
-    @property
-    def errors(self) -> List[batch_pb2.BatchObjectsReply.BatchError]:
-        """
-        Get the list of errors that occurred during the batch operation.
-
-        Returns:
-            `List[batch_pb2.BatchObjectsReply.BatchError]`
-                The list of errors that occurred during the batch operation.
-        """
-        return self.__errors
 
     def __enter__(self, consistency_level: Optional[ConsistencyLevel] = None) -> "_BatchStream":
-        assert self._connection.grpc_stub is not None
-        self.__stream = cast(
-            StreamStreamCall[batch_pb2.BatchMessage, batch_pb2.BatchObjectsReply],
-            self._connection.grpc_stub.Batch(
-                metadata=self._connection.grpc_headers(),
-                timeout=self._connection.timeout_config.insert,
-            ),
-        )
+        meta = self.__loop.run_until_complete(self._connection.get_meta)
+        if "grpcMaxMessageSize" in meta:
+            self._max_msg_size = int(meta["grpcMaxMessageSize"])
+        self._stream = self._make_stream()
         self.__loop.run_until_complete(
-            self.__stream.write,
+            self._stream.write,
             batch_pb2.BatchMessage(
                 init=batch_pb2.BatchStart(consistency_level=consistency_level, concurrency=2)
             ),
@@ -195,53 +215,16 @@ class _BatchStream(_BatchGRPC):
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        assert self.__stream is not None
         if self.__future is not None:
-            self.__future.result()  # wait for the previous batch to finish
-        if len(self.__objs) > 0:
-            self.__loop.run_until_complete(self.__send)
-        self.__loop.run_until_complete(
-            self.__stream.write, batch_pb2.BatchMessage(sentinel=batch_pb2.BatchStop())
-        )
-        self.__loop.run_until_complete(self.__stream.done_writing)
-        self.__loop.run_until_complete(self.__wait)
-
-    async def __wait(self) -> None:
-        async for _ in self._read_replies():
-            pass
-
-    async def __send(self) -> None:
-        assert self.__stream is not None
-        try:
-            await self.__stream.write(
-                batch_pb2.BatchMessage(
-                    request=batch_pb2.BatchObjectsRequest(
-                        objects=(self.__objs.popleft() for _ in range(self.__batch_size))
-                    )
-                )
-            )
-        except AioRpcError as e:
-            print(e)
+            self.__future.result()  # wait for the previous batch to finish if still running
+        self.__loop.run_until_complete(self._exit)
 
     def __add_object(self, obj: _BatchObject) -> None:
-        if len(self.__objs) >= self.__batch_size:
+        if len(self._objs) >= self._max_batch_size:
             if self.__future is not None:
-                self.__future.result()  # wait for the previous batch to finish
-            self.__future = self.__loop.schedule(self.__send)
-        self.__objs.append(self._grpc_object(obj))
-
-    async def _read_replies(self) -> AsyncGenerator[batch_pb2.BatchObjectsReply, None]:
-        assert self.__stream is not None
-        while True:
-            try:
-                reply = await self.__stream.read()
-                if reply == EOF:
-                    return
-                assert isinstance(reply, batch_pb2.BatchObjectsReply)
-                self.__errors.extend(reply.errors)
-            except AioRpcError as e:
-                raise e
-            yield reply
+                self.__future.result()  # wait for the previous batch to finish if still running
+            self.__future = self.__loop.schedule(self._send)
+        self._objs.append(self._grpc_object(obj))
 
     def add_object(
         self,
@@ -294,9 +277,9 @@ class _BatchStream(_BatchGRPC):
                 uuid=uuid,
                 vector=vector,
                 tenant=tenant,
-                index=self.__objs_count,
+                index=self._objs_count,
             )
-            self.__objs_count += 1
+            self._objs_count += 1
         except ValidationError as e:
             raise WeaviateBatchValidationError(repr(e))
         assert batch_object.uuid is not None

@@ -99,7 +99,7 @@ class WeaviateClient(_WeaviateClientBase):
         We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
         self.roles = _Roles(self._connection)
         """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
-        self.stream = _BatchStream(self._connection)
+        self.stream = _BatchStream(self._connection, self._event_loop)
         self.users = _Users(self._connection)
         """This namespace contains all functionality to manage Weaviate users."""
 
