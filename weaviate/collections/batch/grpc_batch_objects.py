@@ -56,25 +56,22 @@ class _BatchGRPC(_BaseGRPC):
             if (packing := _Pack.parse_single_or_multi_vec(vec_or_vecs))
         ]
 
-    def __grpc_objects(self, objects: List[_BatchObject]) -> List[batch_pb2.BatchObject]:
-        return [
-            batch_pb2.BatchObject(
-                collection=obj.collection,
-                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
-                properties=(
-                    self.__translate_properties_from_python_to_grpc(
-                        obj.properties,
-                        obj.references if obj.references is not None else {},
-                    )
-                    if obj.properties is not None
-                    else None
-                ),
-                tenant=obj.tenant,
-                vector_bytes=self.__single_vec(obj.vector),
-                vectors=self.__multi_vec(obj.vector),
-            )
-            for obj in objects
-        ]
+    def _grpc_object(self, obj: _BatchObject) -> batch_pb2.BatchObject:
+        return batch_pb2.BatchObject(
+            collection=obj.collection,
+            uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+            properties=(
+                self.__translate_properties_from_python_to_grpc(
+                    obj.properties,
+                    obj.references if obj.references is not None else {},
+                )
+                if obj.properties is not None
+                else None
+            ),
+            tenant=obj.tenant,
+            vector_bytes=self.__single_vec(obj.vector),
+            vectors=self.__multi_vec(obj.vector),
+        )
 
     async def objects(
         self, objects: List[_BatchObject], timeout: Union[int, float]
@@ -90,7 +87,7 @@ class _BatchGRPC(_BaseGRPC):
             `tenant`
                 The tenant to be used for this batch operation
         """
-        weaviate_objs = self.__grpc_objects(objects)
+        weaviate_objs = [self._grpc_object(obj) for obj in objects]
 
         start = time.time()
         errors = await self.__send_batch(weaviate_objs, timeout=timeout)
