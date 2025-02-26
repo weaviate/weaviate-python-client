@@ -43,8 +43,12 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigFlatUpdate,
     _VectorIndexConfigHNSWCreate,
     _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigCUVSCreate,
+    _VectorIndexConfigCUVSUpdate,
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
+    CUVSBuildAlgo,
+    CUVSSearchAlgo
 )
 from weaviate.collections.classes.config_vectorizers import CohereModel
 from weaviate.collections.classes.config_vectorizers import VectorDistances as VectorDistancesAlias
@@ -1670,6 +1674,21 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 
 
 @dataclass
+class _VectorIndexConfigCUVS(_ConfigBase):
+    graphDegree: Optional[int]
+    intermediateGraphDegree: Optional[int]
+    buildAlgo: Optional[CUVSBuildAlgo]
+    searchAlgo: Optional[CUVSSearchAlgo]
+    itopKSize: Optional[int]
+    searchWidth: Optional[int]
+
+    @staticmethod
+    def vector_index_type() -> str:
+        return VectorIndexType.CUVS.value
+    
+VectorIndexConfigCUVS = _VectorIndexConfigCUVS
+
+@dataclass
 class _GenerativeConfig(_ConfigBase):
     generative: Union[GenerativeSearches, str]
     model: Dict[str, Any]
@@ -1738,7 +1757,7 @@ class _CollectionConfig(_ConfigBase):
     reranker_config: Optional[RerankerConfig]
     sharding_config: Optional[ShardingConfig]
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, None
+        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, VectorIndexConfigCUVS, None
     ]
     vector_index_type: Optional[VectorIndexType]
     vectorizer_config: Optional[VectorizerConfig]
@@ -2241,6 +2260,52 @@ class _VectorIndex:
             quantizer=None,
             multivector=None,
         )
+    
+    @staticmethod
+    def cuvs(
+        distance_metric: Optional[VectorDistances] = None,
+        graph_degree: Optional[int] = None,
+        intermediate_graph_degree: Optional[int] = None,
+        build_algo: Optional[CUVSBuildAlgo] = None,
+        search_algo: Optional[CUVSSearchAlgo] = None,
+        itop_k_size: Optional[int] = None,
+        search_width: Optional[int] = None,
+    ) -> _VectorIndexConfigCUVSCreate:
+        """Create a `_VectorIndexConfigCUVSCreate` object to be used when defining the CUVS vector index configuration of Weaviate.
+
+        CUVS (CUDA Vector Search) is a GPU-accelerated vector search index.
+        Note: CUVS does not support multivector or quantization.
+
+        Use this method when defining the `vector_index_config` argument in `collections.create()`.
+
+        Arguments:
+            `distance_metric`
+                The distance metric to use. Defaults to `None`, which uses the server-defined default.
+            `graph_degree`
+                The number of edges per node in the graph. Defaults to `None` (server default is 32).
+            `intermediate_graph_degree`
+                The number of edges per node in the intermediate graph. Defaults to `None` (server default is 32).
+            `build_algo`
+                The algorithm to use for building the graph. Defaults to `None` (server default is NN_DESCENT).
+            `search_algo`
+                The algorithm to use for searching the graph. Defaults to `None` (server default is MULTI_CTA).
+            `itop_k_size`
+                The size of the internal top-K. Defaults to `None` (server default is 256).
+            `search_width`
+                The search width. Defaults to `None` (server default is 1).
+        """
+        return _VectorIndexConfigCUVSCreate(
+            distance=distance_metric,
+            graphDegree=graph_degree,
+            intermediateGraphDegree=intermediate_graph_degree,
+            buildAlgo=build_algo,
+            searchAlgo=search_algo,
+            itopKSize=itop_k_size,
+            searchWidth=search_width,
+            # CUVS doesn't support these features
+            quantizer=None,
+            multivector=None,
+        )
 
 
 class Configure:
@@ -2510,6 +2575,22 @@ class _VectorIndexUpdate:
             flat=flat,
             quantizer=quantizer,
         )
+        
+    @staticmethod
+    def cuvs(
+        *,
+        graph_degree: Optional[int] = None,
+        intermediate_graph_degree: Optional[int] = None,
+        build_algo: Optional[CUVSBuildAlgo] = None,
+        search_algo: Optional[CUVSSearchAlgo] = None,
+        itop_k_size: Optional[int] = None,
+        search_width: Optional[int] = None,
+    ) -> _VectorIndexConfigCUVSUpdate:
+        """Update method for CUVS index.
+        
+        CUVS does not support updates. This method is included for API completeness but will raise an error.
+        """
+        raise NotImplementedError("CUVS vector index does not support updates.")
 
 
 class Reconfigure:

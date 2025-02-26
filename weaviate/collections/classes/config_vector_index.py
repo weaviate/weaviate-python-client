@@ -31,11 +31,41 @@ class VectorIndexType(str, Enum):
     Attributes:
         HNSW: Hierarchical Navigable Small World (HNSW) index.
         FLAT: Flat index.
+        DYNAMIC: Dynamic index that switches between HNSW and FLAT.
+        CUVS: CUDA Vector Search index.
     """
 
     HNSW = "hnsw"
     FLAT = "flat"
     DYNAMIC = "dynamic"
+    CUVS = "cuvs"
+
+
+class CUVSBuildAlgo(str, Enum):
+    """The available build algorithms for CUVS index.
+
+    Attributes:
+        NN_DESCENT: Nearest Neighbor Descent algorithm.
+        IVF_PQ: Inverted File with Product Quantization.
+        AUTO_SELECT: Automatically select the best algorithm.
+    """
+
+    NN_DESCENT = "nn_descent"
+    IVF_PQ = "ivf_pq"
+    AUTO_SELECT = "auto_select"
+
+
+class CUVSSearchAlgo(str, Enum):
+    """The available search algorithms for CUVS index.
+
+    Attributes:
+        MULTI_CTA: Multi-CTA search algorithm.
+        SINGLE_CTA: Single-CTA search algorithm.
+    """
+
+    MULTI_CTA = "multi_cta"
+    SINGLE_CTA = "single_cta"
+
 
 
 class _MultiVectorConfigCreateBase(_ConfigCreateModel):
@@ -44,6 +74,7 @@ class _MultiVectorConfigCreateBase(_ConfigCreateModel):
 
 class _MultiVectorConfigCreate(_MultiVectorConfigCreateBase):
     aggregation: Optional[str]
+
 
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
@@ -145,7 +176,6 @@ class _VectorIndexConfigDynamicCreate(_VectorIndexConfigCreate):
             ret_dict["flat"] = self.flat._to_dict()
         if self.threshold is not None:
             ret_dict["threshold"] = self.threshold
-
         return ret_dict
 
 
@@ -157,3 +187,36 @@ class _VectorIndexConfigDynamicUpdate(_VectorIndexConfigUpdate):
     @staticmethod
     def vector_index_type() -> VectorIndexType:
         return VectorIndexType.DYNAMIC
+
+
+class _VectorIndexConfigCUVSCreate(_VectorIndexConfigCreate):
+    """Configuration for creating a CUVS (CUDA Vector Search) index."""
+
+    graphDegree: Optional[int] = Field(default=32)
+    intermediateGraphDegree: Optional[int] = Field(default=32)
+    buildAlgo: Optional[CUVSBuildAlgo] = Field(default=CUVSBuildAlgo.NN_DESCENT)
+    searchAlgo: Optional[CUVSSearchAlgo] = Field(default=CUVSSearchAlgo.MULTI_CTA)
+    itopKSize: Optional[int] = Field(default=256)
+    searchWidth: Optional[int] = Field(default=1)
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.CUVS
+
+
+class _VectorIndexConfigCUVSUpdate(_VectorIndexConfigUpdate):
+    """Configuration for updating a CUVS (CUDA Vector Search) index."""
+
+    graphDegree: Optional[int] = None
+    intermediateGraphDegree: Optional[int] = None
+    buildAlgo: Optional[CUVSBuildAlgo] = None
+    searchAlgo: Optional[CUVSSearchAlgo] = None
+    itopKSize: Optional[int] = None
+    searchWidth: Optional[int] = None
+
+    @staticmethod
+    def vector_index_type() -> VectorIndexType:
+        return VectorIndexType.CUVS
+
+
+VectorIndexConfigCUVS = _VectorIndexConfigCUVSCreate
