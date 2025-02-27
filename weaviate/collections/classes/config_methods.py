@@ -11,6 +11,7 @@ from weaviate.collections.classes.config import (
     _PQConfig,
     _VectorIndexConfigFlat,
     _VectorIndexConfigDynamic,
+    _VectorIndexConfigCUVS,
     _InvertedIndexConfig,
     _BM25Config,
     _StopwordsConfig,
@@ -38,6 +39,8 @@ from weaviate.collections.classes.config import (
     _NestedProperty,
     ReplicationDeletionStrategy,
     VectorFilterStrategy,
+    CUVSBuildAlgo,
+    CUVSSearchAlgo, 
 )
 
 
@@ -188,10 +191,30 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
         multi_vector=None,
     )
 
+def __get_cuvs_config(config: Dict[str, Any]) -> _VectorIndexConfigCUVS:
+    """Parse CUVS vector index configuration from JSON schema."""
+    return _VectorIndexConfigCUVS(
+        graph_degree=config["graphDegree"],
+        intermediate_graph_degree=config["intermediateGraphDegree"],
+        build_algo=(
+            CUVSBuildAlgo(config["buildAlgo"])
+            if "buildAlgo" in config
+            else CUVSBuildAlgo.NN_DESCENT
+        ),
+        search_algo=(
+            CUVSSearchAlgo(config["searchAlgo"])
+            if "searchAlgo" in config
+            else CUVSSearchAlgo.MULTI_CTA
+        ),
+        itop_k_size=config["itopKSize"],
+        search_width=config["searchWidth"],
+        quantizer=None,
+        multi_vector=None,  # CUVS doesn't support multi_vector
+    )
 
 def __get_vector_index_config(
     schema: Dict[str, Any]
-) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, None]:
+) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, _VectorIndexConfigCUVS, None]:
     if "vectorIndexConfig" not in schema:
         return None
     if schema["vectorIndexType"] == "hnsw":
@@ -205,6 +228,8 @@ def __get_vector_index_config(
             hnsw=__get_hnsw_config(schema["vectorIndexConfig"]["hnsw"]),
             flat=__get_flat_config(schema["vectorIndexConfig"]["flat"]),
         )
+    elif schema["vectorIndexType"] == "cuvs":
+        return __get_cuvs_config(schema["vectorIndexConfig"])
     else:
         return None
 

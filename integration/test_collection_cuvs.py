@@ -13,6 +13,8 @@ from weaviate.collections.classes.config import (
     VectorIndexType,
     CUVSBuildAlgo,
     CUVSSearchAlgo,
+    VectorIndexConfigCUVS,
+    _VectorIndexConfigCUVS,
 )
 import time
 from weaviate.collections.classes.grpc import MetadataQuery
@@ -46,17 +48,28 @@ def test_cuvs_create_config(collection_factory: CollectionFactory) -> None:
         ],
     )
     
+    
 
     
     # Now verify the configuration
     config = collection.config.get()
-    assert config.vector_index_type == VectorIndexType.CUVS
-    assert config.vector_index_config.graphDegree == 32
-    assert config.vector_index_config.intermediateGraphDegree == 32
-    assert config.vector_index_config.buildAlgo == CUVSBuildAlgo.NN_DESCENT
-    assert config.vector_index_config.searchAlgo == CUVSSearchAlgo.MULTI_CTA
-    assert config.vector_index_config.itopKSize == 256
-    assert config.vector_index_config.searchWidth == 1
+    print("COLLECTION TYPE")
+    print(config)
+    print("TYPE")
+    print(type(config.vector_index_config))
+    
+    if isinstance(config.vector_index_config, _VectorIndexConfigCUVS):
+        assert config.vector_index_config.graph_degree == 32
+        assert config.vector_index_config.intermediate_graph_degree == 32
+        assert config.vector_index_config.build_algo == CUVSBuildAlgo.NN_DESCENT
+        assert config.vector_index_config.search_algo == CUVSSearchAlgo.MULTI_CTA
+        assert config.vector_index_config.itop_k_size == 256
+        assert config.vector_index_config.search_width == 1
+    else:
+        assert False
+            
+
+   
 
 
 def test_cuvs_search(collection_factory: CollectionFactory) -> None:
@@ -74,18 +87,15 @@ def test_cuvs_search(collection_factory: CollectionFactory) -> None:
     num_vectors = 1024
     vectors = [
         np.random.rand(dim).astype(np.float32) for _ in range(num_vectors)
+        
     ]
     
-        
     with collection.batch.fixed_size(batch_size=128, concurrent_requests=1) as batch:
         for i in range(num_vectors):
             batch.add_object(properties={"name": f"item{i}"}, vector=vectors[i])
-    
             if batch.number_errors > 10:
                 print("Batch import stopped due to excessive errors.")
-            break
-        
-        batch.flush()
+                break
         
     collection.batch.wait_for_vector_indexing()
 
@@ -96,10 +106,6 @@ def test_cuvs_search(collection_factory: CollectionFactory) -> None:
     else:
         print("No failed imports.")
     assert(len(failed_objects) == 0)
-    # uuids = collection.data.insert_many(objects)
-    
-    # wait for 100s
-    time.sleep(100)
     
     # Query nearest neighbors
     query_vector = vectors[0]  # Use first vector as query

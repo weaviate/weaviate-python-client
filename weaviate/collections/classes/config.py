@@ -1675,17 +1675,19 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 
 @dataclass
 class _VectorIndexConfigCUVS(_ConfigBase):
-    graphDegree: Optional[int]
-    intermediateGraphDegree: Optional[int]
-    buildAlgo: Optional[CUVSBuildAlgo]
-    searchAlgo: Optional[CUVSSearchAlgo]
-    itopKSize: Optional[int]
-    searchWidth: Optional[int]
-
+    graph_degree: Optional[int]
+    intermediate_graph_degree: Optional[int]
+    build_algo: Optional[CUVSBuildAlgo]
+    search_algo: Optional[CUVSSearchAlgo]
+    itop_k_size: Optional[int]
+    search_width: Optional[int]
+    multi_vector: Optional[_MultiVectorConfig]
+    quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig]]
+    
     @staticmethod
     def vector_index_type() -> str:
         return VectorIndexType.CUVS.value
-    
+
 VectorIndexConfigCUVS = _VectorIndexConfigCUVS
 
 @dataclass
