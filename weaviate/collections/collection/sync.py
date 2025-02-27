@@ -112,7 +112,9 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             connection, name, consistency_level, tenant, validate_arguments
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
-        self.generate: _GenerateCollection[Properties, References] = _GenerateCollection[Properties, References](
+        self.generate: _GenerateCollection[Properties, References] = _GenerateCollection[
+            Properties, References
+        ](
             connection=connection,
             name=name,
             consistency_level=consistency_level,
@@ -122,7 +124,9 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             validate_arguments=validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
-        self.query: _QueryCollection[Properties, References] = _QueryCollection[Properties, References](
+        self.query: _QueryCollection[Properties, References] = _QueryCollection[
+            Properties, References
+        ](
             connection=connection,
             name=name,
             consistency_level=consistency_level,
