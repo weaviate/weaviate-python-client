@@ -16,9 +16,11 @@ from weaviate.collections.classes.internal import (
     TReferences,
 )
 from weaviate.collections.classes.types import Properties, TProperties
+from weaviate.collections.config import _ConfigCollectionAsync
 from weaviate.collections.data import _DataCollectionAsync
 from weaviate.collections.generate import _GenerateCollectionAsync
 from weaviate.collections.iterator import _IteratorInputs, _ObjectAIterator
+from weaviate.collections.query import _QueryCollectionAsync
 from weaviate.collections.tenants import _TenantsAsync
 from weaviate.connect import ConnectionV4
 from weaviate.types import UUID
@@ -76,19 +78,19 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
 
         self.__cluster = _ClusterAsync(connection)
 
-        self.aggregate = _AggregateCollectionAsync(
+        self.aggregate: _AggregateCollectionAsync = _AggregateCollectionAsync(
             connection, name, consistency_level, tenant, validate_arguments
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
-        self.backup = _CollectionBackupAsync(connection, name)
+        self.backup: _CollectionBackupAsync = _CollectionBackupAsync(connection, name)
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
-        self.config = self._config
+        self.config: _ConfigCollectionAsync = self._config
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
-        self.data = _DataCollectionAsync[Properties](
+        self.data: _DataCollectionAsync[Properties] = _DataCollectionAsync[Properties](
             connection, name, consistency_level, tenant, validate_arguments, properties
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
-        self.generate = _GenerateCollectionAsync[Properties, References](
+        self.generate: _GenerateCollectionAsync[Properties, References] = _GenerateCollectionAsync[Properties, References](
             connection,
             name,
             consistency_level,
@@ -98,9 +100,9 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
             validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
-        self.query = self._query
+        self.query: _QueryCollectionAsync[Properties, References] = self._query
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
-        self.tenants = _TenantsAsync(connection, name)
+        self.tenants: _TenantsAsync = _TenantsAsync(connection, name)
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
 
     async def length(self) -> int:
