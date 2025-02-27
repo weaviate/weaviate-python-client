@@ -1,5 +1,5 @@
-weaviate.backup package
-=======================
+weaviate.backup
+===============
 
 .. automodule:: weaviate.backup
    :members:
@@ -9,8 +9,8 @@ weaviate.backup package
 Submodules
 ----------
 
-weaviate.backup.backup module
------------------------------
+weaviate.backup.backup
+^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: weaviate.backup.backup
    :members:

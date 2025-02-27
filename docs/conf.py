@@ -53,7 +53,7 @@ author = "Weaviate"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
-    # "sphinx.ext.autosectionlabel",
+    "sphinx.ext.autosectionlabel",
     "sphinxcontrib.autodoc_pydantic",
 ]
 
