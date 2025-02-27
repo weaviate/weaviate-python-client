@@ -2,6 +2,8 @@
 Module for backup/restore operations
 """
 
-__all__ = ["BackupStorage"]
+from .backup import BackupStorage, _BackupAsync
+from .sync import _Backup
 
-from weaviate.backup.backup import BackupStorage
+
+__all__ = ["BackupStorage", "_Backup", "_BackupAsync"]
