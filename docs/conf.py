@@ -82,6 +82,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.rst"]
 
 suppress_warnings = [
     "docutils",
+    "autodoc",
+    "autosectionlabel",
 ]
 
 # -- Options for HTML output -------------------------------------------------
