@@ -1,5 +1,5 @@
-weaviate package
-================
+weaviate
+--------
 
 .. automodule:: weaviate
    :members:
@@ -10,10 +10,10 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    weaviate.backup
-..    weaviate.classes
+   weaviate.classes
 ..    weaviate.cluster
 ..    weaviate.collections
 ..    weaviate.connect
