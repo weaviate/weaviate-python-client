@@ -90,7 +90,9 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
             connection, name, consistency_level, tenant, validate_arguments, properties
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
-        self.generate: _GenerateCollectionAsync[Properties, References] = _GenerateCollectionAsync[Properties, References](
+        self.generate: _GenerateCollectionAsync[Properties, References] = _GenerateCollectionAsync[
+            Properties, References
+        ](
             connection,
             name,
             consistency_level,
