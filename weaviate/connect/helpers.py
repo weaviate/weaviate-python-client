@@ -91,6 +91,8 @@ def connect_to_weaviate_cloud(
             skip_init_checks=skip_init_checks,
         )
     )
+
+
 @docstring_deprecated(
     deprecated_in="4.6.2",
     details="""
@@ -98,7 +100,7 @@ This method is deprecated and will be removed in a future release. Use :func:`co
 """,
 )
 @typing_deprecated(
-        "This method is deprecated and will be removed in a future release. Use `connect_to_weaviate_cloud` instead."
+    "This method is deprecated and will be removed in a future release. Use `connect_to_weaviate_cloud` instead."
 )
 def connect_to_wcs(
     cluster_url: str,
