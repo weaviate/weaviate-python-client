@@ -15,10 +15,10 @@ Subpackages
    weaviate.backup
    weaviate.classes
    weaviate.cluster
+   weaviate.users
 ..    weaviate.collections
 ..    weaviate.connect
 ..    weaviate.rbac
-..    weaviate.users
 
 Submodules
 ----------
