@@ -14,7 +14,7 @@ Subpackages
 
    weaviate.backup
    weaviate.classes
-..    weaviate.cluster
+   weaviate.cluster
 ..    weaviate.collections
 ..    weaviate.connect
 ..    weaviate.rbac
