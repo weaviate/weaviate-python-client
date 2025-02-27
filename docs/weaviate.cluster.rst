@@ -5,6 +5,7 @@ weaviate.cluster
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
 
 Submodules
 ----------
@@ -16,3 +17,4 @@ weaviate.cluster.types
    :members:
    :undoc-members:
    :show-inheritance:
+   :private-members:
