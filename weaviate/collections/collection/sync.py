@@ -85,7 +85,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             tenant=tenant,
         )
 
-        self.aggregate = _AggregateCollection(
+        self.aggregate: _AggregateCollection = _AggregateCollection(
             connection=connection,
             name=name,
             consistency_level=consistency_level,
@@ -93,12 +93,12 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             validate_arguments=validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
-        self.backup = _CollectionBackup(
+        self.backup: _CollectionBackup = _CollectionBackup(
             connection=connection,
             name=name,
         )
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
-        self.batch = _BatchCollectionWrapper[Properties](
+        self.batch: _BatchCollectionWrapper[Properties] = _BatchCollectionWrapper[Properties](
             connection,
             consistency_level,
             name,
@@ -106,13 +106,13 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             config,
         )
         """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
-        self.config = config
+        self.config: _ConfigCollection = config
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
-        self.data = _DataCollection[Properties](
+        self.data: _DataCollection[Properties] = _DataCollection[Properties](
             connection, name, consistency_level, tenant, validate_arguments
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
-        self.generate = _GenerateCollection[Properties, References](
+        self.generate: _GenerateCollection[Properties, References] = _GenerateCollection[Properties, References](
             connection=connection,
             name=name,
             consistency_level=consistency_level,
@@ -122,7 +122,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             validate_arguments=validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
-        self.query = _QueryCollection[Properties, References](
+        self.query: _QueryCollection[Properties, References] = _QueryCollection[Properties, References](
             connection=connection,
             name=name,
             consistency_level=consistency_level,
@@ -132,7 +132,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             validate_arguments=validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
-        self.tenants = _Tenants(
+        self.tenants: _Tenants = _Tenants(
             connection=connection,
             name=name,
             consistency_level=consistency_level,
