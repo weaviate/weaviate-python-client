@@ -129,7 +129,7 @@ class ConnectionV4:
             for key, value in additional_headers.items():
                 if value is None:
                     raise WeaviateInvalidInputError(
-                        f"Value for key '{key}' in additional_headers cannot be None."
+                        f"Value for key '{key}' in headers cannot be None."
                     )
                 self._headers[key.lower()] = value
 
