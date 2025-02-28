@@ -5,8 +5,11 @@ Version 4.11.1
 --------------
 This patch version incldues:
     - Fixes exporting of named vector collections
-    - Support for upcoming weaviate agents. User ``pip install weaviate-client[agents]`` to try it out.
+    - Support for upcoming weaviate agents. User ``pip install weaviate-client[agents]`` to try it out
     - Raise error if a header with value `None`` has been added
+    - Introduce ``collections.use`` as an alias for ``collections.get``
+        - ``collections.use`` is the preferred method to create an in-memory collection object
+        - ``collections.get`` will be deprecated in the future and should not be used in new code
 
 Version 4.11.0
 --------------
