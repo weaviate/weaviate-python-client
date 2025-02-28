@@ -203,7 +203,7 @@ def tenants_collection(
             )
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
-    return weaviate_client.collections.get("TenantsGetCollectionName")
+    return weaviate_client.collections.use("TenantsGetCollectionName")
 
 
 @pytest.fixture(scope="function")
@@ -229,7 +229,7 @@ def year_zero_collection(
             )
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
-    return weaviate_client.collections.get("YearZeroCollection")
+    return weaviate_client.collections.use("YearZeroCollection")
 
 
 @pytest.fixture(scope="function")
@@ -250,7 +250,7 @@ def timeouts_collection(
             return batch_pb2.BatchObjectsReply()
 
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(MockWeaviateService(), start_grpc_server)
-    return weaviate_timeouts_client.collections.get(mock_class["class"])
+    return weaviate_timeouts_client.collections.use(mock_class["class"])
 
 
 class MockRetriesWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
@@ -310,7 +310,7 @@ def retries(
 ) -> tuple[weaviate.collections.Collection, MockRetriesWeaviateService]:
     service = MockRetriesWeaviateService()
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
-    return weaviate_client.collections.get("RetriesCollection"), service
+    return weaviate_client.collections.use("RetriesCollection"), service
 
 
 class MockForbiddenWeaviateService(weaviate_pb2_grpc.WeaviateServicer):
@@ -349,4 +349,4 @@ def forbidden(
 ) -> weaviate.collections.Collection:
     service = MockForbiddenWeaviateService()
     weaviate_pb2_grpc.add_WeaviateServicer_to_server(service, start_grpc_server)
-    return weaviate_client.collections.get("ForbiddenCollection")
+    return weaviate_client.collections.use("ForbiddenCollection")
