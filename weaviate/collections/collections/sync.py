@@ -159,6 +159,40 @@ class _Collections:
             `weaviate.exceptions.InvalidDataModelException`
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
+        return self.use(
+            name, data_model_properties, data_model_references, skip_argument_validation
+        )
+
+    def use(
+        self,
+        name: str,
+        data_model_properties: Optional[Type[Properties]] = None,
+        data_model_references: Optional[Type[References]] = None,
+        skip_argument_validation: bool = False,
+    ) -> Collection[Properties, References]:
+        """Use this method to return a collection object to be used when interacting with your Weaviate collection.
+
+        This method does not send a request to Weaviate. It simply creates a Python object for you to use to make requests.
+
+        Arguments:
+            `name`
+                The name of the collection to get.
+            `data_model_properties`
+                The generic class that you want to use to represent the properties of objects in this collection when mutating objects through the `.query` namespace.
+                The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
+                If you do not provide a generic, the methods in `.query` will return objects properties as `Dict[str, Any]`.
+            `data_model_references`
+                The generic class that you want to use to represent the objects of references in this collection when mutating objects through the `.query` namespace.
+                The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
+                If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
+            `skip_argument_validation`
+                If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
+        Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
+            `weaviate.exceptions.InvalidDataModelException`
+                If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
+        """
         if not skip_argument_validation:
             _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
             _check_properties_generic(data_model_properties)
@@ -175,7 +209,7 @@ class _Collections:
     def delete(self, name: Union[str, List[str]]) -> None:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
 
-        WARNING: If you have instances of client.collections.get() or client.collections.create()
+        WARNING: If you have instances of `client.collections.use()` or `client.collections.create()`
         for these collections within your code, they will cease to function correctly after this operation.
 
         Arguments:
@@ -195,7 +229,7 @@ class _Collections:
     def delete_all(self) -> None:
         """Use this method to delete all collections from the Weaviate instance.
 
-        WARNING: If you have instances of client.collections.get() or client.collections.create()
+        WARNING: If you have instances of `client.collections.use()` or `client.collections.create()`
         for these collections within your code, they will cease to function correctly after this operation.
 
         Raises:

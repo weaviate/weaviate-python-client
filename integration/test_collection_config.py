@@ -846,7 +846,7 @@ def test_config_export_and_recreate_from_config(collection_factory: CollectionFa
 
     client = weaviate.connect_to_local()
     client.collections.create_from_config(conf)
-    assert conf == client.collections.get(name).config.get()
+    assert conf == client.collections.use(name).config.get()
     client.collections.delete(name)
     client.close()
 
@@ -964,7 +964,7 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
     client.collections.create_from_dict(dconf)
     old = collection.config.get()
     old.name = "dummy"
-    new = client.collections.get(name).config.get()
+    new = client.collections.use(name).config.get()
     new.name = "dummy"
     assert old == new
 
@@ -1247,7 +1247,7 @@ def test_named_vectors_export_and_import(collection_factory: CollectionFactory) 
     client = weaviate.connect_to_local()
     client.collections.delete(name)
     client.collections.create_from_config(config)
-    new = client.collections.get(name).config.get()
+    new = client.collections.use(name).config.get()
     assert config == new
     client.collections.delete(name)
     client.close()

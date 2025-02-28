@@ -170,7 +170,7 @@ def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequ
     assert client.collections.exists(name)
     assert isinstance(col, Collection)
 
-    col = client.collections.get(name)
+    col = client.collections.use(name)
     assert isinstance(col, Collection)
 
     client.collections.delete(name)
@@ -210,7 +210,7 @@ def test_create_raw_get_and_delete(client: weaviate.WeaviateClient, request: Sub
     assert client.collections.exists(name)
     assert isinstance(col, Collection)
 
-    col = client.collections.get(name)
+    col = client.collections.use(name)
     assert isinstance(col, Collection)
 
     client.collections.delete(name)
@@ -521,7 +521,7 @@ def test_grpc_call_without_connect() -> None:
         weaviate.connect.ConnectionParams.from_url("http://localhost:8080", 50051)
     )
     with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
-        client.collections.get("does-not-exist").query.fetch_objects()
+        client.collections.use("does-not-exist").query.fetch_objects()
 
 
 def test_client_with_skip_init_check(request: SubRequest) -> None:

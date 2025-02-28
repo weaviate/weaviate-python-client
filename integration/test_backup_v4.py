@@ -128,8 +128,8 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     for cls in classes:
         assert cls in resp.collections
 
-    assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
-    assert len(client.collections.get("Paragraph")) == len(PARAGRAPHS_IDS)
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
+    assert len(client.collections.use("Paragraph")) == len(PARAGRAPHS_IDS)
 
     # check create status
     create_status = client.backup.get_create_status(backup_id, BACKEND)
@@ -147,8 +147,8 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
         assert cls in resp.collections
 
     # # check data exists again
-    assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
-    assert len(client.collections.get("Paragraph")) == len(PARAGRAPHS_IDS)
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
+    assert len(client.collections.use("Paragraph")) == len(PARAGRAPHS_IDS)
 
     # check restore status
     restore_status = client.backup.get_restore_status(backup_id, BACKEND)
@@ -181,7 +181,7 @@ def test_create_and_restore_backup_without_waiting(
         time.sleep(0.1)
 
     # check data still exists, then remove existing class
-    assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
     client.collections.delete(name="Article")
 
     # restore backup
@@ -207,7 +207,7 @@ def test_create_and_restore_backup_without_waiting(
         time.sleep(0.1)
 
     # check data exists again
-    assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
 
 
 def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> None:
@@ -215,7 +215,7 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
     backup_id = _create_backup_id()
 
     # check data exists
-    assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
 
     # create backup
     include = ["Article"]
@@ -228,7 +228,7 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
     assert status_create.status == BackupStatus.SUCCESS
 
     # check data still exists and then remove existing class
-    assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
     client.collections.delete(name="Article")
 
     # restore backup
@@ -238,7 +238,7 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
     assert restore.status == BackupStatus.SUCCESS
 
     # check data exists again
-    assert len(client.collections.get("Article")) == len(ARTICLES_IDS)
+    assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
 
     # check restore status
     restore_status = client.backup.get_restore_status(backup_id, BACKEND)
@@ -363,7 +363,7 @@ def test_backup_and_restore_with_collection(
 
         backup_location = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
 
-    article = client.collections.get("Article")
+    article = client.collections.use("Article")
 
     # create backup
     create = article.backup.create(
@@ -412,7 +412,7 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
 
     backup_id = _create_backup_id()
 
-    article = client.collections.get("Article")
+    article = client.collections.use("Article")
 
     # create backup
     create = article.backup.create(
@@ -459,7 +459,7 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
 
     backup_id = _create_backup_id()
 
-    article = client.collections.get("Article")
+    article = client.collections.use("Article")
 
     with pytest.raises(WeaviateUnsupportedFeatureError):
         article.backup.create(

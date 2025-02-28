@@ -54,7 +54,7 @@ def test_insufficient_permissions(
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
-    collection = client.collections.get("Test")
+    collection = client.collections.use("Test")
 
     with pytest.raises(InsufficientPermissionsError) as e1:
         collection.config.get()
@@ -156,10 +156,10 @@ def test_closed_connection(weaviate_auth_mock: HTTPServer, start_grpc_server: gr
     with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
         client.collections.list_all()
     with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
-        collection = client.collections.get("Test")
+        collection = client.collections.use("Test")
         collection.query.fetch_objects()
     with pytest.raises(weaviate.exceptions.WeaviateClosedClientError):
-        collection = client.collections.get("Test")
+        collection = client.collections.use("Test")
         collection.data.insert_many([{}])
 
 
@@ -215,7 +215,7 @@ def test_missing_multi_tenancy_config(
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
-    collection = client.collections.get("TestTrue")
+    collection = client.collections.use("TestTrue")
     conf = collection.config.get()
     assert conf.multi_tenancy_config.enabled is True
 
@@ -228,7 +228,7 @@ def test_missing_multi_tenancy_config(
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
-    collection = client.collections.get("TestFalse")
+    collection = client.collections.use("TestFalse")
 
     conf = collection.config.get()
     assert conf.multi_tenancy_config.enabled is False
@@ -274,7 +274,7 @@ def test_return_from_bind_module(
     client = weaviate.connect_to_local(
         port=MOCK_PORT, host=MOCK_IP, grpc_port=MOCK_PORT_GRPC, skip_init_checks=True
     )
-    collection = client.collections.get("TestBindCollection")
+    collection = client.collections.use("TestBindCollection")
     conf = collection.config.get()
 
     assert conf.properties[0].vectorizer_config is not None

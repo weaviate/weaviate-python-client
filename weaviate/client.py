@@ -90,7 +90,7 @@ class WeaviateClient(_WeaviateClientBase):
         self.collections = collections
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
-        Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
+        Use it to retrieve collection objects using `client.collections.use("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
         self.debug = _Debug(self._connection)
         """This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
@@ -157,7 +157,7 @@ class WeaviateAsyncClient(_WeaviateClientBase):
         self.collections = _CollectionsAsync(self._connection)
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
-        Use it to retrieve collection objects using `client.collections.get("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.
+        Use it to retrieve collection objects using `client.collections.use("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.
         """
         self.debug = _DebugAsync(self._connection)
         """This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.

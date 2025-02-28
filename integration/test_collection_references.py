@@ -846,11 +846,11 @@ def test_references_batch_with_errors(collection_factory: CollectionFactory) -> 
 #         ],
 #     )
 
-#     uuid_A = client.collections.get(name1).data.insert(
+#     uuid_A = client.collections.use(name1).data.insert(
 #         properties={"Name": "A", "Age": 1, "Weird__Name": 2}
 #     )
 
-#     client.collections.get(name1).query.fetch_object_by_id(uuid_A)
+#     client.collections.use(name1).query.fetch_object_by_id(uuid_A)
 
 #     client.collections.create(
 #         name=name2,
@@ -861,12 +861,12 @@ def test_references_batch_with_errors(collection_factory: CollectionFactory) -> 
 #         vectorizer_config=Configure.Vectorizer.none(),
 #     )
 
-#     client.collections.get(name2).data.insert(
+#     client.collections.use(name2).data.insert(
 #         {"Name": "B"}, references={"ref": reference_to_no_warning(uuids=uuid_A)}
 #     )
 
 #     objects = (
-#         client.collections.get(name2)
+#         client.collections.use(name2)
 #         .query.bm25(
 #             query="B",
 #             return_properties=[
