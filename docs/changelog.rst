@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 4.11.1
+--------------
+This patch version incldues:
+    - Fixes exporting of named vector collections
+    - Support for upcoming weaviate agents. User ``pip install weaviate-client[agents]`` to try it out.
+    - Raise error if a header with value `None`` has been added
+
 Version 4.11.0
 --------------
 
@@ -13,7 +20,7 @@ This minor version includes:
     - Add support for NVIDIA modules:
         - multi2vec-nvidia
         - text2vec-nvidia
-         - generative-nvidia
+        - generative-nvidia
 
 
 Version 4.10.4
