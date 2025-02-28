@@ -171,7 +171,7 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         vector_cache_max_objects=config["vectorCacheMaxObjects"],
         multi_vector=(
             None
-            if config.get("multivector") is None
+            if config.get("multivector") is None or config["multivector"]["enabled"] is False
             else _MultiVectorConfig(
                 aggregation=config["multivector"]["aggregation"],
             )
