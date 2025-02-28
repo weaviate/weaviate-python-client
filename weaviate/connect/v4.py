@@ -57,6 +57,7 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
     WeaviateTimeoutError,
     InsufficientPermissionsError,
+    WeaviateInvalidInputError,
 )
 from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.util import (
@@ -126,6 +127,10 @@ class ConnectionV4:
             _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
             self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
+                if value is None:
+                    raise WeaviateInvalidInputError(
+                        f"Value for key '{key}' in additional_headers cannot be None."
+                    )
                 self._headers[key.lower()] = value
 
         self._proxies: Dict[str, str] = _get_proxies(proxies, trust_env)
