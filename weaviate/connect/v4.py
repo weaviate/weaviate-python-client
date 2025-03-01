@@ -121,8 +121,10 @@ class ConnectionV4:
         self.__connected = False
         self.__loop = loop
 
-        self._headers = {"content-type": "application/json"}
-        self.__add_weaviate_embedding_service_header(connection_params.http.host)
+        self._headers = {
+            "content-type": "application/json",
+            "X-Weaviate-Cluster-URL": "https://" + connection_params.http.host,
+        }
         if additional_headers is not None:
             _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
             self.__additional_headers = additional_headers
@@ -144,14 +146,10 @@ class ConnectionV4:
         # if there are API keys included add them right away to headers
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self._headers["authorization"] = "Bearer " + auth_client_secret.api_key
+            # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
+            self._headers["X-Weaviate-Api-Key"] = "Bearer " + auth_client_secret.api_key
 
         self._prepare_grpc_headers()
-
-    def __add_weaviate_embedding_service_header(self, wcd_host: str) -> None:
-        if not is_weaviate_domain(wcd_host) or not isinstance(self._auth, AuthApiKey):
-            return
-        self._headers["X-Weaviate-Api-Key"] = self._auth.api_key
-        self._headers["X-Weaviate-Cluster-URL"] = "https://" + wcd_host
 
     async def connect(self, skip_init_checks: bool) -> None:
         self.__connected = True
@@ -428,6 +426,8 @@ class ConnectionV4:
         # bearer token can change over time (OIDC) so we need to get the current one for each request
         copied_headers = copy(self._headers)
         copied_headers.update({"authorization": self.get_current_bearer_token()})
+        # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
+        copied_headers.update({"x-weaviate-api-key": self.get_current_bearer_token()})
         return copied_headers
 
     def __get_timeout(
@@ -670,19 +670,19 @@ class ConnectionV4:
                     self.__metadata_list.append((key.lower(), val))
 
         if self._auth is not None:
+            self.__metadata_list.append(
+                ("x-weaviate-cluster-url", "https://" + self._connection_params.http.host)
+            )
+
             if isinstance(self._auth, AuthApiKey):
-                if (
-                    "X-Weaviate-Cluster-URL" in self._headers
-                    and "X-Weaviate-Api-Key" in self._headers
-                ):
-                    self.__metadata_list.append(
-                        ("x-weaviate-cluster-url", self._headers["X-Weaviate-Cluster-URL"])
-                    )
-                    self.__metadata_list.append(
-                        ("x-weaviate-api-key", self._headers["X-Weaviate-Api-Key"])
-                    )
+                # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
+                self.__metadata_list.append(("x-weaviate-api-key", "Bearer " + self._auth.api_key))
                 self.__metadata_list.append(("authorization", "Bearer " + self._auth.api_key))
             else:
+                # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
+                self.__metadata_list.append(
+                    ("x-weaviate-api-key", "dummy_will_be_refreshed_for_each_call")
+                )
                 self.__metadata_list.append(
                     ("authorization", "dummy_will_be_refreshed_for_each_call")
                 )
@@ -698,6 +698,8 @@ class ConnectionV4:
 
         assert self.__grpc_headers is not None
         access_token = self.get_current_bearer_token()
+        # keeping for backwards compatibility for older clusters for now. On newer clusters, Embedding Service reuses Authorization header.
+        self.__metadata_list[len(self.__metadata_list) - 2] = ("x-weaviate-api-key", access_token)
         # auth is last entry in list, rest is static
         self.__metadata_list[len(self.__metadata_list) - 1] = ("authorization", access_token)
         return tuple(self.__metadata_list)
