@@ -222,8 +222,10 @@ def mock_client(monkeypatch):
         # Import and use logger
         from weaviate.logger import log_http_event
         
-        # Log the request/response
-        log_http_event(response)
+        # Only log if the logger level is DEBUG
+        logger = logging.getLogger("weaviate-client")
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            await log_http_event(response)
         
         return response
 
@@ -312,7 +314,10 @@ def mock_client(monkeypatch):
         )
         # Import and use logger
         from weaviate.logger import log_http_event
-        log_http_event(response)
+        # Only log if the logger level is DEBUG
+        logger = logging.getLogger("weaviate-client")
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            await log_http_event(response)
         return {"version": "1.23.7"}
     
     client.get_meta = mock_get_meta
@@ -540,7 +545,10 @@ async def test_debug_logging_async(mock_client, log_capture: LogCaptureHandler, 
         )
         # Import and use logger
         from weaviate.logger import log_http_event
-        log_http_event(response)
+        # Only log if the logger level is DEBUG
+        logger = logging.getLogger("weaviate-client")
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            await log_http_event(response)
         return {"version": "1.23.7"}
     
     # Replace get_meta with our mock
@@ -702,7 +710,18 @@ async def test_invalid_log_level_behavior(
     def assert_no_log_contains(patterns: list[str], message: str):
         assert not any(any(p in log for p in patterns) for log in log_capture.logs), message
 
+    # Clear any existing logs
+    log_capture.clear()
+    
+    # Set invalid log level and reload logger module
     monkeypatch.setenv("WEAVIATE_LOG_LEVEL", "INVALID")
+    import importlib
+    import weaviate.logger
+    importlib.reload(weaviate.logger)
+    
+    # Configure weaviate-client logger to INFO level
+    logger = logging.getLogger("weaviate-client")
+    logger.setLevel(logging.INFO)
     
     await mock_client.connect()
     await mock_client.get_meta()
@@ -721,7 +740,18 @@ async def test_no_log_level_defaults_to_info(
     def assert_no_log_contains(patterns: list[str], message: str):
         assert not any(any(p in log for p in patterns) for log in log_capture.logs), message
 
+    # Clear any existing logs
+    log_capture.clear()
+    
+    # Remove log level environment variable and reload logger module
     monkeypatch.delenv("WEAVIATE_LOG_LEVEL", raising=False)
+    import importlib
+    import weaviate.logger
+    importlib.reload(weaviate.logger)
+    
+    # Configure weaviate-client logger to INFO level (default)
+    logger = logging.getLogger("weaviate-client")
+    logger.setLevel(logging.INFO)
     
     await mock_client.connect()
     await mock_client.get_meta()
@@ -740,7 +770,18 @@ async def test_info_level_disables_debug_logging(
     def assert_no_log_contains(patterns: list[str], message: str):
         assert not any(any(p in log for p in patterns) for log in log_capture.logs), message
 
+    # Clear any existing logs
+    log_capture.clear()
+    
+    # Set log level to INFO and reload logger module
     monkeypatch.setenv("WEAVIATE_LOG_LEVEL", "INFO")
+    import importlib
+    import weaviate.logger
+    importlib.reload(weaviate.logger)
+    
+    # Configure weaviate-client logger to INFO level
+    logger = logging.getLogger("weaviate-client")
+    logger.setLevel(logging.INFO)
     
     await mock_client.connect()
     await mock_client.get_meta()

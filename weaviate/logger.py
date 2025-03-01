@@ -83,7 +83,7 @@ def _mask_sensitive_headers(headers: Dict[str, str], is_response: bool = False) 
             
     return masked
 
-def log_http_event(response: httpx.Response) -> None:
+async def log_http_event(response: httpx.Response) -> None:
     """Log HTTP request and response details using the default logger.
     
     This function logs both the request and response details when WEAVIATE_LOG_LEVEL=DEBUG,
@@ -98,7 +98,9 @@ def log_http_event(response: httpx.Response) -> None:
     Args:
         response: The httpx Response object containing both request and response info
     """
-    if logger.getEffectiveLevel() > logging.DEBUG:
+    # Get the current logger instance to ensure we have the latest configuration
+    current_logger = logging.getLogger("weaviate-client")
+    if current_logger.getEffectiveLevel() > logging.DEBUG:
         return
     
     request = response.request
@@ -197,7 +199,12 @@ class GrpcLoggingInterceptor(
         Returns:
             The method name portion of the path (e.g., "Method")
         """
-        return client_call_details.method.split('/')[-1] if '/' in client_call_details.method else client_call_details.method
+        # Decode bytes to string if needed
+        method = client_call_details.method
+        if isinstance(method, bytes):
+            method = method.decode('utf-8')
+        
+        return method.split('/')[-1] if '/' in method else method
 
     async def intercept_unary_unary(
         self,

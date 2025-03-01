@@ -39,6 +39,7 @@ from weaviate.auth import (
     AuthClientCredentials,
 )
 from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
+import logging
 from weaviate.logger import log_http_event, logger
 from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
@@ -248,7 +249,10 @@ class ConnectionV4:
 
     def __make_async_client(self) -> AsyncClient:
         """Create an async HTTP client with proper configuration and event hooks."""
-        event_hooks = {"response": [log_http_event]}
+        # Only add event hooks for logging if debug level is enabled
+        event_hooks = {}
+        if logging.getLogger("weaviate-client").getEffectiveLevel() <= logging.DEBUG:
+            event_hooks = {"response": [log_http_event]}
         return AsyncClient(
             headers=self._headers,
             mounts=self._make_mounts(),
