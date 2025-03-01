@@ -355,7 +355,7 @@ class ConnectionV4:
 
         if "authorization" in self._headers:
             return self._headers["authorization"]
-        elif isinstance(self._client, AsyncOAuth2Client):
+        elif self._client is not None and isinstance(self._client, AsyncOAuth2Client):
             return f"Bearer {self._client.token['access_token']}"
         return ""
 
@@ -365,6 +365,9 @@ class ConnectionV4:
         While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
         X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
         expire. Therefore, refresh manually shortly before expiration time is up."""
+        if self._client is None:
+            return
+            
         assert isinstance(self._client, AsyncOAuth2Client)
         if "refresh_token" not in self._client.token and _auth is None:
             return
@@ -382,21 +385,23 @@ class ConnectionV4:
             ):
                 # use refresh token when available
                 try:
-                    if "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
+                    if self._client is not None and "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
                         assert isinstance(self._client, AsyncOAuth2Client)
-                        self._client.token = asyncio.run_coroutine_threadsafe(
-                            self._client.refresh_token(
-                                self._client.metadata["token_endpoint"]
-                            ),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
-                            self.__loop,
-                        ).result()
-                        expires_in = self._client.token.get("expires_in", 60)
-                        assert isinstance(expires_in, int)
-                        refresh_time = expires_in - 30
+                        if hasattr(self._client, 'metadata') and "token_endpoint" in self._client.metadata:
+                            self._client.token = asyncio.run_coroutine_threadsafe(
+                                self._client.refresh_token(
+                                    self._client.metadata["token_endpoint"]
+                                ),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
+                                self.__loop,
+                            ).result()
+                            expires_in = self._client.token.get("expires_in", 60)
+                            assert isinstance(expires_in, int)
+                            refresh_time = expires_in - 30
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
                         assert _auth is not None
+                        assert self._client is not None
                         assert isinstance(self._client, AsyncOAuth2Client)
                         new_session = asyncio.run_coroutine_threadsafe(
                             _auth.get_auth_session(), self.__loop

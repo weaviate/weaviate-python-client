@@ -9,6 +9,7 @@ from typing import Generator
 
 import weaviate
 from integration.conftest import ClientFactory, AsyncClientFactory
+from weaviate.collections.classes.config import Configure, Property, DataType
 
 class LogCaptureHandler(logging.Handler):
     """Handler to capture log messages for testing."""
@@ -450,11 +451,11 @@ async def test_debug_logging_enabled(mock_client, log_capture: LogCaptureHandler
     # Make a request to trigger logging
     collection = await mock_client.collections.create(
         name="TestLogging",
-        vectorizer_config=weaviate.collections.classes.config.Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.none(),
         properties=[
-            weaviate.collections.classes.config.Property(
+            Property(
                 name="name",
-                data_type=weaviate.collections.classes.config.DataType.TEXT
+                data_type=DataType.TEXT
             ),
         ],
     )
@@ -565,11 +566,11 @@ async def test_debug_logging_async(mock_client, log_capture: LogCaptureHandler, 
     # Test gRPC logging with collection operations
     collection = await mock_client.collections.create(
         name="TestAsyncGrpcLogging",
-        vectorizer_config=weaviate.collections.classes.config.Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.none(),
         properties=[
-            weaviate.collections.classes.config.Property(
+            Property(
                 name="name",
-                data_type=weaviate.collections.classes.config.DataType.TEXT
+                data_type=DataType.TEXT
             ),
         ],
     )
@@ -648,11 +649,11 @@ async def test_concurrent_logging(
         async def create_and_operate(name: str):
             collection = await mock_client.collections.create(
                 name=name,
-                vectorizer_config=weaviate.collections.classes.config.Configure.Vectorizer.none(),
+                vectorizer_config=Configure.Vectorizer.none(),
                 properties=[
-                    weaviate.collections.classes.config.Property(
+                    Property(
                         name="name",
-                        data_type=weaviate.collections.classes.config.DataType.TEXT
+                        data_type=DataType.TEXT
                     ),
                 ],
             )
