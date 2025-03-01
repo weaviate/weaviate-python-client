@@ -347,7 +347,7 @@ def openai_collection(
             ],
             generative_config=Configure.Generative.openai(),
             ports=(8086, 50057),
-            headers={"X-OpenAI-Api-Key": api_key},
+            headers={"X-OpenAI-Api-Key": api_key} if api_key is not None else None,
         )
 
         return collection
@@ -396,7 +396,7 @@ async def async_openai_collection(
             ],
             generative_config=Configure.Generative.openai(),
             ports=(8086, 50057),
-            headers={"X-OpenAI-Api-Key": api_key},
+            headers={"X-OpenAI-Api-Key": api_key} if api_key is not None else None,
         )
 
         return collection

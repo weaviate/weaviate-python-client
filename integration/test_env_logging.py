@@ -321,7 +321,8 @@ def mock_client(monkeypatch):
             await log_http_event(response)
         return {"version": "1.23.7"}
     
-    client.get_meta = mock_get_meta
+    # Use AsyncMock with side_effect instead of direct assignment
+    client.get_meta = AsyncMock(side_effect=mock_get_meta)
     client.is_ready = MagicMock(return_value=True)
     client._connection.is_connected = MagicMock(return_value=True)
     
@@ -552,8 +553,9 @@ async def test_debug_logging_async(mock_client, log_capture: LogCaptureHandler, 
             await log_http_event(response)
         return {"version": "1.23.7"}
     
-    # Replace get_meta with our mock
-    mock_client.get_meta = mock_get_meta
+    # Replace get_meta with our mock using AsyncMock with side_effect
+    from unittest.mock import AsyncMock
+    mock_client.get_meta = AsyncMock(side_effect=mock_get_meta)
     
     await mock_client.connect()
     
