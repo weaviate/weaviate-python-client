@@ -2,11 +2,11 @@ import json
 import logging
 import os
 import textwrap
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Awaitable, AsyncIterable, Callable, Coroutine, Dict, Optional, Sequence, TypeVar, Union, cast
 
 import grpc
 import httpx
-from grpc.aio import (  # type: ignore
+from grpc.aio import (
     StreamStreamCall,
     StreamUnaryCall,
     UnaryStreamCall,
@@ -189,6 +189,9 @@ def log_grpc_event(method_name: str, request: Any, response: Any) -> None:
         logger.debug("====================================================")
 
 
+T = TypeVar('T')
+S = TypeVar('S')
+
 class GrpcLoggingInterceptor(
     grpc.aio.UnaryUnaryClientInterceptor,
     grpc.aio.UnaryStreamClientInterceptor,
@@ -234,7 +237,7 @@ class GrpcLoggingInterceptor(
         call = await continuation(client_call_details, request)
         response = await call
         log_grpc_event(self._get_method_name(client_call_details), request, response)
-        return call
+        return cast(UnaryUnaryCall, call)
 
     async def intercept_unary_stream(
         self,
@@ -243,21 +246,24 @@ class GrpcLoggingInterceptor(
         request: Any,
     ) -> UnaryStreamCall:
         """Intercept and log unary-stream gRPC calls (single request, stream response)."""
-        call = await continuation(client_call_details, request)
+        # Cast the continuation result to Awaitable to satisfy mypy
+        call = cast(Awaitable[UnaryStreamCall], continuation(client_call_details, request))
+        result = await call
+        # Don't await streaming calls
         log_grpc_event(self._get_method_name(client_call_details), request, None)
-        return call
+        return cast(UnaryStreamCall, result)
 
     async def intercept_stream_unary(
         self,
         continuation: Callable[[grpc.aio.ClientCallDetails, Any], StreamUnaryCall],
         client_call_details: grpc.aio.ClientCallDetails,
         request_iterator: Any,
-    ) -> StreamUnaryCall:
+    ) -> Union[AsyncIterable[Any], UnaryStreamCall]:
         """Intercept and log stream-unary gRPC calls (stream request, single response)."""
         call = await continuation(client_call_details, request_iterator)
         response = await call
         log_grpc_event(self._get_method_name(client_call_details), "stream", response)
-        return call
+        return cast(Union[AsyncIterable[Any], UnaryStreamCall], call)
 
     async def intercept_stream_stream(
         self,
@@ -266,6 +272,9 @@ class GrpcLoggingInterceptor(
         request_iterator: Any,
     ) -> StreamStreamCall:
         """Intercept and log stream-stream gRPC calls (stream request, stream response)."""
-        call = await continuation(client_call_details, request_iterator)
+        # Cast the continuation result to Awaitable to satisfy mypy
+        call = cast(Awaitable[StreamStreamCall], continuation(client_call_details, request_iterator))
+        result = await call
+        # Don't await streaming calls
         log_grpc_event(self._get_method_name(client_call_details), "stream", None)
-        return call
+        return cast(StreamStreamCall, result)

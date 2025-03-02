@@ -129,13 +129,13 @@ class ConnectionParams(BaseModel):
                 target=self._grpc_target,
                 credentials=ssl_channel_credentials(),
                 options=options,
-                interceptors=interceptors,
+                interceptors=cast(Sequence[Any], interceptors),
             )
         else:
             return grpc.aio.insecure_channel(
                 target=self._grpc_target,
                 options=options,
-                interceptors=interceptors,
+                interceptors=cast(Sequence[Any], interceptors),
             )
 
     @property
