@@ -219,7 +219,7 @@ class GrpcLoggingInterceptor(
         method = client_call_details.method
         if isinstance(method, bytes):
             method = method.decode("utf-8")
-        
+
         # Ensure we're returning a string
         method_str = str(method)
         return method_str.split("/")[-1] if "/" in method_str else method_str

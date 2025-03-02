@@ -95,11 +95,21 @@ class _WeaviateClientInit:
         self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
-            timeout_config=config["timeout"] if isinstance(config["timeout"], Timeout) else Timeout(),
+            timeout_config=(
+                config["timeout"] if isinstance(config["timeout"], Timeout) else Timeout()
+            ),
             additional_headers=additional_headers,
             embedded_db=embedded_db,
-            connection_config=config["connection"] if isinstance(config["connection"], ConnectionConfig) else ConnectionConfig(),
-            proxies=config["proxies"] if config["proxies"] is None or isinstance(config["proxies"], (str, Proxies)) else None,
+            connection_config=(
+                config["connection"]
+                if isinstance(config["connection"], ConnectionConfig)
+                else ConnectionConfig()
+            ),
+            proxies=(
+                config["proxies"]
+                if config["proxies"] is None or isinstance(config["proxies"], (str, Proxies))
+                else None
+            ),
             trust_env=bool(config["trust_env"]),
             loop=self._loop,
         )
