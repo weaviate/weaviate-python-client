@@ -8,7 +8,6 @@ import httpx
 from typing import Generator
 
 import weaviate
-from integration.conftest import ClientFactory, AsyncClientFactory
 from weaviate.collections.classes.config import Configure, Property, DataType
 
 
@@ -87,7 +86,6 @@ def log_capture(monkeypatch) -> Generator[LogCaptureHandler, None, None]:
 
     # Set environment variable and reload logger module AFTER handlers are configured
     monkeypatch.setenv("WEAVIATE_LOG_LEVEL", "DEBUG")
-    import importlib
     import weaviate.logger
 
     importlib.reload(weaviate.logger)  # This will use our already configured handlers
@@ -138,7 +136,7 @@ def mock_client(monkeypatch):
         return Response(200, json={"status": "success"}, request=Request("POST", args[0]))
 
     from weaviate.util import _ServerVersion
-    from httpx import Response, Request, AsyncClient
+    from httpx import AsyncClient
 
     client = weaviate.WeaviateClient(
         connection_params=weaviate.connect.ConnectionParams.from_url(
@@ -148,7 +146,6 @@ def mock_client(monkeypatch):
     )
 
     from weaviate.collections import Collection
-    from weaviate.collections.classes.config import Configure, Property, DataType
 
     # Create a proper mock AsyncClient that will trigger logging
     async def mock_send(request):
@@ -427,7 +424,6 @@ async def test_debug_logging_enabled(
     """Test that debug logging is enabled when WEAVIATE_LOG_LEVEL=DEBUG."""
     # Enable debug logging and reload logger module
     monkeypatch.setenv("WEAVIATE_LOG_LEVEL", "DEBUG")
-    import importlib
     import weaviate.logger
 
     importlib.reload(weaviate.logger)
@@ -521,7 +517,6 @@ async def test_debug_logging_async(
     """Test that debug logging works with async client and gRPC operations."""
     # Enable debug logging and reload logger module
     monkeypatch.setenv("WEAVIATE_LOG_LEVEL", "DEBUG")
-    import importlib
     import weaviate.logger
 
     importlib.reload(weaviate.logger)
@@ -624,8 +619,6 @@ async def test_debug_logging_async(
 async def test_concurrent_logging(mock_client, log_capture: LogCaptureHandler, monkeypatch) -> None:
     """Test that logging works correctly with concurrent requests."""
     import asyncio
-    from unittest.mock import AsyncMock, MagicMock
-    import grpc
 
     # Enable debug logging and reload logger module
     monkeypatch.setenv("WEAVIATE_LOG_LEVEL", "DEBUG")
@@ -648,7 +641,6 @@ async def test_concurrent_logging(mock_client, log_capture: LogCaptureHandler, m
     logger.propagate = True  # Ensure propagation is enabled
 
     # Force reload logger module to pick up new environment variable
-    import importlib
     import weaviate.logger
 
     importlib.reload(weaviate.logger)
@@ -691,14 +683,14 @@ async def test_concurrent_logging(mock_client, log_capture: LogCaptureHandler, m
             # Verify schema creation logs
             assert_log_contains(f'"class": "{name}"', f"Schema creation not logged for {name}")
             assert_log_contains(
-                f"POST http://localhost:8080/v1/v1/schema",
+                "POST http://localhost:8080/v1/v1/schema",
                 f"Schema creation request not logged for {name}",
             )
 
             # Verify data insertion logs
             assert_log_contains(f"test_{name}", f"Data insertion not logged for {name}")
             assert_log_contains(
-                f"POST http://localhost:8080/v1/v1/objects",
+                "POST http://localhost:8080/v1/v1/objects",
                 f"Object creation request not logged for {name}",
             )
 
@@ -743,7 +735,6 @@ async def test_invalid_log_level_behavior(
 
     # Set invalid log level and reload logger module
     monkeypatch.setenv("WEAVIATE_LOG_LEVEL", "INVALID")
-    import importlib
     import weaviate.logger
 
     importlib.reload(weaviate.logger)
@@ -774,7 +765,6 @@ async def test_no_log_level_defaults_to_info(
 
     # Remove log level environment variable and reload logger module
     monkeypatch.delenv("WEAVIATE_LOG_LEVEL", raising=False)
-    import importlib
     import weaviate.logger
 
     importlib.reload(weaviate.logger)
@@ -805,7 +795,6 @@ async def test_info_level_disables_debug_logging(
 
     # Set log level to INFO and reload logger module
     monkeypatch.setenv("WEAVIATE_LOG_LEVEL", "INFO")
-    import importlib
     import weaviate.logger
 
     importlib.reload(weaviate.logger)

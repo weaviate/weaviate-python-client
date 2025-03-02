@@ -40,7 +40,7 @@ from weaviate.auth import (
 )
 from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
 import logging
-from weaviate.logger import log_http_event, logger
+from weaviate.logger import log_http_event
 from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
