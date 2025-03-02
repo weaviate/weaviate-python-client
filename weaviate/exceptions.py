@@ -6,7 +6,7 @@ from json.decoder import JSONDecodeError
 from typing import Tuple, Union
 
 import httpx
-from grpc.aio import AioRpcError
+from grpc.aio import AioRpcError  # type: ignore
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
@@ -71,14 +71,10 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
             if response.status_code in ERROR_CODE_EXPLANATION:
                 msg += " " + ERROR_CODE_EXPLANATION[response.status_code]
         elif isinstance(response, AioRpcError):
-            # The value is a tuple of (int, str) representing (code, name)
-            code = response.code()
-            # We need to access the first element of the tuple (the numeric code)
-            # mypy has trouble with this because it doesn't recognize the type correctly
-            self._status_code = code.value[0]  # type: ignore
+            self._status_code = int(response.code().value[0])
             msg = (
                 message
-                + f"! Unexpected status code: {code.name}, with response body: {response.details()}."
+                + f"! Unexpected status code: {response.code().value[1]}, with response body: {response.details()}."
             )
         super().__init__(msg)
 
