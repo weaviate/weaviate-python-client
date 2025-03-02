@@ -2,7 +2,19 @@ import json
 import logging
 import os
 import textwrap
-from typing import Any, Awaitable, AsyncIterable, Callable, Coroutine, Dict, Optional, Sequence, TypeVar, Union, cast
+from typing import (
+    Any,
+    Awaitable,
+    AsyncIterable,
+    Callable,
+    Coroutine,
+    Dict,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import grpc
 import httpx
@@ -189,8 +201,9 @@ def log_grpc_event(method_name: str, request: Any, response: Any) -> None:
         logger.debug("====================================================")
 
 
-T = TypeVar('T')
-S = TypeVar('S')
+T = TypeVar("T")
+S = TypeVar("S")
+
 
 class GrpcLoggingInterceptor(
     grpc.aio.UnaryUnaryClientInterceptor,
@@ -273,7 +286,9 @@ class GrpcLoggingInterceptor(
     ) -> StreamStreamCall:
         """Intercept and log stream-stream gRPC calls (stream request, stream response)."""
         # Cast the continuation result to Awaitable to satisfy mypy
-        call = cast(Awaitable[StreamStreamCall], continuation(client_call_details, request_iterator))
+        call = cast(
+            Awaitable[StreamStreamCall], continuation(client_call_details, request_iterator)
+        )
         result = await call
         # Don't await streaming calls
         log_grpc_event(self._get_method_name(client_call_details), "stream", None)
