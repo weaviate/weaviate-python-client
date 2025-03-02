@@ -71,10 +71,14 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
             if response.status_code in ERROR_CODE_EXPLANATION:
                 msg += " " + ERROR_CODE_EXPLANATION[response.status_code]
         elif isinstance(response, AioRpcError):
-            self._status_code = int(response.code().value[0])
+            code_value = response.code().value
+            # Cast to tuple to help mypy understand it's indexable
+            from typing import cast, Tuple
+            code_tuple = cast(Tuple[int, str], code_value)
+            self._status_code = int(code_tuple[0])
             msg = (
                 message
-                + f"! Unexpected status code: {response.code().value[1]}, with response body: {response.details()}."
+                + f"! Unexpected status code: {code_tuple[1]}, with response body: {response.details()}."
             )
         super().__init__(msg)
 
