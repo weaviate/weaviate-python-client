@@ -121,6 +121,7 @@ class ConnectionParams(BaseModel):
 
         # Add environment-based logging interceptor
         from weaviate.logger import GrpcLoggingInterceptor
+
         interceptors = [GrpcLoggingInterceptor()]
 
         if self.grpc.secure:

@@ -106,7 +106,7 @@ class ConnectionV4:
         embedded_db: Optional[EmbeddedV4] = None,
     ):
         """Initialize the ConnectionV4 instance.
-        
+
         Args:
             connection_params: Connection parameters for the Weaviate instance (host, port, protocol)
             auth_client_secret: Authentication credentials for OIDC or API key auth
@@ -117,7 +117,7 @@ class ConnectionV4:
             connection_config: Connection pool and retry configuration
             loop: Event loop for async operations and token refresh
             embedded_db: Optional embedded database instance for local testing
-            
+
         Note: HTTP request/response logging is controlled via the WEAVIATE_LOG_LEVEL environment variable.
         Set WEAVIATE_LOG_LEVEL=DEBUG to enable detailed request/response logging with sensitive data masking.
         """
@@ -372,7 +372,7 @@ class ConnectionV4:
         expire. Therefore, refresh manually shortly before expiration time is up."""
         if self._client is None:
             return
-            
+
         assert isinstance(self._client, AsyncOAuth2Client)
         if "refresh_token" not in self._client.token and _auth is None:
             return
@@ -394,7 +394,10 @@ class ConnectionV4:
                         pass
                     elif "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
                         assert isinstance(self._client, AsyncOAuth2Client)
-                        if hasattr(self._client, 'metadata') and "token_endpoint" in self._client.metadata:
+                        if (
+                            hasattr(self._client, "metadata")
+                            and "token_endpoint" in self._client.metadata
+                        ):
                             self._client.token = asyncio.run_coroutine_threadsafe(
                                 self._client.refresh_token(
                                     self._client.metadata["token_endpoint"]

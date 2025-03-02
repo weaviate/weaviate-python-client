@@ -77,30 +77,30 @@ class _WeaviateClientInit:
         )
         # Configure default connection settings
         config = {
-            'timeout': Timeout(),
-            'connection': ConnectionConfig(),
-            'proxies': None,
-            'trust_env': False
+            "timeout": Timeout(),
+            "connection": ConnectionConfig(),
+            "proxies": None,
+            "trust_env": False,
         }
 
         # Update config with additional_config if provided
         if additional_config is not None:
-            config['timeout'] = additional_config.timeout
-            config['connection'] = additional_config.connection
-            config['proxies'] = additional_config.proxies
-            config['trust_env'] = additional_config.trust_env
+            config["timeout"] = additional_config.timeout
+            config["connection"] = additional_config.connection
+            config["proxies"] = additional_config.proxies
+            config["trust_env"] = additional_config.trust_env
 
         self._skip_init_checks = skip_init_checks
 
         self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
-            timeout_config=config['timeout'],
+            timeout_config=config["timeout"],
             additional_headers=additional_headers,
             embedded_db=embedded_db,
-            connection_config=config['connection'],
-            proxies=config['proxies'],
-            trust_env=config['trust_env'],
+            connection_config=config["connection"],
+            proxies=config["proxies"],
+            trust_env=config["trust_env"],
             loop=self._loop,
         )
 
