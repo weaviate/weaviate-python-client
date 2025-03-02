@@ -74,6 +74,7 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
             code_value = response.code().value
             # Cast to tuple to help mypy understand it's indexable
             from typing import cast, Tuple
+
             code_tuple = cast(Tuple[int, str], code_value)
             self._status_code = int(code_tuple[0])
             msg = (
