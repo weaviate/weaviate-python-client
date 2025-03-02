@@ -12,7 +12,7 @@ from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLRe
 from weaviate.integrations import _Integrations
 
 from .auth import AuthCredentials
-from .config import ConnectionConfig, Timeout
+from .config import AdditionalConfig, ConnectionConfig, Timeout
 from .connect import ConnectionV4
 from .connect.base import (
     ConnectionParams,
@@ -36,6 +36,7 @@ class _WeaviateClientInit:
         embedded_options: Optional[EmbeddedOptions] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
         additional_headers: Optional[dict] = None,
+        additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
     ) -> None:
         """Initialise a WeaviateClient/WeaviateClientAsync class instance to use when interacting with Weaviate.
@@ -60,6 +61,9 @@ class _WeaviateClientInit:
                     - Can be used to set OpenAI/HuggingFace/Cohere etc. keys.
                     - [Here](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai#providing-the-key-to-weaviate) is an
                     example of how to set API keys within this parameter.
+            - `additional_config`: `weaviate.config.AdditionalConfig` or None, optional
+                - Additional configuration options for the client.
+                - This includes connection and proxy settings.
             - `skip_init_checks`: `bool`, optional
                 - If set to `True` then the client will not perform any checks including ensuring that weaviate has started. This is useful for air-gapped environments and high-performance setups.
 
@@ -78,6 +82,13 @@ class _WeaviateClientInit:
             'proxies': None,
             'trust_env': False
         }
+
+        # Update config with additional_config if provided
+        if additional_config is not None:
+            config['timeout'] = additional_config.timeout
+            config['connection'] = additional_config.connection
+            config['proxies'] = additional_config.proxies
+            config['trust_env'] = additional_config.trust_env
 
         self._skip_init_checks = skip_init_checks
 
