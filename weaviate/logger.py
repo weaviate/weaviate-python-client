@@ -114,18 +114,23 @@ async def log_http_event(response: httpx.Response) -> None:
     for key, value in _mask_sensitive_headers(dict(request.headers)).items():
         log_parts.append(f"  {key}: {value}")
     
-    if request.content:
-        log_parts.append("Body:")
-        try:
-            body = json.loads(request.content)
-            formatted_body = json.dumps(body, indent=2)
-            for line in formatted_body.split('\n'):
-                log_parts.append(f"  {line}")
-        except json.JSONDecodeError:
-            content = request.content.decode(errors="ignore")
-            for line in content.split('\n'):
-                if line.strip():  # Skip empty lines
+    # Safely check if request has content
+    try:
+        if hasattr(request, "content") and request.content:
+            log_parts.append("Body:")
+            try:
+                body = json.loads(request.content)
+                formatted_body = json.dumps(body, indent=2)
+                for line in formatted_body.split('\n'):
                     log_parts.append(f"  {line}")
+            except json.JSONDecodeError:
+                content = request.content.decode(errors="ignore")
+                for line in content.split('\n'):
+                    if line.strip():  # Skip empty lines
+                        log_parts.append(f"  {line}")
+    except Exception:
+        # If we can't access content safely, just skip body logging
+        log_parts.append("Body: <unavailable>")
     
     # Response section
     log_parts.append(f"Response: status_code={response.status_code}")
@@ -133,18 +138,23 @@ async def log_http_event(response: httpx.Response) -> None:
     for key, value in _mask_sensitive_headers(dict(response.headers), is_response=True).items():
         log_parts.append(f"  {key}: {value}")
     
-    if response.content:
-        log_parts.append("Body:")
-        try:
-            body = response.json()
-            formatted_body = json.dumps(body, indent=2)
-            for line in formatted_body.split('\n'):
-                log_parts.append(f"  {line}")
-        except (json.JSONDecodeError, ValueError):
-            content = response.text
-            for line in content.split('\n'):
-                if line.strip():  # Skip empty lines
+    # Safely check if response has content and is not a streaming response
+    try:
+        if hasattr(response, "_content") and response._content:
+            log_parts.append("Body:")
+            try:
+                body = response.json()
+                formatted_body = json.dumps(body, indent=2)
+                for line in formatted_body.split('\n'):
                     log_parts.append(f"  {line}")
+            except (json.JSONDecodeError, ValueError):
+                content = response.text
+                for line in content.split('\n'):
+                    if line.strip():  # Skip empty lines
+                        log_parts.append(f"  {line}")
+    except Exception:
+        # If we can't access content safely, just skip body logging
+        log_parts.append("Body: <streaming or unavailable>")
     
     # Log everything as a single message
     logger.debug("\n".join(log_parts))
