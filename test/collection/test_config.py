@@ -119,6 +119,24 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        Configure.Vectorizer.multi2vec_nvidia(
+            model="nvidia/nvclip",
+            truncation=False,
+            output_encoding="base64",
+            vectorize_collection_name=False,
+            base_url="https://integrate.api.nvidia.com",
+        ),
+        {
+            "multi2vec-nvidia": {
+                "model": "nvidia/nvclip",
+                "truncation": False,
+                "output_encoding": "base64",
+                "vectorizeClassName": False,
+                "baseURL": "https://integrate.api.nvidia.com/",
+            }
+        },
+    ),
+    (
         Configure.Vectorizer.text2vec_gpt4all(),
         {
             "text2vec-gpt4all": {
@@ -424,6 +442,22 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "vectorizeClassName": False,
                 "model": "voyage-large-2",
                 "baseURL": "https://voyage.made-up.com",
+                "truncate": False,
+            }
+        },
+    ),
+    (
+        Configure.Vectorizer.text2vec_nvidia(
+            vectorize_collection_name=False,
+            model="nvidia/nv-embed-v1",
+            truncate=False,
+            base_url="https://integrate.api.nvidia.com",
+        ),
+        {
+            "text2vec-nvidia": {
+                "vectorizeClassName": False,
+                "model": "nvidia/nv-embed-v1",
+                "baseURL": "https://integrate.api.nvidia.com",
                 "truncate": False,
             }
         },
@@ -764,6 +798,10 @@ TEST_CONFIG_WITH_GENERATIVE = [
         {"generative-openai": {}},
     ),
     (
+        Configure.Generative.nvidia(),
+        {"generative-nvidia": {}},
+    ),
+    (
         Configure.Generative.anyscale(),
         {"generative-anyscale": {}},
     ),
@@ -1023,6 +1061,48 @@ TEST_CONFIG_WITH_RERANKER = [
         Configure.Reranker.cohere(),
         {
             "reranker-cohere": {},
+        },
+    ),
+    (
+        Configure.Reranker.voyageai(),
+        {
+            "reranker-voyageai": {},
+        },
+    ),
+    (
+        Configure.Reranker.voyageai(model="rerank-lite-1"),
+        {
+            "reranker-voyageai": {"model": "rerank-lite-1"},
+        },
+    ),
+    (
+        Configure.Reranker.jinaai(),
+        {
+            "reranker-jinaai": {},
+        },
+    ),
+    (
+        Configure.Reranker.jinaai(model="jina-reranker-v2-base-multilingual"),
+        {
+            "reranker-jinaai": {"model": "jina-reranker-v2-base-multilingual"},
+        },
+    ),
+    (
+        Configure.Reranker.nvidia(),
+        {
+            "reranker-nvidia": {},
+        },
+    ),
+    (
+        Configure.Reranker.nvidia(
+            model="nvidia/llama-3.2-nv-rerankqa-1b-v2",
+            base_url="https://integrate.api.nvidia.com/v1",
+        ),
+        {
+            "reranker-nvidia": {
+                "model": "nvidia/llama-3.2-nv-rerankqa-1b-v2",
+                "baseURL": "https://integrate.api.nvidia.com/v1",
+            },
         },
     ),
     (
@@ -1355,6 +1435,20 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
         },
     ),
     (
+        [Configure.NamedVectors.multi2vec_nvidia(name="test", text_fields=["prop"])],
+        {
+            "test": {
+                "vectorizer": {
+                    "multi2vec-nvidia": {
+                        "vectorizeClassName": True,
+                        "textFields": ["prop"],
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
         [
             Configure.NamedVectors.multi2vec_jinaai(
                 name="test", dimensions=256, text_fields=["prop"]
@@ -1583,6 +1677,25 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
             "test": {
                 "vectorizer": {
                     "text2vec-voyageai": {
+                        "properties": ["prop"],
+                        "vectorizeClassName": True,
+                        "truncate": True,
+                    }
+                },
+                "vectorIndexType": "hnsw",
+            }
+        },
+    ),
+    (
+        [
+            Configure.NamedVectors.text2vec_nvidia(
+                name="test", source_properties=["prop"], truncate=True
+            )
+        ],
+        {
+            "test": {
+                "vectorizer": {
+                    "text2vec-nvidia": {
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "truncate": True,

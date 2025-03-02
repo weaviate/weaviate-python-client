@@ -58,6 +58,7 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
     WeaviateTimeoutError,
     InsufficientPermissionsError,
+    WeaviateInvalidInputError,
 )
 from weaviate.proto.v1 import weaviate_pb2_grpc
 from weaviate.util import (
@@ -142,6 +143,10 @@ class ConnectionV4:
             _validate_input(_ValidateArgument([dict], "additional_headers", additional_headers))
             self.__additional_headers = additional_headers
             for key, value in additional_headers.items():
+                if value is None:
+                    raise WeaviateInvalidInputError(
+                        f"Value for key '{key}' in headers cannot be None."
+                    )
                 self._headers[key.lower()] = value
 
         self._proxies: Dict[str, str] = _get_proxies(proxies, trust_env)
@@ -385,7 +390,9 @@ class ConnectionV4:
             ):
                 # use refresh token when available
                 try:
-                    if self._client is not None and "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
+                    if self._client is None:
+                        pass
+                    elif "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
                         assert isinstance(self._client, AsyncOAuth2Client)
                         if hasattr(self._client, 'metadata') and "token_endpoint" in self._client.metadata:
                             self._client.token = asyncio.run_coroutine_threadsafe(

@@ -9,6 +9,8 @@ from weaviate.rbac.models import (
     WeaviateUser,
 )
 
+from weaviate.util import _decode_json_response_dict
+
 
 class _UsersBase:
     def __init__(self, connection: ConnectionV4) -> None:
@@ -22,7 +24,14 @@ class _UsersBase:
             error_msg="Could not get roles",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own roles"),
         )
-        return cast(WeaviateUser, res.json())
+        parsed = _decode_json_response_dict(res, "Get current user")
+        assert parsed is not None
+        # The API returns "username" for 1.29 instead of "user_id"
+        if "username" in parsed:
+            parsed["user_id"] = parsed["username"]
+            parsed.pop("username")
+
+        return cast(WeaviateUser, parsed)
 
     async def _get_roles_of_user(self, name: str) -> List[WeaviateRole]:
         path = f"/authz/users/{name}/roles"
@@ -79,8 +88,12 @@ class _UsersAsync(_UsersBase):
         """
         user = await self._get_current_user()
         return User(
-            user_id=user["username"],
-            roles={role["name"]: Role._from_weaviate_role(role) for role in user["roles"]},
+            user_id=user["user_id"],
+            roles=(
+                {role["name"]: Role._from_weaviate_role(role) for role in user["roles"]}
+                if user["roles"] is not None
+                else {}
+            ),
         )
 
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:

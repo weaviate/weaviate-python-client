@@ -22,8 +22,10 @@ from weaviate.collections.classes.config_vectorizers import (
     _Multi2VecBindConfig,
     _Multi2VecClipConfig,
     _Multi2VecVoyageaiConfig,
+    _Multi2VecNvidiaConfig,
     _Multi2VecGoogleConfig,
     _Ref2VecCentroidConfig,
+    _Text2ColbertJinaAIConfig,
     _Text2VecAWSConfig,
     _Text2VecAzureOpenAIConfig,
     _Text2VecCohereConfig,
@@ -32,6 +34,7 @@ from weaviate.collections.classes.config_vectorizers import (
     _Text2VecHuggingFaceConfig,
     _Text2VecJinaConfig,
     _Text2VecMistralConfig,
+    _Text2VecNvidiaConfig,
     _Text2VecOllamaConfig,
     _Text2VecOpenAIConfig,
     _Text2VecGoogleConfig,
@@ -153,6 +156,46 @@ class _NamedVectors:
                 vectorizer=_EnumLikeStr(module_name), module_config=module_config
             ),
             vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2colbert_jinaai(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model: Optional[str] = None,
+        dimensions: Optional[int] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `text2colbert_jinaai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/colbert)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `dimensions`
+                Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vector_index_config=vector_index_config,
+            vectorizer=_Text2ColbertJinaAIConfig(
+                model=model, dimensions=dimensions, vectorizeClassName=vectorize_collection_name
+            ),
         )
 
     @staticmethod
@@ -811,6 +854,59 @@ class _NamedVectors:
         )
 
     @staticmethod
+    def multi2vec_nvidia(
+        name: str,
+        *,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        base_url: Optional[AnyHttpUrl] = None,
+        model: Optional[str] = None,
+        truncation: Optional[bool] = None,
+        output_encoding: Optional[str] = None,
+        image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+        text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `multi2vec_nvidia` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings-multimodal)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+            `truncation`
+                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `image_fields`
+                The image fields to use in vectorization.
+            `text_fields`
+                The text fields to use in vectorization.
+
+        Raises:
+            `pydantic.ValidationError` if `model` is not a valid value from the `NvidiaMultimodalModel` type.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            vectorizer=_Multi2VecNvidiaConfig(
+                baseURL=base_url,
+                model=model,
+                truncation=truncation,
+                output_encoding=output_encoding,
+                vectorizeClassName=vectorize_collection_name,
+                imageFields=_map_multi2vec_fields(image_fields),
+                textFields=_map_multi2vec_fields(text_fields),
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
     def ref2vec_centroid(
         name: str,
         reference_properties: List[str],
@@ -1205,8 +1301,7 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
 
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings)
-        for detailed usage.
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings) for detailed usage.
 
         Arguments:
             `name`
@@ -1223,8 +1318,6 @@ class _NamedVectors:
                 The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             `model`
                 The model to use. Defaults to `None`, which uses the server-defined default.
-                See the
-                [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings#available-models) for more details.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1354,6 +1447,52 @@ class _NamedVectors:
                 vectorizeClassName=vectorize_collection_name,
                 baseURL=base_url,
                 dimensions=dimensions,
+            ),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
+    def text2vec_nvidia(
+        name: str,
+        *,
+        source_properties: Optional[List[str]] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+        vectorize_collection_name: bool = True,
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        truncate: Optional[bool] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using the `text2vec-nvidia` model.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
+        for detailed usage.
+
+        Arguments:
+            `name`
+                The name of the named vector.
+            `source_properties`
+                Which properties should be included when vectorizing. By default all text properties are included.
+            `vector_index_config`
+                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            `vectorize_collection_name`
+                Whether to vectorize the collection name. Defaults to `True`.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
+                See the
+                [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings#available-models) for more details.
+            `base_url`
+                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            `truncate`
+                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            source_properties=source_properties,
+            vectorizer=_Text2VecNvidiaConfig(
+                model=model,
+                vectorizeClassName=vectorize_collection_name,
+                baseURL=base_url,
+                truncate=truncate,
             ),
             vector_index_config=vector_index_config,
         )

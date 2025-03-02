@@ -7,6 +7,7 @@ from weaviate.collections.classes.config import (
     _CollectionConfigSimple,
     _NamedVectorConfig,
     _NamedVectorizerConfig,
+    _MultiVectorConfig,
     _PQConfig,
     _VectorIndexConfigFlat,
     _VectorIndexConfigDynamic,
@@ -168,6 +169,13 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         quantizer=quantizer,
         skip=config["skip"],
         vector_cache_max_objects=config["vectorCacheMaxObjects"],
+        multi_vector=(
+            None
+            if config.get("multivector") is None
+            else _MultiVectorConfig(
+                aggregation=config["multivector"]["aggregation"],
+            )
+        ),
     )
 
 
@@ -177,6 +185,7 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
         distance_metric=VectorDistances(config["distance"]),
         quantizer=quantizer,
         vector_cache_max_objects=config["vectorCacheMaxObjects"],
+        multi_vector=None,
     )
 
 
@@ -389,7 +398,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                 and prop.get("moduleConfig", None) is not None
                 else None
             ),
-            vectorizer=schema.get("vectorizer", "none"),
+            vectorizer=schema.get("vectorizer", "none") if "vectorConfig" not in schema else None,
         )
         for prop in schema["properties"]
         if _is_primitive(prop["dataType"])

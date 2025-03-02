@@ -27,7 +27,6 @@ class PermissionData(TypedDict):
 
 class PermissionCollections(TypedDict):
     collection: str
-    tenant: str
 
 
 class PermissionsTenants(TypedDict):
@@ -76,8 +75,8 @@ class WeaviateRole(TypedDict):
 
 
 class WeaviateUser(TypedDict):
-    username: str
-    roles: List[WeaviateRole]
+    user_id: str
+    roles: Optional[List[WeaviateRole]]
     groups: List[str]
 
 
@@ -133,6 +132,7 @@ class RolesAction(str, _Action, Enum):
 
 
 class UsersAction(str, _Action, Enum):
+    READ = "read_users"
     ASSIGN_AND_REVOKE = "assign_and_revoke_users"
 
     @staticmethod
@@ -177,7 +177,6 @@ class _Permission(BaseModel, Generic[ActionT]):
 
 class _CollectionsPermission(_Permission[CollectionsAction]):
     collection: str
-    tenant: str
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
@@ -185,7 +184,6 @@ class _CollectionsPermission(_Permission[CollectionsAction]):
                 "action": action,
                 "collections": {
                     "collection": _capitalize_first_letter(self.collection),
-                    "tenant": self.tenant,
                 },
             }
             for action in self.actions
@@ -389,7 +387,6 @@ class Role:
                     collections_permissions.append(
                         CollectionsPermissionOutput(
                             collection=collections["collection"],
-                            tenant=collections.get("tenant", "*"),
                             actions={CollectionsAction(permission["action"])},
                         )
                     )
@@ -512,7 +509,42 @@ class Actions:
     Users = UsersAction
 
 
+class NodesPermissions:
+    @staticmethod
+    def verbose(
+        *,
+        collection: Union[str, Sequence[str]],
+        read: bool = False,
+    ) -> PermissionsCreateType:
+        permissions: List[_Permission] = []
+        if isinstance(collection, str):
+            collection = [collection]
+        for c in collection:
+            permission = _NodesPermission(collection=c, verbosity="verbose", actions=set())
+
+            if read:
+                permission.actions.add(NodesAction.READ)
+            if len(permission.actions) > 0:
+                permissions.append(permission)
+
+        return permissions
+
+    @staticmethod
+    def minimal(
+        *,
+        read: bool = False,
+    ) -> PermissionsCreateType:
+
+        if read:
+            permissions: List[_Permission] = [
+                _NodesPermission(collection="*", verbosity="minimal", actions={NodesAction.READ})
+            ]
+            return permissions
+        return []
+
+
 class Permissions:
+    Nodes = NodesPermissions
 
     @staticmethod
     def data(
@@ -555,7 +587,7 @@ class Permissions:
         if isinstance(collection, str):
             collection = [collection]
         for c in collection:
-            permission = _CollectionsPermission(collection=c, tenant="*", actions=set())
+            permission = _CollectionsPermission(collection=c, actions=set())
 
             if create_collection:
                 permission.actions.add(CollectionsAction.CREATE)
@@ -629,7 +661,7 @@ class Permissions:
 
     @staticmethod
     def users(
-        *, user: Union[str, Sequence[str]], assign_and_revoke: bool = False
+        *, user: Union[str, Sequence[str]], read: bool = False, assign_and_revoke: bool = False
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
         if isinstance(user, str):
@@ -637,6 +669,8 @@ class Permissions:
         for u in user:
             permission = _UsersPermission(users=u, actions=set())
 
+            if read:
+                permission.actions.add(UsersAction.READ)
             if assign_and_revoke:
                 permission.actions.add(UsersAction.ASSIGN_AND_REVOKE)
 
@@ -659,26 +693,6 @@ class Permissions:
                 permission.actions.add(BackupsAction.MANAGE)
             if len(permission.actions) > 0:
                 permissions.append(permission)
-        return permissions
-
-    @staticmethod
-    def nodes(
-        *,
-        collection: Union[str, Sequence[str]],
-        verbosity: Verbosity = "minimal",
-        read: bool = False,
-    ) -> PermissionsCreateType:
-        permissions: List[_Permission] = []
-        if isinstance(collection, str):
-            collection = [collection]
-        for c in collection:
-            permission = _NodesPermission(collection=c, verbosity=verbosity, actions=set())
-
-            if read:
-                permission.actions.add(NodesAction.READ)
-            if len(permission.actions) > 0:
-                permissions.append(permission)
-
         return permissions
 
     @staticmethod

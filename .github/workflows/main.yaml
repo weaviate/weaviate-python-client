@@ -19,10 +19,11 @@ concurrency:
 
 env:
   WEAVIATE_124: 1.24.26
-  WEAVIATE_125: 1.25.29
-  WEAVIATE_126: 1.26.13
-  WEAVIATE_127: 1.27.9
-  WEAVIATE_128: preview-rbac-flatten-manage-roles-into-cud-f4c8b7c
+  WEAVIATE_125: 1.25.30
+  WEAVIATE_126: 1.26.14
+  WEAVIATE_127: 1.27.12
+  WEAVIATE_128: 1.28.6
+  WEAVIATE_129: 1.29.0
 
 jobs:
   lint-and-format:
@@ -54,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         folder: ["weaviate"]
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         folder: ["test", "mock_tests"]
     steps:
       - uses: actions/checkout@v4
@@ -98,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.9", "3.10", "3.11", "3.12"]
+        version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         optional_dependencies: [false]
     steps:
       - uses: actions/checkout@v4
@@ -129,11 +130,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_124},
-          { py: "3.10", weaviate: $WEAVIATE_125},
-          { py: "3.11", weaviate: $WEAVIATE_126},
-          { py: "3.12", weaviate: $WEAVIATE_127},
-          { py: "3.13", weaviate: $WEAVIATE_128}
+          { py: "3.9", weaviate: $WEAVIATE_129},
+          { py: "3.10", weaviate: $WEAVIATE_129},
+          { py: "3.11", weaviate: $WEAVIATE_129},
+          { py: "3.12", weaviate: $WEAVIATE_129},
+          { py: "3.13", weaviate: $WEAVIATE_129}
         ]
         optional_dependencies: [false]
     steps:
@@ -184,11 +185,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_128},
-          { py: "3.10", weaviate: $WEAVIATE_128},
-          { py: "3.11", weaviate: $WEAVIATE_128},
-          { py: "3.12", weaviate: $WEAVIATE_128},
-          { py: "3.13", weaviate: $WEAVIATE_128}
+          { py: "3.9", weaviate: $WEAVIATE_129},
+          { py: "3.10", weaviate: $WEAVIATE_129},
+          { py: "3.11", weaviate: $WEAVIATE_129},
+          { py: "3.12", weaviate: $WEAVIATE_129},
+          { py: "3.13", weaviate: $WEAVIATE_129}
         ]
         optional_dependencies: [false]
     steps:
@@ -242,7 +243,6 @@ jobs:
           verbose: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
-
   build-package:
     name: Build package
     runs-on: ubuntu-latest
@@ -274,10 +274,12 @@ jobs:
       fail-fast: false
       matrix:
         server: [
+          $WEAVIATE_124,
           $WEAVIATE_125,
           $WEAVIATE_126,
           $WEAVIATE_127,
-          $WEAVIATE_128
+          $WEAVIATE_128,
+          $WEAVIATE_129
         ]
     steps:
       - name: Checkout
@@ -300,17 +302,8 @@ jobs:
       - run: rm -r weaviate
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
-      - name: Run integration tests with auth secrets
-        if: ${{ !github.event.pull_request.head.repo.fork }}
-        env:
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
-          WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
-          OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
+      - name: Run integration tests without auth secrets (auth tests ran in previous job)
         run: pytest -v -n auto --dist loadgroup integration
-      - name: Run integration tests without auth secrets (for forks)
-        if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v -n auto integration
 
   build-and-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI

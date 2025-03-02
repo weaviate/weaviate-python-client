@@ -432,7 +432,7 @@ def collection_factory_get(
     ) -> Collection[Any, Any]:
         nonlocal name_fixture
         name_fixture = _sanitize_collection_name(name)
-        collection: Collection[Any, Any] = client_factory().collections.get(
+        collection: Collection[Any, Any] = client_factory().collections.use(
             name=name_fixture,
             data_model_properties=data_model_props,
             data_model_references=data_model_refs,
