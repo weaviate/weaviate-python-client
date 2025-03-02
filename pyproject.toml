@@ -35,3 +35,19 @@ exclude = ["weaviate/proto", "docs", "integration_v3"]
 [[tool.mypy.overrides]]
 module = "weaviate.proto.v1.*"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "grpc.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "grpc"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "weaviate_agents.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "weaviate_agents"
+ignore_errors = true
