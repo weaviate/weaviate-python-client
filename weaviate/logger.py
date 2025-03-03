@@ -13,9 +13,9 @@ from typing import (
     cast,
 )
 
-import grpc
+import grpc  # type: ignore
 import httpx
-from grpc.aio import (
+from grpc.aio import (  # type: ignore
     StreamStreamCall,
     StreamUnaryCall,
     UnaryStreamCall,
