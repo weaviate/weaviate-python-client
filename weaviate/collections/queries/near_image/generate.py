@@ -1,6 +1,4 @@
-from io import BufferedReader
-from pathlib import Path
-from typing import Generic, List, Optional, Union
+from typing import Generic, List, Optional
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import (
@@ -18,13 +16,14 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _Base
-from weaviate.types import NUMBER, INCLUDE_VECTOR
+from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
+from weaviate.util import parse_blob
 
 
 class _NearImageGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
@@ -103,7 +102,7 @@ class _NearImageGenerateAsync(Generic[Properties, References], _Base[Properties,
                 If the request to the Weaviate server fails.
         """
         res = await self._query.near_media(
-            media=self._parse_media(near_image),
+            media=parse_blob(near_image),
             type_="image",
             certainty=certainty,
             distance=distance,

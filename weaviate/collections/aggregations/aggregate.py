@@ -1,6 +1,5 @@
 import io
 import json
-import os
 import pathlib
 from typing import List, Optional, TypeVar, Union, cast
 
@@ -41,7 +40,7 @@ from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.proto.v1 import aggregate_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.util import file_encoder_b64, _decode_json_response_dict
+from weaviate.util import parse_blob, _decode_json_response_dict
 from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.warnings import _Warnings
 
@@ -431,7 +430,7 @@ class _AggregateAsync:
         )
         _AggregateAsync._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
-        payload["image"] = _parse_media(near_image)
+        payload["image"] = parse_blob(near_image)
         if certainty is not None:
             payload["certainty"] = certainty
         if distance is not None:
@@ -539,13 +538,3 @@ class _AggregateAsync:
         if object_limit is not None:
             builder = builder.with_object_limit(object_limit)
         return builder
-
-
-def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
-    if isinstance(media, str):  # if already encoded by user or string to path
-        if os.path.isfile(media):
-            return file_encoder_b64(media)
-        else:
-            return media
-    else:
-        return file_encoder_b64(media)

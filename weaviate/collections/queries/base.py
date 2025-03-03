@@ -1,7 +1,4 @@
 import datetime
-import io
-import os
-import pathlib
 import uuid as uuid_lib
 from typing import Any, Dict, Generic, List, Optional, Sequence, Type, Union, cast
 
@@ -54,7 +51,7 @@ from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2, generative_pb2, search_get_pb2, properties_pb2
 from weaviate.types import INCLUDE_VECTOR
-from weaviate.util import file_encoder_b64, _datetime_from_weaviate_str
+from weaviate.util import _datetime_from_weaviate_str
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
@@ -643,17 +640,3 @@ class _Base(Generic[Properties, References]):
                     f"return_references must only be a TypedDict or ReturnReferences within this context but is {type(return_references)}"
                 )
             return _extract_references_from_data_model(return_references)
-
-    @staticmethod
-    def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
-        if isinstance(media, str):  # if already encoded by user or string to path
-            if os.path.isfile(media):
-                return file_encoder_b64(media)
-            else:
-                return media
-        elif isinstance(media, pathlib.Path) or isinstance(media, io.BufferedReader):
-            return file_encoder_b64(media)
-        else:
-            raise WeaviateInvalidInputError(
-                f"media must be a string, pathlib.Path, or io.BufferedReader but is {type(media)}"
-            )
