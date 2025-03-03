@@ -53,6 +53,18 @@ module = "weaviate_agents"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
+module = "weaviate.agents.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "weaviate.agents"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "weaviate.__init__"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
 module = "authlib.integrations.httpx_client"
 ignore_errors = true
 
