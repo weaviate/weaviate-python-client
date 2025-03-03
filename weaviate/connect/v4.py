@@ -12,8 +12,8 @@ from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
-from grpc.aio import Channel  # type: ignore
-from grpc_health.v1 import health_pb2  # type: ignore
+from grpc.aio import Channel
+from grpc_health.v1 import health_pb2
 
 from httpx import (
     AsyncClient,
@@ -170,53 +170,74 @@ class ConnectionV4:
         self._headers["X-Weaviate-Cluster-URL"] = "https://" + wcd_host
 
     async def connect(self, skip_init_checks: bool) -> None:
-        self.__connected = True
+        self.__connected = False  # Start with connected = False
 
-        await self._open_connections_rest(self._auth, skip_init_checks)
-
-        # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = await self.get_meta()
-            self._weaviate_version = _ServerVersion.from_string(meta["version"])
-            if "grpcMaxMessageSize" in meta:
-                self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
-            # Add warning later, when weaviate supported it for a while
-            # else:
-            #     _Warnings.grpc_max_msg_size_not_found()
-        except (
-            WeaviateConnectionError,
-            ReadError,
-            RemoteProtocolError,
-            SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
-        ) as e:
-            self.__connected = False
-            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
+            # Create HTTP client if it doesn't exist
+            if self._client is None:
+                self.__make_clients()
 
-        await self.open_connection_grpc()
-        self.__connected = True
-        if self.embedded_db is not None:
+            await self._open_connections_rest(self._auth, skip_init_checks)
+
+            # need this to get the version of weaviate for version checks and proper GRPC configuration
             try:
-                await self.wait_for_weaviate(10)
-            except WeaviateStartUpError as e:
-                self.embedded_db.stop()
-                self.__connected = False
-                raise e
+                meta = await self.get_meta()
+                self._weaviate_version = _ServerVersion.from_string(meta["version"])
+                if "grpcMaxMessageSize" in meta:
+                    self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
+                # Add warning later, when weaviate supported it for a while
+                # else:
+                #     _Warnings.grpc_max_msg_size_not_found()
+            except (
+                WeaviateConnectionError,
+                ReadError,
+                RemoteProtocolError,
+                ConnectError,
+                SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
+            ) as e:
+                raise WeaviateStartUpError(f"Could not connect to Weaviate: {e}") from e
 
-        # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 23, 7):
+            # Create gRPC client if it doesn't exist
+            if self._grpc_stub is None and self._connection_params.grpc is not None:
+                try:
+                    await self.open_connection_grpc()
+                except Exception as e:
+                    raise WeaviateStartUpError(f"Could not connect to Weaviate gRPC: {e}") from e
+
+            if self.embedded_db is not None:
+                try:
+                    await self.wait_for_weaviate(10)
+                except WeaviateStartUpError as e:
+                    self.embedded_db.stop()
+                    raise e
+
+            # do it after all other init checks so as not to break all the tests
+            if self._weaviate_version.is_lower_than(1, 23, 7):
+                raise WeaviateStartUpError(
+                    f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
+                )
+
+            if not skip_init_checks:
+                try:
+                    await asyncio.gather(self._ping_grpc(), self.__check_package_version())
+                except Exception as e:
+                    raise e
+
+            # Only set connected to True if all checks pass
+            self.__connected = True
+        except Exception as e:
+            # Ensure we're not connected if any error occurs
             self.__connected = False
-            raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
-            )
-
-        if not skip_init_checks:
-            try:
-                await asyncio.gather(self._ping_grpc(), self.__check_package_version())
-            except Exception as e:
-                self.__connected = False
-                raise e
-
-        self.__connected = True
+            # Close any open connections
+            if self._client is not None:
+                await self._client.aclose()
+                self._client = None
+            if self._grpc_stub is not None and self._grpc_channel is not None:
+                await self._grpc_channel.close(grace=None)
+                self._grpc_stub = None
+                self._grpc_channel = None
+            # Re-raise the exception
+            raise e
 
     async def __check_package_version(self) -> None:
         try:

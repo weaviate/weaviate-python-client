@@ -1,6 +1,6 @@
 from typing import Optional, Sequence, cast
 
-from grpc.aio import AioRpcError  # type: ignore
+from grpc.aio import AioRpcError
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import TenantActivityStatus

@@ -71,3 +71,7 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "httpx"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "authlib.integrations.httpx_client"
+ignore_errors = true
