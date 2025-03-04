@@ -6,7 +6,6 @@ from weaviate.collections.classes.config import (
     GenerativeSearches,
     _EnumLikeStr,
     AWSService,
-    CohereModel,
 )
 from weaviate.proto.v1.base_pb2 import TextArray
 from weaviate.proto.v1.generative_pb2 import (
@@ -488,7 +487,7 @@ class GenerativeConfig:
         base_url: Optional[AnyHttpUrl] = None,
         k: Optional[int] = None,
         max_tokens: Optional[int] = None,
-        model: Optional[Union[CohereModel, str]] = None,
+        model: Optional[str] = None,
         p: Optional[float] = None,
         presence_penalty: Optional[float] = None,
         stop_sequences: Optional[List[str]] = None,
@@ -729,7 +728,7 @@ class GenerativeConfig:
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
     ) -> _GenerativeConfigRuntime:
-        """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-nvidia` module.
+        """Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
 
         Arguments:
             `base_url`

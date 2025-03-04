@@ -44,7 +44,7 @@ class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properti
             `grouped_properties`
                 The properties to use in the generative query on the entire result set.
             `generative_config`
-                The provider-specific options used to customize the generation step of the RAG query. Use the `DynamicRAG` factory to create a suitably object for your use-case.
+                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
             `offset`
