@@ -81,7 +81,7 @@ def test_generative_provider_images_parsing(
                 top_k=50,
                 top_p=0.9,
                 grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=[LOGO_ENCODED],
+                grouped_task_image_properties=["image"],
             ).to_grpc(),
             GenerativeProviderGRPC(
                 anthropic=GenerativeAnthropic(
@@ -121,7 +121,7 @@ def test_generative_provider_images_parsing(
                 target_variant="variant-1",
                 temperature=0.5,
                 grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=[LOGO_ENCODED],
+                grouped_task_image_properties=["image"],
             ).to_grpc(),
             GenerativeProviderGRPC(
                 aws=GenerativeAWS(
@@ -226,7 +226,7 @@ def test_generative_provider_images_parsing(
                 top_k=50,
                 top_p=0.9,
                 grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=[LOGO_ENCODED],
+                grouped_task_image_properties=["image"],
             ).to_grpc(),
             GenerativeProviderGRPC(
                 google=GenerativeGoogle(
@@ -315,7 +315,7 @@ def test_generative_provider_images_parsing(
                 temperature=0.5,
                 top_p=50,
                 grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=[LOGO_ENCODED],
+                grouped_task_image_properties=["image"],
             ).to_grpc(),
             GenerativeProviderGRPC(
                 openai=GenerativeOpenAI(
@@ -350,7 +350,7 @@ def test_generative_provider_images_parsing(
                 temperature=0.5,
                 top_p=50,
                 grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=[LOGO_ENCODED],
+                grouped_task_image_properties=["image"],
             ).to_grpc(),
             GenerativeProviderGRPC(
                 openai=GenerativeOpenAI(
