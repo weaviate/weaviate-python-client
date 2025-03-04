@@ -56,7 +56,7 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
             `grouped_properties`
                 The properties to use in the generative query on the entire result set.
             `generative_config`
-                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
+                Specify run-time generative options with a `GenerativeConfig.<provider>()` function. Specify images here for multi-modal model inputs.
             `query_properties`
                 The properties to search in. If not specified, all properties are searched.
             `limit`

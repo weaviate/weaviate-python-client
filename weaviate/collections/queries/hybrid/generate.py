@@ -67,7 +67,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
             `grouped_properties`
                 The properties to use in the generative query on the entire result set.
             `generative_config`
-                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
+                Specify run-time generative options with a `GenerativeConfig.<provider>()` function. Specify images here for multi-modal model inputs.
             `alpha`
                 The weight of the BM25 score. If not specified, the default weight specified by the server is used.
             `vector`

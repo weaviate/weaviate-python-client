@@ -44,7 +44,7 @@ class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properti
             `grouped_properties`
                 The properties to use in the generative query on the entire result set.
             `generative_config`
-                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
+                Specify run-time generative options with a `GenerativeConfig.<provider>()` function. Specify images here for multi-modal model inputs.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
             `offset`
