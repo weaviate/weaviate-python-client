@@ -12,7 +12,7 @@ from weaviate.collections.classes.config import (
     Property,
 )
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.generative import GenerativeProvider
+from weaviate.collections.classes.generative import GenerativeConfig
 from weaviate.collections.classes.grpc import GroupBy, Rerank
 from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
 from weaviate.util import _ServerVersion
@@ -669,7 +669,7 @@ def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection
         query="small fruit",
         single_prompt="Is there something to eat in {text} of the given object? Only answer yes if there is something to eat and no if not. Dont use punctuation",
         grouped_task="Write out the fruit in alphabetical order. Only write the names separated by a space",
-        generative_config=GenerativeProvider.openai(
+        generative_config=GenerativeConfig.openai(
             temperature=0.1,
         ),
     )
