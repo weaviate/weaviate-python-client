@@ -67,7 +67,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
             `grouped_properties`
                 The properties to use in the generative query on the entire result set.
             `generative_provider`
-                The provider and provier-specific options for the generation step. Use the `GenerativeProvider` factory to create a suitable object for your use-case.
+                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
             `alpha`
                 The weight of the BM25 score. If not specified, the default weight specified by the server is used.
             `vector`

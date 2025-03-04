@@ -56,7 +56,7 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
             `grouped_properties`
                 The properties to use in the generative query on the entire result set.
             `generative_provider`
-                The provider and provier-specific options for the generation step. Use the `GenerativeProvider` factory to create a suitable object for your use-case.
+                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
             `query_properties`
                 The properties to search in. If not specified, all properties are searched.
             `limit`
