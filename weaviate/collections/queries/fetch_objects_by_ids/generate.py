@@ -2,7 +2,7 @@ from typing import Generic, Iterable, List, Optional
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import Filter
-from weaviate.collections.classes.generative import _GenerativeProviderDynamic
+from weaviate.collections.classes.generative import _GenerativeConfigRuntime
 from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
     GenerativeReturnType,
@@ -27,7 +27,7 @@ class _FetchObjectsByIDsGenerateAsync(
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeProviderDynamic] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,

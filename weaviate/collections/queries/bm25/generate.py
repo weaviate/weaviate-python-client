@@ -4,7 +4,7 @@ from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.generative import _GenerativeProviderDynamic
+from weaviate.collections.classes.generative import _GenerativeConfigRuntime
 from weaviate.collections.classes.grpc import GroupBy, Rerank, METADATA
 from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
@@ -29,7 +29,7 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeProviderDynamic] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,

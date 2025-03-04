@@ -23,7 +23,7 @@ if sys.version_info < (3, 9):
 else:
     from typing import Annotated, get_type_hints, get_origin, get_args
 
-from weaviate.collections.classes.generative import _GenerativeProviderDynamic
+from weaviate.collections.classes.generative import _GenerativeConfigRuntime
 from weaviate.collections.classes.grpc import (
     QueryNested,
     _QueryReference,
@@ -198,14 +198,14 @@ class _Generative:
     single: Optional[str]
     grouped: Optional[str]
     grouped_properties: Optional[List[str]]
-    generative_provider: Optional[_GenerativeProviderDynamic]
+    generative_provider: Optional[_GenerativeConfigRuntime]
 
     def __init__(
         self,
         single: Optional[str],
         grouped: Optional[str],
         grouped_properties: Optional[List[str]],
-        generative_provider: Optional[_GenerativeProviderDynamic] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
     ) -> None:
         self.single = single
         self.grouped = grouped

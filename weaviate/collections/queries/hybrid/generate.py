@@ -4,7 +4,7 @@ from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
-from weaviate.collections.classes.generative import _GenerativeProviderDynamic
+from weaviate.collections.classes.generative import _GenerativeConfigRuntime
 from weaviate.collections.classes.grpc import (
     METADATA,
     GroupBy,
@@ -35,7 +35,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeProviderDynamic] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,

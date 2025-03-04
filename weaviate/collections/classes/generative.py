@@ -27,7 +27,7 @@ from weaviate.types import BLOB_INPUT
 from weaviate.util import parse_blob
 
 
-class _GenerativeProviderDynamic(BaseModel):
+class _GenerativeConfigRuntime(BaseModel):
     generative: Union[GenerativeSearches, _EnumLikeStr]
 
     def to_grpc(self) -> GenerativeProviderGRPC:
@@ -40,10 +40,10 @@ class _GenerativeProviderDynamic(BaseModel):
         return TextArray(values=values) if values is not None else None
 
 
-GenerativeProviderDynamic = _GenerativeProviderDynamic
+GenerativeProviderDynamic = _GenerativeConfigRuntime
 
 
-class _GenerativeAnthropic(_GenerativeProviderDynamic):
+class _GenerativeAnthropic(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANTHROPIC, frozen=True, exclude=True
     )
@@ -73,7 +73,7 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeAnyscale(_GenerativeProviderDynamic):
+class _GenerativeAnyscale(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
@@ -91,7 +91,7 @@ class _GenerativeAnyscale(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeAWS(_GenerativeProviderDynamic):
+class _GenerativeAWS(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
@@ -120,7 +120,7 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeCohere(_GenerativeProviderDynamic):
+class _GenerativeCohere(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
@@ -148,7 +148,7 @@ class _GenerativeCohere(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeDatabricks(_GenerativeProviderDynamic):
+class _GenerativeDatabricks(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.DATABRICKS, frozen=True, exclude=True
     )
@@ -182,7 +182,7 @@ class _GenerativeDatabricks(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeFriendliai(_GenerativeProviderDynamic):
+class _GenerativeFriendliai(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
     )
@@ -206,7 +206,7 @@ class _GenerativeFriendliai(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeMistral(_GenerativeProviderDynamic):
+class _GenerativeMistral(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
     )
@@ -228,7 +228,7 @@ class _GenerativeMistral(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeNvidia(_GenerativeProviderDynamic):
+class _GenerativeNvidia(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
     )
@@ -250,7 +250,7 @@ class _GenerativeNvidia(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeOllama(_GenerativeProviderDynamic):
+class _GenerativeOllama(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
     )
@@ -272,7 +272,7 @@ class _GenerativeOllama(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeOpenAI(_GenerativeProviderDynamic):
+class _GenerativeOpenAI(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
@@ -312,7 +312,7 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeGoogle(_GenerativeProviderDynamic):
+class _GenerativeGoogle(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
@@ -378,7 +378,7 @@ class GenerativeProvider:
         top_p: Optional[float] = None,
         images: Optional[Iterable[str]] = None,
         image_properties: Optional[List[str]] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """
         Create a `_GenerativeAnthropic` object for use when performing dynamic AI generation using the `generative-anthropic` module.
 
@@ -420,7 +420,7 @@ class GenerativeProvider:
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeAnyscale` object for use when performing dynamic AI generation using the `generative-anyscale` module.
 
         Arguments:
@@ -445,7 +445,7 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         images: Optional[Iterable[BLOB_INPUT]] = None,
         image_properties: Optional[List[str]] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
@@ -493,7 +493,7 @@ class GenerativeProvider:
         presence_penalty: Optional[float] = None,
         stop_sequences: Optional[List[str]] = None,
         temperature: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeCohere` object for use when performing AI generation using the `generative-cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-cohere)
@@ -542,7 +542,7 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         top_log_probs: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeDatabricks` object for use when performing AI generation using the `generative-databricks` module.
 
         Arguments:
@@ -590,7 +590,7 @@ class GenerativeProvider:
         n: Optional[int] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """
         Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
 
@@ -634,7 +634,7 @@ class GenerativeProvider:
         top_p: Optional[float] = None,
         images: Optional[Iterable[BLOB_INPUT]] = None,
         image_properties: Optional[List[str]] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeGoogle` object for use when performing AI generation using the `generative-google` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
@@ -697,7 +697,7 @@ class GenerativeProvider:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeMistral` object for use when performing AI generation using the `generative-mistral` module.
 
         Arguments:
@@ -728,7 +728,7 @@ class GenerativeProvider:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-nvidia` module.
 
         Arguments:
@@ -759,7 +759,7 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         images: Optional[Iterable[BLOB_INPUT]] = None,
         image_properties: Optional[List[str]] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
 
         Arguments:
@@ -801,7 +801,7 @@ class GenerativeProvider:
         top_p: Optional[float] = None,
         images: Optional[Iterable[BLOB_INPUT]] = None,
         image_properties: Optional[List[str]] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the OpenAI-backed `generative-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
@@ -871,7 +871,7 @@ class GenerativeProvider:
         top_p: Optional[float] = None,
         images: Optional[Iterable[BLOB_INPUT]] = None,
         image_properties: Optional[List[str]] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the Azure-backed `generative-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
