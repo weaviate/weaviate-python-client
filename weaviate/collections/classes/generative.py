@@ -359,7 +359,7 @@ class _GenerativeGoogle(_GenerativeConfigRuntime):
         )
 
 
-class GenerativeProvider:
+class GenerativeConfig:
     """Use this factory class to create the correct object for the `generative_config` argument in the search methods of the `.generate` namespace.
 
     Each staticmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
@@ -380,7 +380,7 @@ class GenerativeProvider:
         image_properties: Optional[List[str]] = None,
     ) -> _GenerativeConfigRuntime:
         """
-        Create a `_GenerativeAnthropic` object for use when performing dynamic AI generation using the `generative-anthropic` module.
+        Create a `_GenerativeAnthropic` object for use when performing AI generation using the `generative-anthropic` module.
 
         Arguments:
             `model`
@@ -421,7 +421,7 @@ class GenerativeProvider:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
     ) -> _GenerativeConfigRuntime:
-        """Create a `_GenerativeAnyscale` object for use when performing dynamic AI generation using the `generative-anyscale` module.
+        """Create a `_GenerativeAnyscale` object for use when performing AI generation using the `generative-anyscale` module.
 
         Arguments:
             `base_url`
@@ -446,7 +446,7 @@ class GenerativeProvider:
         images: Optional[Iterable[BLOB_INPUT]] = None,
         image_properties: Optional[List[str]] = None,
     ) -> _GenerativeConfigRuntime:
-        """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
+        """Create a `_GenerativeAWS` object for use when performing AI generation using the `generative-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
         for detailed usage.

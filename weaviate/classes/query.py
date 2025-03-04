@@ -1,6 +1,6 @@
 from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.filters import Filter
-from weaviate.collections.classes.generative import GenerativeProvider
+from weaviate.collections.classes.generative import GenerativeConfig
 from weaviate.collections.classes.grpc import (
     HybridFusion,
     GroupBy,
@@ -20,7 +20,7 @@ from weaviate.collections.classes.types import GeoCoordinate
 __all__ = [
     "Filter",
     "GeoCoordinate",
-    "GenerativeProvider",
+    "GenerativeConfig",
     "GroupBy",
     "HybridFusion",
     "HybridVector",

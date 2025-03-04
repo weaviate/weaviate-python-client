@@ -1,5 +1,5 @@
-from weaviate.collections.classes.generative import GenerativeProvider
+from weaviate.collections.classes.generative import GenerativeConfig
 
 __all__ = [
-    "GenerativeProvider",
+    "GenerativeConfig",
 ]
