@@ -665,7 +665,7 @@ def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection
         ]
     )
 
-    res = collection.generate.near_text(
+    query = lambda: collection.generate.near_text(
         query="small fruit",
         single_prompt="Is there something to eat in {text} of the given object? Only answer yes if there is something to eat and no if not. Dont use punctuation",
         grouped_task="Write out the fruit in alphabetical order. Only write the names separated by a space",
@@ -673,6 +673,12 @@ def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection
             temperature=0.1,
         ),
     )
-    assert res.generated == "bananas melons"
-    assert res.objects[0].generated is not None
-    assert res.objects[1].generated is not None
+
+    if collection._connection._weaviate_version.is_lower_than(1, 30, 0):
+        with pytest.raises(WeaviateUnsupportedFeatureError):
+            res = query()
+    else:
+        res = query()
+        assert res.generated == "bananas melons"
+        assert res.objects[0].generated is not None
+        assert res.objects[1].generated is not None
