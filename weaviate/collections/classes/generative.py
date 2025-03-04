@@ -728,7 +728,7 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
     ) -> _GenerativeProviderDynamic:
-        """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-nvidia` module.
+        """Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
 
         Arguments:
             `base_url`
