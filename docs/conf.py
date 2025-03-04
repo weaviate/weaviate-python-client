@@ -98,5 +98,17 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+import re
+
+def convert_markdown_links(lines):
+    """Convert Markdown-style [text](url) links to reST-style `text <url>`_ links."""
+    md_link_pattern = re.compile(r"\[([^\]]+)\]\((http[^\)]+)\)")
+    return [md_link_pattern.sub(r"`\1 <\2>`_", line) for line in lines]
+
+def autodoc_process_docstring(app, what, name, obj, options, lines):
+    """Apply the conversion to all docstrings."""
+    lines[:] = convert_markdown_links(lines)
+
 def setup(app):
     app.add_css_file("custom.css")
+    app.connect("autodoc-process-docstring", autodoc_process_docstring)
