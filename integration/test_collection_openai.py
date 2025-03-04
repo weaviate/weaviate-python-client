@@ -669,7 +669,7 @@ def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection
         query="small fruit",
         single_prompt="Is there something to eat in {text} of the given object? Only answer yes if there is something to eat and no if not. Dont use punctuation",
         grouped_task="Write out the fruit in alphabetical order. Only write the names separated by a space",
-        generative_provider=GenerativeProvider.openai(
+        generative_config=GenerativeProvider.openai(
             temperature=0.1,
         ),
     )

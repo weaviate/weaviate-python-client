@@ -29,7 +29,7 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_config: Optional[_GenerativeConfigRuntime] = None,
         query_properties: Optional[List[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
@@ -55,7 +55,7 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
                 The prompt to use for generative query on the entire result set.
             `grouped_properties`
                 The properties to use in the generative query on the entire result set.
-            `generative_provider`
+            `generative_config`
                 The provider-specific options used to customize the generation step of the RAG query. Use the `DynamicRAG` factory to create a suitably object for your use-case.
             `query_properties`
                 The properties to search in. If not specified, all properties are searched.
@@ -115,7 +115,7 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
-                generative_provider=generative_provider,
+                generative_config=generative_config,
             ),
         )
         return self._result_to_generative_return(

@@ -360,7 +360,7 @@ class _GenerativeGoogle(_GenerativeConfigRuntime):
 
 
 class GenerativeProvider:
-    """Use this factory class to create the correct object for the `generative_provider` argument in the search methods of the `.generate` namespace.
+    """Use this factory class to create the correct object for the `generative_config` argument in the search methods of the `.generate` namespace.
 
     Each staticmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
     will ensure that any mis-specifications will be caught before the request is sent to Weaviate.

@@ -198,23 +198,23 @@ class _Generative:
     single: Optional[str]
     grouped: Optional[str]
     grouped_properties: Optional[List[str]]
-    generative_provider: Optional[_GenerativeConfigRuntime]
+    generative_config: Optional[_GenerativeConfigRuntime]
 
     def __init__(
         self,
         single: Optional[str],
         grouped: Optional[str],
         grouped_properties: Optional[List[str]],
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_config: Optional[_GenerativeConfigRuntime] = None,
     ) -> None:
         self.single = single
         self.grouped = grouped
         self.grouped_properties = grouped_properties
-        self.generative_provider = generative_provider
+        self.generative_config = generative_config
 
     def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
         if server_version.is_lower_than(1, 27, 0):
-            if self.generative_provider is not None:
+            if self.generative_config is not None:
                 raise WeaviateInvalidInputError(
                     "Dynamic RAG is not supported in this Weaviate version. Please upgrade your server to >=1.27.0"
                 )
@@ -229,8 +229,8 @@ class _Generative:
                     generative_pb2.GenerativeSearch.Single(
                         prompt=self.single,
                         queries=(
-                            [self.generative_provider.to_grpc()]
-                            if self.generative_provider is not None
+                            [self.generative_config.to_grpc()]
+                            if self.generative_config is not None
                             else None
                         ),
                     )
@@ -246,8 +246,8 @@ class _Generative:
                             else None
                         ),
                         queries=(
-                            [self.generative_provider.to_grpc()]
-                            if self.generative_provider is not None
+                            [self.generative_config.to_grpc()]
+                            if self.generative_config is not None
                             else None
                         ),
                     )

@@ -33,7 +33,7 @@ class _NearTextGenerateAsync(Generic[Properties, References], _Base[Properties, 
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_config: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
@@ -66,7 +66,7 @@ class _NearTextGenerateAsync(Generic[Properties, References], _Base[Properties, 
                 The prompt to use for generative query on the entire result set.
             `grouped_properties`
                 The properties to use in the generative query on the entire result set.
-            `generative_provider`
+            `generative_config`
                 The provider-specific options used to customize the generation step of the RAG query. Use the `DynamicRAG` factory to create a suitably object for your use-case.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
@@ -125,7 +125,7 @@ class _NearTextGenerateAsync(Generic[Properties, References], _Base[Properties, 
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
-                generative_provider=generative_provider,
+                generative_config=generative_config,
             ),
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),

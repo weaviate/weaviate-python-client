@@ -27,7 +27,7 @@ class _FetchObjectsByIDsGenerateAsync(
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime] = None,
+        generative_config: Optional[_GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -57,7 +57,7 @@ class _FetchObjectsByIDsGenerateAsync(
                     single=single_prompt,
                     grouped=grouped_task,
                     grouped_properties=grouped_properties,
-                    generative_provider=generative_provider,
+                    generative_config=generative_config,
                 ),
             )
         return self._result_to_generative_query_return(
