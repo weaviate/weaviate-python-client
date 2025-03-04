@@ -67,7 +67,7 @@ class _NearTextGenerateAsync(Generic[Properties, References], _Base[Properties, 
             `grouped_properties`
                 The properties to use in the generative query on the entire result set.
             `generative_provider`
-                The provider-specific options used to customize the generation step of the RAG query. Use the `DynamicRAG` factory to create a suitably object for your use-case.
+                The provider and provier-specific options for the generation step. Use the `GenerativeProvider` factory to create a suitable object for your use-case.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
