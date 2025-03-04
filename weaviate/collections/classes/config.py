@@ -171,6 +171,8 @@ class GenerativeSearches(str, BaseEnum):
             Weaviate module backed by Cohere generative models.
         `DATABRICKS`
             Weaviate module backed by Databricks generative models.
+        `DUMMY`
+            A fake module that does nothing. Used for testing and debugging purposes.
         `FRIENDLIAI`
             Weaviate module backed by FriendliAI generative models.
         `MISTRAL`
@@ -190,6 +192,7 @@ class GenerativeSearches(str, BaseEnum):
     ANYSCALE = "generative-anyscale"
     COHERE = "generative-cohere"
     DATABRICKS = "generative-databricks"
+    DUMMY = "generative-dummy"
     FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
     NVIDIA = "generative-nvidia"

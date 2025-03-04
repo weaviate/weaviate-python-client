@@ -16,6 +16,7 @@ from weaviate.proto.v1.generative_pb2 import (
     GenerativeAWS,
     GenerativeCohere,
     GenerativeDatabricks,
+    GenerativeDummy,
     GenerativeFriendliAI,
     GenerativeGoogle,
     GenerativeMistral,
@@ -182,6 +183,15 @@ class _GenerativeDatabricks(_GenerativeProviderDynamic):
                 top_p=self.top_p,
             )
         )
+
+
+class _GenerativeDummy(_GenerativeProviderDynamic):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.DUMMY, frozen=True, exclude=True
+    )
+
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(dummy=GenerativeDummy())
 
 
 class _GenerativeFriendliai(_GenerativeProviderDynamic):
@@ -594,6 +604,11 @@ class GenerativeProvider:
             top_log_probs=top_log_probs,
             top_p=top_p,
         )
+
+    @staticmethod
+    def dummy() -> _GenerativeProviderDynamic:
+        """Create a `_GenerativeDummy` object for use when performing AI generation using the `generative-dummy` module."""
+        return _GenerativeDummy()
 
     @staticmethod
     def friendliai(

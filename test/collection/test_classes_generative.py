@@ -18,6 +18,7 @@ from weaviate.proto.v1.generative_pb2 import (
     GenerativeAWS,
     GenerativeCohere,
     GenerativeDatabricks,
+    GenerativeDummy,
     GenerativeFriendliAI,
     GenerativeGoogle,
     GenerativeMistral,
@@ -190,6 +191,10 @@ def test_generative_provider_images_parsing(
                     top_p=0.9,
                 )
             ),
+        ),
+        (
+            GenerativeProvider.dummy().to_grpc(),
+            GenerativeProviderGRPC(dummy=GenerativeDummy()),
         ),
         (
             GenerativeProvider.friendliai(
