@@ -679,6 +679,14 @@ def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection
             res = query()
     else:
         res = query()
+        # deprecated usage
         assert res.generated == "bananas melons"
         assert res.objects[0].generated is not None
         assert res.objects[1].generated is not None
+
+        assert res.generative is not None
+        assert res.generative.text == "bananas melons"
+        assert res.objects[0].generative is not None
+        assert res.objects[0].generative.text is not None
+        assert res.objects[1].generative is not None
+        assert res.objects[1].generative.text is not None

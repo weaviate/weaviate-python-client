@@ -15,6 +15,7 @@ from typing import (
     Union,
     cast,
 )
+from typing_extensions import deprecated
 
 from typing_extensions import TypeAlias
 
@@ -125,19 +126,98 @@ class GroupByObject(Generic[P, R], _Object[P, R, GroupByMetadataReturn]):
     belongs_to_group: str
 
 
+GenerativeMetadata = Union[
+    generative_pb2.GenerativeAnthropicMetadata,
+    generative_pb2.GenerativeAnyscaleMetadata,
+    generative_pb2.GenerativeAWSMetadata,
+    generative_pb2.GenerativeCohereMetadata,
+    generative_pb2.GenerativeDatabricksMetadata,
+    generative_pb2.GenerativeDummyMetadata,
+    generative_pb2.GenerativeFriendliAIMetadata,
+    generative_pb2.GenerativeGoogleMetadata,
+    generative_pb2.GenerativeMistralMetadata,
+    generative_pb2.GenerativeNvidiaMetadata,
+    generative_pb2.GenerativeOllamaMetadata,
+    generative_pb2.GenerativeOpenAIMetadata,
+]
+
+
 @dataclass
+class GenerativeSingle:
+    """The generative data returned relevant to a single prompt generative query."""
+
+    debug: Optional[generative_pb2.GenerativeDebug]
+    metadata: Optional[GenerativeMetadata]
+    text: Optional[str]
+
+
+@dataclass
+class GenerativeGrouped:
+    """The generative data returned relevant to a grouped prompt generative query."""
+
+    metadata: Optional[GenerativeMetadata]
+    text: Optional[str]
+
+
 class GenerativeObject(Generic[P, R], Object[P, R]):
     """A single Weaviate object returned by a query within the `generate` namespace of a collection."""
 
-    generated: Optional[str]
+    __generated: Optional[str]
+    generative: Optional[GenerativeSingle]
+
+    # init required because of nuances of dataclass when defining @property generated and private var __generated
+    def __init__(
+        self,
+        generated: Optional[str],
+        generative: Optional[GenerativeSingle],
+        uuid: uuid_package.UUID,
+        metadata: MetadataReturn,
+        properties: P,
+        references: R,
+        vector: Dict[str, Union[List[float], List[List[float]]]],
+        collection: str,
+    ) -> None:
+        self.__generated = generated
+        self.generative = generative
+        super().__init__(
+            uuid=uuid,
+            metadata=metadata,
+            properties=properties,
+            references=references,
+            vector=vector,
+            collection=collection,
+        )
+
+    @property
+    @deprecated("The generated field is deprecated. Use generative.text instead.")
+    def generated(self) -> Optional[str]:
+        """The single generated text of the object."""
+        return self.__generated
 
 
-@dataclass
 class GenerativeReturn(Generic[P, R]):
     """The return type of a query within the `generate` namespace of a collection."""
 
+    __generated: Optional[str]
     objects: List[GenerativeObject[P, R]]
-    generated: Optional[str]
+    generative: Optional[GenerativeGrouped]
+
+    # init required because of nuances of dataclass when defining @property generated and private var __generated
+    def __init__(
+        self,
+        generated: Optional[str],
+        objects: List[GenerativeObject[P, R]],
+        generative: Optional[GenerativeGrouped],
+    ) -> None:
+        self.__generated = generated
+        self.objects = objects
+        self.generative = generative
+
+    @property
+    @deprecated("The generated field is deprecated. Use generative.text instead.")
+    def generated(self) -> Optional[str]:
+        """The grouped generated text of the objects."""
+        return self.__generated
 
 
 @dataclass
@@ -206,11 +286,15 @@ class _Generative:
         grouped: Optional[str],
         grouped_properties: Optional[List[str]],
         generative_provider: Optional[_GenerativeProviderDynamic] = None,
+        return_metadata: bool = False,
+        debug: bool = False,
     ) -> None:
         self.single = single
         self.grouped = grouped
         self.grouped_properties = grouped_properties
         self.generative_provider = generative_provider
+        self.return_metadata = return_metadata
+        self.debug = debug
 
     def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
         if server_version.is_lower_than(1, 30, 0):
@@ -229,10 +313,11 @@ class _Generative:
                     generative_pb2.GenerativeSearch.Single(
                         prompt=self.single,
                         queries=(
-                            [self.generative_provider.to_grpc()]
+                            [self.generative_provider.to_grpc(self.return_metadata)]
                             if self.generative_provider is not None
                             else None
                         ),
+                        debug=self.debug,
                     )
                     if self.single is not None
                     else None
@@ -246,7 +331,7 @@ class _Generative:
                             else None
                         ),
                         queries=(
-                            [self.generative_provider.to_grpc()]
+                            [self.generative_provider.to_grpc(self.return_metadata)]
                             if self.generative_provider is not None
                             else None
                         ),

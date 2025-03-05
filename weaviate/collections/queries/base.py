@@ -25,6 +25,9 @@ from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
     GenerativeReturn,
     GenerativeGroupByReturn,
+    GenerativeSingle,
+    GenerativeGrouped,
+    GenerativeMetadata,
     GroupByReturn,
     GroupByReturnType,
     Group,
@@ -182,7 +185,61 @@ class _Base(Generic[Properties, References]):
             res.generative_grouped_result != ""
         ):  # for BC, is deprecated in favour of generative_grouped_results
             return res.generative_grouped_result
-        return self.__extract_generated_from_generative(res.generative_grouped_results)
+        if len(res.generative_grouped_results.values) > 0:
+            return res.generative_grouped_results.values[0].result
+        return None
+
+    def __extract_generative_metadata(
+        self, metadata: generative_pb2.GenerativeMetadata
+    ) -> Optional[GenerativeMetadata]:
+        if metadata.HasField("anthropic"):
+            return metadata.anthropic
+        if metadata.HasField("anyscale"):
+            return metadata.anyscale
+        if metadata.HasField("aws"):
+            return metadata.aws
+        if metadata.HasField("cohere"):
+            return metadata.cohere
+        if metadata.HasField("databricks"):
+            return metadata.databricks
+        if metadata.HasField("dummy"):
+            return metadata.dummy
+        if metadata.HasField("friendliai"):
+            return metadata.friendliai
+        if metadata.HasField("google"):
+            return metadata.google
+        if metadata.HasField("mistral"):
+            return metadata.mistral
+        if metadata.HasField("nvidia"):
+            return metadata.nvidia
+        if metadata.HasField("ollama"):
+            return metadata.ollama
+        if metadata.HasField("openai"):
+            return metadata.openai
+        return None
+
+    def __extract_generative_single_from_generative(
+        self, result: generative_pb2.GenerativeResult
+    ) -> Optional[GenerativeSingle]:
+        if len(vs := result.values) > 0:
+            generative = vs[0]
+            return GenerativeSingle(
+                debug=generative.debug,
+                metadata=self.__extract_generative_metadata(generative.metadata),
+                text=generative.result,
+            )
+        return None
+
+    def __extract_generative_grouped_from_generative(
+        self, result: generative_pb2.GenerativeResult
+    ) -> Optional[GenerativeGrouped]:
+        if len(vs := result.values) > 0:
+            generative = vs[0]
+            return GenerativeGrouped(
+                metadata=self.__extract_generative_metadata(generative.metadata),
+                text=generative.result,
+            )
+        return None
 
     def __deserialize_list_value_prop_125(
         self, value: properties_pb2.ListValue
@@ -344,6 +401,7 @@ class _Base(Generic[Properties, References]):
                 if self.__uses_127_api
                 else self.__extract_generated_from_metadata(meta)
             ),
+            generative=self.__extract_generative_single_from_generative(gen),
         )
 
     def __result_to_group(
@@ -452,13 +510,16 @@ class _Base(Generic[Properties, References]):
         GenerativeReturn[TProperties, TReferences],
     ]:
         return GenerativeReturn(
+            generated=self.__extract_generated_from_reply(res),
             objects=[
                 self.__result_to_generative_object(
                     obj.properties, obj.metadata, obj.generative, options
                 )
                 for obj in res.results
             ],
-            generated=self.__extract_generated_from_reply(res),
+            generative=self.__extract_generative_grouped_from_generative(
+                res.generative_grouped_results
+            ),
         )
 
     def _result_to_generative_return(
