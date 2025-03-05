@@ -83,8 +83,9 @@ def test_generative_provider_images_parsing(
                 top_p=0.9,
                 grouped_task_images=[LOGO_ENCODED],
                 grouped_task_image_properties=["image"],
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 anthropic=GenerativeAnthropic(
                     base_url="http://localhost:8080/",
                     model="text-to-image",
@@ -95,7 +96,7 @@ def test_generative_provider_images_parsing(
                     top_p=0.9,
                     images=TextArray(values=[LOGO_ENCODED]),
                     image_properties=TextArray(values=["image"]),
-                )
+                ),
             ),
         ),
         (
@@ -103,13 +104,14 @@ def test_generative_provider_images_parsing(
                 base_url="http://localhost:8080",
                 model="text-to-image",
                 temperature=0.5,
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 anyscale=GenerativeAnyscale(
                     base_url="http://localhost:8080/",
                     model="text-to-image",
                     temperature=0.5,
-                )
+                ),
             ),
         ),
         (
@@ -123,8 +125,9 @@ def test_generative_provider_images_parsing(
                 temperature=0.5,
                 grouped_task_images=[LOGO_ENCODED],
                 grouped_task_image_properties=["image"],
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 aws=GenerativeAWS(
                     endpoint="http://localhost:8080/",
                     model="text-to-image",
@@ -135,7 +138,7 @@ def test_generative_provider_images_parsing(
                     temperature=0.5,
                     images=TextArray(values=[LOGO_ENCODED]),
                     image_properties=TextArray(values=["image"]),
-                )
+                ),
             ),
         ),
         (
@@ -148,8 +151,9 @@ def test_generative_provider_images_parsing(
                 presence_penalty=0.5,
                 stop_sequences=["\n"],
                 temperature=0.5,
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 cohere=GenerativeCohere(
                     base_url="http://localhost:8080/",
                     k=5,
@@ -159,7 +163,7 @@ def test_generative_provider_images_parsing(
                     presence_penalty=0.5,
                     stop_sequences=TextArray(values=["\n"]),
                     temperature=0.5,
-                )
+                ),
             ),
         ),
         (
@@ -175,8 +179,9 @@ def test_generative_provider_images_parsing(
                 temperature=0.5,
                 top_log_probs=5,
                 top_p=0.9,
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 databricks=GenerativeDatabricks(
                     endpoint="http://localhost:8080/",
                     frequency_penalty=0.5,
@@ -189,12 +194,12 @@ def test_generative_provider_images_parsing(
                     temperature=0.5,
                     top_log_probs=5,
                     top_p=0.9,
-                )
+                ),
             ),
         ),
         (
-            GenerativeProvider.dummy().to_grpc(),
-            GenerativeProviderGRPC(dummy=GenerativeDummy()),
+            GenerativeProvider.dummy().to_grpc(True),
+            GenerativeProviderGRPC(return_metadata=True, dummy=GenerativeDummy()),
         ),
         (
             GenerativeProvider.friendliai(
@@ -204,8 +209,9 @@ def test_generative_provider_images_parsing(
                 n=5,
                 temperature=0.5,
                 top_p=0.9,
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 friendliai=GenerativeFriendliAI(
                     base_url="http://localhost:8080/",
                     max_tokens=100,
@@ -213,7 +219,7 @@ def test_generative_provider_images_parsing(
                     n=5,
                     temperature=0.5,
                     top_p=0.9,
-                )
+                ),
             ),
         ),
         (
@@ -232,8 +238,9 @@ def test_generative_provider_images_parsing(
                 top_p=0.9,
                 grouped_task_images=[LOGO_ENCODED],
                 grouped_task_image_properties=["image"],
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 google=GenerativeGoogle(
                     api_endpoint="localhost:8080/",
                     endpoint_id="12345678901234567890123456789012",
@@ -249,7 +256,7 @@ def test_generative_provider_images_parsing(
                     top_p=0.9,
                     images=TextArray(values=[LOGO_ENCODED]),
                     image_properties=TextArray(values=["image"]),
-                )
+                ),
             ),
         ),
         (
@@ -259,15 +266,16 @@ def test_generative_provider_images_parsing(
                 model="text-to-image",
                 temperature=0.5,
                 top_p=0.9,
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 mistral=GenerativeMistral(
                     base_url="http://localhost:8080/",
                     max_tokens=100,
                     model="text-to-image",
                     temperature=0.5,
                     top_p=0.9,
-                )
+                ),
             ),
         ),
         (
@@ -277,15 +285,16 @@ def test_generative_provider_images_parsing(
                 model="text-to-image",
                 temperature=0.5,
                 top_p=0.9,
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 nvidia=GenerativeNvidia(
                     base_url="http://localhost:8080/",
                     max_tokens=100,
                     model="text-to-image",
                     temperature=0.5,
                     top_p=0.9,
-                )
+                ),
             ),
         ),
         (
@@ -295,15 +304,16 @@ def test_generative_provider_images_parsing(
                 temperature=0.5,
                 grouped_task_images=[LOGO_ENCODED],
                 grouped_task_image_properties=["image"],
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 ollama=GenerativeOllama(
                     api_endpoint="http://localhost:8080/",
                     model="text-to-image",
                     temperature=0.5,
                     images=TextArray(values=[LOGO_ENCODED]),
                     image_properties=TextArray(values=["image"]),
-                )
+                ),
             ),
         ),
         (
@@ -321,8 +331,9 @@ def test_generative_provider_images_parsing(
                 top_p=50,
                 grouped_task_images=[LOGO_ENCODED],
                 grouped_task_image_properties=["image"],
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 openai=GenerativeOpenAI(
                     api_version="2020-05-03",
                     base_url="http://localhost:8080/",
@@ -338,7 +349,7 @@ def test_generative_provider_images_parsing(
                     images=TextArray(values=[LOGO_ENCODED]),
                     image_properties=TextArray(values=["image"]),
                     is_azure=False,
-                )
+                ),
             ),
         ),
         (
@@ -356,8 +367,9 @@ def test_generative_provider_images_parsing(
                 top_p=50,
                 grouped_task_images=[LOGO_ENCODED],
                 grouped_task_image_properties=["image"],
-            ).to_grpc(),
+            ).to_grpc(True),
             GenerativeProviderGRPC(
+                return_metadata=True,
                 openai=GenerativeOpenAI(
                     api_version="2020-05-03",
                     base_url="http://localhost:8080/",
@@ -373,7 +385,7 @@ def test_generative_provider_images_parsing(
                     images=TextArray(values=[LOGO_ENCODED]),
                     image_properties=TextArray(values=["image"]),
                     is_azure=True,
-                )
+                ),
             ),
         ),
     ],
