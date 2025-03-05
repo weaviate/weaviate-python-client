@@ -198,10 +198,6 @@ def log_grpc_event(method_name: str, request: Any, response: Any) -> None:
         logger.debug("====================================================")
 
 
-T = TypeVar("T")
-S = TypeVar("S")
-
-
 class GrpcLoggingInterceptor(
     grpc.aio.UnaryUnaryClientInterceptor,
     grpc.aio.UnaryStreamClientInterceptor,
