@@ -1,8 +1,12 @@
-from typing import Generic, List, Optional
+from typing import Generic, List, Optional, Union
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.classes.generative import _GenerativeProviderDynamic
+from weaviate.collections.classes.generative import (
+    _GenerativeProviderDynamic,
+    _GroupedTask,
+    _SinglePrompt,
+)
 from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
     GenerativeReturnType,
@@ -20,8 +24,8 @@ class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properti
     async def fetch_objects(
         self,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
         generative_provider: Optional[_GenerativeProviderDynamic] = None,
         limit: Optional[int] = None,

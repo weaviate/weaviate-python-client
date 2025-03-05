@@ -24,7 +24,12 @@ if sys.version_info < (3, 9):
 else:
     from typing import Annotated, get_type_hints, get_origin, get_args
 
-from weaviate.collections.classes.generative import _GenerativeProviderDynamic
+from weaviate.collections.classes.generative import (
+    _GenerativeProviderDynamic,
+    _GroupedTask,
+    _SinglePrompt,
+    _to_text_array,
+)
 from weaviate.collections.classes.grpc import (
     QueryNested,
     _QueryReference,
@@ -52,7 +57,7 @@ from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _to_beacons, _ServerVersion
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
 
-from weaviate.proto.v1 import base_pb2, search_get_pb2, generative_pb2
+from weaviate.proto.v1 import search_get_pb2, generative_pb2
 
 
 @dataclass
@@ -189,7 +194,9 @@ class GenerativeObject(Generic[P, R], Object[P, R]):
         )
 
     @property
-    @deprecated("The generated field is deprecated. Use generative.text instead.")
+    @deprecated(
+        "The generated field is deprecated. Use generative.text instead.", category=None
+    )  # todo: turn into a runtime warning in the future
     def generated(self) -> Optional[str]:
         """The single generated text of the object."""
         return self.__generated
@@ -214,7 +221,9 @@ class GenerativeReturn(Generic[P, R]):
         self.generative = generative
 
     @property
-    @deprecated("The generated field is deprecated. Use generative.text instead.")
+    @deprecated(
+        "The generated field is deprecated. Use generative.text instead.", category=None
+    )  # todo: turn into a runtime warning in the future
     def generated(self) -> Optional[str]:
         """The grouped generated text of the objects."""
         return self.__generated
@@ -275,70 +284,109 @@ class _RawGQLReturn:
 
 
 class _Generative:
-    single: Optional[str]
-    grouped: Optional[str]
+    single: Union[str, _SinglePrompt, None]
+    grouped: Union[str, _GroupedTask, None]
     grouped_properties: Optional[List[str]]
     generative_provider: Optional[_GenerativeProviderDynamic]
 
     def __init__(
         self,
-        single: Optional[str],
-        grouped: Optional[str],
+        single: Union[str, _SinglePrompt, None],
+        grouped: Union[str, _GroupedTask, None],
         grouped_properties: Optional[List[str]],
         generative_provider: Optional[_GenerativeProviderDynamic] = None,
-        return_metadata: bool = False,
-        debug: bool = False,
     ) -> None:
         self.single = single
         self.grouped = grouped
         self.grouped_properties = grouped_properties
         self.generative_provider = generative_provider
-        self.return_metadata = return_metadata
-        self.debug = debug
 
     def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
-        if server_version.is_lower_than(1, 30, 0):
+        if server_version.is_lower_than(1, 27, 14):
             if self.generative_provider is not None:
                 raise WeaviateInvalidInputError(
-                    "Dynamic RAG is not supported in this Weaviate version. Please upgrade your server to >=1.27.0"
+                    "Dynamic RAG is not supported in this Weaviate version. Please upgrade your server to >=1.30.0"
                 )
+
+            if isinstance(self.single, _SinglePrompt):
+                single_prompt: Optional[str] = self.single.prompt
+            else:
+                single_prompt = self.single
+
+            if isinstance(self.grouped, _GroupedTask):
+                grouped_task: Optional[str] = self.grouped.prompt
+                grouped_properties = self.grouped.non_blob_properties
+            else:
+                grouped_task = self.grouped
+                grouped_properties = self.grouped_properties
+
             return generative_pb2.GenerativeSearch(
-                single_response_prompt=self.single,
-                grouped_response_task=self.grouped,
-                grouped_properties=self.grouped_properties,
+                single_response_prompt=single_prompt,
+                grouped_response_task=grouped_task,
+                grouped_properties=grouped_properties,
             )
         else:
+            if server_version.is_lower_than(1, 30, 0) and self.generative_provider is not None:
+                raise WeaviateInvalidInputError(
+                    "Dynamic RAG is not supported in this Weaviate version. Please upgrade your server to >=1.30.0"
+                )
+
+            single: Optional[generative_pb2.GenerativeSearch.Single] = None
+            if isinstance(self.single, _SinglePrompt):
+                single = generative_pb2.GenerativeSearch.Single(
+                    prompt=self.single.prompt,
+                    queries=(
+                        [
+                            self.generative_provider.with_options(
+                                self.single.metadata,
+                                self.single.images,
+                                self.single.image_properties,
+                            ).to_grpc()
+                        ]
+                        if self.generative_provider is not None
+                        else None
+                    ),
+                    debug=(self.single.debug),
+                )
+            if isinstance(self.single, str):
+                single = generative_pb2.GenerativeSearch.Single(
+                    prompt=self.single,
+                    queries=(
+                        [self.generative_provider.to_grpc()]
+                        if self.generative_provider is not None
+                        else None
+                    ),
+                )
+
+            grouped: Optional[generative_pb2.GenerativeSearch.Grouped] = None
+            if isinstance(self.grouped, _GroupedTask):
+                grouped = generative_pb2.GenerativeSearch.Grouped(
+                    task=self.grouped.prompt,
+                    properties=_to_text_array(self.grouped.non_blob_properties),
+                    queries=(
+                        [self.generative_provider.with_options(self.grouped.metadata).to_grpc()]
+                        if self.generative_provider is not None
+                        else None
+                    ),
+                )
+            if isinstance(self.grouped, str):
+                grouped = generative_pb2.GenerativeSearch.Grouped(
+                    task=self.grouped,
+                    properties=(
+                        _to_text_array(self.grouped_properties)
+                        if self.grouped_properties is not None
+                        else None
+                    ),
+                    queries=(
+                        [self.generative_provider.to_grpc()]
+                        if self.generative_provider is not None
+                        else None
+                    ),
+                )
+
             return generative_pb2.GenerativeSearch(
-                single=(
-                    generative_pb2.GenerativeSearch.Single(
-                        prompt=self.single,
-                        queries=(
-                            [self.generative_provider.to_grpc(self.return_metadata)]
-                            if self.generative_provider is not None
-                            else None
-                        ),
-                        debug=self.debug,
-                    )
-                    if self.single is not None
-                    else None
-                ),
-                grouped=(
-                    generative_pb2.GenerativeSearch.Grouped(
-                        task=self.grouped,
-                        properties=(
-                            base_pb2.TextArray(values=self.grouped_properties)
-                            if self.grouped_properties is not None
-                            else None
-                        ),
-                        queries=(
-                            [self.generative_provider.to_grpc(self.return_metadata)]
-                            if self.generative_provider is not None
-                            else None
-                        ),
-                    )
-                    if self.grouped is not None
-                    else None
-                ),
+                single=single,
+                grouped=grouped,
             )
 
 

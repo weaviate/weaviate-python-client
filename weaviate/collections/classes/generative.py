@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import List, Optional, Union
 
 from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
@@ -24,22 +25,41 @@ from weaviate.proto.v1.generative_pb2 import (
     GenerativeOllama,
     GenerativeOpenAI,
     GenerativeProvider as GenerativeProviderGRPC,
+    GenerativeSearch,
 )
-from weaviate.types import BLOB_INPUT
-from weaviate.util import parse_blob
+
+
+def _parse_anyhttpurl(url: Optional[AnyHttpUrl]) -> Optional[str]:
+    return str(url) if url is not None else None
+
+
+def _to_text_array(values: Optional[Iterable[str]]) -> Optional[TextArray]:
+    return TextArray(values=values) if values is not None else None
 
 
 class _GenerativeProviderDynamic(BaseModel):
     generative: Union[GenerativeSearches, _EnumLikeStr]
+    opts: "Options" = Field(default_factory=lambda: _GenerativeProviderDynamic.Options())
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    @dataclass
+    class Options:
+        return_metadata: bool = False
+        images: Optional[Iterable[str]] = None
+        image_properties: Optional[List[str]] = None
+
+    def with_options(
+        self,
+        return_metadata: bool,
+        images: Optional[Iterable[str]] = None,
+        image_properties: Optional[List[str]] = None,
+    ) -> "_GenerativeProviderDynamic":
+        self.opts = self.Options(
+            return_metadata=return_metadata, images=images, image_properties=image_properties
+        )
+        return self
+
+    def to_grpc(self) -> GenerativeProviderGRPC:
         raise NotImplementedError("This method must be implemented in the child class")
-
-    def _parse_anyhttpurl(self, url: Optional[AnyHttpUrl]) -> Optional[str]:
-        return str(url) if url is not None else None
-
-    def _to_text_array(self, values: Optional[Iterable[str]]) -> Optional[TextArray]:
-        return TextArray(values=values) if values is not None else None
 
 
 GenerativeProviderDynamic = _GenerativeProviderDynamic
@@ -56,22 +76,20 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
     top_k: Optional[int]
     top_p: Optional[float]
     stop_sequences: Optional[List[str]]
-    images: Optional[Iterable[str]]
-    image_properties: Optional[List[str]]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             anthropic=GenerativeAnthropic(
-                base_url=self._parse_anyhttpurl(self.base_url),
+                base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
                 model=self.model,
                 temperature=self.temperature,
                 top_k=self.top_k,
                 top_p=self.top_p,
-                stop_sequences=self._to_text_array(self.stop_sequences),
-                images=self._to_text_array(self.images),
-                image_properties=self._to_text_array(self.image_properties),
+                stop_sequences=_to_text_array(self.stop_sequences),
+                images=_to_text_array(self.opts.images),
+                image_properties=_to_text_array(self.opts.image_properties),
             ),
         )
 
@@ -84,11 +102,11 @@ class _GenerativeAnyscale(_GenerativeProviderDynamic):
     model: Optional[str]
     temperature: Optional[float]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             anyscale=GenerativeAnyscale(
-                base_url=self._parse_anyhttpurl(self.base_url),
+                base_url=_parse_anyhttpurl(self.base_url),
                 model=self.model,
                 temperature=self.temperature,
             ),
@@ -106,22 +124,20 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
     target_model: Optional[str]
     target_variant: Optional[str]
     temperature: Optional[float]
-    images: Optional[Iterable[str]]
-    image_properties: Optional[List[str]]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             aws=GenerativeAWS(
                 model=self.model,
                 region=self.region,
-                endpoint=self._parse_anyhttpurl(self.endpoint),
+                endpoint=_parse_anyhttpurl(self.endpoint),
                 service=self.service,
                 target_model=self.target_model,
                 target_variant=self.target_variant,
                 temperature=self.temperature,
-                images=self._to_text_array(self.images),
-                image_properties=self._to_text_array(self.image_properties),
+                images=_to_text_array(self.opts.images),
+                image_properties=_to_text_array(self.opts.image_properties),
             ),
         )
 
@@ -139,17 +155,17 @@ class _GenerativeCohere(_GenerativeProviderDynamic):
     stop_sequences: Optional[List[str]]
     temperature: Optional[float]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             cohere=GenerativeCohere(
-                base_url=self._parse_anyhttpurl(self.base_url),
+                base_url=_parse_anyhttpurl(self.base_url),
                 k=self.k,
                 max_tokens=self.max_tokens,
                 model=self.model,
                 p=self.p,
                 presence_penalty=self.presence_penalty,
-                stop_sequences=self._to_text_array(self.stop_sequences),
+                stop_sequences=_to_text_array(self.stop_sequences),
                 temperature=self.temperature,
             ),
         )
@@ -171,18 +187,18 @@ class _GenerativeDatabricks(_GenerativeProviderDynamic):
     top_log_probs: Optional[int]
     top_p: Optional[float]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             databricks=GenerativeDatabricks(
-                endpoint=self._parse_anyhttpurl(self.endpoint),
+                endpoint=_parse_anyhttpurl(self.endpoint),
                 frequency_penalty=self.frequency_penalty,
                 log_probs=self.log_probs or False,
                 max_tokens=self.max_tokens,
                 model=self.model,
                 n=self.n,
                 presence_penalty=self.presence_penalty,
-                stop=self._to_text_array(self.stop),
+                stop=_to_text_array(self.stop),
                 temperature=self.temperature,
                 top_log_probs=self.top_log_probs,
                 top_p=self.top_p,
@@ -195,8 +211,10 @@ class _GenerativeDummy(_GenerativeProviderDynamic):
         default=GenerativeSearches.DUMMY, frozen=True, exclude=True
     )
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
-        return GenerativeProviderGRPC(return_metadata=return_metadata, dummy=GenerativeDummy())
+    def to_grpc(self) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
+            return_metadata=self.opts.return_metadata, dummy=GenerativeDummy()
+        )
 
 
 class _GenerativeFriendliai(_GenerativeProviderDynamic):
@@ -210,11 +228,11 @@ class _GenerativeFriendliai(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             friendliai=GenerativeFriendliAI(
-                base_url=self._parse_anyhttpurl(self.base_url),
+                base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
                 model=self.model,
                 n=self.n,
@@ -234,11 +252,11 @@ class _GenerativeMistral(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             mistral=GenerativeMistral(
-                base_url=self._parse_anyhttpurl(self.base_url),
+                base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
                 model=self.model,
                 temperature=self.temperature,
@@ -257,11 +275,11 @@ class _GenerativeNvidia(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             nvidia=GenerativeNvidia(
-                base_url=self._parse_anyhttpurl(self.base_url),
+                base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
                 model=self.model,
                 temperature=self.temperature,
@@ -277,18 +295,16 @@ class _GenerativeOllama(_GenerativeProviderDynamic):
     api_endpoint: Optional[AnyHttpUrl]
     model: Optional[str]
     temperature: Optional[float]
-    images: Optional[Iterable[str]]
-    image_properties: Optional[List[str]]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             ollama=GenerativeOllama(
-                api_endpoint=self._parse_anyhttpurl(self.api_endpoint),
+                api_endpoint=_parse_anyhttpurl(self.api_endpoint),
                 model=self.model,
                 temperature=self.temperature,
-                images=self._to_text_array(self.images),
-                image_properties=self._to_text_array(self.image_properties),
+                images=_to_text_array(self.opts.images),
+                image_properties=_to_text_array(self.opts.image_properties),
             ),
         )
 
@@ -309,27 +325,25 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
     stop: Optional[List[str]]
     temperature: Optional[float]
     top_p: Optional[float]
-    images: Optional[Iterable[str]]
-    image_properties: Optional[List[str]]
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             openai=GenerativeOpenAI(
                 api_version=self.api_version,
-                base_url=self._parse_anyhttpurl(self.base_url),
+                base_url=_parse_anyhttpurl(self.base_url),
                 deployment_id=self.deployment_id,
                 frequency_penalty=self.frequency_penalty,
                 max_tokens=self.max_tokens,
                 model=self.model,
                 presence_penalty=self.presence_penalty,
                 resource_name=self.resource_name,
-                stop=self._to_text_array(self.stop),
+                stop=_to_text_array(self.stop),
                 temperature=self.temperature,
                 top_p=self.top_p,
                 is_azure=self.is_azure,
-                images=self._to_text_array(self.images),
-                image_properties=self._to_text_array(self.image_properties),
+                images=_to_text_array(self.opts.images),
+                image_properties=_to_text_array(self.opts.image_properties),
             ),
         )
 
@@ -350,19 +364,17 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_k: Optional[int]
     top_p: Optional[float]
-    images: Optional[Iterable[str]]
-    image_properties: Optional[List[str]]
 
     def _parse_api_endpoint(self, url: Optional[AnyHttpUrl]) -> Optional[str]:
         return (
             u.replace("https://", "").replace("http://", "")
-            if (u := self._parse_anyhttpurl(url)) is not None
+            if (u := _parse_anyhttpurl(url)) is not None
             else None
         )
 
-    def to_grpc(self, return_metadata: bool) -> GenerativeProviderGRPC:
+    def to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=return_metadata,
+            return_metadata=self.opts.return_metadata,
             google=GenerativeGoogle(
                 api_endpoint=self._parse_api_endpoint(self.api_endpoint),
                 endpoint_id=self.endpoint_id,
@@ -372,12 +384,12 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
                 presence_penalty=self.presence_penalty,
                 project_id=self.project_id,
                 region=self.region,
-                stop_sequences=self._to_text_array(self.stop_sequences),
+                stop_sequences=_to_text_array(self.stop_sequences),
                 temperature=self.temperature,
                 top_k=self.top_k,
                 top_p=self.top_p,
-                images=self._to_text_array(self.images),
-                image_properties=self._to_text_array(self.image_properties),
+                images=_to_text_array(self.opts.images),
+                image_properties=_to_text_array(self.opts.image_properties),
             ),
         )
 
@@ -399,8 +411,6 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-        grouped_task_images: Optional[Iterable[str]] = None,
-        grouped_task_image_properties: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """
         Create a `_GenerativeAnthropic` object for use when performing dynamic AI generation using the `generative-anthropic` module.
@@ -418,12 +428,6 @@ class GenerativeProvider:
                 The top K to use. Defaults to `None`, which uses the server-defined default
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
-            `grouped_task_images`
-                Any query-specific external images to use in the generation. Passing a string will assume a path to the image file and, if not found, will be treated as a base64-encoded string.
-                The number of images passed to the prompt will match the length of this field.
-            `grouped_task_image_properties`
-                Any internal image properties to use in the generation sourced from the object's properties returned by the retrieval step.
-                The number of images passed to the prompt will match the value of `limit` in the search query.
         """
         return _GenerativeAnthropic(
             base_url=AnyUrl(base_url) if base_url is not None else None,
@@ -433,12 +437,6 @@ class GenerativeProvider:
             temperature=temperature,
             top_k=top_k,
             top_p=top_p,
-            images=(
-                (parse_blob(image) for image in grouped_task_images)
-                if grouped_task_images is not None
-                else None
-            ),
-            image_properties=grouped_task_image_properties,
         )
 
     @staticmethod
@@ -474,8 +472,6 @@ class GenerativeProvider:
         target_model: Optional[str] = None,
         target_variant: Optional[str] = None,
         temperature: Optional[float] = None,
-        grouped_task_images: Optional[Iterable[BLOB_INPUT]] = None,
-        grouped_task_image_properties: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
 
@@ -494,12 +490,6 @@ class GenerativeProvider:
             TODO: add docs for these new params
             `temperature`
                 The temperature to use. Defaults to `None`, which uses the server-defined default
-            `images`
-                Any query-specific external images to use in the generation. Passing a string will assume a path to the image file and, if not found, will be treated as a base64-encoded string.
-                The number of images passed to the prompt will match the length of this field.
-            `grouped_task_image_properties`
-                Any internal image properties to use in the generation sourced from the object's properties returned by the retrieval step.
-                The number of images passed to the prompt will match the value of `limit` in the search query.
         """
         return _GenerativeAWS(
             model=model,
@@ -509,12 +499,6 @@ class GenerativeProvider:
             target_model=target_model,
             target_variant=target_variant,
             temperature=temperature,
-            images=(
-                (parse_blob(image) for image in grouped_task_images)
-                if grouped_task_images is not None
-                else None
-            ),
-            image_properties=grouped_task_image_properties,
         )
 
     @staticmethod
@@ -672,8 +656,6 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-        grouped_task_images: Optional[Iterable[BLOB_INPUT]] = None,
-        grouped_task_image_properties: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """Create a `_GenerativeGoogle` object for use when performing AI generation using the `generative-google` module.
 
@@ -705,12 +687,6 @@ class GenerativeProvider:
                 The top K to use. Defaults to `None`, which uses the server-defined default
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
-            `images`
-                Any query-specific external images to use in the generation. Passing a string will assume a path to the image file and, if not found, will be treated as a base64-encoded string.
-                The number of images passed to the prompt will match the length of this field.
-            `grouped_task_image_properties`
-                Any internal image properties to use in the generation sourced from the object's properties returned by the retrieval step.
-                The number of images passed to the prompt will match the value of `limit` in the search query.
         """
         return _GenerativeGoogle(
             api_endpoint=AnyUrl(api_endpoint) if api_endpoint is not None else None,
@@ -725,12 +701,6 @@ class GenerativeProvider:
             temperature=temperature,
             top_k=top_k,
             top_p=top_p,
-            images=(
-                (parse_blob(image) for image in grouped_task_images)
-                if grouped_task_images is not None
-                else None
-            ),
-            image_properties=grouped_task_image_properties,
         )
 
     @staticmethod
@@ -801,8 +771,6 @@ class GenerativeProvider:
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
-        grouped_task_images: Optional[Iterable[BLOB_INPUT]] = None,
-        grouped_task_image_properties: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
 
@@ -825,12 +793,6 @@ class GenerativeProvider:
             api_endpoint=AnyUrl(api_endpoint) if api_endpoint is not None else None,
             model=model,
             temperature=temperature,
-            images=(
-                (parse_blob(image) for image in grouped_task_images)
-                if grouped_task_images is not None
-                else None
-            ),
-            image_properties=grouped_task_image_properties,
         )
 
     @staticmethod
@@ -847,8 +809,6 @@ class GenerativeProvider:
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-        grouped_task_images: Optional[Iterable[BLOB_INPUT]] = None,
-        grouped_task_image_properties: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the OpenAI-backed `generative-openai` module.
 
@@ -878,12 +838,6 @@ class GenerativeProvider:
                 The temperature to use. Defaults to `None`, which uses the server-defined default
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
-            `images`
-                Any query-specific external images to use in the generation. Passing a string will assume a path to the image file and, if not found, will be treated as a base64-encoded string.
-                The number of images passed to the prompt will match the length of this field.
-            `grouped_task_image_properties`
-                Any internal image properties to use in the generation sourced from the object's properties returned by the retrieval step.
-                The number of images passed to the prompt will match the value of `limit` in the search query.
 
         """
         return _GenerativeOpenAI(
@@ -899,12 +853,6 @@ class GenerativeProvider:
             temperature=temperature,
             top_p=top_p,
             is_azure=False,
-            images=(
-                (parse_blob(image) for image in grouped_task_images)
-                if grouped_task_images is not None
-                else None
-            ),
-            image_properties=grouped_task_image_properties,
         )
 
     @staticmethod
@@ -921,8 +869,6 @@ class GenerativeProvider:
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-        grouped_task_images: Optional[Iterable[BLOB_INPUT]] = None,
-        grouped_task_image_properties: Optional[List[str]] = None,
     ) -> _GenerativeProviderDynamic:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the Azure-backed `generative-openai` module.
 
@@ -952,12 +898,6 @@ class GenerativeProvider:
                 The temperature to use. Defaults to `None`, which uses the server-defined default
             `top_p`
                 The top P to use. Defaults to `None`, which uses the server-defined default
-            `images`
-                Any query-specific external images to use in the generation. Passing a string will assume a path to the image file and, if not found, will be treated as a base64-encoded string.
-                The number of images passed to the prompt will match the length of this field.
-            `grouped_task_image_properties`
-                Any internal image properties to use in the generation sourced from the object's properties returned by the retrieval step.
-                The number of images passed to the prompt will match the value of `limit` in the search query.
         """
         return _GenerativeOpenAI(
             api_version=api_version,
@@ -972,10 +912,86 @@ class GenerativeProvider:
             temperature=temperature,
             top_p=top_p,
             is_azure=True,
-            images=(
-                (parse_blob(image) for image in grouped_task_images)
-                if grouped_task_images is not None
-                else None
-            ),
-            image_properties=grouped_task_image_properties,
+        )
+
+
+class _GroupedTask(BaseModel):
+    prompt: str
+    non_blob_properties: Optional[List[str]]
+    image_properties: Optional[List[str]]
+    images: Optional[Iterable[str]]
+    metadata: bool = False
+
+    def to_grpc(self, provider: _GenerativeProviderDynamic) -> GenerativeSearch.Grouped:
+        return GenerativeSearch.Grouped(
+            task=self.prompt,
+            properties=_to_text_array(self.non_blob_properties),
+            queries=[
+                provider.with_options(
+                    self.metadata,
+                    self.images,
+                    self.image_properties,
+                ).to_grpc()
+            ],
+        )
+
+
+class _SinglePrompt(BaseModel):
+    prompt: str
+    image_properties: Optional[List[str]]
+    images: Optional[Iterable[str]]
+    metadata: bool = False
+    debug: bool = False
+
+    def to_grpc(self, provider: _GenerativeProviderDynamic) -> GenerativeSearch.Single:
+        return GenerativeSearch.Single(
+            prompt=self.prompt,
+            debug=self.debug,
+            queries=[
+                provider.with_options(self.metadata, self.images, self.image_properties).to_grpc()
+            ],
+        )
+
+
+GroupedTask = _GroupedTask
+SinglePrompt = _SinglePrompt
+
+
+class GenerativePrompt:
+    """Factory class for creating `_GroupedTask` and `_SinglePrompt` objects for use in the `generate` namespace."""
+
+    @staticmethod
+    def grouped(
+        *,
+        prompt: str,
+        non_blob_properties: Optional[List[str]] = None,
+        image_properties: Optional[List[str]] = None,
+        images: Optional[Iterable[str]] = None,
+        metadata: bool = False,
+    ) -> _GroupedTask:
+        """Create a `_GroupedTask` object for use when performing AI generation using the `generate` namespace and the `grouped_task` field."""
+        return _GroupedTask(
+            prompt=prompt,
+            non_blob_properties=non_blob_properties,
+            image_properties=image_properties,
+            images=images,
+            metadata=metadata,
+        )
+
+    @staticmethod
+    def single(
+        *,
+        prompt: str,
+        image_properties: Optional[List[str]] = None,
+        images: Optional[Iterable[str]] = None,
+        metadata: bool = False,
+        debug: bool = False,
+    ) -> _SinglePrompt:
+        """Create a `_SinglePrompt` object for use when performing AI generation using the `generate` namespace and the `single_prompt` field."""
+        return _SinglePrompt(
+            prompt=prompt,
+            image_properties=image_properties,
+            images=images,
+            metadata=metadata,
+            debug=debug,
         )
