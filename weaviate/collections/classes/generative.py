@@ -957,11 +957,11 @@ GroupedTask = _GroupedTask
 SinglePrompt = _SinglePrompt
 
 
-class GenerativePrompt:
+class GenerativeParameters:
     """Factory class for creating `_GroupedTask` and `_SinglePrompt` objects for use in the `generate` namespace."""
 
     @staticmethod
-    def grouped(
+    def grouped_task(
         *,
         prompt: str,
         non_blob_properties: Optional[List[str]] = None,
@@ -979,7 +979,7 @@ class GenerativePrompt:
         )
 
     @staticmethod
-    def single(
+    def single_prompt(
         *,
         prompt: str,
         image_properties: Optional[List[str]] = None,
