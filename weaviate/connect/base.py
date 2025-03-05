@@ -122,20 +122,20 @@ class ConnectionParams(BaseModel):
         # Add environment-based logging interceptor
         from weaviate.logger import GrpcLoggingInterceptor
 
-        interceptors = [GrpcLoggingInterceptor()]
+        interceptors: Sequence[Any] = [GrpcLoggingInterceptor()]
 
         if self.grpc.secure:
             return grpc.aio.secure_channel(
                 target=self._grpc_target,
                 credentials=ssl_channel_credentials(),
                 options=options,
-                interceptors=cast(Sequence[Any], interceptors),
+                interceptors=interceptors,
             )
         else:
             return grpc.aio.insecure_channel(
                 target=self._grpc_target,
                 options=options,
-                interceptors=cast(Sequence[Any], interceptors),
+                interceptors=interceptors,
             )
 
     @property
