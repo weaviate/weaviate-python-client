@@ -357,7 +357,13 @@ class _Generative:
                     task=self.grouped.prompt,
                     properties=_to_text_array(self.grouped.non_blob_properties),
                     queries=(
-                        [self.generative_provider._with_options(self.grouped.metadata)._to_grpc()]
+                        [
+                            self.generative_provider._with_options(
+                                self.grouped.metadata,
+                                self.grouped.images,
+                                self.grouped.image_properties,
+                            )._to_grpc()
+                        ]
                         if self.generative_provider is not None
                         else None
                     ),
