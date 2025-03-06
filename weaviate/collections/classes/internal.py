@@ -342,7 +342,7 @@ class _Generative:
                         if self.generative_provider is not None
                         else None
                     ),
-                    debug=(self.single.debug),
+                    debug=self.single.debug,
                 )
             if isinstance(self.single, str):
                 single = generative_pb2.GenerativeSearch.Single(

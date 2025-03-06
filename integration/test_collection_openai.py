@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Union
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -12,7 +12,12 @@ from weaviate.collections.classes.config import (
     Property,
 )
 from weaviate.collections.classes.data import DataObject
-from weaviate.collections.classes.generative import GenerativeProvider, GenerativeParameters
+from weaviate.collections.classes.generative import (
+    GenerativeProvider,
+    GenerativeParameters,
+    _GroupedTask,
+    _SinglePrompt,
+)
 from weaviate.collections.classes.grpc import GroupBy, Rerank
 from weaviate.exceptions import WeaviateQueryError, WeaviateUnsupportedFeatureError
 from weaviate.proto.v1.generative_pb2 import GenerativeOpenAIMetadata
@@ -644,7 +649,34 @@ def test_queries_with_rerank_and_generative(collection_factory: CollectionFactor
         ].metadata.rerank_score
 
 
-def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection) -> None:
+@pytest.mark.parametrize(
+    "grouped",
+    [
+        "Write out the fruit in alphabetical order. Only write the names separated by a space",
+        GenerativeParameters.grouped_task(
+            prompt="Write out the fruit in alphabetical order. Only write the names separated by a space",
+            metadata=True,
+        ),
+    ],
+    ids=["string", "object"],
+)
+@pytest.mark.parametrize(
+    "single",
+    [
+        "Is there something to eat in {text} of the given object? Only answer yes if there is something to eat and no if not. Dont use punctuation",
+        GenerativeParameters.single_prompt(
+            prompt="Is there something to eat in {text} of the given object? Only answer yes if there is something to eat and no if not. Dont use punctuation",
+            metadata=True,
+            debug=True,
+        ),
+    ],
+    ids=["string", "object"],
+)
+def test_near_text_generate_with_dynamic_rag(
+    openai_collection: OpenAICollection,
+    grouped: Union[str, _GroupedTask],
+    single: Union[str, _SinglePrompt],
+) -> None:
     collection = openai_collection(
         vectorizer_config=Configure.Vectorizer.text2vec_openai(vectorize_collection_name=False),
     )
@@ -668,15 +700,8 @@ def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection
 
     query = lambda: collection.generate.near_text(
         query="small fruit",
-        single_prompt=GenerativeParameters.single_prompt(
-            prompt="Is there something to eat in {text} of the given object? Only answer yes if there is something to eat and no if not. Dont use punctuation",
-            metadata=True,
-            debug=True,
-        ),
-        grouped_task=GenerativeParameters.grouped_task(
-            prompt="Write out the fruit in alphabetical order. Only write the names separated by a space",
-            metadata=True,
-        ),
+        single_prompt=single,
+        grouped_task=grouped,
         generative_provider=GenerativeProvider.openai(
             temperature=0.1,
         ),
@@ -694,17 +719,26 @@ def test_near_text_generate_with_dynamic_rag(openai_collection: OpenAICollection
 
         assert res.generative is not None
         assert res.generative.text == "bananas melons"
-        assert isinstance(res.generative.metadata, GenerativeOpenAIMetadata)
+
+        if isinstance(grouped, _GroupedTask):
+            assert isinstance(res.generative.metadata, GenerativeOpenAIMetadata)
+        else:
+            assert res.generative.metadata is None
 
         g0 = res.objects[0].generative
         g1 = res.objects[1].generative
 
         assert g0 is not None
         assert g0.text is not None
-        assert g0.debug is not None
-        assert isinstance(g0.metadata, GenerativeOpenAIMetadata)
-
         assert g1 is not None
         assert g1.text is not None
-        assert g1.metadata is not None
-        assert isinstance(g1.metadata, GenerativeOpenAIMetadata)
+
+        if isinstance(single, _SinglePrompt):
+            assert g0.debug is not None
+            assert isinstance(g0.metadata, GenerativeOpenAIMetadata)
+            assert g1.debug is not None
+            assert isinstance(g1.metadata, GenerativeOpenAIMetadata)
+        else:
+            assert g0.debug is None
+            assert g0.metadata is None
+            assert g1.metadata is None
