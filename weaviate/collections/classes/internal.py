@@ -333,11 +333,11 @@ class _Generative:
                     prompt=self.single.prompt,
                     queries=(
                         [
-                            self.generative_provider.with_options(
+                            self.generative_provider._with_options(
                                 self.single.metadata,
                                 self.single.images,
                                 self.single.image_properties,
-                            ).to_grpc()
+                            )._to_grpc()
                         ]
                         if self.generative_provider is not None
                         else None
@@ -348,7 +348,7 @@ class _Generative:
                 single = generative_pb2.GenerativeSearch.Single(
                     prompt=self.single,
                     queries=(
-                        [self.generative_provider.to_grpc()]
+                        [self.generative_provider._to_grpc()]
                         if self.generative_provider is not None
                         else None
                     ),
@@ -360,7 +360,7 @@ class _Generative:
                     task=self.grouped.prompt,
                     properties=_to_text_array(self.grouped.non_blob_properties),
                     queries=(
-                        [self.generative_provider.with_options(self.grouped.metadata).to_grpc()]
+                        [self.generative_provider._with_options(self.grouped.metadata)._to_grpc()]
                         if self.generative_provider is not None
                         else None
                     ),
@@ -374,7 +374,7 @@ class _Generative:
                         else None
                     ),
                     queries=(
-                        [self.generative_provider.to_grpc()]
+                        [self.generative_provider._to_grpc()]
                         if self.generative_provider is not None
                         else None
                     ),

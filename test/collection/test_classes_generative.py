@@ -5,11 +5,9 @@ import pytest
 
 from weaviate.collections.classes.generative import (
     GenerativeProvider,
-    _GenerativeAnthropic,
-    _GenerativeAWS,
-    _GenerativeGoogle,
-    _GenerativeOllama,
-    _GenerativeOpenAI,
+    GenerativeParameters,
+    _GroupedTask,
+    _SinglePrompt,
 )
 from weaviate.proto.v1.base_pb2 import TextArray
 from weaviate.proto.v1.generative_pb2 import (
@@ -36,20 +34,14 @@ LOGO_ENCODED = "iVBORw0KGgoAAAANSUhEUgAAAZAAAAE5CAYAAAC+rHbqAAAAGXRFWHRTb2Z0d2Fy
 @pytest.mark.parametrize(
     "provider",
     [
-        lambda image: GenerativeProvider.anthropic(grouped_task_images=[image]),
-        lambda image: GenerativeProvider.aws(grouped_task_images=[image]),
-        lambda image: GenerativeProvider.google(grouped_task_images=[image]),
-        lambda image: GenerativeProvider.ollama(grouped_task_images=[image]),
-        lambda image: GenerativeProvider.openai(grouped_task_images=[image]),
+        lambda image: GenerativeParameters.grouped_task("whatever", images=[image]),
+        lambda image: GenerativeParameters.single_prompt("whatever", images=[image]),
     ],
 )
-def test_generative_provider_images_parsing(
+def test_generative_parameters_images_parsing(
     provider: Union[
-        Callable[[BLOB_INPUT], _GenerativeAnthropic],
-        Callable[[BLOB_INPUT], _GenerativeAWS],
-        Callable[[BLOB_INPUT], _GenerativeGoogle],
-        Callable[[BLOB_INPUT], _GenerativeOllama],
-        Callable[[BLOB_INPUT], _GenerativeOpenAI],
+        Callable[[BLOB_INPUT], _GroupedTask],
+        Callable[[BLOB_INPUT], _SinglePrompt],
     ]
 ) -> None:
     # tests image as a path string
@@ -81,9 +73,13 @@ def test_generative_provider_images_parsing(
                 temperature=0.5,
                 top_k=50,
                 top_p=0.9,
-                grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=["image"],
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+                images=[LOGO_ENCODED],
+                image_properties=["image"],
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 anthropic=GenerativeAnthropic(
@@ -104,7 +100,11 @@ def test_generative_provider_images_parsing(
                 base_url="http://localhost:8080",
                 model="text-to-image",
                 temperature=0.5,
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 anyscale=GenerativeAnyscale(
@@ -123,9 +123,13 @@ def test_generative_provider_images_parsing(
                 target_model="arn:aws:sagemaker:us-west-2:123456789012:model/text-to-image",
                 target_variant="variant-1",
                 temperature=0.5,
-                grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=["image"],
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+                images=[LOGO_ENCODED],
+                image_properties=["image"],
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 aws=GenerativeAWS(
@@ -151,7 +155,11 @@ def test_generative_provider_images_parsing(
                 presence_penalty=0.5,
                 stop_sequences=["\n"],
                 temperature=0.5,
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 cohere=GenerativeCohere(
@@ -179,7 +187,11 @@ def test_generative_provider_images_parsing(
                 temperature=0.5,
                 top_log_probs=5,
                 top_p=0.9,
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 databricks=GenerativeDatabricks(
@@ -198,7 +210,11 @@ def test_generative_provider_images_parsing(
             ),
         ),
         (
-            GenerativeProvider.dummy().to_grpc(True),
+            GenerativeProvider.dummy()
+            ._with_options(
+                return_metadata=True,
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(return_metadata=True, dummy=GenerativeDummy()),
         ),
         (
@@ -209,7 +225,11 @@ def test_generative_provider_images_parsing(
                 n=5,
                 temperature=0.5,
                 top_p=0.9,
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 friendliai=GenerativeFriendliAI(
@@ -236,9 +256,13 @@ def test_generative_provider_images_parsing(
                 temperature=0.5,
                 top_k=50,
                 top_p=0.9,
-                grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=["image"],
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+                images=[LOGO_ENCODED],
+                image_properties=["image"],
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 google=GenerativeGoogle(
@@ -266,7 +290,11 @@ def test_generative_provider_images_parsing(
                 model="text-to-image",
                 temperature=0.5,
                 top_p=0.9,
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 mistral=GenerativeMistral(
@@ -285,7 +313,11 @@ def test_generative_provider_images_parsing(
                 model="text-to-image",
                 temperature=0.5,
                 top_p=0.9,
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 nvidia=GenerativeNvidia(
@@ -302,9 +334,13 @@ def test_generative_provider_images_parsing(
                 api_endpoint="http://localhost:8080",
                 model="text-to-image",
                 temperature=0.5,
-                grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=["image"],
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+                images=[LOGO_ENCODED],
+                image_properties=["image"],
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 ollama=GenerativeOllama(
@@ -329,9 +365,13 @@ def test_generative_provider_images_parsing(
                 stop=["\n"],
                 temperature=0.5,
                 top_p=50,
-                grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=["image"],
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+                images=[LOGO_ENCODED],
+                image_properties=["image"],
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 openai=GenerativeOpenAI(
@@ -365,9 +405,13 @@ def test_generative_provider_images_parsing(
                 stop=["\n"],
                 temperature=0.5,
                 top_p=50,
-                grouped_task_images=[LOGO_ENCODED],
-                grouped_task_image_properties=["image"],
-            ).to_grpc(True),
+            )
+            ._with_options(
+                return_metadata=True,
+                images=[LOGO_ENCODED],
+                image_properties=["image"],
+            )
+            ._to_grpc(),
             GenerativeProviderGRPC(
                 return_metadata=True,
                 openai=GenerativeOpenAI(

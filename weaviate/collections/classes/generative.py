@@ -10,6 +10,7 @@ from weaviate.collections.classes.config import (
     AWSService,
     CohereModel,
 )
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1.base_pb2 import TextArray
 from weaviate.proto.v1.generative_pb2 import (
     GenerativeAnthropic,
@@ -49,7 +50,7 @@ class _GenerativeProviderDynamic(BaseModel):
         images: Optional[Iterable[str]] = None
         image_properties: Optional[List[str]] = None
 
-    def with_options(
+    def _with_options(
         self,
         return_metadata: bool,
         images: Optional[Iterable[str]] = None,
@@ -60,8 +61,14 @@ class _GenerativeProviderDynamic(BaseModel):
         )
         return self
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
         raise NotImplementedError("This method must be implemented in the child class")
+
+    def _validate_multi_modal(self) -> None:
+        if self.opts.images is not None or self.opts.image_properties is not None:
+            raise WeaviateInvalidInputError(
+                "The generative-anyscale module does not support the `images` or `image_properties` options."
+            )
 
 
 GenerativeProviderDynamic = _GenerativeProviderDynamic
@@ -79,7 +86,7 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
     top_p: Optional[float]
     stop_sequences: Optional[List[str]]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             anthropic=GenerativeAnthropic(
@@ -104,7 +111,8 @@ class _GenerativeAnyscale(_GenerativeProviderDynamic):
     model: Optional[str]
     temperature: Optional[float]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
+        self._validate_multi_modal()
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             anyscale=GenerativeAnyscale(
@@ -127,7 +135,7 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
     target_variant: Optional[str]
     temperature: Optional[float]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             aws=GenerativeAWS(
@@ -157,7 +165,8 @@ class _GenerativeCohere(_GenerativeProviderDynamic):
     stop_sequences: Optional[List[str]]
     temperature: Optional[float]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
+        self._validate_multi_modal()
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             cohere=GenerativeCohere(
@@ -189,7 +198,8 @@ class _GenerativeDatabricks(_GenerativeProviderDynamic):
     top_log_probs: Optional[int]
     top_p: Optional[float]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
+        self._validate_multi_modal()
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             databricks=GenerativeDatabricks(
@@ -213,7 +223,8 @@ class _GenerativeDummy(_GenerativeProviderDynamic):
         default=GenerativeSearches.DUMMY, frozen=True, exclude=True
     )
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
+        self._validate_multi_modal()
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata, dummy=GenerativeDummy()
         )
@@ -230,7 +241,8 @@ class _GenerativeFriendliai(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
+        self._validate_multi_modal()
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             friendliai=GenerativeFriendliAI(
@@ -254,7 +266,8 @@ class _GenerativeMistral(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
+        self._validate_multi_modal()
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             mistral=GenerativeMistral(
@@ -277,7 +290,8 @@ class _GenerativeNvidia(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
+        self._validate_multi_modal()
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             nvidia=GenerativeNvidia(
@@ -298,7 +312,7 @@ class _GenerativeOllama(_GenerativeProviderDynamic):
     model: Optional[str]
     temperature: Optional[float]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             ollama=GenerativeOllama(
@@ -328,7 +342,7 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             openai=GenerativeOpenAI(
@@ -374,7 +388,7 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
             else None
         )
 
-    def to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=self.opts.return_metadata,
             google=GenerativeGoogle(
@@ -924,16 +938,16 @@ class _GroupedTask(BaseModel):
     images: Optional[Iterable[str]]
     metadata: bool = False
 
-    def to_grpc(self, provider: _GenerativeProviderDynamic) -> GenerativeSearch.Grouped:
+    def _to_grpc(self, provider: _GenerativeProviderDynamic) -> GenerativeSearch.Grouped:
         return GenerativeSearch.Grouped(
             task=self.prompt,
             properties=_to_text_array(self.non_blob_properties),
             queries=[
-                provider.with_options(
+                provider._with_options(
                     self.metadata,
                     self.images,
                     self.image_properties,
-                ).to_grpc()
+                )._to_grpc()
             ],
         )
 
@@ -945,12 +959,12 @@ class _SinglePrompt(BaseModel):
     metadata: bool = False
     debug: bool = False
 
-    def to_grpc(self, provider: _GenerativeProviderDynamic) -> GenerativeSearch.Single:
+    def _to_grpc(self, provider: _GenerativeProviderDynamic) -> GenerativeSearch.Single:
         return GenerativeSearch.Single(
             prompt=self.prompt,
             debug=self.debug,
             queries=[
-                provider.with_options(self.metadata, self.images, self.image_properties).to_grpc()
+                provider._with_options(self.metadata, self.images, self.image_properties)._to_grpc()
             ],
         )
 
@@ -964,8 +978,8 @@ class GenerativeParameters:
 
     @staticmethod
     def grouped_task(
-        *,
         prompt: str,
+        *,
         non_blob_properties: Optional[List[str]] = None,
         image_properties: Optional[List[str]] = None,
         images: Optional[Iterable[BLOB_INPUT]] = None,
@@ -982,8 +996,8 @@ class GenerativeParameters:
 
     @staticmethod
     def single_prompt(
-        *,
         prompt: str,
+        *,
         image_properties: Optional[List[str]] = None,
         images: Optional[Iterable[BLOB_INPUT]] = None,
         metadata: bool = False,
