@@ -846,7 +846,7 @@ def test_config_export_and_recreate_from_config(collection_factory: CollectionFa
 
     client = weaviate.connect_to_local()
     client.collections.create_from_config(conf)
-    assert conf == client.collections.get(name).config.get()
+    assert conf == client.collections.use(name).config.get()
     client.collections.delete(name)
     client.close()
 
@@ -964,7 +964,7 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
     client.collections.create_from_dict(dconf)
     old = collection.config.get()
     old.name = "dummy"
-    new = client.collections.get(name).config.get()
+    new = client.collections.use(name).config.get()
     new.name = "dummy"
     assert old == new
 
@@ -1227,6 +1227,30 @@ def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -
     assert len(config.vector_config) == 1
     assert config.vector_config["name"].vectorizer.vectorizer == "text2vec-contextionary"
     assert config.vector_config["name"].vectorizer.model == {"vectorizeClassName": False}
+
+
+def test_named_vectors_export_and_import(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary(
+                "name",
+                vectorize_collection_name=False,
+                source_properties=["text"],
+            ),
+        ],
+    )
+    config = collection.config.get()
+
+    name = "TestCollectionConfigExportAndRecreate"
+    config.name = name
+    client = weaviate.connect_to_local()
+    client.collections.delete(name)
+    client.collections.create_from_config(config)
+    new = client.collections.use(name).config.get()
+    assert config == new
+    client.collections.delete(name)
+    client.close()
 
 
 @pytest.mark.parametrize("index_range_filters", [True, False])

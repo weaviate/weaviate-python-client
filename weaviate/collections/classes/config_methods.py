@@ -398,7 +398,7 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                 and prop.get("moduleConfig", None) is not None
                 else None
             ),
-            vectorizer=schema.get("vectorizer", "none"),
+            vectorizer=schema.get("vectorizer", "none") if "vectorConfig" not in schema else None,
         )
         for prop in schema["properties"]
         if _is_primitive(prop["dataType"])
