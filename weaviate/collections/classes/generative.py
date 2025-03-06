@@ -27,6 +27,8 @@ from weaviate.proto.v1.generative_pb2 import (
     GenerativeProvider as GenerativeProviderGRPC,
     GenerativeSearch,
 )
+from weaviate.util import parse_blob
+from weaviate.types import BLOB_INPUT
 
 
 def _parse_anyhttpurl(url: Optional[AnyHttpUrl]) -> Optional[str]:
@@ -966,7 +968,7 @@ class GenerativeParameters:
         prompt: str,
         non_blob_properties: Optional[List[str]] = None,
         image_properties: Optional[List[str]] = None,
-        images: Optional[Iterable[str]] = None,
+        images: Optional[Iterable[BLOB_INPUT]] = None,
         metadata: bool = False,
     ) -> _GroupedTask:
         """Create a `_GroupedTask` object for use when performing AI generation using the `generate` namespace and the `grouped_task` field."""
@@ -974,7 +976,7 @@ class GenerativeParameters:
             prompt=prompt,
             non_blob_properties=non_blob_properties,
             image_properties=image_properties,
-            images=images,
+            images=(parse_blob(image) for image in images) if images is not None else None,
             metadata=metadata,
         )
 
@@ -983,7 +985,7 @@ class GenerativeParameters:
         *,
         prompt: str,
         image_properties: Optional[List[str]] = None,
-        images: Optional[Iterable[str]] = None,
+        images: Optional[Iterable[BLOB_INPUT]] = None,
         metadata: bool = False,
         debug: bool = False,
     ) -> _SinglePrompt:
@@ -991,7 +993,7 @@ class GenerativeParameters:
         return _SinglePrompt(
             prompt=prompt,
             image_properties=image_properties,
-            images=images,
+            images=(parse_blob(image) for image in images) if images is not None else None,
             metadata=metadata,
             debug=debug,
         )
