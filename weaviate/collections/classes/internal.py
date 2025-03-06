@@ -324,9 +324,6 @@ class _Generative:
                 grouped_properties=grouped_properties,
             )
         else:
-            if server_version.is_lower_than(1, 30, 0) and self.generative_provider is not None:
-                raise WeaviateUnsupportedFeatureError("Dynamic RAG", str(server_version), "1.30.0")
-
             single: Optional[generative_pb2.GenerativeSearch.Single] = None
             if isinstance(self.single, _SinglePrompt):
                 single = generative_pb2.GenerativeSearch.Single(
