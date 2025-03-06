@@ -53,7 +53,7 @@ from weaviate.collections.classes.types import (
     WeaviateProperties,
     _WeaviateInput,
 )
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
 from weaviate.util import _to_beacons, _ServerVersion
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
 
@@ -304,9 +304,7 @@ class _Generative:
     def to_grpc(self, server_version: _ServerVersion) -> generative_pb2.GenerativeSearch:
         if server_version.is_lower_than(1, 27, 14):
             if self.generative_provider is not None:
-                raise WeaviateInvalidInputError(
-                    "Dynamic RAG is not supported in this Weaviate version. Please upgrade your server to >=1.30.0"
-                )
+                raise WeaviateUnsupportedFeatureError("Dynamic RAG", str(server_version), "1.30.0")
 
             if isinstance(self.single, _SinglePrompt):
                 single_prompt: Optional[str] = self.single.prompt
@@ -327,9 +325,7 @@ class _Generative:
             )
         else:
             if server_version.is_lower_than(1, 30, 0) and self.generative_provider is not None:
-                raise WeaviateInvalidInputError(
-                    "Dynamic RAG is not supported in this Weaviate version. Please upgrade your server to >=1.30.0"
-                )
+                raise WeaviateUnsupportedFeatureError("Dynamic RAG", str(server_version), "1.30.0")
 
             single: Optional[generative_pb2.GenerativeSearch.Single] = None
             if isinstance(self.single, _SinglePrompt):
