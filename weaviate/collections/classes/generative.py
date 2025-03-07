@@ -40,32 +40,21 @@ def _to_text_array(values: Optional[Iterable[str]]) -> Optional[TextArray]:
     return TextArray(values=values) if values is not None else None
 
 
+@dataclass
+class _GenerativeProviderDynamicOptions:
+    return_metadata: bool = False
+    images: Optional[Iterable[str]] = None
+    image_properties: Optional[List[str]] = None
+
+
 class _GenerativeProviderDynamic(BaseModel):
     generative: Union[GenerativeSearches, _EnumLikeStr]
-    opts: "Options" = Field(default_factory=lambda: _GenerativeProviderDynamic.Options())
 
-    @dataclass
-    class Options:
-        return_metadata: bool = False
-        images: Optional[Iterable[str]] = None
-        image_properties: Optional[List[str]] = None
-
-    def _with_options(
-        self,
-        return_metadata: bool,
-        images: Optional[Iterable[str]] = None,
-        image_properties: Optional[List[str]] = None,
-    ) -> "_GenerativeProviderDynamic":
-        self.opts = self.Options(
-            return_metadata=return_metadata, images=images, image_properties=image_properties
-        )
-        return self
-
-    def _to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
         raise NotImplementedError("This method must be implemented in the child class")
 
-    def _validate_multi_modal(self) -> None:
-        if self.opts.images is not None or self.opts.image_properties is not None:
+    def _validate_multi_modal(self, opts: _GenerativeProviderDynamicOptions) -> None:
+        if opts.images is not None or opts.image_properties is not None:
             raise WeaviateInvalidInputError(
                 "The generative-anyscale module does not support the `images` or `image_properties` options."
             )
@@ -86,9 +75,9 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
     top_p: Optional[float]
     stop_sequences: Optional[List[str]]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             anthropic=GenerativeAnthropic(
                 base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
@@ -97,8 +86,8 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
                 top_k=self.top_k,
                 top_p=self.top_p,
                 stop_sequences=_to_text_array(self.stop_sequences),
-                images=_to_text_array(self.opts.images),
-                image_properties=_to_text_array(self.opts.image_properties),
+                images=_to_text_array(opts.images),
+                image_properties=_to_text_array(opts.image_properties),
             ),
         )
 
@@ -111,10 +100,10 @@ class _GenerativeAnyscale(_GenerativeProviderDynamic):
     model: Optional[str]
     temperature: Optional[float]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
-        self._validate_multi_modal()
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+        self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             anyscale=GenerativeAnyscale(
                 base_url=_parse_anyhttpurl(self.base_url),
                 model=self.model,
@@ -135,9 +124,9 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
     target_variant: Optional[str]
     temperature: Optional[float]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             aws=GenerativeAWS(
                 model=self.model,
                 region=self.region,
@@ -146,8 +135,8 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
                 target_model=self.target_model,
                 target_variant=self.target_variant,
                 temperature=self.temperature,
-                images=_to_text_array(self.opts.images),
-                image_properties=_to_text_array(self.opts.image_properties),
+                images=_to_text_array(opts.images),
+                image_properties=_to_text_array(opts.image_properties),
             ),
         )
 
@@ -165,10 +154,10 @@ class _GenerativeCohere(_GenerativeProviderDynamic):
     stop_sequences: Optional[List[str]]
     temperature: Optional[float]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
-        self._validate_multi_modal()
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+        self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             cohere=GenerativeCohere(
                 base_url=_parse_anyhttpurl(self.base_url),
                 k=self.k,
@@ -198,10 +187,10 @@ class _GenerativeDatabricks(_GenerativeProviderDynamic):
     top_log_probs: Optional[int]
     top_p: Optional[float]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
-        self._validate_multi_modal()
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+        self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             databricks=GenerativeDatabricks(
                 endpoint=_parse_anyhttpurl(self.endpoint),
                 frequency_penalty=self.frequency_penalty,
@@ -223,11 +212,9 @@ class _GenerativeDummy(_GenerativeProviderDynamic):
         default=GenerativeSearches.DUMMY, frozen=True, exclude=True
     )
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
-        self._validate_multi_modal()
-        return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata, dummy=GenerativeDummy()
-        )
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+        self._validate_multi_modal(opts)
+        return GenerativeProviderGRPC(return_metadata=opts.return_metadata, dummy=GenerativeDummy())
 
 
 class _GenerativeFriendliai(_GenerativeProviderDynamic):
@@ -241,10 +228,10 @@ class _GenerativeFriendliai(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
-        self._validate_multi_modal()
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+        self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             friendliai=GenerativeFriendliAI(
                 base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
@@ -266,10 +253,10 @@ class _GenerativeMistral(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
-        self._validate_multi_modal()
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+        self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             mistral=GenerativeMistral(
                 base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
@@ -290,10 +277,10 @@ class _GenerativeNvidia(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
-        self._validate_multi_modal()
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+        self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             nvidia=GenerativeNvidia(
                 base_url=_parse_anyhttpurl(self.base_url),
                 max_tokens=self.max_tokens,
@@ -312,15 +299,15 @@ class _GenerativeOllama(_GenerativeProviderDynamic):
     model: Optional[str]
     temperature: Optional[float]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             ollama=GenerativeOllama(
                 api_endpoint=_parse_anyhttpurl(self.api_endpoint),
                 model=self.model,
                 temperature=self.temperature,
-                images=_to_text_array(self.opts.images),
-                image_properties=_to_text_array(self.opts.image_properties),
+                images=_to_text_array(opts.images),
+                image_properties=_to_text_array(opts.image_properties),
             ),
         )
 
@@ -342,9 +329,9 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             openai=GenerativeOpenAI(
                 api_version=self.api_version,
                 base_url=_parse_anyhttpurl(self.base_url),
@@ -358,8 +345,8 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
                 temperature=self.temperature,
                 top_p=self.top_p,
                 is_azure=self.is_azure,
-                images=_to_text_array(self.opts.images),
-                image_properties=_to_text_array(self.opts.image_properties),
+                images=_to_text_array(opts.images),
+                image_properties=_to_text_array(opts.image_properties),
             ),
         )
 
@@ -388,9 +375,9 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
             else None
         )
 
-    def _to_grpc(self) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
-            return_metadata=self.opts.return_metadata,
+            return_metadata=opts.return_metadata,
             google=GenerativeGoogle(
                 api_endpoint=self._parse_api_endpoint(self.api_endpoint),
                 endpoint_id=self.endpoint_id,
@@ -404,8 +391,8 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
                 temperature=self.temperature,
                 top_k=self.top_k,
                 top_p=self.top_p,
-                images=_to_text_array(self.opts.images),
-                image_properties=_to_text_array(self.opts.image_properties),
+                images=_to_text_array(opts.images),
+                image_properties=_to_text_array(opts.image_properties),
             ),
         )
 
@@ -943,11 +930,11 @@ class _GroupedTask(BaseModel):
             task=self.prompt,
             properties=_to_text_array(self.non_blob_properties),
             queries=[
-                provider._with_options(
-                    self.metadata,
-                    self.images,
-                    self.image_properties,
-                )._to_grpc()
+                provider._to_grpc(
+                    _GenerativeProviderDynamicOptions(
+                        self.metadata, self.images, self.image_properties
+                    )
+                )
             ],
         )
 
@@ -964,7 +951,11 @@ class _SinglePrompt(BaseModel):
             prompt=self.prompt,
             debug=self.debug,
             queries=[
-                provider._with_options(self.metadata, self.images, self.image_properties)._to_grpc()
+                provider._to_grpc(
+                    _GenerativeProviderDynamicOptions(
+                        self.metadata, self.images, self.image_properties
+                    )
+                )
             ],
         )
 

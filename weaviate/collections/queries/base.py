@@ -224,7 +224,7 @@ class _Base(Generic[Properties, References]):
         if len(vs := result.values) > 0:
             generative = vs[0]
             return GenerativeSingle(
-                debug=generative.debug,
+                debug=generative.debug if generative.debug.full_prompt != "" else None,
                 metadata=self.__extract_generative_metadata(generative.metadata),
                 text=generative.result,
             )

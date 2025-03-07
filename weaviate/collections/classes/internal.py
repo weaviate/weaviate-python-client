@@ -26,6 +26,7 @@ else:
 
 from weaviate.collections.classes.generative import (
     _GenerativeProviderDynamic,
+    _GenerativeProviderDynamicOptions,
     _GroupedTask,
     _SinglePrompt,
     _to_text_array,
@@ -330,11 +331,13 @@ class _Generative:
                     prompt=self.single.prompt,
                     queries=(
                         [
-                            self.generative_provider._with_options(
-                                self.single.metadata,
-                                self.single.images,
-                                self.single.image_properties,
-                            )._to_grpc()
+                            self.generative_provider._to_grpc(
+                                _GenerativeProviderDynamicOptions(
+                                    self.single.metadata,
+                                    self.single.images,
+                                    self.single.image_properties,
+                                )
+                            )
                         ]
                         if self.generative_provider is not None
                         else None
@@ -345,7 +348,7 @@ class _Generative:
                 single = generative_pb2.GenerativeSearch.Single(
                     prompt=self.single,
                     queries=(
-                        [self.generative_provider._to_grpc()]
+                        [self.generative_provider._to_grpc(_GenerativeProviderDynamicOptions())]
                         if self.generative_provider is not None
                         else None
                     ),
@@ -358,11 +361,13 @@ class _Generative:
                     properties=_to_text_array(self.grouped.non_blob_properties),
                     queries=(
                         [
-                            self.generative_provider._with_options(
-                                self.grouped.metadata,
-                                self.grouped.images,
-                                self.grouped.image_properties,
-                            )._to_grpc()
+                            self.generative_provider._to_grpc(
+                                _GenerativeProviderDynamicOptions(
+                                    self.grouped.metadata,
+                                    self.grouped.images,
+                                    self.grouped.image_properties,
+                                )
+                            )
                         ]
                         if self.generative_provider is not None
                         else None
@@ -377,7 +382,7 @@ class _Generative:
                         else None
                     ),
                     queries=(
-                        [self.generative_provider._to_grpc()]
+                        [self.generative_provider._to_grpc(_GenerativeProviderDynamicOptions())]
                         if self.generative_provider is not None
                         else None
                     ),
