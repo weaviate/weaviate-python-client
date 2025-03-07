@@ -104,3 +104,13 @@ def test_de_activate(client_factory: ClientFactory) -> None:
         assert user.active
 
         client.users.db.delete(user_id=randomUserName)
+
+
+def test_deprecated_syntax(client_factory: ClientFactory) -> None:
+    with client_factory(ports=(8081, 50052), auth_credentials=Auth.api_key("admin-key")) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+        randomUserName = "new-user" + str(random.randint(1, 1000))
+        client.users.db.create(user_id=randomUserName)
+        roles = client.users.get_assigned_roles(user_id=randomUserName)
+        assert len(roles) == 0
