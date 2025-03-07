@@ -383,7 +383,9 @@ class _DataCollectionAsync(Generic[Properties], _Data):
             )
             for idx, obj in enumerate(objects)
         ]
-        res = await self._batch_grpc.objects(objs, timeout=self._connection.timeout_config.insert)
+        res = await self._batch_grpc.objects(
+            objs, timeout=self._connection.timeout_config.insert, max_retries=2
+        )
         if (n_obj_errs := len(res.errors)) > 0:
             logger.error(
                 {
