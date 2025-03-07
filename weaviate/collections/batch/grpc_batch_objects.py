@@ -16,6 +16,7 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
+from weaviate.collections.grpc.retry import _Retry
 from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, PERMISSION_DENIED, _is_1d_vector
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
@@ -136,7 +137,11 @@ class _BatchGRPC(_BaseGRPC):
     ) -> Dict[int, str]:
         try:
             assert self._connection.grpc_stub is not None
-            res = await self._connection.grpc_stub.BatchObjects(
+            # 2^9 / 60 ~ 8mins
+            res = await _Retry(9).with_exponential_backoff(
+                0,
+                "Batching importing objects",
+                self._connection.grpc_stub.BatchObjects,
                 batch_pb2.BatchObjectsRequest(
                     objects=batch,
                     consistency_level=self._consistency_level,
