@@ -25,11 +25,10 @@ class _UsersBase:
     async def _get_roles_of_user(
         self, name: str, user_type: Literal["db", "oidc"]
     ) -> List[WeaviateRole]:
-        path = f"/authz/users/{name}/roles"
+        path = f"/authz/users/{name}/roles/{user_type}"
 
         res = await self._connection.get(
             path,
-            params={"userType": user_type},
             error_msg=f"Could not get roles of user {name}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles of user"),
         )
@@ -285,6 +284,10 @@ class _UsersAsync(_UsersWrapper):
         self.db = _UserDBAsync(connection)
         self.oidc = _UserOIDCAsync(connection)
 
+        # this is needed so the sync version does not overwrite the async version
+        self._db = _UserDBAsync(connection)
+        self._oidc = _UserOIDCAsync(connection)
+
     async def get_my_user(self) -> User:
         """Get the currently authenticated user.
 
@@ -314,14 +317,14 @@ class _UsersAsync(_UsersWrapper):
         Returns:
             A dictionary with role names as keys and the `Role` objects as values.
         """
-        ret_oidc = await self.oidc.get_assigned_roles(user_id)
-        ret_db = await self.db.get_assigned_roles(user_id)
+        ret_oidc = await self._oidc.get_assigned_roles(user_id)
+        ret_db = await self._db.get_assigned_roles(user_id)
         return {**ret_oidc, **ret_db}
 
-    @deprecated(
-        """This method is deprecated and will be removed in Q4 25.
-                Please use `users.db.assign_roles` and/or `users.oidc.assign_roles` instead."""
-    )
+    # @deprecated(
+    #     """This method is deprecated and will be removed in Q4 25.
+    #             Please use `users.db.assign_roles` and/or `users.oidc.assign_roles` instead."""
+    # )
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Assign roles to a user.
 
@@ -332,10 +335,10 @@ class _UsersAsync(_UsersWrapper):
         await self.oidc.assign_roles(user_id=user_id, role_names=role_names)
         await self.db.assign_roles(user_id=user_id, role_names=role_names)
 
-    @deprecated(
-        """This method is deprecated and will be removed in Q4 25.
-                Please use `users.db.revoke_roles` and/or `users.oidc.revoke_roles` instead."""
-    )
+    # @deprecated(
+    #     """This method is deprecated and will be removed in Q4 25.
+    #             Please use `users.db.revoke_roles` and/or `users.oidc.revoke_roles` instead."""
+    # )
     async def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Revoke roles from a user.
 
