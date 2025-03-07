@@ -46,15 +46,21 @@ class WeaviateClient(_WeaviateClientBase):
 
     Attributes:
         `backup`
-            A `Backup` object instance connected to the same Weaviate instance as the Client.
+            A `_Backup` object instance connected to the same Weaviate instance as the Client.
         `batch`
-            A `_Batch` object instance connected to the same Weaviate instance as the Client.
+            A `_BatchClientWrapper` object instance connected to the same Weaviate instance as the Client.
         `classification`
-            A `Classification` object instance connected to the same Weaviate instance as the Client.
+            A `_Classification` object instance connected to the same Weaviate instance as the Client.
         `cluster`
-            A `Cluster` object instance connected to the same Weaviate instance as the Client.
+            A `_Cluster` object instance connected to the same Weaviate instance as the Client.
         `collections`
             A `_Collections` object instance connected to the same Weaviate instance as the Client.
+        `debug`
+            A `_Debug` object instance connected to the same Weaviate instance as the Client.
+        `roles`
+            A `_Roles` object instance connected to the same Weaviate instance as the Client.
+        `users`
+            A `_Users` object instance connected to the same Weaviate instance as the Client.
     """
 
     def __init__(
@@ -81,25 +87,25 @@ class WeaviateClient(_WeaviateClientBase):
 
         collections = _Collections(self._event_loop, _CollectionsAsync(self._connection))
 
-        self.batch = _BatchClientWrapper(self._connection, config=collections)
+        self.batch: _BatchClientWrapper = _BatchClientWrapper(self._connection, config=collections)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
-        self.backup = _Backup(self._connection)
+        self.backup: _Backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
-        self.cluster = _Cluster(self._connection)
+        self.cluster: _Cluster = _Cluster(self._connection)
         """This namespace contains all functionality to inspect the connected Weaviate cluster."""
-        self.collections = collections
+        self.collections: _Collections = collections
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
         Use it to retrieve collection objects using `client.collections.use("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
         """
-        self.debug = _Debug(self._connection)
+        self.debug: _Debug = _Debug(self._connection)
         """This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
 
         We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
-        self.roles = _Roles(self._connection)
+        self.roles: _Roles = _Roles(self._connection)
         """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
 
-        self.users = _Users(self._connection)
+        self.users: _Users = _Users(self._connection)
         """This namespace contains all functionality to manage Weaviate users."""
 
     def __enter__(self) -> "WeaviateClient":
@@ -122,11 +128,17 @@ class WeaviateAsyncClient(_WeaviateClientBase):
 
     Attributes:
         `backup`
-            A `Backup` object instance connected to the same Weaviate instance as the Client.
+            A `_BackupAsync` object instance connected to the same Weaviate instance as the Client.
         `cluster`
-            A `Cluster` object instance connected to the same Weaviate instance as the Client.
+            A `_ClusterAsync` object instance connected to the same Weaviate instance as the Client.
         `collections`
             A `_CollectionsAsync` object instance connected to the same Weaviate instance as the Client.
+        `debug`
+            A `_DebugAsync` object instance connected to the same Weaviate instance as the Client.
+        `roles`
+            A `_RolesAsync` object instance connected to the same Weaviate instance as the Client.
+        `users`
+            A `_UsersAsync` object instance connected to the same Weaviate instance as the Client.
     """
 
     def __init__(
@@ -150,23 +162,23 @@ class WeaviateAsyncClient(_WeaviateClientBase):
             skip_init_checks=skip_init_checks,
         )
 
-        self.backup = _BackupAsync(self._connection)
+        self.backup: _BackupAsync = _BackupAsync(self._connection)
         """This namespace contains all functionality to backup data."""
-        self.cluster = _ClusterAsync(self._connection)
+        self.cluster: _ClusterAsync = _ClusterAsync(self._connection)
         """This namespace contains all functionality to inspect the connected Weaviate cluster."""
-        self.collections = _CollectionsAsync(self._connection)
+        self.collections: _CollectionsAsync = _CollectionsAsync(self._connection)
         """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
 
         Use it to retrieve collection objects using `client.collections.use("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.
         """
-        self.debug = _DebugAsync(self._connection)
+        self.debug: _DebugAsync = _DebugAsync(self._connection)
         """This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
 
         We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
-        self.roles = _RolesAsync(self._connection)
+        self.roles: _RolesAsync = _RolesAsync(self._connection)
         """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
 
-        self.users = _UsersAsync(self._connection)
+        self.users: _UsersAsync = _UsersAsync(self._connection)
         """This namespace contains all functionality to manage Weaviate users."""
 
     async def __aenter__(self) -> "WeaviateAsyncClient":

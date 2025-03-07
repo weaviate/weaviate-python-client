@@ -1,7 +1,7 @@
-weaviate.backup
-===============
+weaviate.gql
+============
 
-.. automodule:: weaviate.backup
+.. automodule:: weaviate.gql
    :members:
    :undoc-members:
    :show-inheritance:
@@ -10,19 +10,19 @@ weaviate.backup
 Submodules
 ----------
 
-weaviate.backup.backup
+weaviate.gql.aggregate
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: weaviate.backup.backup
+.. automodule:: weaviate.gql.aggregate
    :members:
    :undoc-members:
    :show-inheritance:
    :private-members:
 
-weaviate.backup.backup_location
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+weaviate.gql.filter
+^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: weaviate.backup.backup_location
+.. automodule:: weaviate.gql.filter
    :members:
    :undoc-members:
    :show-inheritance:
