@@ -353,7 +353,7 @@ class _BatchBase:
             try:
                 self.__dynamic_batching()
             except Exception as e:
-                _Warnings.batch_refresh_failed(repr(e))
+                logger.debug(repr(e))
 
             time.sleep(refresh_time)
 
