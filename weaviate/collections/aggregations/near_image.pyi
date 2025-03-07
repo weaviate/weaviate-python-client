@@ -11,12 +11,13 @@ from weaviate.collections.classes.aggregate import (
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.types import NUMBER
+from weaviate.util import BLOB_INPUT
 
 class _NearImageAsync(_AggregateAsync):
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -30,7 +31,7 @@ class _NearImageAsync(_AggregateAsync):
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -44,7 +45,7 @@ class _NearImageAsync(_AggregateAsync):
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -60,7 +61,7 @@ class _NearImage(_AggregateAsync):
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -74,7 +75,7 @@ class _NearImage(_AggregateAsync):
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -88,7 +89,7 @@ class _NearImage(_AggregateAsync):
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
