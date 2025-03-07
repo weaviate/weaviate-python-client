@@ -80,6 +80,13 @@ class WeaviateUser(TypedDict):
     groups: List[str]
 
 
+class WeaviateDBUser(TypedDict):
+    userId: str
+    roles: Optional[List[WeaviateRole]]
+    groups: List[str]
+    active: bool
+
+
 class _Action:
     pass
 
@@ -484,6 +491,13 @@ def _join_permissions(permissions: List[T]) -> List[T]:
 class User:
     user_id: str
     roles: Dict[str, Role]
+
+
+@dataclass
+class UserDB:
+    user_id: str
+    roles: Dict[str, Role]
+    active: bool
 
 
 ActionsType = Union[_Action, Sequence[_Action]]
