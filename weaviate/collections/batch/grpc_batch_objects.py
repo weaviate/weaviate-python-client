@@ -78,7 +78,7 @@ class _BatchGRPC(_BaseGRPC):
         ]
 
     async def objects(
-        self, objects: List[_BatchObject], timeout: Union[int, float]
+        self, objects: List[_BatchObject], timeout: Union[int, float], max_retries: int
     ) -> BatchObjectReturn:
         """Insert multiple objects into Weaviate through the gRPC API.
 
@@ -94,7 +94,7 @@ class _BatchGRPC(_BaseGRPC):
         weaviate_objs = self.__grpc_objects(objects)
 
         start = time.time()
-        errors = await self.__send_batch(weaviate_objs, timeout=timeout)
+        errors = await self.__send_batch(weaviate_objs, timeout=timeout, max_retries=max_retries)
         elapsed_time = time.time() - start
 
         if len(errors) == len(weaviate_objs):
@@ -133,12 +133,12 @@ class _BatchGRPC(_BaseGRPC):
         )
 
     async def __send_batch(
-        self, batch: List[batch_pb2.BatchObject], timeout: Union[int, float]
+        self, batch: List[batch_pb2.BatchObject], timeout: Union[int, float], max_retries: int
     ) -> Dict[int, str]:
         try:
             assert self._connection.grpc_stub is not None
             # 2^9 / 60 ~ 8mins
-            res = await _Retry(9).with_exponential_backoff(
+            res = await _Retry(max_retries).with_exponential_backoff(
                 0,
                 "Batching importing objects",
                 self._connection.grpc_stub.BatchObjects,

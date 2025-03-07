@@ -488,7 +488,7 @@ class _BatchBase:
             start = time.time()
             try:
                 response_obj = await self.__batch_grpc.objects(
-                    objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
+                    objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT, max_retries=9
                 )
                 if response_obj.has_errors:
                     logger.error(
