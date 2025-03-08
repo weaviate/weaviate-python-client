@@ -10,6 +10,7 @@ from grpc.aio import Channel
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import Proxies
+from weaviate.logger import GrpcLoggingInterceptor
 from weaviate.types import NUMBER
 
 # from grpclib.client import Channel
@@ -120,8 +121,6 @@ class ConnectionParams(BaseModel):
             options = opts
 
         # Add environment-based logging interceptor
-        from weaviate.logger import GrpcLoggingInterceptor
-
         interceptors: Sequence[Any] = [GrpcLoggingInterceptor()]
 
         if self.grpc.secure:
