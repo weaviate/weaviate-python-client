@@ -83,6 +83,9 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
         self.backup = _CollectionBackupAsync(connection, name)
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
         self.config = self._config
+        
+        self.convert = self._convert
+        
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollectionAsync[Properties](
             connection, name, consistency_level, tenant, validate_arguments, properties

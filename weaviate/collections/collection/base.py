@@ -6,6 +6,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties
 from weaviate.collections.config import _ConfigCollectionAsync
+from weaviate.collections.vectorindex import _ConvertCollectionAsync
 from weaviate.collections.query import _QueryCollectionAsync
 from weaviate.connect import ConnectionV4
 from weaviate.util import _capitalize_first_letter
@@ -50,6 +51,7 @@ class _CollectionBase(Generic[Properties, References]):
         self._validate_arguments = validate_arguments
 
         self._config = _ConfigCollectionAsync(connection, name, tenant)
+        self._convert = _ConvertCollectionAsync(connection, name, tenant)
         self._query = _QueryCollectionAsync[Properties, References](
             connection,
             name,

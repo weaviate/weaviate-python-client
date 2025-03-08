@@ -98,6 +98,58 @@ def test_cuvs_search(collection_factory: CollectionFactory) -> None:
                 break
         
     collection.batch.wait_for_vector_indexing()
+    
+
+
+    failed_objects = collection.batch.failed_objects
+    if failed_objects:
+        print(f"Number of failed imports: {len(failed_objects)}")
+        print(f"First failed object: {failed_objects[0]}")
+    else:
+        print("No failed imports.")
+    assert(len(failed_objects) == 0)
+    
+    # Query nearest neighbors
+    query_vector = vectors[0]  # Use first vector as query
+    results = collection.query.near_vector(
+        query_vector,
+        limit=2,
+        return_metadata=MetadataQuery(distance=True)
+    ).objects
+    
+    assert len(results) == 2
+    # First result should be the query vector itself (or very close to it)
+    assert results[0].metadata.distance == pytest.approx(0.0, abs=1e-6)
+
+
+def test_cuvs_convert_search(collection_factory: CollectionFactory) -> None:
+    """Test vector search with CUVS index."""
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        vector_index_config=Configure.VectorIndex.cuvs(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+    )
+    
+    # Insert test data - CUVS requires at least 32 vectors
+    dim = 1536
+    num_vectors = 1024
+    vectors = [
+        np.random.rand(dim).astype(np.float32) for _ in range(num_vectors)
+        
+    ]
+    
+    with collection.batch.fixed_size(batch_size=128, concurrent_requests=1) as batch:
+        for i in range(num_vectors):
+            batch.add_object(properties={"name": f"item{i}"}, vector=vectors[i])
+            if batch.number_errors > 10:
+                print("Batch import stopped due to excessive errors.")
+                break
+        
+    collection.batch.wait_for_vector_indexing()
+    
+    collection.convert.convert_to_hnsw()
 
     failed_objects = collection.batch.failed_objects
     if failed_objects:

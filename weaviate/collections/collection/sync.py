@@ -18,6 +18,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.cluster import _Cluster
 from weaviate.collections.config import _ConfigCollection
+from weaviate.collections.vectorindex import _ConvertCollection
 from weaviate.collections.data import _DataCollection
 from weaviate.collections.generate import _GenerateCollection
 from weaviate.collections.iterator import _IteratorInputs, _ObjectIterator
@@ -80,6 +81,12 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         self.__cluster = _Cluster(connection)
 
         config = _ConfigCollection(
+            connection=connection,
+            name=name,
+            tenant=tenant,
+        )
+        
+        self.convert = _ConvertCollection(
             connection=connection,
             name=name,
             tenant=tenant,
