@@ -1,6 +1,6 @@
 from typing import List, Optional, Union, cast
 
-from grpc.aio import AioRpcError  # type: ignore
+from grpc.aio import AioRpcError
 
 from weaviate.collections.classes.batch import (
     DeleteManyObject,

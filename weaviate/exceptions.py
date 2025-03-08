@@ -3,10 +3,10 @@ Weaviate Exceptions.
 """
 
 from json.decoder import JSONDecodeError
-from typing import Tuple, Union
+from typing import Tuple, Union, cast
 
 import httpx
-from grpc.aio import AioRpcError  # type: ignore
+from grpc.aio import AioRpcError
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
@@ -71,10 +71,13 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
             if response.status_code in ERROR_CODE_EXPLANATION:
                 msg += " " + ERROR_CODE_EXPLANATION[response.status_code]
         elif isinstance(response, AioRpcError):
-            self._status_code = int(response.code().value[0])
+            code_value = response.code().value
+            # Cast to tuple to help mypy understand it's indexable
+            code_tuple = cast(Tuple[int, str], code_value)
+            self._status_code = int(code_tuple[0])
             msg = (
                 message
-                + f"! Unexpected status code: {response.code().value[1]}, with response body: {response.details()}."
+                + f"! Unexpected status code: {code_tuple[1]}, with response body: {response.details()}."
             )
         super().__init__(msg)
 

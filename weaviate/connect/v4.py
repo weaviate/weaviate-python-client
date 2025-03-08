@@ -12,10 +12,9 @@ from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
-from grpc.aio import Channel  # type: ignore
-from grpc_health.v1 import health_pb2  # type: ignore
+from grpc.aio import Channel
+from grpc_health.v1 import health_pb2
 
-# from grpclib.client import Channel
 from httpx import (
     AsyncClient,
     AsyncHTTPTransport,
@@ -40,6 +39,8 @@ from weaviate.auth import (
     AuthClientCredentials,
 )
 from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
+import logging
+from weaviate.logger import log_http_event
 from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
@@ -104,6 +105,22 @@ class ConnectionV4:
         loop: asyncio.AbstractEventLoop,  # required for background token refresh
         embedded_db: Optional[EmbeddedV4] = None,
     ):
+        """Initialize the ConnectionV4 instance.
+
+        Args:
+            connection_params: Connection parameters for the Weaviate instance (host, port, protocol)
+            auth_client_secret: Authentication credentials for OIDC or API key auth
+            timeout_config: Timeout configuration for HTTP requests and operations
+            proxies: Proxy configuration for HTTP and gRPC connections
+            trust_env: Whether to trust environment variables for proxy settings
+            additional_headers: Additional HTTP headers for API keys and custom metadata
+            connection_config: Connection pool and retry configuration
+            loop: Event loop for async operations and token refresh
+            embedded_db: Optional embedded database instance for local testing
+
+        Note: HTTP request/response logging is controlled via the WEAVIATE_LOG_LEVEL environment variable.
+        Set WEAVIATE_LOG_LEVEL=DEBUG to enable detailed request/response logging with sensitive data masking.
+        """
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
         self._api_version_path = "/v1"
@@ -120,7 +137,6 @@ class ConnectionV4:
         self._grpc_max_msg_size: Optional[int] = None
         self.__connected = False
         self.__loop = loop
-
         self._headers = {"content-type": "application/json"}
         self.__add_weaviate_embedding_service_header(connection_params.http.host)
         if additional_headers is not None:
@@ -154,53 +170,74 @@ class ConnectionV4:
         self._headers["X-Weaviate-Cluster-URL"] = "https://" + wcd_host
 
     async def connect(self, skip_init_checks: bool) -> None:
-        self.__connected = True
+        self.__connected = False  # Start with connected = False
 
-        await self._open_connections_rest(self._auth, skip_init_checks)
-
-        # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = await self.get_meta()
-            self._weaviate_version = _ServerVersion.from_string(meta["version"])
-            if "grpcMaxMessageSize" in meta:
-                self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
-            # Add warning later, when weaviate supported it for a while
-            # else:
-            #     _Warnings.grpc_max_msg_size_not_found()
-        except (
-            WeaviateConnectionError,
-            ReadError,
-            RemoteProtocolError,
-            SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
-        ) as e:
-            self.__connected = False
-            raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
+            # Create HTTP client if it doesn't exist
+            if self._client is None:
+                self.__make_clients()
 
-        await self.open_connection_grpc()
-        self.__connected = True
-        if self.embedded_db is not None:
+            await self._open_connections_rest(self._auth, skip_init_checks)
+
+            # need this to get the version of weaviate for version checks and proper GRPC configuration
             try:
-                await self.wait_for_weaviate(10)
-            except WeaviateStartUpError as e:
-                self.embedded_db.stop()
-                self.__connected = False
-                raise e
+                meta = await self.get_meta()
+                self._weaviate_version = _ServerVersion.from_string(meta["version"])
+                if "grpcMaxMessageSize" in meta:
+                    self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
+                # Add warning later, when weaviate supported it for a while
+                # else:
+                #     _Warnings.grpc_max_msg_size_not_found()
+            except (
+                WeaviateConnectionError,
+                ReadError,
+                RemoteProtocolError,
+                ConnectError,
+                SSLZeroReturnError,  # required for async 3.8,3.9 due to ssl.SSLZeroReturnError: TLS/SSL connection has been closed (EOF) (_ssl.c:1131)
+            ) as e:
+                raise WeaviateStartUpError(f"Could not connect to Weaviate: {e}") from e
 
-        # do it after all other init checks so as not to break all the tests
-        if self._weaviate_version.is_lower_than(1, 23, 7):
+            # Create gRPC client if it doesn't exist
+            if self._grpc_stub is None and self._connection_params.grpc is not None:
+                try:
+                    await self.open_connection_grpc()
+                except Exception as e:
+                    raise WeaviateStartUpError(f"Could not connect to Weaviate gRPC: {e}") from e
+
+            if self.embedded_db is not None:
+                try:
+                    await self.wait_for_weaviate(10)
+                except WeaviateStartUpError as e:
+                    self.embedded_db.stop()
+                    raise e
+
+            # do it after all other init checks so as not to break all the tests
+            if self._weaviate_version.is_lower_than(1, 23, 7):
+                raise WeaviateStartUpError(
+                    f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
+                )
+
+            if not skip_init_checks:
+                try:
+                    await asyncio.gather(self._ping_grpc(), self.__check_package_version())
+                except Exception as e:
+                    raise e
+
+            # Only set connected to True if all checks pass
+            self.__connected = True
+        except Exception as e:
+            # Ensure we're not connected if any error occurs
             self.__connected = False
-            raise WeaviateStartUpError(
-                f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
-            )
-
-        if not skip_init_checks:
-            try:
-                await asyncio.gather(self._ping_grpc(), self.__check_package_version())
-            except Exception as e:
-                self.__connected = False
-                raise e
-
-        self.__connected = True
+            # Close any open connections
+            if self._client is not None:
+                await self._client.aclose()
+                self._client = None
+            if self._grpc_stub is not None and self._grpc_channel is not None:
+                await self._grpc_channel.close(grace=None)
+                self._grpc_stub = None
+                self._grpc_channel = None
+            # Re-raise the exception
+            raise e
 
     async def __check_package_version(self) -> None:
         try:
@@ -237,13 +274,20 @@ class ConnectionV4:
         }
 
     def __make_async_client(self) -> AsyncClient:
+        """Create an async HTTP client with proper configuration and event hooks."""
+        # Only add event hooks for logging if debug level is enabled
+        event_hooks = {}
+        if logging.getLogger("weaviate-client").getEffectiveLevel() <= logging.DEBUG:
+            event_hooks = {"response": [log_http_event]}
         return AsyncClient(
             headers=self._headers,
             mounts=self._make_mounts(),
             trust_env=self.__trust_env,
+            event_hooks=event_hooks,
         )
 
     def __make_clients(self) -> None:
+        """Create the HTTP client with proper configuration and event hooks."""
         self._client = self.__make_async_client()
 
     async def _open_connections_rest(
@@ -337,7 +381,7 @@ class ConnectionV4:
 
         if "authorization" in self._headers:
             return self._headers["authorization"]
-        elif isinstance(self._client, AsyncOAuth2Client):
+        elif self._client is not None and isinstance(self._client, AsyncOAuth2Client):
             return f"Bearer {self._client.token['access_token']}"
         return ""
 
@@ -347,6 +391,9 @@ class ConnectionV4:
         While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
         X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
         expire. Therefore, refresh manually shortly before expiration time is up."""
+        if self._client is None:
+            return
+
         assert isinstance(self._client, AsyncOAuth2Client)
         if "refresh_token" not in self._client.token and _auth is None:
             return
@@ -368,19 +415,24 @@ class ConnectionV4:
                         pass
                     elif "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
                         assert isinstance(self._client, AsyncOAuth2Client)
-                        self._client.token = asyncio.run_coroutine_threadsafe(
-                            self._client.refresh_token(
-                                self._client.metadata["token_endpoint"]
-                            ),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
-                            self.__loop,
-                        ).result()
-                        expires_in = self._client.token.get("expires_in", 60)
-                        assert isinstance(expires_in, int)
-                        refresh_time = expires_in - 30
+                        if (
+                            hasattr(self._client, "metadata")
+                            and "token_endpoint" in self._client.metadata
+                        ):
+                            self._client.token = asyncio.run_coroutine_threadsafe(
+                                self._client.refresh_token(
+                                    self._client.metadata["token_endpoint"]
+                                ),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
+                                self.__loop,
+                            ).result()
+                            expires_in = self._client.token.get("expires_in", 60)
+                            assert isinstance(expires_in, int)
+                            refresh_time = expires_in - 30
                     else:
                         # client credentials usually does not contain a refresh token => get a new token using the
                         # saved credentials
                         assert _auth is not None
+                        assert self._client is not None
                         assert isinstance(self._client, AsyncOAuth2Client)
                         new_session = asyncio.run_coroutine_threadsafe(
                             _auth.get_auth_session(), self.__loop
@@ -410,7 +462,7 @@ class ConnectionV4:
             self._client = None
         if self._grpc_stub is not None:
             assert self._grpc_channel is not None
-            await self._grpc_channel.close()
+            await self._grpc_channel.close()  # type: ignore[call-arg]
             self._grpc_stub = None
             self._grpc_channel = None
         if self.embedded_db is not None:

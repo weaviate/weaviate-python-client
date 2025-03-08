@@ -3,6 +3,7 @@ Client class definition.
 """
 
 import asyncio
+import logging
 from typing import Optional, Tuple, Union, Dict, Any
 
 
@@ -11,7 +12,7 @@ from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLRe
 from weaviate.integrations import _Integrations
 
 from .auth import AuthCredentials
-from .config import AdditionalConfig
+from .config import AdditionalConfig, ConnectionConfig, Proxies, Timeout
 from .connect import ConnectionV4
 from .connect.base import (
     ConnectionParams,
@@ -60,15 +61,21 @@ class _WeaviateClientInit:
                     - Can be used to set OpenAI/HuggingFace/Cohere etc. keys.
                     - [Here](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai#providing-the-key-to-weaviate) is an
                     example of how to set API keys within this parameter.
-            - `additional_config`: `weaviate.AdditionalConfig` or None, optional
-                - Additional and advanced configuration options for Weaviate.
+            - `additional_config`: `weaviate.config.AdditionalConfig` or None, optional
+                - Additional configuration options for the client.
+                - This includes connection and proxy settings.
             - `skip_init_checks`: `bool`, optional
                 - If set to `True` then the client will not perform any checks including ensuring that weaviate has started. This is useful for air-gapped environments and high-performance setups.
+
+        Note:
+            HTTP request/response logging is controlled via the WEAVIATE_LOG_LEVEL environment variable.
+            Set WEAVIATE_LOG_LEVEL=DEBUG to enable detailed request/response logging with sensitive data masking.
         """
         assert self._loop is not None, "Cannot initialize a WeaviateClient without an event loop."
         connection_params, embedded_db = self.__parse_connection_params_and_embedded_db(
             connection_params, embedded_options
         )
+        # Configure default connection settings
         config = additional_config or AdditionalConfig()
 
         self._skip_init_checks = skip_init_checks
@@ -168,7 +175,8 @@ class _WeaviateClientBase(_WeaviateClientInit):
                 return True
             return False
         except Exception as e:
-            print(e)
+            logger = logging.getLogger("weaviate-client")
+            logger.debug("Error checking liveness: %s", str(e))
             return False
 
     async def is_ready(self) -> bool:
@@ -178,7 +186,8 @@ class _WeaviateClientBase(_WeaviateClientInit):
                 return True
             return False
         except Exception as e:
-            print(e)
+            logger = logging.getLogger("weaviate-client")
+            logger.debug("Error checking readiness: %s", str(e))
             return False
 
     async def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
