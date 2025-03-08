@@ -462,7 +462,7 @@ class ConnectionV4:
             self._client = None
         if self._grpc_stub is not None:
             assert self._grpc_channel is not None
-            await self._grpc_channel.close()
+            await self._grpc_channel.close()  # type: ignore[call-arg]
             self._grpc_stub = None
             self._grpc_channel = None
         if self.embedded_db is not None:
