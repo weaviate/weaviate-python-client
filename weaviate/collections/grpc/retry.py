@@ -2,8 +2,8 @@ import asyncio
 from typing import Awaitable, Callable
 from typing_extensions import ParamSpec, TypeVar
 
-from grpc import StatusCode
-from grpc.aio import AioRpcError
+from grpc import StatusCode  # type: ignore
+from grpc.aio import AioRpcError  # type: ignore
 
 from weaviate.exceptions import WeaviateRetryError
 from weaviate.logger import logger
