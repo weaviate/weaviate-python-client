@@ -9,9 +9,9 @@ from typing import (
     cast,
 )
 
-import grpc # type: ignore
+import grpc
 import httpx
-from grpc.aio import (UnaryUnaryCall) # type: ignore
+from grpc.aio import (UnaryUnaryCall)
 
 
 def _setup_logger() -> logging.Logger:
