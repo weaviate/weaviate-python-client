@@ -98,6 +98,7 @@ def test_de_activate(client_factory: ClientFactory) -> None:
 
         client.users.db.deactivate(user_id=randomUserName)
         user = client.users.db.get(user_id=randomUserName)
+        user.roles
         assert not user.active
         client.users.db.activate(user_id=randomUserName)
         user = client.users.db.get(user_id=randomUserName)
