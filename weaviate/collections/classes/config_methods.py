@@ -41,6 +41,7 @@ from weaviate.collections.classes.config import (
     VectorFilterStrategy,
     CUVSBuildAlgo,
     CUVSSearchAlgo, 
+    CUVSIndexLocation, 
 )
 
 
@@ -209,7 +210,8 @@ def __get_cuvs_config(config: Dict[str, Any]) -> _VectorIndexConfigCUVS:
         itop_k_size=config["itopKSize"],
         search_width=config["searchWidth"],
         quantizer=None,
-        multi_vector=None,  # CUVS doesn't support multi_vector
+        multi_vector=None,  # CUVS doesn't support multi_vector,
+        index_location=CUVSIndexLocation(config["indexLocation"]) if "indexLocation" in config else CUVSIndexLocation.GPU
     )
 
 def __get_vector_index_config(

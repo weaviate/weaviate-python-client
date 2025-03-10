@@ -532,18 +532,7 @@ class ConnectionV4:
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
         is_gql_query: bool = False,
-        use_debug: bool = False,
     ) -> Response:
-        if use_debug:
-            return await self.__send(
-            "POST",
-            url=self.url.replace("8080", "6060") + path,
-            weaviate_object=weaviate_object,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-            is_gql_query=is_gql_query,
-        )
         return await self.__send(
             "POST",
             url=self.url + self._api_version_path + path,

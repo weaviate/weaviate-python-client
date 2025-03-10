@@ -67,6 +67,14 @@ class CUVSSearchAlgo(str, Enum):
     SINGLE_CTA = "single_cta"
 
 
+class CUVSIndexLocation(str, Enum):
+    """Whether the index is on the GPU (CAGRA) or CPU (HNSW).
+    """
+
+    GPU = "gpu"
+    CPU = "cpu"
+
+
 
 class _MultiVectorConfigCreateBase(_ConfigCreateModel):
     enabled: bool = Field(default=True)
@@ -198,6 +206,7 @@ class _VectorIndexConfigCUVSCreate(_VectorIndexConfigCreate):
     searchAlgo: Optional[CUVSSearchAlgo] = Field(default=CUVSSearchAlgo.MULTI_CTA)
     itopKSize: Optional[int] = Field(default=256)
     searchWidth: Optional[int] = Field(default=1)
+    indexLocation: Optional[CUVSIndexLocation] = Field(default=CUVSIndexLocation.GPU)
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -213,6 +222,7 @@ class _VectorIndexConfigCUVSUpdate(_VectorIndexConfigUpdate):
     searchAlgo: Optional[CUVSSearchAlgo] = None
     itopKSize: Optional[int] = None
     searchWidth: Optional[int] = None
+    indexLocation: Optional[CUVSIndexLocation]
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:

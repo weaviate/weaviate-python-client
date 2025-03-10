@@ -48,7 +48,8 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
     CUVSBuildAlgo,
-    CUVSSearchAlgo
+    CUVSSearchAlgo,
+    CUVSIndexLocation,
 )
 from weaviate.collections.classes.config_vectorizers import CohereModel
 from weaviate.collections.classes.config_vectorizers import VectorDistances as VectorDistancesAlias
@@ -1683,6 +1684,7 @@ class _VectorIndexConfigCUVS(_ConfigBase):
     search_width: Optional[int]
     multi_vector: Optional[_MultiVectorConfig]
     quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig]]
+    index_location: Optional[CUVSIndexLocation]
     
     @staticmethod
     def vector_index_type() -> str:
@@ -2272,6 +2274,7 @@ class _VectorIndex:
         search_algo: Optional[CUVSSearchAlgo] = None,
         itop_k_size: Optional[int] = None,
         search_width: Optional[int] = None,
+        index_location: Optional[CUVSIndexLocation] = None,
     ) -> _VectorIndexConfigCUVSCreate:
         """Create a `_VectorIndexConfigCUVSCreate` object to be used when defining the CUVS vector index configuration of Weaviate.
 
@@ -2304,6 +2307,7 @@ class _VectorIndex:
             searchAlgo=search_algo,
             itopKSize=itop_k_size,
             searchWidth=search_width,
+            indexLocation=index_location,
             # CUVS doesn't support these features
             quantizer=None,
             multivector=None,
@@ -2581,18 +2585,29 @@ class _VectorIndexUpdate:
     @staticmethod
     def cuvs(
         *,
-        graph_degree: Optional[int] = None,
-        intermediate_graph_degree: Optional[int] = None,
-        build_algo: Optional[CUVSBuildAlgo] = None,
+        # graph_degree: Optional[int] = None,
+        # intermediate_graph_degree: Optional[int] = None,
+        # build_algo: Optional[CUVSBuildAlgo] = None,
         search_algo: Optional[CUVSSearchAlgo] = None,
         itop_k_size: Optional[int] = None,
         search_width: Optional[int] = None,
+        index_location: Optional[CUVSIndexLocation] = None,
     ) -> _VectorIndexConfigCUVSUpdate:
         """Update method for CUVS index.
         
-        CUVS does not support updates. This method is included for API completeness but will raise an error.
+        CUVS only supports updates to the index location.
         """
-        raise NotImplementedError("CUVS vector index does not support updates.")
+        return _VectorIndexConfigCUVSUpdate(
+            # graph_degree=graph_degree,
+            # intermediate_graph_degree=intermediate_graph_degree,
+            # build_algo=build_algo,
+            searchAlgo=search_algo,
+            itopKSize=itop_k_size,
+            searchWidth=search_width,
+            indexLocation=index_location,
+            quantizer=None,
+            # multi_vector=None,
+        )
 
 
 class Reconfigure:

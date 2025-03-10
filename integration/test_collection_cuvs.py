@@ -8,11 +8,13 @@ import weaviate
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
+    Reconfigure,
     DataType,
     Property,
     VectorIndexType,
     CUVSBuildAlgo,
     CUVSSearchAlgo,
+    CUVSIndexLocation,
     VectorIndexConfigCUVS,
     _VectorIndexConfigCUVS,
 )
@@ -149,7 +151,11 @@ def test_cuvs_convert_search(collection_factory: CollectionFactory) -> None:
         
     collection.batch.wait_for_vector_indexing()
     
-    collection.convert.convert_to_hnsw()
+    
+    
+    collection.config.update(vectorizer_config=Reconfigure.VectorIndex.cuvs(search_width=8))
+    collection.config.update(vectorizer_config=Reconfigure.VectorIndex.cuvs(index_location=CUVSIndexLocation.CPU))
+    collection.config.update(vectorizer_config=Reconfigure.VectorIndex.cuvs(index_location=CUVSIndexLocation.GPU))
 
     failed_objects = collection.batch.failed_objects
     if failed_objects:
