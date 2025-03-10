@@ -211,7 +211,9 @@ def __get_cuvs_config(config: Dict[str, Any]) -> _VectorIndexConfigCUVS:
         search_width=config["searchWidth"],
         quantizer=None,
         multi_vector=None,  # CUVS doesn't support multi_vector,
-        index_location=CUVSIndexLocation(config["indexLocation"]) if "indexLocation" in config else CUVSIndexLocation.GPU
+        index_location=CUVSIndexLocation(config["indexLocation"]) if "indexLocation" in config else CUVSIndexLocation.GPU,
+        extend_limit=config["extendLimit"],
+        filter_delete_limit=config["filterDeleteLimit"]
     )
 
 def __get_vector_index_config(

@@ -207,6 +207,8 @@ class _VectorIndexConfigCUVSCreate(_VectorIndexConfigCreate):
     itopKSize: Optional[int] = Field(default=256)
     searchWidth: Optional[int] = Field(default=1)
     indexLocation: Optional[CUVSIndexLocation] = Field(default=CUVSIndexLocation.GPU)
+    filterDeleteLimit: Optional[int] = Field(default=30)
+    extendLimit: Optional[int] = Field(default=20)
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -223,6 +225,8 @@ class _VectorIndexConfigCUVSUpdate(_VectorIndexConfigUpdate):
     itopKSize: Optional[int] = None
     searchWidth: Optional[int] = None
     indexLocation: Optional[CUVSIndexLocation]
+    filterDeleteLimit: Optional[int] = None
+    extendLimit: Optional[int] = None
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:

@@ -1685,6 +1685,8 @@ class _VectorIndexConfigCUVS(_ConfigBase):
     multi_vector: Optional[_MultiVectorConfig]
     quantizer: Optional[Union[_PQConfig, _BQConfig, _SQConfig]]
     index_location: Optional[CUVSIndexLocation]
+    extend_limit: Optional[int]
+    filter_delete_limit: Optional[int]
     
     @staticmethod
     def vector_index_type() -> str:
@@ -1736,7 +1738,7 @@ class _NamedVectorizerConfig(_ConfigBase):
 class _NamedVectorConfig(_ConfigBase):
     vectorizer: _NamedVectorizerConfig
     vector_index_config: Union[
-        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic
+        VectorIndexConfigHNSW, VectorIndexConfigFlat, VectorIndexConfigDynamic, VectorIndexConfigCUVS
     ]
 
     def to_dict(self) -> Dict:
@@ -2275,6 +2277,8 @@ class _VectorIndex:
         itop_k_size: Optional[int] = None,
         search_width: Optional[int] = None,
         index_location: Optional[CUVSIndexLocation] = None,
+        filter_delete_limit: Optional[int] = None,
+        extend_limit: Optional[int] = None,
     ) -> _VectorIndexConfigCUVSCreate:
         """Create a `_VectorIndexConfigCUVSCreate` object to be used when defining the CUVS vector index configuration of Weaviate.
 
@@ -2311,6 +2315,8 @@ class _VectorIndex:
             # CUVS doesn't support these features
             quantizer=None,
             multivector=None,
+            filterDeleteLimit=filter_delete_limit,
+            extendLimit=extend_limit,
         )
 
 
