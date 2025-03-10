@@ -328,7 +328,7 @@ class ConnectionV4:
         async with self.__make_async_client() as client:
             try:
                 response = await client.get(oidc_url)
-            except Exception as e:
+            except Exception:
                 # Don't fail the connection process for auth errors in mock tests
                 _Warnings.auth_cannot_parse_oidc_config(oidc_url)
                 self.__make_clients()

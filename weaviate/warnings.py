@@ -338,7 +338,7 @@ class _Warnings:
     @staticmethod
     def weaviate_meta_not_available(error: str) -> None:
         warnings.warn(
-            message=f"""Con006: Could not retrieve metadata from Weaviate: {error}. 
+            message=f"""Con006: Could not retrieve metadata from Weaviate: {error}.
             This is expected in mock test environments.""",
             category=UserWarning,
             stacklevel=1,
