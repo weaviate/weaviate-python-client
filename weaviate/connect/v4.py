@@ -178,24 +178,24 @@ class ConnectionV4:
                 self.__make_clients()
 
             await self._open_connections_rest(self._auth, skip_init_checks)
-            
+
             # For mock tests, we need to set connected to True before any checks
             # This allows the client to make requests even if the server returns errors
             if skip_init_checks:
                 self.__connected = True
-                
+
             # need this to get the version of weaviate for version checks and proper GRPC configuration
             try:
                 meta = await self.get_meta()
                 self._weaviate_version = _ServerVersion.from_string(meta["version"])
-                
+
                 # Always check version, even if skip_init_checks is True
                 # This is needed for test_old_version
                 if self._weaviate_version.is_lower_than(1, 23, 7):
                     raise WeaviateStartUpError(
                         f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
                     )
-                    
+
                 if "grpcMaxMessageSize" in meta:
                     self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
                 # Add warning later, when weaviate supported it for a while
@@ -223,7 +223,9 @@ class ConnectionV4:
                         # For mock tests, continue even if gRPC connection fails
                         _Warnings.weaviate_grpc_not_available(str(e))
                     else:
-                        raise WeaviateStartUpError(f"Could not connect to Weaviate gRPC: {e}") from e
+                        raise WeaviateStartUpError(
+                            f"Could not connect to Weaviate gRPC: {e}"
+                        ) from e
 
             if self.embedded_db is not None:
                 try:
@@ -355,7 +357,7 @@ class ConnectionV4:
         elif response.status_code != 200:
             self.__make_clients()
             return
-            
+
         # At this point we have a 200 response with valid JSON
         if auth_client_secret is not None:
             _auth = await _Auth.use(

@@ -8,7 +8,7 @@ from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions, WEAVIATE_VERSION
-from weaviate.exceptions import WeaviateStartUpError
+from weaviate.exceptions import WeaviateStartUpError, WeaviateInvalidInputError
 from weaviate.validator import _validate_input, _ValidateArgument
 
 
@@ -143,6 +143,10 @@ def connect_to_wcs(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
+    # Check for null cluster_url and raise WeaviateInvalidInputError
+    if cluster_url is None:
+        raise WeaviateInvalidInputError("Argument 'cluster_url' must be one of: [<class 'str'>], but got <class 'NoneType'>.")
+        
     try:
         return connect_to_weaviate_cloud(
             cluster_url, auth_credentials, headers, additional_config, skip_init_checks
@@ -218,7 +222,7 @@ def connect_to_local(
     # This is determined by checking if the port is a mock port (23536)
     if port == 23536 or (isinstance(port, str) and port == "23536"):
         skip_init_checks = True
-        
+
     return __connect(
         WeaviateClient(
             connection_params=ConnectionParams(
@@ -422,6 +426,7 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
         client.close()
         # Don't wrap MissingScopeError in WeaviateStartUpError
         from weaviate.exceptions import MissingScopeError
+
         if isinstance(e, MissingScopeError):
             raise e
         # Wrap any connection errors in WeaviateStartUpError

@@ -334,7 +334,7 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
-        
+
     @staticmethod
     def weaviate_meta_not_available(error: str) -> None:
         warnings.warn(
@@ -343,7 +343,7 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
-        
+
     @staticmethod
     def weaviate_grpc_not_available(error: str) -> None:
         warnings.warn(
