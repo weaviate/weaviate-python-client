@@ -334,6 +334,9 @@ class ConnectionV4:
                 self.__make_clients()
                 return
 
+        # Initialize resp to None to avoid unbound variable error
+        resp = None
+
         if response.status_code == 200:
             # Some setups are behind proxies that return some default page - for example a login - for all requests.
             # If the response is not json, we assume that this is the case and try unauthenticated access. Any auth
@@ -359,7 +362,7 @@ class ConnectionV4:
             return
 
         # At this point we have a 200 response with valid JSON
-        if auth_client_secret is not None:
+        if auth_client_secret is not None and resp is not None:
             _auth = await _Auth.use(
                 oidc_config=resp,
                 credentials=auth_client_secret,
