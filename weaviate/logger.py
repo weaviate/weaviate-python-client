@@ -224,6 +224,13 @@ class GrpcLoggingInterceptor(
     ) -> UnaryUnaryCall:
         """Intercept and log unary-unary gRPC calls (single request, single response)."""
         call = await continuation(client_call_details, request)
-        response = await call
-        log_grpc_event(self._get_method_name(client_call_details), request, response)
+        try:
+            response = await call
+            # Only log if we successfully get a response
+            method_name = self._get_method_name(client_call_details)
+            log_grpc_event(method_name, request, response)
+        except Exception:
+            # If we can't get the response, don't try to log it
+            # This prevents issues during connection initialization
+            pass
         return cast(UnaryUnaryCall, call)
