@@ -209,6 +209,9 @@ class _VectorIndexConfigCUVSCreate(_VectorIndexConfigCreate):
     indexLocation: Optional[CUVSIndexLocation] = Field(default=CUVSIndexLocation.GPU)
     filterDeleteLimit: Optional[int] = Field(default=30)
     extendLimit: Optional[int] = Field(default=20)
+    batchEnabled: Optional[bool] = Field(default=False)
+    batchSize: Optional[int] = Field(default=100)
+    batchMaxWaitMs: Optional[int] = Field(default=10)
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:
@@ -227,6 +230,9 @@ class _VectorIndexConfigCUVSUpdate(_VectorIndexConfigUpdate):
     indexLocation: Optional[CUVSIndexLocation]
     filterDeleteLimit: Optional[int] = None
     extendLimit: Optional[int] = None
+    batchEnabled: Optional[bool] = None
+    batchSize: Optional[int] = None
+    batchMaxWaitMs: Optional[int] = None
 
     @staticmethod
     def vector_index_type() -> VectorIndexType:

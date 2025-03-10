@@ -213,7 +213,10 @@ def __get_cuvs_config(config: Dict[str, Any]) -> _VectorIndexConfigCUVS:
         multi_vector=None,  # CUVS doesn't support multi_vector,
         index_location=CUVSIndexLocation(config["indexLocation"]) if "indexLocation" in config else CUVSIndexLocation.GPU,
         extend_limit=config["extendLimit"],
-        filter_delete_limit=config["filterDeleteLimit"]
+        filter_delete_limit=config["filterDeleteLimit"],
+        batch_enabled=config["batchEnabled"],
+        batch_size=config["batchSize"],
+        batch_max_wait_ms=config["batchMaxWaitMs"]
     )
 
 def __get_vector_index_config(

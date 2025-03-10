@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import weaviate
 from integration.conftest import CollectionFactory
+from .conftest import AsyncCollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
     Reconfigure,
@@ -21,6 +22,7 @@ from weaviate.collections.classes.config import (
 import time
 from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.data import DataObject
+import asyncio
 
 
 
@@ -55,10 +57,6 @@ def test_cuvs_create_config(collection_factory: CollectionFactory) -> None:
     
     # Now verify the configuration
     config = collection.config.get()
-    print("COLLECTION TYPE")
-    print(config)
-    print("TYPE")
-    print(type(config.vector_index_config))
     
     if isinstance(config.vector_index_config, _VectorIndexConfigCUVS):
         assert config.vector_index_config.graph_degree == 32
@@ -176,3 +174,57 @@ def test_cuvs_convert_search(collection_factory: CollectionFactory) -> None:
     assert len(results) == 2
     # First result should be the query vector itself (or very close to it)
     assert results[0].metadata.distance == pytest.approx(0.0, abs=1e-6)
+    
+    
+    
+@pytest.mark.asyncio
+async def test_cuvs_batch_search(async_collection_factory: AsyncCollectionFactory) -> None:
+    """Test vector search with CUVS index."""
+    collection = await async_collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        vector_index_config=Configure.VectorIndex.cuvs(
+            batch_enabled=True),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+    )
+    
+    # Insert test data - CUVS requires at least 32 vectors
+    dim = 1536
+    num_vectors = 1024
+    vectors = [
+        np.random.rand(dim).astype(np.float32) for _ in range(num_vectors)
+        
+    ]
+    
+    objects = []
+    for i in range(num_vectors):
+        objects.append(DataObject(properties={"name": f"item{i}"}, vector=vectors[i]))
+    
+    await collection.data.insert_many(
+        objects=objects
+    )
+    
+    
+    
+    # wait for indexing in case async indexing is enabled
+    time.sleep(3)  
+    
+    futures = []
+    
+    for vector in vectors:
+        futures.append(collection.query.near_vector(
+            vector,
+            limit=2,
+            return_metadata=MetadataQuery(distance=True)
+        ))
+    
+    # Await all futures concurrently
+    results_list = await asyncio.gather(*futures)
+
+    # Process results
+    for results in results_list:
+        assert len(results.objects) == 2
+        # First result should be the query vector itself (or very close to it)
+        assert results.objects[0].metadata.distance == pytest.approx(0.0, abs=1e-6)
+ 

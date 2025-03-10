@@ -1687,6 +1687,9 @@ class _VectorIndexConfigCUVS(_ConfigBase):
     index_location: Optional[CUVSIndexLocation]
     extend_limit: Optional[int]
     filter_delete_limit: Optional[int]
+    batch_enabled: Optional[bool]
+    batch_size: Optional[int]
+    batch_max_wait_ms: Optional[int]
     
     @staticmethod
     def vector_index_type() -> str:
@@ -2279,6 +2282,9 @@ class _VectorIndex:
         index_location: Optional[CUVSIndexLocation] = None,
         filter_delete_limit: Optional[int] = None,
         extend_limit: Optional[int] = None,
+        batch_enabled: Optional[bool] = None,
+        batch_size: Optional[int] = None,
+        batch_max_wait_ms: Optional[int] = None,
     ) -> _VectorIndexConfigCUVSCreate:
         """Create a `_VectorIndexConfigCUVSCreate` object to be used when defining the CUVS vector index configuration of Weaviate.
 
@@ -2312,11 +2318,13 @@ class _VectorIndex:
             itopKSize=itop_k_size,
             searchWidth=search_width,
             indexLocation=index_location,
-            # CUVS doesn't support these features
             quantizer=None,
             multivector=None,
             filterDeleteLimit=filter_delete_limit,
             extendLimit=extend_limit,
+            batchEnabled=batch_enabled,
+            batchSize=batch_size,
+            batchMaxWaitMs=batch_max_wait_ms
         )
 
 
