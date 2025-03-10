@@ -4,9 +4,9 @@ import time
 from typing import Any, Dict, Mapping, Sequence, Tuple, TypeVar, Union, cast, Optional
 from urllib.parse import urlparse
 
-import grpc
+import grpc # type: ignore
 from grpc import ssl_channel_credentials
-from grpc.aio import Channel
+from grpc.aio import Channel # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import Proxies

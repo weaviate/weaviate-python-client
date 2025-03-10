@@ -12,8 +12,8 @@ from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
-from grpc.aio import Channel
-from grpc_health.v1 import health_pb2
+from grpc.aio import Channel # type: ignore
+from grpc_health.v1 import health_pb2 # type: ignore
 
 from httpx import (
     AsyncClient,

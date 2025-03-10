@@ -6,7 +6,7 @@ from json.decoder import JSONDecodeError
 from typing import Tuple, Union, cast
 
 import httpx
-from grpc.aio import AioRpcError
+from grpc.aio import AioRpcError # type: ignore
 
 ERROR_CODE_EXPLANATION = {
     413: """Payload Too Large. Try to decrease the batch size or increase the maximum request size on your weaviate
