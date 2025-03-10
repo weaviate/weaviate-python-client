@@ -321,10 +321,10 @@ class _UsersAsync(_UsersWrapper):
         ret_db = await self._db.get_assigned_roles(user_id)
         return {**ret_oidc, **ret_db}
 
-    # @deprecated(
-    #     """This method is deprecated and will be removed in Q4 25.
-    #             Please use `users.db.assign_roles` and/or `users.oidc.assign_roles` instead."""
-    # )
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25.
+                Please use `users.db.assign_roles` and/or `users.oidc.assign_roles` instead."""
+    )
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Assign roles to a user.
 
@@ -332,13 +332,13 @@ class _UsersAsync(_UsersWrapper):
             role_names: The names of the roles to assign to the user.
             user_id: The user to assign the roles to.
         """
-        await self.oidc.assign_roles(user_id=user_id, role_names=role_names)
-        await self.db.assign_roles(user_id=user_id, role_names=role_names)
+        await self._oidc.assign_roles(user_id=user_id, role_names=role_names)
+        await self._db.assign_roles(user_id=user_id, role_names=role_names)
 
-    # @deprecated(
-    #     """This method is deprecated and will be removed in Q4 25.
-    #             Please use `users.db.revoke_roles` and/or `users.oidc.revoke_roles` instead."""
-    # )
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25.
+                Please use `users.db.revoke_roles` and/or `users.oidc.revoke_roles` instead."""
+    )
     async def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Revoke roles from a user.
 
@@ -346,5 +346,5 @@ class _UsersAsync(_UsersWrapper):
             role_names: The names of the roles to revoke from the user.
             user_id: The user to revoke the roles from.
         """
-        await self.oidc.revoke_roles(user_id=user_id, role_names=role_names)
-        await self.db.revoke_roles(user_id=user_id, role_names=role_names)
+        await self._oidc.revoke_roles(user_id=user_id, role_names=role_names)
+        await self._db.revoke_roles(user_id=user_id, role_names=role_names)
