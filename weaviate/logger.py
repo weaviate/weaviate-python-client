@@ -11,7 +11,7 @@ from typing import (
 
 import grpc
 import httpx
-from grpc.aio import (UnaryUnaryCall)
+from grpc.aio import UnaryUnaryCall
 
 
 def _setup_logger() -> logging.Logger:
