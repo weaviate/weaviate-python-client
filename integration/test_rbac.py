@@ -64,7 +64,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 users_permissions=[],
                 collections_permissions=[
                     CollectionsPermissionOutput(
-                        collection="Test", tenant="*", actions={Actions.Collections.CREATE}
+                        collection="Test", actions={Actions.Collections.CREATE}
                     )
                 ],
                 roles_permissions=[],
