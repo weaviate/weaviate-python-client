@@ -1,6 +1,6 @@
 from weaviate.exceptions import WeaviateAgentsNotInstalledError
 
 try:
-    from weaviate_agents.query import *  # type: ignore[import-not-found]
+    from weaviate_agents.query import *
 except ImportError:
     raise WeaviateAgentsNotInstalledError

@@ -5,7 +5,7 @@ import uuid as uuid_package
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 
 from google.protobuf.struct_pb2 import Struct
-from grpc.aio import AioRpcError
+from grpc.aio import AioRpcError  # type: ignore
 
 from weaviate.collections.classes.batch import (
     ErrorObject,

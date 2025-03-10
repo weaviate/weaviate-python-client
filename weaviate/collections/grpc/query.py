@@ -13,7 +13,7 @@ from typing import (
     cast,
 )
 
-from grpc.aio import AioRpcError
+from grpc.aio import AioRpcError  # type: ignore
 from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config import ConsistencyLevel

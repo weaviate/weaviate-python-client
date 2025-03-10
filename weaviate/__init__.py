@@ -77,7 +77,7 @@ __all__ = [
 ]
 
 try:
-    import weaviate_agents as agents  # type: ignore[import-not-found]
+    import weaviate_agents as agents
 
     sys.modules["weaviate.agents"] = agents
     __all__.append("agents")
