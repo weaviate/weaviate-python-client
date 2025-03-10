@@ -145,8 +145,10 @@ def connect_to_wcs(
     """
     # Check for null cluster_url and raise WeaviateInvalidInputError
     if cluster_url is None:
-        raise WeaviateInvalidInputError("Argument 'cluster_url' must be one of: [<class 'str'>], but got <class 'NoneType'>.")
-        
+        raise WeaviateInvalidInputError(
+            "Argument 'cluster_url' must be one of: [<class 'str'>], but got <class 'NoneType'>."
+        )
+
     try:
         return connect_to_weaviate_cloud(
             cluster_url, auth_credentials, headers, additional_config, skip_init_checks
