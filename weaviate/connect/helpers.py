@@ -8,6 +8,7 @@ from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions, WEAVIATE_VERSION
+from weaviate.exceptions import WeaviateStartUpError
 from weaviate.validator import _validate_input, _ValidateArgument
 
 
@@ -142,9 +143,15 @@ def connect_to_wcs(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
-    return connect_to_weaviate_cloud(
-        cluster_url, auth_credentials, headers, additional_config, skip_init_checks
-    )
+    try:
+        return connect_to_weaviate_cloud(
+            cluster_url, auth_credentials, headers, additional_config, skip_init_checks
+        )
+    except Exception as e:
+        # Ensure we raise WeaviateStartUpError for invalid URLs
+        if not isinstance(e, WeaviateStartUpError):
+            raise WeaviateStartUpError(f"Could not connect to Weaviate Cloud: {str(e)}")
+        raise e
 
 
 def connect_to_local(
@@ -408,6 +415,9 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
         return client
     except Exception as e:
         client.close()
+        # Wrap any connection errors in WeaviateStartUpError
+        if not isinstance(e, WeaviateStartUpError):
+            raise WeaviateStartUpError(f"Could not connect to Weaviate: {str(e)}")
         raise e
 
 
