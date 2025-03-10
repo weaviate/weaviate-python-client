@@ -12,7 +12,7 @@ from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLRe
 from weaviate.integrations import _Integrations
 
 from .auth import AuthCredentials
-from .config import AdditionalConfig, ConnectionConfig, Proxies, Timeout
+from .config import AdditionalConfig
 from .connect import ConnectionV4
 from .connect.base import (
     ConnectionParams,
