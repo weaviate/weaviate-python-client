@@ -309,7 +309,7 @@ class _DataCollectionAsync(Generic[Properties], _Data):
             The UUID of the inserted object.
 
         Raises:
-            eaviate.exceptions.UnexpectedStatusCodeError: If any unexpected error occurs during the insert operatio, for example the given UUID already exists.
+            weaviate.exceptions.UnexpectedStatusCodeError: If any unexpected error occurs during the insert operatio, for example the given UUID already exists.
         """
         if self._validate_arguments:
             _validate_input(
@@ -407,9 +407,9 @@ class _DataCollectionAsync(Generic[Properties], _Data):
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.exceptions.WeaviateInvalidInputError: If any of the arguments are invalid.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
             weaviate.exceptions.WeaviateInsertInvalidPropertyError: If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
         if self._validate_arguments:
@@ -485,8 +485,8 @@ class _DataCollectionAsync(Generic[Properties], _Data):
             to: The reference to add, REQUIRED.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         if self._validate_arguments:
             _validate_input(
@@ -514,7 +514,7 @@ class _DataCollectionAsync(Generic[Properties], _Data):
             A `BatchReferenceReturn` object containing the results of the batch operation.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
             weaviate.UnexpectedStatusCodeErro: If Weaviate reports a non-OK status.
         """
         return await self._reference_add_many(refs)
@@ -642,8 +642,8 @@ class _DataCollectionAsync(Generic[Properties], _Data):
                 but the response will contain the objects that would have been deleted.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _ValidateArgument(expected=[_Filters], name="where", value=where)
         return await self._batch_delete_grpc.batch_delete(

@@ -127,8 +127,8 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
             The list of shards belonging to this collection.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
             weaviate.EmptyResponseError: If the response is empty.
         """
         return [

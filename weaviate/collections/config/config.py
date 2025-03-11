@@ -71,8 +71,8 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             simple: If True, return a simplified version of the configuration containing only name and properties.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
         if simple:
@@ -139,9 +139,9 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
                 Only `auto_tenant_creation` is supported.
 
         Raises:
-            weaviate.WeaviateInvalidInputError: If the input parameters are invalid.
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
 
         NOTE:
             - If you wish to update a specific option within the configuration and cannot find it in `CollectionConfigUpdate` then it is an immutable option.
@@ -243,8 +243,8 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             A list of objects containing the statuses of the shards.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         return await self.__get_shards()
 
@@ -263,8 +263,8 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             All updated shards indexed by their name.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         if shard_names is None:
             shards_config = await self.__get_shards()
@@ -297,9 +297,9 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             prop: The property to add to the collection.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
-            weaviate.WeaviateInvalidInputError: If the property already exists in the collection.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the property already exists in the collection.
         """
         _validate_input([_ValidateArgument(expected=[Property], name="prop", value=prop)])
         if await self._property_exists(prop.name):
@@ -317,9 +317,9 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             ref: The reference to add to the collection.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
-            weaviate.WeaviateInvalidInputError: If the reference already exists in the collection.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the reference already exists in the collection.
         """
         _validate_input(
             [

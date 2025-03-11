@@ -66,8 +66,8 @@ class _ClusterAsync(_ClusterBase):
             List of nodes and their respective status.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
             weaviate.EmptyResponseError: If the response is empty.
         """
         path = "/nodes"
