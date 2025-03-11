@@ -84,6 +84,7 @@ class GenerativeProvider(_message.Message):
         "google",
         "databricks",
         "friendliai",
+        "nvidia",
     )
     RETURN_METADATA_FIELD_NUMBER: _ClassVar[int]
     ANTHROPIC_FIELD_NUMBER: _ClassVar[int]
@@ -97,6 +98,7 @@ class GenerativeProvider(_message.Message):
     GOOGLE_FIELD_NUMBER: _ClassVar[int]
     DATABRICKS_FIELD_NUMBER: _ClassVar[int]
     FRIENDLIAI_FIELD_NUMBER: _ClassVar[int]
+    NVIDIA_FIELD_NUMBER: _ClassVar[int]
     return_metadata: bool
     anthropic: GenerativeAnthropic
     anyscale: GenerativeAnyscale
@@ -109,6 +111,7 @@ class GenerativeProvider(_message.Message):
     google: GenerativeGoogle
     databricks: GenerativeDatabricks
     friendliai: GenerativeFriendliAI
+    nvidia: GenerativeNvidia
     def __init__(
         self,
         return_metadata: bool = ...,
@@ -123,6 +126,7 @@ class GenerativeProvider(_message.Message):
         google: _Optional[_Union[GenerativeGoogle, _Mapping]] = ...,
         databricks: _Optional[_Union[GenerativeDatabricks, _Mapping]] = ...,
         friendliai: _Optional[_Union[GenerativeFriendliAI, _Mapping]] = ...,
+        nvidia: _Optional[_Union[GenerativeNvidia, _Mapping]] = ...,
     ) -> None: ...
 
 class GenerativeAnthropic(_message.Message):
@@ -134,6 +138,8 @@ class GenerativeAnthropic(_message.Message):
         "top_k",
         "top_p",
         "stop_sequences",
+        "images",
+        "image_properties",
     )
     BASE_URL_FIELD_NUMBER: _ClassVar[int]
     MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -142,6 +148,8 @@ class GenerativeAnthropic(_message.Message):
     TOP_K_FIELD_NUMBER: _ClassVar[int]
     TOP_P_FIELD_NUMBER: _ClassVar[int]
     STOP_SEQUENCES_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     base_url: str
     max_tokens: int
     model: str
@@ -149,6 +157,8 @@ class GenerativeAnthropic(_message.Message):
     top_k: int
     top_p: float
     stop_sequences: _base_pb2.TextArray
+    images: _base_pb2.TextArray
+    image_properties: _base_pb2.TextArray
     def __init__(
         self,
         base_url: _Optional[str] = ...,
@@ -158,6 +168,8 @@ class GenerativeAnthropic(_message.Message):
         top_k: _Optional[int] = ...,
         top_p: _Optional[float] = ...,
         stop_sequences: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
+        images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
+        image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
     ) -> None: ...
 
 class GenerativeAnyscale(_message.Message):
@@ -184,6 +196,8 @@ class GenerativeAWS(_message.Message):
         "endpoint",
         "target_model",
         "target_variant",
+        "images",
+        "image_properties",
     )
     MODEL_FIELD_NUMBER: _ClassVar[int]
     TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
@@ -192,6 +206,8 @@ class GenerativeAWS(_message.Message):
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     TARGET_MODEL_FIELD_NUMBER: _ClassVar[int]
     TARGET_VARIANT_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     model: str
     temperature: float
     service: str
@@ -199,6 +215,8 @@ class GenerativeAWS(_message.Message):
     endpoint: str
     target_model: str
     target_variant: str
+    images: _base_pb2.TextArray
+    image_properties: _base_pb2.TextArray
     def __init__(
         self,
         model: _Optional[str] = ...,
@@ -208,6 +226,8 @@ class GenerativeAWS(_message.Message):
         endpoint: _Optional[str] = ...,
         target_model: _Optional[str] = ...,
         target_variant: _Optional[str] = ...,
+        images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
+        image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
     ) -> None: ...
 
 class GenerativeCohere(_message.Message):
@@ -279,18 +299,24 @@ class GenerativeMistral(_message.Message):
     ) -> None: ...
 
 class GenerativeOllama(_message.Message):
-    __slots__ = ("api_endpoint", "model", "temperature")
+    __slots__ = ("api_endpoint", "model", "temperature", "images", "image_properties")
     API_ENDPOINT_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     api_endpoint: str
     model: str
     temperature: float
+    images: _base_pb2.TextArray
+    image_properties: _base_pb2.TextArray
     def __init__(
         self,
         api_endpoint: _Optional[str] = ...,
         model: _Optional[str] = ...,
         temperature: _Optional[float] = ...,
+        images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
+        image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
     ) -> None: ...
 
 class GenerativeOpenAI(_message.Message):
@@ -308,6 +334,8 @@ class GenerativeOpenAI(_message.Message):
         "resource_name",
         "deployment_id",
         "is_azure",
+        "images",
+        "image_properties",
     )
     FREQUENCY_PENALTY_FIELD_NUMBER: _ClassVar[int]
     MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -322,6 +350,8 @@ class GenerativeOpenAI(_message.Message):
     RESOURCE_NAME_FIELD_NUMBER: _ClassVar[int]
     DEPLOYMENT_ID_FIELD_NUMBER: _ClassVar[int]
     IS_AZURE_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     frequency_penalty: float
     max_tokens: int
     model: str
@@ -335,6 +365,8 @@ class GenerativeOpenAI(_message.Message):
     resource_name: str
     deployment_id: str
     is_azure: bool
+    images: _base_pb2.TextArray
+    image_properties: _base_pb2.TextArray
     def __init__(
         self,
         frequency_penalty: _Optional[float] = ...,
@@ -350,6 +382,8 @@ class GenerativeOpenAI(_message.Message):
         resource_name: _Optional[str] = ...,
         deployment_id: _Optional[str] = ...,
         is_azure: bool = ...,
+        images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
+        image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
     ) -> None: ...
 
 class GenerativeGoogle(_message.Message):
@@ -366,6 +400,8 @@ class GenerativeGoogle(_message.Message):
         "project_id",
         "endpoint_id",
         "region",
+        "images",
+        "image_properties",
     )
     FREQUENCY_PENALTY_FIELD_NUMBER: _ClassVar[int]
     MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -379,6 +415,8 @@ class GenerativeGoogle(_message.Message):
     PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
     ENDPOINT_ID_FIELD_NUMBER: _ClassVar[int]
     REGION_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     frequency_penalty: float
     max_tokens: int
     model: str
@@ -391,6 +429,8 @@ class GenerativeGoogle(_message.Message):
     project_id: str
     endpoint_id: str
     region: str
+    images: _base_pb2.TextArray
+    image_properties: _base_pb2.TextArray
     def __init__(
         self,
         frequency_penalty: _Optional[float] = ...,
@@ -405,6 +445,8 @@ class GenerativeGoogle(_message.Message):
         project_id: _Optional[str] = ...,
         endpoint_id: _Optional[str] = ...,
         region: _Optional[str] = ...,
+        images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
+        image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
     ) -> None: ...
 
 class GenerativeDatabricks(_message.Message):
@@ -480,6 +522,27 @@ class GenerativeFriendliAI(_message.Message):
         temperature: _Optional[float] = ...,
         n: _Optional[int] = ...,
         top_p: _Optional[float] = ...,
+    ) -> None: ...
+
+class GenerativeNvidia(_message.Message):
+    __slots__ = ("base_url", "model", "temperature", "top_p", "max_tokens")
+    BASE_URL_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    TOP_P_FIELD_NUMBER: _ClassVar[int]
+    MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    base_url: str
+    model: str
+    temperature: float
+    top_p: float
+    max_tokens: int
+    def __init__(
+        self,
+        base_url: _Optional[str] = ...,
+        model: _Optional[str] = ...,
+        temperature: _Optional[float] = ...,
+        top_p: _Optional[float] = ...,
+        max_tokens: _Optional[int] = ...,
     ) -> None: ...
 
 class GenerativeAnthropicMetadata(_message.Message):
@@ -742,6 +805,30 @@ class GenerativeFriendliAIMetadata(_message.Message):
         self, usage: _Optional[_Union[GenerativeFriendliAIMetadata.Usage, _Mapping]] = ...
     ) -> None: ...
 
+class GenerativeNvidiaMetadata(_message.Message):
+    __slots__ = ("usage",)
+
+    class Usage(_message.Message):
+        __slots__ = ("prompt_tokens", "completion_tokens", "total_tokens")
+        PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+        COMPLETION_TOKENS_FIELD_NUMBER: _ClassVar[int]
+        TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
+        prompt_tokens: int
+        completion_tokens: int
+        total_tokens: int
+        def __init__(
+            self,
+            prompt_tokens: _Optional[int] = ...,
+            completion_tokens: _Optional[int] = ...,
+            total_tokens: _Optional[int] = ...,
+        ) -> None: ...
+
+    USAGE_FIELD_NUMBER: _ClassVar[int]
+    usage: GenerativeNvidiaMetadata.Usage
+    def __init__(
+        self, usage: _Optional[_Union[GenerativeNvidiaMetadata.Usage, _Mapping]] = ...
+    ) -> None: ...
+
 class GenerativeMetadata(_message.Message):
     __slots__ = (
         "anthropic",
@@ -755,6 +842,7 @@ class GenerativeMetadata(_message.Message):
         "google",
         "databricks",
         "friendliai",
+        "nvidia",
     )
     ANTHROPIC_FIELD_NUMBER: _ClassVar[int]
     ANYSCALE_FIELD_NUMBER: _ClassVar[int]
@@ -767,6 +855,7 @@ class GenerativeMetadata(_message.Message):
     GOOGLE_FIELD_NUMBER: _ClassVar[int]
     DATABRICKS_FIELD_NUMBER: _ClassVar[int]
     FRIENDLIAI_FIELD_NUMBER: _ClassVar[int]
+    NVIDIA_FIELD_NUMBER: _ClassVar[int]
     anthropic: GenerativeAnthropicMetadata
     anyscale: GenerativeAnyscaleMetadata
     aws: GenerativeAWSMetadata
@@ -778,6 +867,7 @@ class GenerativeMetadata(_message.Message):
     google: GenerativeGoogleMetadata
     databricks: GenerativeDatabricksMetadata
     friendliai: GenerativeFriendliAIMetadata
+    nvidia: GenerativeNvidiaMetadata
     def __init__(
         self,
         anthropic: _Optional[_Union[GenerativeAnthropicMetadata, _Mapping]] = ...,
@@ -791,6 +881,7 @@ class GenerativeMetadata(_message.Message):
         google: _Optional[_Union[GenerativeGoogleMetadata, _Mapping]] = ...,
         databricks: _Optional[_Union[GenerativeDatabricksMetadata, _Mapping]] = ...,
         friendliai: _Optional[_Union[GenerativeFriendliAIMetadata, _Mapping]] = ...,
+        nvidia: _Optional[_Union[GenerativeNvidiaMetadata, _Mapping]] = ...,
     ) -> None: ...
 
 class GenerativeReply(_message.Message):

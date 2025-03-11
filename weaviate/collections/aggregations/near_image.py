@@ -1,9 +1,7 @@
-from io import BufferedReader
-from pathlib import Path
 from typing import Optional, Union
 
 from weaviate import syncify
-from weaviate.collections.aggregations.aggregate import _AggregateAsync, _parse_media
+from weaviate.collections.aggregations.aggregate import _AggregateAsync
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -12,13 +10,14 @@ from weaviate.collections.classes.aggregate import (
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
-from weaviate.types import NUMBER
+from weaviate.types import BLOB_INPUT, NUMBER
+from weaviate.util import parse_blob
 
 
 class _NearImageAsync(_AggregateAsync):
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -88,7 +87,7 @@ class _NearImageAsync(_AggregateAsync):
         else:
             # use grpc
             reply = await self._grpc.near_media(
-                media=_parse_media(near_image),
+                media=parse_blob(near_image),
                 type_="image",
                 certainty=certainty,
                 distance=distance,

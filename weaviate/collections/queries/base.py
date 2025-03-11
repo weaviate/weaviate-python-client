@@ -1,7 +1,4 @@
 import datetime
-import io
-import os
-import pathlib
 import uuid as uuid_lib
 from typing import Any, Dict, Generic, List, Optional, Sequence, Type, Union, cast
 
@@ -28,6 +25,9 @@ from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
     GenerativeReturn,
     GenerativeGroupByReturn,
+    GenerativeSingle,
+    GenerativeGrouped,
+    GenerativeMetadata,
     GroupByReturn,
     GroupByReturnType,
     Group,
@@ -52,9 +52,9 @@ from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
+from weaviate.proto.v1 import base_pb2, generative_pb2, search_get_pb2, properties_pb2
 from weaviate.types import INCLUDE_VECTOR
-from weaviate.util import file_encoder_b64, _datetime_from_weaviate_str
+from weaviate.util import _datetime_from_weaviate_str
 from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
@@ -84,12 +84,16 @@ class _Base(Generic[Properties, References]):
         self._references = references
         self._validate_arguments = validate_arguments
 
+        self.__uses_125_api = self._connection._weaviate_version.is_at_least(1, 25, 0)
+        self.__uses_127_api = self._connection._weaviate_version.is_at_least(1, 27, 0)
         self._query = _QueryGRPC(
             self._connection,
             self._name,
             self.__tenant,
             self.__consistency_level,
             validate_arguments=self._validate_arguments,
+            uses_125_api=self.__uses_125_api,
+            uses_127_api=self.__uses_127_api,
         )
 
     def __retrieve_timestamp(
@@ -165,11 +169,77 @@ class _Base(Generic[Properties, References]):
                 vecs[vec.name] = _Unpack.single(vec.vector_bytes)
         return vecs
 
-    def __extract_generated_for_object(
+    def __extract_generated_from_metadata(
         self,
-        add_props: "search_get_pb2.MetadataResult",
+        add_props: search_get_pb2.MetadataResult,
     ) -> Optional[str]:
         return add_props.generative if add_props.generative_present else None
+
+    def __extract_generated_from_generative(
+        self, generative: generative_pb2.GenerativeResult
+    ) -> Optional[str]:
+        return generative.values[0].result if len(generative.values) > 0 else None
+
+    def __extract_generated_from_reply(self, res: search_get_pb2.SearchReply) -> Optional[str]:
+        if (
+            res.generative_grouped_result != ""
+        ):  # for BC, is deprecated in favour of generative_grouped_results
+            return res.generative_grouped_result
+        if len(res.generative_grouped_results.values) > 0:
+            return res.generative_grouped_results.values[0].result
+        return None
+
+    def __extract_generative_metadata(
+        self, metadata: generative_pb2.GenerativeMetadata
+    ) -> Optional[GenerativeMetadata]:
+        if metadata.HasField("anthropic"):
+            return metadata.anthropic
+        if metadata.HasField("anyscale"):
+            return metadata.anyscale
+        if metadata.HasField("aws"):
+            return metadata.aws
+        if metadata.HasField("cohere"):
+            return metadata.cohere
+        if metadata.HasField("databricks"):
+            return metadata.databricks
+        if metadata.HasField("dummy"):
+            return metadata.dummy
+        if metadata.HasField("friendliai"):
+            return metadata.friendliai
+        if metadata.HasField("google"):
+            return metadata.google
+        if metadata.HasField("mistral"):
+            return metadata.mistral
+        if metadata.HasField("nvidia"):
+            return metadata.nvidia
+        if metadata.HasField("ollama"):
+            return metadata.ollama
+        if metadata.HasField("openai"):
+            return metadata.openai
+        return None
+
+    def __extract_generative_single_from_generative(
+        self, result: generative_pb2.GenerativeResult
+    ) -> Optional[GenerativeSingle]:
+        if len(vs := result.values) > 0:
+            generative = vs[0]
+            return GenerativeSingle(
+                debug=generative.debug if generative.debug.full_prompt != "" else None,
+                metadata=self.__extract_generative_metadata(generative.metadata),
+                text=generative.result,
+            )
+        return None
+
+    def __extract_generative_grouped_from_generative(
+        self, result: generative_pb2.GenerativeResult
+    ) -> Optional[GenerativeGrouped]:
+        if len(vs := result.values) > 0:
+            generative = vs[0]
+            return GenerativeGrouped(
+                metadata=self.__extract_generative_metadata(generative.metadata),
+                text=generative.result,
+            )
+        return None
 
     def __deserialize_list_value_prop_125(
         self, value: properties_pb2.ListValue
@@ -306,6 +376,7 @@ class _Base(Generic[Properties, References]):
         self,
         props: search_get_pb2.PropertiesResult,
         meta: search_get_pb2.MetadataResult,
+        gen: generative_pb2.GenerativeResult,
         options: _QueryOptions,
     ) -> GenerativeObject[Any, Any]:
         return GenerativeObject(
@@ -325,7 +396,12 @@ class _Base(Generic[Properties, References]):
             ),
             uuid=self.__extract_id_for_object(meta),
             vector=self.__extract_vector_for_object(meta) if options.include_vector else {},
-            generated=self.__extract_generated_for_object(meta),
+            generated=(
+                self.__extract_generated_from_generative(gen)
+                if self.__uses_127_api
+                else self.__extract_generated_from_metadata(meta)
+            ),
+            generative=self.__extract_generative_single_from_generative(gen),
         )
 
     def __result_to_group(
@@ -434,12 +510,15 @@ class _Base(Generic[Properties, References]):
         GenerativeReturn[TProperties, TReferences],
     ]:
         return GenerativeReturn(
+            generated=self.__extract_generated_from_reply(res),
             objects=[
-                self.__result_to_generative_object(obj.properties, obj.metadata, options)
+                self.__result_to_generative_object(
+                    obj.properties, obj.metadata, obj.generative, options
+                )
                 for obj in res.results
             ],
-            generated=(
-                res.generative_grouped_result if res.generative_grouped_result != "" else None
+            generative=self.__extract_generative_grouped_from_generative(
+                res.generative_grouped_results
             ),
         )
 
@@ -622,17 +701,3 @@ class _Base(Generic[Properties, References]):
                     f"return_references must only be a TypedDict or ReturnReferences within this context but is {type(return_references)}"
                 )
             return _extract_references_from_data_model(return_references)
-
-    @staticmethod
-    def _parse_media(media: Union[str, pathlib.Path, io.BufferedReader]) -> str:
-        if isinstance(media, str):  # if already encoded by user or string to path
-            if os.path.isfile(media):
-                return file_encoder_b64(media)
-            else:
-                return media
-        elif isinstance(media, pathlib.Path) or isinstance(media, io.BufferedReader):
-            return file_encoder_b64(media)
-        else:
-            raise WeaviateInvalidInputError(
-                f"media must be a string, pathlib.Path, or io.BufferedReader but is {type(media)}"
-            )
