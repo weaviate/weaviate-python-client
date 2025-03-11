@@ -1676,6 +1676,7 @@ VectorIndexConfigDynamic = _VectorIndexConfigDynamic
 
 @dataclass
 class _VectorIndexConfigCUVS(_ConfigBase):
+    distance_metric: VectorDistances
     graph_degree: Optional[int]
     intermediate_graph_degree: Optional[int]
     build_algo: Optional[CUVSBuildAlgo]

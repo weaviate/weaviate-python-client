@@ -18,6 +18,7 @@ from weaviate.collections.classes.config import (
     CUVSIndexLocation,
     VectorIndexConfigCUVS,
     _VectorIndexConfigCUVS,
+    VectorDistances,
 )
 import time
 from weaviate.collections.classes.grpc import MetadataQuery

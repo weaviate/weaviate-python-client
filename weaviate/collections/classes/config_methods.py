@@ -195,6 +195,7 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
 def __get_cuvs_config(config: Dict[str, Any]) -> _VectorIndexConfigCUVS:
     """Parse CUVS vector index configuration from JSON schema."""
     return _VectorIndexConfigCUVS(
+        distance_metric=VectorDistances(config["distance"]),
         graph_degree=config["graphDegree"],
         intermediate_graph_degree=config["intermediateGraphDegree"],
         build_algo=(
@@ -216,7 +217,8 @@ def __get_cuvs_config(config: Dict[str, Any]) -> _VectorIndexConfigCUVS:
         filter_delete_limit=config["filterDeleteLimit"],
         batch_enabled=config["batchEnabled"],
         batch_size=config["batchSize"],
-        batch_max_wait_ms=config["batchMaxWaitMs"]
+        batch_max_wait_ms=config["batchMaxWaitMs"],
+        
     )
 
 def __get_vector_index_config(
