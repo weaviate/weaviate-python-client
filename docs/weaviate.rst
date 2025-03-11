@@ -5,6 +5,7 @@ weaviate
    :members:
    :exclude-members: Client,BatchClient,ClientBatchingContextManager
    :undoc-members:
+   :inherited-members:
 
 Subpackages
 -----------
