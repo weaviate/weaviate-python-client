@@ -1032,7 +1032,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
             model="grok-2-latest",
             max_tokens=100,
             temperature=0.5,
-            top_p=0.5,
             base_url="https://api.x.ai/v1",
         ),
         {
@@ -1040,7 +1039,6 @@ TEST_CONFIG_WITH_GENERATIVE = [
                 "model": "grok-2-latest",
                 "maxTokensProperty": 100,
                 "temperatureProperty": 0.5,
-                "topPProperty": 0.5,
                 "baseURL": "https://api.x.ai/v1",
             }
         },
