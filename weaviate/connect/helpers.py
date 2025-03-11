@@ -486,10 +486,17 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
             WeaviateGRPCUnavailableError,
             WeaviateClosedClientError,
             AuthenticationFailedError,
+            UnexpectedStatusCodeError,
         )
 
         if isinstance(
-            e, (MissingScopeError, WeaviateGRPCUnavailableError, WeaviateClosedClientError)
+            e,
+            (
+                MissingScopeError,
+                WeaviateGRPCUnavailableError,
+                WeaviateClosedClientError,
+                UnexpectedStatusCodeError,
+            ),
         ):
             raise e
 
