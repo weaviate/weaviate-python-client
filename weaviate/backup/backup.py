@@ -119,38 +119,24 @@ class _BackupAsync:
     ) -> BackupReturn:
         """Create a backup of all/per collection Weaviate objects.
 
-        Parameters
-        ----------
-        backup_id : str
-            The identifier name of the backup.
-            NOTE: Case insensitive.
-        backend : BackupStorage
-            The backend storage where to create the backup.
-        include_collections : Union[List[str], str], optional
-            The collection/list of collections to be included in the backup. If not specified all
-            collections will be included. Either `include_collections` or `exclude_collections` can be set. By default None.
-        exclude_collections : Union[List[str], str], optional
-            The collection/list of collections to be excluded in the backup.
-            Either `include_collections` or `exclude_collections` can be set. By default None.
-        wait_for_completion : bool, optional
-            Whether to wait until the backup is done. By default False.
-        config: BackupConfigCreate, optional
-            The configuration of the backup creation. By default None.
-        backup_location:
-            The dynamic location of a backup. By default None.
+        Args:
+            backup_id: The identifier name of the backup. NOTE: Case insensitive.
+            backend: The backend storage where to create the backup.
+            include_collections: The collection/list of collections to be included in the backup. If not specified all
+                collections will be included. Either `include_collections` or `exclude_collections` can be set. By default None.
+            exclude_collections: The collection/list of collections to be excluded in the backup.
+                Either `include_collections` or `exclude_collections` can be set. By default None.
+            wait_for_completion: Whether to wait until the backup is done. By default False.
+            config: The configuration of the backup creation. By default None.
+            backup_location: The dynamic location of a backup. By default None.
 
-        Returns
-        -------
-         A `_BackupReturn` object that contains the backup creation response.
+        Returns:
+             A `_BackupReturn` object that contains the backup creation response.
 
-        Raises
-        ------
-        requests.ConnectionError
-            If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
-        TypeError
-            One of the arguments have a wrong type.
+        Raises:
+            requests.ConnectionError: If the network connection to weaviate fails.
+            weaviate.UnexpectedStatusCodeException: If weaviate reports a none OK status.
+            TypeError: One of the arguments have a wrong type.
         """
         (
             backup_id,
@@ -266,19 +252,13 @@ class _BackupAsync:
         """
         Checks if a started backup job has completed.
 
-        Parameters
-        ----------
-        backup_id : str
-            The identifier name of the backup.
-            NOTE: Case insensitive.
-        backend : BackupStorage eNUM
-            The backend storage where the backup was created.
-        backup_location: BackupLocationType
-            The dynamic location of a backup. By default None.
+        Args:
+            backup_id: The identifier name of the backup. NOTE: Case insensitive.
+            backend: The backend storage where the backup was created.
+            backup_location: The dynamic location of a backup. By default None.
 
-        Returns
-        -------
-         A `BackupStatusReturn` object that contains the backup creation status response.
+        Returns:
+            A `BackupStatusReturn` object that contains the backup creation status response.
         """
         return await self.__get_create_status(backup_id, backend, backup_location)
 
@@ -295,37 +275,24 @@ class _BackupAsync:
         """
         Restore a backup of all/per collection Weaviate objects.
 
-        Parameters
-        ----------
-        backup_id : str
-            The identifier name of the backup.
-            NOTE: Case insensitive.
-        backend : BackupStorage
-            The backend storage from where to restore the backup.
-        include_collections : Union[List[str], str], optional
-            The collection/list of collections to be included in the backup restore. If not specified all
-            collections will be included (that were backup-ed). Either `include_collections` or
-            `exclude_collections` can be set. By default None.
-        exclude_collections : Union[List[str], str], optional
-            The collection/list of collections to be excluded in the backup restore.
-            Either `include_collections` or `exclude_collections` can be set. By default None.
-        wait_for_completion : bool, optional
-            Whether to wait until the backup restore is done.
-        config: BackupConfigRestore, optional
-            The configuration of the backup restoration. By default None.
-        backup_location:
-            The dynamic location of a backup. By default None.
+        Args:
+            backup_id: The identifier name of the backup. NOTE: Case insensitive.
+            backend: The backend storage from where to restore the backup.
+            include_collections: The collection/list of collections to be included in the backup restore. If not specified all
+                collections will be included (that were backup-ed). Either `include_collections` or
+                `exclude_collections` can be set. By default None.
+            exclude_collections: The collection/list of collections to be excluded in the backup restore.
+                Either `include_collections` or `exclude_collections` can be set. By default None.
+            wait_for_completion: Whether to wait until the backup restore is done.
+            config: The configuration of the backup restoration. By default None.
+            backup_location: The dynamic location of a backup. By default None.
 
-        Returns
-        -------
-         A `BackupReturn` object that contains the backup restore response.
+        Returns:
+            A `BackupReturn` object that contains the backup restore response.
 
-        Raises
-        ------
-        requests.ConnectionError
-            If the network connection to weaviate fails.
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+        Raises:
+            requests.ConnectionError: If the network connection to weaviate fails.
+            weaviate.UnexpectedStatusCodeException: If weaviate reports a none OK status.
         """
         (
             backup_id,
@@ -438,19 +405,13 @@ class _BackupAsync:
         """
         Checks if a started restore job has completed.
 
-        Parameters
-        ----------
-        backup_id:
-            The identifier name of the backup.
-            NOTE: Case insensitive.
-        backend:
-            The backend storage where to create the backup.
-        backup_location:
-            The dynamic location of a backup. By default None.
+        Args:
+            backup_id: The identifier name of the backup. NOTE: Case insensitive.
+            backend: The backend storage where to create the backup.
+            backup_location: The dynamic location of a backup. By default None.
 
-        Returns
-        -------
-         A `BackupStatusReturn` object that contains the backup restore status response.
+        Returns:
+            A `BackupStatusReturn` object that contains the backup restore status response.
         """
         return await self.__get_restore_status(backup_id, backend, backup_location)
 
@@ -500,24 +461,16 @@ class _BackupAsync:
         """
         Cancels a running backup.
 
-        Parameters
-        ----------
-        backup_id:
-            The identifier name of the backup.
-            NOTE: Case insensitive.
-        backend:
-            The backend storage where to create the backup.
-        backup_location:
-            The dynamic location of a backup. By default None.
+        Args:
+            backup_id: The identifier name of the backup. NOTE: Case insensitive.
+            backend: The backend storage where to create the backup.
+            backup_location: The dynamic location of a backup. By default None.
 
-        Raises
-        ------
-        weaviate.UnexpectedStatusCodeException
-            If weaviate reports a none OK status.
+        Raises:
+            weaviate.UnexpectedStatusCodeException: If weaviate reports a none OK status.
 
-        Returns
-        -------
-         A bool indicating if the cancellation was successful.
+        Returns:
+            A bool indicating if the cancellation was successful.
         """
         return await self.__cancel_backup(backup_id, backend, backup_location)
 
@@ -538,14 +491,11 @@ class _BackupAsync:
     #     """
     #     List all backups that are currently in progress.
     #
-    #     Parameters
-    #     ----------
-    #     backend : BackupStorage
-    #         The backend storage where to create the backup.
+    #     Args:
+    #         backend: The backend storage where to create the backup.
     #
-    #     Returns
-    #     -------
-    #      A list of `BackupStatusReturn` objects that contain the backup restore status responses.
+    #     Returns:
+    #         A list of `BackupStatusReturn` objects that contain the backup restore status responses.
     #     """
     #     return await self.__list_backups(backend)
 
@@ -560,33 +510,21 @@ def _get_and_validate_create_restore_arguments(
     """
     Validate and return the Backup.create/Backup.restore arguments.
 
-    Parameters
-    ----------
-    backup_id : str
-        The identifier name of the backup.
-    backend : str
-        The backend storage. Currently available options are:
-            "filesystem", "s3", "gcs" and "azure".
-    include_classes : Union[List[str], str, None]
-        The class/list of classes to be included in the backup. If not specified all classes
-        will be included. Either `include_classes` or `exclude_classes` can be set.
-    exclude_classes : Union[List[str], str, None]
-        The class/list of classes to be excluded from the backup.
-        Either `include_classes` or `exclude_classes` can be set.
-    wait_for_completion : bool
-        Whether to wait until the backup restore is done.
+    Args:
+        backup_id: The identifier name of the backup.
+        backend: The backend storage. Currently available options are: "filesystem", "s3", "gcs" and "azure".
+        include_classes: The class/list of classes to be included in the backup. If not specified all classes
+            will be included. Either `include_classes` or `exclude_classes` can be set.
+        exclude_classes: The class/list of classes to be excluded from the backup.
+            Either `include_classes` or `exclude_classes` can be set.
+        wait_for_completion: Whether to wait until the backup restore is done.
 
-    Returns
-    -------
-    Tuple[str, str, List[str], List[str]]
+    Returns:
         Validated and processed (backup_id, backend, include_classes, exclude_classes).
 
-    Raises
-    ------
-    TypeError
-        One of the arguments have a wrong type.
-    ValueError
-        'backend' does not have an accepted value.
+    Raises:
+        TypeError: If one of the arguments have a wrong type.
+        ValueError: If 'backend' does not have an accepted value.
     """
 
     if not isinstance(backup_id, str):
@@ -642,24 +580,16 @@ def _get_and_validate_get_status(
     """
     Checks if a started classification job has completed.
 
-    Parameters
-    ----------
-    backup_id : str
-        The identifier name of the backup.
-        NOTE: Case insensitive.
-    backend : str
-        The backend storage where to create the backup. Currently available options are:
+    Args:
+        backup_id: The identifier name of the backup. NOTE: Case insensitive.
+        backend: The backend storage where to create the backup. Currently available options are:
             "filesystem", "s3", "gcs" and "azure".
 
-    Returns
-    -------
-    Tuple[str, str]
+    Returns:
         Validated and processed (backup_id, backend, include_classes, exclude_classes).
 
-    Raises
-    ------
-    TypeError
-        One of the arguments is of a wrong type.
+    Raises:
+    TypeError: One of the arguments is of a wrong type.
     """
 
     if not isinstance(backup_id, str):

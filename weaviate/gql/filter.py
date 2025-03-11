@@ -81,9 +81,7 @@ class GraphQL(ABC):
         Build method to be overloaded by the child classes. It should return the
         GraphQL query as a str.
 
-        Returns
-        -------
-        str
+        Returns:
             The query.
         """
 
@@ -97,10 +95,8 @@ class Filter(ABC):
         """
         Initialize a Filter class instance.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `Filter` clause.
+        Args:
+            content: The content of the `Filter` clause.
         """
 
         if not isinstance(content, dict):
@@ -131,17 +127,12 @@ class NearText(Filter):
         """
         Initialize a NearText class instance.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearText` clause.
+        Args:
+            content: The content of the `nearText` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
 
         super().__init__(content)
@@ -205,23 +196,15 @@ class NearVector(Filter):
         """
         Initialize a NearVector class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `nearVector` clause.
+        Args:
+            content: The content of the `nearVector` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        KeyError
-            If 'content' does not contain "vector".
-        TypeError
-            If 'content["vector"]' is not of type list.
-        AttributeError
-            If invalid 'content' keys are provided.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            KeyError: If 'content' does not contain "vector".
+            TypeError: If 'content["vector"]' is not of type list.
+            AttributeError: If invalid 'content' keys are provided.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
 
         super().__init__(content)
@@ -262,21 +245,14 @@ class NearObject(Filter):
         """
         Initialize a NearVector class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `nearVector` clause.
-        is_server_version_14 : bool
-            Whether the Server version is >= 1.14.0.
+        Args:
+            content: The content of the `nearVector` clause.
+            is_server_version_14: Whether the Server version is >= 1.14.0.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        ValueError
-            If 'content' has key "certainty"/"distance" but the value is not float.
-        TypeError
-            If 'id'/'beacon' key does not have a value of type str!
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            ValueError: If 'content' has key "certainty"/"distance" but the value is not float.
+            TypeError: If 'id'/'beacon' key does not have a value of type str!
         """
 
         super().__init__(content)
@@ -327,19 +303,13 @@ class Ask(Filter):
         """
         Initialize a Ask class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `ask` clause.
+        Args:
+            content: The content of the `ask` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
-        TypeError
-            If 'content'  has key "properties" but the type is not list or str.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
+            TypeError: If 'content'  has key "properties" but the type is not list or str.
         """
 
         super().__init__(content)
@@ -393,19 +363,13 @@ class NearMedia(Filter):
         """
         Initialize a NearMedia class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `near<Media>` clause.
+        Args:
+            content: The content of the `near<Media>` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        TypeError
-            If 'content["<media>"]' is not of type str.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            TypeError: If 'content["<media>"]' is not of type str.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
 
         super().__init__(content)
@@ -456,19 +420,13 @@ class NearImage(NearMedia):
         """
         Initialize a NearImage class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `nearImage` clause.
+        Args:
+            content: The content of the `nearImage` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        TypeError
-            If 'content["image"]' is not of type str.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            TypeError: If 'content["image"]' is not of type str.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
         super().__init__(content, MediaType.IMAGE)
 
@@ -485,19 +443,13 @@ class NearVideo(NearMedia):
         """
         Initialize a NearVideo class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `nearVideo` clause.
+        Args:
+            content: The content of the `nearVideo` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        TypeError
-            If 'content["video"]' is not of type str.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            TypeError: If 'content["video"]' is not of type str.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
         super().__init__(content, MediaType.VIDEO)
 
@@ -514,19 +466,13 @@ class NearAudio(NearMedia):
         """
         Initialize a NearAudio class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `nearAudio` clause.
+        Args:
+            content: The content of the `nearAudio` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        TypeError
-            If 'content["audio"]' is not of type str.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            TypeError: If 'content["audio"]' is not of type str.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
         super().__init__(content, MediaType.AUDIO)
 
@@ -543,19 +489,13 @@ class NearDepth(NearMedia):
         """
         Initialize a NearDepth class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `nearDepth` clause.
+        Args:
+            content: The content of the `nearDepth` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        TypeError
-            If 'content["depth"]' is not of type str.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            TypeError: If 'content["depth"]' is not of type str.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
         super().__init__(content, MediaType.DEPTH)
 
@@ -572,19 +512,13 @@ class NearThermal(NearMedia):
         """
         Initialize a NearThermal class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `nearThermal` clause.
+        Args:
+            content: The content of the `nearThermal` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        TypeError
-            If 'content["thermal"]' is not of type str.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            TypeError: If 'content["thermal"]' is not of type str.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
         super().__init__(content, MediaType.THERMAL)
 
@@ -601,19 +535,13 @@ class NearIMU(NearMedia):
         """
         Initialize a NearIMU class instance.
 
-        Parameters
-        ----------
-        content : list
-            The content of the `nearIMU` clause.
+        Args:
+            content: The content of the `nearIMU` clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        TypeError
-            If 'content["imu"]' is not of type str.
-        ValueError
-            If 'content'  has key "certainty"/"distance" but the value is not float.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            TypeError: If 'content["imu"]' is not of type str.
+            ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
         super().__init__(content, MediaType.IMU)
 
@@ -627,17 +555,12 @@ class Sort(Filter):
         """
         Initialize a Where filter class instance.
 
-        Parameters
-        ----------
-        content : list or dict
-            The content of the `sort` filter clause or a single clause.
+        Args:
+            content: The content of the `sort` filter clause or a single clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        ValueError
-            If a mandatory key is missing in the filter content.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            ValueError: If a mandatory key is missing in the filter content.
         """
 
         # content is a empty list because it is going to the the list with sort clauses.
@@ -650,18 +573,13 @@ class Sort(Filter):
         """
         Add more sort clauses to the already existing sort clauses.
 
-        Parameters
-        ----------
-        content : list or dict
-            The content of the `sort` filter clause or a single clause to be added to the already
-            existing ones.
+        Args:
+            content: The content of the `sort` filter clause or a single clause to be added to the already
+                existing ones.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        ValueError
-            If a mandatory key is missing in the filter content.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            ValueError: If a mandatory key is missing in the filter content.
         """
 
         if isinstance(content, dict):
@@ -715,17 +633,12 @@ class Where(Filter):
         """
         Initialize a Where filter class instance.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `where` filter clause.
+        Args:
+            content: The content of the `where` filter clause.
 
-        Raises
-        ------
-        TypeError
-            If 'content' is not of type dict.
-        ValueError
-            If a mandatory key is missing in the filter content.
+        Raises:
+            TypeError: If 'content' is not of type dict.
+            ValueError: If a mandatory key is missing in the filter content.
         """
 
         super().__init__(content)
@@ -745,15 +658,11 @@ class Where(Filter):
         """
         Set filter fields for the Where filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `where` filter clause.
+        Args:
+            content: The content of the `where` filter clause.
 
-        Raises
-        ------
-        ValueError
-            If 'content' is missing required fields.
+        Raises:
+            ValueError: If 'content' is missing required fields.
         """
 
         if "operator" not in content:
@@ -778,15 +687,11 @@ class Where(Filter):
         """
         Set operator fields for the Where filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `where` filter clause.
+        Args:
+            content: The content of the `where` filter clause.
 
-        Raises
-        ------
-        ValueError
-            If 'content' is missing required fields.
+        Raises:
+            ValueError: If 'content' is missing required fields.
         """
 
         if "operator" not in content:
@@ -871,14 +776,10 @@ def _convert_value_type(_type: str) -> str:
     GraphQL endpoints. NOTE: This is crucially different to the Batch REST endpoints wherein
     the where filter is also used.
 
-    Parameters
-    ----------
-    _type : str
-        The Python-defined type to be converted.
+    Args:
+        _type: The Python-defined type to be converted.
 
-    Returns
-    -------
-    str
+    Returns:
         The string interpretation of the type in Weaviate-defined `json` format.
     """
     if _type == "valueTextArray" or _type == "valueTextList":
@@ -900,14 +801,10 @@ def _convert_value_type(_type: str) -> str:
 def _render_list(input_list: list) -> str:
     """Convert a list of values to string (lowercased) to match `json` formatting.
 
-    Parameters
-    ----------
-    input_list : list
-        The value to be converted
+    Args:
+        input_list: The value to be converted
 
-    Returns
-    -------
-    str
+    Returns:
         The string interpretation of the value in `json` format.
     """
     str_list = ",".join(str(item) for item in input_list)
@@ -922,17 +819,12 @@ def _render_list_date(input_list: list) -> str:
 def _check_is_list(value: Any, _type: str) -> None:
     """Checks whether the provided value is a list to match the given `value_type`.
 
-    Parameters
-    ----------
-    value : list
-        The value to be checked.
-    _type : str
-        The type to be checked against.
+    Args:
+        value: The value to be checked.
+        _type: The type to be checked against.
 
-    Raises
-    ------
-    TypeError
-        If the value is not a list.
+    Raises:
+        TypeError: If the value is not a list.
     """
     if not isinstance(value, list):
         raise TypeError(
@@ -943,17 +835,12 @@ def _check_is_list(value: Any, _type: str) -> None:
 def _check_is_not_list(value: Any, _type: str) -> None:
     """Checks whether the provided value is a list to match the given `value_type`.
 
-    Parameters
-    ----------
-    value : list
-        The value to be checked.
-    _type : str
-        The type to be checked against.
+    Args:
+        value: The value to be checked.
+        _type: The type to be checked against.
 
-    Raises
-    ------
-    TypeError
-        If the value is a list.
+    Raises:
+        TypeError: If the value is a list.
     """
     if isinstance(value, list):
         raise TypeError(
@@ -965,14 +852,10 @@ def _geo_range_to_str(value: dict) -> str:
     """
     Convert the valueGeoRange object to match `json` formatting.
 
-    Parameters
-    ----------
-    value : dict
-        The value to be converted.
+    Args:
+        value: The value to be converted.
 
-    Returns
-    -------
-    str
+    Returns:
         The string interpretation of the value in `json` format.
     """
     latitude = value["geoCoordinates"]["latitude"]
@@ -985,14 +868,10 @@ def _bool_to_str(value: bool) -> str:
     """
     Convert a bool value to string (lowercased) to match `json` formatting.
 
-    Parameters
-    ----------
-    value : bool
-        The value to be converted
+    Args:
+        value: The value to be converted
 
-    Returns
-    -------
-    str
+    Returns:
         The string interpretation of the value in `json` format.
     """
 
@@ -1005,19 +884,13 @@ def _check_direction_clause(direction: dict) -> None:
     """
     Validate the direction sub clause.
 
-    Parameters
-    ----------
-    direction : dict
-        A sub clause of the Explore filter.
+    Args:
+        direction: A sub clause of the Explore filter.
 
-    Raises
-    ------
-    TypeError
-        If 'direction' is not a dict.
-    TypeError
-        If the value of the "force" key is not float.
-    ValueError
-        If no "force" key in the 'direction'.
+    Raises:
+        TypeError: If 'direction' is not a dict.
+        TypeError: If the value of the "force" key is not float.
+        ValueError: If no "force" key in the 'direction'.
     """
 
     _check_type(var_name="moveXXX", value=direction, dtype=dict)
@@ -1038,17 +911,12 @@ def _check_concept(content: dict) -> None:
     """
     Validate the concept sub clause.
 
-    Parameters
-    ----------
-    content : dict
-        An Explore (sub) clause to check for 'concepts'.
+    Args:
+        content: An Explore (sub) clause to check for 'concepts'.
 
-    Raises
-    ------
-    ValueError
-        If no "concepts" key in the 'content' dict.
-    TypeError
-        If the value of the  "concepts" is of wrong type.
+    Raises:
+        ValueError: If no "concepts" key in the 'content' dict.
+        TypeError: If the value of the  "concepts" is of wrong type.
     """
 
     if "concepts" not in content:
@@ -1067,17 +935,12 @@ def _check_objects(content: dict) -> None:
     """
     Validate the `objects` sub clause of the `move` clause.
 
-    Parameters
-    ----------
-    content : dict
-        An Explore (sub) clause to check for 'objects'.
+    Args:
+        content: An Explore (sub) clause to check for 'objects'.
 
-    Raises
-    ------
-    ValueError
-        If no "concepts" key in the 'content' dict.
-    TypeError
-        If the value of the  "concepts" is of wrong type.
+    Raises:
+        ValueError: If no "concepts" key in the 'content' dict.
+        TypeError: If the value of the  "concepts" is of wrong type.
     """
 
     _check_type(var_name="objects", value=content["objects"], dtype=(list, dict))
@@ -1098,19 +961,13 @@ def _check_type(var_name: str, value: Any, dtype: Union[Tuple[type, type], type]
     """
     Check key-value type.
 
-    Parameters
-    ----------
-    var_name : str
-        The variable name for which to check the type (used for error message)!
-    value : Any
-        The value for which to check the type.
-    dtype : Union[Tuple[type, type], type]
-        The expected data type of the `value`.
+    Args:
+        var_name: The variable name for which to check the type (used for error message)!
+        value: The value for which to check the type.
+        dtype: The expected data type of the `value`.
 
-    Raises
-    ------
-    TypeError
-        If the `value` type does not match the expected `dtype`.
+    Raises:
+        TypeError: If the `value` type does not match the expected `dtype`.
     """
 
     if not isinstance(value, dtype):
@@ -1123,20 +980,14 @@ def _find_value_type(content: dict) -> str:
     """
     Find the correct type of the content.
 
-    Parameters
-    ----------
-    content : dict
-        The content for which to find the appropriate data type.
+    Args:
+        content: The content for which to find the appropriate data type.
 
-    Returns
-    -------
-    str
+    Returns:
         The correct data type.
 
-    Raises
-    ------
-    ValueError
-        If missing required fields.
+    Raises:
+        ValueError: If missing required fields.
     """
 
     value_type = ALL_VALUE_TYPES & set(content.keys())
@@ -1153,17 +1004,13 @@ def _find_value_type(content: dict) -> str:
 
 def _move_clause_objects_to_str(objects: list) -> str:
     """
-    _summary_
+    Creates the Weaviate `moveTo`/`moveAwayFrom` clause given the list of objects.
 
-    Parameters
-    ----------
-    objects : list
-        _description_
+    Args:
+        objects:  The list of objects to be used for the `moveTo`/`moveAwayFrom` clause.
 
-    Returns
-    -------
-    str
-        _description_
+    Returns:
+        The `moveTo`/`moveAwayFrom` clause as a string.
     """
 
     to_return = " objects: ["
