@@ -325,6 +325,17 @@ class ConnectionV4:
                     return True
 
         return False
+        
+    def _is_wcs_test(self) -> bool:
+        """Check if this is a Weaviate Cloud Service (WCS) test environment.
+        
+        WCS tests have 'weaviate.cloud' in the HTTP host.
+        """
+        return (
+            self._connection_params.http is not None
+            and self._connection_params.http.host is not None
+            and "weaviate.cloud" in self._connection_params.http.host
+        )
 
     async def __check_package_version(self) -> None:
         try:
