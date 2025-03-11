@@ -634,12 +634,9 @@ class ConnectionV4:
             # but the client is not None
             # This is determined by checking if the host is localhost or 127.0.0.1
             # These are the hosts used in integration tests
-            is_local_integration_test = (
-                self._connection_params.http is not None
-                and (
-                    self._connection_params.http.host == "localhost"
-                    or self._connection_params.http.host == "127.0.0.1"
-                )
+            is_local_integration_test = self._connection_params.http is not None and (
+                self._connection_params.http.host == "localhost"
+                or self._connection_params.http.host == "127.0.0.1"
             )
 
             # Check if this is a mock test
