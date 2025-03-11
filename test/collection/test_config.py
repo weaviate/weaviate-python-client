@@ -1030,14 +1030,14 @@ TEST_CONFIG_WITH_GENERATIVE = [
     (
         Configure.Generative.xai(
             model="grok-2-latest",
-            max_tokens=100,
+            maxTokens=100,
             temperature=0.5,
-            base_url="https://api.x.ai/v1",
+            baseUrl="https://api.x.ai/v1",
         ),
         {
             "generative-xai": {
                 "model": "grok-2-latest",
-                "maxTokensProperty": 100,
+                "max_tokens": 100,
                 "temperature": 0.5,
                 "baseURL": "https://api.x.ai/v1",
             }
