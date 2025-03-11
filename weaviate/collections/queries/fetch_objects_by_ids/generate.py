@@ -3,7 +3,7 @@ from typing import Generic, Iterable, List, Optional, Union
 from weaviate import syncify
 from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.generative import (
-    _GenerativeProviderDynamic,
+    _GenerativeConfigRuntime,
     _GroupedTask,
     _SinglePrompt,
 )
@@ -31,7 +31,7 @@ class _FetchObjectsByIDsGenerateAsync(
         single_prompt: Union[str, _SinglePrompt, None] = None,
         grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeProviderDynamic] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,

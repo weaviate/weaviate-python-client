@@ -1,11 +1,11 @@
 from weaviate.collections.classes.generative import (
-    GenerativeProviderDynamic,
+    GenerativeConfigRuntime,
     GroupedTask,
     SinglePrompt,
 )
 
 __all__ = [
-    "GenerativeProviderDynamic",
+    "GenerativeConfigRuntime",
     "GroupedTask",
     "SinglePrompt",
 ]

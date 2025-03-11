@@ -25,8 +25,8 @@ else:
     from typing import Annotated, get_type_hints, get_origin, get_args
 
 from weaviate.collections.classes.generative import (
-    _GenerativeProviderDynamic,
-    _GenerativeProviderDynamicOptions,
+    _GenerativeConfigRuntime,
+    _GenerativeConfigRuntimeOptions,
     _GroupedTask,
     _SinglePrompt,
     _to_text_array,
@@ -288,14 +288,14 @@ class _Generative:
     single: Union[str, _SinglePrompt, None]
     grouped: Union[str, _GroupedTask, None]
     grouped_properties: Optional[List[str]]
-    generative_provider: Optional[_GenerativeProviderDynamic]
+    generative_provider: Optional[_GenerativeConfigRuntime]
 
     def __init__(
         self,
         single: Union[str, _SinglePrompt, None],
         grouped: Union[str, _GroupedTask, None],
         grouped_properties: Optional[List[str]],
-        generative_provider: Optional[_GenerativeProviderDynamic] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
     ) -> None:
         self.single = single
         self.grouped = grouped
@@ -332,7 +332,7 @@ class _Generative:
                     queries=(
                         [
                             self.generative_provider._to_grpc(
-                                _GenerativeProviderDynamicOptions(
+                                _GenerativeConfigRuntimeOptions(
                                     self.single.metadata,
                                     self.single.images,
                                     self.single.image_properties,
@@ -348,7 +348,7 @@ class _Generative:
                 single = generative_pb2.GenerativeSearch.Single(
                     prompt=self.single,
                     queries=(
-                        [self.generative_provider._to_grpc(_GenerativeProviderDynamicOptions())]
+                        [self.generative_provider._to_grpc(_GenerativeConfigRuntimeOptions())]
                         if self.generative_provider is not None
                         else None
                     ),
@@ -362,7 +362,7 @@ class _Generative:
                     queries=(
                         [
                             self.generative_provider._to_grpc(
-                                _GenerativeProviderDynamicOptions(
+                                _GenerativeConfigRuntimeOptions(
                                     self.grouped.metadata,
                                     self.grouped.images,
                                     self.grouped.image_properties,
@@ -382,7 +382,7 @@ class _Generative:
                         else None
                     ),
                     queries=(
-                        [self.generative_provider._to_grpc(_GenerativeProviderDynamicOptions())]
+                        [self.generative_provider._to_grpc(_GenerativeConfigRuntimeOptions())]
                         if self.generative_provider is not None
                         else None
                     ),

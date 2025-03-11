@@ -40,29 +40,29 @@ def _to_text_array(values: Optional[Iterable[str]]) -> Optional[TextArray]:
 
 
 @dataclass
-class _GenerativeProviderDynamicOptions:
+class _GenerativeConfigRuntimeOptions:
     return_metadata: bool = False
     images: Optional[Iterable[str]] = None
     image_properties: Optional[List[str]] = None
 
 
-class _GenerativeProviderDynamic(BaseModel):
+class _GenerativeConfigRuntime(BaseModel):
     generative: Union[GenerativeSearches, _EnumLikeStr]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         raise NotImplementedError("This method must be implemented in the child class")
 
-    def _validate_multi_modal(self, opts: _GenerativeProviderDynamicOptions) -> None:
+    def _validate_multi_modal(self, opts: _GenerativeConfigRuntimeOptions) -> None:
         if opts.images is not None or opts.image_properties is not None:
             raise WeaviateInvalidInputError(
                 "The generative-anyscale module does not support the `images` or `image_properties` options."
             )
 
 
-GenerativeProviderDynamic = _GenerativeProviderDynamic
+GenerativeConfigRuntime = _GenerativeConfigRuntime
 
 
-class _GenerativeAnthropic(_GenerativeProviderDynamic):
+class _GenerativeAnthropic(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANTHROPIC, frozen=True, exclude=True
     )
@@ -74,7 +74,7 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
     top_p: Optional[float]
     stop_sequences: Optional[List[str]]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
             anthropic=GenerativeAnthropic(
@@ -91,7 +91,7 @@ class _GenerativeAnthropic(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeAnyscale(_GenerativeProviderDynamic):
+class _GenerativeAnyscale(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
@@ -99,7 +99,7 @@ class _GenerativeAnyscale(_GenerativeProviderDynamic):
     model: Optional[str]
     temperature: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
@@ -111,7 +111,7 @@ class _GenerativeAnyscale(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeAWS(_GenerativeProviderDynamic):
+class _GenerativeAWS(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.AWS, frozen=True, exclude=True
     )
@@ -123,7 +123,7 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
     target_variant: Optional[str]
     temperature: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
             aws=GenerativeAWS(
@@ -140,7 +140,7 @@ class _GenerativeAWS(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeCohere(_GenerativeProviderDynamic):
+class _GenerativeCohere(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.COHERE, frozen=True, exclude=True
     )
@@ -153,7 +153,7 @@ class _GenerativeCohere(_GenerativeProviderDynamic):
     stop_sequences: Optional[List[str]]
     temperature: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
@@ -170,7 +170,7 @@ class _GenerativeCohere(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeDatabricks(_GenerativeProviderDynamic):
+class _GenerativeDatabricks(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.DATABRICKS, frozen=True, exclude=True
     )
@@ -186,7 +186,7 @@ class _GenerativeDatabricks(_GenerativeProviderDynamic):
     top_log_probs: Optional[int]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
@@ -206,17 +206,17 @@ class _GenerativeDatabricks(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeDummy(_GenerativeProviderDynamic):
+class _GenerativeDummy(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.DUMMY, frozen=True, exclude=True
     )
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(return_metadata=opts.return_metadata, dummy=GenerativeDummy())
 
 
-class _GenerativeFriendliai(_GenerativeProviderDynamic):
+class _GenerativeFriendliai(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.FRIENDLIAI, frozen=True, exclude=True
     )
@@ -227,7 +227,7 @@ class _GenerativeFriendliai(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
@@ -242,7 +242,7 @@ class _GenerativeFriendliai(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeMistral(_GenerativeProviderDynamic):
+class _GenerativeMistral(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.MISTRAL, frozen=True, exclude=True
     )
@@ -252,7 +252,7 @@ class _GenerativeMistral(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
@@ -266,7 +266,7 @@ class _GenerativeMistral(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeNvidia(_GenerativeProviderDynamic):
+class _GenerativeNvidia(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
     )
@@ -276,7 +276,7 @@ class _GenerativeNvidia(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         self._validate_multi_modal(opts)
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
@@ -290,7 +290,7 @@ class _GenerativeNvidia(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeOllama(_GenerativeProviderDynamic):
+class _GenerativeOllama(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OLLAMA, frozen=True, exclude=True
     )
@@ -298,7 +298,7 @@ class _GenerativeOllama(_GenerativeProviderDynamic):
     model: Optional[str]
     temperature: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
             ollama=GenerativeOllama(
@@ -311,7 +311,7 @@ class _GenerativeOllama(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeOpenAI(_GenerativeProviderDynamic):
+class _GenerativeOpenAI(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.OPENAI, frozen=True, exclude=True
     )
@@ -328,7 +328,7 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
     temperature: Optional[float]
     top_p: Optional[float]
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
             openai=GenerativeOpenAI(
@@ -350,7 +350,7 @@ class _GenerativeOpenAI(_GenerativeProviderDynamic):
         )
 
 
-class _GenerativeGoogle(_GenerativeProviderDynamic):
+class _GenerativeGoogle(_GenerativeConfigRuntime):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.PALM, frozen=True, exclude=True
     )
@@ -374,7 +374,7 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
             else None
         )
 
-    def _to_grpc(self, opts: _GenerativeProviderDynamicOptions) -> GenerativeProviderGRPC:
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
         return GenerativeProviderGRPC(
             return_metadata=opts.return_metadata,
             google=GenerativeGoogle(
@@ -396,7 +396,7 @@ class _GenerativeGoogle(_GenerativeProviderDynamic):
         )
 
 
-class GenerativeProvider:
+class GenerativeConfig:
     """Use this factory class to create the correct object for the `generative_provider` argument in the search methods of the `.generate` namespace.
 
     Each staticmethod provides options specific to the named generative search module in the function's name. Under-the-hood data validation steps
@@ -413,7 +413,7 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """
         Create a `_GenerativeAnthropic` object for use when performing dynamic AI generation using the `generative-anthropic` module.
 
@@ -447,7 +447,7 @@ class GenerativeProvider:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeAnyscale` object for use when performing dynamic AI generation using the `generative-anyscale` module.
 
         Arguments:
@@ -474,7 +474,7 @@ class GenerativeProvider:
         target_model: Optional[str] = None,
         target_variant: Optional[str] = None,
         temperature: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeAWS` object for use when performing dynamic AI generation using the `generative-aws` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
@@ -514,7 +514,7 @@ class GenerativeProvider:
         presence_penalty: Optional[float] = None,
         stop_sequences: Optional[List[str]] = None,
         temperature: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeCohere` object for use when performing AI generation using the `generative-cohere` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-cohere)
@@ -563,7 +563,7 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         top_log_probs: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeDatabricks` object for use when performing AI generation using the `generative-databricks` module.
 
         Arguments:
@@ -603,7 +603,7 @@ class GenerativeProvider:
         )
 
     @staticmethod
-    def dummy() -> _GenerativeProviderDynamic:
+    def dummy() -> _GenerativeConfigRuntime:
         """Create a `_GenerativeDummy` object for use when performing AI generation using the `generative-dummy` module."""
         return _GenerativeDummy()
 
@@ -616,7 +616,7 @@ class GenerativeProvider:
         n: Optional[int] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """
         Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
 
@@ -658,7 +658,7 @@ class GenerativeProvider:
         temperature: Optional[float] = None,
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeGoogle` object for use when performing AI generation using the `generative-google` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
@@ -713,7 +713,7 @@ class GenerativeProvider:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeMistral` object for use when performing AI generation using the `generative-mistral` module.
 
         Arguments:
@@ -744,7 +744,7 @@ class GenerativeProvider:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
 
         Arguments:
@@ -773,7 +773,7 @@ class GenerativeProvider:
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
 
         Arguments:
@@ -811,7 +811,7 @@ class GenerativeProvider:
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the OpenAI-backed `generative-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
@@ -871,7 +871,7 @@ class GenerativeProvider:
         stop: Optional[List[str]] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
-    ) -> _GenerativeProviderDynamic:
+    ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOpenAI` object for use when performing AI generation using the Azure-backed `generative-openai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
@@ -924,13 +924,13 @@ class _GroupedTask(BaseModel):
     images: Optional[Iterable[str]]
     metadata: bool = False
 
-    def _to_grpc(self, provider: _GenerativeProviderDynamic) -> GenerativeSearch.Grouped:
+    def _to_grpc(self, provider: _GenerativeConfigRuntime) -> GenerativeSearch.Grouped:
         return GenerativeSearch.Grouped(
             task=self.prompt,
             properties=_to_text_array(self.non_blob_properties),
             queries=[
                 provider._to_grpc(
-                    _GenerativeProviderDynamicOptions(
+                    _GenerativeConfigRuntimeOptions(
                         self.metadata, self.images, self.image_properties
                     )
                 )
@@ -945,13 +945,13 @@ class _SinglePrompt(BaseModel):
     metadata: bool = False
     debug: bool = False
 
-    def _to_grpc(self, provider: _GenerativeProviderDynamic) -> GenerativeSearch.Single:
+    def _to_grpc(self, provider: _GenerativeConfigRuntime) -> GenerativeSearch.Single:
         return GenerativeSearch.Single(
             prompt=self.prompt,
             debug=self.debug,
             queries=[
                 provider._to_grpc(
-                    _GenerativeProviderDynamicOptions(
+                    _GenerativeConfigRuntimeOptions(
                         self.metadata, self.images, self.image_properties
                     )
                 )

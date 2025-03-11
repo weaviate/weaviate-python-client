@@ -13,7 +13,7 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.data import DataObject
 from weaviate.collections.classes.generative import (
-    GenerativeProvider,
+    GenerativeConfig,
     GenerativeParameters,
     _GroupedTask,
     _SinglePrompt,
@@ -702,7 +702,7 @@ def test_near_text_generate_with_dynamic_rag(
         query="small fruit",
         single_prompt=single,
         grouped_task=grouped,
-        generative_provider=GenerativeProvider.openai(
+        generative_provider=GenerativeConfig.openai(
             temperature=0.1,
         ),
     )
