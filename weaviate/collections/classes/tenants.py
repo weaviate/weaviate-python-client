@@ -29,22 +29,14 @@ class TenantActivityStatus(str, Enum):
     """TenantActivityStatus class used to describe the activity status of a tenant in Weaviate.
 
     Attributes:
-        `ACTIVE`
-            The tenant is fully active and can be used.
-        `INACTIVE`
-            The tenant is not active, files stored locally.
-        `OFFLOADED`
-            The tenant is not active, files stored on the cloud.
-        `OFFLOADING`
-            The tenant is in the process of being offloaded.
-        `ONLOADING`
-            The tenant is in the process of being activated.
-        `HOT`
-            DEPRECATED, please use ACTIVE. The tenant is fully active and can be used.
-        `COLD`
-            DEPRECATED, please use INACTIVE. The tenant is not active, files stored locally.
-        `FROZEN`
-            DEPRECATED, please use OFFLOADED. The tenant is not active, files stored on the cloud.
+        ACTIVE: The tenant is fully active and can be used.
+        INACTIVE: The tenant is not active, files stored locally.
+        OFFLOADED: The tenant is not active, files stored on the cloud.
+        OFFLOADING: The tenant is in the process of being offloaded.
+        ONLOADING: The tenant is in the process of being activated.
+        HOT: DEPRECATED, please use ACTIVE. The tenant is fully active and can be used.
+        COLD: DEPRECATED, please use INACTIVE. The tenant is not active, files stored locally.
+        FROZEN: DEPRECATED, please use OFFLOADED. The tenant is not active, files stored on the cloud.
     """
 
     ACTIVE = "ACTIVE"
@@ -61,10 +53,8 @@ class Tenant(BaseModel):
     """Tenant class used to describe a tenant in Weaviate.
 
     Attributes:
-        `name`
-            the name of the tenant.
-        `activity_status`
-            TenantActivityStatus, default: "HOT"
+        name: The name of the tenant.
+        activity_status: TenantActivityStatus, default: "HOT"
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -116,14 +106,10 @@ class TenantCreateActivityStatus(str, Enum):
     """TenantActivityStatus class used to describe the activity status of a tenant to create in Weaviate.
 
     Attributes:
-        `ACTIVE`
-            The tenant is fully active and can be used.
-        `INACTIVE`
-            The tenant is not active, files stored locally.
-        `HOT`
-            DEPRECATED, please use ACTIVE. The tenant is fully active and can be used.
-        `COLD`
-            DEPRECATED, please use INACTIVE. The tenant is not active, files stored locally.
+        ACTIVE: The tenant is fully active and can be used.
+        INACTIVE: The tenant is not active, files stored locally.
+        HOT: DEPRECATED, please use ACTIVE. The tenant is fully active and can be used.
+        COLD: DEPRECATED, please use INACTIVE. The tenant is not active, files stored locally.
     """
 
     ACTIVE = "ACTIVE"
@@ -136,18 +122,12 @@ class TenantUpdateActivityStatus(str, Enum):
     """TenantActivityStatus class used to describe the activity status of a tenant to update in Weaviate.
 
     Attributes:
-        `ACTIVE`
-            The tenant is fully active and can be used.
-        `INACTIVE`
-            The tenant is not active, files stored locally.
-        `OFFLOADED`
-            The tenant is not active, files stored on the cloud.
-        `HOT`
-            DEPRECATED, please use ACTIVE. The tenant is fully active and can be used.
-        `COLD`
-            DEPRECATED, please use INACTIVE. The tenant is not active, files stored locally.
-        `FROZEN`
-            DEPRECATED, please use OFFLOADED. The tenant is not active, files stored on the cloud.
+        ACTIVE: The tenant is fully active and can be used.
+        INACTIVE: The tenant is not active, files stored locally.
+        OFFLOADED: The tenant is not active, files stored on the cloud.
+        HOT: DEPRECATED, please use ACTIVE. The tenant is fully active and can be used.
+        COLD: DEPRECATED, please use INACTIVE. The tenant is not active, files stored locally.
+        FROZEN: DEPRECATED, please use OFFLOADED. The tenant is not active, files stored on the cloud.
     """
 
     ACTIVE = "ACTIVE"
@@ -162,10 +142,8 @@ class TenantCreate(BaseModel):
     """Tenant class used to describe a tenant to create in Weaviate.
 
     Attributes:
-        `name`
-            the name of the tenant.
-        `activity_status`
-            TenantCreateActivityStatus, default: "HOT"
+        name: the name of the tenant.
+        activity_status: TenantCreateActivityStatus, default: "HOT"
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -200,10 +178,8 @@ class TenantUpdate(BaseModel):
     """Tenant class used to describe a tenant to create in Weaviate.
 
     Attributes:
-        `name`
-            the name of the tenant.
-        `activity_status`
-            TenantUpdateActivityStatus, default: "HOT"
+        name: The name of the tenant.
+        activity_status: TenantUpdateActivityStatus, default: "HOT"
     """
 
     model_config = ConfigDict(populate_by_name=True)
