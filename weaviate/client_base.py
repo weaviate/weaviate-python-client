@@ -148,7 +148,7 @@ class _WeaviateClientBase(_WeaviateClientInit):
         """Check if the client is connected to Weaviate.
 
         Returns:
-            bool: `True` if the client is connected to Weaviate with an open connection pool, `False` otherwise.
+            `True` if the client is connected to Weaviate with an open connection pool, `False` otherwise.
         """
         return self._connection.is_connected()
 
@@ -221,7 +221,7 @@ class _WeaviateClientBase(_WeaviateClientInit):
         Get the meta endpoint description of weaviate.
 
         Returns:
-            dict: The `dict` describing the weaviate configuration.
+            The `dict` describing the weaviate configuration.
 
         Raises:
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
@@ -234,7 +234,7 @@ class _WeaviateClientBase(_WeaviateClientInit):
         Get the openid-configuration.
 
         Returns:
-            dict: The configuration or `None` if not configured.
+            The configuration or `None` if not configured.
 
         Raises:
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
