@@ -83,10 +83,10 @@ class _CollectionsAsync(_CollectionsBase):
             skip_argument_validation: If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
 
         Raises:
-            weaviate.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
             weaviate.exceptions.WeaviateUnsupportedFeatureError: If the Weaviate version is lower than 1.24.0 and named vectorizers are provided.
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         if isinstance(vectorizer_config, list) and self._connection._weaviate_version.is_lower_than(
             1, 24, 0
@@ -145,7 +145,7 @@ class _CollectionsAsync(_CollectionsBase):
                 If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
             skip_argument_validation: If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
         Raises:
-            weaviate.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
             weaviate.exceptions.InvalidDataModelException: If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
         if not skip_argument_validation:
@@ -171,9 +171,9 @@ class _CollectionsAsync(_CollectionsBase):
             name: The name(s) of the collection(s) to delete.
 
         Raises:
-            weaviate.WeaviateInvalidInputError: If the input parameters are invalid.
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _validate_input([_ValidateArgument(expected=[str, List[str]], name="name", value=name)])
 
@@ -189,9 +189,9 @@ class _CollectionsAsync(_CollectionsBase):
         for these collections within your code, they will cease to function correctly after this operation.
 
         Raises:
-            weaviate.WeaviateInvalidInputError: If the input parameters are invalid.
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         await asyncio.gather(*[self.delete(name) for name in (await self.list_all()).keys()])
 
@@ -205,9 +205,9 @@ class _CollectionsAsync(_CollectionsBase):
             `True` if the collection exists, `False` otherwise.
 
         Raises:
-            weaviate.WeaviateInvalidInputError: If the input parameters are invalid.
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
         return await self._exists(_capitalize_first_letter(name))
@@ -221,9 +221,9 @@ class _CollectionsAsync(_CollectionsBase):
             The configuration of the collection as a `CollectionConfig` object.
 
         Raises:
-            weaviate.WeaviateInvalidInputError: If the input parameters are invalid.
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         return await self._export(_capitalize_first_letter(name))
 
@@ -251,9 +251,9 @@ class _CollectionsAsync(_CollectionsBase):
             collection name to collection configuration.
 
         Raises:
-            weaviate.WeaviateInvalidInputError: If the input parameters are invalid.
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
         return await self._get_all(simple=simple)
@@ -268,8 +268,8 @@ class _CollectionsAsync(_CollectionsBase):
             config: The dictionary representation of the collection's configuration.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         name = await super()._create(config)
         return self.get(name)
@@ -281,7 +281,7 @@ class _CollectionsAsync(_CollectionsBase):
             config: The collection's configuration.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to Weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         return await self.create_from_dict(config.to_dict())

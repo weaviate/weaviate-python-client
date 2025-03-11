@@ -135,7 +135,7 @@ class _BackupAsync:
 
         Raises:
             requests.ConnectionError: If the network connection to weaviate fails.
-            weaviate.UnexpectedStatusCodeException: If weaviate reports a none OK status.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
             TypeError: One of the arguments have a wrong type.
         """
         (
@@ -292,7 +292,7 @@ class _BackupAsync:
 
         Raises:
             requests.ConnectionError: If the network connection to weaviate fails.
-            weaviate.UnexpectedStatusCodeException: If weaviate reports a none OK status.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
         """
         (
             backup_id,
@@ -467,7 +467,7 @@ class _BackupAsync:
             backup_location: The dynamic location of a backup. By default None.
 
         Raises:
-            weaviate.UnexpectedStatusCodeException: If weaviate reports a none OK status.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
 
         Returns:
             A bool indicating if the cancellation was successful.
