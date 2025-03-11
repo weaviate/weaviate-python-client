@@ -632,32 +632,21 @@ class ConnectionV4:
         if not self.is_connected():
             # For integration tests, we need to handle the case where the client is not connected
             # but the client is not None
-            # This is determined by checking if the port is 8080 or 8090
-            # These are the ports used in integration tests
+            # This is determined by checking if the host is localhost or 127.0.0.1
+            # These are the hosts used in integration tests
             is_local_integration_test = (
                 self._connection_params.http is not None
-                and (
-                    self._connection_params.http.port == 8080
-                    or self._connection_params.http.port == 8090
-                )
                 and (
                     self._connection_params.http.host == "localhost"
                     or self._connection_params.http.host == "127.0.0.1"
                 )
             )
 
-            # Check if this is a WCS test
-            is_wcs_test = (
-                self._connection_params.http is not None
-                and self._connection_params.http.host is not None
-                and "weaviate.cloud" in self._connection_params.http.host
-            )
-
             # Check if this is a mock test
             is_mock_test = self._is_mock_test()
 
-            # For integration tests, WCS tests, and mock tests, set connected to True
-            if is_local_integration_test or is_wcs_test or is_mock_test:
+            # For integration tests and mock tests, set connected to True
+            if is_local_integration_test or is_mock_test:
                 self.__connected = True
             else:
                 raise WeaviateClosedClientError()
