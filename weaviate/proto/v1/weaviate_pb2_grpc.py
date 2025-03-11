@@ -69,9 +69,15 @@ class WeaviateStub(object):
             response_deserializer=v1_dot_aggregate__pb2.AggregateReply.FromString,
             _registered_method=True,
         )
-        self.Batch = channel.stream_stream(
-            "/weaviate.v1.Weaviate/Batch",
+        self.BatchWrite = channel.stream_unary(
+            "/weaviate.v1.Weaviate/BatchWrite",
             request_serializer=v1_dot_batch__pb2.BatchMessage.SerializeToString,
+            response_deserializer=v1_dot_batch__pb2.BatchWriteReply.FromString,
+            _registered_method=True,
+        )
+        self.BatchRead = channel.unary_stream(
+            "/weaviate.v1.Weaviate/BatchRead",
+            request_serializer=v1_dot_batch__pb2.BatchReadRequest.SerializeToString,
             response_deserializer=v1_dot_batch__pb2.BatchError.FromString,
             _registered_method=True,
         )
@@ -110,7 +116,13 @@ class WeaviateServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
-    def Batch(self, request_iterator, context):
+    def BatchWrite(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def BatchRead(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -144,9 +156,14 @@ def add_WeaviateServicer_to_server(servicer, server):
             request_deserializer=v1_dot_aggregate__pb2.AggregateRequest.FromString,
             response_serializer=v1_dot_aggregate__pb2.AggregateReply.SerializeToString,
         ),
-        "Batch": grpc.stream_stream_rpc_method_handler(
-            servicer.Batch,
+        "BatchWrite": grpc.stream_unary_rpc_method_handler(
+            servicer.BatchWrite,
             request_deserializer=v1_dot_batch__pb2.BatchMessage.FromString,
+            response_serializer=v1_dot_batch__pb2.BatchWriteReply.SerializeToString,
+        ),
+        "BatchRead": grpc.unary_stream_rpc_method_handler(
+            servicer.BatchRead,
+            request_deserializer=v1_dot_batch__pb2.BatchReadRequest.FromString,
             response_serializer=v1_dot_batch__pb2.BatchError.SerializeToString,
         ),
     }
@@ -312,7 +329,7 @@ class Weaviate(object):
         )
 
     @staticmethod
-    def Batch(
+    def BatchWrite(
         request_iterator,
         target,
         options=(),
@@ -324,11 +341,41 @@ class Weaviate(object):
         timeout=None,
         metadata=None,
     ):
-        return grpc.experimental.stream_stream(
+        return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            "/weaviate.v1.Weaviate/Batch",
+            "/weaviate.v1.Weaviate/BatchWrite",
             v1_dot_batch__pb2.BatchMessage.SerializeToString,
+            v1_dot_batch__pb2.BatchWriteReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True,
+        )
+
+    @staticmethod
+    def BatchRead(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            "/weaviate.v1.Weaviate/BatchRead",
+            v1_dot_batch__pb2.BatchReadRequest.SerializeToString,
             v1_dot_batch__pb2.BatchError.FromString,
             options,
             channel_credentials,

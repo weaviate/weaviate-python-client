@@ -1,8 +1,9 @@
 import asyncio
+import random
 from collections import deque
-from typing import Any, AsyncGenerator, Generator, List, Optional, Union, cast
+from typing import Any, Dict, Generator, List, Optional, Union, cast
 
-from grpc.aio import AioRpcError, EOF, StreamStreamCall  # type: ignore
+from grpc.aio import AioRpcError, StreamUnaryCall  # type: ignore
 from pydantic import ValidationError
 
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
@@ -19,15 +20,71 @@ from weaviate.proto.v1 import batch_pb2
 from weaviate.types import UUID, VECTORS
 
 
+class _Stream:
+    call: StreamUnaryCall[batch_pb2.BatchMessage, batch_pb2.BatchWriteReply]
+    __task: Optional[asyncio.Task[None]] = None
+
+    def __init__(self, call: StreamUnaryCall[batch_pb2.BatchMessage, batch_pb2.BatchWriteReply]):
+        self.call = call
+
+    async def write(self, message: batch_pb2.BatchMessage) -> None:
+        await self.await_task()  # wait for the previous batch to finish if still running, throws an exception here
+        self.__task = asyncio.create_task(self.call.write(message))
+
+    async def await_task(self) -> None:
+        if self.__task is not None:
+            await self.__task
+            self.__task = None
+
+    def task_pending(self) -> bool:
+        return self.__task is not None
+
+
+class _Streams:
+    streams: Dict[int, _Stream] = {}
+
+    def __init__(self, streams: Dict[int, _Stream]):
+        self.streams = streams
+
+    def add(self, stream: _Stream) -> int:
+        idx = len(self.streams)
+        self.streams[idx] = stream
+        return idx
+
+    async def write(self, message: batch_pb2.BatchMessage) -> None:
+        if len(self.streams) == 0:
+            raise Exception("No streams available")
+        while True:
+            ready = -1
+            for key, stream in self.streams.items():
+                # try to find a stream that is ready to write
+                if not stream.task_pending():
+                    ready = key
+                    break
+            # if no stream is ready, wait for a random one to finish
+            stream = self.streams[
+                random.randint(0, len(self.streams) - 1) if ready == -1 else ready
+            ]
+            await stream.await_task()
+            await stream.write(message)
+            return
+
+    async def done_writing(self) -> None:
+        for stream in self.streams.values():
+            await stream.await_task()
+        for stream in self.streams.values():
+            await stream.call.done_writing()
+            # only close one of the streams, it will close all of them lol
+            return
+
+
 class _BatchStreamBase(_BatchGRPC):
     def __init__(
         self,
         connection: ConnectionV4,
     ):
         super().__init__(connection, None)
-        self._stream: Optional[
-            StreamStreamCall[batch_pb2.BatchMessage, batch_pb2.BatchObjectsReply]
-        ] = None
+        self._streams: _Streams = _Streams({})
         self._objs_count = 0
         self._errors: List[batch_pb2.BatchObjectsReply.BatchError] = []
         self._objs: deque[batch_pb2.BatchObject] = deque()
@@ -45,24 +102,27 @@ class _BatchStreamBase(_BatchGRPC):
         """
         return self._errors
 
-    def _make_stream(self) -> StreamStreamCall[batch_pb2.BatchMessage, batch_pb2.BatchObjectsReply]:
+    def _add_stream(self) -> None:
         assert self._connection.grpc_stub is not None
-        return cast(
-            StreamStreamCall[batch_pb2.BatchMessage, batch_pb2.BatchObjectsReply],
-            self._connection.grpc_stub.Batch(
-                metadata=self._connection.grpc_headers(),
-                timeout=self._connection.timeout_config.insert,
-            ),
+        self._streams.add(
+            _Stream(
+                cast(
+                    StreamUnaryCall[batch_pb2.BatchMessage, batch_pb2.BatchWriteReply],
+                    self._connection.grpc_stub.BatchWrite(
+                        metadata=self._connection.grpc_headers(),
+                        timeout=self._connection.timeout_config.insert,
+                    ),
+                )
+            )
         )
 
-    async def _wait(self) -> None:
-        async for _ in self._read_replies():
-            pass
+    # async def _wait(self) -> None:
+    #     async for _ in self._read_replies():
+    #         pass
 
     async def _send(self) -> None:
-        assert self._stream is not None
         try:
-            await self._stream.write(
+            await self._streams.write(
                 batch_pb2.BatchMessage(
                     request=batch_pb2.BatchObjectsRequest(objects=self.__batch_generator())
                 )
@@ -73,10 +133,9 @@ class _BatchStreamBase(_BatchGRPC):
     async def _exit(self) -> None:
         if len(self._objs) > 0:
             await self._send()
-        assert self._stream is not None
-        await self._stream.write(batch_pb2.BatchMessage(sentinel=batch_pb2.BatchStop()))
-        await self._stream.done_writing()
-        await self._wait()
+        # await self._streams.write(batch_pb2.BatchMessage(sentinel=batch_pb2.BatchStop()))
+        await self._streams.done_writing()
+        # await self._wait()
 
     def __batch_generator(self) -> Generator[batch_pb2.BatchObject, None, None]:
         count = 0
@@ -85,22 +144,23 @@ class _BatchStreamBase(_BatchGRPC):
             obj = self._objs.popleft()
             total_bytes += obj.ByteSize()
             if total_bytes > self._max_msg_size:
+                self._objs.appendleft(obj)
                 break
             yield obj
             count += 1
 
-    async def _read_replies(self) -> AsyncGenerator[batch_pb2.BatchObjectsReply, None]:
-        assert self._stream is not None
-        while True:
-            try:
-                reply = await self._stream.read()
-                if reply == EOF:
-                    return
-                assert isinstance(reply, batch_pb2.BatchObjectsReply)
-                self._errors.extend(reply.errors)
-            except AioRpcError as e:
-                raise e
-            yield reply
+    # async def _read_replies(self) -> AsyncGenerator[batch_pb2.BatchObjectsReply, None]:
+    #     assert self._stream is not None
+    #     while True:
+    #         try:
+    #             reply = await self._stream.read()
+    #             if reply == EOF:
+    #                 return
+    #             assert isinstance(reply, batch_pb2.BatchObjectsReply)
+    #             self._errors.extend(reply.errors)
+    #         except AioRpcError as e:
+    #             raise e
+    #         yield reply
 
 
 class _BatchStreamAsync(_BatchStreamBase):
@@ -109,29 +169,31 @@ class _BatchStreamAsync(_BatchStreamBase):
         connection: ConnectionV4,
     ):
         super().__init__(connection)
-        self.__task: Optional[asyncio.Task[None]] = None
 
     async def __aenter__(
         self, consistency_level: Optional[ConsistencyLevel] = None
     ) -> "_BatchStreamAsync":
-        self._stream = self._make_stream()
-        await self._stream.write(
-            batch_pb2.BatchMessage(
-                init=batch_pb2.BatchStart(consistency_level=consistency_level, concurrency=2)
-            )
+        meta = await self._connection.get_meta()
+        if "grpcMaxMessageSize" in meta:
+            self._max_msg_size = int(meta["grpcMaxMessageSize"])
+        for _ in range(2):
+            self._add_stream()
+        await self._streams.write(
+            batch_pb2.BatchMessage(init=batch_pb2.BatchStart(consistency_level=consistency_level))
         )
         return self
 
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        if self.__task is not None:
-            await self.__task  # wait for the previous batch to finish if still running
         await self._exit()
 
     async def __add_object(self, obj: _BatchObject) -> None:
+        # if len(self._objs) > 2 * self._max_batch_size:
+        #     print("Batch queue length is too long, scaling up concurrency")
+        #     # scale up client/server concurrency to reduce the queue length
+        #     self._add_stream()
         if len(self._objs) >= self._max_batch_size:
-            if self.__task is not None:
-                await self.__task  # wait for the previous batch to finish if still running
-            self.__task = asyncio.create_task(self._send())
+            print(len(self._objs))
+            await self._send()
         self._objs.append(self._grpc_object(obj))
 
     async def add_object(
@@ -205,9 +267,9 @@ class _BatchStream(_BatchStreamBase):
         meta = self.__loop.run_until_complete(self._connection.get_meta)
         if "grpcMaxMessageSize" in meta:
             self._max_msg_size = int(meta["grpcMaxMessageSize"])
-        self._stream = self._make_stream()
+        self._add_stream()
         self.__loop.run_until_complete(
-            self._stream.write,
+            self._streams.write,
             batch_pb2.BatchMessage(
                 init=batch_pb2.BatchStart(consistency_level=consistency_level, concurrency=2)
             ),

@@ -26,7 +26,7 @@ from weaviate.proto.v1 import tenants_pb2 as v1_dot_tenants__pb2
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x11v1/weaviate.proto\x12\x0bweaviate.v1\x1a\x12v1/aggregate.proto\x1a\x0ev1/batch.proto\x1a\x15v1/batch_delete.proto\x1a\x13v1/search_get.proto\x1a\x10v1/tenants.proto2\xcd\x03\n\x08Weaviate\x12@\n\x06Search\x12\x1a.weaviate.v1.SearchRequest\x1a\x18.weaviate.v1.SearchReply"\x00\x12R\n\x0c\x42\x61tchObjects\x12 .weaviate.v1.BatchObjectsRequest\x1a\x1e.weaviate.v1.BatchObjectsReply"\x00\x12O\n\x0b\x42\x61tchDelete\x12\x1f.weaviate.v1.BatchDeleteRequest\x1a\x1d.weaviate.v1.BatchDeleteReply"\x00\x12L\n\nTenantsGet\x12\x1e.weaviate.v1.TenantsGetRequest\x1a\x1c.weaviate.v1.TenantsGetReply"\x00\x12I\n\tAggregate\x12\x1d.weaviate.v1.AggregateRequest\x1a\x1b.weaviate.v1.AggregateReply"\x00\x12\x41\n\x05\x42\x61tch\x12\x19.weaviate.v1.BatchMessage\x1a\x17.weaviate.v1.BatchError"\x00(\x01\x30\x01\x42j\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3'
+    b'\n\x11v1/weaviate.proto\x12\x0bweaviate.v1\x1a\x12v1/aggregate.proto\x1a\x0ev1/batch.proto\x1a\x15v1/batch_delete.proto\x1a\x13v1/search_get.proto\x1a\x10v1/tenants.proto2\x9e\x04\n\x08Weaviate\x12@\n\x06Search\x12\x1a.weaviate.v1.SearchRequest\x1a\x18.weaviate.v1.SearchReply"\x00\x12R\n\x0c\x42\x61tchObjects\x12 .weaviate.v1.BatchObjectsRequest\x1a\x1e.weaviate.v1.BatchObjectsReply"\x00\x12O\n\x0b\x42\x61tchDelete\x12\x1f.weaviate.v1.BatchDeleteRequest\x1a\x1d.weaviate.v1.BatchDeleteReply"\x00\x12L\n\nTenantsGet\x12\x1e.weaviate.v1.TenantsGetRequest\x1a\x1c.weaviate.v1.TenantsGetReply"\x00\x12I\n\tAggregate\x12\x1d.weaviate.v1.AggregateRequest\x1a\x1b.weaviate.v1.AggregateReply"\x00\x12I\n\nBatchWrite\x12\x19.weaviate.v1.BatchMessage\x1a\x1c.weaviate.v1.BatchWriteReply"\x00(\x01\x12G\n\tBatchRead\x12\x1d.weaviate.v1.BatchReadRequest\x1a\x17.weaviate.v1.BatchError"\x00\x30\x01\x42j\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocolb\x06proto3'
 )
 
 _globals = globals()
@@ -38,5 +38,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
         b"\n#io.weaviate.client.grpc.protocol.v1B\rWeaviateProtoZ4github.com/weaviate/weaviate/grpc/generated;protocol"
     )
     _globals["_WEAVIATE"]._serialized_start = 133
-    _globals["_WEAVIATE"]._serialized_end = 594
+    _globals["_WEAVIATE"]._serialized_end = 675
 # @@protoc_insertion_point(module_scope)

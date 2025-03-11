@@ -13,6 +13,16 @@ from typing import (
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class BatchWriteReply(_message.Message):
+    __slots__ = ("took",)
+    TOOK_FIELD_NUMBER: _ClassVar[int]
+    took: float
+    def __init__(self, took: _Optional[float] = ...) -> None: ...
+
+class BatchReadRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
 class BatchObjectsRequest(_message.Message):
     __slots__ = ("objects", "consistency_level")
     OBJECTS_FIELD_NUMBER: _ClassVar[int]

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 
@@ -101,6 +102,7 @@ async def test_stream_async() -> None:
                     )
                     if i % 1000 == 0:
                         print(f"Imported {await collection.length()} objects")
+        await asyncio.sleep(2)  # wait for the last batch to be processed
         assert await collection.length() == import_objects
         print(f"Imported {import_objects} objects in {time.time() - start}")
 
