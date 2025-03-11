@@ -137,8 +137,8 @@ class _WeaviateClientBase(_WeaviateClientInit):
         This method is idempotent and will only perform the checks once. Any subsequent calls do nothing while `client.is_connected() == True`.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
-            weaviate.UnexpectedStatusCodeException: If weaviate reports a none OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
         """
         if self._connection.is_connected():
             return
@@ -185,8 +185,8 @@ class _WeaviateClientBase(_WeaviateClientInit):
 
         Raises:
             TypeError: If `gql_query` is not of type str.
-            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
         """
         _validate_input(_ValidateArgument([str], "gql_query", gql_query))
 
@@ -224,7 +224,7 @@ class _WeaviateClientBase(_WeaviateClientInit):
             dict: The `dict` describing the weaviate configuration.
 
         Raises:
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
         """
 
         return await self._connection.get_meta()
@@ -237,7 +237,7 @@ class _WeaviateClientBase(_WeaviateClientInit):
             dict: The configuration or `None` if not configured.
 
         Raises:
-            weaviate.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
         """
 
         return await self._connection.get_open_id_configuration()

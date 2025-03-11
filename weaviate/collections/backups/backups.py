@@ -46,8 +46,8 @@ class _CollectionBackupAsync(_CollectionBackupBase):
             A `BackupStatusReturn` object that contains the backup creation response.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
             weaviate.BackupFailedError: If the backup failed.
             TypeError: One of the arguments have a wrong type.
         """
@@ -80,8 +80,8 @@ class _CollectionBackupAsync(_CollectionBackupBase):
             A `BackupStatusReturn` object that contains the backup restore response.
 
         Raises:
-            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
-            weaviate.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
             weaviate.BackupFailedError: If the backup failed.
         """
         restore = await self._backup.restore(
