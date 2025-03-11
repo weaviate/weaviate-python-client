@@ -45,25 +45,19 @@ class _WeaviateClientInit:
         To simplify connections to Weaviate Cloud or local instances, use the weaviate.connect_to_weaviate_cloud
         or weaviate.connect_to_local helper functions.
 
-        Arguments:
-            - `connection_params`: `weaviate.connect.ConnectionParams` or None, optional
-                - The connection parameters to use for the underlying HTTP requests.
-            - `embedded_options`: `weaviate.EmbeddedOptions` or None, optional
-                - The options to use when provisioning an embedded Weaviate instance.
-            - `auth_client_secret`: `weaviate.AuthCredentials` or None, optional
-                - Authenticate to weaviate by using one of the given authentication modes:
-                    - `weaviate.auth.AuthBearerToken` to use existing access and (optionally, but recommended) refresh tokens
-                    - `weaviate.auth.AuthClientPassword` to use username and password for oidc Resource Owner Password flow
-                    - `weaviate.auth.AuthClientCredentials` to use a client secret for oidc client credential flow
-            - `additional_headers`: `dict` or None, optional
-                - Additional headers to include in the requests.
-                    - Can be used to set OpenAI/HuggingFace/Cohere etc. keys.
-                    - [Here](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai#providing-the-key-to-weaviate) is an
-                    example of how to set API keys within this parameter.
-            - `additional_config`: `weaviate.AdditionalConfig` or None, optional
-                - Additional and advanced configuration options for Weaviate.
-            - `skip_init_checks`: `bool`, optional
-                - If set to `True` then the client will not perform any checks including ensuring that weaviate has started. This is useful for air-gapped environments and high-performance setups.
+        Args:
+            connection_params: The connection parameters to use for the underlying HTTP requests.
+            embedded_options: The options to use when provisioning an embedded Weaviate instance.
+            auth_client_secret: Authenticate to weaviate by using one of the given authentication modes:
+                - `weaviate.auth.AuthBearerToken` to use existing access and (optionally, but recommended) refresh tokens
+                - `weaviate.auth.AuthClientPassword` to use username and password for oidc Resource Owner Password flow
+                - `weaviate.auth.AuthClientCredentials` to use a client secret for oidc client credential flow
+            additional_headers: Additional headers to include in the requests. Can be used to set OpenAI/HuggingFace/Cohere etc. keys.
+                [Here](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai#providing-the-key-to-weaviate) is an
+                example of how to set API keys within this parameter.
+            additional_config: Additional and advanced configuration options for Weaviate.
+            skip_init_checks: If set to `True` then the client will not perform any checks including ensuring that weaviate has started.
+                This is useful for air-gapped environments and high-performance setups.
         """
         assert self._loop is not None, "Cannot initialize a WeaviateClient without an event loop."
         connection_params, embedded_db = self.__parse_connection_params_and_embedded_db(
@@ -143,10 +137,8 @@ class _WeaviateClientBase(_WeaviateClientInit):
         This method is idempotent and will only perform the checks once. Any subsequent calls do nothing while `client.is_connected() == True`.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
-                If weaviate reports a none OK status.
+            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.UnexpectedStatusCodeException: If weaviate reports a none OK status.
         """
         if self._connection.is_connected():
             return
@@ -156,8 +148,7 @@ class _WeaviateClientBase(_WeaviateClientInit):
         """Check if the client is connected to Weaviate.
 
         Returns:
-            `bool`
-                `True` if the client is connected to Weaviate with an open connection pool, `False` otherwise.
+            bool: `True` if the client is connected to Weaviate with an open connection pool, `False` otherwise.
         """
         return self._connection.is_connected()
 
@@ -186,20 +177,16 @@ class _WeaviateClientBase(_WeaviateClientInit):
 
         Be cautious of injection risks when generating query strings.
 
-        Arguments:
-            `gql_query`
-                GraphQL query as a string.
+        Args:
+            gql_query: GraphQL query as a string.
 
         Returns:
             A dict with the response from the GraphQL query.
 
-        Raises
-            `TypeError`
-                If 'gql_query' is not of type str.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
+        Raises:
+            TypeError: If `gql_query` is not of type str.
+            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.UnexpectedStatusCodeError: If weaviate reports a none OK status.
         """
         _validate_input(_ValidateArgument([str], "gql_query", gql_query))
 
@@ -234,12 +221,10 @@ class _WeaviateClientBase(_WeaviateClientInit):
         Get the meta endpoint description of weaviate.
 
         Returns:
-            `dict`
-                The `dict` describing the weaviate configuration.
+            dict: The `dict` describing the weaviate configuration.
 
         Raises:
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
+            weaviate.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
         """
 
         return await self._connection.get_meta()
@@ -248,13 +233,11 @@ class _WeaviateClientBase(_WeaviateClientInit):
         """
         Get the openid-configuration.
 
-        Returns
-            `dict`
-                The configuration or `None` if not configured.
+        Returns:
+            dict: The configuration or `None` if not configured.
 
-        Raises
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
+        Raises:
+            weaviate.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
         """
 
         return await self._connection.get_open_id_configuration()

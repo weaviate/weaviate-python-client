@@ -468,17 +468,12 @@ class HybridVector:
     ) -> _HybridNearText:
         """Define a near text search to be used within a hybrid query.
 
-        Arguments:
-            `query`
-                The text to search for as a string or a list of strings.
-            `certainty`
-                The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
-            `distance`
-                The maximum distance to search. If not specified, the default distance specified by the server is used.
-            `move_to`
-                Define the concepts that should be moved towards in the vector space during the search.
-            `move_away`
-                Define the concepts that should be moved away from in the vector space during the search.
+        Args:
+            query: The text to search for as a string or a list of strings.
+            certainty: The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
+            distance: The maximum distance to search. If not specified, the default distance specified by the server is used.
+            move_to: Define the concepts that should be moved towards in the vector space during the search.
+            move_away: Define the concepts that should be moved away from in the vector space during the search.
 
         Returns:
             A `_HybridNearText` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.
@@ -500,11 +495,9 @@ class HybridVector:
     ) -> _HybridNearVector:
         """Define a near vector search to be used within a hybrid query.
 
-        Arguments:
-            `certainty`
-                The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
-            `distance`
-                The maximum distance to search. If not specified, the default distance specified by the server is used.
+        Args:
+            certainty: The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
+            distance: The maximum distance to search. If not specified, the default distance specified by the server is used.
 
         Returns:
             A `_HybridNearVector` object to be used in the `vector` parameter of the `query.hybrid` and `generate.hybrid` search methods.

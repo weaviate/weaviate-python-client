@@ -39,22 +39,14 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
     performing type hinting of functions that depend on a collection object.
 
     Attributes:
-        `aggregate`
-            This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities.
-        `aggregate_group_by`
-            This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities.
-        `config`
-            This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate.
-        `data`
-            This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate.
-        `generate`
-            This namespace includes all the querying methods available to you when using Weaviate's generative capabilities.
-        `query_group_by`
-            This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities.
-        `query`
-            This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities.
-        `tenants`
-            This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate.
+        aggregate: This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities.
+        aggregate_group_by: This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities.
+        config: This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate.
+        data: This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate.
+        generate: This namespace includes all the querying methods available to you when using Weaviate's generative capabilities.
+        query_group_by: This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities.
+        query: This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities.
+        tenants: This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate.
     """
 
     def __init__(
@@ -169,13 +161,10 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         Returns:
             The list of shards belonging to this collection.
 
-        Raises
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-            `weaviate.EmptyResponseError`
-                If the response is empty.
+        Raises:
+            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.EmptyResponseError: If the response is empty.
         """
         return [
             shard
@@ -283,22 +272,15 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         are returned. Use `wvc.QueryReference` to specify which references to return.
 
         Arguments:
-            `include_vector`
-                Whether to include the vector in the metadata of the returned objects.
-            `return_metadata`
-                The metadata to return with each object.
-            `return_properties`
-                The properties to return with each object.
-            `return_references`
-                The references to return with each object.
-            `after`
-                The cursor to use to mark the initial starting point of the iterator in the collection.
-            `cache_size`
-                How many objects should be fetched in each request to Weaviate during the iteration. The default is 100.
+            include_vector:     Whether to include the vector in the metadata of the returned objects.
+            return_metadata:     The metadata to return with each object.
+            return_properties:     The properties to return with each object.
+            return_references:     The references to return with each object.
+            after:     The cursor to use to mark the initial starting point of the iterator in the collection.
+            cache_size:     How many objects should be fetched in each request to Weaviate during the iteration. The default is 100.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
-                If the request to the Weaviate server fails.
+            weaviate.exceptions.WeaviateGRPCQueryError: If the request to the Weaviate server fails.
         """
         return _ObjectIterator(
             self.query,

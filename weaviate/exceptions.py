@@ -25,9 +25,8 @@ class WeaviateBaseError(Exception):
         """
         Weaviate base exception initializer.
 
-        Arguments:
-            `message`:
-                An error message specific to the context in which the error occurred.
+        Args:
+            message (str): An error message specific to the context in which the error occurred.
         """
 
         self.message = message
@@ -49,11 +48,9 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
         - status_code
         - json
 
-        Arguments:
-            `message`:
-                An error message specific to the context, in which the error occurred.
-            `response`:
-                The request response of which the status code was unexpected.
+        Args:
+            message: An error message specific to the context, in which the error occurred.
+            response: The request response of which the status code was unexpected.
         """
         if isinstance(response, httpx.Response):
             self._status_code: int = response.status_code
@@ -90,11 +87,9 @@ class ResponseCannotBeDecodedError(WeaviateBaseError):
     def __init__(self, location: str, response: httpx.Response):
         """Raised when a weaviate response cannot be decoded to json
 
-        Arguments:
-            `location`:
-                From which code path the exception was raised.
-            `response`:
-                The request response of which the status code was unexpected.
+        Args:
+            location: From which code path the exception was raised.
+            response: The request response of which the status code was unexpected.
         """
         msg = f"Cannot decode response from weaviate {response} with content '{response.text}' for request from {location}"
         super().__init__(msg)

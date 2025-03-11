@@ -58,22 +58,17 @@ class _ClusterAsync(_ClusterBase):
         """
         Get the status of all nodes in the cluster.
 
-        Arguments:
-            `collection`
-                Get the status for the given collection. If not given all collections will be included.
-            `output`
-                Set the desired output verbosity level. Can be [`minimal` | `verbose`], defaults to `None`, which is server-side default of `minimal`.
+        Args:
+            collection: Get the status for the given collection. If not given all collections will be included.
+            output: Set the desired output verbosity level. Can be [`minimal` | `verbose`], defaults to `None`, which is server-side default of `minimal`.
 
         Returns:
             List of nodes and their respective status.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-            `weaviate.EmptyResponseError`
-                If the response is empty.
+            weaviate.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.EmptyResponseError: If the response is empty.
         """
         path = "/nodes"
         params = None

@@ -145,21 +145,15 @@ def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> D
     NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'
     is ignored.
 
-    Parameters
-    ----------
-    proxies : dict, str or None
-        The proxies to use for requests. If it is a dict it should follow 'requests' library
-        format (https://docs.python-requests.org/en/stable/user/advanced/#proxies). If it is
-        a URL (str), a dict will be constructed with both 'http' and 'https' pointing to that
-        URL. If None, no proxies will be used.
-    trust_env : bool
-        If True, the proxies will be read from ENV VARs (case insensitive):
-            HTTP_PROXY/HTTPS_PROXY.
-        NOTE: It is ignored if 'proxies' is NOT None.
+    Args:
+        proxies: The proxies to use for requests. If it is a dict it should follow 'requests' library
+            format (https://docs.python-requests.org/en/stable/user/advanced/#proxies). If it is
+            a URL (str), a dict will be constructed with both 'http' and 'https' pointing to that
+            URL. If None, no proxies will be used.
+        trust_env: If True, the proxies will be read from ENV VARs (case insensitive):
+            HTTP_PROXY/HTTPS_PROXY. NOTE: It is ignored if 'proxies' is NOT None.
 
-    Returns
-    -------
-    dict
+    Returns:
         A dictionary with proxies, either set from 'proxies' or read from ENV VARs.
     """
 
@@ -204,9 +198,7 @@ def _get_epoch_time() -> int:
     """
     Get the current epoch time as an integer.
 
-    Returns
-    -------
-    int
+    Returns:
         Current epoch time.
     """
 

@@ -55,45 +55,26 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
 
         See the [docs](https://weaviate.io/developers/weaviate/search/hybrid) for a more detailed explanation.
 
-        Arguments:
-            `query`
-                The keyword-based query to search for, REQUIRED. If query and vector are both None, a normal search will be performed.
-            `single_prompt`
-                The prompt to use for RaG on each object individually.
-            `grouped_task`
-                The prompt to use for RaG on the entire result set.
-            `grouped_properties`
-                The properties to use in the RaG on the entire result set.
-            `alpha`
-                The weight of the BM25 score. If not specified, the default weight specified by the server is used.
-            `vector`
-                The specific vector to search for. If not specified, the query is vectorized and used in the similarity search.
-            `query_properties`
-                The properties to search in. If not specified, all properties are searched.
-            `fusion_type`
-                The type of fusion to apply. If not specified, the default fusion type specified by the server is used.
-            `limit`
-                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
-            `offset`
-                The offset to start from. If not specified, the retrieval begins from the first object in the server.
-            `auto_limit`
-                The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
-            `filters`
-                The filters to apply to the search.
-            `group_by`
-                How the results should be grouped by a specific property.
-            `rerank`
-                How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
-            `target_vector`
-                The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
-            `include_vector`
-                Whether to include the vector in the results. If not specified, this is set to False.
-            `return_metadata`
-                The metadata to return for each object, defaults to `None`.
-            `return_properties`
-                The properties to return for each object.
-            `return_references`
-                The references to return for each object.
+        Args:
+            query: The keyword-based query to search for, REQUIRED. If query and vector are both None, a normal search will be performed.
+            single_prompt: The prompt to use for RaG on each object individually.
+            grouped_task: The prompt to use for RaG on the entire result set.
+            grouped_properties: The properties to use in the RaG on the entire result set.
+            alpha: The weight of the BM25 score. If not specified, the default weight specified by the server is used.
+            vector: The specific vector to search for. If not specified, the query is vectorized and used in the similarity search.
+            query_properties: The properties to search in. If not specified, all properties are searched.
+            fusion_type: The type of fusion to apply. If not specified, the default fusion type specified by the server is used.
+            limit: The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            offset: The offset to start from. If not specified, the retrieval begins from the first object in the server.
+            auto_limit: The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            filters: The filters to apply to the search.
+            group_by: How the results should be grouped by a specific property.
+            rerank: How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            target_vector: The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
+            include_vector: Whether to include the vector in the results. If not specified, this is set to False.
+            return_metadata: The metadata to return for each object, defaults to `None`.
+            return_properties: The properties to return for each object.
+            return_references: The references to return for each object.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -105,10 +86,8 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
             If `group_by` is provided then a `GenerativeGroupByReturn` object is returned, otherwise a `GenerativeReturn` object is returned.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryError`:
-                If the network connection to Weaviate fails.
-            `weaviate.exceptions.WeaviateNotImplementedError`:
-                If a group by is provided and the Weaviate server version is lower than 1.25.0.
+            weaviate.exceptions.WeaviateQueryError: If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateNotImplementedError: If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
         if group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid():
             raise WeaviateUnsupportedFeatureError(

@@ -92,8 +92,8 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
     def pop_items(self, pop_amount: int, uuid_lookup: Set[str]) -> List[_BatchReference]:
         """Pop the given number of items from the BatchRequest queue.
 
-        Returns
-            `List[_BatchReference]` items from the BatchRequest.
+        Returns:
+            A list of items from the BatchRequest.
         """
         ret: List[_BatchReference] = []
         i = 0
@@ -115,8 +115,8 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
     def pop_items(self, pop_amount: int) -> List[_BatchObject]:
         """Pop the given number of items from the BatchRequest queue.
 
-        Returns
-            `List[_BatchObject]` items from the BatchRequest.
+        Returns:
+            A list of items from the BatchRequest.
         """
         self._lock.acquire()
         if pop_amount >= len(self._items):

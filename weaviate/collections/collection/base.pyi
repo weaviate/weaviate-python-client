@@ -44,9 +44,8 @@ class _CollectionBase(Generic[Properties, References]):
         This method does not send a request to Weaviate. It only returns a new collection object that is specific
         to the tenant you specify.
 
-        Arguments:
-            `tenant`
-                The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
+        Args:
+            tenant: The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
         """
         ...
 
@@ -60,9 +59,8 @@ class _CollectionBase(Generic[Properties, References]):
         This method does not send a request to Weaviate. It only returns a new collection object that is specific
         to the consistency level you specify.
 
-        Arguments:
-            `consistency_level`
-                The consistency level to use.
+        Args:
+            consistency_level: The consistency level to use.
         """
         ...
 

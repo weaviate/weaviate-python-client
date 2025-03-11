@@ -34,31 +34,19 @@ class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properti
     ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
         """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
 
-        Arguments:
-            `single_prompt`
-                The prompt to use for RaG on each object individually.
-            `grouped_task`
-                The prompt to use for RaG on the entire result set.
-            `grouped_properties`
-                The properties to use in the RaG on the entire result set.
-            `limit`
-                The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
-            `offset`
-                The offset to start from. If not specified, the retrieval begins from the first object in Weaviate.
-            `after`
-                The UUID of the object to start from. If not specified, the retrieval begins from the first object in Weaviate.
-            `filters`
-                The filters to apply to the retrieval.
-            `sort`
-                The sorting to apply to the retrieval.
-            `include_vector`
-                Whether to include the vector in the results. If not specified, this is set to False.
-            `return_metadata`
-                The metadata to return for each object, defaults to `None`.
-            `return_properties`
-                The properties to return for each object.
-            `return_references`
-                The references to return for each object.
+        Args:
+            single_prompt: The prompt to use for RaG on each object individually.
+            grouped_task: The prompt to use for RaG on the entire result set.
+            grouped_properties: The properties to use in the RaG on the entire result set.
+            limit: The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
+            offset: The offset to start from. If not specified, the retrieval begins from the first object in Weaviate.
+            after: The UUID of the object to start from. If not specified, the retrieval begins from the first object in Weaviate.
+            filters: The filters to apply to the retrieval.
+            sort: The sorting to apply to the retrieval.
+            include_vector: Whether to include the vector in the results. If not specified, this is set to False.
+            return_metadata: The metadata to return for each object, defaults to `None`.
+            return_properties: The properties to return for each object.
+            return_references: The references to return for each object.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -69,8 +57,7 @@ class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properti
             A `_GenerativeNearMediaReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
-                If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateGRPCQueryError: If the network connection to Weaviate fails.
         """
         res = await self._query.get(
             limit=limit,

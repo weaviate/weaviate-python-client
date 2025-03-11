@@ -69,10 +69,8 @@ class AggregateBuilder(GraphQL):
         """
         Initialize a AggregateBuilder class instance.
 
-        Parameters
-        ----------
-        class_name : str
-            Class name of the objects to be aggregated.
+        Args:
+            class_name: Class name of the objects to be aggregated.
         """
         self._class_name: str = _capitalize_first_letter(class_name)
         self._object_limit: Optional[int] = None
@@ -99,9 +97,7 @@ class AggregateBuilder(GraphQL):
         """
         Set Meta Count to True.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
+        Returns:
             Updated AggregateBuilder.
         """
 
@@ -113,14 +109,10 @@ class AggregateBuilder(GraphQL):
         Set objectLimit to limit vector search results used within the aggregation query
         only when with near<MEDIA> filter.
 
-        Parameters
-        ----------
-        limit : int
-            The object limit.
+        Args:
+            limit: The object limit.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
+        Returns:
             Updated AggregateBuilder.
         """
 
@@ -131,14 +123,10 @@ class AggregateBuilder(GraphQL):
         """
         Set limit to limit the number of returned results from the aggregation query.
 
-        Parameters
-        ----------
-        limit : int
-            The limit.
+        Args:
+            limit: The limit.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
+        Returns:
             Updated AggregateBuilder.
         """
 
@@ -149,15 +137,10 @@ class AggregateBuilder(GraphQL):
         """
         Include a field in the aggregate query.
 
-        Parameters
-        ----------
-        field : str
-            Field to include in the aggregate query.
-            e.g. '<property_name> { count }'
+        Args:
+            field: Field to include in the aggregate query. e.g. '<property_name> { count }'
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
+        Returns:
             Updated AggregateBuilder.
         """
 
@@ -168,14 +151,10 @@ class AggregateBuilder(GraphQL):
         """
         Set 'where' filter.
 
-        Parameters
-        ----------
-        content : dict
-            The where filter to include in the aggregate query. See examples below.
+        Args:
+            content: The where filter to include in the aggregate query. See examples below.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
+        Returns:
             Updated AggregateBuilder.
         """
 
@@ -186,10 +165,11 @@ class AggregateBuilder(GraphQL):
     def with_hybrid(self, content: dict) -> "AggregateBuilder":
         """Get objects using bm25 and vector, then combine the results using a reciprocal ranking algorithm.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `hybrid` filter to set.
+        Args:
+            content: The content of the `hybrid` filter to set.
+
+        Returns:
+            Updated AggregateBuilder.
         """
         if self._near is not None:
             raise AttributeError("Cannot use 'hybrid' and 'near' filters simultaneously.")
@@ -202,16 +182,12 @@ class AggregateBuilder(GraphQL):
         Add a group by filter to the query. Might requires the user to set
         an additional group by clause using `with_fields(..)`.
 
-        Parameters
-        ----------
-        properties : list of str
-            list of properties that are included in the group by filter.
-            Generates a filter like: 'groupBy: ["property1", "property2"]'
-            from a list ["property1", "property2"]
+        Args:
+            properties: The list of properties that are included in the group by filter.
+                Generates a filter like: 'groupBy: ["property1", "property2"]'
+                from a list ["property1", "property2"]
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
+        Returns:
             Updated AggregateBuilder.
         """
 
@@ -225,20 +201,14 @@ class AggregateBuilder(GraphQL):
         E.g.: text2vec-contextionary, text2vec-transformers.
         NOTE: The 'autocorrect' field is enabled only with the `text-spellcheck` Weaviate module.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearText` filter to set. See examples below.
+        Args:
+            content: The content of the `nearText` filter to set. See examples below.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
+        Returns:
             Updated AggregateBuilder.
 
-        Raises
-        ------
-        AttributeError
-            If another 'near' filter was already set.
+        Raises:
+            AttributeError: If another 'near' filter was already set.
         """
 
         if self._near is not None:
@@ -253,20 +223,14 @@ class AggregateBuilder(GraphQL):
         """
         Set `nearVector` filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearVector` filter to set. See examples below.
+        Args:
+            content: The content of the `nearVector` filter to set. See examples below.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
+        Returns:
             Updated AggregateBuilder.
 
-        Raises
-        ------
-        AttributeError
-            If another 'near' filter was already set.
+        Raises:
+            AttributeError: If another 'near' filter was already set.
         """
 
         if self._near is not None:
@@ -281,20 +245,14 @@ class AggregateBuilder(GraphQL):
         """
         Set `nearObject` filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearObject` filter to set. See examples below.
+        Args:
+            content: The content of the `nearObject` filter to set. See examples below.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
+        Returns:
             Updated AggregateBuilder.
 
-        Raises
-        ------
-        AttributeError
-            If another 'near' filter was already set.
+        Raises:
+            AttributeError: If another 'near' filter was already set.
         """
 
         if self._near is not None:
@@ -309,26 +267,19 @@ class AggregateBuilder(GraphQL):
         """
         Set `nearImage` filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearImage` filter to set. See examples below.
-        encode : bool, optional
-            Whether to encode the `content["image"]` to base64 and convert to string. If True, the
-            `content["image"]` can be an image path or a file opened in binary read mode. If False,
-            the `content["image"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
-            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
-            By default True.
+        Args:
+            content: The content of the `nearImage` filter to set. See examples below.
+            encode: Whether to encode the `content["image"]` to base64 and convert to string. If True, the
+                `content["image"]` can be an image path or a file opened in binary read mode. If False,
+                the `content["image"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+                string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+                By default True.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
-            The updated AggregateBuilder.
+        Returns:
+            Updated AggregateBuilder.
 
-        Raises
-        ------
-        AttributeError
-            If another 'near' filter was already set.
+        Raises:
+            AttributeError: If another 'near' filter was already set.
         """
         self._media_type = MediaType.IMAGE
         if self._near is not None:
@@ -348,26 +299,19 @@ class AggregateBuilder(GraphQL):
         """
         Set `nearAudio` filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearAudio` filter to set. See examples below.
-        encode : bool, optional
-            Whether to encode the `content["audio"]` to base64 and convert to string. If True, the
-            `content["audio"]` can be an audio path or a file opened in binary read mode. If False,
-            the `content["audio"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
-            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
-            By default True.
+        Args:
+            content: The content of the `nearAudio` filter to set. See examples below.
+            encode: Whether to encode the `content["audio"]` to base64 and convert to string. If True, the
+                `content["audio"]` can be an audio path or a file opened in binary read mode. If False,
+                the `content["audio"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+                string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+                By default True.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
-            The updated AggregateBuilder.
+        Returns:
+            Updated AggregateBuilder.
 
-        Raises
-        ------
-        AttributeError
-            If another 'near' filter was already set.
+        Raises:
+            AttributeError: If another 'near' filter was already set.
         """
 
         self._media_type = MediaType.AUDIO
@@ -388,26 +332,19 @@ class AggregateBuilder(GraphQL):
         """
         Set `nearVideo` filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearVideo` filter to set. See examples below.
-        encode : bool, optional
-            Whether to encode the `content["video"]` to base64 and convert to string. If True, the
-            `content["video"]` can be an video path or a file opened in binary read mode. If False,
-            the `content["video"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
-            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
-            By default True.
+        Args:
+            content: The content of the `nearVideo` filter to set. See examples below.
+            encode: Whether to encode the `content["video"]` to base64 and convert to string. If True, the
+                `content["video"]` can be an video path or a file opened in binary read mode. If False,
+                the `content["video"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+                string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+                By default True.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
-            The updated AggregateBuilder.
+        Returns:
+            Updated AggregateBuilder.
 
-        Raises
-        ------
-        AttributeError
-            If another 'near' filter was already set.
+        Raises:
+            AttributeError: If another 'near' filter was already set.
         """
 
         self._media_type = MediaType.VIDEO
@@ -428,26 +365,19 @@ class AggregateBuilder(GraphQL):
         """
         Set `nearDepth` filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearDepth` filter to set. See examples below.
-        encode : bool, optional
-            Whether to encode the `content["depth"]` to base64 and convert to string. If True, the
-            `content["depth"]` can be an depth path or a file opened in binary read mode. If False,
-            the `content["depth"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
-            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
-            By default True.
+        Args:
+            content: The content of the `nearDepth` filter to set. See examples below.
+            encode: Whether to encode the `content["depth"]` to base64 and convert to string. If True, the
+                `content["depth"]` can be an depth path or a file opened in binary read mode. If False,
+                the `content["depth"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+                string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+                By default True.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
-            The updated AggregateBuilder.
+        Returns:
+            Updated AggregateBuilder.
 
-        Raises
-        ------
-        AttributeError
-            If another 'near' filter was already set.
+        Raises:
+            AttributeError: If another 'near' filter was already set.
         """
 
         self._media_type = MediaType.DEPTH
@@ -468,26 +398,19 @@ class AggregateBuilder(GraphQL):
         """
         Set `nearThermal` filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearThermal` filter to set. See examples below.
-        encode : bool, optional
-            Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
-            `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
-            the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
-            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
-            By default True.
+        Args:
+            content: The content of the `nearThermal` filter to set. See examples below.
+            encode: Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
+                `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
+                the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+                string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+                By default True.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
-            The updated AggregateBuilder.
+        Returns:
+            Updated AggregateBuilder.
 
-        Raises
-        ------
-        AttributeError
-            If another 'near' filter was already set.
+        Raises:
+            AttributeError: If another 'near' filter was already set.
         """
 
         self._media_type = MediaType.THERMAL
@@ -508,27 +431,19 @@ class AggregateBuilder(GraphQL):
         """
         Set `nearIMU` filter.
 
-        Parameters
-        ----------
-        content : dict
-            The content of the `nearIMU` filter to set. See examples below.
-        encode : bool, optional
-            Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
-            `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
-            the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
-            string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
-            By default True.
+        Args:
+            content: The content of the `nearIMU` filter to set. See examples below.
+            encode: Whether to encode the `content["thermal"]` to base64 and convert to string. If True, the
+                `content["thermal"]` can be an thermal path or a file opened in binary read mode. If False,
+                the `content["thermal"]` MUST be a base64 encoded string (NOT bytes, i.e. NOT binary
+                string that looks like this: b'BASE64ENCODED' but simple 'BASE64ENCODED').
+                By default True.
 
+        Returns:
+            Updated AggregateBuilder.
 
-        Returns
-        -------
-        weaviate.gql.aggregate.AggregateBuilder
-            The updated AggregateBuilder.
-
-        Raises
-        ------
-        AttributeError
-            If another 'near' filter was already set.
+        Raises:
+            AttributeError: If another 'near' filter was already set.
         """
 
         self._media_type = MediaType.IMU
@@ -549,9 +464,7 @@ class AggregateBuilder(GraphQL):
         """
         Build the query and return the string.
 
-        Returns
-        -------
-        str
+        Returns:
             The GraphQL query as a string.
         """
 
