@@ -51,6 +51,7 @@ author = "Weaviate"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
@@ -66,6 +67,9 @@ autodoc_pydantic_model_show_field_summary = False
 autodoc_pydantic_model_undoc_members = False
 autodoc_pydantic_model_members = False
 
+autodoc_typehints = "description"
+autodoc_member_order = 'bysource'
+autodoc_dataclass_fields = False
 
 # Make sure the target is unique
 autosectionlabel_prefix_document = True
@@ -105,9 +109,29 @@ def convert_markdown_links(lines):
     md_link_pattern = re.compile(r"\[([^\]]+)\]\((http[^\)]+)\)")
     return [md_link_pattern.sub(r"`\1 <\2>`_", line) for line in lines]
 
+def replace_client_parent_docstring_to_match_child(what, obj, lines):
+    """Replace the parent class docstring with the child class docstring."""
+    if what != "class" or not obj.__name__ in ("WeaviateClient", "WeaviateAsyncClient"):
+        return lines
+
+    # Replace Parent class's "WeaviateClient/WeaviateClientAsync" with the child class's name
+    text = "\n".join(lines)
+    text = text.replace("WeaviateClient/WeaviateClientAsync", obj.__name__)
+
+    # Make the connect_to function references into links to actual functions
+    pattern = re.compile(r'\b(weaviate\.connect_to_[a-zA-Z_][a-zA-Z0-9_]*)\b')
+    text = pattern.sub(r':func:`\1`', text)
+
+    # Rename the connect_to function to use_async_with for the WeaviateAsyncClient
+    if obj.__name__ == "WeaviateAsyncClient":
+        text = text.replace("connect_to", "use_async_with")
+
+    return text.split("\n")
+
 def autodoc_process_docstring(app, what, name, obj, options, lines):
     """Apply the conversion to all docstrings."""
     lines[:] = convert_markdown_links(lines)
+    lines[:] = replace_client_parent_docstring_to_match_child(what, obj, lines)
 
 def setup(app):
     app.add_css_file("custom.css")
