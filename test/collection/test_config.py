@@ -1027,6 +1027,28 @@ TEST_CONFIG_WITH_GENERATIVE = [
             }
         },
     ),
+    (
+        Configure.Generative.xai(
+            model="grok-2-latest",
+            frequency_penalty=0.5,
+            max_tokens=100,
+            presence_penalty=0.5,
+            temperature=0.5,
+            top_p=0.5,
+            base_url="https://api.x.ai/v1",
+        ),
+        {
+            "generative-xai": {
+                "model": "grok-2-latest",
+                "frequencyPenaltyProperty": 0.5,
+                "maxTokensProperty": 100,
+                "presencePenaltyProperty": 0.5,
+                "temperatureProperty": 0.5,
+                "topPProperty": 0.5,
+                "baseURL": "https://api.x.ai/v1",
+            }
+        },
+    ),
 ]
 
 
