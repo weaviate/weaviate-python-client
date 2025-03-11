@@ -57,6 +57,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "vectorizeClassName": True,
                 "baseURL": "https://api.openai.com/",
                 "dimensions": 356,
+                "isAzure": True,
             }
         },
     ),
@@ -278,11 +279,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
     ),
     (
         Configure.Vectorizer.text2vec_openai(),
-        {
-            "text2vec-openai": {
-                "vectorizeClassName": True,
-            }
-        },
+        {"text2vec-openai": {"vectorizeClassName": True, "isAzure": False}},
     ),
     (
         Configure.Vectorizer.text2vec_openai(
@@ -301,6 +298,7 @@ TEST_CONFIG_WITH_VECTORIZER_PARAMETERS = [
                 "type": "text",
                 "baseURL": "https://api.openai.com/",
                 "dimensions": 100,
+                "isAzure": False,
             }
         },
     ),
@@ -1386,6 +1384,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "vectorizeClassName": True,
                         "properties": ["prop"],
                         "dimensions": 512,
+                        "isAzure": True,
                     }
                 },
                 "vectorIndexType": "hnsw",
@@ -1570,6 +1569,7 @@ TEST_CONFIG_WITH_NAMED_VECTORIZER_PARAMETERS = [
                         "properties": ["prop"],
                         "vectorizeClassName": True,
                         "baseURL": "https://api.openai.com/",
+                        "isAzure": False,
                     }
                 },
                 "vectorIndexType": "hnsw",
