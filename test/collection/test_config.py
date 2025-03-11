@@ -1038,7 +1038,7 @@ TEST_CONFIG_WITH_GENERATIVE = [
             "generative-xai": {
                 "model": "grok-2-latest",
                 "maxTokensProperty": 100,
-                "temperatureProperty": 0.5,
+                "temperature": 0.5,
                 "baseURL": "https://api.x.ai/v1",
             }
         },
