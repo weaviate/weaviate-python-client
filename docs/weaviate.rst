@@ -3,7 +3,7 @@ weaviate
 
 .. automodule:: weaviate
    :members:
-   :exclude-members: Client
+   :exclude-members: Client,BatchClient,ClientBatchingContextManager
    :undoc-members:
 
 Subpackages
