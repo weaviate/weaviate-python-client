@@ -128,10 +128,16 @@ def replace_client_parent_docstring_to_match_child(what, obj, lines):
 
     return text.split("\n")
 
+def shorthand_weaviate_exceptions_display(lines):
+    """Replace weaviate.exceptions.* with ~weaviate.exceptions.* to make it a shorthand."""
+    pattern = re.compile(r'\b(weaviate\.exceptions\.[a-zA-Z_][a-zA-Z0-9_]*)\b')
+    return [pattern.sub(r'~\1', line) for line in lines]
+
 def autodoc_process_docstring(app, what, name, obj, options, lines):
     """Apply the conversion to all docstrings."""
     lines[:] = convert_markdown_links(lines)
     lines[:] = replace_client_parent_docstring_to_match_child(what, obj, lines)
+    lines[:] = shorthand_weaviate_exceptions_display(lines)
 
 def setup(app):
     app.add_css_file("custom.css")
