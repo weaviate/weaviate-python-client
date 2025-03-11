@@ -1255,6 +1255,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
 
 class _CollectionConfigUpdate(_ConfigUpdateModel):
     description: Optional[str] = Field(default=None)
+    property_descriptions: Optional[Dict[str, str]] = Field(default=None)
     invertedIndexConfig: Optional[_InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
     )
@@ -1309,6 +1310,18 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         if self.description is not None:
             schema["description"] = self.description
+        if self.property_descriptions is not None:
+            if (p := schema["properties"]) is None:
+                raise WeaviateInvalidInputError(
+                    "Cannot update property descriptions without existing properties in the schema"
+                )
+            props = {prop["name"]: prop for prop in p}
+            for prop_name, prop_desc in self.property_descriptions.items():
+                if prop_name not in props:
+                    raise WeaviateInvalidInputError(
+                        f"Property {prop_name} does not exist in the existing properties"
+                    )
+                props[prop_name]["description"] = prop_desc
         if self.invertedIndexConfig is not None:
             schema["invertedIndexConfig"] = self.invertedIndexConfig.merge_with_existing(
                 schema["invertedIndexConfig"]
