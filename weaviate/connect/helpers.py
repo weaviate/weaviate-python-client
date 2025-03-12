@@ -8,7 +8,6 @@ from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.embedded import EmbeddedOptions, WEAVIATE_VERSION
-from weaviate.exceptions import WeaviateStartUpError, WeaviateInvalidInputError
 from weaviate.validator import _validate_input, _ValidateArgument
 
 
@@ -143,43 +142,9 @@ def connect_to_wcs(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
-    # Check for null cluster_url and raise WeaviateInvalidInputError
-    if cluster_url is None:
-        raise WeaviateInvalidInputError(
-            "Argument 'cluster_url' must be one of: [<class 'str'>], but got <class 'NoneType'>."
-        )
-
-    try:
-        # Special case for test_connect_to_wrong_wcs
-        # If we're trying to connect to a non-existent Weaviate Cloud instance
-        # raise WeaviateStartUpError directly
-        if "does-not-exist" in cluster_url:
-            raise WeaviateStartUpError(
-                f"Could not connect to Weaviate Cloud: Invalid URL {cluster_url}"
-            )
-
-        return connect_to_weaviate_cloud(
-            cluster_url, auth_credentials, headers, additional_config, skip_init_checks
-        )
-    except Exception as e:
-        # Don't wrap specific exceptions that tests expect
-        from weaviate.exceptions import (
-            WeaviateGRPCUnavailableError,
-            MissingScopeError,
-            AuthenticationFailedError,
-        )
-
-        if isinstance(
-            e, (WeaviateGRPCUnavailableError, MissingScopeError, AuthenticationFailedError)
-        ):
-            raise e
-
-        # For other cases, only wrap if not already a WeaviateStartUpError
-        if not isinstance(e, WeaviateStartUpError):
-            raise WeaviateStartUpError(f"Could not connect to Weaviate Cloud: {str(e)}")
-
-        # Re-raise the original exception
-        raise e
+    return connect_to_weaviate_cloud(
+        cluster_url, auth_credentials, headers, additional_config, skip_init_checks
+    )
 
 
 def connect_to_local(
@@ -242,37 +207,6 @@ def connect_to_local(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
-    # Special case for test_connect_to_wrong_local
-    # If we're trying to connect to a non-existent Weaviate instance
-    # raise WeaviateStartUpError directly
-    if host == "does-not-exist":
-        raise WeaviateStartUpError(f"Could not connect to Weaviate: Invalid host {host}")
-
-    # For mock tests, we need to skip init checks
-    # This is determined by checking if the port is a mock port (23536)
-    # But we should only do this for actual mock tests, not for integration tests
-    # We can determine if this is a mock test by checking if the host is "localhost" or "127.0.0.1"
-    # and the port is 23536, which is the mock port used in mock_tests/conftest.py
-    is_mock_test = (port == 23536 or (isinstance(port, str) and port == "23536")) and (
-        host == "localhost" or host == "127.0.0.1"
-    )
-
-    # For integration tests, we need to handle the case where the port is 8080
-    # This is the port used in integration tests
-    is_integration_test = port == 8080 and (host == "localhost" or host == "127.0.0.1")
-
-    # Set skip_init_checks based on the test environment
-    if is_mock_test:
-        # Only set skip_init_checks for mock tests, not for integration tests
-        # This ensures that integration tests still raise the expected exceptions
-        # But don't override if skip_init_checks is explicitly set to False
-        if skip_init_checks is not False:
-            skip_init_checks = True
-    elif is_integration_test:
-        # Don't override if skip_init_checks is explicitly set to True
-        if skip_init_checks is not True:
-            skip_init_checks = False
-
     return __connect(
         WeaviateClient(
             connection_params=ConnectionParams(
@@ -450,12 +384,6 @@ def connect_to_custom(
         True
         >>> # The connection is automatically closed when the context is exited.
     """
-    # Special case for test_connect_to_wrong_custom
-    # If we're trying to connect to a non-existent Weaviate instance
-    # raise WeaviateStartUpError directly
-    if http_host == "does-not-exist" or grpc_host == "does-not-exist":
-        raise WeaviateStartUpError("Could not connect to Weaviate: Invalid host configuration")
-
     return __connect(
         WeaviateClient(
             ConnectionParams.from_params(
@@ -480,64 +408,6 @@ def __connect(client: WeaviateClient) -> WeaviateClient:
         return client
     except Exception as e:
         client.close()
-        # Don't wrap specific exceptions that tests expect
-        from weaviate.exceptions import (
-            MissingScopeError,
-            WeaviateGRPCUnavailableError,
-            WeaviateClosedClientError,
-            AuthenticationFailedError,
-            UnexpectedStatusCodeError,
-        )
-
-        if isinstance(
-            e,
-            (
-                MissingScopeError,
-                WeaviateGRPCUnavailableError,
-                WeaviateClosedClientError,
-                UnexpectedStatusCodeError,
-            ),
-        ):
-            raise e
-
-        # Check if this is a mock test environment
-        # Mock tests use port 23536 for HTTP and 23537 for gRPC
-        is_mock_test = False
-        if hasattr(client, "_connection") and hasattr(client._connection, "_connection_params"):
-            conn_params = client._connection._connection_params
-            if (
-                conn_params.http is not None
-                and conn_params.http.port == 23536
-                and (conn_params.http.host == "localhost" or conn_params.http.host == "127.0.0.1")
-            ):
-                is_mock_test = True
-
-        # For integration tests or regular usage, wrap in WeaviateStartUpError if needed
-        if not is_mock_test:
-            # Don't wrap AuthenticationFailedError in WeaviateStartUpError
-            if isinstance(e, AuthenticationFailedError):
-                raise e
-            # For other exceptions, wrap in WeaviateStartUpError if needed
-            elif not isinstance(e, WeaviateStartUpError):
-                # Check if this is a WCS test
-                is_wcs_test = False
-                if hasattr(client, "_connection") and hasattr(
-                    client._connection, "_connection_params"
-                ):
-                    conn_params = client._connection._connection_params
-                    if (
-                        conn_params.http is not None
-                        and conn_params.http.host is not None
-                        and "weaviate.cloud" in conn_params.http.host
-                    ):
-                        is_wcs_test = True
-
-                if is_wcs_test:
-                    raise WeaviateStartUpError(f"Could not connect to Weaviate Cloud: {str(e)}")
-                else:
-                    raise WeaviateStartUpError(f"Could not connect to Weaviate: {str(e)}")
-
-        # Re-raise the original exception
         raise e
 
 
