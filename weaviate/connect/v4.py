@@ -40,7 +40,7 @@ from weaviate.auth import (
 )
 from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
 import logging
-from weaviate.logger import log_http_event
+from weaviate.logger import log_http_event, logger
 from weaviate.connect.authentication_async import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
@@ -255,7 +255,8 @@ class ConnectionV4:
             ) as e:
                 if skip_init_checks and self._is_mock_test():
                     # For mock tests, continue even if we can't get metadata
-                    _Warnings.weaviate_meta_not_available(str(e))
+                    # Just log a debug message instead of using a warning
+                    logger.debug(f"Could not connect to Weaviate meta endpoint: {e}. This is expected in mock test environments.")
                 else:
                     raise WeaviateStartUpError(f"Could not connect to Weaviate: {e}") from e
 
@@ -266,7 +267,8 @@ class ConnectionV4:
                 except Exception as e:
                     if skip_init_checks and self._is_mock_test():
                         # For mock tests, continue even if gRPC connection fails
-                        _Warnings.weaviate_grpc_not_available(str(e))
+                        # Just log a debug message instead of using a warning
+                        logger.debug(f"Could not connect to Weaviate gRPC: {e}. This is expected in mock test environments.")
                     else:
                         raise WeaviateStartUpError(
                             f"Could not connect to Weaviate gRPC: {e}"

@@ -334,21 +334,3 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
-
-    @staticmethod
-    def weaviate_meta_not_available(error: str) -> None:
-        warnings.warn(
-            message=f"""Con006: Could not retrieve metadata from Weaviate: {error}.
-            This is expected in mock test environments.""",
-            category=UserWarning,
-            stacklevel=1,
-        )
-
-    @staticmethod
-    def weaviate_grpc_not_available(error: str) -> None:
-        warnings.warn(
-            message=f"""Con007: Could not connect to Weaviate gRPC: {error}.
-            This is expected in mock test environments.""",
-            category=UserWarning,
-            stacklevel=1,
-        )
