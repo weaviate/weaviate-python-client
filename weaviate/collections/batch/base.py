@@ -1,5 +1,6 @@
 import asyncio
 import math
+import os
 import threading
 import time
 import uuid as uuid_package
@@ -54,6 +55,7 @@ DEFAULT_REQUEST_TIMEOUT = 180
 CONCURRENT_REQUESTS_DYNAMIC_VECTORIZER = 2
 BATCH_TIME_TARGET = 10
 VECTORIZER_BATCHING_STEP_SIZE = 48  # cohere max batch size is 96
+MAX_RETRIES = int(os.getenv("WEAVIATE_BATCH_MAX_RETRIES", "9"))
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
@@ -488,7 +490,7 @@ class _BatchBase:
             start = time.time()
             try:
                 response_obj = await self.__batch_grpc.objects(
-                    objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT, max_retries=9
+                    objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT, max_retries=MAX_RETRIES
                 )
                 if response_obj.has_errors:
                     logger.error(
