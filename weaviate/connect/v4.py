@@ -344,6 +344,7 @@ class ConnectionV4:
             warnings.warn(
                 "Auth001: Authentication credentials provided but Weaviate instance does not require authentication.",
                 UserWarning,
+                stacklevel=2,
             )
             self.__make_clients()
             return
