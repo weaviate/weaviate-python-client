@@ -115,3 +115,14 @@ def test_deprecated_syntax(client_factory: ClientFactory) -> None:
         client.users.db.create(user_id=randomUserName)
         roles = client.users.get_assigned_roles(user_id=randomUserName)
         assert len(roles) == 0
+
+
+def test_list_all_users(client_factory: ClientFactory) -> None:
+    with client_factory(ports=(8081, 50052), auth_credentials=Auth.api_key("admin-key")) as client:
+        for i in range(5):
+            client.users.db.delete(user_id=f"new-user-{i}")
+            client.users.db.create(user_id=f"new-user-{i}")
+
+        users = client.users.db.list_all()
+        dynamic_users = [user for user in users if user.DbUserType == "dynamic"]
+        assert len(dynamic_users) == 5

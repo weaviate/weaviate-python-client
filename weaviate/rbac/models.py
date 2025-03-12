@@ -85,6 +85,15 @@ class WeaviateDBUser(TypedDict):
     roles: Optional[List[WeaviateRole]]
     groups: List[str]
     active: bool
+    dbUserType: str
+
+
+class WeaviateDBUserRoleNames(TypedDict):
+    userId: str
+    roles: List[str]
+    groups: List[str]
+    active: bool
+    dbUserType: str
 
 
 class _Action:
@@ -501,6 +510,15 @@ class UserDB:
     user_id: str
     roles: Dict[str, Role]
     active: bool
+    DbUserType: str
+
+
+@dataclass
+class UserDBRoleNames:
+    user_id: str
+    roles: List[str]
+    active: bool
+    DbUserType: str
 
 
 ActionsType = Union[_Action, Sequence[_Action]]

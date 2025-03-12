@@ -6,12 +6,14 @@ from weaviate.rbac.models import (
     Role,
     User,
     UserDB,
+    UserDBRoleNames,
     WeaviateDBUser,
+    WeaviateDBUserRoleNames,
     WeaviateRole,
     WeaviateUser,
 )
 
-from weaviate.util import _decode_json_response_dict
+from weaviate.util import _decode_json_response_dict, _decode_json_response_list
 from typing_extensions import deprecated
 
 USER_TYPE_DB: Final = "db"
@@ -59,7 +61,7 @@ class _UsersBase:
         )
 
     async def _create_user(self, user_id: str) -> str:
-        path = f"/users/{user_id}"
+        path = f"/users/db/{user_id}"
         resp = await self._connection.post(
             path,
             weaviate_object={},
@@ -71,7 +73,7 @@ class _UsersBase:
         return str(resp_typed["apikey"])
 
     async def _delete_user(self, user_id: str) -> bool:
-        path = f"/users/{user_id}"
+        path = f"/users/db/{user_id}"
         resp = await self._connection.delete(
             path,
             error_msg=f"Could not create user {user_id}",
@@ -80,7 +82,7 @@ class _UsersBase:
         return resp.status_code == 204
 
     async def _rotate_key(self, user_id: str) -> str:
-        path = f"/users/{user_id}/rotate-key"
+        path = f"/users/db/{user_id}/rotate-key"
         resp = await self._connection.post(
             path,
             weaviate_object={},
@@ -92,7 +94,7 @@ class _UsersBase:
         return str(resp_typed["apikey"])
 
     async def _deactivate(self, user_id: str) -> None:
-        path = f"/users/{user_id}/deactivate"
+        path = f"/users/db/{user_id}/deactivate"
         await self._connection.post(
             path,
             weaviate_object={},
@@ -101,7 +103,7 @@ class _UsersBase:
         )
 
     async def _activate(self, user_id: str) -> None:
-        path = f"/users/{user_id}/activate"
+        path = f"/users/db/{user_id}/activate"
         await self._connection.post(
             path,
             weaviate_object={},
@@ -110,15 +112,26 @@ class _UsersBase:
         )
 
     async def _get_user(self, user_id: str) -> WeaviateDBUser:
-        path = f"/users/{user_id}"
+        path = f"/users/db/{user_id}"
         resp = await self._connection.get(
             path,
-            error_msg=f"Could not activate user {user_id}",
+            error_msg=f"Could not get user {user_id}",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get user"),
         )
         parsed = _decode_json_response_dict(resp, "get user")
         assert parsed is not None
         return cast(WeaviateDBUser, parsed)
+
+    async def _list_all_users(self) -> List[WeaviateDBUserRoleNames]:
+        path = "/users/db"
+        resp = await self._connection.get(
+            path,
+            error_msg="Could not get all users",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="list all users"),
+        )
+        parsed = _decode_json_response_list(resp, "get user")
+        assert parsed is not None
+        return cast(List[WeaviateDBUserRoleNames], parsed)
 
 
 class _UserDBAsync(_UsersBase):
@@ -214,7 +227,22 @@ class _UserDBAsync(_UsersBase):
                 else {}
             ),
             active=user["active"],
+            DbUserType=user["dbUserType"],
         )
+
+    async def list_all(self) -> List[UserDBRoleNames]:
+        """List all DB users."""
+        users = await self._list_all_users()
+
+        return [
+            UserDBRoleNames(
+                user_id=user["userId"],
+                roles=user["roles"],
+                active=user["active"],
+                DbUserType=user["dbUserType"],
+            )
+            for user in users
+        ]
 
 
 class _UserOIDCAsync(_UsersBase):
