@@ -13,7 +13,7 @@ T = TypeVar("T")
 
 
 class _Retry:
-    def __init__(self, n: int = 4) -> None:
+    def __init__(self, n: float = 4) -> None:
         self.n = n
 
     async def with_exponential_backoff(
