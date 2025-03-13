@@ -55,7 +55,9 @@ DEFAULT_REQUEST_TIMEOUT = 180
 CONCURRENT_REQUESTS_DYNAMIC_VECTORIZER = 2
 BATCH_TIME_TARGET = 10
 VECTORIZER_BATCHING_STEP_SIZE = 48  # cohere max batch size is 96
-MAX_RETRIES = float(os.getenv("WEAVIATE_BATCH_MAX_RETRIES", "9"))
+MAX_RETRIES = float(
+    os.getenv("WEAVIATE_BATCH_MAX_RETRIES", "9.299")
+)  # approximately 10m30s of waiting in worst case, e.g. server scale up event
 
 
 class BatchRequest(ABC, Generic[TBatchInput, TBatchReturn]):
