@@ -351,8 +351,8 @@ def test_get_assigned_users(client_factory: ClientFactory) -> None:
 
 def test_get_assigned_users_db(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
         client.users.db.assign_roles(user_id="admin-user", role_names="viewer")
         assigned_users = client.roles.get_assigned_db_user_ids("viewer")
         assert len(assigned_users) == 1
@@ -361,8 +361,8 @@ def test_get_assigned_users_db(client_factory: ClientFactory) -> None:
 
 def test_get_assigned_oidc_db(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
-        if client._connection._weaviate_version.is_lower_than(1, 28, 0):
-            pytest.skip("This test requires Weaviate 1.28.0 or higher")
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
         client.users.oidc.assign_roles(user_id="admin-user", role_names="viewer")
         assigned_users = client.roles.get_assigned_oidc_user_ids("viewer")
         assert len(assigned_users) == 1
