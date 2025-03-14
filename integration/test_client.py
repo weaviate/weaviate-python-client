@@ -595,7 +595,7 @@ async def test_async_client_with_extra_options(timeout: Union[Tuple[int, int], T
     ]:
         await client.connect()
         await client.get_meta()
-        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
+        assert client._connection.timeout_config == Timeout(query=2, insert=4, init=4)
         await client.close()
 
 
