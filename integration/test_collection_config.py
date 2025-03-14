@@ -1298,6 +1298,11 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
         ],
     )
 
+    if collection._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip(
+            "Property descriptions are not supported in currently released Weaviate versions lower than 1.27.0"
+        )
+
     config = collection.config.get()
     assert config.properties[0].description is None
     assert config.properties[1].description is None
@@ -1313,9 +1318,7 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
     def is_supported():
         ver = collection._connection._weaviate_version
         return (
-            (ver.is_at_least(1, 25, 35) and ver.is_lower_than(1, 26, 0))
-            or (ver.is_at_least(1, 26, 18) and ver.is_lower_than(1, 27, 0))
-            or (ver.is_at_least(1, 27, 15) and ver.is_lower_than(1, 28, 0))
+            (ver.is_at_least(1, 27, 15) and ver.is_lower_than(1, 28, 0))
             or (ver.is_at_least(1, 28, 9) and ver.is_lower_than(1, 29, 0))
             or (ver.is_at_least(1, 29, 1))
         )
