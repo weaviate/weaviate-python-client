@@ -119,6 +119,9 @@ def test_deprecated_syntax(client_factory: ClientFactory) -> None:
 
 def test_list_all_users(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+
         for i in range(5):
             client.users.db.delete(user_id=f"new-user-{i}")
             client.users.db.create(user_id=f"new-user-{i}")
