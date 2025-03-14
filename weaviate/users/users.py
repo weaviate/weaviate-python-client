@@ -1,13 +1,11 @@
+from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, List, Literal, Union, cast, Final
 
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
     Role,
-    User,
-    UserDB,
-    UserDBRoleNames,
-    WeaviateDBUser,
     WeaviateDBUserRoleNames,
     WeaviateRole,
     WeaviateUser,
@@ -18,6 +16,25 @@ from typing_extensions import deprecated
 
 USER_TYPE_DB: Final = "db"
 USER_TYPE_OIDC: Final = "oidc"
+
+
+@dataclass
+class OwnUser:
+    user_id: str
+    roles: Dict[str, Role]
+
+
+class DbUserTypes(str, Enum):
+    DYNAMIC = "dynamic"
+    STATIC = "static"
+
+
+@dataclass
+class UserDB:
+    user_id: str
+    role_names: List[str]
+    active: bool
+    db_user_type: DbUserTypes
 
 
 class _UsersBase:
@@ -111,7 +128,7 @@ class _UsersBase:
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="activate key"),
         )
 
-    async def _get_user(self, user_id: str) -> WeaviateDBUser:
+    async def _get_user(self, user_id: str) -> WeaviateDBUserRoleNames:
         path = f"/users/db/{user_id}"
         resp = await self._connection.get(
             path,
@@ -120,7 +137,7 @@ class _UsersBase:
         )
         parsed = _decode_json_response_dict(resp, "get user")
         assert parsed is not None
-        return cast(WeaviateDBUser, parsed)
+        return cast(WeaviateDBUserRoleNames, parsed)
 
     async def _list_all_users(self) -> List[WeaviateDBUserRoleNames]:
         path = "/users/db"
@@ -221,25 +238,21 @@ class _UserDBAsync(_UsersBase):
 
         return UserDB(
             user_id=user["userId"],
-            roles=(
-                {role["name"]: Role._from_weaviate_role(role) for role in user["roles"]}
-                if user["roles"] is not None
-                else {}
-            ),
+            role_names=user["roles"],
             active=user["active"],
-            DbUserType=user["dbUserType"],
+            db_user_type=DbUserTypes(user["dbUserType"]),
         )
 
-    async def list_all(self) -> List[UserDBRoleNames]:
+    async def list_all(self) -> List[UserDB]:
         """List all DB users."""
         users = await self._list_all_users()
 
         return [
-            UserDBRoleNames(
+            UserDB(
                 user_id=user["userId"],
-                roles=user["roles"],
+                role_names=user["roles"],
                 active=user["active"],
-                DbUserType=user["dbUserType"],
+                db_user_type=DbUserTypes(user["dbUserType"]),
             )
             for user in users
         ]
@@ -316,14 +329,14 @@ class _UsersAsync(_UsersWrapper):
         self._db = _UserDBAsync(connection)
         self._oidc = _UserOIDCAsync(connection)
 
-    async def get_my_user(self) -> User:
+    async def get_my_user(self) -> OwnUser:
         """Get the currently authenticated user.
 
         Returns:
             A user object.
         """
         user = await self._get_current_user()
-        return User(
+        return OwnUser(
             user_id=user["user_id"],
             roles=(
                 {role["name"]: Role._from_weaviate_role(role) for role in user["roles"]}

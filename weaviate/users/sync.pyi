@@ -1,7 +1,7 @@
 from typing import Dict, List, Union
-from weaviate.users.users import _UsersWrapper
+from weaviate.users.users import _UsersWrapper, UserDB, OwnUser
 
-from weaviate.rbac.models import Role, User, UserDB, WeaviateUser
+from weaviate.rbac.models import Role
 from typing_extensions import deprecated
 
 class _UsersOIDC(_UsersWrapper):
@@ -22,7 +22,7 @@ class _UsersDB(_UsersWrapper):
     def list_all(self) -> List[UserDB]: ...
 
 class _Users(_UsersWrapper):
-    def get_my_user(self) -> User: ...
+    def get_my_user(self) -> OwnUser: ...
     @deprecated(
         """This method is deprecated and will be removed in Q4 25.
                 Please use `users.db.get_assigned_roles` and/or `users.oidc.get_assigned_roles` instead."""

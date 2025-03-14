@@ -156,7 +156,7 @@ class _RolesAsync(_RolesBase):
         return Role._from_weaviate_role(r)
 
     async def get_assigned_db_user_ids(self, role_name: str) -> List[str]:
-        """Get the ids of DB user that have been assigned this role.
+        """Get the ids of DB users that have been assigned this role.
 
         Args:
             role_name: The role to get the users for.
@@ -167,7 +167,7 @@ class _RolesAsync(_RolesBase):
         return await self._get_users_of_role(role_name, USER_TYPE_DB)
 
     async def get_assigned_oidc_user_ids(self, role_name: str) -> List[str]:
-        """Get the ids of DB user that have been assigned this role.
+        """Get the ids of OIDC users that have been assigned this role.
 
         Args:
             role_name: The role to get the users for.
@@ -182,7 +182,7 @@ class _RolesAsync(_RolesBase):
                 Please use `roles.get_assigned_db_user_ids` and/or `roles.get_assigned_oidc_user_ids` instead."""
     )
     async def get_assigned_user_ids(self, role_name: str) -> List[str]:
-        """Get the ids of user that have been assigned this role.
+        """Get the ids of users (DB + OIDC) that have been assigned this role.
 
         Args:
             role_name: The role to get the users for.

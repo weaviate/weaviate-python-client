@@ -80,14 +80,6 @@ class WeaviateUser(TypedDict):
     groups: List[str]
 
 
-class WeaviateDBUser(TypedDict):
-    userId: str
-    roles: Optional[List[WeaviateRole]]
-    groups: List[str]
-    active: bool
-    dbUserType: str
-
-
 class WeaviateDBUserRoleNames(TypedDict):
     userId: str
     roles: List[str]
@@ -497,28 +489,6 @@ def _join_permissions(permissions: List[T]) -> List[T]:
         return_permission.append(permissions[i])
 
     return return_permission
-
-
-@dataclass
-class User:
-    user_id: str
-    roles: Dict[str, Role]
-
-
-@dataclass
-class UserDB:
-    user_id: str
-    roles: Dict[str, Role]
-    active: bool
-    DbUserType: str
-
-
-@dataclass
-class UserDBRoleNames:
-    user_id: str
-    roles: List[str]
-    active: bool
-    DbUserType: str
 
 
 ActionsType = Union[_Action, Sequence[_Action]]

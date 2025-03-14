@@ -4,7 +4,6 @@ from weaviate.rbac.models import (
     PermissionsOutputType,
     PermissionsInputType,
     Role,
-    User,
 )
 from weaviate.rbac.roles import _RolesBase
 
