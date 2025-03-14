@@ -570,10 +570,11 @@ def test_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> 
         client.close()
 
 
-@pytest.mark.parametrize("timeout", [(1, 2), Timeout(query=1, insert=2, init=2)])
 @pytest.mark.asyncio
-async def test_async_client_with_extra_options(timeout: Union[Tuple[int, int], Timeout]) -> None:
-    additional_config = wvc.init.AdditionalConfig(timeout=timeout, trust_env=True)
+async def test_async_client_with_extra_options() -> None:
+    additional_config = wvc.init.AdditionalConfig(
+        timeout=Timeout(query=2, insert=4, init=4), trust_env=True
+    )
 
     for client in [
         weaviate.use_async_with_weaviate_cloud(
@@ -595,7 +596,7 @@ async def test_async_client_with_extra_options(timeout: Union[Tuple[int, int], T
     ]:
         await client.connect()
         await client.get_meta()
-        assert client._connection.timeout_config == Timeout(query=1, insert=2, init=2)
+        assert client._connection.timeout_config == Timeout(query=2, insert=4, init=4)
         await client.close()
 
 

@@ -456,6 +456,7 @@ class _GenerativeAnyscale(_GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.ANYSCALE, frozen=True, exclude=True
     )
+    baseURL: Optional[str]
     temperature: Optional[float]
     model: Optional[str]
 
@@ -487,6 +488,7 @@ class _GenerativeMistral(_GenerativeProvider):
     temperature: Optional[float]
     model: Optional[str]
     maxTokens: Optional[int]
+    baseURL: Optional[str]
 
 
 class _GenerativeNvidia(_GenerativeProvider):
@@ -678,6 +680,7 @@ class _Generative:
     def anyscale(
         model: Optional[str] = None,
         temperature: Optional[float] = None,
+        base_url: Optional[str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeAnyscale` object for use when generating using the `generative-anyscale` module.
 
@@ -686,8 +689,10 @@ class _Generative:
                 The model to use. Defaults to `None`, which uses the server-defined default
             `temperature`
                 The temperature to use. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
-        return _GenerativeAnyscale(model=model, temperature=temperature)
+        return _GenerativeAnyscale(model=model, temperature=temperature, baseURL=base_url)
 
     @staticmethod
     def custom(
@@ -765,6 +770,7 @@ class _Generative:
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        base_url: Optional[str] = None,
     ) -> _GenerativeProvider:
         """Create a `_GenerativeMistral` object for use when performing AI generation using the `generative-mistral` module.
 
@@ -775,8 +781,12 @@ class _Generative:
                 The temperature to use. Defaults to `None`, which uses the server-defined default
             `max_tokens`
                 The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
-        return _GenerativeMistral(model=model, temperature=temperature, maxTokens=max_tokens)
+        return _GenerativeMistral(
+            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
 
     @staticmethod
     def nvidia(

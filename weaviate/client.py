@@ -29,6 +29,7 @@ from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
 from .rbac import _RolesAsync, _Roles
 from .types import NUMBER
+from .warnings import _Warnings
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
@@ -66,6 +67,11 @@ class WeaviateClient(_WeaviateClientBase):
         additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
     ) -> None:
+        try:
+            asyncio.get_running_loop()
+            _Warnings.sync_in_async()
+        except RuntimeError:
+            pass
         self._event_loop = _EventLoopSingleton.get_instance()
         assert self._event_loop.loop is not None
         self._loop = self._event_loop.loop
