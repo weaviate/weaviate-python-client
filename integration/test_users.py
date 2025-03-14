@@ -73,7 +73,7 @@ def test_rotate_user_key(client_factory: ClientFactory) -> None:
         randomUserName = "new-user" + str(random.randint(1, 1000))
         apiKey = client.users.db.create(user_id=randomUserName)
         with weaviate.connect_to_local(
-            port=8081, grpc_port=50052, auth_credentials=Auth.api_key(apiKey)
+            port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(apiKey)
         ) as client2:
             user = client2.users.get_my_user()
             assert user.user_id == randomUserName
@@ -113,8 +113,9 @@ def test_deprecated_syntax(client_factory: ClientFactory) -> None:
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
         randomUserName = "new-user" + str(random.randint(1, 1000))
         client.users.db.create(user_id=randomUserName)
-        roles = client.users.get_assigned_roles(user_id=randomUserName)
+        roles = client.users.db.get_assigned_roles(user_id=randomUserName)
         assert len(roles) == 0
+        client.users.db.delete(user_id=randomUserName)
 
 
 def test_list_all_users(client_factory: ClientFactory) -> None:
@@ -123,9 +124,11 @@ def test_list_all_users(client_factory: ClientFactory) -> None:
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
         for i in range(5):
-            client.users.db.delete(user_id=f"new-user-{i}")
-            client.users.db.create(user_id=f"new-user-{i}")
+            client.users.db.delete(user_id=f"list-all-user-{i}")
+            client.users.db.create(user_id=f"list-all-user-{i}")
 
         users = client.users.db.list_all()
-        dynamic_users = [user for user in users if user.DbUserType == "dynamic"]
+        dynamic_users = [user for user in users if user.user_id.startswith("list-all-")]
         assert len(dynamic_users) == 5
+        for i in range(5):
+            client.users.db.delete(user_id=f"list-all-{i}")
