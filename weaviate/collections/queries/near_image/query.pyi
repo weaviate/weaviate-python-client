@@ -1,5 +1,3 @@
-from io import BufferedReader
-from pathlib import Path
 from typing import Generic, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.classes.filters import (
@@ -23,13 +21,13 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _Base
-from weaviate.types import NUMBER, INCLUDE_VECTOR
+from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
 
 class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, References]):
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -48,7 +46,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -67,7 +65,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -86,7 +84,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -105,7 +103,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -124,7 +122,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -146,7 +144,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -165,7 +163,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -184,7 +182,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -203,7 +201,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -222,7 +220,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -241,7 +239,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -261,7 +259,7 @@ class _NearImageQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -282,7 +280,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -301,7 +299,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -320,7 +318,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -339,7 +337,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -358,7 +356,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -377,7 +375,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -399,7 +397,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -418,7 +416,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -437,7 +435,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -456,7 +454,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -475,7 +473,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -494,7 +492,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -514,7 +512,7 @@ class _NearImageQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
