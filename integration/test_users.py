@@ -22,15 +22,12 @@ def test_own_user(client_factory: ClientFactory) -> None:
         assert user.user_id == "admin-user"
 
 
-def test_get_users(client_factory: ClientFactory) -> None:
+def test_get_user_roles_deprecated(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 28, 0):
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
-        user = client.users.db.get(user_id="admin-user")
-        assert len(user.role_names) > 0
-        assert user.user_id == "admin-user"
-        assert user.active
-        assert user.db_user_type == DbUserTypes.STATIC
+        roles = client.users.get_assigned_roles("admin-user")
+        assert len(roles) > 0
 
 
 def test_get_user_with_no_roles(client_factory: ClientFactory) -> None:
@@ -39,6 +36,17 @@ def test_get_user_with_no_roles(client_factory: ClientFactory) -> None:
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
         user = client.users.get_my_user()
         assert len(user.roles) == 0
+
+
+def test_get_static_db_user(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+        user = client.users.db.get(user_id="admin-user")
+        assert len(user.role_names) > 0
+        assert user.user_id == "admin-user"
+        assert user.active
+        assert user.db_user_type == DbUserTypes.STATIC
 
 
 def test_create_user_and_get(client_factory: ClientFactory) -> None:
@@ -55,6 +63,7 @@ def test_create_user_and_get(client_factory: ClientFactory) -> None:
             assert user.user_id == randomUserName
         user = client.users.db.get(user_id=randomUserName)
         assert user.user_id == randomUserName
+        assert user.db_user_type == DbUserTypes.DYNAMIC
         assert client.users.db.delete(user_id=randomUserName)
 
 
@@ -103,7 +112,6 @@ def test_de_activate(client_factory: ClientFactory) -> None:
 
         client.users.db.deactivate(user_id=randomUserName)
         user = client.users.db.get(user_id=randomUserName)
-        user.roles
         assert not user.active
         client.users.db.activate(user_id=randomUserName)
         user = client.users.db.get(user_id=randomUserName)
