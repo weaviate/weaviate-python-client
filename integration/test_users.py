@@ -37,14 +37,14 @@ def test_get_user_with_no_roles(client_factory: ClientFactory) -> None:
 
 
 def test_create_user_and_get(client_factory: ClientFactory) -> None:
-    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
+    with client_factory(ports=(RBAC_PORTS), auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
         randomUserName = "new-user" + str(random.randint(1, 1000))
         apiKey = client.users.db.create(user_id=randomUserName)
         with weaviate.connect_to_local(
-            port=8081, grpc_port=50052, auth_credentials=Auth.api_key(apiKey)
+            port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(apiKey)
         ) as client2:
             user = client2.users.get_my_user()
             assert user.user_id == randomUserName
