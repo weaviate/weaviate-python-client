@@ -37,7 +37,7 @@ def test_get_user_with_no_roles(client_factory: ClientFactory) -> None:
 
 
 def test_create_user_and_get(client_factory: ClientFactory) -> None:
-    with client_factory(ports=(8081, 50052), auth_credentials=Auth.api_key("admin-key")) as client:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
@@ -54,7 +54,7 @@ def test_create_user_and_get(client_factory: ClientFactory) -> None:
 
 
 def test_delete_user(client_factory: ClientFactory) -> None:
-    with client_factory(ports=(8081, 50052), auth_credentials=Auth.api_key("admin-key")) as client:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
@@ -66,7 +66,7 @@ def test_delete_user(client_factory: ClientFactory) -> None:
 
 
 def test_rotate_user_key(client_factory: ClientFactory) -> None:
-    with client_factory(ports=(8081, 50052), auth_credentials=Auth.api_key("admin-key")) as client:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
@@ -80,7 +80,7 @@ def test_rotate_user_key(client_factory: ClientFactory) -> None:
 
         apiKeyNew = client.users.db.rotate_key(user_id=randomUserName)
         with weaviate.connect_to_local(
-            port=8081, grpc_port=50052, auth_credentials=Auth.api_key(apiKeyNew)
+            port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(apiKeyNew)
         ) as client2:
             user = client2.users.get_my_user()
             assert user.user_id == randomUserName
@@ -89,7 +89,7 @@ def test_rotate_user_key(client_factory: ClientFactory) -> None:
 
 
 def test_de_activate(client_factory: ClientFactory) -> None:
-    with client_factory(ports=(8081, 50052), auth_credentials=Auth.api_key("admin-key")) as client:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
@@ -108,7 +108,7 @@ def test_de_activate(client_factory: ClientFactory) -> None:
 
 
 def test_deprecated_syntax(client_factory: ClientFactory) -> None:
-    with client_factory(ports=(8081, 50052), auth_credentials=Auth.api_key("admin-key")) as client:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
         randomUserName = "new-user" + str(random.randint(1, 1000))
@@ -118,7 +118,7 @@ def test_deprecated_syntax(client_factory: ClientFactory) -> None:
 
 
 def test_list_all_users(client_factory: ClientFactory) -> None:
-    with client_factory(ports=(8081, 50052), auth_credentials=Auth.api_key("admin-key")) as client:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=Auth.api_key("admin-key")) as client:
         for i in range(5):
             client.users.db.delete(user_id=f"new-user-{i}")
             client.users.db.create(user_id=f"new-user-{i}")
