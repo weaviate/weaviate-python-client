@@ -73,8 +73,13 @@ class _RolesBase:
             status_codes=_ExpectedStatusCodes(ok_in=[204], error="Delete role"),
         )
 
-    async def _get_users_of_role(self, name: str, user_type: Literal["db", "oidc"]) -> List[str]:
-        path = f"/authz/roles/{name}/users/{user_type}"
+    async def _get_users_of_role(
+        self, name: str, user_type: Optional[Literal["db", "oidc"]]
+    ) -> List[str]:
+        path = f"/authz/roles/{name}/users"
+
+        if user_type is not None:
+            path += "/" + user_type
 
         res = await self._connection.get(
             path,
@@ -185,13 +190,7 @@ class _RolesAsync(_RolesBase):
         Returns:
             A list of ids.
         """
-        user_lists = await asyncio.gather(
-            *[
-                self._get_users_of_role(role_name, USER_TYPE_DB),
-                self._get_users_of_role(role_name, USER_TYPE_OIDC),
-            ]
-        )
-        return list({user for sublist in user_lists for user in sublist})
+        return await self._get_users_of_role(role_name, None)
 
     async def delete(self, role_name: str) -> None:
         """Delete a role.
