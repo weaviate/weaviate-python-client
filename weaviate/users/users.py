@@ -345,9 +345,20 @@ class _UsersAsync(_UsersWrapper):
         Returns:
             A dictionary with role names as keys and the `Role` objects as values.
         """
-        ret_oidc = await self._oidc.get_assigned_roles(user_id)
-        ret_db = await self._db.get_assigned_roles(user_id)
-        return {**ret_oidc, **ret_db}
+        return {
+            role["name"]: Role._from_weaviate_role(role)
+            for role in await self.__get_roles_of_user_deprecated(user_id)
+        }
+
+    async def __get_roles_of_user_deprecated(self, name: str) -> List[WeaviateRole]:
+        path = f"/authz/users/{name}/roles"
+
+        res = await self._connection.get(
+            path,
+            error_msg=f"Could not get roles of user {name}",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles of user"),
+        )
+        return cast(List[WeaviateRole], res.json())
 
     @deprecated(
         """This method is deprecated and will be removed in Q4 25.
