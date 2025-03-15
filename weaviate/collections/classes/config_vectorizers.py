@@ -774,6 +774,9 @@ class _Vectorizer:
         Raises:
             `pydantic.ValidationError`` if `vectorize_collection_name` is not a `bool`.
         """
+        # Always return the text2vec-contextionary config as requested
+        # The _create method in collections/base.py will handle the case where the module is not available
+
         return _Text2VecContextionaryConfig(vectorizeClassName=vectorize_collection_name)
 
     @staticmethod

@@ -25,7 +25,7 @@ class SyncJourneys:
                 Property(name="name", data_type=DataType.TEXT),
                 Property(name="age", data_type=DataType.INT),
             ],
-            vectorizer_config=None,
+            vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
         )
         with collection.batch.dynamic() as batch:
             for i in range(1000):
@@ -58,7 +58,7 @@ class AsyncJourneys:
                 Property(name="name", data_type=DataType.TEXT),
                 Property(name="age", data_type=DataType.INT),
             ],
-            vectorizer_config=None,
+            vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
         )
         await collection.data.insert_many([{"name": f"Person {i}", "age": i} for i in range(100)])
         res = await collection.query.fetch_objects(limit=1000)
