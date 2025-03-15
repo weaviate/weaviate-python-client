@@ -4,12 +4,13 @@ import time
 from typing import Any, Dict, Mapping, Sequence, Tuple, TypeVar, Union, cast, Optional
 from urllib.parse import urlparse
 
-import grpc  # type: ignore
+import grpc
 from grpc import ssl_channel_credentials
-from grpc.aio import Channel  # type: ignore
+from grpc.aio import Channel
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import Proxies
+from weaviate.logger import GrpcLoggingInterceptor
 from weaviate.types import NUMBER
 
 # from grpclib.client import Channel
@@ -118,16 +119,22 @@ class ConnectionParams(BaseModel):
             options: list = [*opts, ("grpc.http_proxy", p)]
         else:
             options = opts
+
+        # Add environment-based logging interceptor
+        interceptors: Sequence[Any] = [GrpcLoggingInterceptor()]
+
         if self.grpc.secure:
             return grpc.aio.secure_channel(
                 target=self._grpc_target,
                 credentials=ssl_channel_credentials(),
                 options=options,
+                interceptors=interceptors,
             )
         else:
             return grpc.aio.insecure_channel(
                 target=self._grpc_target,
                 options=options,
+                interceptors=interceptors,
             )
 
     @property
