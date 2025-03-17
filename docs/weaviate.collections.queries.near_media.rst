@@ -7,9 +7,6 @@ weaviate.collections.queries.near\_media
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.queries.near\_media.generate module
 .. --------------------------------------------------------
 

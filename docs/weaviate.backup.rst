@@ -7,9 +7,6 @@ weaviate.backup
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.backup.backup
 ^^^^^^^^^^^^^^^^^^^^^^
 

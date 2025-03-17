@@ -6,9 +6,6 @@ weaviate.connect
    :undoc-members:
    :show-inheritance:
 
-.. Submodules
-.. ----------
-
 .. weaviate.connect.authentication\_async
 .. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

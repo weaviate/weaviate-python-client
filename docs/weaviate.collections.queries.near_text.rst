@@ -7,9 +7,6 @@ weaviate.collections.queries.near\_text
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.queries.near\_text.generate module
 .. -------------------------------------------------------
 

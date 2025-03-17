@@ -7,9 +7,6 @@ weaviate.cluster
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.cluster.types
 ^^^^^^^^^^^^^^^^^^^^^^
 

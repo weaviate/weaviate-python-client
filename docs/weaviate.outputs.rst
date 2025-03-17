@@ -7,9 +7,6 @@ weaviate.outputs
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.outputs.aggregate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

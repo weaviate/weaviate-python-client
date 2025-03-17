@@ -7,9 +7,6 @@ weaviate.collections.backups
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.collections.backups.backups
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

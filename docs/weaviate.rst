@@ -11,7 +11,7 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    weaviate.backup
    weaviate.classes
@@ -24,8 +24,6 @@ Subpackages
    weaviate.rbac
    weaviate.users
 
-Submodules
-----------
 
 weaviate.auth
 ^^^^^^^^^^^^^

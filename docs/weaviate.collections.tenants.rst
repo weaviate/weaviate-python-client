@@ -7,9 +7,6 @@ weaviate.collections.tenants
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.tenants.sync
 .. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

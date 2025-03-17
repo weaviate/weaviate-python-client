@@ -7,9 +7,6 @@ weaviate.collections.grpc
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.collections.grpc.aggregate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

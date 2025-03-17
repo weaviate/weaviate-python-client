@@ -7,9 +7,6 @@ weaviate.collections.cluster
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.cluster.cluster
 .. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
