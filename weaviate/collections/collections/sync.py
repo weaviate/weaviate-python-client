@@ -132,7 +132,7 @@ class _Collections:
                 The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
                 If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
             skip_argument_validation: If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
-        
+
         Raises:
             weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
             weaviate.exceptions.InvalidDataModelException: If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
