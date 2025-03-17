@@ -534,18 +534,6 @@ class _NamedVectors:
             text_fields: The text fields to use in vectorization.
             inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
         """
-        if interference_url is not None:
-            if inference_url is not None:
-                raise ValueError(
-                    "You have provided `interference_url` as well as `inference_url`. Please only provide `inference_url`, as `interference_url` is deprecated."
-                )
-            else:
-                warnings.warn(
-                    message="""This parameter is deprecated and will be removed in a future release. Please use `inference_url` instead.""",
-                    category=DeprecationWarning,
-                    stacklevel=1,
-                )
-
         return _NamedVectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecClipConfig(
