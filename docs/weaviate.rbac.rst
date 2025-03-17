@@ -7,9 +7,6 @@ weaviate.rbac
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.rbac.models
 ^^^^^^^^^^^^^^^^^^^^
 

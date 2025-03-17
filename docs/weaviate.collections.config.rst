@@ -7,9 +7,6 @@ weaviate.collections.config
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.config.config
 .. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

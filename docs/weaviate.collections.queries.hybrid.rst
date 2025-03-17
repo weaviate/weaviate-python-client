@@ -7,9 +7,6 @@ weaviate.collections.queries.hybrid
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.queries.hybrid.generate module
 .. ---------------------------------------------------
 

@@ -7,9 +7,6 @@ weaviate.collections.queries.bm25
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.queries.bm25.generate module
 .. -------------------------------------------------
 

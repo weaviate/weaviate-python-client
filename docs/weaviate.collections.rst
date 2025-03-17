@@ -24,8 +24,6 @@ Subpackages
    weaviate.collections.queries
    weaviate.collections.tenants
 
-Submodules
-----------
 
 weaviate.collections.aggregate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

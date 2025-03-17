@@ -7,9 +7,6 @@ weaviate.collections.queries.near\_vector
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.queries.near\_vector.generate module
 .. ---------------------------------------------------------
 

@@ -7,9 +7,6 @@ weaviate.collections.collections
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.collections.collections.async\_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

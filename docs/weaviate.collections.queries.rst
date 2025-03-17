@@ -7,9 +7,6 @@ weaviate.collections.queries
    :show-inheritance:
    :private-members:
 
-Subpackages
------------
-
 .. toctree::
    :maxdepth: 1
 

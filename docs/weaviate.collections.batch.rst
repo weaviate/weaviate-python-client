@@ -7,9 +7,6 @@ weaviate.collections.batch
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.collections.batch.base
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

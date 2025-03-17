@@ -7,8 +7,6 @@ weaviate.debug
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
 
 weaviate.debug.types
 ^^^^^^^^^^^^^^^^^^^^

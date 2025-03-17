@@ -7,9 +7,6 @@ weaviate.collections.data
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.data.data
 .. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

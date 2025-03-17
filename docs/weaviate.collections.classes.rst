@@ -7,9 +7,6 @@ weaviate.collections.classes
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.collections.classes.aggregate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

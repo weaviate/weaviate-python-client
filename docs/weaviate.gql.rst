@@ -7,9 +7,6 @@ weaviate.gql
    :show-inheritance:
    :private-members:
 
-Submodules
-----------
-
 weaviate.gql.aggregate
 ^^^^^^^^^^^^^^^^^^^^^^
 

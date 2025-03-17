@@ -7,9 +7,6 @@ weaviate.collections.queries.fetch\_objects\_by\_ids
    :show-inheritance:
    :private-members:
 
-.. Submodules
-.. ----------
-
 .. weaviate.collections.queries.fetch\_objects\_by\_ids.generate module
 .. --------------------------------------------------------------------
 
