@@ -53,7 +53,7 @@ class WeaviateClient(_WeaviateClientBase):
             This namespace contains all functionality to inspect the connected Weaviate cluster.
         collections (_Collections): Collections object instance connected to the same Weaviate instance as the Client.
             This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all
-            collection-related functionality. Use it to retrieve collection objects using `client.collections.get("MyCollection")` 
+            collection-related functionality. Use it to retrieve collection objects using `client.collections.get("MyCollection")`
             or to create new collections using `client.collections.create("MyCollection", ...)`.
         debug (_Debug): Debug object instance connected to the same Weaviate instance as the Client.
             This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
@@ -121,7 +121,7 @@ class WeaviateAsyncClient(_WeaviateClientBase):
             This namespace contains all functionality to inspect the connected Weaviate cluster.
         collections (_CollectionsAsync): Collections object instance connected to the same Weaviate instance as the Client.
             This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all
-            collection-related functionality. Use it to retrieve collection objects using `client.collections.get("MyCollection")` 
+            collection-related functionality. Use it to retrieve collection objects using `client.collections.get("MyCollection")`
             or to create new collections using `client.collections.create("MyCollection", ...)`.
         debug (_DebugAsync): Debug object instance connected to the same Weaviate instance as the Client.
             This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.

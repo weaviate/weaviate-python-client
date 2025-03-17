@@ -347,7 +347,7 @@ class _DataCollectionAsync(Generic[Properties], _Data):
         Raises:
             weaviate.exceptions.WeaviateGRPCBatchError: If any unexpected error occurs during the batch operation.
             weaviate.exceptions.WeaviateInsertInvalidPropertyError: If a property is invalid. I.e., has name `id`
-                or `vector`, which are reserved. 
+                or `vector`, which are reserved.
             weaviate.exceptions.WeaviateInsertManyAllFailedError: If every object in the batch fails to be inserted.
                 The exception message contains details about the failure.
         """
