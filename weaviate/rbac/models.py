@@ -23,6 +23,7 @@ class RoleScope(str, BaseEnum):
 
 class PermissionData(TypedDict):
     collection: str
+    tenant: str
 
 
 class PermissionCollections(TypedDict):
@@ -192,6 +193,7 @@ class _CollectionsPermission(_Permission[CollectionsAction]):
 
 class _TenantsPermission(_Permission[TenantsAction]):
     collection: str
+    tenant: str
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
@@ -199,7 +201,7 @@ class _TenantsPermission(_Permission[TenantsAction]):
                 "action": action,
                 "tenants": {
                     "collection": _capitalize_first_letter(self.collection),
-                    "tenant": "*",
+                    "tenant": self.tenant,
                 },
             }
             for action in self.actions
@@ -275,6 +277,7 @@ class _ClusterPermission(_Permission[ClusterAction]):
 
 class _DataPermission(_Permission[DataAction]):
     collection: str
+    tenant: str
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
@@ -282,6 +285,7 @@ class _DataPermission(_Permission[DataAction]):
                 "action": action,
                 "data": {
                     "collection": _capitalize_first_letter(self.collection),
+                    "tenant": self.tenant,
                 },
             }
             for action in self.actions
@@ -396,6 +400,7 @@ class Role:
                     tenants_permissions.append(
                         TenantsPermissionOutput(
                             collection=tenants["collection"],
+                            tenant=tenants.get("tenant", "*"),
                             actions={TenantsAction(permission["action"])},
                         )
                     )
@@ -416,6 +421,7 @@ class Role:
                     data_permissions.append(
                         DataPermissionOutput(
                             collection=data["collection"],
+                            tenant=data.get("tenant", "*"),
                             actions={DataAction(permission["action"])},
                         )
                     )
@@ -550,6 +556,7 @@ class Permissions:
     def data(
         *,
         collection: Union[str, Sequence[str]],
+        tenant: Union[str, Sequence[str], None] = None,
         create: bool = False,
         read: bool = False,
         update: bool = False,
@@ -558,20 +565,25 @@ class Permissions:
         permissions: List[_Permission] = []
         if isinstance(collection, str):
             collection = [collection]
+        if tenant is None:
+            tenant = ["*"]
+        if isinstance(tenant, str):
+            tenant = [tenant]
         for c in collection:
-            permission = _DataPermission(collection=c, actions=set())
+            for t in tenant:
+                permission = _DataPermission(collection=c, tenant=t, actions=set())
 
-            if create:
-                permission.actions.add(DataAction.CREATE)
-            if read:
-                permission.actions.add(DataAction.READ)
-            if update:
-                permission.actions.add(DataAction.UPDATE)
-            if delete:
-                permission.actions.add(DataAction.DELETE)
+                if create:
+                    permission.actions.add(DataAction.CREATE)
+                if read:
+                    permission.actions.add(DataAction.READ)
+                if update:
+                    permission.actions.add(DataAction.UPDATE)
+                if delete:
+                    permission.actions.add(DataAction.DELETE)
 
-            if len(permission.actions) > 0:
-                permissions.append(permission)
+                if len(permission.actions) > 0:
+                    permissions.append(permission)
         return permissions
 
     @staticmethod
@@ -605,6 +617,7 @@ class Permissions:
     def tenants(
         *,
         collection: Union[str, Sequence[str]],
+        tenant: Union[str, Sequence[str], None] = None,
         create: bool = False,
         read: bool = False,
         update: bool = False,
@@ -613,19 +626,25 @@ class Permissions:
         permissions: List[_Permission] = []
         if isinstance(collection, str):
             collection = [collection]
+        if tenant is None:
+            tenant = ["*"]
+        if isinstance(tenant, str):
+            tenant = [tenant]
         for c in collection:
-            permission = _TenantsPermission(collection=c, actions=set())
-            if create:
-                permission.actions.add(TenantsAction.CREATE)
-            if read:
-                permission.actions.add(TenantsAction.READ)
-            if update:
-                permission.actions.add(TenantsAction.UPDATE)
-            if delete:
-                permission.actions.add(TenantsAction.DELETE)
+            for t in tenant:
+                permission = _TenantsPermission(collection=c, tenant=t, actions=set())
 
-            if len(permission.actions) > 0:
-                permissions.append(permission)
+                if create:
+                    permission.actions.add(TenantsAction.CREATE)
+                if read:
+                    permission.actions.add(TenantsAction.READ)
+                if update:
+                    permission.actions.add(TenantsAction.UPDATE)
+                if delete:
+                    permission.actions.add(TenantsAction.DELETE)
+
+                if len(permission.actions) > 0:
+                    permissions.append(permission)
 
         return permissions
 
