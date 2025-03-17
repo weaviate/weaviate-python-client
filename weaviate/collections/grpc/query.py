@@ -42,7 +42,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.retry import _Retry
 from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import (
     InsufficientPermissionsError,
     WeaviateQueryError,
@@ -81,7 +81,7 @@ A = TypeVar("A")
 class _QueryGRPC(_BaseGRPC):
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: Union[ConnectionAsync, ConnectionSync],
         name: str,
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
@@ -103,7 +103,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
+    ) -> Union[Awaitable[search_get_pb2.SearchReply], search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(_ValidateArgument([_Sorting, None], "sort", sort))
 
@@ -149,7 +149,7 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
+    ) -> Union[Awaitable[search_get_pb2.SearchReply], search_get_pb2.SearchReply]:
         request = self.__create_request(
             limit=limit,
             offset=offset,
@@ -187,7 +187,7 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
+    ) -> Union[Awaitable[search_get_pb2.SearchReply], search_get_pb2.SearchReply]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -233,7 +233,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
+    ) -> Union[Awaitable[search_get_pb2.SearchReply], search_get_pb2.SearchReply]:
         request = self.__create_request(
             limit=limit,
             offset=offset,
@@ -267,7 +267,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
+    ) -> Union[Awaitable[search_get_pb2.SearchReply], search_get_pb2.SearchReply]:
         request = self.__create_request(
             limit=limit,
             offset=offset,
@@ -301,7 +301,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
+    ) -> Union[Awaitable[search_get_pb2.SearchReply], search_get_pb2.SearchReply]:
         request = self.__create_request(
             limit=limit,
             offset=offset,
@@ -341,7 +341,7 @@ class _QueryGRPC(_BaseGRPC):
         return_metadata: Optional[_MetadataQuery] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Optional[REFERENCES] = None,
-    ) -> Awaitable[search_get_pb2.SearchReply]:
+    ) -> Union[Awaitable[search_get_pb2.SearchReply], search_get_pb2.SearchReply]:
         request = self.__create_request(
             limit=limit,
             offset=offset,
@@ -472,24 +472,38 @@ class _QueryGRPC(_BaseGRPC):
             near_video=near_video,
         )
 
-    async def __call(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
-        try:
-            assert self._connection.grpc_stub is not None
-            res = await _Retry(4).with_exponential_backoff(
-                0,
-                f"Searching in collection {request.collection}",
-                self._connection.grpc_stub.Search,
-                request,
-                metadata=self._connection.grpc_headers(),
-                timeout=self._connection.timeout_config.query,
-            )
-            return cast(search_get_pb2.SearchReply, res)
-        except AioRpcError as e:
-            if e.code().name == PERMISSION_DENIED:
-                raise InsufficientPermissionsError(e)
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
-        except WeaviateRetryError as e:
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+    def __call(self, request: search_get_pb2.SearchRequest) -> Union[Awaitable[search_get_pb2.SearchReply], search_get_pb2.SearchReply]:
+        if isinstance(self._connection, ConnectionAsync):
+            async def execute() -> search_get_pb2.SearchReply:
+                try:
+                    assert self._connection.grpc_stub is not None
+                    res = await _Retry(4).with_exponential_backoff(
+                        0,
+                        f"Searching in collection {request.collection}",
+                        self._connection.grpc_stub.Search,
+                        request,
+                        metadata=self._connection.grpc_headers(),
+                        timeout=self._connection.timeout_config.query,
+                    )
+                    return cast(search_get_pb2.SearchReply, res)
+                except AioRpcError as e:
+                    if e.code().name == PERMISSION_DENIED:
+                        raise InsufficientPermissionsError(e)
+                    raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+                except WeaviateRetryError as e:
+                    raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+            return execute()
+        else:
+            try:
+                assert self._connection.grpc_stub is not None
+                res = self._connection.grpc_stub.Search(
+                    request, metadata=self._connection.grpc_headers(), timeout=self._connection.timeout_config.query
+                )
+                return cast(search_get_pb2.SearchReply, res)
+            except AioRpcError as e:
+                if e.code().name == PERMISSION_DENIED:
+                    raise InsufficientPermissionsError(e)
+                raise WeaviateQueryError(str(e), "GRPC search")
 
     def _metadata_to_grpc(self, metadata: _MetadataQuery) -> search_get_pb2.MetadataRequest:
         return search_get_pb2.MetadataRequest(

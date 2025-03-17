@@ -1,9 +1,10 @@
 from typing import Dict, List, Union
+from weaviate.connect.v4 import ConnectionSync
 from weaviate.users.users import _UsersBase
 
 from weaviate.rbac.models import Role, User
 
-class _Users(_UsersBase):
+class _Users(_UsersBase[ConnectionSync]):
     def get_my_user(self) -> User: ...
     def get_assigned_roles(self, user_id: str) -> Dict[str, Role]: ...
     def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...

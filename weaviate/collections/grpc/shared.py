@@ -29,7 +29,7 @@ from weaviate.collections.classes.grpc import (
     TwoDimensionalVectorType,
     PrimitiveVectorType,
 )
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
     WeaviateInvalidInputError,
@@ -49,7 +49,7 @@ UINT64_LEN = 8
 class _BaseGRPC:
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: Union[ConnectionAsync, ConnectionSync],
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
     ):

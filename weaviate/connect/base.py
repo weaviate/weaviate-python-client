@@ -6,7 +6,8 @@ from urllib.parse import urlparse
 
 import grpc  # type: ignore
 from grpc import ssl_channel_credentials
-from grpc.aio import Channel  # type: ignore
+from grpc import Channel as SyncChannel
+from grpc.aio import Channel as AsyncChannel  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 
 from weaviate.config import Proxies
@@ -105,7 +106,7 @@ class ConnectionParams(BaseModel):
     def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
 
-    def _grpc_channel(self, proxies: Dict[str, str], grpc_msg_size: Optional[int]) -> Channel:
+    def _grpc_channel(self, proxies: Dict[str, str], grpc_msg_size: Optional[int], is_async: bool) -> Union[AsyncChannel, SyncChannel]:
         if grpc_msg_size is None:
             grpc_msg_size = MAX_GRPC_MESSAGE_LENGTH
         opts = [
@@ -118,14 +119,19 @@ class ConnectionParams(BaseModel):
             options: list = [*opts, ("grpc.http_proxy", p)]
         else:
             options = opts
+
+        if is_async:
+            mod = grpc.aio
+        else:
+            mod = grpc
         if self.grpc.secure:
-            return grpc.aio.secure_channel(
+            return mod.secure_channel(
                 target=self._grpc_target,
                 credentials=ssl_channel_credentials(),
                 options=options,
             )
         else:
-            return grpc.aio.insecure_channel(
+            return mod.insecure_channel(
                 target=self._grpc_target,
                 options=options,
             )

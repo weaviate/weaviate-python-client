@@ -50,7 +50,7 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
 from weaviate.types import INCLUDE_VECTOR
@@ -68,7 +68,7 @@ class _WeaviateUUIDInt(uuid_lib.UUID):
 class _Base(Generic[Properties, References]):
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: Union[ConnectionSync, ConnectionAsync],
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],

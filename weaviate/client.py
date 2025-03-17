@@ -3,7 +3,7 @@ Client class definition.
 """
 
 import asyncio
-from typing import Optional, Tuple, Union, Any
+from typing import Dict, Optional, Tuple, Union, Any
 
 from typing_extensions import deprecated
 
@@ -16,8 +16,9 @@ from weaviate.users.users import _UsersAsync
 
 from weaviate.users.sync import _Users
 from .auth import AuthCredentials
-from .client_base import _WeaviateClientBase
+from .client_base import _WeaviateClientInit, _WeaviateClientExecutor
 from .collections.batch.client import _BatchClientWrapper
+from .collections.classes.internal import _RawGQLReturn
 from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections.async_ import _CollectionsAsync
 from .collections.collections.sync import _Collections
@@ -25,6 +26,7 @@ from .config import AdditionalConfig
 from .connect.base import (
     ConnectionParams,
 )
+from .connect.v4 import ConnectionAsync, ConnectionSync
 from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
 from .rbac import _RolesAsync, _Roles
@@ -33,8 +35,146 @@ from .types import NUMBER
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
-@syncify.convert
-class WeaviateClient(_WeaviateClientBase):
+class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
+    """
+    The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+
+    WARNING: This client is only compatible with Weaviate v1.23.6 and higher!
+
+    A Client instance creates all the needed objects to interact with Weaviate, and connects all of
+    them to the same Weaviate instance. See below the Attributes of the Client instance. For the
+    per attribute functionality see that attribute's documentation.
+
+    Attributes:
+        `backup`
+            A `Backup` object instance connected to the same Weaviate instance as the Client.
+        `cluster`
+            A `Cluster` object instance connected to the same Weaviate instance as the Client.
+        `collections`
+            A `_CollectionsAsync` object instance connected to the same Weaviate instance as the Client.
+    """
+
+    def __init__(
+        self,
+        connection_params: Optional[ConnectionParams] = None,
+        embedded_options: Optional[EmbeddedOptions] = None,
+        auth_client_secret: Optional[AuthCredentials] = None,
+        additional_headers: Optional[dict] = None,
+        additional_config: Optional[AdditionalConfig] = None,
+        skip_init_checks: bool = False,
+    ) -> None:
+        self._loop = asyncio.get_event_loop()
+        _EventLoop.patch_exception_handler(self._loop)
+
+        self.__executor = _WeaviateClientExecutor()
+        super().__init__(
+            connection_type=ConnectionAsync,
+            connection_params=connection_params,
+            embedded_options=embedded_options,
+            auth_client_secret=auth_client_secret,
+            additional_headers=additional_headers,
+            additional_config=additional_config,
+            skip_init_checks=skip_init_checks,
+        )
+
+        self.backup = _BackupAsync(self._connection)
+        """This namespace contains all functionality to backup data."""
+        self.cluster = _ClusterAsync(self._connection)
+        """This namespace contains all functionality to inspect the connected Weaviate cluster."""
+        self.collections = _CollectionsAsync(self._connection)
+        """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
+
+        Use it to retrieve collection objects using `client.collections.use("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.
+        """
+        self.debug = _DebugAsync(self._connection)
+        """This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
+
+        We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
+        self.roles = _RolesAsync(self._connection)
+        """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
+
+        self.users = _UsersAsync(self._connection)
+        """This namespace contains all functionality to manage Weaviate users."""
+
+    async def __aenter__(self) -> "WeaviateAsyncClient":
+        await self.__executor.connect(self._connection, self._skip_init_checks)
+        return self
+
+    async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        await self.__executor.close(self._connection)
+
+    async def connect(self) -> None:
+        await self.__executor.connect(self._connection, self._skip_init_checks)
+
+    async def close(self) -> None:
+        """
+        Close the connection to Weaviate.
+
+        This method should be called when the client is no longer needed to free up resources.
+        """
+        await self.__executor.close(self._connection)
+
+    async def is_live(self) -> bool:
+        return await self.__executor.is_live(self._connection)
+
+    async def is_ready(self) -> bool:
+        return await self.__executor.is_ready(self._connection)
+
+    async def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
+        """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
+
+        Be cautious of injection risks when generating query strings.
+
+        Arguments:
+            `gql_query`
+                GraphQL query as a string.
+
+        Returns:
+            A dict with the response from the GraphQL query.
+
+        Raises
+            `TypeError`
+                If 'gql_query' is not of type str.
+            `weaviate.WeaviateConnectionError`
+                If the network connection to weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If weaviate reports a none OK status.
+        """
+        return await self.__executor.graphql_raw_query(self._connection, gql_query)
+
+    async def get_meta(self) -> dict:
+        """
+        Get the meta endpoint description of weaviate.
+
+        Returns:
+            `dict`
+                The `dict` describing the weaviate configuration.
+
+        Raises:
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a none OK status.
+        """
+
+        return await self.__executor.get_meta(self._connection)
+
+    async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
+        """
+        Get the openid-configuration.
+
+        Returns
+            `dict`
+                The configuration or `None` if not configured.
+
+        Raises
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a none OK status.
+        """
+
+        return await self.__executor.get_open_id_configuration(self._connection)
+
+
+@syncify.convert_new(WeaviateAsyncClient)
+class WeaviateClient(_WeaviateClientInit[ConnectionSync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
@@ -70,7 +210,9 @@ class WeaviateClient(_WeaviateClientBase):
         assert self._event_loop.loop is not None
         self._loop = self._event_loop.loop
 
+        self.__executor = _WeaviateClientExecutor()
         super().__init__(
+            connection_type=ConnectionSync,
             connection_params=connection_params,
             embedded_options=embedded_options,
             auth_client_secret=auth_client_secret,
@@ -103,80 +245,13 @@ class WeaviateClient(_WeaviateClientBase):
         """This namespace contains all functionality to manage Weaviate users."""
 
     def __enter__(self) -> "WeaviateClient":
-        self.connect()  # pyright: ignore # gets patched by syncify.convert to be sync
+        self.__executor.connect(self._connection, self._skip_init_checks)
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        self.close()  # pyright: ignore # gets patched by syncify.convert to be sync
+        self.__executor.close(self._connection)
 
-
-class WeaviateAsyncClient(_WeaviateClientBase):
-    """
-    The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
-
-    WARNING: This client is only compatible with Weaviate v1.23.6 and higher!
-
-    A Client instance creates all the needed objects to interact with Weaviate, and connects all of
-    them to the same Weaviate instance. See below the Attributes of the Client instance. For the
-    per attribute functionality see that attribute's documentation.
-
-    Attributes:
-        `backup`
-            A `Backup` object instance connected to the same Weaviate instance as the Client.
-        `cluster`
-            A `Cluster` object instance connected to the same Weaviate instance as the Client.
-        `collections`
-            A `_CollectionsAsync` object instance connected to the same Weaviate instance as the Client.
-    """
-
-    def __init__(
-        self,
-        connection_params: Optional[ConnectionParams] = None,
-        embedded_options: Optional[EmbeddedOptions] = None,
-        auth_client_secret: Optional[AuthCredentials] = None,
-        additional_headers: Optional[dict] = None,
-        additional_config: Optional[AdditionalConfig] = None,
-        skip_init_checks: bool = False,
-    ) -> None:
-        self._loop = asyncio.get_event_loop()
-        _EventLoop.patch_exception_handler(self._loop)
-
-        super().__init__(
-            connection_params=connection_params,
-            embedded_options=embedded_options,
-            auth_client_secret=auth_client_secret,
-            additional_headers=additional_headers,
-            additional_config=additional_config,
-            skip_init_checks=skip_init_checks,
-        )
-
-        self.backup = _BackupAsync(self._connection)
-        """This namespace contains all functionality to backup data."""
-        self.cluster = _ClusterAsync(self._connection)
-        """This namespace contains all functionality to inspect the connected Weaviate cluster."""
-        self.collections = _CollectionsAsync(self._connection)
-        """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
-
-        Use it to retrieve collection objects using `client.collections.use("MyCollection")` or to create new collections using `await client.collections.create("MyCollection", ...)`.
-        """
-        self.debug = _DebugAsync(self._connection)
-        """This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
-
-        We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
-        self.roles = _RolesAsync(self._connection)
-        """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
-
-        self.users = _UsersAsync(self._connection)
-        """This namespace contains all functionality to manage Weaviate users."""
-
-    async def __aenter__(self) -> "WeaviateAsyncClient":
-        await self.connect()
-        return self
-
-    async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        await self.close()
-
-
+    
 @deprecated(
     """
 Python client v3 `weaviate.Client(...)` has been removed.

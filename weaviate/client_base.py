@@ -3,8 +3,10 @@ Client class definition.
 """
 
 import asyncio
-from typing import Optional, Tuple, Union, Dict, Any
+from typing import Any,Awaitable, Callable, Generic, Optional, Tuple, Union, Dict, Type, TypeVar, overload
+from typing_extensions import ParamSpec
 
+from httpx import Response
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
 
@@ -12,25 +14,29 @@ from weaviate.integrations import _Integrations
 
 from .auth import AuthCredentials
 from .config import AdditionalConfig
-from .connect import ConnectionV4
+from .connect.v4 import Connection, ConnectionAsync, ConnectionSync
 from .connect.base import (
     ConnectionParams,
     ProtocolParams,
 )
+from .connect.executor import ExecutorResult, execute, raise_exception
 from .connect.v4 import _ExpectedStatusCodes
 from .embedded import EmbeddedOptions, EmbeddedV4
+from .exceptions import UnexpectedStatusCodeError
 from .types import NUMBER
 from .util import _decode_json_response_dict
 from .validator import _validate_input, _ValidateArgument
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
+C = TypeVar("C", bound="Connection")
 
-class _WeaviateClientInit:
+class _WeaviateClientInit(Generic[C]):
     _loop: Optional[asyncio.AbstractEventLoop]
 
     def __init__(
         self,
+        connection_type: Type[C],
         connection_params: Optional[ConnectionParams] = None,
         embedded_options: Optional[EmbeddedOptions] = None,
         auth_client_secret: Optional[AuthCredentials] = None,
@@ -73,7 +79,7 @@ class _WeaviateClientInit:
 
         self._skip_init_checks = skip_init_checks
 
-        self._connection = ConnectionV4(  # pyright: ignore reportIncompatibleVariableOverride
+        self._connection = connection_type(  # pyright: ignore reportIncompatibleVariableOverride
             connection_params=connection_params,
             auth_client_secret=auth_client_secret,
             timeout_config=config.timeout,
@@ -125,33 +131,6 @@ class _WeaviateClientInit:
 
         return connection_params, None
 
-
-class _WeaviateClientBase(_WeaviateClientInit):
-    async def close(self) -> None:
-        """In order to clean up any resources used by the client, call this method when you are done with it.
-
-        If you do not do this, memory leaks may occur due to stale connections.
-        This method also closes the embedded database if one was started."""
-        await self._connection.close()
-
-    async def connect(self) -> None:
-        """Connect to the Weaviate instance performing all the necessary checks.
-
-        If you have specified `skip_init_checks` in the constructor then this method will not perform any runtime checks
-        to ensure that Weaviate is running and ready to accept requests. This is useful for air-gapped environments and high-performance setups.
-
-        This method is idempotent and will only perform the checks once. Any subsequent calls do nothing while `client.is_connected() == True`.
-
-        Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeException`
-                If weaviate reports a none OK status.
-        """
-        if self._connection.is_connected():
-            return
-        await self._connection.connect(self._skip_init_checks)
-
     def is_connected(self) -> bool:
         """Check if the client is connected to Weaviate.
 
@@ -161,51 +140,116 @@ class _WeaviateClientBase(_WeaviateClientInit):
         """
         return self._connection.is_connected()
 
-    async def is_live(self) -> bool:
-        try:
-            results = await self._connection.get(path="/.well-known/live")
-            if results.status_code == 200:
-                return True
-            return False
-        except Exception as e:
+
+class _WeaviateClientExecutor:
+    async def __close_async(self, connection: ConnectionAsync) -> None:
+        await connection.close("async")
+
+    @overload
+    def close(self, connection: ConnectionAsync) -> Awaitable[None]:
+        ...
+
+    @overload
+    def close(self, connection: ConnectionSync) -> None:
+        ...
+
+    def close(self, connection: Connection) -> Union[None, Awaitable[None]]:
+        if isinstance(connection, ConnectionAsync):
+            return self.__close_async(connection)
+        connection.close("sync")
+
+    async def __connect_async(self, connection: ConnectionAsync, skip_init_checks: bool) -> None:
+        await connection.connect(skip_init_checks)
+
+    @overload
+    def connect(self, connection: ConnectionAsync, skip_init_checks: bool) -> Awaitable[None]:
+        ...
+
+    @overload
+    def connect(self, connection: ConnectionSync, skip_init_checks: bool) -> None:
+        ...
+
+    def connect(self, connection: Connection, skip_init_checks: bool) -> Union[None, Awaitable[None]]:
+        if connection.is_connected():
+            return
+        if isinstance(connection, ConnectionAsync):
+            return self.__connect_async(connection, skip_init_checks)
+        connection.connect(skip_init_checks)
+
+    @overload
+    def is_live(self, connection: ConnectionAsync) -> Awaitable[bool]:
+        ...
+
+    @overload
+    def is_live(self, connection: ConnectionSync) -> bool:
+        ...
+
+    def is_live(self, connection: Connection) -> ExecutorResult[bool]:
+        def exc(e: Exception) -> bool:
             print(e)
             return False
+        return execute(
+            response_callback=lambda res: res.status_code == 200,
+            exception_callback=exc,
+            method=connection.get,
+            path="/.well-known/live"
+        )
 
-    async def is_ready(self) -> bool:
-        try:
-            results = await self._connection.get(path="/.well-known/ready")
-            if results.status_code == 200:
-                return True
-            return False
-        except Exception as e:
+    @overload
+    def is_ready(self, connection: ConnectionAsync) -> Awaitable[bool]:
+        ...
+
+    @overload
+    def is_ready(self, connection: ConnectionSync) -> bool:
+        ...
+
+    def is_ready(self, connection: Connection) -> ExecutorResult[bool]:
+        def exc(e: Exception) -> bool:
             print(e)
             return False
+        return execute(
+            response_callback=lambda res: res.status_code == 200,
+            exception_callback=exc,
+            method=connection.get,
+            path="/.well-known/ready"
+        )
 
-    async def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
-        """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
+    @overload
+    def graphql_raw_query(self, connection: ConnectionAsync, gql_query: str) -> Awaitable[_RawGQLReturn]:
+        ...
 
-        Be cautious of injection risks when generating query strings.
+    @overload
+    def graphql_raw_query(self, connection: ConnectionSync, gql_query: str) -> _RawGQLReturn:
+        ...
 
-        Arguments:
-            `gql_query`
-                GraphQL query as a string.
-
-        Returns:
-            A dict with the response from the GraphQL query.
-
-        Raises
-            `TypeError`
-                If 'gql_query' is not of type str.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-        """
+    def graphql_raw_query(self, connection: Connection, gql_query: str) -> ExecutorResult[_RawGQLReturn]:
         _validate_input(_ValidateArgument([str], "gql_query", gql_query))
-
         json_query = {"query": gql_query}
 
-        response = await self._connection.post(
+        def resp(response: Response) -> _RawGQLReturn:
+            res = _decode_json_response_dict(response, "GQL query")
+            assert res is not None
+
+            errors: Optional[Dict[str, Any]] = res.get("errors")
+            data_raw: Optional[Dict[str, _GQLEntryReturnType]] = res.get("data")
+
+            if data_raw is not None:
+                return _RawGQLReturn(
+                    aggregate=data_raw.get("Aggregate", {}),
+                    explore=data_raw.get("Explore", {}),
+                    get=data_raw.get("Get", {}),
+                    errors=errors,
+                )
+
+            return _RawGQLReturn(aggregate={}, explore={}, get={}, errors=errors)
+
+        def exc(e: Exception) -> _RawGQLReturn:
+            raise e
+
+        return execute(
+            response_callback=resp,
+            exception_callback=exc,
+            method=connection.post,
             path="/graphql",
             weaviate_object=json_query,
             error_msg="Raw GQL query failed",
@@ -213,48 +257,50 @@ class _WeaviateClientBase(_WeaviateClientInit):
             is_gql_query=True,
         )
 
-        res = _decode_json_response_dict(response, "GQL query")
-        assert res is not None
+    @overload
+    def get_meta(self, connection: ConnectionAsync) -> Awaitable[dict]:
+        ...
 
-        errors: Optional[Dict[str, Any]] = res.get("errors")
-        data_raw: Optional[Dict[str, _GQLEntryReturnType]] = res.get("data")
+    @overload
+    def get_meta(self, connection: ConnectionSync) -> dict:
+        ...
 
-        if data_raw is not None:
-            return _RawGQLReturn(
-                aggregate=data_raw.get("Aggregate", {}),
-                explore=data_raw.get("Explore", {}),
-                get=data_raw.get("Get", {}),
-                errors=errors,
-            )
+    def get_meta(self, connection: Connection) -> ExecutorResult[dict]:
+        def resp(response: Response) -> dict:
+            res = _decode_json_response_dict(response, "Meta endpoint")
+            assert res is not None
+            return res
+        
+        def exc(e: Exception) -> dict:
+            raise e
+        
+        return execute(
+            response_callback=resp,
+            exception_callback=exc,
+            method=connection.get,
+            path="/meta",
+            error_msg="Meta data was not retrieved",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="get meta"),
+        )
 
-        return _RawGQLReturn(aggregate={}, explore={}, get={}, errors=errors)
+    @overload
+    def get_open_id_configuration(self, connection: ConnectionAsync) -> Awaitable[Optional[Dict[str, Any]]]:
+        ...
 
-    async def get_meta(self) -> dict:
-        """
-        Get the meta endpoint description of weaviate.
+    @overload
+    def get_open_id_configuration(self, connection: ConnectionSync) -> Optional[Dict[str, Any]]:
+        ...
 
-        Returns:
-            `dict`
-                The `dict` describing the weaviate configuration.
-
-        Raises:
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
-        """
-
-        return await self._connection.get_meta()
-
-    async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
-        """
-        Get the openid-configuration.
-
-        Returns
-            `dict`
-                The configuration or `None` if not configured.
-
-        Raises
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
-        """
-
-        return await self._connection.get_open_id_configuration()
+    def get_open_id_configuration(self, connection: Connection) -> ExecutorResult[Optional[Dict[str, Any]]]:
+        def resp(response: Response) -> Optional[Dict[str, Any]]:
+            if response.status_code == 200:
+                return _decode_json_response_dict(response, "OpenID Configuration")
+            if response.status_code == 404:
+                return None
+            raise UnexpectedStatusCodeError("Meta endpoint", response)
+        return execute(
+            response_callback=resp,
+            exception_callback=raise_exception,
+            method=connection.get,
+            path="/.well-known/openid-configuration",
+        )
