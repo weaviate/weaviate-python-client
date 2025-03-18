@@ -37,10 +37,12 @@ class UserDB:
     db_user_type: DbUserTypes
 
 
-class _UsersBase:
+class _UsersInit:
     def __init__(self, connection: ConnectionV4) -> None:
         self._connection = connection
 
+
+class _UsersBase(_UsersInit):
     async def _get_roles_of_user(
         self, name: str, user_type: Literal["db", "oidc"]
     ) -> List[WeaviateRole]:
