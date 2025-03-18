@@ -1287,3 +1287,48 @@ def test_replication_config(
     )
     config = collection.config.get()
     assert config.replication_config.deletion_strategy == deletion_strategy
+
+
+def test_update_property_descriptions(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+            Property(name="age", data_type=DataType.INT),
+        ],
+    )
+
+    if collection._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip(
+            "Property descriptions are not supported in currently released Weaviate versions lower than 1.27.0"
+        )
+
+    config = collection.config.get()
+    assert config.properties[0].description is None
+    assert config.properties[1].description is None
+
+    def update():
+        collection.config.update(
+            property_descriptions={
+                "name": "Name of the person",
+                "age": "Age of the person",
+            }
+        )
+
+    def is_supported():
+        ver = collection._connection._weaviate_version
+        return (
+            (ver.is_at_least(1, 27, 15) and ver.is_lower_than(1, 28, 0))
+            or (ver.is_at_least(1, 28, 9) and ver.is_lower_than(1, 29, 0))
+            or (ver.is_at_least(1, 29, 1))
+        )
+
+    if is_supported():
+        update()
+
+        config = collection.config.get()
+        assert config.properties[0].description == "Name of the person"
+        assert config.properties[1].description == "Age of the person"
+    else:
+        with pytest.raises(UnexpectedStatusCodeError):
+            update()
