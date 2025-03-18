@@ -64,7 +64,7 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 users_permissions=[],
                 collections_permissions=[
                     CollectionsPermissionOutput(
-                        collection="Test", tenant="*", actions={Actions.Collections.CREATE}
+                        collection="Test", actions={Actions.Collections.CREATE}
                     )
                 ],
                 roles_permissions=[],
@@ -345,6 +345,26 @@ def test_get_assigned_users(client_factory: ClientFactory) -> None:
             pytest.skip("This test requires Weaviate 1.28.0 or higher")
         client.users.assign_roles(user_id="admin-user", role_names="viewer")
         assigned_users = client.roles.get_assigned_user_ids("viewer")
+        assert len(assigned_users) == 1
+        assert assigned_users[0] == "admin-user"
+
+
+def test_get_assigned_users_db(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+        client.users.db.assign_roles(user_id="admin-user", role_names="viewer")
+        assigned_users = client.roles.get_assigned_db_user_ids("viewer")
+        assert len(assigned_users) == 1
+        assert assigned_users[0] == "admin-user"
+
+
+def test_get_assigned_oidc_db(client_factory: ClientFactory) -> None:
+    with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
+        if client._connection._weaviate_version.is_lower_than(1, 30, 0):
+            pytest.skip("This test requires Weaviate 1.30.0 or higher")
+        client.users.oidc.assign_roles(user_id="admin-user", role_names="viewer")
+        assigned_users = client.roles.get_assigned_oidc_user_ids("viewer")
         assert len(assigned_users) == 1
         assert assigned_users[0] == "admin-user"
 
