@@ -1901,11 +1901,11 @@ class Property(_ConfigCreateModel):
         if vectorizers is not None:
             for vectorizer in vectorizers:
                 if vectorizer is not None and vectorizer != Vectorizers.NONE:
-                    ret_dict["moduleConfig"] = {
-                        vectorizer.value: {
-                            "skip": self.skip_vectorization,
-                            "vectorizePropertyName": self.vectorize_property_name,
-                        }
+                    if "moduleConfig" not in ret_dict:
+                        ret_dict["moduleConfig"] = {}
+                    ret_dict["moduleConfig"][vectorizer.value] = {
+                        "skip": self.skip_vectorization,
+                        "vectorizePropertyName": self.vectorize_property_name,
                     }
             del ret_dict["skip_vectorization"]
             del ret_dict["vectorize_property_name"]
