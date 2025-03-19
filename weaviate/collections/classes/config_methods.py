@@ -149,6 +149,17 @@ def __get_quantizer_config(
     return quantizer
 
 
+def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
+    return (
+        None
+        if config.get("multivector") is None
+        or not config.get("multivector", {"enabled": False}).get("enabled")
+        else _MultiVectorConfig(
+            aggregation=config["multivector"]["aggregation"],
+        )
+    )
+
+
 def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
     quantizer = __get_quantizer_config(config)
     return _VectorIndexConfigHNSW(
@@ -169,14 +180,7 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         quantizer=quantizer,
         skip=config["skip"],
         vector_cache_max_objects=config["vectorCacheMaxObjects"],
-        multi_vector=(
-            None
-            if config.get("multivector") is None
-            or (config.get("multivector") is not None and config["multivector"]["enabled"] is False)
-            else _MultiVectorConfig(
-                aggregation=config["multivector"]["aggregation"],
-            )
-        ),
+        multi_vector=__get_multivector(config),
     )
 
 
@@ -186,7 +190,7 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
         distance_metric=VectorDistances(config["distance"]),
         quantizer=quantizer,
         vector_cache_max_objects=config["vectorCacheMaxObjects"],
-        multi_vector=None,
+        multi_vector=__get_multivector(config),
     )
 
 

@@ -31,7 +31,6 @@ from weaviate.collections.classes.config import (
     GenerativeSearches,
     Rerankers,
     _RerankerProvider,
-    _MultiVectorConfigCreate,
     Tokenization,
 )
 from weaviate.collections.classes.tenants import Tenant
@@ -1365,15 +1364,8 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
             update()
 
 
-@pytest.mark.parametrize(
-    "multi_vector",
-    [
-        None,
-        Configure.VectorIndex.MultiVector.multi_vector(),
-    ],
-)
-def test_config_multi_vector(
-    collection_factory: CollectionFactory, multi_vector: _MultiVectorConfigCreate
+def test_config_multi_vector_enabled(
+    collection_factory: CollectionFactory,
 ) -> None:
     collection = collection_factory(
         ports=(8086, 50057),
@@ -1382,7 +1374,9 @@ def test_config_multi_vector(
             Configure.NamedVectors.text2colbert_jinaai(
                 name="vec",
                 vectorize_collection_name=False,
-                vector_index_config=Configure.VectorIndex.hnsw(multi_vector=multi_vector),
+                vector_index_config=Configure.VectorIndex.hnsw(
+                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector()
+                ),
             )
         ],
     )
@@ -1394,3 +1388,23 @@ def test_config_multi_vector(
         assert conf.multi_vector is None
     else:
         assert conf.multi_vector is not None
+
+
+def test_config_multi_vector_disabled(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        ports=(8086, 50057),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_cohere(
+                name="vec",
+                vectorize_collection_name=False,
+            )
+        ],
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    conf = config.vector_config["vec"].vector_index_config
+    assert isinstance(conf, _VectorIndexConfigHNSW)
+    assert conf.multi_vector is None
