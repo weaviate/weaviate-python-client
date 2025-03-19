@@ -1362,3 +1362,53 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
     else:
         with pytest.raises(UnexpectedStatusCodeError):
             update()
+
+
+def test_config_multi_vector_enabled(
+    collection_factory: CollectionFactory,
+) -> None:
+    dummy = collection_factory("dummy", ports=(8086, 50057))
+    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
+        pytest.skip("Multi vector is not supported in Weaviate versions lower than 1.29.0")
+
+    collection = collection_factory(
+        ports=(8086, 50057),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2colbert_jinaai(
+                name="vec",
+                vectorize_collection_name=False,
+                vector_index_config=Configure.VectorIndex.hnsw(
+                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector()
+                ),
+            )
+        ],
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    conf = config.vector_config["vec"].vector_index_config
+    assert isinstance(conf, _VectorIndexConfigHNSW)
+    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
+        assert conf.multi_vector is None
+    else:
+        assert conf.multi_vector is not None
+
+
+def test_config_multi_vector_disabled(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        ports=(8086, 50057),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_cohere(
+                name="vec",
+                vectorize_collection_name=False,
+            )
+        ],
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    conf = config.vector_config["vec"].vector_index_config
+    assert isinstance(conf, _VectorIndexConfigHNSW)
+    assert conf.multi_vector is None
