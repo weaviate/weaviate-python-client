@@ -50,11 +50,13 @@ class _DebugExecutor:
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get object"),
         )
 
+
 class _DebugBase(Generic[ConnectionType]):
     _executor = _DebugExecutor()
 
     def __init__(self, connection: ConnectionType) -> None:
         self._connection = connection
+
 
 class _DebugAsync(_DebugBase[ConnectionAsync]):
     async def get_object_over_rest(

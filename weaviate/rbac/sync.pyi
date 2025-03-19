@@ -1,14 +1,14 @@
 from typing import Dict, List, Optional, Sequence, Union
 
+from weaviate.connect.v4 import ConnectionSync
 from weaviate.rbac.models import (
     PermissionsOutputType,
     PermissionsInputType,
     Role,
-    User,
 )
-from weaviate.rbac.roles import _RolesBase
+from weaviate.rbac.async_ import _RolesBase
 
-class _Roles(_RolesBase):
+class _Roles(_RolesBase[ConnectionSync]):
     def list_all(self) -> Dict[str, Role]: ...
     def get(self, role_name: str) -> Optional[Role]: ...
     def get_assigned_user_ids(self, role_name: str) -> List[str]: ...

@@ -20,7 +20,7 @@ from weaviate.collections.data import _DataCollectionAsync
 from weaviate.collections.generate import _GenerateCollectionAsync
 from weaviate.collections.iterator import _IteratorInputs, _ObjectAIterator
 from weaviate.collections.tenants import _TenantsAsync
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionAsync
 from weaviate.types import UUID
 
 from .base import _CollectionBase
@@ -56,7 +56,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
 
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: ConnectionAsync,
         name: str,
         validate_arguments: bool,
         consistency_level: Optional[ConsistencyLevel] = None,

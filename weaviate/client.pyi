@@ -10,7 +10,7 @@ from weaviate.collections.classes.internal import _RawGQLReturn
 from weaviate.collections.collections.async_ import _CollectionsAsync
 from weaviate.collections.collections.sync import _Collections
 
-from weaviate.users.users import _UsersAsync
+from weaviate.users.async_ import _UsersAsync
 
 from weaviate.users.sync import _Users
 from .collections.batch.client import _BatchClientWrapper

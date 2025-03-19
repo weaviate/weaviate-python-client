@@ -3,7 +3,19 @@ Client class definition.
 """
 
 import asyncio
-from typing import Any,Awaitable, Callable, Generic, Optional, Tuple, Union, Dict, Type, TypeVar, overload
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Generic,
+    Optional,
+    Tuple,
+    Union,
+    Dict,
+    Type,
+    TypeVar,
+    overload,
+)
 from typing_extensions import ParamSpec
 
 from httpx import Response
@@ -30,6 +42,7 @@ from .validator import _validate_input, _ValidateArgument
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 C = TypeVar("C", bound="Connection")
+
 
 class _WeaviateClientInit(Generic[C]):
     _loop: Optional[asyncio.AbstractEventLoop]
@@ -146,12 +159,10 @@ class _WeaviateClientExecutor:
         await connection.close("async")
 
     @overload
-    def close(self, connection: ConnectionAsync) -> Awaitable[None]:
-        ...
+    def close(self, connection: ConnectionAsync) -> Awaitable[None]: ...
 
     @overload
-    def close(self, connection: ConnectionSync) -> None:
-        ...
+    def close(self, connection: ConnectionSync) -> None: ...
 
     def close(self, connection: Connection) -> Union[None, Awaitable[None]]:
         if isinstance(connection, ConnectionAsync):
@@ -162,14 +173,14 @@ class _WeaviateClientExecutor:
         await connection.connect(skip_init_checks)
 
     @overload
-    def connect(self, connection: ConnectionAsync, skip_init_checks: bool) -> Awaitable[None]:
-        ...
+    def connect(self, connection: ConnectionAsync, skip_init_checks: bool) -> Awaitable[None]: ...
 
     @overload
-    def connect(self, connection: ConnectionSync, skip_init_checks: bool) -> None:
-        ...
+    def connect(self, connection: ConnectionSync, skip_init_checks: bool) -> None: ...
 
-    def connect(self, connection: Connection, skip_init_checks: bool) -> Union[None, Awaitable[None]]:
+    def connect(
+        self, connection: Connection, skip_init_checks: bool
+    ) -> Union[None, Awaitable[None]]:
         if connection.is_connected():
             return
         if isinstance(connection, ConnectionAsync):
@@ -177,52 +188,52 @@ class _WeaviateClientExecutor:
         connection.connect(skip_init_checks)
 
     @overload
-    def is_live(self, connection: ConnectionAsync) -> Awaitable[bool]:
-        ...
+    def is_live(self, connection: ConnectionAsync) -> Awaitable[bool]: ...
 
     @overload
-    def is_live(self, connection: ConnectionSync) -> bool:
-        ...
+    def is_live(self, connection: ConnectionSync) -> bool: ...
 
     def is_live(self, connection: Connection) -> ExecutorResult[bool]:
         def exc(e: Exception) -> bool:
             print(e)
             return False
+
         return execute(
             response_callback=lambda res: res.status_code == 200,
             exception_callback=exc,
             method=connection.get,
-            path="/.well-known/live"
+            path="/.well-known/live",
         )
 
     @overload
-    def is_ready(self, connection: ConnectionAsync) -> Awaitable[bool]:
-        ...
+    def is_ready(self, connection: ConnectionAsync) -> Awaitable[bool]: ...
 
     @overload
-    def is_ready(self, connection: ConnectionSync) -> bool:
-        ...
+    def is_ready(self, connection: ConnectionSync) -> bool: ...
 
     def is_ready(self, connection: Connection) -> ExecutorResult[bool]:
         def exc(e: Exception) -> bool:
             print(e)
             return False
+
         return execute(
             response_callback=lambda res: res.status_code == 200,
             exception_callback=exc,
             method=connection.get,
-            path="/.well-known/ready"
+            path="/.well-known/ready",
         )
 
     @overload
-    def graphql_raw_query(self, connection: ConnectionAsync, gql_query: str) -> Awaitable[_RawGQLReturn]:
-        ...
+    def graphql_raw_query(
+        self, connection: ConnectionAsync, gql_query: str
+    ) -> Awaitable[_RawGQLReturn]: ...
 
     @overload
-    def graphql_raw_query(self, connection: ConnectionSync, gql_query: str) -> _RawGQLReturn:
-        ...
+    def graphql_raw_query(self, connection: ConnectionSync, gql_query: str) -> _RawGQLReturn: ...
 
-    def graphql_raw_query(self, connection: Connection, gql_query: str) -> ExecutorResult[_RawGQLReturn]:
+    def graphql_raw_query(
+        self, connection: Connection, gql_query: str
+    ) -> ExecutorResult[_RawGQLReturn]:
         _validate_input(_ValidateArgument([str], "gql_query", gql_query))
         json_query = {"query": gql_query}
 
@@ -258,22 +269,20 @@ class _WeaviateClientExecutor:
         )
 
     @overload
-    def get_meta(self, connection: ConnectionAsync) -> Awaitable[dict]:
-        ...
+    def get_meta(self, connection: ConnectionAsync) -> Awaitable[dict]: ...
 
     @overload
-    def get_meta(self, connection: ConnectionSync) -> dict:
-        ...
+    def get_meta(self, connection: ConnectionSync) -> dict: ...
 
     def get_meta(self, connection: Connection) -> ExecutorResult[dict]:
         def resp(response: Response) -> dict:
             res = _decode_json_response_dict(response, "Meta endpoint")
             assert res is not None
             return res
-        
+
         def exc(e: Exception) -> dict:
             raise e
-        
+
         return execute(
             response_callback=resp,
             exception_callback=exc,
@@ -284,20 +293,23 @@ class _WeaviateClientExecutor:
         )
 
     @overload
-    def get_open_id_configuration(self, connection: ConnectionAsync) -> Awaitable[Optional[Dict[str, Any]]]:
-        ...
+    def get_open_id_configuration(
+        self, connection: ConnectionAsync
+    ) -> Awaitable[Optional[Dict[str, Any]]]: ...
 
     @overload
-    def get_open_id_configuration(self, connection: ConnectionSync) -> Optional[Dict[str, Any]]:
-        ...
+    def get_open_id_configuration(self, connection: ConnectionSync) -> Optional[Dict[str, Any]]: ...
 
-    def get_open_id_configuration(self, connection: Connection) -> ExecutorResult[Optional[Dict[str, Any]]]:
+    def get_open_id_configuration(
+        self, connection: Connection
+    ) -> ExecutorResult[Optional[Dict[str, Any]]]:
         def resp(response: Response) -> Optional[Dict[str, Any]]:
             if response.status_code == 200:
                 return _decode_json_response_dict(response, "OpenID Configuration")
             if response.status_code == 404:
                 return None
             raise UnexpectedStatusCodeError("Meta endpoint", response)
+
         return execute(
             response_callback=resp,
             exception_callback=raise_exception,

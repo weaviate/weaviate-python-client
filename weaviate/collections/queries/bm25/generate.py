@@ -7,20 +7,19 @@ from weaviate.collections.classes.filters import (
 from weaviate.collections.classes.grpc import GroupBy, Rerank, METADATA
 from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
-    _Generative,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
-    _GroupBy,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
-from weaviate.exceptions import WeaviateUnsupportedFeatureError
+from weaviate.collections.queries.base import _BaseGenerate
+from weaviate.connect.v4 import ConnectionAsync
 
 from weaviate.types import INCLUDE_VECTOR
 
 
-class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, References]):
+class _BM25GenerateAsync(
+    Generic[Properties, References], _BaseGenerate[ConnectionAsync, Properties, References]
+):
     async def bm25(
         self,
         query: Optional[str],
@@ -91,41 +90,23 @@ class _BM25GenerateAsync(Generic[Properties, References], _Base[Properties, Refe
             `weaviate.exceptions.WeaviateUnsupportedFeatureError`:
                 If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
-        if group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid():
-            raise WeaviateUnsupportedFeatureError(
-                "BM25 group by", self._connection.server_version, "1.25.0"
-            )
-        res = await self._query.bm25(
+        return await self._executor.bm25(
+            connection=self._connection,
             query=query,
-            properties=query_properties,
+            single_prompt=single_prompt,
+            grouped_task=grouped_task,
+            grouped_properties=grouped_properties,
+            query_properties=query_properties,
             limit=limit,
             offset=offset,
-            autocut=auto_limit,
+            auto_limit=auto_limit,
             filters=filters,
-            group_by=_GroupBy.from_input(group_by),
+            group_by=group_by,
             rerank=rerank,
-            return_metadata=self._parse_return_metadata(return_metadata, include_vector),
-            return_properties=self._parse_return_properties(return_properties),
-            return_references=self._parse_return_references(return_references),
-            generative=_Generative(
-                single=single_prompt,
-                grouped=grouped_task,
-                grouped_properties=grouped_properties,
-            ),
-        )
-        return self._result_to_generative_return(
-            res,
-            _QueryOptions.from_input(
-                return_metadata=return_metadata,
-                return_properties=return_properties,
-                include_vector=include_vector,
-                collection_references=self._references,
-                query_references=return_references,
-                rerank=rerank,
-                group_by=group_by,
-            ),
-            return_properties,
-            return_references,
+            include_vector=include_vector,
+            return_metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
         )
 
 

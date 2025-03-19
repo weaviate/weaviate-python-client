@@ -106,7 +106,9 @@ class ConnectionParams(BaseModel):
     def _grpc_target(self) -> str:
         return f"{self.grpc.host}:{self.grpc.port}"
 
-    def _grpc_channel(self, proxies: Dict[str, str], grpc_msg_size: Optional[int], is_async: bool) -> Union[AsyncChannel, SyncChannel]:
+    def _grpc_channel(
+        self, proxies: Dict[str, str], grpc_msg_size: Optional[int], is_async: bool
+    ) -> Union[AsyncChannel, SyncChannel]:
         if grpc_msg_size is None:
             grpc_msg_size = MAX_GRPC_MESSAGE_LENGTH
         opts = [

@@ -5,17 +5,18 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
     GenerativeReturnType,
-    _Generative,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
+from weaviate.collections.queries.base import _BaseGenerate
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import UUID, INCLUDE_VECTOR
 
 
-class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
+class _FetchObjectsGenerateAsync(
+    Generic[Properties, References], _BaseGenerate[ConnectionAsync, Properties, References]
+):
     async def fetch_objects(
         self,
         *,
@@ -72,37 +73,25 @@ class _FetchObjectsGenerateAsync(Generic[Properties, References], _Base[Properti
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the network connection to Weaviate fails.
         """
-        res = await self._query.get(
+        return await self._executor.fetch_objects(
+            self._connection,
+            single_prompt=single_prompt,
+            grouped_task=grouped_task,
+            grouped_properties=grouped_properties,
             limit=limit,
             offset=offset,
             after=after,
             filters=filters,
             sort=sort,
-            return_metadata=self._parse_return_metadata(return_metadata, include_vector),
-            return_properties=self._parse_return_properties(return_properties),
-            return_references=self._parse_return_references(return_references),
-            generative=_Generative(
-                single=single_prompt,
-                grouped=grouped_task,
-                grouped_properties=grouped_properties,
-            ),
-        )
-        return self._result_to_generative_query_return(
-            res,
-            _QueryOptions.from_input(
-                return_metadata,
-                return_properties,
-                include_vector,
-                self._references,
-                return_references,
-            ),
-            return_properties,
-            return_references,
+            include_vector=include_vector,
+            return_metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
         )
 
 
-@syncify.convert
+@syncify.convert_new(_FetchObjectsGenerateAsync)
 class _FetchObjectsGenerate(
-    Generic[Properties, References], _FetchObjectsGenerateAsync[Properties, References]
+    Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):
     pass

@@ -12,7 +12,7 @@ from weaviate.backup.backup import _BackupAsync
 from weaviate.backup.sync import _Backup
 from weaviate.event_loop import _EventLoopSingleton, _EventLoop
 
-from weaviate.users.users import _UsersAsync
+from weaviate.users.async_ import _UsersAsync
 
 from weaviate.users.sync import _Users
 from .auth import AuthCredentials
@@ -251,7 +251,7 @@ class WeaviateClient(_WeaviateClientInit[ConnectionSync]):
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         self.__executor.close(self._connection)
 
-    
+
 @deprecated(
     """
 Python client v3 `weaviate.Client(...)` has been removed.

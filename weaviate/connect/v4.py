@@ -6,14 +6,27 @@ from copy import copy
 from dataclasses import dataclass, field
 from ssl import SSLZeroReturnError
 from threading import Event, Thread
-from typing import Any, Awaitable, Dict, Generic, List, Literal, Optional, Tuple, TypeVar, Union, cast, overload
+from typing import (
+    Any,
+    Awaitable,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
 from grpc import Channel as SyncChannel
-from grpc.aio import Channel as AsyncChannel, UnaryUnaryCall # type: ignore
+from grpc.aio import Channel as AsyncChannel, AioRpcError  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
 
 # from grpclib.client import Channel
@@ -41,6 +54,8 @@ from weaviate.auth import (
     AuthApiKey,
     AuthClientCredentials,
 )
+from weaviate.collections.grpc.retry import _Retry
+from weaviate.collections.grpc.shared import PERMISSION_DENIED
 from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
 from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
@@ -59,9 +74,19 @@ from weaviate.exceptions import (
     WeaviateStartUpError,
     WeaviateTimeoutError,
     InsufficientPermissionsError,
+    WeaviateBatchError,
     WeaviateInvalidInputError,
+    WeaviateRetryError,
+    WeaviateQueryError,
+    WeaviateDeleteManyError,
 )
-from weaviate.proto.v1 import weaviate_pb2_grpc
+from weaviate.proto.v1 import (
+    base_pb2,
+    batch_pb2,
+    batch_delete_pb2,
+    search_get_pb2,
+    weaviate_pb2_grpc,
+)
 from weaviate.util import (
     PYPI_PACKAGE_URL,
     _decode_json_response_dict,
@@ -77,6 +102,7 @@ AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
 Colour = Literal["async", "sync"]
 
+
 @dataclass
 class _ExpectedStatusCodes:
     ok_in: Union[List[int], int]
@@ -88,6 +114,7 @@ class _ExpectedStatusCodes:
             self.ok = [self.ok_in]
         else:
             self.ok = self.ok_in
+
 
 class _ConnectionBase:
     def __init__(
@@ -155,15 +182,12 @@ class _ConnectionBase:
         for integration in integrations_config:
             self._headers.update(integration._to_header())
             self.__additional_headers.update(integration._to_header())
-    
 
     @overload
-    def _make_client(self, colour: Literal["async"]) -> AsyncClient:
-        ...
+    def _make_client(self, colour: Literal["async"]) -> AsyncClient: ...
 
     @overload
-    def _make_client(self, colour: Literal["sync"]) -> Client:
-        ...
+    def _make_client(self, colour: Literal["sync"]) -> Client: ...
 
     def _make_client(self, colour: Colour) -> Union[AsyncClient, Client]:
         if colour == "async":
@@ -180,14 +204,14 @@ class _ConnectionBase:
             )
 
     @overload
-    def _make_mounts(self, colour: Literal["async"]) -> Dict[str, AsyncHTTPTransport]:
-        ...
+    def _make_mounts(self, colour: Literal["async"]) -> Dict[str, AsyncHTTPTransport]: ...
 
     @overload
-    def _make_mounts(self, colour: Literal["sync"]) -> Dict[str, HTTPTransport]:
-        ...
+    def _make_mounts(self, colour: Literal["sync"]) -> Dict[str, HTTPTransport]: ...
 
-    def _make_mounts(self, colour: Colour) -> Union[Dict[str, AsyncHTTPTransport], Dict[str, HTTPTransport]]:
+    def _make_mounts(
+        self, colour: Colour
+    ) -> Union[Dict[str, AsyncHTTPTransport], Dict[str, HTTPTransport]]:
         if colour == "async":
             return {
                 f"{key}://" if key == "http" or key == "https" else key: AsyncHTTPTransport(
@@ -204,19 +228,18 @@ class _ConnectionBase:
             }
         if colour == "sync":
             return {
-            f"{key}://" if key == "http" or key == "https" else key: HTTPTransport(
-                limits=Limits(
-                    max_connections=self.__connection_config.session_pool_maxsize,
-                    max_keepalive_connections=self.__connection_config.session_pool_connections,
-                ),
-                proxy=Proxy(url=proxy),
-                retries=self.__connection_config.session_pool_max_retries,
-                trust_env=self.__trust_env,
-            )
-            for key, proxy in self._proxies.items()
-            if key != "grpc"
-        }
-    
+                f"{key}://" if key == "http" or key == "https" else key: HTTPTransport(
+                    limits=Limits(
+                        max_connections=self.__connection_config.session_pool_maxsize,
+                        max_keepalive_connections=self.__connection_config.session_pool_connections,
+                    ),
+                    proxy=Proxy(url=proxy),
+                    retries=self.__connection_config.session_pool_max_retries,
+                    trust_env=self.__trust_env,
+                )
+                for key, proxy in self._proxies.items()
+                if key != "grpc"
+            }
 
     def is_connected(self) -> bool:
         return self._connected
@@ -230,7 +253,6 @@ class _ConnectionBase:
         elif isinstance(self._client, AsyncOAuth2Client):
             return f"Bearer {self._client.token['access_token']}"
         return ""
-    
 
     def _prepare_grpc_headers(self) -> None:
         self.__metadata_list: List[Tuple[str, str]] = []
@@ -284,13 +306,15 @@ class _ConnectionBase:
                 response_deserializer=health_pb2.HealthCheckResponse.FromString,
             )(health_pb2.HealthCheckRequest(), timeout=self.timeout_config.init)
             if colour == "async":
+
                 async def execute() -> None:
                     assert isinstance(res, Awaitable)
                     self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, await res))
+
                 return execute()
             assert not isinstance(res, Awaitable)
             return self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, res))
-            
+
         except Exception as e:
             self.__handle_ping_exception(e)
 
@@ -328,15 +352,13 @@ class _ConnectionBase:
     @property
     def additional_headers(self) -> Dict[str, str]:
         return self.__additional_headers
-        
+
     def __make_clients(self, colour: Literal["async", "sync"]) -> None:
         self._client = self._make_client(colour)
 
     def open_connection_grpc(self, colour: Colour) -> None:
         channel = self._connection_params._grpc_channel(
-            proxies=self._proxies,
-            grpc_msg_size=self._grpc_max_msg_size,
-            is_async=colour=="async"
+            proxies=self._proxies, grpc_msg_size=self._grpc_max_msg_size, is_async=colour == "async"
         )
         self._grpc_channel = channel
         assert self._grpc_channel is not None
@@ -361,6 +383,7 @@ class _ConnectionBase:
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         if colour == "async":
+
             async def get_oidc() -> None:
                 async with self._make_client("async") as client:
                     try:
@@ -374,8 +397,9 @@ class _ConnectionBase:
                     return await res
                 else:
                     return res
+
             return get_oidc()
-        
+
         with self._make_client("sync") as client:
             try:
                 response = client.get(oidc_url)
@@ -387,7 +411,13 @@ class _ConnectionBase:
         assert not isinstance(res, Awaitable)
         return res
 
-    def __process_oidc_response(self, response: Response, auth_client_secret: Optional[AuthCredentials], oidc_url: str, colour: Colour) -> Union[None, Awaitable[None]]:
+    def __process_oidc_response(
+        self,
+        response: Response,
+        auth_client_secret: Optional[AuthCredentials],
+        oidc_url: str,
+        colour: Colour,
+    ) -> Union[None, Awaitable[None]]:
         if response.status_code == 200:
             # Some setups are behind proxies that return some default page - for example a login - for all requests.
             # If the response is not json, we assume that this is the case and try unauthenticated access. Any auth
@@ -401,6 +431,7 @@ class _ConnectionBase:
 
             if auth_client_secret is not None:
                 if colour == "async":
+
                     async def execute() -> None:
                         _auth = await _Auth.use_async(
                             oidc_config=resp,
@@ -410,13 +441,16 @@ class _ConnectionBase:
                         try:
                             self._client = await _auth.get_auth_session_async()
                         except HTTPError as e:
-                            raise AuthenticationFailedError(f"Failed to authenticate with OIDC: {repr(e)}")
+                            raise AuthenticationFailedError(
+                                f"Failed to authenticate with OIDC: {repr(e)}"
+                            )
 
                         # if isinstance(auth_client_secret, AuthClientCredentials):
                         #     # credentials should only be saved for client credentials, otherwise use refresh token
                         #     self._create_background_token_refresh(_auth)
                         # else:
                         #     self._create_background_token_refresh()
+
                     return execute()
                 else:
                     _auth = _Auth.use_sync(
@@ -427,7 +461,9 @@ class _ConnectionBase:
                     try:
                         self._client = _auth.get_auth_session()
                     except HTTPError as e:
-                        raise AuthenticationFailedError(f"Failed to authenticate with OIDC: {repr(e)}")
+                        raise AuthenticationFailedError(
+                            f"Failed to authenticate with OIDC: {repr(e)}"
+                        )
 
                     # if isinstance(auth_client_secret, AuthClientCredentials):
                     #     # credentials should only be saved for client credentials, otherwise use refresh token
@@ -521,7 +557,6 @@ class _ConnectionBase:
     #     )
     #     demon.start()
 
-
     def __get_latest_headers(self) -> Dict[str, str]:
         if "authorization" in self._headers:
             return self._headers
@@ -560,7 +595,7 @@ class _ConnectionBase:
         return Timeout(
             timeout=5.0, read=timeout, pool=self.__connection_config.session_pool_timeout
         )
-    
+
     def __handle_exceptions(self, error_msg: str, e: Exception) -> None:
         if isinstance(e, RuntimeError):
             raise WeaviateClosedClientError() from e
@@ -569,7 +604,9 @@ class _ConnectionBase:
         if isinstance(e, ReadTimeout):
             raise WeaviateTimeoutError(error_msg) from e
 
-    def __handle_response(self, response: Response, error_msg: str, status_codes: Optional[_ExpectedStatusCodes]) -> Response:
+    def __handle_response(
+        self, response: Response, error_msg: str, status_codes: Optional[_ExpectedStatusCodes]
+    ) -> Response:
         if response.status_code == 403:
             raise InsufficientPermissionsError(response)
         if status_codes is not None and response.status_code not in status_codes.ok:
@@ -588,8 +625,7 @@ class _ConnectionBase:
         is_gql_query: bool = False,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
-    ) -> Awaitable[Response]:
-        ...
+    ) -> Awaitable[Response]: ...
 
     @overload
     def _send(
@@ -603,8 +639,7 @@ class _ConnectionBase:
         is_gql_query: bool = False,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
-    ) -> Response:
-        ...
+    ) -> Response: ...
 
     def _send(
         self,
@@ -633,28 +668,31 @@ class _ConnectionBase:
                 timeout=self.__get_timeout(method, is_gql_query),
             )
             if colour == "async":
+
                 async def execute() -> Response:
                     assert isinstance(self._client, AsyncClient)
-                    return self.__handle_response(await self._client.send(req), error_msg, status_codes)
+                    return self.__handle_response(
+                        await self._client.send(req), error_msg, status_codes
+                    )
+
                 return execute()
             assert isinstance(self._client, Client)
             return self.__handle_response(self._client.send(req), error_msg, status_codes)
         except Exception as e:
             self.__handle_exceptions(error_msg, e)
             raise e
-    
-    @overload
-    def close(self, colour: Literal["async"]) -> Awaitable[None]:
-        ...
 
     @overload
-    def close(self, colour: Literal["sync"]) -> None:
-        ...
+    def close(self, colour: Literal["async"]) -> Awaitable[None]: ...
+
+    @overload
+    def close(self, colour: Literal["sync"]) -> None: ...
 
     def close(self, colour: Colour) -> Union[None, Awaitable[None]]:
         if self.embedded_db is not None:
             self.embedded_db.stop()
         if colour == "async":
+
             async def execute() -> None:
                 if self._client is not None:
                     assert isinstance(self._client, AsyncClient)
@@ -667,6 +705,7 @@ class _ConnectionBase:
                     self._grpc_stub = None
                     self._grpc_channel = None
                 self._connected = False
+
             return execute()
         if self._client is not None:
             assert isinstance(self._client, Client)
@@ -702,10 +741,12 @@ class _ConnectionBase:
         except RequestError:
             pass  # ignore any errors related to requests, it is a best-effort warning
 
+
 class ConnectionSync(_ConnectionBase):
     """
     Connection class used to communicate to a weaviate instance.
     """
+
     def connect(self, skip_init_checks: bool) -> None:
         self._connected = True
 
@@ -916,11 +957,11 @@ class ConnectionSync(_ConnectionBase):
             ) from error
 
 
-
 class ConnectionAsync(_ConnectionBase):
     """
     Connection class used to communicate to a weaviate instance.
     """
+
     async def connect(self, skip_init_checks: bool) -> None:
         self._connected = True
 
@@ -1133,7 +1174,66 @@ class ConnectionAsync(_ConnectionBase):
             raise WeaviateStartUpError(
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
-        
+
+    async def grpc_search(
+        self, request: search_get_pb2.SearchRequest
+    ) -> search_get_pb2.SearchReply:
+        try:
+            assert self.grpc_stub is not None
+            res = await _Retry(4).with_exponential_backoff(
+                0,
+                f"Searching in collection {request.collection}",
+                self.grpc_stub.Search,
+                request,
+                metadata=self.grpc_headers(),
+                timeout=self.timeout_config.query,
+            )
+            return cast(search_get_pb2.SearchReply, res)
+        except AioRpcError as e:
+            if e.code().name == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(e)
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+        except WeaviateRetryError as e:
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+
+    async def grpc_batch_objects(
+        self,
+        request: batch_pb2.BatchObjectsRequest,
+        timeout: Union[int, float],
+    ) -> Dict[int, str]:
+        try:
+            assert self.grpc_stub is not None
+            res = await self.grpc_stub.BatchObjects(
+                request,
+                metadata=self.grpc_headers(),
+                timeout=timeout,
+            )
+            res = cast(batch_pb2.BatchObjectsReply, res)
+
+            objects: Dict[int, str] = {}
+            for result in res.errors:
+                objects[result.index] = result.error
+            return objects
+        except AioRpcError as e:
+            if e.code().name == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(e)
+            raise WeaviateBatchError(str(e)) from e
+
+    async def grpc_batch_delete(
+        self, request: batch_delete_pb2.BatchDeleteRequest
+    ) -> batch_delete_pb2.BatchDeleteReply:
+        try:
+            assert self.grpc_stub is not None
+            return await self.grpc_stub.BatchDelete(
+                request,
+                metadata=self.grpc_headers(),
+                timeout=self.timeout_config.insert,
+            )
+        except AioRpcError as e:
+            if e.code().name == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(e)
+            raise WeaviateDeleteManyError(str(e))
+
 
 ConnectionV4 = ConnectionAsync
 Connection = Union[ConnectionSync, ConnectionAsync]

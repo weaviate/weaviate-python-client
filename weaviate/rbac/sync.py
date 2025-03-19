@@ -1,7 +1,8 @@
 from weaviate import syncify
-from weaviate.rbac.roles import _RolesAsync
+from weaviate.connect.v4 import ConnectionSync
+from weaviate.rbac.async_ import _RolesAsync, _RolesBase
 
 
-@syncify.convert
-class _Roles(_RolesAsync):
+@syncify.convert_new(_RolesAsync)
+class _Roles(_RolesBase[ConnectionSync]):
     pass

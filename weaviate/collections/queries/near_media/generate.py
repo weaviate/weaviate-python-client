@@ -22,11 +22,14 @@ from weaviate.collections.classes.internal import (
     _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
+from weaviate.collections.queries.base import _BaseGenerate
+from weaviate.connect.v4 import ConnectionAsync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
+class _NearMediaGenerateAsync(
+    Generic[Properties, References], _BaseGenerate[ConnectionAsync, Properties, References]
+):
     async def near_media(
         self,
         media: Union[str, Path, BufferedReader],
@@ -101,40 +104,26 @@ class _NearMediaGenerateAsync(Generic[Properties, References], _Base[Properties,
             `weaviate.exceptions.WeaviateQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = await self._query.near_media(
-            media=self._parse_media(media),
-            type_=media_type.value,
+        return await self._executor.near_media(
+            connection=self._connection,
+            media=media,
+            media_type=media_type,
+            single_prompt=single_prompt,
+            grouped_task=grouped_task,
+            grouped_properties=grouped_properties,
             certainty=certainty,
             distance=distance,
-            filters=filters,
-            group_by=_GroupBy.from_input(group_by),
-            rerank=rerank,
-            target_vector=target_vector,
-            generative=_Generative(
-                single=single_prompt,
-                grouped=grouped_task,
-                grouped_properties=grouped_properties,
-            ),
             limit=limit,
             offset=offset,
-            autocut=auto_limit,
-            return_metadata=self._parse_return_metadata(return_metadata, include_vector),
-            return_properties=self._parse_return_properties(return_properties),
-            return_references=self._parse_return_references(return_references),
-        )
-        return self._result_to_generative_return(
-            res,
-            _QueryOptions.from_input(
-                return_metadata,
-                return_properties,
-                include_vector,
-                self._references,
-                return_references,
-                rerank,
-                group_by,
-            ),
-            return_properties,
-            return_references,
+            auto_limit=auto_limit,
+            filters=filters,
+            group_by=group_by,
+            rerank=rerank,
+            target_vector=target_vector,
+            include_vector=include_vector,
+            return_metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
         )
 
 

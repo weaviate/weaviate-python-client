@@ -1,24 +1,20 @@
-from httpx import Response
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType
 
+from typing import Generic, List, Literal, Optional, Union, overload
 
-from typing import List, Literal, Optional, Union, overload
-
+from weaviate.collections.cluster.executor import _ClusterExecutor
 from weaviate.cluster.types import Verbosity
-from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST, Stats
-from weaviate.exceptions import (
-    EmptyResponseError,
-)
-
-from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
+from weaviate.collections.classes.cluster import Node, Shards, Stats
 
 
-class _ClusterBase:
-    def __init__(self, connection: ConnectionV4):
+class _ClusterBase(Generic[ConnectionType]):
+    _executor = _ClusterExecutor()
+
+    def __init__(self, connection: ConnectionType):
         self._connection = connection
 
 
-class _ClusterAsync(_ClusterBase):
+class _ClusterAsync(_ClusterBase[ConnectionAsync]):
     @overload
     async def nodes(
         self,
@@ -75,24 +71,6 @@ class _ClusterAsync(_ClusterBase):
             `weaviate.EmptyResponseError`
                 If the response is empty.
         """
-        path = "/nodes"
-        params = None
-        if collection is not None:
-            path += "/" + _capitalize_first_letter(collection)
-        if output is not None:
-            params = {"output": output}
-
-        response: Response = await self._connection.get(
-            path=path, params=params, error_msg="Get nodes status failed"
+        return await self._executor.nodes(
+            connection=self._connection, collection=collection, output=output
         )
-        response_typed = _decode_json_response_dict(response, "Nodes status")
-        assert response_typed is not None
-
-        nodes = response_typed.get("nodes")
-        if nodes is None or nodes == []:
-            raise EmptyResponseError("Nodes status response returned empty")
-
-        if output == "verbose":
-            return _ConvertFromREST.nodes_verbose(nodes)
-        else:
-            return _ConvertFromREST.nodes_minimal(nodes)

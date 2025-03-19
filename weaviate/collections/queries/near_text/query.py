@@ -19,11 +19,14 @@ from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
+from weaviate.collections.queries.base import _BaseQuery
+from weaviate.connect.v4 import ConnectionAsync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+class _NearTextQueryAsync(
+    Generic[Properties, References], _BaseQuery[ConnectionAsync, Properties, References]
+):
     async def near_text(
         self,
         query: Union[List[str], str],
@@ -94,36 +97,24 @@ class _NearTextQueryAsync(Generic[Properties, References], _Base[Properties, Ref
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = await self._query.near_text(
-            near_text=query,
+        return await self._executor.near_text(
+            connection=self._connection,
+            query=query,
             certainty=certainty,
             distance=distance,
             move_to=move_to,
             move_away=move_away,
             limit=limit,
             offset=offset,
-            autocut=auto_limit,
+            auto_limit=auto_limit,
             filters=filters,
-            target_vector=target_vector,
-            group_by=_GroupBy.from_input(group_by),
+            group_by=group_by,
             rerank=rerank,
-            return_metadata=self._parse_return_metadata(return_metadata, include_vector),
-            return_properties=self._parse_return_properties(return_properties),
-            return_references=self._parse_return_references(return_references),
-        )
-        return self._result_to_query_or_groupby_return(
-            res,
-            _QueryOptions.from_input(
-                return_metadata,
-                return_properties,
-                include_vector,
-                self._references,
-                return_references,
-                rerank,
-                group_by,
-            ),
-            return_properties,
-            return_references,
+            target_vector=target_vector,
+            include_vector=include_vector,
+            return_metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
         )
 
 

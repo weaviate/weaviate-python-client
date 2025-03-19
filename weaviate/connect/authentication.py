@@ -29,7 +29,9 @@ class _Auth:
         is_async: bool = False,
     ) -> None:
         self._credentials: AuthCredentials = credentials
-        self._make_async_mounts: Callable[[], Dict[str, httpx.AsyncHTTPTransport]] = make_async_mounts
+        self._make_async_mounts: Callable[[], Dict[str, httpx.AsyncHTTPTransport]] = (
+            make_async_mounts
+        )
         self._make_sync_mounts: Callable[[], Dict[str, httpx.HTTPTransport]] = make_sync_mounts
         config_url = oidc_config["href"]
         client_id = oidc_config["clientId"]
@@ -47,7 +49,10 @@ class _Auth:
 
     @classmethod
     async def use_async(
-        cls, oidc_config: OIDC_CONFIG, credentials: AuthCredentials, make_mounts: Callable[[], Dict[str, httpx.AsyncHTTPTransport]]
+        cls,
+        oidc_config: OIDC_CONFIG,
+        credentials: AuthCredentials,
+        make_mounts: Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
     ) -> _Auth:
         auth = cls(oidc_config, credentials, make_mounts, lambda: {}, True)
         auth._token_endpoint = await auth._get_token_endpoint()
@@ -56,7 +61,10 @@ class _Auth:
 
     @classmethod
     def use_sync(
-        cls, oidc_config: OIDC_CONFIG, credentials: AuthCredentials, make_mounts: Callable[[], Dict[str, httpx.HTTPTransport]]
+        cls,
+        oidc_config: OIDC_CONFIG,
+        credentials: AuthCredentials,
+        make_mounts: Callable[[], Dict[str, httpx.HTTPTransport]],
     ) -> _Auth:
         auth = cls(oidc_config, credentials, lambda: {}, make_mounts, False)
         auth._token_endpoint = auth._get_token_endpoint()
@@ -65,7 +73,9 @@ class _Auth:
 
     async def _validate_async(self, oidc_config: OIDC_CONFIG) -> None:
         if isinstance(self._credentials, AuthClientPassword):
-            if (await self._get_token_endpoint_async()).startswith("https://login.microsoftonline.com"):
+            if (await self._get_token_endpoint_async()).startswith(
+                "https://login.microsoftonline.com"
+            ):
                 raise AuthenticationFailedError(
                     """Microsoft/azure does not recommend to authenticate using username and password and this method is
                     not supported by the python client."""
@@ -98,7 +108,7 @@ class _Auth:
                     """The grant_types supported by the third-party authentication service are insufficient. Please add
                     the 'password' grant type."""
                 )
-            
+
     async def _get_token_endpoint_async(self) -> str:
         if self._token_endpoint is not None:
             return self._token_endpoint
@@ -120,7 +130,7 @@ class _Auth:
         token_endpoint = response_auth_json["token_endpoint"]
         assert isinstance(token_endpoint, str)
         return token_endpoint
-    
+
     async def get_auth_session_async(self) -> AsyncOAuth2Client:
         if isinstance(self._credentials, AuthBearerToken):
             sessions = await self._get_session_auth_bearer_token(self._credentials)
@@ -142,8 +152,10 @@ class _Auth:
             sessions = self._get_session_user_pw(self._credentials)
 
         return sessions
-    
-    async def _get_session_auth_bearer_token_async(self, config: AuthBearerToken) -> AsyncOAuth2Client:
+
+    async def _get_session_auth_bearer_token_async(
+        self, config: AuthBearerToken
+    ) -> AsyncOAuth2Client:
         token: Dict[str, Union[str, int]] = {"access_token": config.access_token}
         if config.expires_in is not None:
             token["expires_in"] = config.expires_in
@@ -176,7 +188,7 @@ class _Auth:
             client_id=self._client_id,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
-    
+
     async def _get_session_user_pw_async(self, config: AuthClientPassword) -> AsyncOAuth2Client:
         scope: List[str] = self._default_scopes.copy()
         scope.extend(config.scope_list)
@@ -192,7 +204,7 @@ class _Auth:
             _Warnings.auth_no_refresh_token(token["expires_in"])
 
         return session
-    
+
     def _get_session_user_pw(self, config: AuthClientPassword) -> OAuth2Client:
         scope: List[str] = self._default_scopes.copy()
         scope.extend(config.scope_list)
@@ -237,9 +249,7 @@ class _Auth:
         await session.fetch_token()
         return session
 
-    def _get_session_client_credential(
-        self, config: AuthClientCredentials
-    ) -> OAuth2Client:
+    def _get_session_client_credential(self, config: AuthClientCredentials) -> OAuth2Client:
         scope: List[str] = self._default_scopes.copy()
 
         if config.scope_list is not None:

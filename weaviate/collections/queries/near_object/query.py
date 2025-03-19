@@ -13,11 +13,14 @@ from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
+from weaviate.collections.queries.base import _BaseQuery
+from weaviate.connect.v4 import ConnectionAsync
 from weaviate.types import NUMBER, INCLUDE_VECTOR, UUID
 
 
-class _NearObjectQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+class _NearObjectQueryAsync(
+    Generic[Properties, References], _BaseQuery[ConnectionAsync, Properties, References]
+):
     async def near_object(
         self,
         near_object: UUID,
@@ -83,34 +86,22 @@ class _NearObjectQueryAsync(Generic[Properties, References], _Base[Properties, R
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = await self._query.near_object(
+        return await self._executor.near_object(
+            connection=self._connection,
             near_object=near_object,
             certainty=certainty,
             distance=distance,
             limit=limit,
             offset=offset,
-            autocut=auto_limit,
+            auto_limit=auto_limit,
             filters=filters,
-            group_by=_GroupBy.from_input(group_by),
+            group_by=group_by,
             rerank=rerank,
             target_vector=target_vector,
-            return_metadata=self._parse_return_metadata(return_metadata, include_vector),
-            return_properties=self._parse_return_properties(return_properties),
-            return_references=self._parse_return_references(return_references),
-        )
-        return self._result_to_query_or_groupby_return(
-            res,
-            _QueryOptions.from_input(
-                return_metadata,
-                return_properties,
-                include_vector,
-                self._references,
-                return_references,
-                rerank,
-                group_by,
-            ),
-            return_properties,
-            return_references,
+            include_vector=include_vector,
+            return_metadata=return_metadata,
+            return_properties=return_properties,
+            return_references=return_references,
         )
 
 

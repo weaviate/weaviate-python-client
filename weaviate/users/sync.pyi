@@ -1,6 +1,6 @@
 from typing import Dict, List, Union
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.users.users import _UsersBase
+from weaviate.users.async_ import _UsersBase
 
 from weaviate.rbac.models import Role, User
 
