@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, List, Optional
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
@@ -1229,28 +1229,58 @@ def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -
     assert config.vector_config["name"].vectorizer.model == {"vectorizeClassName": False}
 
 
-def test_named_vectors_export_and_import(collection_factory: CollectionFactory) -> None:
+@pytest.mark.parametrize("source_properties", [None, ["text"]])
+def test_named_vectors_export_and_import(
+    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+) -> None:
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
                 "name",
                 vectorize_collection_name=False,
-                source_properties=["text"],
+                source_properties=source_properties,
             ),
         ],
     )
     config = collection.config.get()
 
-    name = "TestCollectionConfigExportAndRecreate"
+    name = f"TestCollectionConfigExportAndRecreate_{collection.name}"
     config.name = name
-    client = weaviate.connect_to_local()
-    client.collections.delete(name)
-    client.collections.create_from_config(config)
-    new = client.collections.use(name).config.get()
-    assert config == new
-    client.collections.delete(name)
-    client.close()
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_config(config)
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+@pytest.mark.parametrize("source_properties", [None, ["text"]])
+def test_named_vectors_export_and_import_dict(
+    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary(
+                "name",
+                vectorize_collection_name=False,
+                source_properties=source_properties,
+            ),
+        ],
+    )
+    config = collection.config.get()
+
+    name = f"TestCollectionConfigExportAndRecreateDict_{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
 
 
 @pytest.mark.parametrize("index_range_filters", [True, False])
