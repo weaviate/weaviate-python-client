@@ -79,12 +79,13 @@ from weaviate.exceptions import (
     WeaviateRetryError,
     WeaviateQueryError,
     WeaviateDeleteManyError,
+    WeaviateTenantGetError,
 )
 from weaviate.proto.v1 import (
-    base_pb2,
     batch_pb2,
     batch_delete_pb2,
     search_get_pb2,
+    tenants_pb2,
     weaviate_pb2_grpc,
 )
 from weaviate.util import (
@@ -1233,6 +1234,26 @@ class ConnectionAsync(_ConnectionBase):
             if e.code().name == PERMISSION_DENIED:
                 raise InsufficientPermissionsError(e)
             raise WeaviateDeleteManyError(str(e))
+
+    async def grpc_tenants_get(
+        self, request: tenants_pb2.TenantsGetRequest
+    ) -> tenants_pb2.TenantsGetReply:
+        try:
+            assert self.grpc_stub is not None
+            res = await _Retry().with_exponential_backoff(
+                0,
+                f"Get tenants for collection {request.collection}",
+                self.grpc_stub.TenantsGet,
+                request,
+                metadata=self.grpc_headers(),
+                timeout=self.timeout_config.query,
+            )
+        except AioRpcError as e:
+            if e.code().name == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(e)
+            raise WeaviateTenantGetError(str(e)) from e
+
+        return cast(tenants_pb2.TenantsGetReply, res)
 
 
 ConnectionV4 = ConnectionAsync
