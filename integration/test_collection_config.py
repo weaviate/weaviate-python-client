@@ -1367,6 +1367,10 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
 def test_config_multi_vector_enabled(
     collection_factory: CollectionFactory,
 ) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
+        pytest.skip("Multi vector is not supported in Weaviate versions lower than 1.29.0")
+
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
