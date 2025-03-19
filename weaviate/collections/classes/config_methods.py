@@ -172,6 +172,7 @@ def __get_hnsw_config(config: Dict[str, Any]) -> _VectorIndexConfigHNSW:
         multi_vector=(
             None
             if config.get("multivector") is None
+            or (config.get("multivector") is not None and config["multivector"]["enabled"] is False)
             else _MultiVectorConfig(
                 aggregation=config["multivector"]["aggregation"],
             )
