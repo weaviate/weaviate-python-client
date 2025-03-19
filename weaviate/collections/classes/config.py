@@ -1733,7 +1733,8 @@ class _NamedVectorizerConfig(_ConfigBase):
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-        ret_dict["properties"] = ret_dict.pop("sourceProperties", None)
+        if "sourceProperties" in ret_dict:
+            ret_dict["properties"] = ret_dict.pop("sourceProperties")
         return ret_dict
 
 
