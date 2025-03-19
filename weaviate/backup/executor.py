@@ -188,6 +188,7 @@ class _BackupExecutor:
         path = f"/backups/{backend.value}"
 
         if isinstance(connection, ConnectionAsync):
+
             async def _execute() -> BackupReturn:
                 res = await connection.post(
                     path=path,
@@ -321,8 +322,7 @@ class _BackupExecutor:
         wait_for_completion: bool,
         config: Optional[BackupConfigRestore],
         backup_location: Optional[BackupLocationType],
-    ) -> Awaitable[BackupReturn]:
-        ...
+    ) -> Awaitable[BackupReturn]: ...
 
     @overload
     def restore(
@@ -336,8 +336,7 @@ class _BackupExecutor:
         wait_for_completion: bool,
         config: Optional[BackupConfigRestore],
         backup_location: Optional[BackupLocationType],
-    ) -> BackupReturn:
-        ...
+    ) -> BackupReturn: ...
 
     def restore(
         self,
@@ -395,6 +394,7 @@ class _BackupExecutor:
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
         if isinstance(connection, ConnectionAsync):
+
             async def _execute() -> BackupReturn:
                 response = await connection.post(
                     path=path,
@@ -427,9 +427,9 @@ class _BackupExecutor:
 
                         await asyncio.sleep(1)
                 return BackupReturn(**restore_status)
-            
+
             return _execute()
-        
+
         response = connection.post(
             path=path,
             weaviate_object=payload,
@@ -441,7 +441,9 @@ class _BackupExecutor:
             while True:
                 status = self.get_restore_status(
                     connection=connection,
-                    backup_id=backup_id, backend=backend, backup_location=backup_location
+                    backup_id=backup_id,
+                    backend=backend,
+                    backup_location=backup_location,
                 )
                 assert not isinstance(status, Awaitable)
                 restore_status["status"] = status.status
@@ -467,8 +469,7 @@ class _BackupExecutor:
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType],
-    ) -> Awaitable[BackupStatusReturn]:
-        ...
+    ) -> Awaitable[BackupStatusReturn]: ...
 
     @overload
     def get_restore_status(
@@ -478,8 +479,7 @@ class _BackupExecutor:
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType],
-    ) -> BackupStatusReturn:
-        ...
+    ) -> BackupStatusReturn: ...
 
     def get_restore_status(
         self,
@@ -519,7 +519,7 @@ class _BackupExecutor:
             params=params,
             error_msg="Backup restore status failed due to connection error.",
         )
-    
+
     @overload
     def cancel_backup(
         self,
@@ -528,8 +528,7 @@ class _BackupExecutor:
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType],
-    ) -> Awaitable[bool]:
-        ...
+    ) -> Awaitable[bool]: ...
 
     @overload
     def cancel_backup(
@@ -539,8 +538,7 @@ class _BackupExecutor:
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType],
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     def cancel_backup(
         self,
