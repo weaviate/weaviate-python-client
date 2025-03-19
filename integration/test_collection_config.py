@@ -31,6 +31,7 @@ from weaviate.collections.classes.config import (
     GenerativeSearches,
     Rerankers,
     _RerankerProvider,
+    _MultiVectorConfigCreate,
     Tokenization,
 )
 from weaviate.collections.classes.tenants import Tenant
@@ -1362,3 +1363,34 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
     else:
         with pytest.raises(UnexpectedStatusCodeError):
             update()
+
+
+@pytest.mark.parametrize(
+    "multi_vector",
+    [
+        None,
+        Configure.VectorIndex.MultiVector.multi_vector(),
+    ],
+)
+def test_config_multi_vector(
+    collection_factory: CollectionFactory, multi_vector: _MultiVectorConfigCreate
+) -> None:
+    collection = collection_factory(
+        ports=(8086, 50057),
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2colbert_jinaai(
+                name="vec",
+                vectorize_collection_name=False,
+                vector_index_config=Configure.VectorIndex.hnsw(multi_vector=multi_vector),
+            )
+        ],
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    conf = config.vector_config["vec"].vector_index_config
+    assert isinstance(conf, _VectorIndexConfigHNSW)
+    if collection._connection._weaviate_version.is_lower_than(1, 29, 0):
+        assert conf.multi_vector is None
+    else:
+        assert conf.multi_vector is not None
