@@ -398,6 +398,17 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                 and prop.get("moduleConfig", None) is not None
                 else None
             ),
+            vectorizer_configs=(
+                {
+                    k: _PropertyVectorizerConfig(
+                        skip=v.get("skip", False),
+                        vectorize_property_name=v.get("vectorizePropertyName", False),
+                    )
+                    for k, v in prop.get("moduleConfig", {}).items()
+                }
+                if "vectorConfig" in schema
+                else None
+            ),
             vectorizer=schema.get("vectorizer", "none") if "vectorConfig" not in schema else None,
         )
         for prop in schema["properties"]

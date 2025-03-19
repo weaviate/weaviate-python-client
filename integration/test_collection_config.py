@@ -1249,6 +1249,32 @@ def test_named_vectors_export_and_import(collection_factory: CollectionFactory) 
     client.collections.create_from_config(config)
     new = client.collections.use(name).config.get()
     assert config == new
+    assert config.to_dict() == new.to_dict()
+    client.collections.delete(name)
+    client.close()
+
+
+def test_named_vectors_export_and_import_dict(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vectorizer_config=[
+            Configure.NamedVectors.text2vec_contextionary(
+                "name",
+                vectorize_collection_name=False,
+                source_properties=["text"],
+            ),
+        ],
+    )
+    config = collection.config.get()
+
+    name = "TestCollectionConfigExportAndRecreateDict"
+    config.name = name
+    client = weaviate.connect_to_local()
+    client.collections.delete(name)
+    client.collections.create_from_dict(config.to_dict())
+    new = client.collections.use(name).config.get()
+    assert config == new
+    assert config.to_dict() == new.to_dict()
     client.collections.delete(name)
     client.close()
 
