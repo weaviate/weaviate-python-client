@@ -1245,7 +1245,7 @@ def test_named_vectors_export_and_import(
     )
     config = collection.config.get()
 
-    name = "TestCollectionConfigExportAndRecreate"
+    name = f"TestCollectionConfigExportAndRecreate_{collection.name}"
     config.name = name
     with weaviate.connect_to_local() as client:
         client.collections.delete(name)
@@ -1272,7 +1272,7 @@ def test_named_vectors_export_and_import_dict(
     )
     config = collection.config.get()
 
-    name = "TestCollectionConfigExportAndRecreateDict"
+    name = f"TestCollectionConfigExportAndRecreateDict_{collection.name}"
     config.name = name
     with weaviate.connect_to_local() as client:
         client.collections.delete(name)
