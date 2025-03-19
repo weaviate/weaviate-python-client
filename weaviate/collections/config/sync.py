@@ -1,7 +1,8 @@
 from weaviate import syncify
-from weaviate.collections.config.config import _ConfigCollectionAsync
+from weaviate.connect.v4 import ConnectionSync
+from weaviate.collections.config.async_ import _ConfigCollectionAsync, _ConfigCollectionBase
 
 
-@syncify.convert
-class _ConfigCollection(_ConfigCollectionAsync):
+@syncify.convert_new(_ConfigCollectionAsync)
+class _ConfigCollection(_ConfigCollectionBase[ConnectionSync]):
     pass

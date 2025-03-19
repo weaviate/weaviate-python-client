@@ -7,12 +7,9 @@ from typing import (
     Any,
     Optional,
     List,
-    Literal,
     Mapping,
     Sequence,
-    Generic,
     Tuple,
-    Type,
     Union,
     cast,
     overload,
@@ -41,8 +38,6 @@ from weaviate.collections.classes.types import (
     PhoneNumber,
     _PhoneNumber,
     Properties,
-    TProperties,
-    _check_properties_generic,
     WeaviateField,
 )
 from weaviate.connect.executor import execute

@@ -1,4 +1,4 @@
-from .config import _ConfigCollectionAsync
+from weaviate.collections.config.async_ import _ConfigCollectionAsync
 from .sync import _ConfigCollection
 
 __all__ = [

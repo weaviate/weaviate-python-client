@@ -23,7 +23,6 @@ from weaviate.exceptions import (
 from weaviate.util import (
     _capitalize_first_letter,
     _decode_json_response_dict,
-    _decode_json_response_list,
 )
 
 STORAGE_NAMES = {
