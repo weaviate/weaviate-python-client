@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Literal, Union, cast, Final
+from typing import Any, Dict, List, Literal, Optional, Union, cast, Final
 
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
@@ -56,26 +56,34 @@ class _UsersBase(_UsersInit):
         return cast(List[WeaviateRole], res.json())
 
     async def _assign_roles_to_user(
-        self, roles: List[str], user: str, user_type: Literal["db", "oidc"]
+        self, roles: List[str], user_id: str, user_type: Optional[Literal["db", "oidc"]]
     ) -> None:
-        path = f"/authz/users/{user}/assign"
+        path = f"/authz/users/{user_id}/assign"
+
+        payload: Dict[str, Any] = {"roles": roles}
+        if user_type is not None:
+            payload["userType"] = user_type
 
         await self._connection.post(
             path,
-            weaviate_object={"roles": roles, "userType": user_type},
-            error_msg=f"Could not assign roles {roles} to user {user}",
+            weaviate_object=payload,
+            error_msg=f"Could not assign roles {roles} to user {user_id}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Assign user to roles"),
         )
 
     async def _revoke_roles_from_user(
-        self, roles: List[str], user: str, user_type: Literal["db", "oidc"]
+        self, roles: List[str], user_id: str, user_type: Optional[Literal["db", "oidc"]]
     ) -> None:
-        path = f"/authz/users/{user}/revoke"
+        path = f"/authz/users/{user_id}/revoke"
+
+        payload: Dict[str, Any] = {"roles": roles}
+        if user_type is not None:
+            payload["userType"] = user_type
 
         await self._connection.post(
             path,
-            weaviate_object={"roles": roles},
-            error_msg=f"Could not revoke roles {roles} from user {user}",
+            weaviate_object=payload,
+            error_msg=f"Could not revoke roles {roles} from user {user_id}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Revoke roles from user"),
         )
 
@@ -386,8 +394,9 @@ class _UsersAsync(_UsersWrapper):
             role_names: The names of the roles to assign to the user.
             user_id: The user to assign the roles to.
         """
-        await self._oidc.assign_roles(user_id=user_id, role_names=role_names)
-        await self._db.assign_roles(user_id=user_id, role_names=role_names)
+        if isinstance(role_names, str):
+            role_names = [role_names]
+        await self._base._assign_roles_to_user(user_id=user_id, roles=role_names, user_type=None)
 
     @deprecated(
         """This method is deprecated and will be removed in Q4 25.
@@ -400,5 +409,6 @@ class _UsersAsync(_UsersWrapper):
             role_names: The names of the roles to revoke from the user.
             user_id: The user to revoke the roles from.
         """
-        await self._oidc.revoke_roles(user_id=user_id, role_names=role_names)
-        await self._db.revoke_roles(user_id=user_id, role_names=role_names)
+        if isinstance(role_names, str):
+            role_names = [role_names]
+        await self._base._revoke_roles_from_user(user_id=user_id, roles=role_names, user_type=None)
