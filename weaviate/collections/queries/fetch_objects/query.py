@@ -30,25 +30,16 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _Base[Properties,
     ) -> QueryReturnType[Properties, References, TProperties, TReferences]:
         """Retrieve the objects in this collection without any search.
 
-        Arguments:
-            `limit`
-                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
-            `offset`
-                The offset to start from. If not specified, the retrieval begins from the first object in the server.
-            `after`
-                The UUID of the object to start from. If not specified, the retrieval begins from the first object in the server.
-            `filters`
-                The filters to apply to the retrieval.
-            `sort`
-                The sorting to apply to the retrieval.
-            `include_vector`
-                Whether to include the vector in the results. If not specified, this is set to False.
-            `return_metadata`
-                The metadata to return for each object, defaults to `None`.
-            `return_properties`
-                The properties to return for each object.
-            `return_references`
-                The references to return for each object.
+        Args:
+            limit: The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            offset: The offset to start from. If not specified, the retrieval begins from the first object in the server.
+            after: The UUID of the object to start from. If not specified, the retrieval begins from the first object in the server.
+            filters: The filters to apply to the retrieval.
+            sort: The sorting to apply to the retrieval.
+            include_vector: Whether to include the vector in the results. If not specified, this is set to False.
+            return_metadata: The metadata to return for each object, defaults to `None`.
+            return_properties: The properties to return for each object.
+            return_references: The references to return for each object.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -59,8 +50,7 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _Base[Properties,
             A `QueryReturn` object that includes the searched objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
-                If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateGRPCQueryError: If the network connection to Weaviate fails.
         """
         res = await self._query.get(
             limit=limit,

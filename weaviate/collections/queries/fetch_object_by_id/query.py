@@ -33,15 +33,11 @@ class _FetchObjectByIDQueryAsync(Generic[Properties, References], _Base[Properti
     ) -> QuerySingleReturn[Properties, References, TProperties, TReferences]:
         """Retrieve an object from the server by its UUID.
 
-        Arguments:
-            `uuid`
-                The UUID of the object to retrieve, REQUIRED.
-            `include_vector`
-                Whether to include the vector in the returned object.
-            `return_properties`
-                The properties to return for each object.
-            `return_references`
-                The references to return for each object.
+        Args:
+            uuid: The UUID of the object to retrieve, REQUIRED.
+            include_vector: Whether to include the vector in the returned object.
+            return_properties: The properties to return for each object.
+            return_references: The references to return for each object.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -49,10 +45,8 @@ class _FetchObjectByIDQueryAsync(Generic[Properties, References], _Base[Properti
             - If `return_references` is not provided then no references are provided.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
-                If the network connection to Weaviate fails.
-            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
-                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+            weaviate.exceptions.WeaviateGRPCQueryError: If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateInsertInvalidPropertyError: If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
         return_metadata = MetadataQuery(
             creation_time=True, last_update_time=True, is_consistent=True

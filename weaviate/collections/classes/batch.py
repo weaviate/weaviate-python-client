@@ -199,27 +199,17 @@ class BatchObjectReturn:
         The keys of the `errors` and `uuids` dictionaries will always be equivalent to the `original_index` of the objects as you added them to the batching loop but won't necessarily be the same as the indices in the `all_responses` list because of this.
 
     Attributes:
-        `all_responses`
-            A list of all the responses from the batch operation. Each response is either a `uuid_package.UUID` object or an `Error` object.
-        `elapsed_seconds`
-            The time taken to perform the batch operation.
-        `errors`
-            A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects.
-        `uuids`
-            A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects.
-        `has_errors`
-            A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
+        elapsed_seconds: The time taken to perform the batch operation.
+        errors: A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `Error` objects.
+        uuids: A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the batch, and the values are the `uuid_package.UUID` objects.
+        has_errors: A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
     _all_responses: List[Union[uuid_package.UUID, ErrorObject]] = field(default_factory=list)
     elapsed_seconds: float = 0.0
-    """The time taken to perform the batch operation."""
     errors: Dict[int, ErrorObject] = field(default_factory=dict)
-    """A dictionary of all the failed responses from the batch operation. The keys are the indices of the objects in the overall batch, and the values are the `Error` objects."""
     uuids: Dict[int, uuid_package.UUID] = field(default_factory=dict)
-    """A dictionary of all the successful responses from the batch operation. The keys are the indices of the objects in the overall batch, and the values are the `uuid_package.UUID` objects."""
     has_errors: bool = False
-    """A boolean indicating whether or not any of the objects in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry."""
 
     @property
     def all_responses(self) -> List[Union[uuid_package.UUID, ErrorObject]]:
@@ -255,12 +245,9 @@ class BatchReferenceReturn:
     Since the individual references within the batch can error for differing reasons, the data is split up within this class for ease use when performing error checking, handling, and data revalidation.
 
     Attributes:
-        `elapsed_seconds`
-            The time taken to perform the batch operation.
-        `errors`
-            A dictionary of all the failed responses from the batch operation. The keys are the indices of the references in the batch, and the values are the `Error` objects.
-        `has_errors`
-            A boolean indicating whether or not any of the references in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
+        elapsed_seconds: The time taken to perform the batch operation.
+        errors: A dictionary of all the failed responses from the batch operation. The keys are the indices of the references in the batch, and the values are the `Error` objects.
+        has_errors: A boolean indicating whether or not any of the references in the batch failed to be inserted. If this is `True`, then the `errors` dictionary will contain at least one entry.
     """
 
     elapsed_seconds: float = 0.0
@@ -283,10 +270,8 @@ class BatchResult:
     within this class for ease use when performing error checking, handling, and data revalidation.
 
     Attributes:
-        `objs`
-            The results of the batch object operation.
-        `refs`
-            The results of the batch reference operation.
+        objs: The results of the batch object operation.
+        refs: The results of the batch reference operation.
     """
 
     def __init__(self) -> None:

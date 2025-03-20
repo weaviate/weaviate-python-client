@@ -646,15 +646,11 @@ class ConnectionV4:
         """
         Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
 
-        Parameters
-        ----------
-        startup_period : int
-            Describes how long the client will wait for weaviate to start in seconds.
+        Args:
+            startup_period: Describes how long the client will wait for weaviate to start in seconds.
 
-        Raises
-        ------
-        WeaviateStartUpError
-            If weaviate takes longer than the time limit to respond.
+        Raises:
+            WeaviateStartUpError: If weaviate takes longer than the time limit to respond.
         """
         for _i in range(startup_period):
             try:
