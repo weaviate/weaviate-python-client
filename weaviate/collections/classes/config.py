@@ -1160,6 +1160,7 @@ class _CollectionConfigCreateBase(_ConfigCreateModel):
 
 class _CollectionConfigUpdate(_ConfigUpdateModel):
     description: Optional[str] = Field(default=None)
+    property_descriptions: Optional[Dict[str, str]] = Field(default=None)
     invertedIndexConfig: Optional[_InvertedIndexConfigUpdate] = Field(
         default=None, alias="inverted_index_config"
     )
@@ -1214,6 +1215,18 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         if self.description is not None:
             schema["description"] = self.description
+        if self.property_descriptions is not None:
+            if (p := schema["properties"]) is None:
+                raise WeaviateInvalidInputError(
+                    "Cannot update property descriptions without existing properties in the schema"
+                )
+            props = {prop["name"]: prop for prop in p}
+            for prop_name, prop_desc in self.property_descriptions.items():
+                if prop_name not in props:
+                    raise WeaviateInvalidInputError(
+                        f"Property {prop_name} does not exist in the existing properties"
+                    )
+                props[prop_name]["description"] = prop_desc
         if self.invertedIndexConfig is not None:
             schema["invertedIndexConfig"] = self.invertedIndexConfig.merge_with_existing(
                 schema["invertedIndexConfig"]
@@ -1382,6 +1395,7 @@ class _Property(_PropertyBase):
     tokenization: Optional[Tokenization]
     vectorizer_config: Optional[PropertyVectorizerConfig]
     vectorizer: Optional[str]
+    vectorizer_configs: Optional[Dict[str, PropertyVectorizerConfig]]
 
     def to_dict(self) -> Dict[str, Any]:
         out = super().to_dict()
@@ -1401,7 +1415,11 @@ class _Property(_PropertyBase):
                 "skip": self.vectorizer_config.skip,
                 "vectorizePropertyName": self.vectorizer_config.vectorize_property_name,
             }
-
+        if self.vectorizer_configs is not None:
+            module_config = {
+                k: {"skip": v.skip, "vectorizePropertyName": v.vectorize_property_name}
+                for k, v in self.vectorizer_configs.items()
+            }
         if len(module_config) > 0:
             out["moduleConfig"] = module_config
         return out
@@ -1610,7 +1628,8 @@ class _NamedVectorizerConfig(_ConfigBase):
 
     def to_dict(self) -> Dict[str, Any]:
         ret_dict = super().to_dict()
-        ret_dict["properties"] = ret_dict.pop("sourceProperties", None)
+        if "sourceProperties" in ret_dict:
+            ret_dict["properties"] = ret_dict.pop("sourceProperties")
         return ret_dict
 
 
@@ -1760,17 +1779,19 @@ class Property(_ConfigCreateModel):
         return v
 
     def _to_dict(
-        self, vectorizer: Optional[Union[Vectorizers, _EnumLikeStr]] = None
+        self, vectorizers: Optional[Sequence[Union[Vectorizers, _EnumLikeStr]]] = None
     ) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         ret_dict["dataType"] = [ret_dict["dataType"]]
-        if vectorizer is not None and vectorizer != Vectorizers.NONE:
-            ret_dict["moduleConfig"] = {
-                vectorizer.value: {
-                    "skip": self.skip_vectorization,
-                    "vectorizePropertyName": self.vectorize_property_name,
-                }
-            }
+        if vectorizers is not None:
+            for vectorizer in vectorizers:
+                if vectorizer is not None and vectorizer != Vectorizers.NONE:
+                    if "moduleConfig" not in ret_dict:
+                        ret_dict["moduleConfig"] = {}
+                    ret_dict["moduleConfig"][vectorizer.value] = {
+                        "skip": self.skip_vectorization,
+                        "vectorizePropertyName": self.vectorize_property_name,
+                    }
             del ret_dict["skip_vectorization"]
             del ret_dict["vectorize_property_name"]
         if self.nestedProperties is not None:
@@ -1947,9 +1968,13 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             [
                 (
                     prop._to_dict(
-                        self.vectorizerConfig.vectorizer
+                        [self.vectorizerConfig.vectorizer]
                         if isinstance(self.vectorizerConfig, _VectorizerConfigCreate)
-                        else None
+                        else (
+                            None
+                            if self.vectorizerConfig is None
+                            else [conf.vectorizer.vectorizer for conf in self.vectorizerConfig]
+                        )
                     )
                     if isinstance(prop, Property)
                     else prop._to_dict()

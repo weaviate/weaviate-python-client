@@ -84,6 +84,7 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
         self,
         *,
         description: Optional[str] = None,
+        property_descriptions: Optional[Dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
@@ -134,6 +135,7 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
         try:
             config = _CollectionConfigUpdate(
                 description=description,
+                property_descriptions=property_descriptions,
                 inverted_index_config=inverted_index_config,
                 replication_config=replication_config,
                 vector_index_config=vector_index_config,
