@@ -126,10 +126,16 @@ def test_de_activate(client_factory: ClientFactory) -> None:
         randomUserName = "new-user" + str(random.randint(1, 1000))
         client.users.db.create(user_id=randomUserName)
 
-        client.users.db.deactivate(user_id=randomUserName)
+        assert client.users.db.deactivate(user_id=randomUserName)
+        assert not client.users.db.deactivate(
+            user_id=randomUserName
+        )  # second deactivation returns a conflict => false
         user = client.users.db.get(user_id=randomUserName)
         assert not user.active
-        client.users.db.activate(user_id=randomUserName)
+        assert client.users.db.activate(user_id=randomUserName)
+        assert not client.users.db.activate(
+            user_id=randomUserName
+        )  # second activation returns a conflict => false
         user = client.users.db.get(user_id=randomUserName)
         assert user.active
 
