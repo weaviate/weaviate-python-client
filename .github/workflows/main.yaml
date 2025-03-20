@@ -24,7 +24,7 @@ env:
   WEAVIATE_127: 1.27.14
   WEAVIATE_128: 1.28.8
   WEAVIATE_129: 1.29.1
-  WEAVIATE_130: 1.30.0-dev-f7fa706
+  WEAVIATE_130: 1.30.0-dev-7df86a6-amd64
 
 jobs:
   lint-and-format:

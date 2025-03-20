@@ -112,23 +112,25 @@ class _UsersBase(_UsersInit):
         assert resp_typed is not None
         return str(resp_typed["apikey"])
 
-    async def _deactivate(self, user_id: str) -> None:
+    async def _deactivate(self, user_id: str) -> bool:
         path = f"/users/db/{user_id}/deactivate"
-        await self._connection.post(
+        resp = await self._connection.post(
             path,
             weaviate_object={},
             error_msg=f"Could not deactivate user {user_id}",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="deactivate key"),
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="deactivate key"),
         )
+        return resp.status_code == 200
 
-    async def _activate(self, user_id: str) -> None:
+    async def _activate(self, user_id: str) -> bool:
         path = f"/users/db/{user_id}/activate"
-        await self._connection.post(
+        resp = await self._connection.post(
             path,
             weaviate_object={},
             error_msg=f"Could not activate user {user_id}",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="activate key"),
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="activate key"),
         )
+        return resp.status_code == 200
 
     async def _get_user(self, user_id: str) -> WeaviateDBUserRoleNames:
         path = f"/users/db/{user_id}"
@@ -214,7 +216,7 @@ class _UserDBAsync(_UsersBase):
         """
         return await self._rotate_key(user_id)
 
-    async def activate(self, *, user_id: str) -> None:
+    async def activate(self, *, user_id: str) -> bool:
         """Activate a deactivated user.
 
         Args:
@@ -222,7 +224,7 @@ class _UserDBAsync(_UsersBase):
         """
         return await self._activate(user_id)
 
-    async def deactivate(self, *, user_id: str) -> None:
+    async def deactivate(self, *, user_id: str) -> bool:
         """Deactivate an active user.
 
         Args:
