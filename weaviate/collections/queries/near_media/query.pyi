@@ -24,13 +24,13 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _Base
-from weaviate.types import NUMBER, INCLUDE_VECTOR
+from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
 
 class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, References]):
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -50,7 +50,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -70,7 +70,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -90,7 +90,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -110,7 +110,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -130,7 +130,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -153,7 +153,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -173,7 +173,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -193,7 +193,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -213,7 +213,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -233,7 +233,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -253,7 +253,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -275,7 +275,7 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
     @overload
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -297,7 +297,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -317,7 +317,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -337,7 +337,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -357,7 +357,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -377,7 +377,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -397,7 +397,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -420,7 +420,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -440,7 +440,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -460,7 +460,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -480,7 +480,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -500,7 +500,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -520,7 +520,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
@@ -542,7 +542,7 @@ class _NearMediaQuery(Generic[Properties, References], _Base[Properties, Referen
     @overload
     def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,
