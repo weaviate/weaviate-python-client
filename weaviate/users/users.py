@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Union, cast, Final
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, Final, overload
 
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
@@ -44,16 +44,19 @@ class _UsersInit:
 
 class _UsersBase(_UsersInit):
     async def _get_roles_of_user(
-        self, name: str, user_type: Literal["db", "oidc"]
-    ) -> List[WeaviateRole]:
+        self, name: str, user_type: Literal["db", "oidc"], return_full_roles: bool
+    ) -> Tuple[List[WeaviateRole], List[str]]:
         path = f"/authz/users/{name}/roles/{user_type}"
 
         res = await self._connection.get(
             path,
+            params={"includeFullRoles": return_full_roles},
             error_msg=f"Could not get roles of user '{name}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles of user"),
         )
-        return cast(List[WeaviateRole], res.json())
+        parsed = _decode_json_response_dict(res, "get roles of user")
+        assert parsed is not None
+        return cast(List[WeaviateRole], parsed["roles"]), cast(List[str], parsed["roleNames"])
 
     async def _assign_roles_to_user(
         self, roles: List[str], user_id: str, user_type: Optional[Literal["db", "oidc"]]
@@ -164,7 +167,24 @@ class _UsersBase(_UsersInit):
 
 
 class _UserDBAsync(_UsersBase):
-    async def get_assigned_roles(self, user_id: str) -> Dict[str, Role]:
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, return_full_roles: Literal[False] = ...
+    ) -> List[str]: ...
+
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, return_full_roles: Literal[True] = ...
+    ) -> Dict[str, Role]: ...
+
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, return_full_roles: bool = False
+    ) -> Union[Dict[str, Role], List[str]]: ...
+
+    async def get_assigned_roles(
+        self, user_id: str, return_full_roles: bool = False
+    ) -> Union[Dict[str, Role], List[str]]:
         """Get the roles assigned to a user.
 
         Args:
@@ -173,10 +193,10 @@ class _UserDBAsync(_UsersBase):
         Returns:
             A dictionary with role names as keys and the `Role` objects as values.
         """
-        return {
-            role["name"]: Role._from_weaviate_role(role)
-            for role in await self._get_roles_of_user(user_id, USER_TYPE_DB)
-        }
+        roles, names = await self._get_roles_of_user(user_id, USER_TYPE_DB, return_full_roles)
+        if return_full_roles:
+            return {role["name"]: Role._from_weaviate_role(role) for role in roles}
+        return names
 
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Assign roles to a user.
@@ -271,7 +291,24 @@ class _UserDBAsync(_UsersBase):
 
 
 class _UserOIDCAsync(_UsersBase):
-    async def get_assigned_roles(self, user_id: str) -> Dict[str, Role]:
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, return_full_roles: Literal[False] = ...
+    ) -> List[str]: ...
+
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, return_full_roles: Literal[True] = ...
+    ) -> Dict[str, Role]: ...
+
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, return_full_roles: bool = False
+    ) -> Union[Dict[str, Role], List[str]]: ...
+
+    async def get_assigned_roles(
+        self, user_id: str, return_full_roles: bool = False
+    ) -> Union[Dict[str, Role], List[str]]:
         """Get the roles assigned to a user.
 
         Args:
@@ -280,10 +317,10 @@ class _UserOIDCAsync(_UsersBase):
         Returns:
             A dictionary with role names as keys and the `Role` objects as values.
         """
-        return {
-            role["name"]: Role._from_weaviate_role(role)
-            for role in await self._get_roles_of_user(user_id, USER_TYPE_OIDC)
-        }
+        roles, names = await self._get_roles_of_user(user_id, USER_TYPE_OIDC, return_full_roles)
+        if return_full_roles:
+            return {role["name"]: Role._from_weaviate_role(role) for role in roles}
+        return names
 
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Assign roles to a user.
