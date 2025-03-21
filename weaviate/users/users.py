@@ -50,7 +50,7 @@ class _UsersBase(_UsersInit):
 
         res = await self._connection.get(
             path,
-            error_msg=f"Could not get roles of user {name}",
+            error_msg=f"Could not get roles of user '{name}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles of user"),
         )
         return cast(List[WeaviateRole], res.json())
@@ -67,7 +67,7 @@ class _UsersBase(_UsersInit):
         await self._connection.post(
             path,
             weaviate_object=payload,
-            error_msg=f"Could not assign roles {roles} to user {user_id}",
+            error_msg=f"Could not assign roles[{roles}] to user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Assign user to roles"),
         )
 
@@ -83,7 +83,7 @@ class _UsersBase(_UsersInit):
         await self._connection.post(
             path,
             weaviate_object=payload,
-            error_msg=f"Could not revoke roles {roles} from user {user_id}",
+            error_msg=f"Could not revoke roles [{roles}] from user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Revoke roles from user"),
         )
 
@@ -92,7 +92,7 @@ class _UsersBase(_UsersInit):
         resp = await self._connection.post(
             path,
             weaviate_object={},
-            error_msg=f"Could not create user {user_id}",
+            error_msg=f"Could not create user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create user"),
         )
         resp_typed = _decode_json_response_dict(resp, "Create user")
@@ -103,7 +103,7 @@ class _UsersBase(_UsersInit):
         path = f"/users/db/{user_id}"
         resp = await self._connection.delete(
             path,
-            error_msg=f"Could not create user {user_id}",
+            error_msg=f"Could not delete user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="Delete user"),
         )
         return resp.status_code == 204
@@ -120,29 +120,31 @@ class _UsersBase(_UsersInit):
         assert resp_typed is not None
         return str(resp_typed["apikey"])
 
-    async def _deactivate(self, user_id: str) -> None:
+    async def _deactivate(self, user_id: str) -> bool:
         path = f"/users/db/{user_id}/deactivate"
-        await self._connection.post(
+        resp = await self._connection.post(
             path,
             weaviate_object={},
-            error_msg=f"Could not deactivate user {user_id}",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="deactivate key"),
+            error_msg=f"Could not deactivate user '{user_id}'",
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="deactivate key"),
         )
+        return resp.status_code == 200
 
-    async def _activate(self, user_id: str) -> None:
+    async def _activate(self, user_id: str) -> bool:
         path = f"/users/db/{user_id}/activate"
-        await self._connection.post(
+        resp = await self._connection.post(
             path,
             weaviate_object={},
-            error_msg=f"Could not activate user {user_id}",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="activate key"),
+            error_msg=f"Could not activate user '{user_id}'",
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="activate key"),
         )
+        return resp.status_code == 200
 
     async def _get_user(self, user_id: str) -> WeaviateDBUserRoleNames:
         path = f"/users/db/{user_id}"
         resp = await self._connection.get(
             path,
-            error_msg=f"Could not get user {user_id}",
+            error_msg=f"Could not get user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get user"),
         )
         parsed = _decode_json_response_dict(resp, "get user")
@@ -153,7 +155,7 @@ class _UsersBase(_UsersInit):
         path = "/users/db"
         resp = await self._connection.get(
             path,
-            error_msg="Could not get all users",
+            error_msg="Could not list all users",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="list all users"),
         )
         parsed = _decode_json_response_list(resp, "get user")
@@ -222,7 +224,7 @@ class _UserDBAsync(_UsersBase):
         """
         return await self._rotate_key(user_id)
 
-    async def activate(self, *, user_id: str) -> None:
+    async def activate(self, *, user_id: str) -> bool:
         """Activate a deactivated user.
 
         Args:
@@ -230,7 +232,7 @@ class _UserDBAsync(_UsersBase):
         """
         return await self._activate(user_id)
 
-    async def deactivate(self, *, user_id: str) -> None:
+    async def deactivate(self, *, user_id: str) -> bool:
         """Deactivate an active user.
 
         Args:
@@ -316,8 +318,8 @@ class _UsersWrapper:
 
         res = await self._connection.get(
             path,
-            error_msg="Could not get roles",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own roles"),
+            error_msg="Could not own user info",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own user info"),
         )
         parsed = _decode_json_response_dict(res, "Get current user")
         assert parsed is not None
