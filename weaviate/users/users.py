@@ -45,7 +45,7 @@ class _UsersInit:
 class _UsersBase(_UsersInit):
     async def _get_roles_of_user(
         self, name: str, user_type: Literal["db", "oidc"], return_full_roles: bool
-    ) -> Tuple[List[WeaviateRole], List[str]]:
+    ) -> Tuple[Optional[List[WeaviateRole]], Optional[List[str]]]:
         path = f"/authz/users/{name}/roles/{user_type}"
 
         res = await self._connection.get(
@@ -195,8 +195,12 @@ class _UserDBAsync(_UsersBase):
         """
         roles, names = await self._get_roles_of_user(user_id, USER_TYPE_DB, return_full_roles)
         if return_full_roles:
-            return {role["name"]: Role._from_weaviate_role(role) for role in roles}
-        return names
+            return (
+                {role["name"]: Role._from_weaviate_role(role) for role in roles}
+                if roles is not None
+                else {}
+            )
+        return [] if names is None else names
 
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Assign roles to a user.
@@ -319,8 +323,12 @@ class _UserOIDCAsync(_UsersBase):
         """
         roles, names = await self._get_roles_of_user(user_id, USER_TYPE_OIDC, return_full_roles)
         if return_full_roles:
-            return {role["name"]: Role._from_weaviate_role(role) for role in roles}
-        return names
+            return (
+                {role["name"]: Role._from_weaviate_role(role) for role in roles}
+                if roles is not None
+                else {}
+            )
+        return [] if names is None else names
 
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
         """Assign roles to a user.
