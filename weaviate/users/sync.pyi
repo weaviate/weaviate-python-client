@@ -1,14 +1,14 @@
 from typing import Dict, List, Literal, Union, overload
 from weaviate.users.users import _UsersInit, UserDB, OwnUser
 
-from weaviate.rbac.models import Role
+from weaviate.rbac.models import Role, RoleBase
 from typing_extensions import deprecated
 
 class _UsersOIDC(_UsersInit):
     @overload
     def get_assigned_roles(
         self, user_id: str, return_full_roles: Literal[False] = False
-    ) -> List[str]: ...
+    ) -> Dict[str, RoleBase]: ...
     @overload
     def get_assigned_roles(
         self, user_id: str, return_full_roles: Literal[True]
@@ -16,7 +16,7 @@ class _UsersOIDC(_UsersInit):
     @overload
     def get_assigned_roles(
         self, user_id: str, return_full_roles: bool = False
-    ) -> Union[Dict[str, Role], List[str]]: ...
+    ) -> Union[Dict[str, Role], Dict[str, RoleBase]]: ...
     def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
     def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
 
@@ -24,7 +24,7 @@ class _UsersDB(_UsersInit):
     @overload
     def get_assigned_roles(
         self, user_id: str, return_full_roles: Literal[False] = False
-    ) -> List[str]: ...
+    ) -> Dict[str, RoleBase]: ...
     @overload
     def get_assigned_roles(
         self, user_id: str, return_full_roles: Literal[True]
@@ -32,7 +32,7 @@ class _UsersDB(_UsersInit):
     @overload
     def get_assigned_roles(
         self, user_id: str, return_full_roles: bool = False
-    ) -> Union[Dict[str, Role], List[str]]: ...
+    ) -> Union[Dict[str, Role], Dict[str, RoleBase]]: ...
     def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
     def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
     def create(self, *, user_id: str) -> str: ...
