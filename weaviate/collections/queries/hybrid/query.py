@@ -125,7 +125,7 @@ class _HybridQueryAsync(
         )
 
 
-@syncify.convert_new(_HybridQueryAsync)
+@syncify.convert(_HybridQueryAsync)
 class _HybridQuery(
     Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):

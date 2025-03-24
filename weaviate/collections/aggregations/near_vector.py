@@ -81,6 +81,6 @@ class _NearVectorAsync(_BaseAggregate[ConnectionAsync]):
         )
 
 
-@syncify.convert_new(_NearVectorAsync)
+@syncify.convert(_NearVectorAsync)
 class _NearVector(_BaseAggregate[ConnectionSync]):
     pass

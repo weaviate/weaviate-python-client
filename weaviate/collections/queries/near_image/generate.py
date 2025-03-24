@@ -135,7 +135,7 @@ class _NearImageGenerateAsync(
         )
 
 
-@syncify.convert_new(_NearImageGenerateAsync)
+@syncify.convert(_NearImageGenerateAsync)
 class _NearImageGenerate(
     Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):

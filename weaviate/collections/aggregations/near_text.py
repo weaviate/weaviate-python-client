@@ -86,6 +86,6 @@ class _NearTextAsync(_BaseAggregate[ConnectionAsync]):
         )
 
 
-@syncify.convert_new(_NearTextAsync)
+@syncify.convert(_NearTextAsync)
 class _NearText(_BaseAggregate[ConnectionSync]):
     pass

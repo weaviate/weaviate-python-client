@@ -98,7 +98,7 @@ class _BM25QueryAsync(
         )
 
 
-@syncify.convert_new(_BM25QueryAsync)
+@syncify.convert(_BM25QueryAsync)
 class _BM25Query(
     Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):

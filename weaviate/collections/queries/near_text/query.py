@@ -119,7 +119,7 @@ class _NearTextQueryAsync(
         )
 
 
-@syncify.convert_new(_NearTextQueryAsync)
+@syncify.convert(_NearTextQueryAsync)
 class _NearTextQuery(
     Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):

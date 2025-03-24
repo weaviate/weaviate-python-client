@@ -3,6 +3,6 @@ from weaviate.collections.backups.backups import _CollectionBackupAsync, _Collec
 from weaviate.connect.v4 import ConnectionSync
 
 
-@syncify.convert_new(_CollectionBackupAsync)
+@syncify.convert(_CollectionBackupAsync)
 class _CollectionBackup(_CollectionBackupBase[ConnectionSync]):
     pass

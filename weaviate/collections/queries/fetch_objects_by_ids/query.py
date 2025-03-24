@@ -47,7 +47,7 @@ class _FetchObjectsByIDsQueryAsync(
         )
 
 
-@syncify.convert_new(_FetchObjectsByIDsQueryAsync)
+@syncify.convert(_FetchObjectsByIDsQueryAsync)
 class _FetchObjectsByIDsQuery(
     Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):

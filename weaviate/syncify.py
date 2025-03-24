@@ -1,40 +1,8 @@
-import asyncio
 import inspect
 from dataclasses import dataclass
 from functools import wraps
 from types import MappingProxyType, FunctionType
 from typing import Any, Awaitable, Callable, List, Type, TypeVar
-
-from weaviate.event_loop import _EventLoopSingleton
-
-C = TypeVar("C")
-
-
-def convert(cls: C) -> C:
-    """
-    Class decorator that converts async methods to sync methods preserving all overloads and documentation.
-    """
-    for name, method in cls.__bases__[0].__dict__.items():  # type: ignore
-        original_method = method
-
-        if hasattr(method, "__wrapped__"):
-            method = method.__wrapped__
-
-        if asyncio.iscoroutinefunction(method) and not name.startswith("_"):
-            new_name = "__" + name
-            setattr(cls, new_name, method)
-
-            # Create a new sync method that wraps the async method
-            @wraps(original_method)  # type: ignore
-            def sync_method(self, *args, __new_name=new_name, **kwargs):
-                async_func = getattr(cls, __new_name)
-                return _EventLoopSingleton.get_instance().run_until_complete(
-                    async_func, self, *args, **kwargs
-                )
-
-            setattr(cls, name, sync_method)
-    return cls
-
 
 T = TypeVar("T")
 
@@ -46,7 +14,7 @@ class _Meta:
     async_: FunctionType
 
 
-def convert_new(async_cls: Type[T]) -> Callable[[Type], Type]:
+def convert(async_cls: Type[T]) -> Callable[[Type], Type]:
     """
     Class decorator that generates a synchronous version of an async class.
     It takes an async class as input and applies the decorator to create a

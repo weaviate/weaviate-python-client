@@ -6,7 +6,7 @@ from weaviate.connect.v4 import ConnectionSync
 from weaviate import syncify
 
 
-@syncify.convert_new(_CollectionsAsync)
+@syncify.convert(_CollectionsAsync)
 class _Collections(_CollectionsBase[ConnectionSync]):
     def get(
         self,

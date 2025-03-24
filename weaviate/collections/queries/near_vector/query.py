@@ -112,7 +112,7 @@ class _NearVectorQueryAsync(
         )
 
 
-@syncify.convert_new(_NearVectorQueryAsync)
+@syncify.convert(_NearVectorQueryAsync)
 class _NearVectorQuery(
     Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):

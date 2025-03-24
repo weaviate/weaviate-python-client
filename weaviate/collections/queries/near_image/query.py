@@ -114,7 +114,7 @@ class _NearImageQueryAsync(
         )
 
 
-@syncify.convert_new(_NearImageQueryAsync)
+@syncify.convert(_NearImageQueryAsync)
 class _NearImageQuery(
     Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):

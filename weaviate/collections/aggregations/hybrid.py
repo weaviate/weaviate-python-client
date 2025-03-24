@@ -79,6 +79,6 @@ class _HybridAsync(_BaseAggregate[ConnectionAsync]):
         )
 
 
-@syncify.convert_new(_HybridAsync)
+@syncify.convert(_HybridAsync)
 class _Hybrid(_BaseAggregate[ConnectionSync]):
     pass

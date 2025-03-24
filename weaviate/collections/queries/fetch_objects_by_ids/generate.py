@@ -63,7 +63,7 @@ class _FetchObjectsByIDsGenerateAsync(
         )
 
 
-@syncify.convert_new(_FetchObjectsByIDsGenerateAsync)
+@syncify.convert(_FetchObjectsByIDsGenerateAsync)
 class _FetchObjectsByIDsGenerate(
     Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):

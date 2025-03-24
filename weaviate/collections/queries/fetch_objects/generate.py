@@ -102,7 +102,7 @@ class _FetchObjectsGenerateAsync(
         )
 
 
-@syncify.convert_new(_FetchObjectsGenerateAsync)
+@syncify.convert(_FetchObjectsGenerateAsync)
 class _FetchObjectsGenerate(
     Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):

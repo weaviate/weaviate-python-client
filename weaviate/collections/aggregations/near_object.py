@@ -77,6 +77,6 @@ class _NearObjectAsync(_BaseAggregate[ConnectionAsync]):
         )
 
 
-@syncify.convert_new(_NearObjectAsync)
+@syncify.convert(_NearObjectAsync)
 class _NearObject(_BaseAggregate[ConnectionSync]):
     pass

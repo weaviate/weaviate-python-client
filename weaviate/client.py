@@ -168,7 +168,7 @@ class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
         return await aresult(self._executor.get_open_id_configuration(self._connection))
 
 
-@syncify.convert_new(WeaviateAsyncClient)
+@syncify.convert(WeaviateAsyncClient)
 class WeaviateClient(_WeaviateClientInit[ConnectionSync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.

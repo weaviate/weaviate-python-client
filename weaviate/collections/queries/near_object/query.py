@@ -106,7 +106,7 @@ class _NearObjectQueryAsync(
         )
 
 
-@syncify.convert_new(_NearObjectQueryAsync)
+@syncify.convert(_NearObjectQueryAsync)
 class _NearObjectQuery(
     Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):

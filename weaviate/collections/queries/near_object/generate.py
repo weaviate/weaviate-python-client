@@ -127,7 +127,7 @@ class _NearObjectGenerateAsync(
         )
 
 
-@syncify.convert_new(_NearObjectGenerateAsync)
+@syncify.convert(_NearObjectGenerateAsync)
 class _NearObjectGenerate(
     Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):

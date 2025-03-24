@@ -133,7 +133,7 @@ class _NearVectorGenerateAsync(
         )
 
 
-@syncify.convert_new(_NearVectorGenerateAsync)
+@syncify.convert(_NearVectorGenerateAsync)
 class _NearVectorGenerate(
     Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):

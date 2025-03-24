@@ -140,7 +140,7 @@ class _NearMediaGenerateAsync(
         )
 
 
-@syncify.convert_new(_NearMediaGenerateAsync)
+@syncify.convert(_NearMediaGenerateAsync)
 class _NearMediaGenerate(
     Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):

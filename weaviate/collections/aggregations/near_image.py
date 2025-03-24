@@ -77,6 +77,6 @@ class _NearImageAsync(_BaseAggregate[ConnectionAsync]):
         )
 
 
-@syncify.convert_new(_NearImageAsync)
+@syncify.convert(_NearImageAsync)
 class _NearImage(_BaseAggregate[ConnectionSync]):
     pass

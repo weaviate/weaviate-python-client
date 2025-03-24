@@ -146,7 +146,7 @@ class _HybridGenerateAsync(
         )
 
 
-@syncify.convert_new(_HybridGenerateAsync)
+@syncify.convert(_HybridGenerateAsync)
 class _HybridGenerate(
     Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):

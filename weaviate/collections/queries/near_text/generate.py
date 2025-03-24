@@ -140,7 +140,7 @@ class _NearTextGenerateAsync(
         )
 
 
-@syncify.convert_new(_NearTextGenerateAsync)
+@syncify.convert(_NearTextGenerateAsync)
 class _NearTextGenerate(
     Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):

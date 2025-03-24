@@ -53,6 +53,6 @@ class _OverAllAsync(_BaseAggregate[ConnectionAsync]):
         return await call
 
 
-@syncify.convert_new(_OverAllAsync)
+@syncify.convert(_OverAllAsync)
 class _OverAll(_BaseAggregate[ConnectionSync]):
     pass

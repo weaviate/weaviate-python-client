@@ -10,17 +10,17 @@ from weaviate.users.async_ import (
 )
 
 
-@syncify.convert_new(_UsersDBAsync)
+@syncify.convert(_UsersDBAsync)
 class _UsersDB(_UsersDBBase[ConnectionSync]):
     pass
 
 
-@syncify.convert_new(_UsersOIDCAsync)
+@syncify.convert(_UsersOIDCAsync)
 class _UsersOIDC(_UsersOIDCBase[ConnectionSync]):
     pass
 
 
-@syncify.convert_new(_UsersAsync)
+@syncify.convert(_UsersAsync)
 class _Users(_UsersBase[ConnectionSync]):
     def __init__(self, connection):
         super().__init__(connection)

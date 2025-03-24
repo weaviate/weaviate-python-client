@@ -122,7 +122,7 @@ class _BM25GenerateAsync(
         )
 
 
-@syncify.convert_new(_BM25GenerateAsync)
+@syncify.convert(_BM25GenerateAsync)
 class _BM25Generate(
     Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):

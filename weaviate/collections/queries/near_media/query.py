@@ -119,7 +119,7 @@ class _NearMediaQueryAsync(
         )
 
 
-@syncify.convert_new(_NearMediaQueryAsync)
+@syncify.convert(_NearMediaQueryAsync)
 class _NearMediaQuery(
     Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):
