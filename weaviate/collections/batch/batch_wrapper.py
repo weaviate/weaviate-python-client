@@ -32,6 +32,26 @@ class _BatchWrapper:
 
         self._event_loop = _EventLoopSingleton.get_instance()
 
+    async def __is_ready(
+        self, max_count: int, shards: Optional[List[Shard]], backoff_count: int = 0
+    ) -> bool:
+        try:
+            readinesses = await asyncio.gather(
+                *[
+                    self.__get_shards_readiness(shard)
+                    for shard in shards or self._batch_data.imported_shards
+                ]
+            )
+            return all(all(readiness) for readiness in readinesses)
+        except Exception as e:
+            logger.warning(
+                f"Error while getting class shards statuses: {e}, trying again with 2**n={2**backoff_count}s exponential backoff with n={backoff_count}"
+            )
+            if backoff_count >= max_count:
+                raise e
+            await asyncio.sleep(2**backoff_count)
+            return await self.__is_ready(max_count, shards, backoff_count + 1)
+
     def wait_for_vector_indexing(
         self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5
     ) -> None:
@@ -53,30 +73,12 @@ class _BatchWrapper:
         if shards is not None and not isinstance(shards[0], Shard):
             raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
 
-        async def is_ready(how_many: int) -> bool:
-            try:
-                readinesses = await asyncio.gather(
-                    *[
-                        self.__get_shards_readiness(shard)
-                        for shard in shards or self._batch_data.imported_shards
-                    ]
-                )
-                return all(all(readiness) for readiness in readinesses)
-            except Exception as e:
-                logger.warning(
-                    f"Error while getting class shards statuses: {e}, trying again with 2**n={2**how_many}s exponential backoff with n={how_many}"
-                )
-                if how_many_failures == how_many:
-                    raise e
-                time.sleep(2**how_many)
-                return await is_ready(how_many + 1)
-
-        count = 0
-        while not self._event_loop.run_until_complete(is_ready, count):
-            if count % 20 == 0:  # print every 5s
+        waiting_count = 0
+        while not self._event_loop.run_until_complete(self.__is_ready, how_many_failures, shards):
+            if waiting_count % 20 == 0:  # print every 5s
                 logger.debug("Waiting for async indexing to finish...")
             time.sleep(0.25)
-            count += 1
+            waiting_count += 1
         logger.debug("Async indexing finished!")
 
     async def __get_shards_readiness(self, shard: Shard) -> List[bool]:
