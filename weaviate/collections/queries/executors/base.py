@@ -27,12 +27,10 @@ from weaviate.collections.classes.internal import (
     GenerativeSingle,
     GenerativeGrouped,
     GenerativeMetadata,
-    GenerativeSearchReturnType,
     GroupByReturn,
     Group,
     GenerativeGroup,
     QueryReturn,
-    QuerySearchReturnType,
     _QueryOptions,
     ReturnProperties,
     ReturnReferences,
@@ -490,7 +488,10 @@ class _BaseExecutor:
         self,
         res: search_get_pb2.SearchReply,
         options: _QueryOptions,
-    ) -> GenerativeSearchReturnType[WeaviateProperties, CrossReferences]:
+    ) -> Union[
+        GenerativeReturn[WeaviateProperties, CrossReferences],
+        GenerativeGroupByReturn[WeaviateProperties, CrossReferences],
+    ]:
         return (
             self._result_to_generative_query_return(res, options)
             if options.is_group_by is False
@@ -544,7 +545,10 @@ class _BaseExecutor:
         self,
         res: search_get_pb2.SearchReply,
         options: _QueryOptions,
-    ) -> QuerySearchReturnType[WeaviateProperties, CrossReferences]:
+    ) -> Union[
+        QueryReturn[WeaviateProperties, CrossReferences],
+        GroupByReturn[WeaviateProperties, CrossReferences],
+    ]:
         return (
             self._result_to_query_return(res, options)
             if not options.is_group_by
