@@ -42,7 +42,7 @@ class _BaseExecutor:
     def _get_roles_of_user(
         self,
         user_id: str,
-        user_type: Optional[USER_TYPE],
+        user_type: USER_TYPE,
         include_permissions: bool,
         *,
         connection: Connection,
@@ -60,6 +60,25 @@ class _BaseExecutor:
             method=connection.get,
             path=path,
             params={"includeFullRoles": include_permissions},
+            error_msg=f"Could not get roles of user {user_id}",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles of user"),
+        )
+
+    def _get_roles_of_user_deprecated(
+        self,
+        user_id: str,
+        *,
+        connection: Connection,
+    ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+        path = f"/authz/users/{user_id}/roles"
+
+        def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
+            return {role["name"]: Role._from_weaviate_role(role) for role in res.json()}
+
+        return execute(
+            response_callback=resp,
+            method=connection.get,
+            path=path,
             error_msg=f"Could not get roles of user {user_id}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles of user"),
         )
@@ -148,7 +167,7 @@ class _DeprecatedExecutor(_BaseExecutor):
     ) -> ExecutorResult[Dict[str, Role]]:
         # cast here because the deprecated method is only used in the deprecated class and this type is known
         return cast(
-            Dict[str, Role], self._get_roles_of_user(user_id, None, True, connection=connection)
+            Dict[str, Role], self._get_roles_of_user_deprecated(user_id, connection=connection)
         )
 
     def assign_roles(
