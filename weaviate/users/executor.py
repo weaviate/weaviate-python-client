@@ -8,6 +8,7 @@ from weaviate.connect.executor import ExecutorResult, execute
 from weaviate.connect.v4 import _ExpectedStatusCodes, Connection
 from weaviate.rbac.models import (
     Role,
+    RoleBase,
     WeaviateDBUserRoleNames,
 )
 
@@ -42,18 +43,23 @@ class _BaseExecutor:
         self,
         user_id: str,
         user_type: Optional[USER_TYPE],
+        include_permissions: bool,
         *,
         connection: Connection,
-    ) -> ExecutorResult[Dict[str, Role]]:
+    ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         path = f"/authz/users/{user_id}/roles/{user_type}"
 
-        def resp(res: Response) -> Dict[str, Role]:
-            return {role["name"]: Role._from_weaviate_role(role) for role in res.json()}
+        def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
+            roles = res.json()
+            if include_permissions:
+                return {role["name"]: Role._from_weaviate_role(role) for role in roles}
+            return {role["name"]: RoleBase(role["name"]) for role in roles}
 
         return execute(
             response_callback=resp,
             method=connection.get,
             path=path,
+            params={"includeFullRoles": include_permissions},
             error_msg=f"Could not get roles of user {user_id}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles of user"),
         )
@@ -140,7 +146,10 @@ class _DeprecatedExecutor(_BaseExecutor):
     def get_assigned_roles(
         self, user_id: str, *, connection: Connection
     ) -> ExecutorResult[Dict[str, Role]]:
-        return self._get_roles_of_user(user_id, None, connection=connection)
+        # cast here because the deprecated method is only used in the deprecated class and this type is known
+        return cast(
+            Dict[str, Role], self._get_roles_of_user(user_id, None, True, connection=connection)
+        )
 
     def assign_roles(
         self, *, user_id: str, role_names: Union[str, List[str]], connection: Connection
@@ -165,9 +174,11 @@ class _DeprecatedExecutor(_BaseExecutor):
 
 class _OIDCExecutor(_BaseExecutor):
     def get_assigned_roles(
-        self, user_id: str, *, connection: Connection
-    ) -> ExecutorResult[Dict[str, Role]]:
-        return self._get_roles_of_user(user_id, USER_TYPE_OIDC, connection=connection)
+        self, user_id: str, include_permissions: bool, *, connection: Connection
+    ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+        return self._get_roles_of_user(
+            user_id, USER_TYPE_OIDC, include_permissions, connection=connection
+        )
 
     def assign_roles(
         self, *, user_id: str, role_names: Union[str, List[str]], connection: Connection
@@ -192,9 +203,11 @@ class _OIDCExecutor(_BaseExecutor):
 
 class _DBExecutor(_BaseExecutor):
     def get_assigned_roles(
-        self, user_id: str, *, connection: Connection
-    ) -> ExecutorResult[Dict[str, Role]]:
-        return self._get_roles_of_user(user_id, USER_TYPE_DB, connection=connection)
+        self, user_id: str, include_permissions: bool, *, connection: Connection
+    ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+        return self._get_roles_of_user(
+            user_id, USER_TYPE_DB, include_permissions, connection=connection
+        )
 
     def assign_roles(
         self, *, user_id: str, role_names: Union[str, List[str]], connection: Connection

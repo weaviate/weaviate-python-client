@@ -1,11 +1,9 @@
-from typing import Dict, Generic, List, Optional, Union
+from typing import Dict, Generic, List, Literal, Optional, Union, overload
 from typing_extensions import deprecated
 
 from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType
-from weaviate.rbac.models import (
-    Role,
-)
+from weaviate.rbac.models import Role, RoleBase
 from weaviate.users.executor import _DeprecatedExecutor, _DBExecutor, _OIDCExecutor, OwnUser, UserDB
 
 
@@ -17,7 +15,19 @@ class _UsersOIDCBase(Generic[ConnectionType]):
 
 
 class _UsersOIDCAsync(_UsersOIDCBase[ConnectionAsync]):
-    async def get_assigned_roles(self, user_id: str) -> Dict[str, Role]:
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, include_permissions: Literal[False] = ...
+    ) -> Dict[str, RoleBase]: ...
+
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, include_permissions: Literal[True] = ...
+    ) -> Dict[str, Role]: ...
+
+    async def get_assigned_roles(
+        self, user_id: str, include_permissions: bool = False
+    ) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
         """Get the roles assigned to a user specific to the configured OIDC's dynamic auth functionality.
 
         Args:
@@ -27,7 +37,9 @@ class _UsersOIDCAsync(_UsersOIDCBase[ConnectionAsync]):
             A dictionary with role names as keys and the `Role` objects as values.
         """
         return await aresult(
-            self._executor.get_assigned_roles(user_id, connection=self._connection)
+            self._executor.get_assigned_roles(
+                user_id, include_permissions, connection=self._connection
+            )
         )
 
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
@@ -65,7 +77,19 @@ class _UsersDBBase(Generic[ConnectionType]):
 
 
 class _UsersDBAsync(_UsersDBBase[ConnectionAsync]):
-    async def get_assigned_roles(self, user_id: str) -> Dict[str, Role]:
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, include_permissions: Literal[False] = ...
+    ) -> Dict[str, RoleBase]: ...
+
+    @overload
+    async def get_assigned_roles(
+        self, user_id: str, include_permissions: Literal[True] = ...
+    ) -> Dict[str, Role]: ...
+
+    async def get_assigned_roles(
+        self, user_id: str, include_permissions: bool = False
+    ) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
         """Get the roles assigned to a user.
 
         Args:
@@ -75,7 +99,9 @@ class _UsersDBAsync(_UsersDBBase[ConnectionAsync]):
             A dictionary with role names as keys and the `Role` objects as values.
         """
         return await aresult(
-            self._executor.get_assigned_roles(user_id, connection=self._connection)
+            self._executor.get_assigned_roles(
+                user_id, include_permissions, connection=self._connection
+            )
         )
 
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None:
