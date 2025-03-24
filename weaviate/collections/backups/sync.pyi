@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 from weaviate.backup.backup import (
     BackupConfigCreate,
     BackupConfigRestore,
@@ -19,6 +19,8 @@ class _CollectionBackup(_CollectionBackupBase):
         self,
         backup_id: str,
         backend: BackupStorage,
+        roles_restore: Optional[Literal["noRestore", "all"]] = None,
+        user_restore: Optional[Literal["noRestore", "all"]] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
     ) -> BackupStatusReturn: ...

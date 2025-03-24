@@ -1,4 +1,4 @@
-from typing import Optional, Union, List
+from typing import Literal, Optional, Union, List
 
 from weaviate.backup.backup import (
     BackupStorage,
@@ -47,6 +47,8 @@ class _Backup:
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
+        roles_restore: Optional[Literal["noRestore", "all"]] = None,
+        user_restore: Optional[Literal["noRestore", "all"]] = None,
     ) -> BackupReturn: ...
     def get_restore_status(
         self,

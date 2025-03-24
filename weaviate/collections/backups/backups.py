@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from weaviate.backup.backup import (
     BackupConfigCreate,
@@ -71,6 +71,8 @@ class _CollectionBackupAsync(_CollectionBackupBase):
         self,
         backup_id: str,
         backend: BackupStorage,
+        roles_restore: Optional[Literal["noRestore", "all"]] = None,
+        user_restore: Optional[Literal["noRestore", "all"]] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -103,7 +105,15 @@ class _CollectionBackupAsync(_CollectionBackupBase):
                 If the backup failed.
         """
         restore = await self._backup.restore(
-            backup_id, backend, [self._name], None, wait_for_completion, config, backup_location
+            backup_id,
+            backend,
+            [self._name],
+            None,
+            roles_restore,
+            user_restore,
+            wait_for_completion,
+            config,
+            backup_location,
         )
         return BackupStatusReturn(
             error=restore.error, status=restore.status, path=restore.path, id=backup_id
