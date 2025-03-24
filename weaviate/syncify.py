@@ -15,12 +15,17 @@ def convert(cls: C) -> C:
     Class decorator that converts async methods to sync methods preserving all overloads and documentation.
     """
     for name, method in cls.__bases__[0].__dict__.items():  # type: ignore
+        original_method = method
+
+        if hasattr(method, "__wrapped__"):
+            method = method.__wrapped__
+
         if asyncio.iscoroutinefunction(method) and not name.startswith("_"):
             new_name = "__" + name
             setattr(cls, new_name, method)
 
             # Create a new sync method that wraps the async method
-            @wraps(method)  # type: ignore
+            @wraps(original_method)  # type: ignore
             def sync_method(self, *args, __new_name=new_name, **kwargs):
                 async_func = getattr(cls, __new_name)
                 return _EventLoopSingleton.get_instance().run_until_complete(
@@ -61,6 +66,9 @@ def convert_new(async_cls: Type[T]) -> Callable[[Type], Type]:
         # Find all async methods in the async class
         metadata: List[_Meta] = []
         for name, method in inspect.getmembers(async_cls, inspect.isfunction):
+            # pulls the original method if it was wrapped by functools.wraps, e.g. @deprecated
+            method = getattr(method, "__wrapped__", method)
+
             if name.startswith("__"):
                 continue
 

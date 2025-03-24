@@ -183,6 +183,7 @@ class _DataExecutor:
             connection=connection,
             objects=objs,
             timeout=connection.timeout_config.insert,
+            max_retries=2,
         )
 
     def exists(self, uuid: UUID, *, connection: Connection) -> ExecutorResult[bool]:

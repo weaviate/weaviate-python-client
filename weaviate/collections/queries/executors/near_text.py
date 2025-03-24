@@ -18,6 +18,9 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
+    _GenerativeConfigRuntime,
+    _SinglePrompt,
+    _GroupedTask,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executors.base import _BaseExecutor
@@ -33,9 +36,10 @@ class _NearTextGenerateExecutor(Generic[Properties, References], _BaseExecutor):
         *,
         connection: Connection,
         query: Union[List[str], str],
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime],
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
@@ -90,6 +94,7 @@ class _NearTextGenerateExecutor(Generic[Properties, References], _BaseExecutor):
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
+                generative_provider=generative_provider,
             ),
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),

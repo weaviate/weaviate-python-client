@@ -1,10 +1,13 @@
-from io import BufferedReader
-from pathlib import Path
 from typing import Generic, List, Optional, Union
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
+)
+from weaviate.collections.classes.generative import (
+    _GenerativeConfigRuntime,
+    _GroupedTask,
+    _SinglePrompt,
 )
 from weaviate.collections.classes.grpc import (
     METADATA,
@@ -22,7 +25,7 @@ from weaviate.collections.classes.types import Properties, TProperties, Referenc
 from weaviate.collections.queries.base import _BaseGenerate
 from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
-from weaviate.types import NUMBER, INCLUDE_VECTOR
+from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
 
 
 class _NearMediaGenerateAsync(
@@ -30,12 +33,13 @@ class _NearMediaGenerateAsync(
 ):
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -50,7 +54,7 @@ class _NearMediaGenerateAsync(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
-        """Perform retrieval-augmented generation (RaG) on the results of a by-audio object search in this collection using an audio-capable vectorization module and vector-based similarity search.
+        """Perform retrieval-augmented generation (RAG) on the results of a by-audio object search in this collection using an audio-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/multi2vec-bind) for a more detailed explanation.
 
@@ -62,6 +66,14 @@ class _NearMediaGenerateAsync(
                 The media file to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
             `media_type`
                 The type of the provided media file, REQUIRED.
+            `single_prompt`
+                The prompt to use for generative query on each object individually.
+            `grouped_task`
+                The prompt to use for generative query on the entire result set.
+            `grouped_properties`
+                The properties to use in the generative query on the entire result set.
+            `generative_provider`
+                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
@@ -110,6 +122,7 @@ class _NearMediaGenerateAsync(
                 single_prompt=single_prompt,
                 grouped_task=grouped_task,
                 grouped_properties=grouped_properties,
+                generative_provider=generative_provider,
                 certainty=certainty,
                 distance=distance,
                 limit=limit,

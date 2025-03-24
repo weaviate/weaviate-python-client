@@ -4,6 +4,11 @@ from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
 )
+from weaviate.collections.classes.generative import (
+    _GenerativeConfigRuntime,
+    _GroupedTask,
+    _SinglePrompt,
+)
 from weaviate.collections.classes.grpc import (
     METADATA,
     GroupBy,
@@ -30,9 +35,10 @@ class _NearTextGenerateAsync(
         self,
         query: Union[List[str], str],
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
@@ -49,7 +55,7 @@ class _NearTextGenerateAsync(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
-        """Perform retrieval-augmented generation (RaG) on the results of a by-image object search in this collection using the image-capable vectorization module and vector-based similarity search.
+        """Perform retrieval-augmented generation (RAG) on the results of a by-image object search in this collection using the image-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.
 
@@ -59,6 +65,14 @@ class _NearTextGenerateAsync(
         Arguments:
             `query`
                 The text or texts to search on, REQUIRED.
+            `single_prompt`
+                The prompt to use for generative query on each object individually.
+            `grouped_task`
+                The prompt to use for generative query on the entire result set.
+            `grouped_properties`
+                The properties to use in the generative query on the entire result set.
+            `generative_provider`
+                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
@@ -118,6 +132,7 @@ class _NearTextGenerateAsync(
                 single_prompt=single_prompt,
                 grouped_task=grouped_task,
                 grouped_properties=grouped_properties,
+                generative_provider=generative_provider,
                 return_metadata=return_metadata,
                 return_properties=return_properties,
                 return_references=return_references,

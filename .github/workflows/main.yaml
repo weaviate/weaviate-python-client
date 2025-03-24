@@ -19,11 +19,12 @@ concurrency:
 
 env:
   WEAVIATE_124: 1.24.26
-  WEAVIATE_125: 1.25.30
-  WEAVIATE_126: 1.26.14
-  WEAVIATE_127: 1.27.12
-  WEAVIATE_128: 1.28.6
-  WEAVIATE_129: 1.29.0
+  WEAVIATE_125: 1.25.34
+  WEAVIATE_126: 1.26.17
+  WEAVIATE_127: 1.27.14
+  WEAVIATE_128: 1.28.8
+  WEAVIATE_129: 1.29.1
+  WEAVIATE_130: 1.30.0-dev-7df86a6-amd64
 
 jobs:
   lint-and-format:
@@ -130,11 +131,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_129},
-          { py: "3.10", weaviate: $WEAVIATE_129},
-          { py: "3.11", weaviate: $WEAVIATE_129},
-          { py: "3.12", weaviate: $WEAVIATE_129},
-          { py: "3.13", weaviate: $WEAVIATE_129}
+          { py: "3.9", weaviate: $WEAVIATE_130},
+          { py: "3.10", weaviate: $WEAVIATE_130},
+          { py: "3.11", weaviate: $WEAVIATE_130},
+          { py: "3.12", weaviate: $WEAVIATE_130},
+          { py: "3.13", weaviate: $WEAVIATE_130}
         ]
         optional_dependencies: [false]
     steps:
@@ -279,7 +280,8 @@ jobs:
           $WEAVIATE_126,
           $WEAVIATE_127,
           $WEAVIATE_128,
-          $WEAVIATE_129
+          $WEAVIATE_129,
+          $WEAVIATE_130
         ]
     steps:
       - name: Checkout

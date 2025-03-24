@@ -1,6 +1,4 @@
-from io import BufferedReader
-from pathlib import Path
-from typing import Generic, Optional, Union
+from typing import Generic, Optional
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import (
@@ -21,7 +19,7 @@ from weaviate.collections.classes.types import Properties, TProperties, Referenc
 from weaviate.collections.queries.base import _BaseQuery
 from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
-from weaviate.types import NUMBER, INCLUDE_VECTOR
+from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
 
 
 class _NearImageQueryAsync(
@@ -29,7 +27,7 @@ class _NearImageQueryAsync(
 ):
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,

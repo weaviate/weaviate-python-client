@@ -1,8 +1,6 @@
-from io import BufferedReader
-from pathlib import Path
 from typing import Optional, Union
 
-from weaviate.collections.aggregations.executors.base import _BaseExecutor, _parse_media
+from weaviate.collections.aggregations.executors.base import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -13,7 +11,8 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect.executor import execute, ExecutorResult
 from weaviate.connect.v4 import Connection
-from weaviate.types import NUMBER
+from weaviate.types import BLOB_INPUT, NUMBER
+from weaviate.util import parse_blob
 
 
 class _NearImageExecutor(_BaseExecutor):
@@ -21,7 +20,7 @@ class _NearImageExecutor(_BaseExecutor):
         self,
         connection: Connection,
         *,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
@@ -63,7 +62,7 @@ class _NearImageExecutor(_BaseExecutor):
         else:
             # use grpc
             request = self._grpc.near_media(
-                media=_parse_media(near_image),
+                media=parse_blob(near_image),
                 type_="image",
                 certainty=certainty,
                 distance=distance,

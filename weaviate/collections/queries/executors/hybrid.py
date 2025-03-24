@@ -1,4 +1,4 @@
-from typing import Any, Generic, List, Optional, cast
+from typing import Any, Generic, List, Optional, Union, cast
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -19,6 +19,9 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     _QueryOptions,
     _GroupBy,
+    _GenerativeConfigRuntime,
+    _SinglePrompt,
+    _GroupedTask,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executors.base import _BaseExecutor
@@ -35,9 +38,10 @@ class _HybridGenerateExecutor(Generic[Properties, References], _BaseExecutor):
         *,
         connection: Connection,
         query: Optional[str],
-        single_prompt: Optional[str],
-        grouped_task: Optional[str],
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]],
+        generative_provider: Optional[_GenerativeConfigRuntime],
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType],
         query_properties: Optional[List[str]],
@@ -102,6 +106,7 @@ class _HybridGenerateExecutor(Generic[Properties, References], _BaseExecutor):
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
+                generative_provider=generative_provider,
             ),
         )
         return execute(

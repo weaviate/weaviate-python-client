@@ -1,4 +1,5 @@
 from typing import Dict, Generic, List, Optional, Sequence, Union
+from typing_extensions import deprecated
 
 from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType
@@ -48,6 +49,36 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
         """
         return await aresult(self._executor.get(role_name, connection=self._connection))
 
+    async def get_assigned_db_user_ids(self, role_name: str) -> List[str]:
+        """Get the ids of DB users that have been assigned this role.
+
+        Args:
+            role_name: The role to get the users for.
+
+        Returns:
+            A list of ids.
+        """
+        return await aresult(
+            self._executor.get_assigned_db_user_ids(role_name, connection=self._connection)
+        )
+
+    async def get_assigned_oidc_user_ids(self, role_name: str) -> List[str]:
+        """Get the ids of OIDC users that have been assigned this role.
+
+        Args:
+            role_name: The role to get the users for.
+
+        Returns:
+            A list of ids.
+        """
+        return await aresult(
+            self._executor.get_assigned_oidc_user_ids(role_name, connection=self._connection)
+        )
+
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25.
+                Please use `roles.get_assigned_db_user_ids` and/or `roles.get_assigned_oidc_user_ids` instead."""
+    )
     async def get_assigned_user_ids(self, role_name: str) -> List[str]:
         """Get the ids of user that have been assigned this role.
 

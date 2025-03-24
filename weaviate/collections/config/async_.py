@@ -59,6 +59,7 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
         self,
         *,
         description: Optional[str] = None,
+        property_descriptions: Optional[Dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
@@ -86,6 +87,8 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
         Arguments:
             `description`
                 A description of the collection.
+            `property_descriptions`
+                A dictionary of property names and their descriptions.
             `inverted_index_config`
                 Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
             `replication_config`
@@ -118,6 +121,7 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             self._executor.update(
                 connection=self._connection,
                 description=description,
+                property_descriptions=property_descriptions,
                 inverted_index_config=inverted_index_config,
                 multi_tenancy_config=multi_tenancy_config,
                 replication_config=replication_config,

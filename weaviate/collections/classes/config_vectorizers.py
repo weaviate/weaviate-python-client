@@ -228,11 +228,13 @@ class _Text2VecAzureOpenAIConfig(_VectorizerConfigCreate):
     deploymentId: str
     vectorizeClassName: bool
     dimensions: Optional[int]
+    model: Optional[str]
 
     def _to_dict(self) -> Dict[str, Any]:
         ret_dict = super()._to_dict()
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
+        ret_dict["isAzure"] = True
         return ret_dict
 
 
@@ -271,6 +273,13 @@ class _Text2VecMistralConfig(_VectorizerConfigCreate):
     )
     model: Optional[str]
     vectorizeClassName: bool
+    baseURL: Optional[AnyHttpUrl]
+
+    def _to_dict(self) -> Dict[str, Any]:
+        ret_dict = super()._to_dict()
+        if self.baseURL is not None:
+            ret_dict["baseURL"] = self.baseURL.unicode_string()
+        return ret_dict
 
 
 class _Text2VecDatabricksConfig(_VectorizerConfigCreate):
@@ -302,6 +311,7 @@ class _Text2VecOpenAIConfig(_VectorizerConfigCreate):
             ret_dict["type"] = ret_dict.pop("type_")
         if self.baseURL is not None:
             ret_dict["baseURL"] = self.baseURL.unicode_string()
+        ret_dict["isAzure"] = False
         return ret_dict
 
 
@@ -731,6 +741,7 @@ class _Vectorizer:
         vectorize_collection_name: bool = True,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
+        model: Optional[str] = None,
     ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecAzureOpenAIConfigCreate` object for use when vectorizing using the `text2vec-azure-openai` model.
 
@@ -748,6 +759,8 @@ class _Vectorizer:
                 The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             `dimensions`
                 The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default.
 
         Raises:
             `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
@@ -758,6 +771,7 @@ class _Vectorizer:
             resourceName=resource_name,
             deploymentId=deployment_id,
             vectorizeClassName=vectorize_collection_name,
+            model=model,
         )
 
     @staticmethod
@@ -1055,6 +1069,7 @@ class _Vectorizer:
     @staticmethod
     def text2vec_mistral(
         *,
+        base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
         vectorize_collection_name: bool = True,
     ) -> _VectorizerConfigCreate:
@@ -1069,7 +1084,9 @@ class _Vectorizer:
             `vectorize_collection_name`
                 Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _Text2VecMistralConfig(model=model, vectorizeClassName=vectorize_collection_name)
+        return _Text2VecMistralConfig(
+            baseURL=base_url, model=model, vectorizeClassName=vectorize_collection_name
+        )
 
     @staticmethod
     def text2vec_ollama(

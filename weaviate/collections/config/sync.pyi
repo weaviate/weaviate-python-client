@@ -32,6 +32,7 @@ class _ConfigCollection(_ConfigCollectionBase[ConnectionSync]):
         self,
         *,
         description: Optional[str] = None,
+        property_descriptions: Optional[Dict[str, str]] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
         multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,

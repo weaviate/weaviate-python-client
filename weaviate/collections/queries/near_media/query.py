@@ -1,6 +1,4 @@
-from io import BufferedReader
-from pathlib import Path
-from typing import Generic, Optional, Union
+from typing import Generic, Optional
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import (
@@ -22,7 +20,7 @@ from weaviate.collections.classes.types import Properties, TProperties, Referenc
 from weaviate.collections.queries.base import _BaseQuery
 from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
-from weaviate.types import NUMBER, INCLUDE_VECTOR
+from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
 
 
 class _NearMediaQueryAsync(
@@ -30,7 +28,7 @@ class _NearMediaQueryAsync(
 ):
     async def near_media(
         self,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         *,
         certainty: Optional[NUMBER] = None,

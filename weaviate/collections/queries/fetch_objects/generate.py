@@ -1,7 +1,12 @@
-from typing import Generic, List, Optional
+from typing import Generic, List, Optional, Union
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import _Filters
+from weaviate.collections.classes.generative import (
+    _GenerativeConfigRuntime,
+    _GroupedTask,
+    _SinglePrompt,
+)
 from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
     GenerativeReturnType,
@@ -21,9 +26,10 @@ class _FetchObjectsGenerateAsync(
     async def fetch_objects(
         self,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -34,15 +40,17 @@ class _FetchObjectsGenerateAsync(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
-        """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
+        """Perform retrieval-augmented generation (RAG) on the results of a simple get query of objects in this collection.
 
         Arguments:
             `single_prompt`
-                The prompt to use for RaG on each object individually.
+                The prompt to use for generative query on each object individually.
             `grouped_task`
-                The prompt to use for RaG on the entire result set.
+                The prompt to use for generative query on the entire result set.
             `grouped_properties`
-                The properties to use in the RaG on the entire result set.
+                The properties to use in the generative query on the entire result set.
+            `generative_provider`
+                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
             `limit`
                 The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
             `offset`
@@ -80,6 +88,7 @@ class _FetchObjectsGenerateAsync(
                 single_prompt=single_prompt,
                 grouped_task=grouped_task,
                 grouped_properties=grouped_properties,
+                generative_provider=generative_provider,
                 limit=limit,
                 offset=offset,
                 after=after,

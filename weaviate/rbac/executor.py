@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Dict, List, Optional, Sequence, Union, cast
+from typing import Dict, List, Literal, Optional, Sequence, Union, cast
 
 from httpx import Response
 
@@ -14,6 +14,7 @@ from weaviate.rbac.models import (
     WeaviatePermission,
     WeaviateRole,
 )
+from weaviate.users.executor import USER_TYPE_DB, USER_TYPE_OIDC
 
 
 def _flatten_permissions(
@@ -120,10 +121,13 @@ class _RolesExecutor:
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create role"),
         )
 
-    def get_assigned_user_ids(
-        self, role_name: str, *, connection: Connection
+    def __get_users_of_role(
+        self, role_name: str, user_type: Optional[Literal["db", "oidc"]], *, connection: Connection
     ) -> ExecutorResult[List[str]]:
         path = f"/authz/roles/{role_name}/users"
+
+        if user_type is not None:
+            path += "/" + user_type
 
         def resp(res: Response) -> List[str]:
             return cast(List[str], res.json())
@@ -136,6 +140,21 @@ class _RolesExecutor:
             error_msg=f"Could not get users of role {role_name}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get users of role"),
         )
+
+    def get_assigned_db_user_ids(
+        self, role_name: str, *, connection: Connection
+    ) -> ExecutorResult[List[str]]:
+        return self.__get_users_of_role(role_name, USER_TYPE_DB, connection=connection)
+
+    def get_assigned_oidc_user_ids(
+        self, role_name: str, *, connection: Connection
+    ) -> ExecutorResult[List[str]]:
+        return self.__get_users_of_role(role_name, USER_TYPE_OIDC, connection=connection)
+
+    def get_assigned_user_ids(
+        self, role_name: str, *, connection: Connection
+    ) -> ExecutorResult[List[str]]:
+        return self.__get_users_of_role(role_name, None, connection=connection)
 
     def delete(self, role_name: str, *, connection: Connection) -> ExecutorResult[None]:
         path = f"/authz/roles/{role_name}"

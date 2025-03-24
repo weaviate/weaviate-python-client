@@ -82,6 +82,7 @@ class _BatchGRPC(_BaseGRPC):
         *,
         objects: List[_BatchObject],
         timeout: Union[int, float],
+        max_retries: float,
     ) -> ExecutorResult[BatchObjectReturn]:
         """Insert multiple objects into Weaviate through the gRPC API.
 
@@ -142,6 +143,7 @@ class _BatchGRPC(_BaseGRPC):
             method=connection.grpc_batch_objects,
             request=request,
             timeout=timeout,
+            max_retries=max_retries,
         )
 
     def __translate_properties_from_python_to_grpc(

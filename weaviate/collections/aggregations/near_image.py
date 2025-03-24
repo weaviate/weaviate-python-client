@@ -1,5 +1,3 @@
-from io import BufferedReader
-from pathlib import Path
 from typing import Optional, Union
 
 from weaviate import syncify
@@ -13,13 +11,13 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
-from weaviate.types import NUMBER
+from weaviate.types import BLOB_INPUT, NUMBER
 
 
 class _NearImageAsync(_BaseAggregate[ConnectionAsync]):
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,

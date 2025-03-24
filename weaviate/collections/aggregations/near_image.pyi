@@ -12,12 +12,13 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER
+from weaviate.util import BLOB_INPUT
 
 class _NearImageAsync(_BaseAggregate[ConnectionAsync]):
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -31,7 +32,7 @@ class _NearImageAsync(_BaseAggregate[ConnectionAsync]):
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -45,7 +46,7 @@ class _NearImageAsync(_BaseAggregate[ConnectionAsync]):
     @overload
     async def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -61,7 +62,7 @@ class _NearImage(_BaseAggregate[ConnectionSync]):
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -75,7 +76,7 @@ class _NearImage(_BaseAggregate[ConnectionSync]):
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -89,7 +90,7 @@ class _NearImage(_BaseAggregate[ConnectionSync]):
     @overload
     def near_image(
         self,
-        near_image: Union[str, Path, BufferedReader],
+        near_image: BLOB_INPUT,
         *,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,

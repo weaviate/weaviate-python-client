@@ -1,4 +1,4 @@
-from typing import Any, Generic, List, Iterable, Optional, cast
+from typing import Any, Generic, List, Iterable, Optional, Union, cast
 
 from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.grpc import METADATA, Sorting
@@ -9,6 +9,9 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     _QueryOptions,
     _Generative,
+    _GenerativeConfigRuntime,
+    _SinglePrompt,
+    _GroupedTask,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executors.base import _BaseExecutor
@@ -24,9 +27,10 @@ class _FetchObjectsByIdsGenerateExecutor(Generic[Properties, References], _BaseE
         *,
         connection: Connection,
         ids: Iterable[UUID],
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime],
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -66,6 +70,7 @@ class _FetchObjectsByIdsGenerateExecutor(Generic[Properties, References], _BaseE
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
+                generative_provider=generative_provider,
             ),
         )
         return execute(

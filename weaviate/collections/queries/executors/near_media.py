@@ -1,5 +1,3 @@
-from io import BufferedReader
-from pathlib import Path
 from typing import Any, Generic, List, Optional, Union, cast
 
 from weaviate.collections.classes.filters import (
@@ -20,13 +18,17 @@ from weaviate.collections.classes.internal import (
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
+    _GenerativeConfigRuntime,
+    _SinglePrompt,
+    _GroupedTask,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executors.base import _BaseExecutor
 from weaviate.connect.executor import execute, ExecutorResult
 from weaviate.connect.v4 import Connection
 from weaviate.proto.v1.search_get_pb2 import SearchReply
-from weaviate.types import NUMBER, INCLUDE_VECTOR
+from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
+from weaviate.util import parse_blob
 
 
 class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor):
@@ -34,11 +36,12 @@ class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor)
         self,
         *,
         connection: Connection,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime],
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -75,7 +78,7 @@ class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor)
             )
 
         request = self._query.near_media(
-            media=self._parse_media(media),
+            media=parse_blob(media),
             type_=media_type.value,
             certainty=certainty,
             distance=distance,
@@ -87,6 +90,7 @@ class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor)
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
+                generative_provider=generative_provider,
             ),
             limit=limit,
             offset=offset,
@@ -107,7 +111,7 @@ class _NearMediaQueryExecutor(Generic[Properties, References], _BaseExecutor):
         self,
         *,
         connection: Connection,
-        media: Union[str, Path, BufferedReader],
+        media: BLOB_INPUT,
         media_type: NearMediaType,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
@@ -143,7 +147,7 @@ class _NearMediaQueryExecutor(Generic[Properties, References], _BaseExecutor):
             )
 
         request = self._query.near_media(
-            media=self._parse_media(media),
+            media=parse_blob(media),
             type_=media_type.value,
             certainty=certainty,
             distance=distance,
