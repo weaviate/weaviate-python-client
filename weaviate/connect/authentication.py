@@ -55,8 +55,8 @@ class _Auth:
         make_mounts: Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
     ) -> _Auth:
         auth = cls(oidc_config, credentials, make_mounts, lambda: {}, True)
-        auth._token_endpoint = await auth._get_token_endpoint()
-        await auth._validate(auth._oidc_config)
+        auth._token_endpoint = await auth._get_token_endpoint_async()
+        await auth._validate_async(auth._oidc_config)
         return auth
 
     @classmethod
@@ -167,7 +167,7 @@ class _Auth:
 
         return AsyncOAuth2Client(
             token=token,
-            token_endpoint=await self._get_token_endpoint(),
+            token_endpoint=await self._get_token_endpoint_async(),
             client_id=self._client_id,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
@@ -194,7 +194,7 @@ class _Auth:
         scope.extend(config.scope_list)
         session = AsyncOAuth2Client(
             client_id=self._client_id,
-            token_endpoint=await self._get_token_endpoint(),
+            token_endpoint=await self._get_token_endpoint_async(),
             grant_type="password",
             scope=scope,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
@@ -230,7 +230,9 @@ class _Auth:
             scope.extend(config.scope_list)
         if len(scope) == 0:
             # hardcode commonly used scopes
-            if (await self._get_token_endpoint()).startswith("https://login.microsoftonline.com"):
+            if (await self._get_token_endpoint_async()).startswith(
+                "https://login.microsoftonline.com"
+            ):
                 scope = [self._client_id + "/.default"]
             else:
                 raise MissingScopeError

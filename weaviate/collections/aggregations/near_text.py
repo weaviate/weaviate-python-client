@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 
 from weaviate import syncify
-from weaviate.collections.aggregations.aggregate import _AggregateAsync
+from weaviate.collections.aggregations.base import _BaseAggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -10,11 +10,12 @@ from weaviate.collections.classes.aggregate import (
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
-from weaviate.collections.filters import _FilterToGRPC
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER
 
 
-class _NearTextAsync(_AggregateAsync):
+class _NearTextAsync(_BaseAggregate[ConnectionAsync]):
     async def near_text(
         self,
         query: Union[List[str], str],
@@ -67,59 +68,24 @@ class _NearTextAsync(_AggregateAsync):
             `weaviate.exceptions.WeaviateInvalidInputError`:
                 If any of the input arguments are of the wrong type.
         """
-        return_metrics = (
-            return_metrics
-            if (return_metrics is None or isinstance(return_metrics, list))
-            else [return_metrics]
-        )
-
-        if isinstance(group_by, str):
-            group_by = GroupByAggregate(prop=group_by)
-
-        if self._connection._weaviate_version.is_lower_than(1, 29, 0):
-            # use gql, remove once 1.29 is the minimum supported version
-
-            builder = self._base(return_metrics, filters, total_count)
-            builder = self._add_groupby_to_builder(builder, group_by)
-            builder = self._add_near_text_to_builder(
-                builder=builder,
+        return await aresult(
+            self._executor.near_text(
+                self._connection,
                 query=query,
                 certainty=certainty,
                 distance=distance,
                 move_to=move_to,
                 move_away=move_away,
                 object_limit=object_limit,
+                filters=filters,
+                group_by=group_by,
                 target_vector=target_vector,
+                total_count=total_count,
+                return_metrics=return_metrics,
             )
-            res = await self._do(builder)
-            return (
-                self._to_aggregate_result(res, return_metrics)
-                if group_by is None
-                else self._to_group_by_result(res, return_metrics)
-            )
-        else:
-            # use grpc
-            reply = await self._grpc.near_text(
-                near_text=query,
-                certainty=certainty,
-                distance=distance,
-                move_away=move_away,
-                move_to=move_to,
-                target_vector=target_vector,
-                aggregations=(
-                    [metric.to_grpc() for metric in return_metrics]
-                    if return_metrics is not None
-                    else []
-                ),
-                filters=_FilterToGRPC.convert(filters) if filters is not None else None,
-                group_by=group_by._to_grpc() if group_by is not None else None,
-                limit=group_by.limit if group_by is not None else None,
-                objects_count=total_count,
-                object_limit=object_limit,
-            )
-            return self._to_result(reply)
+        )
 
 
-@syncify.convert
-class _NearText(_NearTextAsync):
+@syncify.convert_new(_NearTextAsync)
+class _NearText(_BaseAggregate[ConnectionSync]):
     pass

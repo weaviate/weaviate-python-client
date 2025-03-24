@@ -6,16 +6,14 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.grpc import METADATA, GroupBy, Rerank, TargetVectorJoinType
 from weaviate.collections.classes.internal import (
-    _Generative,
-    _GroupBy,
     GenerativeSearchReturnType,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseGenerate
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR, UUID
 
 
@@ -90,30 +88,32 @@ class _NearObjectGenerateAsync(
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        return await self._executor.near_object(
-            connection=self._connection,
-            near_object=near_object,
-            single_prompt=single_prompt,
-            grouped_task=grouped_task,
-            grouped_properties=grouped_properties,
-            certainty=certainty,
-            distance=distance,
-            limit=limit,
-            offset=offset,
-            auto_limit=auto_limit,
-            filters=filters,
-            group_by=group_by,
-            rerank=rerank,
-            target_vector=target_vector,
-            include_vector=include_vector,
-            return_metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
+        return await aresult(
+            self._executor.near_object(
+                connection=self._connection,
+                near_object=near_object,
+                single_prompt=single_prompt,
+                grouped_task=grouped_task,
+                grouped_properties=grouped_properties,
+                certainty=certainty,
+                distance=distance,
+                limit=limit,
+                offset=offset,
+                auto_limit=auto_limit,
+                filters=filters,
+                group_by=group_by,
+                rerank=rerank,
+                target_vector=target_vector,
+                include_vector=include_vector,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                return_references=return_references,
+            )
         )
 
 
-@syncify.convert
+@syncify.convert_new(_NearObjectGenerateAsync)
 class _NearObjectGenerate(
-    Generic[Properties, References], _NearObjectGenerateAsync[Properties, References]
+    Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):
     pass

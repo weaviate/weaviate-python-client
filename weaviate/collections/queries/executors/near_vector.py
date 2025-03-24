@@ -1,6 +1,4 @@
-from io import BufferedReader
-from pathlib import Path
-from typing import Any, Awaitable, Generic, List, Optional, Union, cast
+from typing import Any, Generic, List, Optional, cast
 
 from weaviate.collections.classes.filters import (
     _Filters,
@@ -9,33 +7,32 @@ from weaviate.collections.classes.grpc import (
     METADATA,
     GroupBy,
     Rerank,
-    NearMediaType,
     TargetVectorJoinType,
+    NearVectorInputType,
 )
 from weaviate.collections.classes.internal import (
     _Generative,
-    _GroupBy,
     GenerativeSearchReturnType,
     QuerySearchReturnType,
+    _GroupBy,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.executor import _BaseExecutor
-from weaviate.connect.executor import execute
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.collections.queries.executors.base import _BaseExecutor
+from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import Connection
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor):
-    def near_media(
+class _NearVectorGenerateExecutor(Generic[Properties, References], _BaseExecutor):
+    def near_vector(
         self,
-        connection: ConnectionAsync,
         *,
-        media: Union[str, Path, BufferedReader],
-        media_type: NearMediaType,
+        connection: Connection,
+        near_vector: NearVectorInputType,
         single_prompt: Optional[str] = None,
         grouped_task: Optional[str] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -52,7 +49,9 @@ class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor)
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Awaitable[GenerativeSearchReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> ExecutorResult[
+        GenerativeSearchReturnType[Properties, References, TProperties, TReferences]
+    ]:
         def resp(
             res: SearchReply,
         ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
@@ -72,15 +71,12 @@ class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor)
                 ),
             )
 
-        request = self._query.near_media(
-            media=self._parse_media(media),
-            type_=media_type.value,
+        request = self._query.near_vector(
+            near_vector=near_vector,
             certainty=certainty,
             distance=distance,
             filters=filters,
             group_by=_GroupBy.from_input(group_by),
-            rerank=rerank,
-            target_vector=target_vector,
             generative=_Generative(
                 single=single_prompt,
                 grouped=grouped_task,
@@ -89,6 +85,8 @@ class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor)
             limit=limit,
             offset=offset,
             autocut=auto_limit,
+            rerank=rerank,
+            target_vector=target_vector,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
@@ -100,13 +98,12 @@ class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor)
         )
 
 
-class _NearMediaQueryExecutor(Generic[Properties, References], _BaseExecutor):
-    def near_media(
+class _NearVectorQueryExecutor(Generic[Properties, References], _BaseExecutor):
+    def near_vector(
         self,
-        connection: ConnectionAsync,
         *,
-        media: Union[str, Path, BufferedReader],
-        media_type: NearMediaType,
+        connection: Connection,
+        near_vector: NearVectorInputType,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -120,13 +117,13 @@ class _NearMediaQueryExecutor(Generic[Properties, References], _BaseExecutor):
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Awaitable[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> ExecutorResult[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
         def resp(
             res: SearchReply,
         ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]:
             return cast(
                 Any,
-                self._result_to_query_or_groupby_return(
+                self._result_to_generative_return(
                     res,
                     _QueryOptions.from_input(
                         return_metadata,
@@ -140,18 +137,17 @@ class _NearMediaQueryExecutor(Generic[Properties, References], _BaseExecutor):
                 ),
             )
 
-        request = self._query.near_media(
-            media=self._parse_media(media),
-            type_=media_type.value,
+        request = self._query.near_vector(
+            near_vector=near_vector,
             certainty=certainty,
             distance=distance,
             filters=filters,
             group_by=_GroupBy.from_input(group_by),
-            rerank=rerank,
-            target_vector=target_vector,
             limit=limit,
             offset=offset,
             autocut=auto_limit,
+            rerank=rerank,
+            target_vector=target_vector,
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),

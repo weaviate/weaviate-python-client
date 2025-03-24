@@ -1,13 +1,19 @@
-import asyncio
-from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
-
-from pydantic import ValidationError
+from typing import (
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    overload,
+)
 
 from weaviate.collections.classes.config import (
     _NamedVectorConfigCreate,
     CollectionConfig,
     CollectionConfigSimple,
-    _CollectionConfigCreate,
     _GenerativeProvider,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
@@ -22,17 +28,21 @@ from weaviate.collections.classes.config import (
 from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
     Properties,
-    _check_properties_generic,
-    _check_references_generic,
 )
 from weaviate.collections.collection import CollectionAsync
-from weaviate.collections.collections.base import _CollectionsBase
-from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import _capitalize_first_letter
-from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.collections.collections.executor import _CollectionsExecutor
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType
 
 
-class _CollectionsAsync(_CollectionsBase):
+class _CollectionsBase(Generic[ConnectionType]):
+    _executor = _CollectionsExecutor()
+
+    def __init__(self, connection: ConnectionType) -> None:
+        self._connection: ConnectionType = connection
+
+
+class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
     async def create(
         self,
         name: str,
@@ -106,41 +116,28 @@ class _CollectionsAsync(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        if isinstance(vectorizer_config, list) and self._connection._weaviate_version.is_lower_than(
-            1, 24, 0
-        ):
-            raise WeaviateInvalidInputError(
-                "Named vectorizers are only supported in Weaviate v1.24.0 and higher"
-            )
-        try:
-            config = _CollectionConfigCreate(
+        collection = await aresult(
+            self._executor.create(
+                connection=self._connection,
+                name=name,
                 description=description,
                 generative_config=generative_config,
                 inverted_index_config=inverted_index_config,
                 multi_tenancy_config=multi_tenancy_config,
-                name=name,
                 properties=properties,
                 references=references,
                 replication_config=replication_config,
                 reranker_config=reranker_config,
                 sharding_config=sharding_config,
-                vectorizer_config=vectorizer_config,
                 vector_index_config=vector_index_config,
+                vectorizer_config=vectorizer_config,
+                data_model_properties=data_model_properties,
+                data_model_references=data_model_references,
+                skip_argument_validation=skip_argument_validation,
             )
-        except ValidationError as e:
-            raise WeaviateInvalidInputError(
-                f"Invalid collection config create parameters: {e}"
-            ) from e
-        name = await super()._create(config._to_dict())
-        assert (
-            config.name == name
-        ), f"Name of created collection ({name}) does not match given name ({config.name})"
-        return self.use(
-            name,
-            data_model_properties,
-            data_model_references,
-            skip_argument_validation=skip_argument_validation,
         )
+        assert isinstance(collection, CollectionAsync)
+        return collection
 
     def get(
         self,
@@ -173,9 +170,9 @@ class _CollectionsAsync(_CollectionsBase):
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
         return self.use(
-            name,
-            data_model_properties,
-            data_model_references,
+            name=name,
+            data_model_properties=data_model_properties,
+            data_model_references=data_model_references,
             skip_argument_validation=skip_argument_validation,
         )
 
@@ -209,18 +206,15 @@ class _CollectionsAsync(_CollectionsBase):
             `weaviate.exceptions.InvalidDataModelException`
                 If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
         """
-        if not skip_argument_validation:
-            _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
-            _check_properties_generic(data_model_properties)
-            _check_references_generic(data_model_references)
-        name = _capitalize_first_letter(name)
-        return CollectionAsync[Properties, References](
-            self._connection,
-            name,
-            properties=data_model_properties,
-            references=data_model_references,
-            validate_arguments=not skip_argument_validation,
+        collection = self._executor.use(
+            connection=self._connection,
+            name=name,
+            data_model_properties=data_model_properties,
+            data_model_references=data_model_references,
+            skip_argument_validation=skip_argument_validation,
         )
+        assert isinstance(collection, CollectionAsync)
+        return collection
 
     async def delete(self, name: Union[str, List[str]]) -> None:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
@@ -240,12 +234,7 @@ class _CollectionsAsync(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        _validate_input([_ValidateArgument(expected=[str, List[str]], name="name", value=name)])
-
-        if isinstance(name, str):
-            await self._delete(_capitalize_first_letter(name))
-        else:
-            await asyncio.gather(*[self._delete(_capitalize_first_letter(n)) for n in name])
+        return await aresult(self._executor.delete(name, connection=self._connection))
 
     async def delete_all(self) -> None:
         """Use this method to delete all collections from the Weaviate instance.
@@ -261,7 +250,7 @@ class _CollectionsAsync(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        await asyncio.gather(*[self.delete(name) for name in (await self.list_all()).keys()])
+        return await aresult(self._executor.delete_all(connection=self._connection))
 
     async def exists(self, name: str) -> bool:
         """Use this method to check if a collection exists in the Weaviate instance.
@@ -281,8 +270,7 @@ class _CollectionsAsync(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
-        return await self._exists(_capitalize_first_letter(name))
+        return await aresult(self._executor.exists(name, connection=self._connection))
 
     async def export_config(self, name: str) -> CollectionConfig:
         """Use this method to export the configuration of a collection from the Weaviate instance.
@@ -302,7 +290,7 @@ class _CollectionsAsync(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        return await self._export(_capitalize_first_letter(name))
+        return await aresult(self._executor.export_config(name, connection=self._connection))
 
     @overload
     async def list_all(self, simple: Literal[False]) -> Dict[str, CollectionConfig]: ...
@@ -336,8 +324,7 @@ class _CollectionsAsync(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
-        return await self._get_all(simple=simple)
+        return await aresult(self._executor.list_all(simple, connection=self._connection))
 
     async def create_from_dict(self, config: dict) -> CollectionAsync:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration dictionary object.
@@ -355,8 +342,11 @@ class _CollectionsAsync(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        name = await super()._create(config)
-        return self.get(name)
+        collection = await aresult(
+            self._executor.create_from_dict(config, connection=self._connection)
+        )
+        assert isinstance(collection, CollectionAsync)
+        return collection
 
     async def create_from_config(self, config: CollectionConfig) -> CollectionAsync:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
@@ -371,4 +361,8 @@ class _CollectionsAsync(_CollectionsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        return await self.create_from_dict(config.to_dict())
+        collection = await aresult(
+            self._executor.create_from_config(config, connection=self._connection)
+        )
+        assert isinstance(collection, CollectionAsync)
+        return collection

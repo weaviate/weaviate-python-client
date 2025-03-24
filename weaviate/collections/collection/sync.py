@@ -4,7 +4,6 @@ from typing import Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.aggregate import _AggregateCollection
 from weaviate.collections.backups import _CollectionBackup
-from weaviate.collections.batch.collection import _BatchCollectionWrapper
 from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
@@ -15,6 +14,7 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     TReferences,
 )
+from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.cluster import _Cluster
 from weaviate.collections.config import _ConfigCollection
@@ -23,13 +23,13 @@ from weaviate.collections.generate import _GenerateCollection
 from weaviate.collections.iterator import _IteratorInputs, _ObjectIterator
 from weaviate.collections.query import _QueryCollection
 from weaviate.collections.tenants import _Tenants
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionSync
 from weaviate.types import UUID
 
 from .base import _CollectionBase
 
 
-class Collection(Generic[Properties, References], _CollectionBase[Properties, References]):
+class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync]):
     """The collection class is the main entry point for interacting with a collection in Weaviate.
 
     This class is returned by the `client.collections.create` and `client.collections.get` methods. It provides
@@ -59,7 +59,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
 
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: ConnectionSync,
         name: str,
         validate_arguments: bool,
         consistency_level: Optional[ConsistencyLevel] = None,
@@ -73,9 +73,9 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             validate_arguments,
             consistency_level,
             tenant,
-            properties,
-            references,
         )
+        self.__properties = properties
+        self.__references = references
 
         self.__cluster = _Cluster(connection)
 
@@ -98,13 +98,13 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             name=name,
         )
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
-        self.batch = _BatchCollectionWrapper[Properties](
-            connection,
-            consistency_level,
-            name,
-            tenant,
-            config,
-        )
+        # self.batch = _BatchCollectionWrapper[Properties](
+        #     connection,
+        #     consistency_level,
+        #     name,
+        #     tenant,
+        #     config,
+        # )
         """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
         self.config = config
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
@@ -135,7 +135,6 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         self.tenants = _Tenants(
             connection=connection,
             name=name,
-            consistency_level=consistency_level,
             validate_arguments=validate_arguments,
         )
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
@@ -149,6 +148,52 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
         config = self.config.get()
         json_ = json.dumps(asdict(config), indent=2)
         return f"<weaviate.Collection config={json_}>"
+
+    def with_tenant(self, tenant: Union[str, Tenant]) -> "Collection[Properties, References]":
+        """Use this method to return a collection object specific to a single tenant.
+
+        If multi-tenancy is not configured for this collection then Weaviate will throw an error.
+
+        This method does not send a request to Weaviate. It only returns a new collection object that is specific
+        to the tenant you specify.
+
+        Arguments:
+            `tenant`
+                The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
+        """
+        return Collection(
+            connection=self._connection,
+            name=self.name,
+            validate_arguments=self._validate_arguments,
+            consistency_level=self.consistency_level,
+            tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
+            properties=self.__properties,
+            references=self.__references,
+        )
+
+    def with_consistency_level(
+        self, consistency_level: ConsistencyLevel
+    ) -> "Collection[Properties, References]":
+        """Use this method to return a collection object specific to a single consistency level.
+
+        If replication is not configured for this collection then Weaviate will throw an error.
+
+        This method does not send a request to Weaviate. It only returns a new collection object that is specific
+        to the consistency level you specify.
+
+        Arguments:
+            `consistency_level`
+                The consistency level to use.
+        """
+        return Collection(
+            connection=self._connection,
+            name=self.name,
+            validate_arguments=self._validate_arguments,
+            consistency_level=consistency_level,
+            tenant=self.tenant,
+            properties=self.__properties,
+            references=self.__references,
+        )
 
     def exists(self) -> bool:
         """Check if the collection exists in Weaviate."""

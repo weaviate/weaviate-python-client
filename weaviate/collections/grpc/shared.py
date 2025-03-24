@@ -29,7 +29,6 @@ from weaviate.collections.classes.grpc import (
     TwoDimensionalVectorType,
     PrimitiveVectorType,
 )
-from weaviate.connect.v4 import ConnectionAsync, ConnectionSync, Connection
 from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
     WeaviateInvalidInputError,
@@ -38,9 +37,6 @@ from weaviate.proto.v1 import base_search_pb2, base_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4, _ServerVersion
 from weaviate.validator import _is_valid, _ValidateArgument, _validate_input, _ExtraTypes
-
-
-PERMISSION_DENIED = "PERMISSION_DENIED"
 
 UINT32_LEN = 4
 UINT64_LEN = 8

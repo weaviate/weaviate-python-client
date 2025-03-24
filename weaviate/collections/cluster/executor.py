@@ -1,9 +1,9 @@
 from httpx import Response
-from weaviate.connect.executor import execute
-from weaviate.connect.v4 import ConnectionAsync, ConnectionType
+from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import Connection
 
 
-from typing import Awaitable, Generic, List, Literal, Optional, Union, overload
+from typing import List, Optional, Union
 
 from weaviate.cluster.types import Verbosity
 from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST, Stats
@@ -17,11 +17,11 @@ from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 class _ClusterExecutor:
     def nodes(
         self,
-        connection: ConnectionAsync,
+        collection: Optional[str],
         *,
-        collection: Optional[str] = None,
-        output: Optional[Verbosity] = None,
-    ) -> Awaitable[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]:
+        connection: Connection,
+        output: Optional[Verbosity],
+    ) -> ExecutorResult[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]:
         path = "/nodes"
         params = None
         if collection is not None:

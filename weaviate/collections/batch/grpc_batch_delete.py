@@ -1,4 +1,4 @@
-from typing import Awaitable, List, Optional, Union, cast
+from typing import List, Optional, Union
 
 from weaviate.collections.classes.batch import (
     DeleteManyObject,
@@ -8,11 +8,10 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
-from weaviate.collections.queries.executor import _WeaviateUUIDInt
-from weaviate.connect.executor import execute
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import Connection
 from weaviate.proto.v1 import batch_delete_pb2
-from weaviate.util import _ServerVersion
+from weaviate.util import _ServerVersion, _WeaviateUUIDInt
 
 
 class _BatchDeleteGRPC(_BaseGRPC):
@@ -25,14 +24,14 @@ class _BatchDeleteGRPC(_BaseGRPC):
 
     def batch_delete(
         self,
-        connection: ConnectionAsync,
+        connection: Connection,
         *,
         name: str,
         filters: _Filters,
         verbose: bool,
         dry_run: bool,
         tenant: Optional[str]
-    ) -> Awaitable[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
+    ) -> ExecutorResult[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
         def resp(
             res: batch_delete_pb2.BatchDeleteReply,
         ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:

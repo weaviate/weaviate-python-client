@@ -1,7 +1,7 @@
-from typing import Optional, Union
+from typing import Awaitable, Optional, Union
 
 from weaviate import syncify
-from weaviate.collections.aggregations.aggregate import _AggregateAsync
+from weaviate.collections.aggregations.base import _BaseAggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -9,10 +9,10 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.filters import _FilterToGRPC
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-class _OverAllAsync(_AggregateAsync):
+class _OverAllAsync(_BaseAggregate[ConnectionAsync]):
     async def over_all(
         self,
         *,
@@ -42,40 +42,17 @@ class _OverAllAsync(_AggregateAsync):
             `weaviate.exceptions.WeaviateInvalidInputError`:
                 If any of the input arguments are of the wrong type.
         """
-        return_metrics = (
-            return_metrics
-            if (return_metrics is None or isinstance(return_metrics, list))
-            else [return_metrics]
+        call = self._executor.over_all(
+            connection=self._connection,
+            filters=filters,
+            group_by=group_by,
+            total_count=total_count,
+            return_metrics=return_metrics,
         )
-        if isinstance(group_by, str):
-            group_by = GroupByAggregate(prop=group_by)
-
-        if self._connection._weaviate_version.is_lower_than(1, 29, 0):
-            # use gql, remove once 1.29 is the minimum supported version
-            builder = self._base(return_metrics, filters, total_count)
-            builder = self._add_groupby_to_builder(builder, group_by)
-            res = await self._do(builder)
-            return (
-                self._to_aggregate_result(res, return_metrics)
-                if group_by is None
-                else self._to_group_by_result(res, return_metrics)
-            )
-        else:
-            # use grpc
-            reply = await self._grpc.over_all(
-                aggregations=(
-                    [metric.to_grpc() for metric in return_metrics]
-                    if return_metrics is not None
-                    else []
-                ),
-                filters=_FilterToGRPC.convert(filters) if filters is not None else None,
-                group_by=group_by._to_grpc() if group_by is not None else None,
-                limit=group_by.limit if group_by is not None else None,
-                objects_count=total_count,
-            )
-            return self._to_result(reply)
+        assert isinstance(call, Awaitable)
+        return await call
 
 
-@syncify.convert
-class _OverAll(_OverAllAsync):
+@syncify.convert_new(_OverAllAsync)
+class _OverAll(_BaseAggregate[ConnectionSync]):
     pass

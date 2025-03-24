@@ -1,9 +1,9 @@
 from typing import Dict, Generic, List, Optional, Sequence, Union
 
+from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType
 from weaviate.rbac.executor import _RolesExecutor
 from weaviate.rbac.models import (
-    _Permission,
     PermissionsOutputType,
     PermissionsInputType,
     Role,
@@ -14,7 +14,7 @@ class _RolesBase(Generic[ConnectionType]):
     _executor = _RolesExecutor()
 
     def __init__(self, connection: ConnectionType) -> None:
-        self._connection = connection
+        self._connection: ConnectionType = connection
 
 
 class _RolesAsync(_RolesBase[ConnectionAsync]):
@@ -24,7 +24,7 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
         Returns:
             A dictionary with user names as keys and the `Role` objects as values.
         """
-        return await self._executor.list_all(self._connection)
+        return await aresult(self._executor.list_all(self._connection))
 
     async def exists(self, role_name: str) -> bool:
         """Check if a role exists.
@@ -35,7 +35,7 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
         Returns:
             True if the role exists, False otherwise.
         """
-        return await self._executor.exists(self._connection, role_name=role_name)
+        return await aresult(self._executor.exists(role_name, connection=self._connection))
 
     async def get(self, role_name: str) -> Optional[Role]:
         """Get the permissions granted to this role.
@@ -46,7 +46,7 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
         Returns:
             A `Role` object or `None` if it does not exist.
         """
-        return await self._executor.get(self._connection, role_name=role_name)
+        return await aresult(self._executor.get(role_name, connection=self._connection))
 
     async def get_assigned_user_ids(self, role_name: str) -> List[str]:
         """Get the ids of user that have been assigned this role.
@@ -57,7 +57,9 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
         Returns:
             A list of ids.
         """
-        return await self._executor.get_assigned_user_ids(self._connection, name=role_name)
+        return await aresult(
+            self._executor.get_assigned_user_ids(role_name, connection=self._connection)
+        )
 
     async def delete(self, role_name: str) -> None:
         """Delete a role.
@@ -65,7 +67,7 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
         Args:
             role_name: The name of the role to delete.
         """
-        return await self._executor.delete_role(self._connection, role_name=role_name)
+        return await aresult(self._executor.delete(role_name, connection=self._connection))
 
     async def create(self, *, role_name: str, permissions: PermissionsInputType) -> Role:
         """Create a new role.
@@ -77,8 +79,10 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
         Returns:
             The created role.
         """
-        return await self._executor.create(
-            self._connection, permissions=permissions, role_name=role_name
+        return await aresult(
+            self._executor.create(
+                connection=self._connection, permissions=permissions, role_name=role_name
+            )
         )
 
     async def add_permissions(self, *, permissions: PermissionsInputType, role_name: str) -> None:
@@ -90,8 +94,10 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
             permissions: The permissions to add to the role.
             role_name: The name of the role to add the permissions to.
         """
-        return await self._executor.add_permissions(
-            self._connection, permissions=permissions, role_name=role_name
+        return await aresult(
+            self._executor.add_permissions(
+                self._connection, permissions=permissions, role_name=role_name
+            )
         )
 
     async def remove_permissions(
@@ -105,8 +111,10 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
             permissions: The permissions to remove from the role.
             role_name: The name of the role to remove the permissions from.
         """
-        return await self._executor.remove_permissions(
-            self._connection, permissions=permissions, role_name=role_name
+        return await aresult(
+            self._executor.remove_permissions(
+                self._connection, permissions=permissions, role_name=role_name
+            )
         )
 
     async def has_permissions(
@@ -126,6 +134,8 @@ class _RolesAsync(_RolesBase[ConnectionAsync]):
         Returns:
             True if the role has the permission, False otherwise.
         """
-        return await self._executor.has_permissions(
-            self._connection, permissions=permissions, role=role
+        return await aresult(
+            self._executor.has_permissions(
+                connection=self._connection, permissions=permissions, role=role
+            )
         )

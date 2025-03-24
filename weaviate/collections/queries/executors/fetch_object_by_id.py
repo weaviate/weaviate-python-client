@@ -1,11 +1,9 @@
 from typing import (
-    Awaitable,
     Generic,
     Optional,
     cast,
 )
 
-from weaviate import syncify
 from weaviate.collections.classes.filters import (
     Filter,
 )
@@ -19,9 +17,9 @@ from weaviate.collections.classes.internal import (
     _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.executor import _BaseExecutor
-from weaviate.connect.v4 import ConnectionAsync
-from weaviate.connect.executor import execute
+from weaviate.collections.queries.executors.base import _BaseExecutor
+from weaviate.connect.v4 import Connection
+from weaviate.connect.executor import execute, ExecutorResult
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import INCLUDE_VECTOR, UUID
 
@@ -29,13 +27,13 @@ from weaviate.types import INCLUDE_VECTOR, UUID
 class _FetchObjectsByIdQueryExecutor(Generic[Properties, References], _BaseExecutor):
     def fetch_object_by_id(
         self,
-        connection: ConnectionAsync,
         *,
+        connection: Connection,
         uuid: UUID,
         include_vector: INCLUDE_VECTOR = False,
-        return_properties: Optional[ReturnProperties[TProperties]] = None,
-        return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Awaitable[QuerySingleReturn[Properties, References, TProperties, TReferences]]:
+        return_properties: Optional[ReturnProperties[TProperties]],
+        return_references: Optional[ReturnReferences[TReferences]],
+    ) -> ExecutorResult[QuerySingleReturn[Properties, References, TProperties, TReferences]]:
         return_metadata = MetadataQuery(
             creation_time=True, last_update_time=True, is_consistent=True
         )

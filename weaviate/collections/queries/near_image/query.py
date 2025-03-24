@@ -11,18 +11,16 @@ from weaviate.collections.classes.grpc import (
     GroupBy,
     Rerank,
     TargetVectorJoinType,
-    NearMediaType,
 )
 from weaviate.collections.classes.internal import (
-    _GroupBy,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
@@ -97,28 +95,29 @@ class _NearImageQueryAsync(
             `weaviate.exceptions.WeaviateQueryError`:
                 If the request to the Weaviate server fails.
         """
-        return await self._executor.near_media(
-            connection=self._connection,
-            media=near_image,
-            media_type=NearMediaType.IMAGE,
-            certainty=certainty,
-            distance=distance,
-            limit=limit,
-            offset=offset,
-            auto_limit=auto_limit,
-            filters=filters,
-            group_by=group_by,
-            rerank=rerank,
-            target_vector=target_vector,
-            include_vector=include_vector,
-            return_metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
+        return await aresult(
+            self._executor.near_image(
+                connection=self._connection,
+                near_image=near_image,
+                certainty=certainty,
+                distance=distance,
+                limit=limit,
+                offset=offset,
+                auto_limit=auto_limit,
+                filters=filters,
+                group_by=group_by,
+                rerank=rerank,
+                target_vector=target_vector,
+                include_vector=include_vector,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                return_references=return_references,
+            )
         )
 
 
-@syncify.convert
+@syncify.convert_new(_NearImageQueryAsync)
 class _NearImageQuery(
-    Generic[Properties, References], _NearImageQueryAsync[Properties, References]
+    Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):
     pass

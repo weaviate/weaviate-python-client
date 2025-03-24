@@ -4,7 +4,7 @@ import os
 import pathlib
 from typing import List, Optional, TypeVar, Union, cast
 
-from httpx import ConnectError
+from httpx import Response
 from typing_extensions import ParamSpec
 
 from weaviate.collections.classes.aggregate import (
@@ -36,12 +36,13 @@ from weaviate.collections.classes.grpc import Move
 from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.filters import _FilterToREST
 from weaviate.collections.grpc.aggregate import _AggregateGRPC
-from weaviate.connect import ConnectionV4
+from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import Connection
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.proto.v1 import aggregate_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.util import file_encoder_b64, _decode_json_response_dict
+from weaviate.util import file_encoder_b64, _decode_json_response_dict, _ServerVersion
 from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.warnings import _Warnings
 
@@ -49,21 +50,20 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-class _AggregateAsync:
+class _BaseExecutor:
     def __init__(
         self,
-        connection: ConnectionV4,
+        weaviate_version: _ServerVersion,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
         validate_arguments: bool,
-    ):
-        self._connection = connection
+    ) -> None:
         self.__name = name
         self._tenant = tenant
         self._consistency_level = consistency_level
         self._grpc = _AggregateGRPC(
-            connection=connection,
+            weaviate_version=weaviate_version,
             name=name,
             tenant=tenant,
             consistency_level=consistency_level,
@@ -348,27 +348,28 @@ class _AggregateAsync:
             builder = builder.with_tenant(self._tenant)
         return builder
 
-    async def _do(self, query: AggregateBuilder) -> dict:
-        try:
-            response = await self._connection.post(
-                path="/graphql", weaviate_object={"query": query.build()}
-            )
-        except ConnectError as conn_err:
-            raise ConnectError("Query was not successful.") from conn_err
-
-        res = _decode_json_response_dict(response, "Query was not successful")
-        assert res is not None
-        if (errs := res.get("errors")) is not None:
-            if "Unexpected empty IN" in errs[0]["message"]:
+    def _do(self, connection: Connection, *, query: AggregateBuilder) -> ExecutorResult[dict]:
+        def resp(res: Response) -> dict:
+            data = _decode_json_response_dict(res, "Query was not successful")
+            assert data is not None
+            if (errs := data.get("errors")) is not None:
+                if "Unexpected empty IN" in errs[0]["message"]:
+                    raise WeaviateQueryError(
+                        "The query that you sent had no body so GraphQL was unable to parse it. You must provide at least one option to the aggregation method in order to build a valid query.",
+                        "GQL Aggregate",
+                    )
                 raise WeaviateQueryError(
-                    "The query that you sent had no body so GraphQL was unable to parse it. You must provide at least one option to the aggregation method in order to build a valid query.",
+                    f"Error in GraphQL response: {json.dumps(errs, indent=2)}, for the following query: {query.build()}",
                     "GQL Aggregate",
                 )
-            raise WeaviateQueryError(
-                f"Error in GraphQL response: {json.dumps(errs, indent=2)}, for the following query: {query.build()}",
-                "GQL Aggregate",
-            )
-        return res
+            return data
+
+        return execute(
+            response_callback=resp,
+            method=connection.post,
+            path="/graphql",
+            weaviate_object={"query": query.build()},
+        )
 
     @staticmethod
     def _parse_near_options(
@@ -429,7 +430,7 @@ class _AggregateAsync:
         _validate_input(
             _ValidateArgument([str, pathlib.Path, io.BufferedReader], "near_image", near_image)
         )
-        _AggregateAsync._parse_near_options(certainty, distance, object_limit)
+        _BaseExecutor._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["image"] = _parse_media(near_image)
         if certainty is not None:
@@ -457,7 +458,7 @@ class _AggregateAsync:
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
         _validate_input(_ValidateArgument([UUID], "near_object", near_object))
-        _AggregateAsync._parse_near_options(certainty, distance, object_limit)
+        _BaseExecutor._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["id"] = str(near_object)
         if certainty is not None:
@@ -494,7 +495,7 @@ class _AggregateAsync:
                 _ValidateArgument([str, None], "target_vector", target_vector),
             ]
         )
-        _AggregateAsync._parse_near_options(certainty, distance, object_limit)
+        _BaseExecutor._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["concepts"] = query if isinstance(query, list) else [query]
         if certainty is not None:
@@ -526,7 +527,7 @@ class _AggregateAsync:
                 "You must provide at least one of the following arguments: certainty, distance, object_limit when vector searching"
             )
         _validate_input(_ValidateArgument([list], "near_vector", near_vector))
-        _AggregateAsync._parse_near_options(certainty, distance, object_limit)
+        _BaseExecutor._parse_near_options(certainty, distance, object_limit)
         payload: dict = {}
         payload["vector"] = near_vector
         if certainty is not None:

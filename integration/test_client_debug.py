@@ -1,17 +1,18 @@
 import pytest
-from integration.conftest import ClientFactory, AsyncCollectionFactory
+from integration.conftest import ClientFactory, CollectionFactory
 
 from weaviate.classes.config import DataType, Property
 from weaviate.classes.debug import DebugRESTObject
 
+
 @pytest.mark.asyncio
 async def test_get_object_single_node(
-    client_factory: ClientFactory, async_collection_factory: AsyncCollectionFactory
+    client_factory: ClientFactory, collection_factory: CollectionFactory
 ) -> None:
     client = client_factory()
-    collection = await async_collection_factory(properties=[Property(name="name", data_type=DataType.TEXT)])
+    collection = collection_factory(properties=[Property(name="name", data_type=DataType.TEXT)])
 
-    uuid = await collection.data.insert({"name": "John Doe"})
+    uuid = collection.data.insert({"name": "John Doe"})
 
     debug_obj = client.debug.get_object_over_rest(collection.name, uuid)
     assert debug_obj is not None
@@ -22,16 +23,17 @@ async def test_get_object_single_node(
     debug_obj = client.debug.get_object_over_rest(collection.name, non_existant_uuid)
     assert debug_obj is None
 
+
 @pytest.mark.asyncio
 async def test_get_object_multi_node(
-    client_factory: ClientFactory, collection_factory: AsyncCollectionFactory
+    client_factory: ClientFactory, collection_factory: CollectionFactory
 ) -> None:
     client = client_factory(ports=(8087, 50058))
-    collection = await collection_factory(
+    collection = collection_factory(
         ports=(8087, 50058), properties=[Property(name="name", data_type=DataType.TEXT)]
     )
 
-    uuid = await collection.data.insert({"name": "John Doe"})
+    uuid = collection.data.insert({"name": "John Doe"})
 
     for node_name in ["node1", "node2", "node3"]:
         debug_obj = client.debug.get_object_over_rest(collection.name, uuid, node_name=node_name)

@@ -16,7 +16,6 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseGenerate
-from weaviate.collections.queries.fetch_objects.executors import _FetchObjectsGenerateExecutor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import UUID, INCLUDE_VECTOR
 

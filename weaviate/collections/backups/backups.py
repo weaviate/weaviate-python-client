@@ -3,15 +3,13 @@ from typing import Generic, Optional
 from weaviate.backup.backup import (
     BackupConfigCreate,
     BackupConfigRestore,
+    BackupReturn,
     BackupStatusReturn,
     BackupStorage,
 )
 from weaviate.backup.executor import _BackupExecutor
-from weaviate.backup.backup import (
-    _BackupAsync,
-)
 from weaviate.backup.backup_location import BackupLocationType
-from weaviate.connect.executor import execute
+from weaviate.connect.executor import execute, aresult
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType
 
 
@@ -21,7 +19,7 @@ class _CollectionBackupBase(Generic[ConnectionType]):
     _executor = _BackupExecutor()
 
     def __init__(self, connection: ConnectionType, name: str):
-        self._connection = connection
+        self._connection: ConnectionType = connection
         self._name = name
 
 
@@ -63,19 +61,25 @@ class _CollectionBackupAsync(_CollectionBackupBase[ConnectionAsync]):
             `TypeError`
                 One of the arguments have a wrong type.
         """
-        return await execute(
-            response_callback=lambda res: BackupStatusReturn(
+
+        def resp(res: BackupReturn) -> BackupStatusReturn:
+            return BackupStatusReturn(
                 error=res.error, status=res.status, path=res.path, id=backup_id
-            ),
-            method=self._executor.create,
-            connection=self._connection,
-            backup_id=backup_id,
-            backend=backend,
-            include_collections=[self._name],
-            exclude_collections=None,
-            wait_for_completion=wait_for_completion,
-            config=config,
-            backup_location=backup_location,
+            )
+
+        return await aresult(
+            execute(
+                response_callback=resp,
+                method=self._executor.create,
+                connection=self._connection,
+                backup_id=backup_id,
+                backend=backend,
+                include_collections=[self._name],
+                exclude_collections=None,
+                wait_for_completion=wait_for_completion,
+                config=config,
+                backup_location=backup_location,
+            )
         )
 
     async def restore(
@@ -113,19 +117,25 @@ class _CollectionBackupAsync(_CollectionBackupBase[ConnectionAsync]):
             `weaviate.BackupFailedError`
                 If the backup failed.
         """
-        return await execute(
-            response_callback=lambda res: BackupStatusReturn(
+
+        def resp(res: BackupReturn) -> BackupStatusReturn:
+            return BackupStatusReturn(
                 error=res.error, status=res.status, path=res.path, id=backup_id
-            ),
-            method=self._executor.restore,
-            connection=self._connection,
-            backup_id=backup_id,
-            backend=backend,
-            include_collections=[self._name],
-            exclude_collections=None,
-            wait_for_completion=wait_for_completion,
-            config=config,
-            backup_location=backup_location,
+            )
+
+        return await aresult(
+            execute(
+                response_callback=resp,
+                method=self._executor.restore,
+                connection=self._connection,
+                backup_id=backup_id,
+                backend=backend,
+                include_collections=[self._name],
+                exclude_collections=None,
+                wait_for_completion=wait_for_completion,
+                config=config,
+                backup_location=backup_location,
+            )
         )
 
     async def get_create_status(
@@ -148,11 +158,13 @@ class _CollectionBackupAsync(_CollectionBackupBase[ConnectionAsync]):
         Returns:
             A `BackupStatusReturn` object that contains the backup creation status response.
         """
-        return await self._executor.get_create_status(
-            connection=self._connection,
-            backup_id=backup_id,
-            backend=backend,
-            backup_location=backup_location,
+        return await aresult(
+            self._executor.get_create_status(
+                connection=self._connection,
+                backup_id=backup_id,
+                backend=backend,
+                backup_location=backup_location,
+            )
         )
 
     async def get_restore_status(
@@ -175,9 +187,11 @@ class _CollectionBackupAsync(_CollectionBackupBase[ConnectionAsync]):
         Returns:
             A `BackupStatusReturn` object that contains the backup restore status response.
         """
-        return await self._executor.get_restore_status(
-            connection=self._connection,
-            backup_id=backup_id,
-            backend=backend,
-            backup_location=backup_location,
+        return await aresult(
+            self._executor.get_restore_status(
+                connection=self._connection,
+                backup_id=backup_id,
+                backend=backend,
+                backup_location=backup_location,
+            )
         )

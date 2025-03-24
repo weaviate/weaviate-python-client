@@ -1,4 +1,4 @@
-from weaviate.backup.backup import (
+from weaviate.backup.executor import (
     BackupCompressionLevel,
     BackupConfigCreate,
     BackupConfigRestore,

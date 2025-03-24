@@ -36,7 +36,7 @@ from weaviate.collections.classes.internal import (
     ReferenceInputs,
 )
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionV4
 from weaviate.event_loop import _EventLoop
 from weaviate.exceptions import WeaviateBatchValidationError, EmptyResponseException
 from weaviate.logger import logger
@@ -172,8 +172,8 @@ class _BatchBase:
         self.__consistency_level: Optional[ConsistencyLevel] = consistency_level
         self.__vectorizer_batching = vectorizer_batching
 
-        self.__batch_grpc = _BatchGRPC(connection, self.__consistency_level)
-        self.__batch_rest = _BatchREST(connection, self.__consistency_level)
+        self.__batch_grpc = _BatchGRPC(connection._weaviate_version, self.__consistency_level)
+        self.__batch_rest = _BatchREST(self.__consistency_level)
 
         # lookup table for objects that are currently being processed - is used to not send references from objects that have not been added yet
         self.__uuid_lookup: Set[str] = set()
@@ -488,7 +488,7 @@ class _BatchBase:
             start = time.time()
             try:
                 response_obj = await self.__batch_grpc.objects(
-                    objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
+                    connection=self.__connection, objects=objs, timeout=DEFAULT_REQUEST_TIMEOUT
                 )
                 if response_obj.has_errors:
                     logger.error(
@@ -617,7 +617,9 @@ class _BatchBase:
         if (n_refs := len(refs)) > 0:
             start = time.time()
             try:
-                response_ref = await self.__batch_rest.references(references=refs)
+                response_ref = await self.__batch_rest.references(
+                    connection=self.__connection, references=refs
+                )
             except Exception as e:
                 errors_ref = {
                     idx: ErrorReference(

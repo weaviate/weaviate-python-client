@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Generic, List, Optional, Union, cast, overload
+from typing import Any, Generic, List, Optional, cast
 
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import GroupBy, Rerank, METADATA
@@ -12,9 +12,9 @@ from weaviate.collections.classes.internal import (
     _GroupBy,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.executor import _BaseExecutor
-from weaviate.connect.v4 import ConnectionAsync
-from weaviate.connect.executor import execute
+from weaviate.collections.queries.executors.base import _BaseExecutor
+from weaviate.connect.v4 import Connection
+from weaviate.connect.executor import execute, ExecutorResult
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import INCLUDE_VECTOR
@@ -23,24 +23,24 @@ from weaviate.types import INCLUDE_VECTOR
 class _BM25GenerateExecutor(Generic[Properties, References], _BaseExecutor):
     def bm25(
         self,
-        connection: ConnectionAsync,
         *,
+        connection: Connection,
         query: Optional[str],
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
-        grouped_properties: Optional[List[str]] = None,
-        query_properties: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        auto_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[GroupBy] = None,
-        rerank: Optional[Rerank] = None,
+        single_prompt: Optional[str],
+        grouped_task: Optional[str],
+        grouped_properties: Optional[List[str]],
+        query_properties: Optional[List[str]],
+        limit: Optional[int],
+        offset: Optional[int],
+        auto_limit: Optional[int],
+        filters: Optional[_Filters],
+        group_by: Optional[GroupBy],
+        rerank: Optional[Rerank],
         include_vector: INCLUDE_VECTOR = False,
-        return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[ReturnProperties[TProperties]] = None,
-        return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Awaitable[GenerativeReturnType[Properties, References, TProperties, TReferences]]:
+        return_metadata: Optional[METADATA],
+        return_properties: Optional[ReturnProperties[TProperties]],
+        return_references: Optional[ReturnReferences[TReferences]],
+    ) -> ExecutorResult[GenerativeReturnType[Properties, References, TProperties, TReferences]]:
         if group_by is not None and not connection.supports_groupby_in_bm25_and_hybrid():
             raise WeaviateUnsupportedFeatureError(
                 "BM25 group by", connection.server_version, "1.25.0"
@@ -59,6 +59,8 @@ class _BM25GenerateExecutor(Generic[Properties, References], _BaseExecutor):
                         include_vector,
                         self._references,
                         return_references,
+                        rerank,
+                        group_by,
                     ),
                 ),
             )
@@ -87,21 +89,21 @@ class _BM25GenerateExecutor(Generic[Properties, References], _BaseExecutor):
 class _BM25QueryExecutor(Generic[Properties, References], _BaseExecutor):
     def bm25(
         self,
-        connection: ConnectionAsync,
         *,
+        connection: Connection,
         query: Optional[str],
-        query_properties: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-        auto_limit: Optional[int] = None,
-        filters: Optional[_Filters] = None,
-        group_by: Optional[GroupBy] = None,
-        rerank: Optional[Rerank] = None,
+        query_properties: Optional[List[str]],
+        limit: Optional[int],
+        offset: Optional[int],
+        auto_limit: Optional[int],
+        filters: Optional[_Filters],
+        group_by: Optional[GroupBy],
+        rerank: Optional[Rerank],
         include_vector: INCLUDE_VECTOR = False,
-        return_metadata: Optional[METADATA] = None,
-        return_properties: Optional[ReturnProperties[TProperties]] = None,
-        return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> Awaitable[QueryReturnType[Properties, References, TProperties, TReferences]]:
+        return_metadata: Optional[METADATA],
+        return_properties: Optional[ReturnProperties[TProperties]],
+        return_references: Optional[ReturnReferences[TReferences]],
+    ) -> ExecutorResult[QueryReturnType[Properties, References, TProperties, TReferences]]:
         if group_by is not None and not connection.supports_groupby_in_bm25_and_hybrid():
             raise WeaviateUnsupportedFeatureError(
                 "BM25 group by", connection.server_version, "1.25.0"
@@ -120,6 +122,8 @@ class _BM25QueryExecutor(Generic[Properties, References], _BaseExecutor):
                         include_vector,
                         self._references,
                         return_references,
+                        rerank,
+                        group_by,
                     ),
                 ),
             )

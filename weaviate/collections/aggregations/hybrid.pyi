@@ -1,6 +1,6 @@
 from typing import List, Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.aggregate import _AggregateAsync
+from weaviate.collections.aggregations.base import _BaseAggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -8,9 +8,10 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER
 
-class _HybridAsync(_AggregateAsync):
+class _HybridAsync(_BaseAggregate[ConnectionAsync]):
     @overload
     async def hybrid(
         self,
@@ -60,7 +61,7 @@ class _HybridAsync(_AggregateAsync):
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
 
-class _Hybrid(_AggregateAsync):
+class _Hybrid(_BaseAggregate[ConnectionSync]):
     @overload
     def hybrid(
         self,

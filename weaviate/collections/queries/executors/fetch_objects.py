@@ -1,6 +1,5 @@
-from typing import Any, Awaitable, Generic, List, Optional, Union, cast, overload
+from typing import Any, Generic, List, Optional, cast
 
-from weaviate import syncify
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import METADATA, Sorting
 from weaviate.collections.classes.internal import (
@@ -12,9 +11,9 @@ from weaviate.collections.classes.internal import (
     _Generative,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.executor import _BaseExecutor
-from weaviate.connect.v4 import Connection, ConnectionAsync, ConnectionSync
-from weaviate.connect.executor import ExecutorResult, execute, raise_exception
+from weaviate.collections.queries.executors.base import _BaseExecutor
+from weaviate.connect.v4 import Connection
+from weaviate.connect.executor import ExecutorResult, execute
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import UUID, INCLUDE_VECTOR
 
@@ -22,8 +21,8 @@ from weaviate.types import UUID, INCLUDE_VECTOR
 class _FetchObjectsGenerateExecutor(Generic[Properties, References], _BaseExecutor):
     def fetch_objects(
         self,
-        connection: ConnectionAsync,
         *,
+        connection: Connection,
         single_prompt: Optional[str],
         grouped_task: Optional[str],
         grouped_properties: Optional[List[str]],
@@ -36,7 +35,7 @@ class _FetchObjectsGenerateExecutor(Generic[Properties, References], _BaseExecut
         return_metadata: Optional[METADATA],
         return_properties: Optional[ReturnProperties[TProperties]],
         return_references: Optional[ReturnReferences[TReferences]]
-    ) -> Awaitable[GenerativeReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> ExecutorResult[GenerativeReturnType[Properties, References, TProperties, TReferences]]:
         def resp(
             res: SearchReply,
         ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
@@ -79,8 +78,8 @@ class _FetchObjectsGenerateExecutor(Generic[Properties, References], _BaseExecut
 class _FetchObjectsQueryExecutor(Generic[Properties, References], _BaseExecutor):
     def fetch_objects(
         self,
-        connection: ConnectionAsync,
         *,
+        connection: Connection,
         limit: Optional[int],
         offset: Optional[int],
         after: Optional[UUID],
@@ -90,7 +89,7 @@ class _FetchObjectsQueryExecutor(Generic[Properties, References], _BaseExecutor)
         return_metadata: Optional[METADATA],
         return_properties: Optional[ReturnProperties[TProperties]],
         return_references: Optional[ReturnReferences[TReferences]]
-    ) -> Awaitable[QueryReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> ExecutorResult[QueryReturnType[Properties, References, TProperties, TReferences]]:
         def resp(
             res: SearchReply,
         ) -> QueryReturnType[Properties, References, TProperties, TReferences]:

@@ -1,7 +1,6 @@
 import uuid as uuid_lib
 from dataclasses import dataclass
 from typing import (
-    Awaitable,
     Dict,
     List,
     Literal,
@@ -13,7 +12,6 @@ from typing import (
     cast,
 )
 
-from grpc.aio import AioRpcError  # type: ignore
 from typing_extensions import TypeAlias
 
 from weaviate.collections.classes.config import ConsistencyLevel
@@ -40,15 +38,7 @@ from weaviate.collections.classes.internal import (
     _GroupBy,
 )
 from weaviate.collections.filters import _FilterToGRPC
-from weaviate.collections.grpc.retry import _Retry
-from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
-from weaviate.connect.executor import ExecutorResult
-from weaviate.connect.v4 import ConnectionAsync, ConnectionSync, Connection
-from weaviate.exceptions import (
-    InsufficientPermissionsError,
-    WeaviateQueryError,
-    WeaviateRetryError,
-)
+from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.proto.v1 import base_search_pb2, search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _ServerVersion

@@ -14,18 +14,20 @@ from weaviate.collections.classes.grpc import (
     TargetVectorJoinType,
 )
 from weaviate.collections.classes.internal import (
-    _GroupBy,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
+from weaviate.collections.queries.base import _BaseQuery
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+class _NearMediaQueryAsync(
+    Generic[Properties, References], _BaseQuery[ConnectionAsync, Properties, References]
+):
     async def near_media(
         self,
         media: Union[str, Path, BufferedReader],
@@ -97,39 +99,30 @@ class _NearMediaQueryAsync(Generic[Properties, References], _Base[Properties, Re
             `weaviate.exceptions.WeaviateQueryError`:
                 If the request to the Weaviate server fails.
         """
-        res = await self._query.near_media(
-            media=self._parse_media(media),
-            type_=media_type.value,
-            certainty=certainty,
-            distance=distance,
-            limit=limit,
-            offset=offset,
-            autocut=auto_limit,
-            filters=filters,
-            group_by=_GroupBy.from_input(group_by),
-            rerank=rerank,
-            target_vector=target_vector,
-            return_metadata=self._parse_return_metadata(return_metadata, include_vector),
-            return_properties=self._parse_return_properties(return_properties),
-            return_references=self._parse_return_references(return_references),
-        )
-        return self._result_to_query_or_groupby_return(
-            res,
-            _QueryOptions.from_input(
-                return_metadata,
-                return_properties,
-                include_vector,
-                self._references,
-                return_references,
-                rerank,
-            ),
-            return_properties,
-            return_references,
+        return await aresult(
+            self._executor.near_media(
+                connection=self._connection,
+                media=media,
+                media_type=media_type,
+                certainty=certainty,
+                distance=distance,
+                limit=limit,
+                offset=offset,
+                auto_limit=auto_limit,
+                filters=filters,
+                group_by=group_by,
+                rerank=rerank,
+                target_vector=target_vector,
+                include_vector=include_vector,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                return_references=return_references,
+            )
         )
 
 
-@syncify.convert
+@syncify.convert_new(_NearMediaQueryAsync)
 class _NearMediaQuery(
-    Generic[Properties, References], _NearMediaQueryAsync[Properties, References]
+    Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):
     pass

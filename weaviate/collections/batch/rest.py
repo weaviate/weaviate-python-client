@@ -1,4 +1,4 @@
-from typing import Awaitable, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from httpx import Response
 
@@ -9,8 +9,8 @@ from weaviate.collections.classes.batch import (
     BatchReferenceReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.connect.executor import execute
-from weaviate.connect.v4 import ConnectionAsync, _ExpectedStatusCodes
+from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import Connection, _ExpectedStatusCodes
 from weaviate.util import _decode_json_response_list
 
 
@@ -19,8 +19,8 @@ class _BatchREST:
         self.__consistency_level = consistency_level
 
     def references(
-        self, connection: ConnectionAsync, *, references: List[_BatchReference]
-    ) -> Awaitable[BatchReferenceReturn]:
+        self, connection: Connection, *, references: List[_BatchReference]
+    ) -> ExecutorResult[BatchReferenceReturn]:
         params: Dict[str, str] = {}
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level.value

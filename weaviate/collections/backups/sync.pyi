@@ -6,8 +6,9 @@ from weaviate.backup.backup import (
     BackupStorage,
 )
 from weaviate.collections.backups.backups import _CollectionBackupBase
+from weaviate.connect.v4 import ConnectionSync
 
-class _CollectionBackup(_CollectionBackupBase):
+class _CollectionBackup(_CollectionBackupBase[ConnectionSync]):
     def create(
         self,
         backup_id: str,

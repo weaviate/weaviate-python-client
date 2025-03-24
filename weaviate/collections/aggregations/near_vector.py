@@ -1,7 +1,7 @@
-from typing import List, Optional, Union, cast
+from typing import Optional, Union
 
 from weaviate import syncify
-from weaviate.collections.aggregations.aggregate import _AggregateAsync
+from weaviate.collections.aggregations.base import _BaseAggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -13,12 +13,12 @@ from weaviate.collections.classes.grpc import (
     TargetVectorJoinType,
     NearVectorInputType,
 )
-from weaviate.collections.filters import _FilterToGRPC
-from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER
 
 
-class _NearVectorAsync(_AggregateAsync):
+class _NearVectorAsync(_BaseAggregate[ConnectionAsync]):
     async def near_vector(
         self,
         near_vector: NearVectorInputType,
@@ -65,65 +65,22 @@ class _NearVectorAsync(_AggregateAsync):
             `weaviate.exceptions.WeaviateInvalidInputError`:
                 If any of the input arguments are of the wrong type.
         """
-        return_metrics = (
-            return_metrics
-            if (return_metrics is None or isinstance(return_metrics, list))
-            else [return_metrics]
-        )
-        if isinstance(group_by, str):
-            group_by = GroupByAggregate(prop=group_by)
-
-        if self._connection._weaviate_version.is_lower_than(1, 29, 0):
-            # use gql, remove once 1.29 is the minimum supported version
-
-            if not isinstance(near_vector, list):
-                raise WeaviateInvalidInputError(
-                    "A `near_vector` argument other than a list of float is not supported in <v1.28.4",
-                )
-            if isinstance(near_vector[0], list):
-                raise WeaviateInvalidInputError(
-                    "A `near_vector` argument other than a list of floats is not supported in <v1.28.4",
-                )
-            near_vector = cast(
-                List[float], near_vector
-            )  # pylance cannot type narrow the immediately above check
-            if target_vector is not None and not isinstance(target_vector, str):
-                raise WeaviateInvalidInputError(
-                    "A `target_vector` argument other than a string is not supported in <v1.28.4",
-                )
-
-            builder = self._base(return_metrics, filters, total_count)
-            builder = self._add_groupby_to_builder(builder, group_by)
-            builder = self._add_near_vector_to_builder(
-                builder, near_vector, certainty, distance, object_limit, target_vector
-            )
-            res = await self._do(builder)
-            return (
-                self._to_aggregate_result(res, return_metrics)
-                if group_by is None
-                else self._to_group_by_result(res, return_metrics)
-            )
-        else:
-            # use grpc
-            reply = await self._grpc.near_vector(
+        return await aresult(
+            self._executor.near_vector(
+                connection=self._connection,
                 near_vector=near_vector,
                 certainty=certainty,
                 distance=distance,
-                target_vector=target_vector,
-                aggregations=(
-                    [metric.to_grpc() for metric in return_metrics]
-                    if return_metrics is not None
-                    else []
-                ),
-                filters=_FilterToGRPC.convert(filters) if filters is not None else None,
-                group_by=group_by._to_grpc() if group_by is not None else None,
-                limit=group_by.limit if group_by is not None else None,
-                objects_count=total_count,
                 object_limit=object_limit,
+                filters=filters,
+                group_by=group_by,
+                target_vector=target_vector,
+                total_count=total_count,
+                return_metrics=return_metrics,
             )
-            return self._to_result(reply)
+        )
 
 
-@syncify.convert
-class _NearVector(_NearVectorAsync):
+@syncify.convert_new(_NearVectorAsync)
+class _NearVector(_BaseAggregate[ConnectionSync]):
     pass

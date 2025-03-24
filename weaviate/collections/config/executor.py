@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Any, Awaitable, List, Literal, Optional, Tuple, Union, cast, overload
+from typing import Dict, Any, List, Literal, Optional, Tuple, Union, cast
 
 from httpx import Response
 from pydantic_core import ValidationError
@@ -29,9 +29,8 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
-from weaviate.connect import ConnectionV4
-from weaviate.connect.executor import execute, ExecutorResult
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, Connection, ConnectionSync
+from weaviate.connect.executor import aresult, execute, result, ExecutorResult
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, Connection
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
@@ -51,9 +50,12 @@ class _ConfigExecutor:
         self.__name = name
         self.__tenant = tenant
 
-    def __get(self, connection: ConnectionAsync) -> Awaitable[Dict[str, Any]]:
+    def __get(self, connection: Connection) -> ExecutorResult[Dict[str, Any]]:
+        def resp(res: Response) -> Dict[str, Any]:
+            return cast(Dict[str, Any], res.json())
+
         return execute(
-            response_callback=lambda res: cast(Dict[str, Any], res.json()),
+            response_callback=resp,
             method=connection.get,
             path=f"/schema/{self.__name}",
             error_msg="Collection configuration could not be retrieved.",
@@ -61,22 +63,23 @@ class _ConfigExecutor:
         )
 
     def get(
-        self, connection: ConnectionAsync, *, simple: bool = False
-    ) -> Awaitable[Union[CollectionConfig, CollectionConfigSimple]]:
+        self, simple: bool = False, *, connection: Connection
+    ) -> ExecutorResult[Union[CollectionConfig, CollectionConfigSimple]]:
         _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
+
+        def resp(res: Dict[str, Any]) -> Union[CollectionConfig, CollectionConfigSimple]:
+            if simple:
+                return _collection_config_simple_from_json(res)
+            return _collection_config_from_json(res)
+
         return execute(
-            response_callback=lambda res: (
-                _collection_config_simple_from_json(res)
-                if simple
-                else _collection_config_from_json(res)
-            ),
+            response_callback=resp,
             method=self.__get,
             connection=connection,
         )
 
     def update(
         self,
-        connection: ConnectionAsync,
         *,
         description: Optional[str] = None,
         inverted_index_config: Optional[_InvertedIndexConfigUpdate] = None,
@@ -98,7 +101,8 @@ class _ConfigExecutor:
         ] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         reranker_config: Optional[_RerankerProvider] = None,
-    ) -> Awaitable[None]:
+        connection: Connection,
+    ) -> ExecutorResult[None]:
         if vector_index_config is not None:
             _Warnings.vector_index_config_in_config_update()
         try:
@@ -115,10 +119,14 @@ class _ConfigExecutor:
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e
 
-        def resp(schema: Dict[str, Any]) -> Awaitable[None]:
+        def resp(schema: Dict[str, Any]) -> ExecutorResult[None]:
             schema = config.merge_with_existing(schema)
+
+            def inner_resp(res: Response) -> None:
+                return None
+
             return execute(
-                response_callback=lambda _: None,
+                response_callback=inner_resp,
                 method=connection.put,
                 path=f"/schema/{self.__name}",
                 weaviate_object=schema,
@@ -128,19 +136,23 @@ class _ConfigExecutor:
                 ),
             )
 
-        return execute(
-            response_callback=resp,
-            method=self.__get,
-            connection=connection,
-        )
+        if isinstance(connection, ConnectionAsync):
+
+            async def _execute() -> None:
+                schema = await aresult(self.__get(connection=connection))
+                return await aresult(resp(schema))
+
+            return _execute()
+        schema = result(self.__get(connection=connection))
+        return result(resp(schema))
 
     def __add_property(
-        self, connection: ConnectionAsync, *, additional_property: PropertyType
-    ) -> Awaitable[None]:
+        self, connection: Connection, *, additional_property: PropertyType
+    ) -> ExecutorResult[None]:
         path = f"/schema/{self.__name}/properties"
         obj = additional_property._to_dict()
 
-        def resp(schema: Dict[str, Any]) -> Awaitable[None]:
+        def resp(schema: Dict[str, Any]) -> ExecutorResult[None]:
             if schema.get("moduleConfig"):
                 configured_module = list(schema.get("moduleConfig", {}).keys())[0]
                 modconf = {}
@@ -154,8 +166,12 @@ class _ConfigExecutor:
 
                 if len(modconf) > 0:
                     obj["moduleConfig"] = {configured_module: modconf}
+
+            def inner_resp(res: Response) -> None:
+                return None
+
             return execute(
-                response_callback=lambda _: None,
+                response_callback=inner_resp,
                 method=connection.post,
                 path=path,
                 weaviate_object=obj,
@@ -163,15 +179,19 @@ class _ConfigExecutor:
                 status_codes=_ExpectedStatusCodes(ok_in=200, error="Add property to collection"),
             )
 
-        return execute(
-            response_callback=resp,
-            method=self.__get,
-            connection=connection,
-        )
+        if isinstance(connection, ConnectionAsync):
+
+            async def _execute() -> None:
+                schema = await aresult(self.__get(connection=connection))
+                return await aresult(resp(schema))
+
+            return _execute()
+        schema = result(self.__get(connection=connection))
+        return result(resp(schema))
 
     def __property_exists(
-        self, connection: ConnectionAsync, *, property_name: str
-    ) -> Awaitable[bool]:
+        self, connection: Connection, *, property_name: str
+    ) -> ExecutorResult[bool]:
         def resp(schema: Dict[str, Any]) -> bool:
             conf = _collection_config_simple_from_json(schema)
             if len(conf.properties) == 0:
@@ -188,8 +208,8 @@ class _ConfigExecutor:
         )
 
     def __reference_exists(
-        self, connection: ConnectionAsync, *, reference_name: str
-    ) -> Awaitable[bool]:
+        self, connection: Connection, *, reference_name: str
+    ) -> ExecutorResult[bool]:
         def resp(schema: Dict[str, Any]) -> bool:
             conf = _collection_config_simple_from_json(schema)
             if len(conf.references) == 0:
@@ -204,12 +224,6 @@ class _ConfigExecutor:
             method=self.__get,
             connection=connection,
         )
-
-    @overload
-    def __get_shards(self, connection: ConnectionAsync) -> Awaitable[List[ShardStatus]]: ...
-
-    @overload
-    def __get_shards(self, connection: ConnectionSync) -> List[ShardStatus]: ...
 
     def __get_shards(self, connection: Connection) -> ExecutorResult[List[ShardStatus]]:
         def resp(res: Response) -> List[ShardStatus]:
@@ -231,18 +245,8 @@ class _ConfigExecutor:
             error_msg="Shard statuses could not be retrieved.",
         )
 
-    def get_shards(self, connection: ConnectionAsync) -> Awaitable[List[ShardStatus]]:
+    def get_shards(self, connection: Connection) -> ExecutorResult[List[ShardStatus]]:
         return self.__get_shards(connection)
-
-    @overload
-    def __update_shard(
-        self, connection: ConnectionAsync, *, shard_name: str, status: str
-    ) -> Awaitable[Tuple[str, ShardTypes]]: ...
-
-    @overload
-    def __update_shard(
-        self, connection: ConnectionSync, *, shard_name: str, status: str
-    ) -> Tuple[str, ShardTypes]: ...
 
     def __update_shard(
         self, connection: Connection, *, shard_name: str, status: str
@@ -263,30 +267,12 @@ class _ConfigExecutor:
             error_msg=f"shard '{shard_name}' may not have been updated.",
         )
 
-    @overload
     def update_shards(
         self,
-        connection: ConnectionAsync,
-        *,
         status: Literal["READY", "READONLY"],
         shard_names: Optional[Union[str, List[str]]] = None,
-    ) -> Awaitable[Dict[str, ShardTypes]]: ...
-
-    @overload
-    def update_shards(
-        self,
-        connection: ConnectionSync,
         *,
-        status: Literal["READY", "READONLY"],
-        shard_names: Optional[Union[str, List[str]]] = None,
-    ) -> Dict[str, ShardTypes]: ...
-
-    def update_shards(
-        self,
         connection: Connection,
-        *,
-        status: Literal["READY", "READONLY"],
-        shard_names: Optional[Union[str, List[str]]] = None,
     ) -> ExecutorResult[Dict[str, ShardTypes]]:
         if isinstance(connection, ConnectionAsync):
 
@@ -294,15 +280,17 @@ class _ConfigExecutor:
                 shard_names: Optional[Union[str, List[str]]]
             ) -> Dict[str, ShardTypes]:
                 if shard_names is None:
-                    shards_config = await self.__get_shards(connection=connection)
+                    shards_config = await aresult(self.__get_shards(connection=connection))
                     shard_names = [shard_config.name for shard_config in shards_config]
                 elif isinstance(shard_names, str):
                     shard_names = [shard_names]
 
                 results = await asyncio.gather(
                     *[
-                        self.__update_shard(
-                            connection=connection, shard_name=shard_name, status=status
+                        aresult(
+                            self.__update_shard(
+                                connection=connection, shard_name=shard_name, status=status
+                            )
                         )
                         for shard_name in shard_names
                     ]
@@ -313,7 +301,7 @@ class _ConfigExecutor:
             return _execute(shard_names)
 
         if shard_names is None:
-            shards_config = self.__get_shards(connection=connection)
+            shards_config = result(self.__get_shards(connection=connection))
             shard_names = [shard_config.name for shard_config in shards_config]
         elif isinstance(shard_names, str):
             shard_names = [shard_names]
@@ -321,34 +309,41 @@ class _ConfigExecutor:
         return {
             result[0]: result[1]
             for result in [
-                self.__update_shard(connection=connection, shard_name=shard_name, status=status)
+                result(
+                    self.__update_shard(connection=connection, shard_name=shard_name, status=status)
+                )
                 for shard_name in shard_names
             ]
         }
 
-    def add_property(self, connection: ConnectionAsync, *, prop: Property) -> Awaitable[None]:
+    def add_property(self, prop: Property, *, connection: Connection) -> ExecutorResult[None]:
         _validate_input([_ValidateArgument(expected=[Property], name="prop", value=prop)])
 
-        def resp(exists: bool) -> Awaitable[None]:
+        def resp(exists: bool) -> ExecutorResult[None]:
             if exists:
                 raise WeaviateInvalidInputError(
                     f"Property with name '{prop.name}' already exists in collection '{self.__name}'."
                 )
             return self.__add_property(connection=connection, additional_property=prop)
 
-        return execute(
-            response_callback=resp,
-            method=self.__property_exists,
-            connection=connection,
-            property_name=prop.name,
-        )
+        if isinstance(connection, ConnectionAsync):
+
+            async def _execute() -> None:
+                exists = await aresult(
+                    self.__property_exists(connection=connection, property_name=prop.name)
+                )
+                return await aresult(resp(exists))
+
+            return _execute()
+        exists = result(self.__property_exists(connection=connection, property_name=prop.name))
+        return result(resp(exists))
 
     def add_reference(
         self,
-        connection: ConnectionAsync,
-        *,
         ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget],
-    ) -> Awaitable[None]:
+        *,
+        connection: Connection,
+    ) -> ExecutorResult[None]:
         _validate_input(
             [
                 _ValidateArgument(
@@ -359,16 +354,21 @@ class _ConfigExecutor:
             ]
         )
 
-        def resp(exists: bool) -> Awaitable[None]:
+        def resp(exists: bool) -> ExecutorResult[None]:
             if exists:
                 raise WeaviateInvalidInputError(
                     f"Reference with name '{ref.name}' already exists in collection '{self.__name}'."
                 )
             return self.__add_property(connection=connection, additional_property=ref)
 
-        return execute(
-            response_callback=resp,
-            method=self.__reference_exists,
-            connection=connection,
-            reference_name=ref.name,
-        )
+        if isinstance(connection, ConnectionAsync):
+
+            async def _execute() -> None:
+                exists = await aresult(
+                    self.__reference_exists(connection=connection, reference_name=ref.name)
+                )
+                return await aresult(resp(exists))
+
+            return _execute()
+        exists = result(self.__reference_exists(connection=connection, reference_name=ref.name))
+        return result(resp(exists))

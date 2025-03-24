@@ -1,6 +1,6 @@
 from typing import List, Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.aggregate import _AggregateAsync
+from weaviate.collections.aggregations.base import _BaseAggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -8,9 +8,10 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER
 
-class _NearVectorAsync(_AggregateAsync):
+class _NearVectorAsync(_BaseAggregate[ConnectionAsync]):
     @overload
     async def near_vector(
         self,
@@ -54,7 +55,7 @@ class _NearVectorAsync(_AggregateAsync):
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
 
-class _NearVector(_AggregateAsync):
+class _NearVector(_BaseAggregate[ConnectionSync]):
     @overload
     def near_vector(
         self,

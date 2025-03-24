@@ -4,7 +4,6 @@ from typing import Any, Awaitable, Dict, List, Optional, Sequence, Union, overlo
 
 from httpx import Response
 
-from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import (
     Tenant,
     TenantCreate,
@@ -34,7 +33,6 @@ class _TenantsExecutor:
         self,
         weaviate_version: _ServerVersion,
         name: str,
-        consistency_level: Optional[ConsistencyLevel] = None,
         validate_arguments: bool = True,
     ) -> None:
         self._weaviate_version = weaviate_version
@@ -42,16 +40,15 @@ class _TenantsExecutor:
         self._grpc = _TenantsGRPC(
             weaviate_version=weaviate_version,
             name=name,
-            consistency_level=consistency_level,
         )
         self._validate_arguments = validate_arguments
 
     def create(
         self,
-        connection: ConnectionAsync,
+        connection: Connection,
         *,
         tenants: Union[TenantCreateInputType, Sequence[TenantCreateInputType]],
-    ) -> Awaitable[None]:
+    ) -> ExecutorResult[None]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -68,8 +65,12 @@ class _TenantsExecutor:
                 ]
             )
         path = "/schema/" + self._name + "/tenants"
+
+        def resp(res: Response) -> None:
+            return None
+
         return execute(
-            response_callback=lambda res: None,
+            response_callback=resp,
             method=connection.post,
             path=path,
             weaviate_object=self.__map_create_tenants(tenants),
@@ -81,10 +82,10 @@ class _TenantsExecutor:
 
     def remove(
         self,
-        connection: ConnectionAsync,
+        connection: Connection,
         *,
         tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]],
-    ) -> Awaitable[None]:
+    ) -> ExecutorResult[None]:
         if self._validate_arguments:
             _validate_input(
                 [
@@ -108,8 +109,12 @@ class _TenantsExecutor:
                 tenant_names.append(tenant.name if isinstance(tenant, Tenant) else tenant)
 
         path = "/schema/" + self._name + "/tenants"
+
+        def resp(res: Response) -> None:
+            return None
+
         return execute(
-            response_callback=lambda res: None,
+            response_callback=resp,
             method=connection.delete,
             path=path,
             weaviate_object=tenant_names,
@@ -120,8 +125,8 @@ class _TenantsExecutor:
         )
 
     def __get_with_rest(
-        self, connection: ConnectionAsync
-    ) -> Awaitable[Dict[str, TenantOutputType]]:
+        self, connection: Connection
+    ) -> ExecutorResult[Dict[str, TenantOutputType]]:
         path = "/schema/" + self._name + "/tenants"
 
         def resp(res: Response) -> Dict[str, TenantOutputType]:
@@ -142,8 +147,8 @@ class _TenantsExecutor:
         )
 
     def __get_with_grpc(
-        self, connection: ConnectionAsync, *, tenants: Optional[Sequence[Union[str, Tenant]]] = None
-    ) -> Awaitable[Dict[str, TenantOutputType]]:
+        self, connection: Connection, *, tenants: Optional[Sequence[Union[str, Tenant]]] = None
+    ) -> ExecutorResult[Dict[str, TenantOutputType]]:
         names = (
             [tenant.name if isinstance(tenant, Tenant) else tenant for tenant in tenants]
             if tenants is not None
@@ -213,11 +218,7 @@ class _TenantsExecutor:
     def __map_update_tenants(
         self, tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
     ) -> List[List[dict]]:
-        if (
-            isinstance(tenants, str)
-            or isinstance(tenants, Tenant)
-            or isinstance(tenants, TenantUpdate)
-        ):
+        if isinstance(tenants, Tenant) or isinstance(tenants, TenantUpdate):
             return [[self.__map_update_tenant(tenants).model_dump()]]
         else:
             batches = ceil(len(tenants) / UPDATE_TENANT_BATCH_SIZE)
@@ -231,9 +232,12 @@ class _TenantsExecutor:
                 for b in range(batches)
             ]
 
-    def get(self, connection: ConnectionAsync) -> Awaitable[Dict[str, TenantOutputType]]:
+    def get(self, connection: ConnectionAsync) -> ExecutorResult[Dict[str, TenantOutputType]]:
+        def resp(res: Dict[str, TenantOutputType]) -> Dict[str, TenantOutputType]:
+            return res
+
         return execute(
-            response_callback=lambda res: res,
+            response_callback=resp,
             method=(
                 self.__get_with_grpc
                 if self._weaviate_version.supports_tenants_get_grpc
@@ -243,8 +247,8 @@ class _TenantsExecutor:
         )
 
     def get_by_names(
-        self, connection: ConnectionAsync, *, tenants: Sequence[Union[str, Tenant]]
-    ) -> Awaitable[Dict[str, TenantOutputType]]:
+        self, connection: Connection, *, tenants: Sequence[Union[str, Tenant]]
+    ) -> ExecutorResult[Dict[str, TenantOutputType]]:
         connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_names' method")
         if self._validate_arguments:
             _validate_input(
@@ -257,8 +261,8 @@ class _TenantsExecutor:
         return self.__get_with_grpc(connection=connection, tenants=tenants)
 
     def get_by_name(
-        self, connection: ConnectionAsync, *, tenant: Union[str, Tenant]
-    ) -> Awaitable[Optional[TenantOutputType]]:
+        self, connection: Connection, *, tenant: Union[str, Tenant]
+    ) -> ExecutorResult[Optional[TenantOutputType]]:
         connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_name' method")
         if self._validate_arguments:
             _validate_input(
@@ -328,10 +332,10 @@ class _TenantsExecutor:
 
     def update(
         self,
-        connection: ConnectionAsync,
+        connection: Connection,
         *,
         tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]],
-    ) -> Awaitable[None]:
+    ) -> ExecutorResult[None]:
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(
@@ -342,7 +346,7 @@ class _TenantsExecutor:
             )
         return self.__update(connection, tenants=tenants)
 
-    def exists(self, connection: ConnectionAsync, *, tenant: Union[str, Tenant]) -> Awaitable[bool]:
+    def exists(self, connection: Connection, *, tenant: Union[str, Tenant]) -> ExecutorResult[bool]:
         connection._weaviate_version.check_is_at_least_1_25_0("The 'exists' method")
         if self._validate_arguments:
             _validate_input(
@@ -353,10 +357,13 @@ class _TenantsExecutor:
                 )
             )
 
+        def resp(res: Response) -> bool:
+            return res.status_code == 200
+
         tenant_name = tenant.name if isinstance(tenant, Tenant) else tenant
         path = "/schema/" + self._name + "/tenants/" + tenant_name
         return execute(
-            response_callback=lambda res: res.status_code == 200,
+            response_callback=resp,
             method=connection.head,
             path=path,
             error_msg=f"Could not check if tenant exists for {self._name}",

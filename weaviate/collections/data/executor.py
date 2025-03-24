@@ -1,8 +1,8 @@
 import asyncio
 import datetime
 import uuid as uuid_package
+from dataclasses import dataclass
 from typing import (
-    Awaitable,
     Dict,
     Any,
     Optional,
@@ -12,8 +12,9 @@ from typing import (
     Tuple,
     Union,
     cast,
-    overload,
 )
+
+from httpx import Response
 
 from weaviate.collections.classes.batch import (
     DeleteManyObject,
@@ -40,14 +41,13 @@ from weaviate.collections.classes.types import (
     Properties,
     WeaviateField,
 )
-from weaviate.connect.executor import execute
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync
+from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, Connection
 from weaviate.logger import logger
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _datetime_to_string, _get_vector_v4
 from weaviate.validator import _validate_input, _ValidateArgument
 
-from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.filters import _FilterToGRPC
@@ -56,7 +56,21 @@ from weaviate.proto.v1.batch_delete_pb2 import BatchDeleteRequest, BatchDeleteRe
 from weaviate.util import _ServerVersion, _WeaviateUUIDInt
 
 
+@dataclass
+class _ExecutorOptions:
+    weaviate_version: _ServerVersion
+    name: str
+    consistency_level: Optional[ConsistencyLevel]
+    tenant: Optional[str]
+    validate_arguments: bool
+    batch_grpc: _BatchGRPC
+    batch_rest: _BatchREST
+
+
 class _DataExecutor:
+    # def __init__(self, options: Optional[_ExecutorOptions] = None) -> None:
+    #     self._options = options
+
     def __init__(
         self,
         weaviate_version: _ServerVersion,
@@ -65,28 +79,25 @@ class _DataExecutor:
         tenant: Optional[str],
         validate_arguments: bool,
     ) -> None:
+        self.__weaviate_version = weaviate_version
         self.__name = name
         self.__consistency_level = consistency_level
         self.__tenant = tenant
         self.__validate_arguments = validate_arguments
         self.__batch_grpc = _BatchGRPC(
-            weaviate_version=weaviate_version,
-            consistency_level=consistency_level,
-        )
-        self.__batch_rest = _BatchREST(consistency_level=consistency_level)
-        self.__batch_delete_grpc = _BatchDeleteGRPC(
             weaviate_version=weaviate_version, consistency_level=consistency_level
         )
+        self.__batch_rest = _BatchREST(consistency_level=consistency_level)
 
     def insert(
         self,
-        connection: ConnectionAsync,
-        *,
         properties: Properties,
-        references: Optional[ReferenceInputs] = None,
+        references: Optional[ReferenceInputs],
         uuid: Optional[UUID],
         vector: Optional[VECTORS],
-    ) -> Awaitable[uuid_package.UUID]:
+        *,
+        connection: Connection,
+    ) -> ExecutorResult[uuid_package.UUID]:
         path = "/objects"
 
         if self.__validate_arguments:
@@ -110,8 +121,12 @@ class _DataExecutor:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
+
+        def resp(res: Response) -> uuid_package.UUID:
+            return uuid_package.UUID(weaviate_obj["id"])
+
         return execute(
-            response_callback=lambda res: uuid_package.UUID(weaviate_obj["id"]),
+            response_callback=resp,
             method=connection.post,
             path=path,
             weaviate_object=weaviate_obj,
@@ -122,10 +137,11 @@ class _DataExecutor:
 
     def insert_many(
         self,
-        connection: ConnectionAsync,
-        *,
         objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
-    ) -> Awaitable[BatchObjectReturn]:
+        *,
+        connection: Connection,
+    ) -> ExecutorResult[BatchObjectReturn]:
+
         objs = [
             (
                 _BatchObject(
@@ -169,12 +185,17 @@ class _DataExecutor:
             timeout=connection.timeout_config.insert,
         )
 
-    def exists(self, connection: ConnectionAsync, *, uuid: UUID) -> Awaitable[bool]:
+    def exists(self, uuid: UUID, *, connection: Connection) -> ExecutorResult[bool]:
+
         _validate_input(_ValidateArgument(expected=[UUID], name="uuid", value=uuid))
         path = "/objects/" + self.__name + "/" + str(uuid)
         params = self.__apply_context({})
+
+        def resp(res: Response) -> bool:
+            return res.status_code == 204
+
         return execute(
-            response_callback=lambda res: res.status_code == 204,
+            response_callback=resp,
             method=connection.head,
             path=path,
             params=params,
@@ -184,13 +205,14 @@ class _DataExecutor:
 
     def replace(
         self,
-        connection: ConnectionAsync,
-        *,
         uuid: UUID,
         properties: Properties,
         references: Optional[ReferenceInputs],
         vector: Optional[VECTORS],
-    ) -> Awaitable[None]:
+        *,
+        connection: Connection,
+    ) -> ExecutorResult[None]:
+
         path = f"/objects/{self.__name}/{uuid}"
 
         if self.__validate_arguments:
@@ -214,8 +236,12 @@ class _DataExecutor:
 
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
         weaviate_obj["id"] = str(uuid)  # must add ID to payload for PUT request
+
+        def resp(res: Response) -> None:
+            return None
+
         return execute(
-            response_callback=lambda res: None,
+            response_callback=resp,
             method=connection.put,
             path=path,
             weaviate_object=weaviate_obj,
@@ -226,13 +252,14 @@ class _DataExecutor:
 
     def update(
         self,
-        connection: ConnectionAsync,
-        *,
         uuid: UUID,
         properties: Optional[Properties],
         references: Optional[ReferenceInputs],
         vector: Optional[VECTORS],
-    ) -> Awaitable[None]:
+        *,
+        connection: Connection,
+    ) -> ExecutorResult[None]:
+
         path = f"/objects/{self.__name}/{uuid}"
 
         if self.__validate_arguments:
@@ -254,8 +281,12 @@ class _DataExecutor:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
         params, weaviate_obj = self.__apply_context_to_params_and_object({}, weaviate_obj)
+
+        def resp(res: Response) -> None:
+            return None
+
         return execute(
-            response_callback=lambda res: None,
+            response_callback=resp,
             method=connection.patch,
             path=path,
             weaviate_object=weaviate_obj,
@@ -266,12 +297,13 @@ class _DataExecutor:
 
     def reference_add(
         self,
-        connection: ConnectionAsync,
-        *,
         from_uuid: UUID,
         from_property: str,
         to: SingleReferenceInput,
-    ) -> Awaitable[None]:
+        *,
+        connection: Connection,
+    ) -> ExecutorResult[None]:
+
         params: Dict[str, str] = {}
 
         path = f"/objects/{self.__name}/{from_uuid}/references/{from_property}"
@@ -318,14 +350,15 @@ class _DataExecutor:
             connection.post(
                 path=path,
                 weaviate_object=beacon,
-                params=self._apply_context(params),
+                params=self.__apply_context(params),
                 error_msg="Reference was not added.",
                 status_codes=_ExpectedStatusCodes(ok_in=200, error="add reference to object"),
             )
 
     def reference_add_many(
-        self, connection: ConnectionAsync, *, refs: List[DataReferences]
-    ) -> Awaitable[BatchReferenceReturn]:
+        self, refs: List[DataReferences], *, connection: Connection
+    ) -> ExecutorResult[BatchReferenceReturn]:
+
         batch = [
             _BatchReference(
                 from_=f"{BEACON}{self.__name}/{ref.from_uuid}/{ref.from_property}",
@@ -341,12 +374,13 @@ class _DataExecutor:
 
     def reference_delete(
         self,
-        connection: ConnectionAsync,
-        *,
         from_uuid: UUID,
         from_property: str,
         to: SingleReferenceInput,
-    ) -> Awaitable[None]:
+        *,
+        connection: Connection,
+    ) -> ExecutorResult[None]:
+
         params: Dict[str, str] = {}
         path = f"/objects/{self.__name}/{from_uuid}/references/{from_property}"
 
@@ -392,19 +426,20 @@ class _DataExecutor:
             connection.delete(
                 path=path,
                 weaviate_object=beacon,
-                params=self._apply_context(params),
+                params=self.__apply_context(params),
                 error_msg="Reference was not deleted.",
                 status_codes=_ExpectedStatusCodes(ok_in=204, error="delete reference from object"),
             )
 
     def reference_replace(
         self,
-        connection: ConnectionAsync,
-        *,
         from_uuid: UUID,
         from_property: str,
         to: ReferenceInput,
-    ) -> Awaitable[None]:
+        *,
+        connection: Connection,
+    ) -> ExecutorResult[None]:
+
         params: Dict[str, str] = {}
         path = f"/objects/{self.__name}/{from_uuid}/references/{from_property}"
 
@@ -431,8 +466,11 @@ class _DataExecutor:
         else:
             ref = _Reference(target_collection=None, uuids=to)
 
+        def resp(res: Response) -> None:
+            return None
+
         return execute(
-            response_callback=lambda res: None,
+            response_callback=resp,
             method=connection.put,
             path=path,
             weaviate_object=ref._to_beacons(),
@@ -441,10 +479,15 @@ class _DataExecutor:
             status_codes=_ExpectedStatusCodes(ok_in=200, error="replace reference on object"),
         )
 
-    def delete_by_id(self, connection: ConnectionAsync, *, uuid: UUID) -> Awaitable[bool]:
+    def delete_by_id(self, uuid: UUID, *, connection: Connection) -> ExecutorResult[bool]:
+
         path = f"/objects/{self.__name}/{uuid}"
+
+        def resp(res: Response) -> bool:
+            return res.status_code == 204
+
         return execute(
-            response_callback=lambda res: res.status_code == 204,
+            response_callback=resp,
             method=connection.delete,
             path=path,
             params=self.__apply_context({}),
@@ -454,12 +497,13 @@ class _DataExecutor:
 
     def delete_many(
         self,
-        connection: ConnectionAsync,
-        *,
         where: _Filters,
-        verbose: bool = False,
-        dry_run: bool = False,
-    ) -> Awaitable[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
+        verbose: bool,
+        *,
+        dry_run: bool,
+        connection: Connection,
+    ) -> ExecutorResult[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
+
         _ValidateArgument(expected=[_Filters], name="where", value=where)
 
         request = BatchDeleteRequest(
@@ -501,6 +545,7 @@ class _DataExecutor:
         )
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
+
         if self.__tenant is not None:
             params["tenant"] = self.__tenant
         if self.__consistency_level is not None:
@@ -510,6 +555,7 @@ class _DataExecutor:
     def __apply_context_to_params_and_object(
         self, params: Dict[str, Any], obj: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+
         if self.__tenant is not None:
             obj["tenant"] = self.__tenant
         if self.__consistency_level is not None:

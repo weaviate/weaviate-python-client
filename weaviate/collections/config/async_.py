@@ -1,14 +1,9 @@
-import asyncio
-from typing import Dict, Any, Generic, List, Literal, Optional, Tuple, Union, cast, overload
-
-from pydantic_core import ValidationError
+from typing import Dict, Generic, List, Literal, Optional, Union, overload
 
 from weaviate.collections.classes.config import (
-    _CollectionConfigUpdate,
     _InvertedIndexConfigUpdate,
     _ReplicationConfigUpdate,
     _VectorIndexConfigFlatUpdate,
-    PropertyType,
     Property,
     ReferenceProperty,
     _ReferencePropertyMultiTarget,
@@ -16,32 +11,21 @@ from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
     ShardStatus,
-    _ShardStatus,
     ShardTypes,
     _NamedVectorConfigUpdate,
     _MultiTenancyConfigUpdate,
     _GenerativeProvider,
     _RerankerProvider,
 )
-from weaviate.collections.classes.config_methods import (
-    _collection_config_from_json,
-    _collection_config_simple_from_json,
-)
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 from weaviate.collections.config.executor import _ConfigExecutor
-from weaviate.connect import ConnectionV4
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType
-from weaviate.exceptions import (
-    WeaviateInvalidInputError,
-)
-from weaviate.util import _decode_json_response_dict, _decode_json_response_list
-from weaviate.validator import _validate_input, _ValidateArgument
-from weaviate.warnings import _Warnings
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionType
 
 
 class _ConfigCollectionBase(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType, name: str, tenant: Optional[str]) -> None:
-        self._connection = connection
+        self._connection: ConnectionType = connection
         self._name = name
         self._tenant = tenant
         self._executor = _ConfigExecutor(connection._weaviate_version, name, tenant)
@@ -69,7 +53,7 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.get(connection=self._connection, simple=simple)
+        return await aresult(self._executor.get(simple, connection=self._connection))
 
     async def update(
         self,
@@ -130,7 +114,19 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             - To change it, you will have to delete the collection and recreate it with the desired options.
             - This is not the case of adding properties, which can be done with `collection.config.add_property()`.
         """
-        return await self._executor.update(connection=self._connection, **locals())
+        return await aresult(
+            self._executor.update(
+                connection=self._connection,
+                description=description,
+                inverted_index_config=inverted_index_config,
+                multi_tenancy_config=multi_tenancy_config,
+                replication_config=replication_config,
+                vector_index_config=vector_index_config,
+                vectorizer_config=vectorizer_config,
+                generative_config=generative_config,
+                reranker_config=reranker_config,
+            )
+        )
 
     async def get_shards(self) -> List[ShardStatus]:
         """Get the statuses of the shards of this collection.
@@ -149,7 +145,7 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.get_shards(connection=self._connection)
+        return await aresult(self._executor.get_shards(connection=self._connection))
 
     async def update_shards(
         self,
@@ -174,8 +170,12 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.update_shards(
-            connection=self._connection, status=status, shard_names=shard_names
+        return await aresult(
+            self._executor.update_shards(
+                status,
+                shard_names,
+                connection=self._connection,
+            )
         )
 
     async def add_property(self, prop: Property) -> None:
@@ -192,7 +192,7 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             `weaviate.WeaviateInvalidInputError`:
                 If the property already exists in the collection.
         """
-        return await self._executor.add_property(connection=self._connection, prop=prop)
+        return await aresult(self._executor.add_property(prop, connection=self._connection))
 
     async def add_reference(
         self, ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget]
@@ -210,4 +210,4 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             `weaviate.WeaviateInvalidInputError`:
                 If the reference already exists in the collection.
         """
-        return await self._executor.add_reference(connection=self._connection, ref=ref)
+        return await aresult(self._executor.add_reference(ref, connection=self._connection))

@@ -1,23 +1,13 @@
-from math import ceil
-from typing import Any, Dict, Generic, List, Optional, Sequence, Union
+from typing import Dict, Generic, Optional, Sequence, Union
 
-from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import (
     Tenant,
     TenantCreate,
     TenantUpdate,
-    TenantActivityStatus,
-    TenantCreateActivityStatus,
-    TenantUpdateActivityStatus,
-    TenantOutput,
 )
-from weaviate.collections.grpc.tenants import _TenantsGRPC
 from weaviate.collections.tenants.executor import _TenantsExecutor
-from weaviate.connect import ConnectionV4
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
-from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.proto.v1 import tenants_pb2
-from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType
 
 TenantCreateInputType = Union[str, Tenant, TenantCreate]
 TenantUpdateInputType = Union[Tenant, TenantUpdate]
@@ -31,7 +21,6 @@ class _TenantsBase(Generic[ConnectionType]):
         self,
         connection: ConnectionType,
         name: str,
-        consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
     ) -> None:
         self._connection = connection
@@ -39,7 +28,6 @@ class _TenantsBase(Generic[ConnectionType]):
         self._executor = _TenantsExecutor(
             weaviate_version=connection._weaviate_version,
             name=name,
-            consistency_level=consistency_level,
             validate_arguments=validate_arguments,
         )
 
@@ -73,7 +61,7 @@ class _TenantsAsync(_TenantsBase[ConnectionAsync]):
             `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of `wvc.Tenant` objects.
         """
-        return await self._executor.create(connection=self._connection, tenants=tenants)
+        return await aresult(self._executor.create(connection=self._connection, tenants=tenants))
 
     async def remove(self, tenants: Union[str, Tenant, Sequence[Union[str, Tenant]]]) -> None:
         """Remove the specified tenants from a collection in Weaviate.
@@ -93,7 +81,7 @@ class _TenantsAsync(_TenantsBase[ConnectionAsync]):
             `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of strings.
         """
-        return await self._executor.remove(connection=self._connection, tenants=tenants)
+        return await aresult(self._executor.remove(connection=self._connection, tenants=tenants))
 
     async def get(self) -> Dict[str, TenantOutputType]:
         """Return all tenants currently associated with a collection in Weaviate.
@@ -106,7 +94,7 @@ class _TenantsAsync(_TenantsBase[ConnectionAsync]):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.get(connection=self._connection)
+        return await aresult(self._executor.get(connection=self._connection))
 
     async def get_by_names(
         self, tenants: Sequence[Union[str, Tenant]]
@@ -127,7 +115,9 @@ class _TenantsAsync(_TenantsBase[ConnectionAsync]):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.get_by_names(connection=self._connection, tenants=tenants)
+        return await aresult(
+            self._executor.get_by_names(connection=self._connection, tenants=tenants)
+        )
 
     async def get_by_name(self, tenant: Union[str, Tenant]) -> Optional[TenantOutputType]:
         """Return a specific tenant associated with a collection in Weaviate.
@@ -146,7 +136,7 @@ class _TenantsAsync(_TenantsBase[ConnectionAsync]):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.get_by_name(connection=self._connection, tenant=tenant)
+        return await aresult(self._executor.get_by_name(connection=self._connection, tenant=tenant))
 
     async def update(
         self, tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
@@ -168,7 +158,7 @@ class _TenantsAsync(_TenantsBase[ConnectionAsync]):
             `weaviate.WeaviateInvalidInputError`
                 If `tenants` is not a list of `wvc.Tenant` objects.
         """
-        return await self._executor.update(connection=self._connection, tenants=tenants)
+        return await aresult(self._executor.update(connection=self._connection, tenants=tenants))
 
     async def exists(self, tenant: Union[str, Tenant]) -> bool:
         """Check if a tenant exists for a collection in Weaviate.
@@ -189,4 +179,4 @@ class _TenantsAsync(_TenantsBase[ConnectionAsync]):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.exists(connection=self._connection, tenant=tenant)
+        return await aresult(self._executor.exists(connection=self._connection, tenant=tenant))

@@ -22,10 +22,13 @@ from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
+from weaviate.collections.queries.base import _BaseGenerate
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
-class _NearImageGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
+class _NearImageGenerateAsync(
+    Generic[Properties, References], _BaseGenerate[ConnectionAsync, Properties, References]
+):
     @overload
     async def near_image(
         self,
@@ -316,7 +319,9 @@ class _NearImageGenerateAsync(Generic[Properties, References], _Base[Properties,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...
 
-class _NearImageGenerate(Generic[Properties, References], _Base[Properties, References]):
+class _NearImageGenerate(
+    Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
+):
     @overload
     def near_image(
         self,

@@ -21,10 +21,13 @@ from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
+from weaviate.collections.queries.base import _BaseQuery
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
-class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+class _NearVectorQueryAsync(
+    Generic[Properties, References], _BaseQuery[ConnectionAsync, Properties, References]
+):
     @overload
     async def near_vector(
         self,
@@ -278,7 +281,9 @@ class _NearVectorQueryAsync(Generic[Properties, References], _Base[Properties, R
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...
 
-class _NearVectorQuery(Generic[Properties, References], _Base[Properties, References]):
+class _NearVectorQuery(
+    Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
+):
     @overload
     def near_vector(
         self,

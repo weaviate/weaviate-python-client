@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import Awaitable, Callable
 from typing_extensions import ParamSpec, TypeVar
 
@@ -16,7 +17,7 @@ class _Retry:
     def __init__(self, n: int = 4) -> None:
         self.n = n
 
-    async def with_exponential_backoff(
+    async def awith_exponential_backoff(
         self,
         count: int,
         error: str,
@@ -35,4 +36,25 @@ class _Retry:
             await asyncio.sleep(2**count)
             if count > self.n:
                 raise WeaviateRetryError(str(e), count) from e
-            return await self.with_exponential_backoff(count + 1, error, f, *args, **kwargs)
+            return await self.awith_exponential_backoff(count + 1, error, f, *args, **kwargs)
+
+    def with_exponential_backoff(
+        self,
+        count: int,
+        error: str,
+        f: Callable[P, T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        try:
+            return f(*args, **kwargs)
+        except AioRpcError as e:
+            if e.code() != StatusCode.UNAVAILABLE:
+                raise e
+            logger.info(
+                f"{error} received exception: {e}. Retrying with exponential backoff in {2**count} seconds"
+            )
+            time.sleep(2**count)
+            if count > self.n:
+                raise WeaviateRetryError(str(e), count) from e
+            return self.with_exponential_backoff(count + 1, error, f, *args, **kwargs)

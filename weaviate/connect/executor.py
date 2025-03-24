@@ -1,4 +1,4 @@
-from typing import Coroutine, Awaitable, Callable, TypeVar, Union, Any, overload, cast
+from typing import Awaitable, Callable, TypeVar, Union, Any, overload, cast
 from typing_extensions import ParamSpec
 
 R = TypeVar("R")
@@ -24,60 +24,70 @@ def raise_exception(e: Exception) -> Any:
 
 @overload
 def execute(
-    response_callback: Callable[[R], Awaitable[A]],
     method: Callable[P, Awaitable[R]],
-    *args: P.args,
-    exception_callback: Callable[[Exception], Any] = raise_exception,
-    **kwargs: P.kwargs,
-) -> Awaitable[A]: ...
-
-
-@overload
-def execute(
     response_callback: Callable[[R], T],
-    method: Callable[P, Awaitable[R]],
-    *args: P.args,
     exception_callback: Callable[[Exception], Any] = raise_exception,
+    *args: P.args,
     **kwargs: P.kwargs,
 ) -> Awaitable[T]: ...
 
 
 @overload
 def execute(
-    response_callback: Callable[[R], T],
     method: Callable[P, R],
+    response_callback: Callable[[R], T],
+    exception_callback: Callable[[Exception], Any] = raise_exception,
     *args: P.args,
-    exception_callback: Callable[[Exception], T] = raise_exception,
     **kwargs: P.kwargs,
 ) -> T: ...
 
 
+@overload
 def execute(
-    response_callback: SyncOrAsyncCallback[R, T, A],
     method: SyncOrAsyncMethod[P, R],
+    response_callback: Callable[[R], T],
+    exception_callback: Callable[[Exception], Any] = raise_exception,
     *args: P.args,
-    exception_callback: Callable[[Exception], T] = raise_exception,
+    **kwargs: P.kwargs,
+) -> Union[T, Awaitable[T]]: ...
+
+
+def execute(
+    method: SyncOrAsyncMethod[P, R],
+    response_callback: SyncOrAsyncCallback[R, T, A],
+    exception_callback: Callable[[Exception], Any] = raise_exception,
+    *args: P.args,
     **kwargs: P.kwargs,
 ) -> Union[T, Awaitable[T], Awaitable[A]]:
-    call = method(*args, **kwargs)
-    if isinstance(call, Awaitable):
+    # wrap method call in try-except to catch exceptions for sync method
+    try:
+        call = method(*args, **kwargs)
+        if isinstance(call, Awaitable):
 
-        async def _execute() -> T:
-            try:
-                res = await call
-                res_call = response_callback(res)
-                if not isinstance(res_call, Awaitable):
-                    return res_call
-                return cast(T, await res_call)
-            except Exception as e:
-                return exception_callback(e)
+            async def _execute() -> T:
+                # wrap await in try-except to catch exceptions for async method
+                try:
+                    res = await call
+                    res_call = response_callback(res)
+                    if not isinstance(res_call, Awaitable):
+                        return res_call
+                    return cast(T, await res_call)
+                except Exception as e:
+                    return cast(T, exception_callback(e))
 
-        return _execute()
-    else:
-        res = call
-        try:
-            res_call = response_callback(res)
-            assert not isinstance(res_call, Awaitable)
-            return res_call
-        except Exception as e:
-            raise exception_callback(e)
+            return _execute()
+        resp_call = response_callback(call)
+        assert not isinstance(resp_call, Awaitable)
+        return resp_call
+    except Exception as e:
+        return cast(T, exception_callback(e))
+
+
+def result(result: ExecutorResult[T]) -> T:
+    assert not isinstance(result, Awaitable), f"Expected sync result, got {result}"
+    return result
+
+
+async def aresult(result: ExecutorResult[T]) -> T:
+    assert isinstance(result, Awaitable), f"Expected async result, got {result}"
+    return await result

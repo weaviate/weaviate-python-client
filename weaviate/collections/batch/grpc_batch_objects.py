@@ -2,10 +2,9 @@ import datetime
 import struct
 import time
 import uuid as uuid_package
-from typing import Any, Awaitable, Dict, List, Mapping, Optional, Sequence, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 
 from google.protobuf.struct_pb2 import Struct
-from grpc.aio import AioRpcError  # type: ignore
 
 from weaviate.collections.classes.batch import (
     ErrorObject,
@@ -16,16 +15,13 @@ from weaviate.collections.classes.batch import (
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, PERMISSION_DENIED, _is_1d_vector
-from weaviate.connect import ConnectionV4
-from weaviate.connect.executor import execute
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, _is_1d_vector
+from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import Connection
 from weaviate.exceptions import (
-    WeaviateBatchError,
     WeaviateInsertInvalidPropertyError,
-    WeaviateInsertManyAllFailedError,
     WeaviateInvalidInputError,
-    InsufficientPermissionsError,
+    WeaviateInsertManyAllFailedError,
 )
 from weaviate.proto.v1 import batch_pb2, base_pb2
 from weaviate.types import VECTORS
@@ -82,11 +78,11 @@ class _BatchGRPC(_BaseGRPC):
 
     def objects(
         self,
-        connection: ConnectionAsync,
+        connection: Connection,
         *,
         objects: List[_BatchObject],
         timeout: Union[int, float],
-    ) -> Awaitable[BatchObjectReturn]:
+    ) -> ExecutorResult[BatchObjectReturn]:
         """Insert multiple objects into Weaviate through the gRPC API.
 
         Parameters:
@@ -102,6 +98,14 @@ class _BatchGRPC(_BaseGRPC):
         start = time.time()
 
         def resp(errors: Dict[int, str]) -> BatchObjectReturn:
+            if len(errors) == len(weaviate_objs):
+                # Escape sequence (backslash) not allowed in expression portion of f-string prior to Python 3.12: pylance
+                raise WeaviateInsertManyAllFailedError(
+                    "Here is the set of all errors: {}".format(
+                        "\n".join(err for err in set(errors.values()))
+                    )
+                )
+
             elapsed_time = time.time() - start
             all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
                 List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))

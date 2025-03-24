@@ -1,25 +1,18 @@
 from typing import (
     Generic,
     Optional,
-    cast,
 )
 
 from weaviate import syncify
-from weaviate.collections.classes.filters import (
-    Filter,
-)
-from weaviate.collections.classes.grpc import MetadataQuery
 from weaviate.collections.classes.internal import (
-    ObjectSingleReturn,
-    MetadataSingleObjectReturn,
     QuerySingleReturn,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import INCLUDE_VECTOR, UUID
 
 
@@ -57,17 +50,19 @@ class _FetchObjectByIDQueryAsync(
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
-        return await self._executor.fetch_object_by_id(
-            connection=self._connection,
-            uuid=uuid,
-            include_vector=include_vector,
-            return_properties=return_properties,
-            return_references=return_references,
+        return await aresult(
+            self._executor.fetch_object_by_id(
+                connection=self._connection,
+                uuid=uuid,
+                include_vector=include_vector,
+                return_properties=return_properties,
+                return_references=return_references,
+            )
         )
 
 
 @syncify.convert_new(_FetchObjectByIDQueryAsync)
 class _FetchObjectByIDQuery(
-    Generic[Properties, References], _BaseQuery[ConnectionAsync, Properties, References]
+    Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):
     pass

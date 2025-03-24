@@ -1,19 +1,20 @@
-from typing import Generic, Type
+from typing import Generic
 from weaviate import syncify
 from weaviate.collections.classes.internal import Properties
-from weaviate.collections.classes.types import TProperties, _check_properties_generic
-from weaviate.collections.data.data import _DataCollectionAsync
+from weaviate.collections.data.async_ import _DataBase, _DataCollectionAsync
+from weaviate.connect.v4 import ConnectionSync
 
 
-@syncify.convert
-class _DataCollection(Generic[Properties], _DataCollectionAsync[Properties]):
-    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
-        _check_properties_generic(data_model)
-        return _DataCollection[TProperties](
-            self._connection,
-            self.name,
-            self._consistency_level,
-            self._tenant,
-            self._validate_arguments,
-            data_model,
-        )
+@syncify.convert_new(_DataCollectionAsync)
+class _DataCollection(Generic[Properties], _DataBase[ConnectionSync]):
+    # def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]":
+    #     _check_properties_generic(data_model)
+    #     return _DataCollection[TProperties](
+    #         self._connection,
+    #         self.name,
+    #         self._consistency_level,
+    #         self._tenant,
+    #         self._validate_arguments,
+    #         data_model,
+    #     )
+    pass

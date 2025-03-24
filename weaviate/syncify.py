@@ -1,7 +1,9 @@
 import asyncio
 import inspect
+from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Awaitable, Callable, Type, TypeVar, get_type_hints
+from types import MappingProxyType, FunctionType
+from typing import Any, Awaitable, Callable, List, Type, TypeVar
 
 from weaviate.event_loop import _EventLoopSingleton
 
@@ -32,6 +34,13 @@ def convert(cls: C) -> C:
 T = TypeVar("T")
 
 
+@dataclass
+class _Meta:
+    name: str
+    parameters: MappingProxyType[str, inspect.Parameter]
+    async_: FunctionType
+
+
 def convert_new(async_cls: Type[T]) -> Callable[[Type], Type]:
     """
     Class decorator that generates a synchronous version of an async class.
@@ -50,42 +59,70 @@ def convert_new(async_cls: Type[T]) -> Callable[[Type], Type]:
             sync_cls.__doc__ = async_cls.__doc__
 
         # Find all async methods in the async class
-        async_methods = {}
+        metadata: List[_Meta] = []
         for name, method in inspect.getmembers(async_cls, inspect.isfunction):
             if name.startswith("__"):
                 continue
 
             if inspect.iscoroutinefunction(method):
-                async_methods[name] = method
+                metadata.append(
+                    _Meta(name=name, async_=method, parameters=inspect.signature(method).parameters)
+                )
 
         # Create sync versions of the async methods
-        for name, async_method in async_methods.items():
-            # Get type hints from the async method
-            # type_hints = get_type_hints(async_method)
-            # return_type = type_hints.get('return', Any)
+        for metadatum in metadata:
 
-            executor = getattr(sync_cls, "_executor", None)
-            if executor is None:
-                raise AttributeError("Executor not found in sync class")
-            executor_method = getattr(executor, name, None)
-            if executor_method is None:
-                raise AttributeError(f"Method {name} not found in executor")
+            @wraps(metadatum.async_)
+            def sync_method(  # type: ignore
+                self,
+                *args,
+                meta: _Meta = metadatum,
+                **kwargs,
+            ) -> Any:
+                # Have to get the executor within the method so that any classes that have to
+                # instantiate _executor in their __init__ files, e.g. _DataCollection, because of
+                # tenant/consistency_level injection, can do so without being None here.
+                executor = getattr(self, "_executor", None)
+                if executor is None:
+                    raise AttributeError("Executor not found in sync class")
+                executor_method = getattr(executor, meta.name, None)
+                if executor_method is None:
+                    raise AttributeError(f"Method {meta.name} not found in executor")
+                for index, (name, param) in enumerate(meta.parameters.items()):
+                    if name == "self":
+                        continue
+                    if (
+                        param.kind == inspect.Parameter.KEYWORD_ONLY
+                        and name not in kwargs
+                        and param.default is not inspect.Parameter.empty
+                    ):
+                        kwargs[name] = param.default
+                    if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
+                        try:
+                            # check if the argument is present as a positional arg
+                            kwargs[name] = args[index - 1]  # offset the self param
+                            continue
+                        except IndexError:
+                            # if not, then check it is present as a keyword arg
+                            if name in kwargs:
+                                continue
+                            # if it is not present as a keyword arg, then use the default value
+                            if param.default is not inspect.Parameter.empty:
+                                kwargs[name] = param.default
+                                continue
+                            # otherwise, throw an exception
+                            raise TypeError(f"Missing required argument '{name}'")
 
-            # Create a sync version of the method
-            @wraps(async_method)
-            def sync_method(self, *args, **kwargs):
-                assert executor_method is not None
-                result = executor_method(*args, **kwargs, connection=self._connection)
+                result = executor_method(**kwargs, connection=self._connection)
                 assert not isinstance(result, Awaitable)
                 return result
 
             # Add method docstring
-            if async_method.__doc__:
-                sync_method.__doc__ = async_method.__doc__
+            if metadatum.async_.__doc__:
+                sync_method.__doc__ = metadatum.async_.__doc__
 
             # Add the sync method to the sync class
-            setattr(sync_cls, name, sync_method)
-
+            setattr(sync_cls, metadatum.name, sync_method)
         return sync_cls
 
     return decorator

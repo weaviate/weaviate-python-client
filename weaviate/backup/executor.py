@@ -5,14 +5,14 @@ Backup class definition.
 import asyncio
 import time
 from enum import Enum
-from typing import Awaitable, Optional, Union, List, Tuple, Dict, Any, cast, overload
+from typing import Optional, Union, List, Tuple, Dict, Any, cast
 
 from httpx import Response
 from pydantic import BaseModel, Field
 
 from weaviate.backup.backup_location import _BackupLocationConfig, BackupLocationType
-from weaviate.connect.executor import execute, ExecutorResult
-from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync, ConnectionSync
+from weaviate.connect.executor import execute, ExecutorResult, aresult, result
+from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
@@ -103,34 +103,6 @@ class BackupReturn(BackupStatusReturn):
 
 
 class _BackupExecutor:
-    @overload
-    def create(
-        self,
-        connection: ConnectionAsync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        include_collections: Optional[Union[List[str], str]],
-        exclude_collections: Optional[Union[List[str], str]],
-        wait_for_completion: bool,
-        config: Optional[BackupConfigCreate],
-        backup_location: Optional[BackupLocationType],
-    ) -> Awaitable[BackupReturn]: ...
-
-    @overload
-    def create(
-        self,
-        connection: ConnectionSync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        include_collections: Optional[Union[List[str], str]],
-        exclude_collections: Optional[Union[List[str], str]],
-        wait_for_completion: bool,
-        config: Optional[BackupConfigCreate],
-        backup_location: Optional[BackupLocationType],
-    ) -> BackupReturn: ...
-
     def create(
         self,
         connection: Connection,
@@ -198,11 +170,13 @@ class _BackupExecutor:
                 assert create_status is not None
                 if wait_for_completion:
                     while True:
-                        status = await self.get_create_status(
-                            connection=connection,
-                            backup_id=backup_id,
-                            backend=backend,
-                            backup_location=backup_location,
+                        status = await aresult(
+                            self.get_create_status(
+                                connection=connection,
+                                backup_id=backup_id,
+                                backend=backend,
+                                backup_location=backup_location,
+                            )
                         )
                         create_status["status"] = status.status
                         if status.status == BackupStatus.SUCCESS:
@@ -229,11 +203,13 @@ class _BackupExecutor:
         assert create_status is not None
         if wait_for_completion:
             while True:
-                status = self.get_create_status(
-                    connection=connection,
-                    backup_id=backup_id,
-                    backend=backend,
-                    backup_location=backup_location,
+                status = result(
+                    self.get_create_status(
+                        connection=connection,
+                        backup_id=backup_id,
+                        backend=backend,
+                        backup_location=backup_location,
+                    )
                 )
                 create_status["status"] = status.status
                 if status.status == BackupStatus.SUCCESS:
@@ -248,26 +224,6 @@ class _BackupExecutor:
                     )
                 time.sleep(1)
         return BackupReturn(**create_status)
-
-    @overload
-    def get_create_status(
-        self,
-        connection: ConnectionAsync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
-    ) -> Awaitable[BackupStatusReturn]: ...
-
-    @overload
-    def get_create_status(
-        self,
-        connection: ConnectionSync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
-    ) -> BackupStatusReturn: ...
 
     def get_create_status(
         self,
@@ -308,34 +264,6 @@ class _BackupExecutor:
             params=params,
             error_msg="Backup creation status failed due to connection error.",
         )
-
-    @overload
-    def restore(
-        self,
-        connection: ConnectionAsync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        include_collections: Union[List[str], str, None],
-        exclude_collections: Union[List[str], str, None],
-        wait_for_completion: bool,
-        config: Optional[BackupConfigRestore],
-        backup_location: Optional[BackupLocationType],
-    ) -> Awaitable[BackupReturn]: ...
-
-    @overload
-    def restore(
-        self,
-        connection: ConnectionSync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        include_collections: Union[List[str], str, None],
-        exclude_collections: Union[List[str], str, None],
-        wait_for_completion: bool,
-        config: Optional[BackupConfigRestore],
-        backup_location: Optional[BackupLocationType],
-    ) -> BackupReturn: ...
 
     def restore(
         self,
@@ -404,14 +332,14 @@ class _BackupExecutor:
                 assert restore_status is not None
                 if wait_for_completion:
                     while True:
-                        call = self.get_restore_status(
-                            connection=connection,
-                            backup_id=backup_id,
-                            backend=backend,
-                            backup_location=backup_location,
+                        status = await aresult(
+                            self.get_restore_status(
+                                connection=connection,
+                                backup_id=backup_id,
+                                backend=backend,
+                                backup_location=backup_location,
+                            )
                         )
-                        assert isinstance(call, Awaitable)
-                        status = await call
                         restore_status["status"] = status.status
                         if status.status == BackupStatus.SUCCESS:
                             break
@@ -438,13 +366,14 @@ class _BackupExecutor:
         assert restore_status is not None
         if wait_for_completion:
             while True:
-                status = self.get_restore_status(
-                    connection=connection,
-                    backup_id=backup_id,
-                    backend=backend,
-                    backup_location=backup_location,
+                status = result(
+                    self.get_restore_status(
+                        connection=connection,
+                        backup_id=backup_id,
+                        backend=backend,
+                        backup_location=backup_location,
+                    )
                 )
-                assert not isinstance(status, Awaitable)
                 restore_status["status"] = status.status
                 if status.status == BackupStatus.SUCCESS:
                     break
@@ -459,26 +388,6 @@ class _BackupExecutor:
 
                 time.sleep(1)
         return BackupReturn(**restore_status)
-
-    @overload
-    def get_restore_status(
-        self,
-        connection: ConnectionAsync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
-    ) -> Awaitable[BackupStatusReturn]: ...
-
-    @overload
-    def get_restore_status(
-        self,
-        connection: ConnectionSync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
-    ) -> BackupStatusReturn: ...
 
     def get_restore_status(
         self,
@@ -519,27 +428,7 @@ class _BackupExecutor:
             error_msg="Backup restore status failed due to connection error.",
         )
 
-    @overload
-    def cancel_backup(
-        self,
-        connection: ConnectionAsync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
-    ) -> Awaitable[bool]: ...
-
-    @overload
-    def cancel_backup(
-        self,
-        connection: ConnectionSync,
-        *,
-        backup_id: str,
-        backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
-    ) -> bool: ...
-
-    def cancel_backup(
+    def cancel(
         self,
         connection: Connection,
         *,

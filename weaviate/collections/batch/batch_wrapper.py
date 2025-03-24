@@ -10,7 +10,7 @@ from weaviate.collections.batch.base import (
 )
 from weaviate.collections.classes.batch import BatchResult, ErrorObject, ErrorReference, Shard
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionV4
 from weaviate.event_loop import _EventLoopSingleton
 from weaviate.logger import logger
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list

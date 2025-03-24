@@ -12,7 +12,8 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseGenerate
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 from weaviate.types import INCLUDE_VECTOR
 
@@ -90,26 +91,30 @@ class _BM25GenerateAsync(
             `weaviate.exceptions.WeaviateUnsupportedFeatureError`:
                 If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
-        return await self._executor.bm25(
-            connection=self._connection,
-            query=query,
-            single_prompt=single_prompt,
-            grouped_task=grouped_task,
-            grouped_properties=grouped_properties,
-            query_properties=query_properties,
-            limit=limit,
-            offset=offset,
-            auto_limit=auto_limit,
-            filters=filters,
-            group_by=group_by,
-            rerank=rerank,
-            include_vector=include_vector,
-            return_metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
+        return await aresult(
+            self._executor.bm25(
+                connection=self._connection,
+                query=query,
+                single_prompt=single_prompt,
+                grouped_task=grouped_task,
+                grouped_properties=grouped_properties,
+                query_properties=query_properties,
+                limit=limit,
+                offset=offset,
+                auto_limit=auto_limit,
+                filters=filters,
+                group_by=group_by,
+                rerank=rerank,
+                include_vector=include_vector,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                return_references=return_references,
+            )
         )
 
 
-@syncify.convert
-class _BM25Generate(Generic[Properties, References], _BM25GenerateAsync[Properties, References]):
+@syncify.convert_new(_BM25GenerateAsync)
+class _BM25Generate(
+    Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
+):
     pass

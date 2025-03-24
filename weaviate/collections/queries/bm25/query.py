@@ -12,7 +12,8 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import INCLUDE_VECTOR
 
 
@@ -78,23 +79,27 @@ class _BM25QueryAsync(
             `weaviate.exceptions.WeaviateNotImplementedError`:
                 If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
-        return await self._executor.bm25(
-            connection=self._connection,
-            query=query,
-            query_properties=query_properties,
-            limit=limit,
-            offset=offset,
-            auto_limit=auto_limit,
-            filters=filters,
-            group_by=group_by,
-            rerank=rerank,
-            include_vector=include_vector,
-            return_metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
+        return await aresult(
+            self._executor.bm25(
+                connection=self._connection,
+                query=query,
+                query_properties=query_properties,
+                limit=limit,
+                offset=offset,
+                auto_limit=auto_limit,
+                filters=filters,
+                group_by=group_by,
+                rerank=rerank,
+                include_vector=include_vector,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                return_references=return_references,
+            )
         )
 
 
-@syncify.convert
-class _BM25Query(Generic[Properties, References], _BM25QueryAsync[Properties, References]):
+@syncify.convert_new(_BM25QueryAsync)
+class _BM25Query(
+    Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
+):
     pass

@@ -12,7 +12,7 @@ from weaviate.collections.batch.batch_wrapper import _BatchWrapper, _ContextMana
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionV4
 from weaviate.event_loop import _EventLoop
 from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS

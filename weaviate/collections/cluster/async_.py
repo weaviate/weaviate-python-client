@@ -3,15 +3,16 @@ from weaviate.connect.v4 import ConnectionAsync, ConnectionType
 from typing import Generic, List, Literal, Optional, Union, overload
 
 from weaviate.collections.cluster.executor import _ClusterExecutor
-from weaviate.cluster.types import Verbosity
 from weaviate.collections.classes.cluster import Node, Shards, Stats
+from weaviate.cluster.types import Verbosity
+from weaviate.connect.executor import aresult
 
 
 class _ClusterBase(Generic[ConnectionType]):
     _executor = _ClusterExecutor()
 
     def __init__(self, connection: ConnectionType):
-        self._connection = connection
+        self._connection: ConnectionType = connection
 
 
 class _ClusterAsync(_ClusterBase[ConnectionAsync]):
@@ -71,6 +72,6 @@ class _ClusterAsync(_ClusterBase[ConnectionAsync]):
             `weaviate.EmptyResponseError`
                 If the response is empty.
         """
-        return await self._executor.nodes(
-            connection=self._connection, collection=collection, output=output
+        return await aresult(
+            self._executor.nodes(collection, connection=self._connection, output=output)
         )

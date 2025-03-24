@@ -3,7 +3,7 @@ import io
 import os
 import pathlib
 import uuid as uuid_lib
-from typing import Any, Dict, Generic, List, Mapping, Optional, Sequence, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, cast
 
 from typing_extensions import is_typeddict
 
@@ -37,12 +37,10 @@ from weaviate.collections.classes.internal import (
     CrossReferences,
     _CrossReference,
     WeaviateProperties,
-    CrossReferences,
 )
 from weaviate.collections.classes.types import GeoCoordinate, _PhoneNumber, TReferences
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
-from weaviate.connect.v4 import ConnectionAsync, ConnectionSync, ConnectionType
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2, search_get_pb2, properties_pb2
 from weaviate.types import INCLUDE_VECTOR
@@ -66,11 +64,11 @@ class _BaseExecutor:
         properties: Optional[Type[WeaviateProperties]],
         references: Optional[Type[Optional[Mapping[str, Any]]]],
         validate_arguments: bool,
-    ):
+    ) -> None:
         self._weaviate_version = weaviate_version
         self._name = name
-        self.__tenant = tenant
-        self.__consistency_level = consistency_level
+        self._tenant = tenant
+        self._consistency_level = consistency_level
         self._properties = properties
         self._references = references
         self._validate_arguments = validate_arguments
@@ -78,8 +76,8 @@ class _BaseExecutor:
         self._query = _QueryGRPC(
             weaviate_version,
             self._name,
-            self.__tenant,
-            self.__consistency_level,
+            self._tenant,
+            self._consistency_level,
             validate_arguments=self._validate_arguments,
         )
 

@@ -1,26 +1,17 @@
-import asyncio
-import datetime
 import uuid as uuid_package
 from typing import (
-    Dict,
-    Any,
     Optional,
     List,
     Literal,
-    Mapping,
     Sequence,
     Generic,
-    Tuple,
     Type,
     Union,
-    cast,
     overload,
 )
 
 from weaviate.collections.classes.batch import (
     DeleteManyObject,
-    _BatchObject,
-    _BatchReference,
     BatchObjectReturn,
     BatchReferenceReturn,
     DeleteManyReturn,
@@ -29,55 +20,22 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.internal import (
-    _Reference,
-    ReferenceToMulti,
     SingleReferenceInput,
     ReferenceInput,
     ReferenceInputs,
 )
 from weaviate.collections.classes.types import (
-    GeoCoordinate,
-    PhoneNumber,
-    _PhoneNumber,
     Properties,
-    TProperties,
-    _check_properties_generic,
-    WeaviateField,
 )
 from weaviate.collections.data.executor import _DataExecutor
-from weaviate.connect import ConnectionV4
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType, ConnectionAsync
-from weaviate.logger import logger
-from weaviate.types import BEACON, UUID, VECTORS
-from weaviate.util import _datetime_to_string, _get_vector_v4
-from weaviate.validator import _validate_input, _ValidateArgument
-
-from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
-from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
-from weaviate.collections.batch.rest import _BatchREST
-from weaviate.exceptions import WeaviateInvalidInputError
-
-
-# class _DataBase:
-#     def __init__(
-#         self,
-#         connection: ConnectionV4,
-#         name: str,
-#         consistency_level: Optional[ConsistencyLevel],
-#         tenant: Optional[str],
-#         validate_arguments: bool,
-#     ) -> None:
-#         self._connection = connection
-#         self.name = name
-#         self._consistency_level = consistency_level
-#         self._tenant = tenant
-#         self._validate_arguments = validate_arguments
-#         self._batch_grpc = _BatchGRPC(connection, consistency_level)
-#         self._batch_delete_grpc = _BatchDeleteGRPC(connection, consistency_level)
-#         self._batch_rest = _BatchREST(connection, consistency_level)
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionType, ConnectionAsync
+from weaviate.types import UUID, VECTORS
 
 
 class _DataBase(Generic[ConnectionType]):
+    # _executor = _DataExecutor()
+
     def __init__(
         self,
         connection: ConnectionType,
@@ -86,7 +44,7 @@ class _DataBase(Generic[ConnectionType]):
         tenant: Optional[str],
         validate_arguments: bool,
     ) -> None:
-        self._connection = connection
+        self._connection: ConnectionType = connection
         self.name = name
         self._consistency_level = consistency_level
         self._tenant = tenant
@@ -103,7 +61,7 @@ class _DataBase(Generic[ConnectionType]):
 class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: ConnectionAsync,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
@@ -113,16 +71,16 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
         super().__init__(connection, name, consistency_level, tenant, validate_arguments)
         self.__type = type_
 
-    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollectionAsync[TProperties]":
-        _check_properties_generic(data_model)
-        return _DataCollectionAsync[TProperties](
-            self._connection,
-            self.name,
-            self._consistency_level,
-            self._tenant,
-            self._validate_arguments,
-            data_model,
-        )
+    # def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollectionAsync[TProperties]":
+    #     _check_properties_generic(data_model)
+    #     return _DataCollectionAsync[TProperties](
+    #         self._connection,
+    #         self.name,
+    #         self._consistency_level,
+    #         self._tenant,
+    #         self._validate_arguments,
+    #         data_model,
+    #     )
 
     async def insert(
         self,
@@ -153,12 +111,14 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `weaviate.exceptions.UnexpectedStatusCodeError`:
                 If any unexpected error occurs during the insert operation, for example the given UUID already exists.
         """
-        return await self._executor.insert(
-            self._connection,
-            properties=properties,
-            references=references,
-            uuid=uuid,
-            vector=vector,
+        return await aresult(
+            self._executor.insert(
+                properties,
+                references,
+                uuid,
+                vector,
+                connection=self._connection,
+            )
         )
 
     async def insert_many(
@@ -181,7 +141,7 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `weaviate.exceptions.WeaviateInsertManyAllFailedError`:
                 If every object in the batch fails to be inserted. The exception message contains details about the failure.
         """
-        return await self._executor.insert_many(self._connection, objects=objects)
+        return await aresult(self._executor.insert_many(objects, connection=self._connection))
 
     async def replace(
         self,
@@ -217,8 +177,14 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
-        return await self._executor.replace(
-            self._connection, properties=properties, references=references, uuid=uuid, vector=vector
+        return await aresult(
+            self._executor.replace(
+                uuid,
+                properties,
+                references,
+                vector,
+                connection=self._connection,
+            )
         )
 
     async def update(
@@ -247,8 +213,14 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
         """
-        return await self._executor.update(
-            self._connection, properties=properties, references=references, uuid=uuid, vector=vector
+        return await aresult(
+            self._executor.update(
+                uuid,
+                properties,
+                references,
+                vector,
+                connection=self._connection,
+            )
         )
 
     async def reference_add(
@@ -270,8 +242,8 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.reference_add(
-            self._connection, from_uuid=from_uuid, from_property=from_property, to=to
+        return await aresult(
+            self._executor.reference_add(from_uuid, from_property, to, connection=self._connection)
         )
 
     async def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn:
@@ -291,7 +263,7 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `weaviate.UnexpectedStatusCodeError
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.reference_add_many(self._connection, refs=refs)
+        return await aresult(self._executor.reference_add_many(refs, connection=self._connection))
 
     async def reference_delete(
         self, from_uuid: UUID, from_property: str, to: SingleReferenceInput
@@ -306,8 +278,10 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `to`
                 The reference to delete, REQUIRED.
         """
-        return await self._executor.reference_delete(
-            self._connection, from_uuid=from_uuid, from_property=from_property, to=to
+        return await aresult(
+            self._executor.reference_delete(
+                from_uuid, from_property, to, connection=self._connection
+            )
         )
 
     async def reference_replace(
@@ -323,8 +297,10 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `to`
                 The reference to replace, REQUIRED.
         """
-        return await self._executor.reference_replace(
-            self._connection, from_uuid=from_uuid, from_property=from_property, to=to
+        return await aresult(
+            self._executor.reference_replace(
+                from_uuid, from_property, to, connection=self._connection
+            )
         )
 
     async def exists(self, uuid: UUID) -> bool:
@@ -341,7 +317,7 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `weaviate.exceptions.UnexpectedStatusCodeError`:
                 If any unexpected error occurs during the operation.
         """
-        return await self._executor.exists(self._connection, uuid=uuid)
+        return await aresult(self._executor.exists(uuid, connection=self._connection))
 
     async def delete_by_id(self, uuid: UUID) -> bool:
         """Delete an object from the collection based on its UUID.
@@ -350,7 +326,7 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `uuid`
                 The UUID of the object to delete, REQUIRED.
         """
-        return await self._executor.delete_by_id(self._connection, uuid=uuid)
+        return await aresult(self._executor.delete_by_id(uuid, connection=self._connection))
 
     @overload
     async def delete_many(
@@ -386,9 +362,11 @@ class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
             `weaviate.UnexpectedStatusCodeError`:
                 If Weaviate reports a non-OK status.
         """
-        return await self._executor.delete_many(
-            self._connection,
-            where=where,
-            verbose=verbose,
-            dry_run=dry_run,
+        return await aresult(
+            self._executor.delete_many(
+                where,
+                verbose,
+                dry_run=dry_run,
+                connection=self._connection,
+            )
         )

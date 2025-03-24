@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 
 from weaviate import syncify
-from weaviate.collections.aggregations.aggregate import _AggregateAsync
+from weaviate.collections.aggregations.base import _BaseAggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -9,12 +9,12 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.filters import _FilterToGRPC
-from weaviate.exceptions import WeaviateUnsupportedFeatureError
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER
 
 
-class _HybridAsync(_AggregateAsync):
+class _HybridAsync(_BaseAggregate[ConnectionAsync]):
     async def hybrid(
         self,
         query: Optional[str],
@@ -61,63 +61,24 @@ class _HybridAsync(_AggregateAsync):
             `weaviate.exceptions.WeaviateInvalidInputError`:
                 If any of the input arguments are of the wrong type.
         """
-        if group_by is not None and self._connection._weaviate_version.is_lower_than(1, 25, 0):
-            raise WeaviateUnsupportedFeatureError(
-                "Hybrid aggregation", self._connection.server_version, "1.25.0"
-            )
-        return_metrics = (
-            return_metrics
-            if (return_metrics is None or isinstance(return_metrics, list))
-            else [return_metrics]
-        )
-
-        if isinstance(group_by, str):
-            group_by = GroupByAggregate(prop=group_by)
-
-        if self._connection._weaviate_version.is_lower_than(1, 29, 0):
-            # use gql, remove once 1.29 is the minimum supported version
-
-            builder = self._base(return_metrics, filters, total_count)
-            builder = self._add_hybrid_to_builder(
-                builder,
-                query,
-                alpha,
-                vector,
-                query_properties,
-                object_limit,
-                target_vector,
-                max_vector_distance,
-            )
-            builder = self._add_groupby_to_builder(builder, group_by)
-            res = await self._do(builder)
-            return (
-                self._to_aggregate_result(res, return_metrics)
-                if group_by is None
-                else self._to_group_by_result(res, return_metrics)
-            )
-        else:
-            # use grpc
-            reply = await self._grpc.hybrid(
+        return await aresult(
+            self._executor.hybrid(
+                connection=self._connection,
                 query=query,
                 alpha=alpha,
                 vector=vector,
-                properties=query_properties,
+                query_properties=query_properties,
                 object_limit=object_limit,
+                filters=filters,
+                group_by=group_by,
                 target_vector=target_vector,
-                distance=max_vector_distance,
-                aggregations=(
-                    [metric.to_grpc() for metric in return_metrics]
-                    if return_metrics is not None
-                    else []
-                ),
-                filters=_FilterToGRPC.convert(filters) if filters is not None else None,
-                group_by=group_by._to_grpc() if group_by is not None else None,
-                limit=group_by.limit if group_by is not None else None,
-                objects_count=total_count,
+                max_vector_distance=max_vector_distance,
+                total_count=total_count,
+                return_metrics=return_metrics,
             )
-            return self._to_result(reply)
+        )
 
 
-@syncify.convert
-class _Hybrid(_HybridAsync):
+@syncify.convert_new(_HybridAsync)
+class _Hybrid(_BaseAggregate[ConnectionSync]):
     pass

@@ -2,7 +2,6 @@
 Client class definition.
 """
 
-import asyncio
 from typing import Dict, Optional, Tuple, Union, Any
 
 from typing_extensions import deprecated
@@ -10,14 +9,12 @@ from typing_extensions import deprecated
 from weaviate import syncify
 from weaviate.backup.backup import _BackupAsync
 from weaviate.backup.sync import _Backup
-from weaviate.event_loop import _EventLoopSingleton, _EventLoop
 
 from weaviate.users.async_ import _UsersAsync
 
 from weaviate.users.sync import _Users
 from .auth import AuthCredentials
-from .client_base import _WeaviateClientInit, _WeaviateClientExecutor
-from .collections.batch.client import _BatchClientWrapper
+from .client_base import _WeaviateClientInit
 from .collections.classes.internal import _RawGQLReturn
 from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections.async_ import _CollectionsAsync
@@ -26,6 +23,7 @@ from .config import AdditionalConfig
 from .connect.base import (
     ConnectionParams,
 )
+from .connect.executor import aresult, result
 from .connect.v4 import ConnectionAsync, ConnectionSync
 from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
@@ -63,12 +61,8 @@ class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
         additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
     ) -> None:
-        self._loop = asyncio.get_event_loop()
-        _EventLoop.patch_exception_handler(self._loop)
-
-        self.__executor = _WeaviateClientExecutor()
+        self._connection_type = ConnectionAsync
         super().__init__(
-            connection_type=ConnectionAsync,
             connection_params=connection_params,
             embedded_options=embedded_options,
             auth_client_secret=auth_client_secret,
@@ -97,14 +91,14 @@ class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
         """This namespace contains all functionality to manage Weaviate users."""
 
     async def __aenter__(self) -> "WeaviateAsyncClient":
-        await self.__executor.connect(self._connection, self._skip_init_checks)
+        await aresult(self._executor.connect(self._connection))
         return self
 
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        await self.__executor.close(self._connection)
+        await aresult(self._executor.close(self._connection))
 
     async def connect(self) -> None:
-        await self.__executor.connect(self._connection, self._skip_init_checks)
+        await aresult(self._executor.connect(self._connection))
 
     async def close(self) -> None:
         """
@@ -112,13 +106,13 @@ class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
 
         This method should be called when the client is no longer needed to free up resources.
         """
-        await self.__executor.close(self._connection)
+        await aresult(self._executor.close(self._connection))
 
     async def is_live(self) -> bool:
-        return await self.__executor.is_live(self._connection)
+        return await aresult(self._executor.is_live(self._connection))
 
     async def is_ready(self) -> bool:
-        return await self.__executor.is_ready(self._connection)
+        return await aresult(self._executor.is_ready(self._connection))
 
     async def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
         """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
@@ -140,7 +134,7 @@ class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
             `weaviate.UnexpectedStatusCodeError`
                 If weaviate reports a none OK status.
         """
-        return await self.__executor.graphql_raw_query(self._connection, gql_query)
+        return await aresult(self._executor.graphql_raw_query(self._connection, gql_query))
 
     async def get_meta(self) -> dict:
         """
@@ -155,7 +149,7 @@ class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
                 If Weaviate reports a none OK status.
         """
 
-        return await self.__executor.get_meta(self._connection)
+        return await aresult(self._executor.get_meta(self._connection))
 
     async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
         """
@@ -170,7 +164,7 @@ class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
                 If Weaviate reports a none OK status.
         """
 
-        return await self.__executor.get_open_id_configuration(self._connection)
+        return await aresult(self._executor.get_open_id_configuration(self._connection))
 
 
 @syncify.convert_new(WeaviateAsyncClient)
@@ -206,13 +200,8 @@ class WeaviateClient(_WeaviateClientInit[ConnectionSync]):
         additional_config: Optional[AdditionalConfig] = None,
         skip_init_checks: bool = False,
     ) -> None:
-        self._event_loop = _EventLoopSingleton.get_instance()
-        assert self._event_loop.loop is not None
-        self._loop = self._event_loop.loop
-
-        self.__executor = _WeaviateClientExecutor()
+        self._connection_type = ConnectionSync
         super().__init__(
-            connection_type=ConnectionSync,
             connection_params=connection_params,
             embedded_options=embedded_options,
             auth_client_secret=auth_client_secret,
@@ -221,9 +210,9 @@ class WeaviateClient(_WeaviateClientInit[ConnectionSync]):
             skip_init_checks=skip_init_checks,
         )
 
-        collections = _Collections(self._event_loop, _CollectionsAsync(self._connection))
+        collections = _Collections(self._connection)
 
-        self.batch = _BatchClientWrapper(self._connection, config=collections)
+        # self.batch = _BatchClientWrapper(self._connection, config=collections)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""
@@ -245,11 +234,11 @@ class WeaviateClient(_WeaviateClientInit[ConnectionSync]):
         """This namespace contains all functionality to manage Weaviate users."""
 
     def __enter__(self) -> "WeaviateClient":
-        self.__executor.connect(self._connection, self._skip_init_checks)
+        result(self._executor.connect(self._connection))
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        self.__executor.close(self._connection)
+        result(self._executor.close(self._connection))
 
 
 @deprecated(

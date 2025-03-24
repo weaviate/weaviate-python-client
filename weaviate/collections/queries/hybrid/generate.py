@@ -14,16 +14,13 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
-    _Generative,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
-    _GroupBy,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseGenerate
-from weaviate.connect.v4 import ConnectionAsync
-from weaviate.exceptions import WeaviateUnsupportedFeatureError
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
@@ -113,33 +110,35 @@ class _HybridGenerateAsync(
             `weaviate.exceptions.WeaviateNotImplementedError`:
                 If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
-        return await self._executor.hybrid(
-            self._connection,
-            query=query,
-            single_prompt=single_prompt,
-            grouped_task=grouped_task,
-            grouped_properties=grouped_properties,
-            alpha=alpha,
-            vector=vector,
-            query_properties=query_properties,
-            fusion_type=fusion_type,
-            max_vector_distance=max_vector_distance,
-            limit=limit,
-            offset=offset,
-            auto_limit=auto_limit,
-            filters=filters,
-            group_by=group_by,
-            rerank=rerank,
-            target_vector=target_vector,
-            include_vector=include_vector,
-            return_metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
+        return await aresult(
+            self._executor.hybrid(
+                connection=self._connection,
+                query=query,
+                single_prompt=single_prompt,
+                grouped_task=grouped_task,
+                grouped_properties=grouped_properties,
+                alpha=alpha,
+                vector=vector,
+                query_properties=query_properties,
+                fusion_type=fusion_type,
+                max_vector_distance=max_vector_distance,
+                limit=limit,
+                offset=offset,
+                auto_limit=auto_limit,
+                filters=filters,
+                group_by=group_by,
+                rerank=rerank,
+                target_vector=target_vector,
+                include_vector=include_vector,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                return_references=return_references,
+            )
         )
 
 
-@syncify.convert
+@syncify.convert_new(_HybridGenerateAsync)
 class _HybridGenerate(
-    Generic[Properties, References], _HybridGenerateAsync[Properties, References]
+    Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
 ):
     pass

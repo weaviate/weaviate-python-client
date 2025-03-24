@@ -1,16 +1,17 @@
 import asyncio
 import json
-from typing import Awaitable, Dict, List, Optional, Sequence, Union, cast, overload
+from typing import Dict, List, Optional, Sequence, Union, cast
 
 from httpx import Response
 
-from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync, ConnectionSync
-from weaviate.connect.executor import ExecutorResult, execute, raise_exception
+from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync
+from weaviate.connect.executor import ExecutorResult, aresult, execute, raise_exception, result
 from weaviate.rbac.models import (
     _Permission,
     PermissionsOutputType,
     PermissionsInputType,
     Role,
+    WeaviatePermission,
     WeaviateRole,
 )
 
@@ -30,7 +31,7 @@ def _flatten_permissions(
 
 
 class _RolesExecutor:
-    def list_all(self, connection: ConnectionAsync) -> Awaitable[Dict[str, Role]]:
+    def list_all(self, connection: Connection) -> ExecutorResult[Dict[str, Role]]:
         path = "/authz/roles"
 
         def resp(res: Response) -> Dict[str, Role]:
@@ -45,11 +46,14 @@ class _RolesExecutor:
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles"),
         )
 
-    def get_current_roles(self, connection: ConnectionAsync) -> Awaitable[List[WeaviateRole]]:
+    def get_current_roles(self, connection: Connection) -> ExecutorResult[List[WeaviateRole]]:
         path = "/authz/users/own-roles"
 
+        def resp(res: Response) -> List[WeaviateRole]:
+            return cast(List[WeaviateRole], res.json())
+
         return execute(
-            response_callback=lambda res: cast(List[WeaviateRole], res.json()),
+            response_callback=resp,
             exception_callback=raise_exception,
             method=connection.get,
             path=path,
@@ -57,11 +61,14 @@ class _RolesExecutor:
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own roles"),
         )
 
-    def exists(self, connection: ConnectionAsync, *, role_name: str) -> Awaitable[bool]:
+    def exists(self, role_name: str, *, connection: Connection) -> ExecutorResult[bool]:
         path = f"/authz/roles/{role_name}"
 
+        def resp(res: Response) -> bool:
+            return res.status_code == 200
+
         return execute(
-            response_callback=lambda res: res.status_code == 200,
+            response_callback=resp,
             exception_callback=raise_exception,
             method=connection.get,
             path=path,
@@ -69,7 +76,7 @@ class _RolesExecutor:
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="Get role"),
         )
 
-    def get(self, connection: ConnectionAsync, *, role_name: str) -> Awaitable[Optional[Role]]:
+    def get(self, role_name: str, *, connection: Connection) -> ExecutorResult[Optional[Role]]:
         path = f"/authz/roles/{role_name}"
 
         def resp(res: Response) -> Optional[Role]:
@@ -87,8 +94,8 @@ class _RolesExecutor:
         )
 
     def create(
-        self, connection: ConnectionAsync, *, permissions: PermissionsInputType, role_name: str
-    ) -> Awaitable[Role]:
+        self, *, connection: Connection, permissions: PermissionsInputType, role_name: str
+    ) -> ExecutorResult[Role]:
         path = "/authz/roles"
 
         perms = []
@@ -100,8 +107,11 @@ class _RolesExecutor:
             "permissions": perms,
         }
 
+        def resp(res: Response) -> Role:
+            return Role._from_weaviate_role(role)
+
         return execute(
-            response_callback=lambda res: Role._from_weaviate_role(role),
+            response_callback=resp,
             exception_callback=raise_exception,
             method=connection.post,
             path=path,
@@ -111,24 +121,30 @@ class _RolesExecutor:
         )
 
     def get_assigned_user_ids(
-        self, connection: ConnectionAsync, *, name: str
-    ) -> Awaitable[List[str]]:
-        path = f"/authz/roles/{name}/users"
+        self, role_name: str, *, connection: Connection
+    ) -> ExecutorResult[List[str]]:
+        path = f"/authz/roles/{role_name}/users"
+
+        def resp(res: Response) -> List[str]:
+            return cast(List[str], res.json())
 
         return execute(
-            response_callback=lambda res: cast(List[str], res.json()),
+            response_callback=resp,
             exception_callback=raise_exception,
             method=connection.get,
             path=path,
-            error_msg=f"Could not get users of role {name}",
+            error_msg=f"Could not get users of role {role_name}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get users of role"),
         )
 
-    def delete_role(self, connection: ConnectionAsync, *, role_name: str) -> Awaitable[None]:
+    def delete(self, role_name: str, *, connection: Connection) -> ExecutorResult[None]:
         path = f"/authz/roles/{role_name}"
 
+        def resp(res: Response) -> None:
+            return None
+
         return execute(
-            response_callback=lambda res: None,
+            response_callback=resp,
             exception_callback=raise_exception,
             method=connection.delete,
             path=path,
@@ -137,81 +153,106 @@ class _RolesExecutor:
         )
 
     def add_permissions(
-        self, connection: ConnectionAsync, *, permissions: PermissionsInputType, role_name: str
-    ) -> Awaitable[None]:
+        self, connection: Connection, *, permissions: PermissionsInputType, role_name: str
+    ) -> ExecutorResult[None]:
         path = f"/authz/roles/{role_name}/add-permissions"
 
         if isinstance(permissions, _Permission):
             permissions = [permissions]
 
-        perms = []
-        for perm in _flatten_permissions(permissions):
-            perms.extend(perm._to_weaviate())
+        def resp(res: Response) -> None:
+            return None
 
         return execute(
-            response_callback=lambda res: None,
+            response_callback=resp,
             exception_callback=raise_exception,
             method=connection.post,
             path=path,
-            weaviate_object={"permissions": permissions},
+            weaviate_object={
+                "permissions": [
+                    weav_perm
+                    for perm in _flatten_permissions(permissions)
+                    for weav_perm in perm._to_weaviate()
+                ]
+            },
             error_msg="Could not add permissions",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Add permissions"),
         )
 
     def remove_permissions(
-        self, connection: ConnectionAsync, *, permissions: PermissionsInputType, role_name: str
-    ) -> Awaitable[None]:
+        self, connection: Connection, *, permissions: PermissionsInputType, role_name: str
+    ) -> ExecutorResult[None]:
         path = f"/authz/roles/{role_name}/remove-permissions"
 
         if isinstance(permissions, _Permission):
             permissions = [permissions]
 
-        perms = []
-        for perm in _flatten_permissions(permissions):
-            perms.extend(perm._to_weaviate())
+        def resp(res: Response) -> None:
+            return None
 
         return execute(
-            response_callback=lambda res: None,
+            response_callback=resp,
             exception_callback=raise_exception,
             method=connection.post,
             path=path,
-            weaviate_object={"permissions": permissions},
+            weaviate_object={
+                "permissions": [
+                    weav_perm
+                    for perm in _flatten_permissions(permissions)
+                    for weav_perm in perm._to_weaviate()
+                ]
+            },
             error_msg="Could not remove permissions",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Remove permissions"),
         )
 
+    def __has_permission(
+        self, *, permission: WeaviatePermission, role: str, connection: Connection
+    ) -> ExecutorResult[bool]:
+        path = f"/authz/roles/{role}/has-permission"
+
+        def resp(res: Response) -> bool:
+            return res.status_code == 200
+
+        return execute(
+            response_callback=resp,
+            method=connection.post,
+            path=path,
+            weaviate_object=permission,
+            error_msg="Could not check permission",
+            status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="Check permission"),
+        )
+
     def has_permissions(
         self,
-        connection: ConnectionAsync,
         *,
         permissions: Union[
             PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
         ],
         role: str,
-    ) -> Awaitable[bool]:
-        path = f"/authz/roles/{role}/has-permission"
-
-        perms = []
-        for perm in _flatten_permissions(permissions):
-            perms.extend(perm._to_weaviate())
-
+        connection: Connection,
+    ) -> ExecutorResult[bool]:
         if isinstance(connection, ConnectionAsync):
 
             async def execute() -> bool:
-                call = lambda permission: connection.post(
-                    path=path,
-                    weaviate_object=permission,
-                    error_msg="Could not check permission",
-                    status_codes=_ExpectedStatusCodes(ok_in=[200], error="Check permission"),
+                return all(
+                    await asyncio.gather(
+                        *[
+                            aresult(
+                                self.__has_permission(
+                                    connection=connection, permission=weav_perm, role=role
+                                )
+                            )
+                            for permission in _flatten_permissions(permissions)
+                            for weav_perm in permission._to_weaviate()
+                        ]
+                    )
                 )
-                return all(await asyncio.gather(*[call(permission) for permission in perms]))
 
             return execute()
 
-        call = lambda permission: connection.post(
-            path=path,
-            weaviate_object=permission,
-            error_msg="Could not check permission",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Check permission"),
+        return all(
+            result(self.__has_permission(connection=connection, permission=weav_perm, role=role))
+            for permission in _flatten_permissions(permissions)
+            for weav_perm in permission._to_weaviate()
         )
-        return all(call(permission) for permission in perms)

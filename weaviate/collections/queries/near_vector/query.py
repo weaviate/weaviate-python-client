@@ -12,15 +12,14 @@ from weaviate.collections.classes.grpc import (
     NearVectorInputType,
 )
 from weaviate.collections.classes.internal import (
-    _GroupBy,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.base import _BaseQuery
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.connect.executor import aresult
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
@@ -92,27 +91,29 @@ class _NearVectorQueryAsync(
             `weaviate.exceptions.WeaviateGRPCQueryError`:
                 If the request to the Weaviate server fails.
         """
-        return await self._executor.near_vector(
-            self._connection,
-            near_vector=near_vector,
-            certainty=certainty,
-            distance=distance,
-            limit=limit,
-            offset=offset,
-            auto_limit=auto_limit,
-            filters=filters,
-            group_by=group_by,
-            rerank=rerank,
-            target_vector=target_vector,
-            include_vector=include_vector,
-            return_metadata=return_metadata,
-            return_properties=return_properties,
-            return_references=return_references,
+        return await aresult(
+            self._executor.near_vector(
+                connection=self._connection,
+                near_vector=near_vector,
+                certainty=certainty,
+                distance=distance,
+                limit=limit,
+                offset=offset,
+                auto_limit=auto_limit,
+                filters=filters,
+                group_by=group_by,
+                rerank=rerank,
+                target_vector=target_vector,
+                include_vector=include_vector,
+                return_metadata=return_metadata,
+                return_properties=return_properties,
+                return_references=return_references,
+            )
         )
 
 
-@syncify.convert
+@syncify.convert_new(_NearVectorQueryAsync)
 class _NearVectorQuery(
-    Generic[Properties, References], _NearVectorQueryAsync[Properties, References]
+    Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
 ):
     pass

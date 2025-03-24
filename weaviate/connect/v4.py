@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import asyncio
 import time
 from copy import copy
 from dataclasses import dataclass, field
 from ssl import SSLZeroReturnError
-from threading import Event, Thread
 from typing import (
     Any,
     Awaitable,
     Dict,
-    Generic,
     List,
     Literal,
     Optional,
@@ -25,7 +22,7 @@ from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
-from grpc import Channel as SyncChannel
+from grpc import Channel as SyncChannel, RpcError, Call  # type: ignore
 from grpc.aio import Channel as AsyncChannel, AioRpcError  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
 
@@ -52,10 +49,7 @@ from weaviate import __version__ as client_version
 from weaviate.auth import (
     AuthCredentials,
     AuthApiKey,
-    AuthClientCredentials,
 )
-from weaviate.collections.grpc.retry import _Retry
-from weaviate.collections.grpc.shared import PERMISSION_DENIED
 from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
 from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
@@ -63,6 +57,7 @@ from weaviate.connect.base import (
     JSONPayload,
     _get_proxies,
 )
+from weaviate.connect.executor import aresult
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
@@ -82,12 +77,14 @@ from weaviate.exceptions import (
     WeaviateTenantGetError,
 )
 from weaviate.proto.v1 import (
+    aggregate_pb2,
     batch_pb2,
     batch_delete_pb2,
     search_get_pb2,
     tenants_pb2,
     weaviate_pb2_grpc,
 )
+from weaviate.retry import _Retry
 from weaviate.util import (
     PYPI_PACKAGE_URL,
     _decode_json_response_dict,
@@ -102,6 +99,8 @@ Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
 Colour = Literal["async", "sync"]
+
+PERMISSION_DENIED = "PERMISSION_DENIED"
 
 
 @dataclass
@@ -127,8 +126,8 @@ class _ConnectionBase:
         trust_env: bool,
         additional_headers: Optional[Dict[str, Any]],
         connection_config: ConnectionConfig,
-        loop: asyncio.AbstractEventLoop,  # required for background token refresh
         embedded_db: Optional[EmbeddedV4] = None,
+        skip_init_checks: bool = False,
     ):
         self.url = connection_params._http_url
         self.embedded_db = embedded_db
@@ -145,7 +144,7 @@ class _ConnectionBase:
         self._weaviate_version = _ServerVersion.from_string("")
         self._grpc_max_msg_size: Optional[int] = None
         self._connected = False
-        self.__loop = loop
+        self._skip_init_checks = skip_init_checks
 
         self._headers = {"content-type": "application/json"}
         self.__add_weaviate_embedding_service_header(connection_params.http.host)
@@ -310,7 +309,11 @@ class _ConnectionBase:
 
                 async def execute() -> None:
                     assert isinstance(res, Awaitable)
-                    self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, await res))
+                    try:
+                        self.__handle_ping_response(cast(health_pb2.HealthCheckResponse, await res))
+                    except Exception as e:
+                        self.__handle_ping_exception(e)
+                    return None
 
                 return execute()
             assert not isinstance(res, Awaitable)
@@ -318,12 +321,14 @@ class _ConnectionBase:
 
         except Exception as e:
             self.__handle_ping_exception(e)
+        return None
 
     def __handle_ping_response(self, res: health_pb2.HealthCheckResponse) -> None:
         if res.status != health_pb2.HealthCheckResponse.SERVING:
             raise WeaviateGRPCUnavailableError(
                 f"v{self.server_version}", self._connection_params._grpc_address
             )
+        return None
 
     def __handle_ping_exception(self, e: Exception) -> None:
         raise WeaviateGRPCUnavailableError(
@@ -357,6 +362,15 @@ class _ConnectionBase:
     def __make_clients(self, colour: Literal["async", "sync"]) -> None:
         self._client = self._make_client(colour)
 
+    def __empty(self, colour: Colour) -> Union[None, Awaitable[None]]:
+        if colour == "async":
+
+            async def none() -> None:
+                pass
+
+            return none()
+        return None
+
     def open_connection_grpc(self, colour: Colour) -> None:
         channel = self._connection_params._grpc_channel(
             proxies=self._proxies, grpc_msg_size=self._grpc_max_msg_size, is_async=colour == "async"
@@ -366,21 +380,21 @@ class _ConnectionBase:
         self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
 
     def _open_connections_rest(
-        self, auth_client_secret: Optional[AuthCredentials], skip_init_checks: bool, colour: Colour
+        self, auth_client_secret: Optional[AuthCredentials], colour: Colour
     ) -> Union[None, Awaitable[None]]:
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self.__make_clients(colour)
-            return
+            return self.__empty(colour)
 
         if "authorization" in self._headers and auth_client_secret is None:
             self.__make_clients(colour)
-            return
+            return self.__empty(colour)
 
         # no need to check OIDC if no auth is provided and users dont want any checks at initialization time
-        if skip_init_checks and auth_client_secret is None:
+        if self._skip_init_checks and auth_client_secret is None:
             self.__make_clients(colour)
-            return
+            return self.__empty(colour)
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         if colour == "async":
@@ -428,7 +442,7 @@ class _ConnectionBase:
             except Exception:
                 _Warnings.auth_cannot_parse_oidc_config(oidc_url)
                 self.__make_clients(colour)
-                return
+                return self.__empty(colour)
 
             if auth_client_secret is not None:
                 if colour == "async":
@@ -494,6 +508,7 @@ class _ConnectionBase:
             self.__make_clients(colour)
         else:
             self.__make_clients(colour)
+        return self.__empty(colour)
 
     # def _create_background_token_refresh(self, _auth: Optional[_Auth] = None) -> None:
     #     """Create a background thread that periodically refreshes access and refresh tokens.
@@ -748,10 +763,10 @@ class ConnectionSync(_ConnectionBase):
     Connection class used to communicate to a weaviate instance.
     """
 
-    def connect(self, skip_init_checks: bool) -> None:
+    def connect(self) -> None:
         self._connected = True
 
-        self._open_connections_rest(self._auth, skip_init_checks, "sync")
+        self._open_connections_rest(self._auth, "sync")
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
@@ -772,7 +787,6 @@ class ConnectionSync(_ConnectionBase):
             raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
         self.open_connection_grpc("sync")
-        self._connected = True
         if self.embedded_db is not None:
             try:
                 self.wait_for_weaviate(10)
@@ -788,15 +802,13 @@ class ConnectionSync(_ConnectionBase):
                 f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
             )
 
-        if not skip_init_checks:
+        if not self._skip_init_checks:
             try:
                 self._ping_grpc("sync")
                 self._check_package_version()
             except Exception as e:
                 self._connected = False
                 raise e
-
-        self._connected = True
 
     def delete(
         self,
@@ -957,18 +969,121 @@ class ConnectionSync(_ConnectionBase):
                 f"Weaviate did not start up in {startup_period} seconds. Either the Weaviate URL {self.url} is wrong or Weaviate did not start up in the interval given in 'startup_period'."
             ) from error
 
+    def grpc_search(self, request: search_get_pb2.SearchRequest) -> search_get_pb2.SearchReply:
+        try:
+            assert self.grpc_stub is not None
+            res = _Retry(4).with_exponential_backoff(
+                0,
+                f"Searching in collection {request.collection}",
+                self.grpc_stub.Search,
+                request,
+                metadata=self.grpc_headers(),
+                timeout=self.timeout_config.query,
+            )
+            return cast(search_get_pb2.SearchReply, res)
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error.details())
+            raise WeaviateQueryError(str(error.details()), "GRPC search")  # pyright: ignore
+        except WeaviateRetryError as e:
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+
+    def grpc_batch_objects(
+        self,
+        request: batch_pb2.BatchObjectsRequest,
+        timeout: Union[int, float],
+    ) -> Dict[int, str]:
+        try:
+            assert self.grpc_stub is not None
+            res = self.grpc_stub.BatchObjects(
+                request,
+                metadata=self.grpc_headers(),
+                timeout=timeout,
+            )
+            res = cast(batch_pb2.BatchObjectsReply, res)
+
+            objects: Dict[int, str] = {}
+            for result in res.errors:
+                objects[result.index] = result.error
+            return objects
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error.details())
+            raise WeaviateBatchError(str(error.details())) from error.details()
+
+    def grpc_batch_delete(
+        self, request: batch_delete_pb2.BatchDeleteRequest
+    ) -> batch_delete_pb2.BatchDeleteReply:
+        try:
+            assert self.grpc_stub is not None
+            return cast(
+                batch_delete_pb2.BatchDeleteReply,
+                self.grpc_stub.BatchDelete(
+                    request,
+                    metadata=self.grpc_headers(),
+                    timeout=self.timeout_config.insert,
+                ),
+            )
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error.details())
+            raise WeaviateDeleteManyError(str(error.details()))
+
+    def grpc_tenants_get(
+        self, request: tenants_pb2.TenantsGetRequest
+    ) -> tenants_pb2.TenantsGetReply:
+        try:
+            assert self.grpc_stub is not None
+            res = _Retry().with_exponential_backoff(
+                0,
+                f"Get tenants for collection {request.collection}",
+                self.grpc_stub.TenantsGet,
+                request,
+                metadata=self.grpc_headers(),
+                timeout=self.timeout_config.query,
+            )
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error.details())
+            raise WeaviateTenantGetError(str(error.details())) from e
+
+        return cast(tenants_pb2.TenantsGetReply, res)
+
+    def grpc_aggregate(
+        self, request: aggregate_pb2.AggregateRequest
+    ) -> aggregate_pb2.AggregateReply:
+        try:
+            assert self.grpc_stub is not None
+            res = _Retry(4).with_exponential_backoff(
+                0,
+                f"Searching in collection {request.collection}",
+                self.grpc_stub.Aggregate,
+                request,
+                metadata=self.grpc_headers(),
+                timeout=self.timeout_config.query,
+            )
+            return cast(aggregate_pb2.AggregateReply, res)
+        except AioRpcError as e:
+            if e.code().name == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(e)
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+        except WeaviateRetryError as e:
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+
 
 class ConnectionAsync(_ConnectionBase):
     """
     Connection class used to communicate to a weaviate instance.
     """
 
-    async def connect(self, skip_init_checks: bool) -> None:
+    async def connect(self) -> None:
         self._connected = True
 
-        open = self._open_connections_rest(self._auth, skip_init_checks, "async")
-        assert isinstance(open, Awaitable)
-        await open
+        await aresult(self._open_connections_rest(self._auth, "async"))
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
@@ -1005,7 +1120,7 @@ class ConnectionAsync(_ConnectionBase):
                 f"Weaviate version {self._weaviate_version} is not supported. Please use Weaviate version 1.23.7 or higher."
             )
 
-        if not skip_init_checks:
+        if not self._skip_init_checks:
             try:
                 ping = self._ping_grpc("async")
                 assert isinstance(ping, Awaitable)
@@ -1181,7 +1296,7 @@ class ConnectionAsync(_ConnectionBase):
     ) -> search_get_pb2.SearchReply:
         try:
             assert self.grpc_stub is not None
-            res = await _Retry(4).with_exponential_backoff(
+            res = await _Retry(4).awith_exponential_backoff(
                 0,
                 f"Searching in collection {request.collection}",
                 self.grpc_stub.Search,
@@ -1240,7 +1355,7 @@ class ConnectionAsync(_ConnectionBase):
     ) -> tenants_pb2.TenantsGetReply:
         try:
             assert self.grpc_stub is not None
-            res = await _Retry().with_exponential_backoff(
+            res = await _Retry().awith_exponential_backoff(
                 0,
                 f"Get tenants for collection {request.collection}",
                 self.grpc_stub.TenantsGet,
@@ -1254,6 +1369,27 @@ class ConnectionAsync(_ConnectionBase):
             raise WeaviateTenantGetError(str(e)) from e
 
         return cast(tenants_pb2.TenantsGetReply, res)
+
+    async def grpc_aggregate(
+        self, request: aggregate_pb2.AggregateRequest
+    ) -> aggregate_pb2.AggregateReply:
+        try:
+            assert self.grpc_stub is not None
+            res = await _Retry(4).awith_exponential_backoff(
+                0,
+                f"Searching in collection {request.collection}",
+                self.grpc_stub.Aggregate,
+                request,
+                metadata=self.grpc_headers(),
+                timeout=self.timeout_config.query,
+            )
+            return cast(aggregate_pb2.AggregateReply, res)
+        except AioRpcError as e:
+            if e.code().name == PERMISSION_DENIED:
+                raise InsufficientPermissionsError(e)
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
+        except WeaviateRetryError as e:
+            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
 
 ConnectionV4 = ConnectionAsync

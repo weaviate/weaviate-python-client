@@ -1,6 +1,5 @@
 from typing import Optional, Sequence
 
-from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.tenants import TenantActivityStatus
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.proto.v1 import tenants_pb2
@@ -12,9 +11,8 @@ class _TenantsGRPC(_BaseGRPC):
         self,
         weaviate_version: _ServerVersion,
         name: str,
-        consistency_level: Optional[ConsistencyLevel],
     ):
-        super().__init__(weaviate_version, consistency_level, False)
+        super().__init__(weaviate_version, None, False)
         self._name: str = name
 
     def get(self, names: Optional[Sequence[str]]) -> tenants_pb2.TenantsGetRequest:

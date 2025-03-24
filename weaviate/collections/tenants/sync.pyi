@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Sequence, Union
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.collections.tenants.tenants import (
+from weaviate.collections.tenants.async_ import (
     _TenantsBase,
     TenantCreateInputType,
     TenantOutputType,
