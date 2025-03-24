@@ -344,8 +344,12 @@ PermissionsOutputType = Union[
 
 
 @dataclass
-class Role:
+class RoleBase:
     name: str
+
+
+@dataclass
+class Role(RoleBase):
     cluster_permissions: List[ClusterPermissionOutput]
     collections_permissions: List[CollectionsPermissionOutput]
     data_permissions: List[DataPermissionOutput]
