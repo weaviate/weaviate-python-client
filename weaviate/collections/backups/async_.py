@@ -3,24 +3,21 @@ from typing import Generic, Optional
 from weaviate.backup.backup import (
     BackupConfigCreate,
     BackupConfigRestore,
-    BackupReturn,
     BackupStatusReturn,
     BackupStorage,
 )
-from weaviate.backup.executor import _BackupExecutor
 from weaviate.backup.backup_location import BackupLocationType
-from weaviate.connect.executor import execute, aresult
+from weaviate.collections.backups.executor import _CollectionBackupExecutor
+from weaviate.connect.executor import aresult
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType
 
 
 class _CollectionBackupBase(Generic[ConnectionType]):
     """Backup functionality for this collection."""
 
-    _executor = _BackupExecutor()
-
     def __init__(self, connection: ConnectionType, name: str):
         self._connection: ConnectionType = connection
-        self._name = name
+        self._executor = _CollectionBackupExecutor(name)
 
 
 class _CollectionBackupAsync(_CollectionBackupBase[ConnectionAsync]):
@@ -61,21 +58,11 @@ class _CollectionBackupAsync(_CollectionBackupBase[ConnectionAsync]):
             `TypeError`
                 One of the arguments have a wrong type.
         """
-
-        def resp(res: BackupReturn) -> BackupStatusReturn:
-            return BackupStatusReturn(
-                error=res.error, status=res.status, path=res.path, id=backup_id
-            )
-
         return await aresult(
-            execute(
-                response_callback=resp,
-                method=self._executor.create,
+            self._executor.create(
                 connection=self._connection,
                 backup_id=backup_id,
                 backend=backend,
-                include_collections=[self._name],
-                exclude_collections=None,
                 wait_for_completion=wait_for_completion,
                 config=config,
                 backup_location=backup_location,
@@ -117,21 +104,11 @@ class _CollectionBackupAsync(_CollectionBackupBase[ConnectionAsync]):
             `weaviate.BackupFailedError`
                 If the backup failed.
         """
-
-        def resp(res: BackupReturn) -> BackupStatusReturn:
-            return BackupStatusReturn(
-                error=res.error, status=res.status, path=res.path, id=backup_id
-            )
-
         return await aresult(
-            execute(
-                response_callback=resp,
-                method=self._executor.restore,
+            self._executor.restore(
                 connection=self._connection,
                 backup_id=backup_id,
                 backend=backend,
-                include_collections=[self._name],
-                exclude_collections=None,
                 wait_for_completion=wait_for_completion,
                 config=config,
                 backup_location=backup_location,

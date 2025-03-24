@@ -109,11 +109,11 @@ class _BackupExecutor:
         *,
         backup_id: str,
         backend: BackupStorage,
-        wait_for_completion: bool,
-        config: Optional[BackupConfigCreate],
-        backup_location: Optional[BackupLocationType],
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
+        wait_for_completion: bool = False,
+        config: Optional[BackupConfigCreate] = None,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupReturn]:
         (
             backup_id,

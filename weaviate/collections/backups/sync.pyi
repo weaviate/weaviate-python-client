@@ -6,7 +6,7 @@ from weaviate.backup.backup import (
     BackupStorage,
     BackupLocationType,
 )
-from weaviate.collections.backups.backups import _CollectionBackupBase
+from weaviate.collections.backups.async_ import _CollectionBackupBase
 from weaviate.connect.v4 import ConnectionSync
 
 class _CollectionBackup(_CollectionBackupBase[ConnectionSync]):

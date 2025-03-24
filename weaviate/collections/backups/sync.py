@@ -1,5 +1,5 @@
 from weaviate import syncify
-from weaviate.collections.backups.backups import _CollectionBackupAsync, _CollectionBackupBase
+from weaviate.collections.backups.async_ import _CollectionBackupAsync, _CollectionBackupBase
 from weaviate.connect.v4 import ConnectionSync
 
 
