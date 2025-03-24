@@ -15,6 +15,7 @@ from weaviate.users.async_ import _UsersAsync
 from weaviate.users.sync import _Users
 from .auth import AuthCredentials
 from .client_base import _WeaviateClientInit
+from .collections.batch.client import _BatchClientWrapper
 from .collections.classes.internal import _RawGQLReturn
 from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections.async_ import _CollectionsAsync
@@ -212,7 +213,7 @@ class WeaviateClient(_WeaviateClientInit[ConnectionSync]):
 
         collections = _Collections(self._connection)
 
-        # self.batch = _BatchClientWrapper(self._connection, config=collections)
+        self.batch = _BatchClientWrapper(self._connection, config=collections)
         """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
         """This namespace contains all functionality to backup data."""

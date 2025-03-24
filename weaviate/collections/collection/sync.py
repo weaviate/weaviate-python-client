@@ -4,6 +4,7 @@ from typing import Generic, List, Literal, Optional, Type, Union, overload
 
 from weaviate.collections.aggregate import _AggregateCollection
 from weaviate.collections.backups import _CollectionBackup
+from weaviate.collections.batch.collection import _BatchCollectionWrapper
 from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
@@ -98,13 +99,13 @@ class Collection(Generic[Properties, References], _CollectionBase[ConnectionSync
             name=name,
         )
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
-        # self.batch = _BatchCollectionWrapper[Properties](
-        #     connection,
-        #     consistency_level,
-        #     name,
-        #     tenant,
-        #     config,
-        # )
+        self.batch = _BatchCollectionWrapper[Properties](
+            connection,
+            consistency_level,
+            name,
+            tenant,
+            config,
+        )
         """This namespace contains all the functionality to upload data in batches to Weaviate for this specific collection."""
         self.config = config
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""

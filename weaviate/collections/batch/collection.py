@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Generic, List, Optional, Union
 
 from weaviate.collections.batch.base import (
@@ -12,8 +13,7 @@ from weaviate.collections.batch.batch_wrapper import _BatchWrapper, _ContextMana
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
 from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
 from weaviate.collections.classes.types import Properties
-from weaviate.connect.v4 import ConnectionV4
-from weaviate.event_loop import _EventLoop
+from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS
 
@@ -24,8 +24,8 @@ if TYPE_CHECKING:
 class _BatchCollection(Generic[Properties], _BatchBase):
     def __init__(
         self,
-        event_loop: _EventLoop,
-        connection: ConnectionV4,
+        executor: ThreadPoolExecutor,
+        connection: ConnectionSync,
         consistency_level: Optional[ConsistencyLevel],
         results: _BatchDataWrapper,
         batch_mode: _BatchMode,
@@ -38,7 +38,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
             consistency_level=consistency_level,
             results=results,
             batch_mode=batch_mode,
-            event_loop=event_loop,
+            executor=executor,
             vectorizer_batching=vectorizer_batching,
         )
         self.__name = name
@@ -121,7 +121,7 @@ CollectionBatchingContextManager = _ContextManagerWrapper[BatchCollection[Proper
 class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: ConnectionSync,
         consistency_level: Optional[ConsistencyLevel],
         name: str,
         tenant: Optional[str],
@@ -132,6 +132,8 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__tenant = tenant
         self.__config = config
         self._vectorizer_batching: Optional[bool] = None
+        self.__executor = ThreadPoolExecutor()
+        # define one executor per client with it shared between all child batch contexts
 
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
         if self._vectorizer_batching is None:
@@ -155,11 +157,11 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self._batch_data = _BatchDataWrapper()  # clear old data
         return _ContextManagerWrapper(
             _BatchCollection[Properties](
-                event_loop=self._event_loop,
                 connection=self._connection,
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
                 batch_mode=self._batch_mode,
+                executor=self.__executor,
                 name=self.__name,
                 tenant=self.__tenant,
                 vectorizer_batching=self._vectorizer_batching,
