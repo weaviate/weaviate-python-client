@@ -7,15 +7,15 @@ from typing_extensions import deprecated
 class _UsersOIDC(_UsersInit):
     @overload
     def get_assigned_roles(
-        self, user_id: str, return_full_roles: Literal[False] = False
+        self, user_id: str, include_permissions: Literal[False] = False
     ) -> Dict[str, RoleBase]: ...
     @overload
     def get_assigned_roles(
-        self, user_id: str, return_full_roles: Literal[True]
+        self, user_id: str, include_permissions: Literal[True]
     ) -> Dict[str, Role]: ...
     @overload
     def get_assigned_roles(
-        self, user_id: str, return_full_roles: bool = False
+        self, user_id: str, include_permissions: bool = False
     ) -> Union[Dict[str, Role], Dict[str, RoleBase]]: ...
     def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
     def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
@@ -23,15 +23,15 @@ class _UsersOIDC(_UsersInit):
 class _UsersDB(_UsersInit):
     @overload
     def get_assigned_roles(
-        self, user_id: str, return_full_roles: Literal[False] = False
+        self, user_id: str, include_permissions: Literal[False] = False
     ) -> Dict[str, RoleBase]: ...
     @overload
     def get_assigned_roles(
-        self, user_id: str, return_full_roles: Literal[True]
+        self, user_id: str, include_permissions: Literal[True]
     ) -> Dict[str, Role]: ...
     @overload
     def get_assigned_roles(
-        self, user_id: str, return_full_roles: bool = False
+        self, user_id: str, include_permissions: bool = False
     ) -> Union[Dict[str, Role], Dict[str, RoleBase]]: ...
     def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
     def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...

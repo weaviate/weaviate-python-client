@@ -41,7 +41,7 @@ def test_get_user_roles_db(client_factory: ClientFactory) -> None:
         assert len(roles_base) > 0
         assert isinstance(roles_base[names[0]], RoleBase)
 
-        roles = client.users.db.get_assigned_roles("admin-user", return_full_roles=True)
+        roles = client.users.db.get_assigned_roles("admin-user", include_permissions=True)
         assert len(roles) > 0
         assert isinstance(roles[names[0]], Role)
 
@@ -55,7 +55,7 @@ def test_get_user_roles_oidc(client_factory: ClientFactory) -> None:
         assert len(roles_base) > 0
         assert isinstance(roles_base[names[0]], RoleBase)
 
-        roles = client.users.oidc.get_assigned_roles("admin-user", return_full_roles=True)
+        roles = client.users.oidc.get_assigned_roles("admin-user", include_permissions=True)
         assert len(roles) > 0
         assert isinstance(roles[names[0]], Role)
 
