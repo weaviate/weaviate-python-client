@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 4.11.3
+--------------
+This patch version includes:
+    - Fixes a rare bug when the batching algorithm waits for async indexing to complete far beyond the maximum number of allowed retries
+    - Removes the sync-in-async warning emitted by the sync client when used in an async context due to the warning being erroneously emitted in notebooks
+
 Version 4.11.2
 --------------
 This patch version includes:
