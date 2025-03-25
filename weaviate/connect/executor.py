@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, TypeVar, Union, Any, overload, cast
+from typing import Awaitable, Callable, Literal, TypeVar, Union, Any, overload, cast
 from typing_extensions import ParamSpec
 
 R = TypeVar("R")
@@ -16,6 +16,7 @@ SyncOrAsyncMethod = Union[
 ]
 
 ExecutorResult = Union[T, Awaitable[T]]
+Colour = Literal["async", "sync"]
 
 
 def raise_exception(e: Exception) -> Any:
@@ -91,3 +92,17 @@ def result(result: ExecutorResult[T]) -> T:
 async def aresult(result: ExecutorResult[T]) -> T:
     assert isinstance(result, Awaitable), f"Expected async result, got {result}"
     return await result
+
+
+def return_(value: T, colour: Colour) -> ExecutorResult[T]:
+    if colour == "async":
+
+        async def execute_() -> T:
+            return value
+
+        return execute_()
+    return value
+
+
+def empty(colour: Colour) -> ExecutorResult[None]:
+    return return_(None, colour)

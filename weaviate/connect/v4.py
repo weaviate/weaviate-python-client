@@ -4,6 +4,7 @@ import time
 from copy import copy
 from dataclasses import dataclass, field
 from ssl import SSLZeroReturnError
+from threading import Event, Thread
 from typing import (
     Any,
     Awaitable,
@@ -46,10 +47,7 @@ from httpx import (
 )
 
 from weaviate import __version__ as client_version
-from weaviate.auth import (
-    AuthCredentials,
-    AuthApiKey,
-)
+from weaviate.auth import AuthCredentials, AuthApiKey, AuthClientCredentials
 from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
 from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
@@ -57,7 +55,8 @@ from weaviate.connect.base import (
     JSONPayload,
     _get_proxies,
 )
-from weaviate.connect.executor import aresult
+from weaviate.connect.executor import aresult, result, empty, Colour
+from weaviate.connect.event_loop import _EventLoopSingleton
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
@@ -98,7 +97,6 @@ from weaviate.warnings import _Warnings
 Session = Union[Client, OAuth2Client]
 AsyncSession = Union[AsyncClient, AsyncOAuth2Client]
 HttpClient = Union[AsyncClient, AsyncOAuth2Client, Client, OAuth2Client]
-Colour = Literal["async", "sync"]
 
 PERMISSION_DENIED = "PERMISSION_DENIED"
 
@@ -253,7 +251,7 @@ class _ConnectionBase:
 
         if "authorization" in self._headers:
             return self._headers["authorization"]
-        elif isinstance(self._client, AsyncOAuth2Client):
+        elif isinstance(self._client, (OAuth2Client, AsyncOAuth2Client)):
             return f"Bearer {self._client.token['access_token']}"
         return ""
 
@@ -382,15 +380,6 @@ class _ConnectionBase:
     def __make_clients(self, colour: Literal["async", "sync"]) -> None:
         self._client = self._make_client(colour)
 
-    def __empty(self, colour: Colour) -> Union[None, Awaitable[None]]:
-        if colour == "async":
-
-            async def none() -> None:
-                pass
-
-            return none()
-        return None
-
     def open_connection_grpc(self, colour: Colour) -> None:
         channel = self._connection_params._grpc_channel(
             proxies=self._proxies, grpc_msg_size=self._grpc_max_msg_size, is_async=colour == "async"
@@ -405,16 +394,16 @@ class _ConnectionBase:
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self.__make_clients(colour)
-            return self.__empty(colour)
+            return empty(colour)
 
         if "authorization" in self._headers and auth_client_secret is None:
             self.__make_clients(colour)
-            return self.__empty(colour)
+            return empty(colour)
 
         # no need to check OIDC if no auth is provided and users dont want any checks at initialization time
         if self._skip_init_checks and auth_client_secret is None:
             self.__make_clients(colour)
-            return self.__empty(colour)
+            return empty(colour)
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         if colour == "async":
@@ -462,49 +451,55 @@ class _ConnectionBase:
             except Exception:
                 _Warnings.auth_cannot_parse_oidc_config(oidc_url)
                 self.__make_clients(colour)
-                return self.__empty(colour)
+                return empty(colour)
 
             if auth_client_secret is not None:
                 if colour == "async":
 
                     async def execute() -> None:
-                        _auth = await _Auth.use_async(
-                            oidc_config=resp,
-                            credentials=auth_client_secret,
-                            make_mounts=lambda: self._make_mounts("async"),
+                        _auth = await aresult(
+                            _Auth.use(
+                                oidc_config=resp,
+                                credentials=auth_client_secret,
+                                make_mounts=lambda: self._make_mounts("async"),
+                                colour=colour,
+                            )
                         )
                         try:
-                            self._client = await _auth.get_auth_session_async()
+                            self._client = await _auth.aresult(_auth.get_auth_session())
                         except HTTPError as e:
                             raise AuthenticationFailedError(
                                 f"Failed to authenticate with OIDC: {repr(e)}"
                             )
 
-                        # if isinstance(auth_client_secret, AuthClientCredentials):
-                        #     # credentials should only be saved for client credentials, otherwise use refresh token
-                        #     self._create_background_token_refresh(_auth)
-                        # else:
-                        #     self._create_background_token_refresh()
+                        if isinstance(auth_client_secret, AuthClientCredentials):
+                            # credentials should only be saved for client credentials, otherwise use refresh token
+                            self._create_background_token_refresh(_auth)
+                        else:
+                            self._create_background_token_refresh()
 
                     return execute()
                 else:
-                    _auth = _Auth.use_sync(
-                        oidc_config=resp,
-                        credentials=auth_client_secret,
-                        make_mounts=lambda: self._make_mounts("sync"),
+                    _auth = result(
+                        _Auth.use(
+                            oidc_config=resp,
+                            credentials=auth_client_secret,
+                            make_mounts=lambda: self._make_mounts("sync"),
+                            colour=colour,
+                        )
                     )
                     try:
-                        self._client = _auth.get_auth_session()
+                        self._client = _auth.result(_auth.get_auth_session())
                     except HTTPError as e:
                         raise AuthenticationFailedError(
                             f"Failed to authenticate with OIDC: {repr(e)}"
                         )
 
-                    # if isinstance(auth_client_secret, AuthClientCredentials):
-                    #     # credentials should only be saved for client credentials, otherwise use refresh token
-                    #     self._create_background_token_refresh(_auth)
-                    # else:
-                    #     self._create_background_token_refresh()
+                    if isinstance(auth_client_secret, AuthClientCredentials):
+                        # credentials should only be saved for client credentials, otherwise use refresh token
+                        self._create_background_token_refresh(_auth)
+                    else:
+                        self._create_background_token_refresh()
 
             else:
                 msg = f""""No login credentials provided. The weaviate instance at {self.url} requires login credentials.
@@ -528,70 +523,89 @@ class _ConnectionBase:
             self.__make_clients(colour)
         else:
             self.__make_clients(colour)
-        return self.__empty(colour)
+        return empty(colour)
 
-    # def _create_background_token_refresh(self, _auth: Optional[_Auth] = None) -> None:
-    #     """Create a background thread that periodically refreshes access and refresh tokens.
+    def _create_background_token_refresh(self, _auth: Optional[_Auth] = None) -> None:
+        """Create a background thread that periodically refreshes access and refresh tokens.
 
-    #     While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
-    #     X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
-    #     expire. Therefore, refresh manually shortly before expiration time is up."""
-    #     assert isinstance(self._client, AsyncOAuth2Client)
-    #     if "refresh_token" not in self._client.token and _auth is None:
-    #         return
+        While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
+        X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
+        expire. Therefore, refresh manually shortly before expiration time is up."""
+        assert isinstance(self._client, (OAuth2Client, AsyncOAuth2Client))
+        if "refresh_token" not in self._client.token and _auth is None:
+            return
 
-    #     expires_in: int = self._client.token.get(
-    #         "expires_in", 60
-    #     )  # use 1minute as token lifetime if not supplied
-    #     self._shutdown_background_event = Event()
+        # make an event loop sidecar thread for running async token refreshing
+        event_loop = (
+            _EventLoopSingleton.get_instance()
+            if isinstance(self._client, AsyncOAuth2Client)
+            else None
+        )
 
-    #     def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
-    #         time.sleep(max(refresh_time - 30, 1))
-    #         while (
-    #             self._shutdown_background_event is not None
-    #             and not self._shutdown_background_event.is_set()
-    #         ):
-    #             # use refresh token when available
-    #             try:
-    #                 if self._client is None:
-    #                     pass
-    #                 elif "refresh_token" in cast(AsyncOAuth2Client, self._client).token:
-    #                     assert isinstance(self._client, AsyncOAuth2Client)
-    #                     self._client.token = asyncio.run_coroutine_threadsafe(
-    #                         self._client.refresh_token(
-    #                             self._client.metadata["token_endpoint"]
-    #                         ),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
-    #                         self.__loop,
-    #                     ).result()
-    #                     expires_in = self._client.token.get("expires_in", 60)
-    #                     assert isinstance(expires_in, int)
-    #                     refresh_time = expires_in - 30
-    #                 else:
-    #                     # client credentials usually does not contain a refresh token => get a new token using the
-    #                     # saved credentials
-    #                     assert _auth is not None
-    #                     assert isinstance(self._client, AsyncOAuth2Client)
-    #                     new_session = asyncio.run_coroutine_threadsafe(
-    #                         _auth.get_auth_session(), self.__loop
-    #                     ).result()
-    #                     self._client.token = asyncio.run_coroutine_threadsafe(
-    #                         new_session.fetch_token(),  # pyright: ignore # due to AsyncOAuth2Client not providing correct type
-    #                         self.__loop,
-    #                     ).result()
-    #             except HTTPError as exc:
-    #                 # retry again after one second, might be an unstable connection
-    #                 refresh_time = 1
-    #                 _Warnings.token_refresh_failed(exc)
+        expires_in: int = self._client.token.get(
+            "expires_in", 60
+        )  # use 1minute as token lifetime if not supplied
+        self._shutdown_background_event = Event()
 
-    #             time.sleep(max(refresh_time, 1))
+        def refresh_token() -> None:
+            if isinstance(self._client, AsyncOAuth2Client):
+                assert event_loop is not None
+                self._client.token = event_loop.run_until_complete(
+                    self._client.refresh_token, url=self._client.metadata["token_endpoint"]
+                )
+            elif isinstance(self._client, OAuth2Client):
+                self._client.token = self._client.refresh_token(
+                    url=self._client.metadata["token_endpoint"]
+                )
 
-    #     demon = Thread(
-    #         target=periodic_refresh_token,
-    #         args=(expires_in, _auth),
-    #         daemon=True,
-    #         name="TokenRefresh",
-    #     )
-    #     demon.start()
+        def refresh_session() -> None:
+            assert _auth is not None
+            if isinstance(self._client, AsyncOAuth2Client):
+                assert event_loop is not None
+                new_session = event_loop.run_until_complete(
+                    _auth.aresult, result=_auth.get_auth_session()
+                )
+                self._client.token = event_loop.run_until_complete(new_session.fetch_token)
+            elif isinstance(self._client, OAuth2Client):
+                new_session = _auth.result(_auth.get_auth_session())
+                self._client.token = new_session.fetch_token()
+
+        def update_refresh_time() -> int:
+            assert isinstance(self._client, (OAuth2Client, AsyncOAuth2Client))
+            return self._client.token.get("expires_in", 60) - 30
+
+        def periodic_refresh_token(refresh_time: int, _auth: Optional[_Auth]) -> None:
+            while (
+                self._shutdown_background_event is not None
+                and not self._shutdown_background_event.is_set()
+            ):
+                # use refresh token when available
+                time.sleep(max(refresh_time, 1))
+                try:
+                    if self._client is None:
+                        continue
+                    elif (
+                        isinstance(self._client, (OAuth2Client, AsyncOAuth2Client))
+                        and "refresh_token" in self._client.token
+                    ):
+                        refresh_token()
+                    else:
+                        # client credentials usually does not contain a refresh token => get a new token using the
+                        # saved credentials
+                        refresh_session()
+                    refresh_time = update_refresh_time()
+                except HTTPError as exc:
+                    # retry again after one second, might be an unstable connection
+                    refresh_time = 1
+                    _Warnings.token_refresh_failed(exc)
+
+        demon = Thread(
+            target=periodic_refresh_token,
+            args=(expires_in, _auth),
+            daemon=True,
+            name="TokenRefresh",
+        )
+        demon.start()
 
     def __get_latest_headers(self) -> Dict[str, str]:
         if "authorization" in self._headers:
@@ -790,6 +804,9 @@ class ConnectionSync(_ConnectionBase):
     """
 
     def connect(self) -> None:
+        if self._connected:
+            return None
+
         self._connected = True
 
         self._open_connections_rest(self._auth, "sync")
@@ -1031,8 +1048,8 @@ class ConnectionSync(_ConnectionBase):
             res = cast(batch_pb2.BatchObjectsReply, res)
 
             objects: Dict[int, str] = {}
-            for result in res.errors:
-                objects[result.index] = result.error
+            for err in res.errors:
+                objects[err.index] = err.error
             return objects
         except RpcError as e:
             error = cast(Call, e)
@@ -1108,6 +1125,9 @@ class ConnectionAsync(_ConnectionBase):
     """
 
     async def connect(self) -> None:
+        if self._connected:
+            return None
+
         self._connected = True
 
         await aresult(self._open_connections_rest(self._auth, "async"))
@@ -1355,8 +1375,8 @@ class ConnectionAsync(_ConnectionBase):
             res = cast(batch_pb2.BatchObjectsReply, res)
 
             objects: Dict[int, str] = {}
-            for result in res.errors:
-                objects[result.index] = result.error
+            for err in res.errors:
+                objects[err.index] = err.error
             return objects
         except AioRpcError as e:
             if e.code().name == PERMISSION_DENIED:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Optional, Union
+from typing import Awaitable, Callable, Dict, List, Optional, Union
 
 import httpx
 from authlib.integrations.httpx_client import OAuth2Client, AsyncOAuth2Client  # type: ignore
@@ -12,11 +12,17 @@ from weaviate.auth import (
     AuthClientCredentials,
 )
 from weaviate.exceptions import MissingScopeError, AuthenticationFailedError
+from .executor import aresult, empty, execute, return_, result, ExecutorResult, Colour
 from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
 
 AUTH_DEFAULT_TIMEOUT = 5
 OIDC_CONFIG = Dict[str, Union[str, List[str]]]
+
+AuthExecutorResult = Union[OAuth2Client, Awaitable[AsyncOAuth2Client]]
+MountsMaker = Union[
+    Callable[[], Dict[str, httpx.AsyncHTTPTransport]], Callable[[], Dict[str, httpx.HTTPTransport]]
+]
 
 
 class _Auth:
@@ -24,15 +30,12 @@ class _Auth:
         self,
         oidc_config: OIDC_CONFIG,
         credentials: AuthCredentials,
-        make_async_mounts: Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
-        make_sync_mounts: Callable[[], Dict[str, httpx.HTTPTransport]],
-        is_async: bool = False,
+        make_mounts: MountsMaker,
+        colour: Colour,
     ) -> None:
         self._credentials: AuthCredentials = credentials
-        self._make_async_mounts: Callable[[], Dict[str, httpx.AsyncHTTPTransport]] = (
-            make_async_mounts
-        )
-        self._make_sync_mounts: Callable[[], Dict[str, httpx.HTTPTransport]] = make_sync_mounts
+        self.__make_mounts = make_mounts
+        self.__colour: Colour = colour
         config_url = oidc_config["href"]
         client_id = oidc_config["clientId"]
         assert isinstance(config_url, str) and isinstance(client_id, str)
@@ -47,40 +50,38 @@ class _Auth:
         self._token_endpoint: Optional[str] = None
         self._oidc_config = oidc_config
 
-    @classmethod
-    async def use_async(
-        cls,
+    @staticmethod
+    def result(result: AuthExecutorResult) -> OAuth2Client:
+        assert isinstance(result, OAuth2Client)
+        return result
+
+    @staticmethod
+    async def aresult(result: AuthExecutorResult) -> AsyncOAuth2Client:
+        assert isinstance(result, Awaitable)
+        return await result
+
+    @staticmethod
+    def use(
         oidc_config: OIDC_CONFIG,
         credentials: AuthCredentials,
-        make_mounts: Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
-    ) -> _Auth:
-        auth = cls(oidc_config, credentials, make_mounts, lambda: {}, True)
-        auth._token_endpoint = await auth._get_token_endpoint_async()
-        await auth._validate_async(auth._oidc_config)
+        make_mounts: MountsMaker,
+        colour: Colour,
+    ) -> ExecutorResult[_Auth]:
+        auth = _Auth(oidc_config, credentials, make_mounts, colour)
+        if colour == "async":
+
+            async def _execute() -> _Auth:
+                auth._token_endpoint = await aresult(auth._get_token_endpoint())
+                await aresult(auth._validate(auth._oidc_config))
+                return auth
+
+            return _execute()
+        auth._token_endpoint = result(auth._get_token_endpoint())
+        result(auth._validate(auth._oidc_config))
         return auth
 
-    @classmethod
-    def use_sync(
-        cls,
-        oidc_config: OIDC_CONFIG,
-        credentials: AuthCredentials,
-        make_mounts: Callable[[], Dict[str, httpx.HTTPTransport]],
-    ) -> _Auth:
-        auth = cls(oidc_config, credentials, lambda: {}, make_mounts, False)
-        auth._token_endpoint = auth._get_token_endpoint()
-        auth._validate(auth._oidc_config)
-        return auth
-
-    async def _validate_async(self, oidc_config: OIDC_CONFIG) -> None:
+    def _validate(self, oidc_config: OIDC_CONFIG) -> ExecutorResult[None]:
         if isinstance(self._credentials, AuthClientPassword):
-            if (await self._get_token_endpoint_async()).startswith(
-                "https://login.microsoftonline.com"
-            ):
-                raise AuthenticationFailedError(
-                    """Microsoft/azure does not recommend to authenticate using username and password and this method is
-                    not supported by the python client."""
-                )
-
             # The grant_types_supported field is optional and does not have to be present in the response
             if (
                 "grant_types_supported" in oidc_config
@@ -91,58 +92,46 @@ class _Auth:
                     the 'password' grant type."""
                 )
 
-    def _validate(self, oidc_config: OIDC_CONFIG) -> None:
-        if isinstance(self._credentials, AuthClientPassword):
-            if (self._get_token_endpoint()).startswith("https://login.microsoftonline.com"):
-                raise AuthenticationFailedError(
-                    """Microsoft/azure does not recommend to authenticate using username and password and this method is
-                    not supported by the python client."""
-                )
+            def resp(res: str) -> None:
+                if res.startswith("https://login.microsoftonline.com"):
+                    raise AuthenticationFailedError(
+                        """Microsoft/azure does not recommend to authenticate using username and password and this method is
+                        not supported by the python client."""
+                    )
 
-            # The grant_types_supported field is optional and does not have to be present in the response
-            if (
-                "grant_types_supported" in oidc_config
-                and "password" not in oidc_config["grant_types_supported"]
-            ):
-                raise AuthenticationFailedError(
-                    """The grant_types supported by the third-party authentication service are insufficient. Please add
-                    the 'password' grant type."""
-                )
+            return execute(response_callback=resp, method=self._get_token_endpoint)
+        return empty(self.__colour)
 
-    async def _get_token_endpoint_async(self) -> str:
+    def _get_token_endpoint(self) -> ExecutorResult[str]:
         if self._token_endpoint is not None:
-            return self._token_endpoint
-        async with httpx.AsyncClient(mounts=self._make_async_mounts()) as client:
-            response_auth = await client.get(self._open_id_config_url)
-        response_auth_json = _decode_json_response_dict(response_auth, "Get token endpoint")
-        assert response_auth_json is not None
-        token_endpoint = response_auth_json["token_endpoint"]
-        assert isinstance(token_endpoint, str)
-        return token_endpoint
+            return return_(self._token_endpoint, self.__colour)
 
-    def _get_token_endpoint(self) -> str:
-        if self._token_endpoint is not None:
-            return self._token_endpoint
-        with httpx.Client(mounts=self._make_sync_mounts()) as client:
-            response_auth = client.get(self._open_id_config_url)
-        response_auth_json = _decode_json_response_dict(response_auth, "Get token endpoint")
-        assert response_auth_json is not None
-        token_endpoint = response_auth_json["token_endpoint"]
-        assert isinstance(token_endpoint, str)
-        return token_endpoint
+        def resp(res: httpx.Response) -> str:
+            data = _decode_json_response_dict(res, "Get token endpoint")
+            assert data is not None
+            token_endpoint = data["token_endpoint"]
+            assert isinstance(token_endpoint, str)
+            return token_endpoint
 
-    async def get_auth_session_async(self) -> AsyncOAuth2Client:
-        if isinstance(self._credentials, AuthBearerToken):
-            sessions = await self._get_session_auth_bearer_token(self._credentials)
-        elif isinstance(self._credentials, AuthClientCredentials):
-            sessions = await self._get_session_client_credential(self._credentials)
-        else:
-            assert isinstance(self._credentials, AuthClientPassword)
-            sessions = await self._get_session_user_pw(self._credentials)
+        if self.__colour == "async":
 
-        return sessions
+            async def _execute() -> str:
+                mounts: Dict[str, httpx.AsyncBaseTransport] = {}
+                for key, mount in self.__make_mounts().items():
+                    assert isinstance(mount, httpx.AsyncHTTPTransport)
+                    mounts[key] = mount
+                async with httpx.AsyncClient(mounts=mounts) as client:
+                    return resp(await client.get(self._open_id_config_url))
 
-    def get_auth_session(self) -> OAuth2Client:
+            return _execute()
+        mounts: Dict[str, httpx.BaseTransport] = {}
+        for key, mount in self.__make_mounts().items():
+            assert isinstance(mount, httpx.BaseTransport)
+            mounts[key] = mount
+        with httpx.Client(mounts=mounts) as client:
+            return resp(client.get(self._open_id_config_url))
+
+    def get_auth_session(self) -> AuthExecutorResult:
         if isinstance(self._credentials, AuthBearerToken):
             sessions = self._get_session_auth_bearer_token(self._credentials)
         elif isinstance(self._credentials, AuthClientCredentials):
@@ -150,12 +139,9 @@ class _Auth:
         else:
             assert isinstance(self._credentials, AuthClientPassword)
             sessions = self._get_session_user_pw(self._credentials)
-
         return sessions
 
-    async def _get_session_auth_bearer_token_async(
-        self, config: AuthBearerToken
-    ) -> AsyncOAuth2Client:
+    def _get_session_auth_bearer_token(self, config: AuthBearerToken) -> AuthExecutorResult:
         token: Dict[str, Union[str, int]] = {"access_token": config.access_token}
         if config.expires_in is not None:
             token["expires_in"] = config.expires_in
@@ -165,52 +151,49 @@ class _Auth:
         if "refresh_token" not in token:
             _Warnings.auth_no_refresh_token(config.expires_in)
 
-        return AsyncOAuth2Client(
-            token=token,
-            token_endpoint=await self._get_token_endpoint_async(),
-            client_id=self._client_id,
-            default_timeout=AUTH_DEFAULT_TIMEOUT,
-        )
+        if self.__colour == "async":
 
-    def _get_session_auth_bearer_token(self, config: AuthBearerToken) -> OAuth2Client:
-        token: Dict[str, Union[str, int]] = {"access_token": config.access_token}
-        if config.expires_in is not None:
-            token["expires_in"] = config.expires_in
-        if config.refresh_token is not None:
-            token["refresh_token"] = config.refresh_token
+            async def _execute() -> AsyncOAuth2Client:
+                return AsyncOAuth2Client(
+                    token=token,
+                    token_endpoint=await aresult(self._get_token_endpoint()),
+                    client_id=self._client_id,
+                    default_timeout=AUTH_DEFAULT_TIMEOUT,
+                )
 
-        if "refresh_token" not in token:
-            _Warnings.auth_no_refresh_token(config.expires_in)
-
+            return _execute()
         return OAuth2Client(
             token=token,
-            token_endpoint=self._get_token_endpoint(),
+            token_endpoint=result(self._get_token_endpoint()),
             client_id=self._client_id,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
         )
 
-    async def _get_session_user_pw_async(self, config: AuthClientPassword) -> AsyncOAuth2Client:
+    def _get_session_user_pw(self, config: AuthClientPassword) -> AuthExecutorResult:
         scope: List[str] = self._default_scopes.copy()
         scope.extend(config.scope_list)
-        session = AsyncOAuth2Client(
-            client_id=self._client_id,
-            token_endpoint=await self._get_token_endpoint_async(),
-            grant_type="password",
-            scope=scope,
-            default_timeout=AUTH_DEFAULT_TIMEOUT,
-        )
-        token: dict = await session.fetch_token(username=config.username, password=config.password)
-        if "refresh_token" not in token:
-            _Warnings.auth_no_refresh_token(token["expires_in"])
+        if self.__colour == "async":
 
-        return session
+            async def _execute() -> AsyncOAuth2Client:
+                session = AsyncOAuth2Client(
+                    client_id=self._client_id,
+                    token_endpoint=await aresult(self._get_token_endpoint()),
+                    grant_type="password",
+                    scope=scope,
+                    default_timeout=AUTH_DEFAULT_TIMEOUT,
+                )
+                token: dict = await session.fetch_token(
+                    username=config.username, password=config.password
+                )
+                if "refresh_token" not in token:
+                    _Warnings.auth_no_refresh_token(token["expires_in"])
 
-    def _get_session_user_pw(self, config: AuthClientPassword) -> OAuth2Client:
-        scope: List[str] = self._default_scopes.copy()
-        scope.extend(config.scope_list)
+                return session
+
+            return _execute()
         session = OAuth2Client(
             client_id=self._client_id,
-            token_endpoint=self._get_token_endpoint(),
+            token_endpoint=result(self._get_token_endpoint()),
             grant_type="password",
             scope=scope,
             default_timeout=AUTH_DEFAULT_TIMEOUT,
@@ -221,53 +204,43 @@ class _Auth:
 
         return session
 
-    async def _get_session_client_credential_async(
-        self, config: AuthClientCredentials
-    ) -> AsyncOAuth2Client:
+    def __get_common_scopes(self) -> ExecutorResult[List[str]]:
+        def resp(res: str) -> List[str]:
+            if res.startswith("https://login.microsoftonline.com"):
+                return [self._client_id + "/.default"]
+            raise MissingScopeError
+
+        return execute(response_callback=resp, method=self._get_token_endpoint)
+
+    def _get_session_client_credential(self, config: AuthClientCredentials) -> AuthExecutorResult:
         scope: List[str] = self._default_scopes.copy()
 
         if config.scope_list is not None:
             scope.extend(config.scope_list)
-        if len(scope) == 0:
-            # hardcode commonly used scopes
-            if (await self._get_token_endpoint_async()).startswith(
-                "https://login.microsoftonline.com"
-            ):
-                scope = [self._client_id + "/.default"]
-            else:
-                raise MissingScopeError
 
-        session = AsyncOAuth2Client(
-            client_id=self._client_id,
-            client_secret=config.client_secret,
-            token_endpoint_auth_method="client_secret_post",
-            scope=scope,
-            token_endpoint=self._token_endpoint,
-            grant_type="client_credentials",
-            token={"access_token": None, "expires_in": -100},
-            default_timeout=AUTH_DEFAULT_TIMEOUT,
-        )
-        # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
-        await session.fetch_token()
-        return session
+        if self.__colour == "async":
 
-    def _get_session_client_credential(self, config: AuthClientCredentials) -> OAuth2Client:
-        scope: List[str] = self._default_scopes.copy()
+            async def _execute() -> AsyncOAuth2Client:
+                session = AsyncOAuth2Client(
+                    client_id=self._client_id,
+                    client_secret=config.client_secret,
+                    token_endpoint_auth_method="client_secret_post",
+                    scope=scope if len(scope) > 0 else await aresult(self.__get_common_scopes()),
+                    token_endpoint=self._token_endpoint,
+                    grant_type="client_credentials",
+                    token={"access_token": None, "expires_in": -100},
+                    default_timeout=AUTH_DEFAULT_TIMEOUT,
+                )
+                # explicitly fetch tokens. Otherwise, authlib will do it in the background and we might have race-conditions
+                await session.fetch_token()
+                return session
 
-        if config.scope_list is not None:
-            scope.extend(config.scope_list)
-        if len(scope) == 0:
-            # hardcode commonly used scopes
-            if (self._get_token_endpoint()).startswith("https://login.microsoftonline.com"):
-                scope = [self._client_id + "/.default"]
-            else:
-                raise MissingScopeError
-
+            return _execute()
         session = OAuth2Client(
             client_id=self._client_id,
             client_secret=config.client_secret,
             token_endpoint_auth_method="client_secret_post",
-            scope=scope,
+            scope=scope if len(scope) > 0 else result(self.__get_common_scopes()),
             token_endpoint=self._token_endpoint,
             grant_type="client_credentials",
             token={"access_token": None, "expires_in": -100},

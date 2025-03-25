@@ -137,6 +137,9 @@ def test_client_with_authentication_with_anon_weaviate() -> None:
     with pytest.warns(UserWarning) as recwarn:
         with weaviate.connect_to_local(auth_credentials=auth) as client:
             client.collections.list_all()
+        if len(recwarn) > 1:
+            for rwarning in recwarn.list:
+                print(rwarning.message)
         assert len(recwarn) == 1
         assert str(recwarn.list[0].message).startswith("Auth001")
 
