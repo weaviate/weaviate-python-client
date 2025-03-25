@@ -25,17 +25,28 @@ class OwnUser:
     roles: Dict[str, Role]
 
 
-class DbUserTypes(str, Enum):
-    DYNAMIC = "dynamic"
-    STATIC = "static"
+class UserTypes(str, Enum):
+    DB_DYNAMIC = "db_dynamic"
+    DB_STATIC = "db_static"
+    OIDC = "oidc"
 
 
 @dataclass
-class UserDB:
+class UserBase:
     user_id: str
     role_names: List[str]
+    user_type: UserTypes
+
+
+@dataclass
+class UserDB(UserBase):
+    user_type: UserTypes
     active: bool
-    db_user_type: DbUserTypes
+
+
+@dataclass
+class UserOIDC(UserBase):
+    user_type: UserTypes = UserTypes.OIDC
 
 
 class _UsersInit:
@@ -266,7 +277,7 @@ class _UserDBAsync(_UsersBase):
             user_id=user["userId"],
             role_names=user["roles"],
             active=user["active"],
-            db_user_type=DbUserTypes(user["dbUserType"]),
+            user_type=UserTypes(user["dbUserType"]),
         )
 
     async def list_all(self) -> List[UserDB]:
@@ -278,7 +289,7 @@ class _UserDBAsync(_UsersBase):
                 user_id=user["userId"],
                 role_names=user["roles"],
                 active=user["active"],
-                db_user_type=DbUserTypes(user["dbUserType"]),
+                user_type=UserTypes(user["dbUserType"]),
             )
             for user in users
         ]

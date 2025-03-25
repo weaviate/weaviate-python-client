@@ -19,6 +19,8 @@ from weaviate.rbac.models import (
 )
 from _pytest.fixtures import SubRequest
 
+from weaviate.users.users import UserTypes
+
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
@@ -354,9 +356,10 @@ def test_get_assigned_users_db(client_factory: ClientFactory) -> None:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
         client.users.db.assign_roles(user_id="admin-user", role_names="viewer")
-        assigned_users = client.roles.get_assigned_db_user_ids("viewer")
+        assigned_users = client.roles.get_assignments("viewer")
         assert len(assigned_users) == 1
-        assert assigned_users[0] == "admin-user"
+        assert assigned_users[0].user_id == "admin-user"
+        assert assigned_users[0].user_type == UserTypes.DB_STATIC
 
 
 def test_get_assigned_oidc_db(client_factory: ClientFactory) -> None:
@@ -364,9 +367,10 @@ def test_get_assigned_oidc_db(client_factory: ClientFactory) -> None:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
         client.users.oidc.assign_roles(user_id="admin-user", role_names="viewer")
-        assigned_users = client.roles.get_assigned_oidc_user_ids("viewer")
+        assigned_users = client.roles.get_assignments("viewer")
         assert len(assigned_users) == 1
         assert assigned_users[0] == "admin-user"
+        assert assigned_users[0].user_type == UserTypes.OIDC
 
 
 def test_permission_output_as_input(client_factory: ClientFactory) -> None:
