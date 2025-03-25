@@ -14,7 +14,7 @@ from weaviate.collections.classes.tenants import (
     TenantOutput,
 )
 from weaviate.collections.grpc.tenants import _TenantsGRPC
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.executor import aresult, execute, ExecutorResult
 from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, Connection, ConnectionSync
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import tenants_pb2
@@ -307,13 +307,15 @@ class _TenantsExecutor:
             async def _execute() -> None:
                 await asyncio.gather(
                     *[
-                        connection.put(
-                            path=path,
-                            weaviate_object=mapped_tenants,
-                            error_msg=f"Collection tenants may not have been updated properly for {self._name}",
-                            status_codes=_ExpectedStatusCodes(
-                                ok_in=200, error=f"Update collection tenants for {self._name}"
-                            ),
+                        aresult(
+                            connection.put(
+                                path=path,
+                                weaviate_object=mapped_tenants,
+                                error_msg=f"Collection tenants may not have been updated properly for {self._name}",
+                                status_codes=_ExpectedStatusCodes(
+                                    ok_in=200, error=f"Update collection tenants for {self._name}"
+                                ),
+                            )
                         )
                         for mapped_tenants in self.__map_update_tenants(tenants)
                     ]

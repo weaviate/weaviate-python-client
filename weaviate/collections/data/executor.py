@@ -41,7 +41,7 @@ from weaviate.collections.classes.types import (
     Properties,
     WeaviateField,
 )
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.executor import aresult, execute, result, ExecutorResult
 from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, Connection
 from weaviate.logger import logger
 from weaviate.types import BEACON, UUID, VECTORS
@@ -333,14 +333,16 @@ class _DataExecutor:
             async def _execute() -> None:
                 await asyncio.gather(
                     *[
-                        connection.post(
-                            path=path,
-                            weaviate_object=beacon,
-                            params=self.__apply_context(params),
-                            error_msg="Reference was not added.",
-                            status_codes=_ExpectedStatusCodes(
-                                ok_in=200, error="add reference to object"
-                            ),
+                        aresult(
+                            connection.post(
+                                path=path,
+                                weaviate_object=beacon,
+                                params=self.__apply_context(params),
+                                error_msg="Reference was not added.",
+                                status_codes=_ExpectedStatusCodes(
+                                    ok_in=200, error="add reference to object"
+                                ),
+                            )
                         )
                         for beacon in ref._to_beacons()
                     ]
@@ -348,12 +350,14 @@ class _DataExecutor:
 
             return _execute()
         for beacon in ref._to_beacons():
-            connection.post(
-                path=path,
-                weaviate_object=beacon,
-                params=self.__apply_context(params),
-                error_msg="Reference was not added.",
-                status_codes=_ExpectedStatusCodes(ok_in=200, error="add reference to object"),
+            result(
+                connection.post(
+                    path=path,
+                    weaviate_object=beacon,
+                    params=self.__apply_context(params),
+                    error_msg="Reference was not added.",
+                    status_codes=_ExpectedStatusCodes(ok_in=200, error="add reference to object"),
+                )
             )
 
     def reference_add_many(
@@ -409,14 +413,16 @@ class _DataExecutor:
             async def _execute() -> None:
                 await asyncio.gather(
                     *[
-                        connection.delete(
-                            path=path,
-                            weaviate_object=beacon,
-                            params=self.__apply_context(params),
-                            error_msg="Reference was not deleted.",
-                            status_codes=_ExpectedStatusCodes(
-                                ok_in=204, error="delete reference from object"
-                            ),
+                        aresult(
+                            connection.delete(
+                                path=path,
+                                weaviate_object=beacon,
+                                params=self.__apply_context(params),
+                                error_msg="Reference was not deleted.",
+                                status_codes=_ExpectedStatusCodes(
+                                    ok_in=204, error="delete reference from object"
+                                ),
+                            )
                         )
                         for beacon in ref._to_beacons()
                     ]
@@ -424,12 +430,16 @@ class _DataExecutor:
 
             return _execute()
         for beacon in ref._to_beacons():
-            connection.delete(
-                path=path,
-                weaviate_object=beacon,
-                params=self.__apply_context(params),
-                error_msg="Reference was not deleted.",
-                status_codes=_ExpectedStatusCodes(ok_in=204, error="delete reference from object"),
+            result(
+                connection.delete(
+                    path=path,
+                    weaviate_object=beacon,
+                    params=self.__apply_context(params),
+                    error_msg="Reference was not deleted.",
+                    status_codes=_ExpectedStatusCodes(
+                        ok_in=204, error="delete reference from object"
+                    ),
+                )
             )
 
     def reference_replace(

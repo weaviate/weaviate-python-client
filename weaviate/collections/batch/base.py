@@ -753,7 +753,7 @@ class _ClusterBatch:
         self,
     ) -> List[Node]:
         try:
-            response = self._connection.get(path="/nodes")
+            response = result(self._connection.get(path="/nodes"))
         except ConnectError as conn_err:
             raise ConnectError("Get nodes status failed due to connection error") from conn_err
 

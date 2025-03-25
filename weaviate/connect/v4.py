@@ -55,7 +55,7 @@ from weaviate.connect.base import (
     JSONPayload,
     _get_proxies,
 )
-from weaviate.connect.executor import aresult, result, empty, Colour
+from weaviate.connect.executor import aresult, result, empty, execute, Colour, ExecutorResult
 from weaviate.connect.event_loop import _EventLoopSingleton
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
@@ -652,7 +652,7 @@ class _ConnectionBase:
             timeout=5.0, read=timeout, pool=self.__connection_config.session_pool_timeout
         )
 
-    def __handle_exceptions(self, error_msg: str, e: Exception) -> None:
+    def __handle_exceptions(self, e: Exception, error_msg: str) -> None:
         if isinstance(e, RuntimeError):
             raise WeaviateClosedClientError() from e
         if isinstance(e, ConnectError):
@@ -669,10 +669,8 @@ class _ConnectionBase:
             raise UnexpectedStatusCodeError(error_msg, response)
         return response
 
-    @overload
     def _send(
         self,
-        colour: Literal["async"],
         method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
         *,
         url: str,
@@ -681,70 +679,35 @@ class _ConnectionBase:
         is_gql_query: bool = False,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
-    ) -> Awaitable[Response]: ...
-
-    @overload
-    def _send(
-        self,
-        colour: Literal["sync"],
-        method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
-        *,
-        url: str,
-        error_msg: str,
-        status_codes: Optional[_ExpectedStatusCodes],
-        is_gql_query: bool = False,
-        weaviate_object: Optional[JSONPayload] = None,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Response: ...
-
-    def _send(
-        self,
-        colour: Colour,
-        method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
-        *,
-        url: str,
-        error_msg: str,
-        status_codes: Optional[_ExpectedStatusCodes],
-        is_gql_query: bool = False,
-        weaviate_object: Optional[JSONPayload] = None,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Union[Response, Awaitable[Response]]:
+    ) -> ExecutorResult[Response]:
         if not self.is_connected():
             raise WeaviateClosedClientError()
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
         assert self._client is not None
-        try:
-            req = self._client.build_request(
-                method,
-                url,
-                json=weaviate_object,
-                params=params,
-                headers=self.__get_latest_headers(),
-                timeout=self.__get_timeout(method, is_gql_query),
-            )
-            if colour == "async":
+        request = self._client.build_request(
+            method,
+            url,
+            json=weaviate_object,
+            params=params,
+            headers=self.__get_latest_headers(),
+            timeout=self.__get_timeout(method, is_gql_query),
+        )
 
-                async def execute() -> Response:
-                    assert isinstance(self._client, AsyncClient)
-                    return self.__handle_response(
-                        await self._client.send(req), error_msg, status_codes
-                    )
+        def resp(res: Response) -> Response:
+            return self.__handle_response(res, error_msg, status_codes)
 
-                return execute()
-            assert isinstance(self._client, Client)
-            return self.__handle_response(self._client.send(req), error_msg, status_codes)
-        except Exception as e:
-            self.__handle_exceptions(error_msg, e)
-            raise e
+        def exc(e: Exception) -> None:
+            self.__handle_exceptions(e, error_msg)
 
-    @overload
-    def close(self, colour: Literal["async"]) -> Awaitable[None]: ...
+        return execute(
+            response_callback=resp,
+            exception_callback=exc,
+            method=self._client.send,
+            request=request,
+        )
 
-    @overload
-    def close(self, colour: Literal["sync"]) -> None: ...
-
-    def close(self, colour: Colour) -> Union[None, Awaitable[None]]:
+    def close(self, colour: Colour) -> ExecutorResult[None]:
         if self.embedded_db is not None:
             self.embedded_db.stop()
         if colour == "async":
@@ -775,27 +738,150 @@ class _ConnectionBase:
             self._grpc_channel = None
         self._connected = False
 
-    def _check_package_version(self) -> None:
-        try:
-            with Client() as client:
-                res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
+    def _check_package_version(self, colour: Colour) -> ExecutorResult[None]:
+        def resp(res: Response) -> None:
             pkg_info: dict = res.json().get("info", {})
             latest_version = pkg_info.get("version", "unknown version")
             if is_weaviate_client_too_old(client_version, latest_version):
                 _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
+
+        try:
+            if colour == "async":
+
+                async def _execute() -> None:
+                    async with AsyncClient() as client:
+                        res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
+                    return resp(res)
+
+                return _execute()
+            with Client() as client:
+                res = client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
+            return resp(res)
         except RequestError:
             pass  # ignore any errors related to requests, it is a best-effort warning
 
-    async def _check_package_version_async(self) -> None:
-        try:
-            async with AsyncClient() as client:
-                res = await client.get(PYPI_PACKAGE_URL, timeout=self.timeout_config.init)
-            pkg_info: dict = res.json().get("info", {})
-            latest_version = pkg_info.get("version", "unknown version")
-            if is_weaviate_client_too_old(client_version, latest_version):
-                _Warnings.weaviate_client_too_old_vs_latest(client_version, latest_version)
-        except RequestError:
-            pass  # ignore any errors related to requests, it is a best-effort warning
+    def supports_groupby_in_bm25_and_hybrid(self) -> bool:
+        return self._weaviate_version.is_at_least(1, 25, 0)
+
+    def delete(
+        self,
+        path: str,
+        weaviate_object: Optional[JSONPayload] = None,
+        params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
+    ) -> ExecutorResult[Response]:
+        return self._send(
+            "DELETE",
+            url=self.url + self._api_version_path + path,
+            weaviate_object=weaviate_object,
+            params=params,
+            error_msg=error_msg,
+            status_codes=status_codes,
+        )
+
+    def patch(
+        self,
+        path: str,
+        weaviate_object: JSONPayload,
+        params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
+    ) -> ExecutorResult[Response]:
+        return self._send(
+            "PATCH",
+            url=self.url + self._api_version_path + path,
+            weaviate_object=weaviate_object,
+            params=params,
+            error_msg=error_msg,
+            status_codes=status_codes,
+        )
+
+    def post(
+        self,
+        path: str,
+        weaviate_object: JSONPayload,
+        params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
+        is_gql_query: bool = False,
+    ) -> ExecutorResult[Response]:
+        return self._send(
+            "POST",
+            url=self.url + self._api_version_path + path,
+            weaviate_object=weaviate_object,
+            params=params,
+            error_msg=error_msg,
+            status_codes=status_codes,
+            is_gql_query=is_gql_query,
+        )
+
+    def put(
+        self,
+        path: str,
+        weaviate_object: JSONPayload,
+        params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
+    ) -> ExecutorResult[Response]:
+        return self._send(
+            "PUT",
+            url=self.url + self._api_version_path + path,
+            weaviate_object=weaviate_object,
+            params=params,
+            error_msg=error_msg,
+            status_codes=status_codes,
+        )
+
+    def get(
+        self,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
+    ) -> ExecutorResult[Response]:
+        return self._send(
+            "GET",
+            url=self.url + self._api_version_path + path,
+            params=params,
+            error_msg=error_msg,
+            status_codes=status_codes,
+        )
+
+    def head(
+        self,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        error_msg: str = "",
+        status_codes: Optional[_ExpectedStatusCodes] = None,
+    ) -> ExecutorResult[Response]:
+        return self._send(
+            "HEAD",
+            url=self.url + self._api_version_path + path,
+            params=params,
+            error_msg=error_msg,
+            status_codes=status_codes,
+        )
+
+    def get_meta(self) -> ExecutorResult[Dict[str, str]]:
+        def resp(res: Response) -> Dict[str, str]:
+            data = _decode_json_response_dict(res, "Meta endpoint")
+            assert data is not None
+            return data
+
+        return execute(response_callback=resp, method=self.get, path="/meta")
+
+    def get_open_id_configuration(self) -> ExecutorResult[Optional[Dict[str, Any]]]:
+        def resp(res: Response) -> Optional[Dict[str, Any]]:
+            if res.status_code == 200:
+                return _decode_json_response_dict(res, "OpenID Configuration")
+            if res.status_code == 404:
+                return None
+            raise UnexpectedStatusCodeError("Meta endpoint", res)
+
+        return execute(
+            response_callback=resp, method=self.get, path="/.well-known/openid-configuration"
+        )
 
 
 class ConnectionSync(_ConnectionBase):
@@ -813,7 +899,7 @@ class ConnectionSync(_ConnectionBase):
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = self.get_meta()
+            meta = result(self.get_meta())
             self._weaviate_version = _ServerVersion.from_string(meta["version"])
             if "grpcMaxMessageSize" in meta:
                 self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
@@ -847,165 +933,22 @@ class ConnectionSync(_ConnectionBase):
 
         if not self._skip_init_checks:
             try:
-                self._ping_grpc("sync")
-                self._check_package_version()
+                result(self._ping_grpc("sync"))
+                result(self._check_package_version("sync"))
             except Exception as e:
                 self._connected = False
                 raise e
 
-    def delete(
-        self,
-        path: str,
-        weaviate_object: Optional[JSONPayload] = None,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return self._send(
-            "sync",
-            "DELETE",
-            url=self.url + self._api_version_path + path,
-            weaviate_object=weaviate_object,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    def patch(
-        self,
-        path: str,
-        weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return self._send(
-            "sync",
-            "PATCH",
-            url=self.url + self._api_version_path + path,
-            weaviate_object=weaviate_object,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    def post(
-        self,
-        path: str,
-        weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-        is_gql_query: bool = False,
-    ) -> Response:
-        return self._send(
-            "sync",
-            "POST",
-            url=self.url + self._api_version_path + path,
-            weaviate_object=weaviate_object,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-            is_gql_query=is_gql_query,
-        )
-
-    def put(
-        self,
-        path: str,
-        weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return self._send(
-            "sync",
-            "PUT",
-            url=self.url + self._api_version_path + path,
-            weaviate_object=weaviate_object,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    def get(
-        self,
-        path: str,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return self._send(
-            "sync",
-            "GET",
-            url=self.url + self._api_version_path + path,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    def head(
-        self,
-        path: str,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return self._send(
-            "sync",
-            "HEAD",
-            url=self.url + self._api_version_path + path,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    def get_meta(self) -> Dict[str, str]:
-        """
-        Returns the meta endpoint.
-        """
-        response = self.get(path="/meta")
-        res = _decode_json_response_dict(response, "Meta endpoint")
-        assert res is not None
-        return res
-
-    def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
-        """
-        Get the openid-configuration.
-        """
-
-        response = self.get(path="/.well-known/openid-configuration")
-        if response.status_code == 200:
-            return _decode_json_response_dict(response, "OpenID Configuration")
-        if response.status_code == 404:
-            return None
-        raise UnexpectedStatusCodeError("Meta endpoint", response)
-
-    def supports_groupby_in_bm25_and_hybrid(self) -> bool:
-        return self._weaviate_version.is_at_least(1, 25, 0)
-
     def wait_for_weaviate(self, startup_period: int) -> None:
-        """
-        Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
-
-        Parameters
-        ----------
-        startup_period : int
-            Describes how long the client will wait for weaviate to start in seconds.
-
-        Raises
-        ------
-        WeaviateStartUpError
-            If weaviate takes longer than the time limit to respond.
-        """
         for _i in range(startup_period):
             try:
-                self.get("/.well-known/ready").raise_for_status()
+                result(self.get("/.well-known/ready")).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
-            self.get("/.well-known/ready").raise_for_status()
+            result(self.get("/.well-known/ready")).raise_for_status()
             return
         except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(
@@ -1170,169 +1113,24 @@ class ConnectionAsync(_ConnectionBase):
 
         if not self._skip_init_checks:
             try:
-                ping = self._ping_grpc("async")
-                assert isinstance(ping, Awaitable)
-                await ping
-                await self._check_package_version_async()
+                await aresult(self._ping_grpc("async"))
+                await aresult(self._check_package_version("async"))
             except Exception as e:
                 self._connected = False
                 raise e
 
         self._connected = True
 
-    async def delete(
-        self,
-        path: str,
-        weaviate_object: Optional[JSONPayload] = None,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return await self._send(
-            "async",
-            "DELETE",
-            url=self.url + self._api_version_path + path,
-            weaviate_object=weaviate_object,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    async def patch(
-        self,
-        path: str,
-        weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return await self._send(
-            "async",
-            "PATCH",
-            url=self.url + self._api_version_path + path,
-            weaviate_object=weaviate_object,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    async def post(
-        self,
-        path: str,
-        weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-        is_gql_query: bool = False,
-    ) -> Response:
-        return await self._send(
-            "async",
-            "POST",
-            url=self.url + self._api_version_path + path,
-            weaviate_object=weaviate_object,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-            is_gql_query=is_gql_query,
-        )
-
-    async def put(
-        self,
-        path: str,
-        weaviate_object: JSONPayload,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return await self._send(
-            "async",
-            "PUT",
-            url=self.url + self._api_version_path + path,
-            weaviate_object=weaviate_object,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    async def get(
-        self,
-        path: str,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return await self._send(
-            "async",
-            "GET",
-            url=self.url + self._api_version_path + path,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    async def head(
-        self,
-        path: str,
-        params: Optional[Dict[str, Any]] = None,
-        error_msg: str = "",
-        status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> Response:
-        return await self._send(
-            "async",
-            "HEAD",
-            url=self.url + self._api_version_path + path,
-            params=params,
-            error_msg=error_msg,
-            status_codes=status_codes,
-        )
-
-    async def get_meta(self) -> Dict[str, str]:
-        """
-        Returns the meta endpoint.
-        """
-        response = await self.get(path="/meta")
-        res = _decode_json_response_dict(response, "Meta endpoint")
-        assert res is not None
-        return res
-
-    async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
-        """
-        Get the openid-configuration.
-        """
-
-        response = await self.get(path="/.well-known/openid-configuration")
-        if response.status_code == 200:
-            return _decode_json_response_dict(response, "OpenID Configuration")
-        if response.status_code == 404:
-            return None
-        raise UnexpectedStatusCodeError("Meta endpoint", response)
-
-    def supports_groupby_in_bm25_and_hybrid(self) -> bool:
-        return self._weaviate_version.is_at_least(1, 25, 0)
-
     async def wait_for_weaviate(self, startup_period: int) -> None:
-        """
-        Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
-
-        Parameters
-        ----------
-        startup_period : int
-            Describes how long the client will wait for weaviate to start in seconds.
-
-        Raises
-        ------
-        WeaviateStartUpError
-            If weaviate takes longer than the time limit to respond.
-        """
         for _i in range(startup_period):
             try:
-                (await self.get("/.well-known/ready")).raise_for_status()
+                (await aresult(self.get("/.well-known/ready"))).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
-            (await self.get("/.well-known/ready")).raise_for_status()
+            (await aresult(self.get("/.well-known/ready"))).raise_for_status()
             return
         except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(

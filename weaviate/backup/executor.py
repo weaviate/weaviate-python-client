@@ -161,10 +161,12 @@ class _BackupExecutor:
         if isinstance(connection, ConnectionAsync):
 
             async def _execute() -> BackupReturn:
-                res = await connection.post(
-                    path=path,
-                    weaviate_object=payload,
-                    error_msg="Backup creation failed due to connection error.",
+                res = await aresult(
+                    connection.post(
+                        path=path,
+                        weaviate_object=payload,
+                        error_msg="Backup creation failed due to connection error.",
+                    )
                 )
                 create_status = _decode_json_response_dict(res, "Backup creation")
                 assert create_status is not None
@@ -194,10 +196,12 @@ class _BackupExecutor:
 
             return _execute()
 
-        res = connection.post(
-            path=path,
-            weaviate_object=payload,
-            error_msg="Backup creation failed due to connection error.",
+        res = result(
+            connection.post(
+                path=path,
+                weaviate_object=payload,
+                error_msg="Backup creation failed due to connection error.",
+            )
         )
         create_status = _decode_json_response_dict(res, "Backup creation")
         assert create_status is not None
@@ -323,10 +327,12 @@ class _BackupExecutor:
         if isinstance(connection, ConnectionAsync):
 
             async def _execute() -> BackupReturn:
-                response = await connection.post(
-                    path=path,
-                    weaviate_object=payload,
-                    error_msg="Backup restore failed due to connection error.",
+                response = await aresult(
+                    connection.post(
+                        path=path,
+                        weaviate_object=payload,
+                        error_msg="Backup restore failed due to connection error.",
+                    )
                 )
                 restore_status = _decode_json_response_dict(response, "Backup restore")
                 assert restore_status is not None
@@ -357,10 +363,12 @@ class _BackupExecutor:
 
             return _execute()
 
-        response = connection.post(
-            path=path,
-            weaviate_object=payload,
-            error_msg="Backup restore failed due to connection error.",
+        response = result(
+            connection.post(
+                path=path,
+                weaviate_object=payload,
+                error_msg="Backup restore failed due to connection error.",
+            )
         )
         restore_status = _decode_json_response_dict(response, "Backup restore")
         assert restore_status is not None

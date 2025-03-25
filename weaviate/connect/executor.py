@@ -106,3 +106,7 @@ def return_(value: T, colour: Colour) -> ExecutorResult[T]:
 
 def empty(colour: Colour) -> ExecutorResult[None]:
     return return_(None, colour)
+
+
+def do_nothing(value: T) -> T:
+    return value

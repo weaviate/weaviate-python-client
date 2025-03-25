@@ -26,10 +26,9 @@ from .connect.base import (
     ConnectionParams,
     ProtocolParams,
 )
-from .connect.executor import ExecutorResult, execute, raise_exception
+from .connect.executor import aresult, do_nothing, result, ExecutorResult, execute
 from .connect.v4 import _ExpectedStatusCodes
 from .embedded import EmbeddedOptions, EmbeddedV4
-from .exceptions import UnexpectedStatusCodeError
 from .types import NUMBER
 from .util import _decode_json_response_dict
 from .validator import _validate_input, _ValidateArgument
@@ -39,12 +38,12 @@ TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 class _WeaviateClientExecutor:
     async def __close_async(self, connection: ConnectionAsync) -> None:
-        await connection.close("async")
+        await aresult(connection.close("async"))
 
     def close(self, connection: Connection) -> ExecutorResult[None,]:
         if isinstance(connection, ConnectionAsync):
             return self.__close_async(connection)
-        return connection.close("sync")
+        return result(connection.close("sync"))
 
     def connect(self, connection: Connection) -> ExecutorResult[None]:
         return execute(
@@ -120,38 +119,17 @@ class _WeaviateClientExecutor:
         )
 
     def get_meta(self, connection: Connection) -> ExecutorResult[dict]:
-        def resp(response: Response) -> dict:
-            res = _decode_json_response_dict(response, "Meta endpoint")
-            assert res is not None
-            return res
-
-        def exc(e: Exception) -> dict:
-            raise e
-
         return execute(
-            response_callback=resp,
-            exception_callback=exc,
-            method=connection.get,
-            path="/meta",
-            error_msg="Meta data was not retrieved",
-            status_codes=_ExpectedStatusCodes(ok_in=[200], error="get meta"),
+            response_callback=do_nothing,
+            method=connection.get_meta,
         )
 
     def get_open_id_configuration(
         self, connection: Connection
     ) -> ExecutorResult[Optional[Dict[str, Any]]]:
-        def resp(response: Response) -> Optional[Dict[str, Any]]:
-            if response.status_code == 200:
-                return _decode_json_response_dict(response, "OpenID Configuration")
-            if response.status_code == 404:
-                return None
-            raise UnexpectedStatusCodeError("Meta endpoint", response)
-
         return execute(
-            response_callback=resp,
-            exception_callback=raise_exception,
-            method=connection.get,
-            path="/.well-known/openid-configuration",
+            response_callback=do_nothing,
+            method=connection.get_open_id_configuration,
         )
 
 
