@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional, Sequence, Union
+from typing_extensions import deprecated
 
 from weaviate.rbac.models import (
     PermissionsOutputType,
@@ -10,6 +11,10 @@ from weaviate.rbac.roles import _RolesBase
 class _Roles(_RolesBase):
     def list_all(self) -> Dict[str, Role]: ...
     def get(self, role_name: str) -> Optional[Role]: ...
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25.
+                Please use `roles.get_assigned_db_user_ids` and/or `roles.get_assigned_oidc_user_ids` instead."""
+    )
     def get_assigned_user_ids(self, role_name: str) -> List[str]: ...
     def get_assigned_db_user_ids(self, role_name: str) -> List[str]: ...
     def get_assigned_oidc_user_ids(self, role_name: str) -> List[str]: ...
