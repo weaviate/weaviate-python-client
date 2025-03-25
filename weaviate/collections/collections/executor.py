@@ -190,6 +190,7 @@ class _CollectionsExecutor:
     ) -> ExecutorResult[None]:
         _validate_input([_ValidateArgument(expected=[str, List[str]], name="name", value=name)])
         if isinstance(name, str):
+            name = _capitalize_first_letter(name)
             if isinstance(connection, ConnectionAsync):
 
                 async def _execute() -> None:
@@ -202,15 +203,13 @@ class _CollectionsExecutor:
 
                 async def _execute() -> None:
                     await asyncio.gather(
-                        *[
-                            aresult(self.__delete(connection, name=_capitalize_first_letter(n)))
-                            for n in name
-                        ]
+                        *[aresult(self.__delete(connection, name=n)) for n in name]
                     )
 
                 return _execute()
             for n in name:
-                result(self.__delete(connection, name=_capitalize_first_letter(n)))
+                n = _capitalize_first_letter(n)
+                result(self.__delete(connection, name=n))
             return None
 
     def delete_all(self, *, connection: Connection) -> ExecutorResult[None]:
