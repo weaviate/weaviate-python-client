@@ -13,7 +13,11 @@ from weaviate.util import _capitalize_first_letter
 
 from weaviate.warnings import _Warnings
 
-from weaviate.users.users import UserTypes
+
+class UserTypes(str, Enum):
+    DB_DYNAMIC = "db_dynamic"
+    DB_STATIC = "db_static"
+    OIDC = "oidc"
 
 
 @dataclass

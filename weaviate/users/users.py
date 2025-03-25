@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast, Final, overload
 
 from weaviate.connect import ConnectionV4
@@ -7,6 +6,7 @@ from weaviate.connect.v4 import _ExpectedStatusCodes
 from weaviate.rbac.models import (
     Role,
     RoleBase,
+    UserTypes,
     WeaviateDBUserRoleNames,
     WeaviateRole,
     WeaviateUser,
@@ -23,12 +23,6 @@ USER_TYPE_OIDC: Final = "oidc"
 class OwnUser:
     user_id: str
     roles: Dict[str, Role]
-
-
-class UserTypes(str, Enum):
-    DB_DYNAMIC = "db_dynamic"
-    DB_STATIC = "db_static"
-    OIDC = "oidc"
 
 
 @dataclass
