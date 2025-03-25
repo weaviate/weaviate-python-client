@@ -1,7 +1,6 @@
 import asyncio
-from dataclasses import dataclass
 import json
-from typing import Dict, List, Optional, Sequence, TypedDict, Union, cast
+from typing import Dict, List, Optional, Sequence, Union, cast
 
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
@@ -12,21 +11,12 @@ from weaviate.rbac.models import (
     Role,
     WeaviatePermission,
     WeaviateRole,
+    UserAssignment,
+    WeaviateUserAssignment,
 )
 from typing_extensions import deprecated
 
 from weaviate.users.users import UserTypes
-
-
-@dataclass
-class UserAssignment:
-    user_id: str
-    user_type: UserTypes
-
-
-class WeaviateUserAssignment(TypedDict):
-    userId: str
-    userType: str
 
 
 class _RolesBase:
