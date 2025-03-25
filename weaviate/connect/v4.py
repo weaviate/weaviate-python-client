@@ -659,6 +659,7 @@ class _ConnectionBase:
             raise WeaviateConnectionError(error_msg) from e
         if isinstance(e, ReadTimeout):
             raise WeaviateTimeoutError(error_msg) from e
+        raise e
 
     def __handle_response(
         self, response: Response, error_msg: str, status_codes: Optional[_ExpectedStatusCodes]
