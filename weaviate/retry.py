@@ -1,9 +1,9 @@
 import asyncio
 import time
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, cast
 from typing_extensions import ParamSpec, TypeVar
 
-from grpc import StatusCode  # type: ignore
+from grpc import Call, StatusCode, RpcError  # type: ignore
 from grpc.aio import AioRpcError  # type: ignore
 
 from weaviate.exceptions import WeaviateRetryError
@@ -48,8 +48,9 @@ class _Retry:
     ) -> T:
         try:
             return f(*args, **kwargs)
-        except AioRpcError as e:
-            if e.code() != StatusCode.UNAVAILABLE:
+        except RpcError as e:
+            err = cast(Call, e)
+            if err.code() != StatusCode.UNAVAILABLE:
                 raise e
             logger.info(
                 f"{error} received exception: {e}. Retrying with exponential backoff in {2**count} seconds"

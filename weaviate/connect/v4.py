@@ -23,7 +23,7 @@ from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
-from grpc import Channel as SyncChannel, RpcError, Call  # type: ignore
+from grpc import Channel as SyncChannel, RpcError, StatusCode, Call  # type: ignore
 from grpc.aio import Channel as AsyncChannel, AioRpcError  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
 
@@ -1026,8 +1026,8 @@ class ConnectionSync(_ConnectionBase):
             return cast(search_get_pb2.SearchReply, res)
         except RpcError as e:
             error = cast(Call, e)
-            if error.code() == PERMISSION_DENIED:
-                raise InsufficientPermissionsError(error.details())
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
             raise WeaviateQueryError(str(error.details()), "GRPC search")  # pyright: ignore
         except WeaviateRetryError as e:
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
@@ -1053,9 +1053,9 @@ class ConnectionSync(_ConnectionBase):
             return objects
         except RpcError as e:
             error = cast(Call, e)
-            if error.code() == PERMISSION_DENIED:
-                raise InsufficientPermissionsError(error.details())
-            raise WeaviateBatchError(str(error.details())) from error.details()
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
+            raise WeaviateBatchError(str(error.details()))
 
     def grpc_batch_delete(
         self, request: batch_delete_pb2.BatchDeleteRequest
@@ -1072,8 +1072,8 @@ class ConnectionSync(_ConnectionBase):
             )
         except RpcError as e:
             error = cast(Call, e)
-            if error.code() == PERMISSION_DENIED:
-                raise InsufficientPermissionsError(error.details())
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
             raise WeaviateDeleteManyError(str(error.details()))
 
     def grpc_tenants_get(
@@ -1091,8 +1091,8 @@ class ConnectionSync(_ConnectionBase):
             )
         except RpcError as e:
             error = cast(Call, e)
-            if error.code() == PERMISSION_DENIED:
-                raise InsufficientPermissionsError(error.details())
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
             raise WeaviateTenantGetError(str(error.details())) from e
 
         return cast(tenants_pb2.TenantsGetReply, res)
@@ -1111,9 +1111,10 @@ class ConnectionSync(_ConnectionBase):
                 timeout=self.timeout_config.query,
             )
             return cast(aggregate_pb2.AggregateReply, res)
-        except AioRpcError as e:
-            if e.code().name == PERMISSION_DENIED:
-                raise InsufficientPermissionsError(e)
+        except RpcError as e:
+            error = cast(Call, e)
+            if error.code() == StatusCode.PERMISSION_DENIED:
+                raise InsufficientPermissionsError(error)
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
         except WeaviateRetryError as e:
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
