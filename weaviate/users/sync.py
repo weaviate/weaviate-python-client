@@ -1,26 +1,23 @@
-from weaviate import syncify
+from weaviate.connect import impl
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.users.async_ import (
+from weaviate.users.base import (
     _UsersBase,
-    _UsersAsync,
     _UsersDBBase,
-    _UsersDBAsync,
     _UsersOIDCBase,
-    _UsersOIDCAsync,
 )
 
 
-@syncify.convert(_UsersDBAsync)
+@impl.generate("sync")
 class _UsersDB(_UsersDBBase[ConnectionSync]):
     pass
 
 
-@syncify.convert(_UsersOIDCAsync)
+@impl.generate("sync")
 class _UsersOIDC(_UsersOIDCBase[ConnectionSync]):
     pass
 
 
-@syncify.convert(_UsersAsync)
+@impl.generate("sync")
 class _Users(_UsersBase[ConnectionSync]):
     def __init__(self, connection):
         super().__init__(connection)

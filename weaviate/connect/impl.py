@@ -23,6 +23,8 @@ def generate(colour: Colour) -> Callable[[Type], Type]:
         metadata: List[_Meta] = []
         for name, method in inspect.getmembers(cls, inspect.isfunction):
             # pulls the original method if it was wrapped by functools.wraps, e.g. @deprecated
+            method = getattr(method, "__wrapped__", method)
+
             if name.startswith("__"):
                 continue
 
