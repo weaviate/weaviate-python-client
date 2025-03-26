@@ -1,5 +1,7 @@
-from weaviate.collections.tenants.async_ import (
+from .async_ import (
     _TenantsAsync,
+)
+from .executor import (
     TenantCreateInputType,
     TenantOutputType,
     TenantUpdateInputType,

@@ -1,13 +1,16 @@
 from typing import Dict, List, Optional, Sequence, Union
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.collections.tenants.async_ import (
+from weaviate.collections.tenants.base import (
     _TenantsBase,
+)
+from weaviate.collections.tenants.executor import (
     TenantCreateInputType,
     TenantOutputType,
     TenantUpdateInputType,
 )
+from weaviate.connect.v4 import ConnectionSync
 
-class _Tenants(_TenantsBase):
+class _Tenants(_TenantsBase[ConnectionSync]):
     def create(
         self, tenants: Union[TenantCreateInputType, Sequence[TenantCreateInputType]]
     ) -> None: ...
