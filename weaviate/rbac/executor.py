@@ -122,7 +122,7 @@ class _RolesExecutor:
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create role"),
         )
 
-    def get_assignments(
+    def get_user_assignments(
         self, role_name: str, *, connection: Connection
     ) -> ExecutorResult[List[UserAssignment]]:
         path = f"/authz/roles/{role_name}/user-assignments"
