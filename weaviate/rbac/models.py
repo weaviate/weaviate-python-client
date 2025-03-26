@@ -15,8 +15,8 @@ from weaviate.warnings import _Warnings
 
 
 class UserTypes(str, Enum):
-    DB_DYNAMIC = "db_dynamic"
-    DB_STATIC = "db_static"
+    DB_DYNAMIC = "db_user"
+    DB_STATIC = "db_env_user"
     OIDC = "oidc"
 
 
