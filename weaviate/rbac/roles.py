@@ -162,7 +162,7 @@ class _RolesAsync(_RolesBase):
             return None
         return Role._from_weaviate_role(r)
 
-    async def get_assignments(self, role_name: str) -> List[UserAssignment]:
+    async def get_user_assignments(self, role_name: str) -> List[UserAssignment]:
         """Get the ids and usertype of users that have been assigned this role.
 
         Args:
@@ -179,7 +179,7 @@ class _RolesAsync(_RolesBase):
         ]
 
     @deprecated(
-        """This method is deprecated and will be removed in Q4 25. Please use `roles.get_assignments` instead."""
+        """This method is deprecated and will be removed in Q4 25. Please use `roles.get_user_assignments` instead."""
     )
     async def get_assigned_user_ids(self, role_name: str) -> List[str]:
         """Get the ids of users (DB + OIDC) that have been assigned this role.
