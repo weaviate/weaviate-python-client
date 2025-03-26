@@ -1,6 +1,6 @@
 from typing import Optional
 
-from weaviate.backup.backup import (
+from weaviate.backup.executor import (
     BackupConfigCreate,
     BackupConfigRestore,
     BackupReturn,

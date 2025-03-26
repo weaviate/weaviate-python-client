@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Generic, Optional
 
-from weaviate.backup.backup import (
+from weaviate.backup.executor import (
     BackupConfigCreate,
     BackupConfigRestore,
     BackupStatusReturn,

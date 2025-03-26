@@ -1,8 +1,8 @@
-from weaviate import syncify
+from weaviate.connect import impl
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.backup.backup import _BackupAsync, _BackupBase
+from weaviate.backup.base import _BackupBase
 
 
-@syncify.convert(_BackupAsync)
+@impl.generate("sync")
 class _Backup(_BackupBase[ConnectionSync]):
     pass

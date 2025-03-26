@@ -7,13 +7,9 @@ from typing import Dict, Optional, Tuple, Union, Any
 from typing_extensions import deprecated
 
 from weaviate import syncify
-from weaviate.backup.backup import _BackupAsync
-from weaviate.backup.sync import _Backup
 
-from weaviate.users.async_ import _UsersAsync
-
-from weaviate.users.sync import _Users
 from .auth import AuthCredentials
+from .backup import _BackupAsync, _Backup
 from .client_base import _WeaviateClientInit
 from .collections.batch.client import _BatchClientWrapper
 from .collections.classes.internal import _RawGQLReturn
@@ -30,6 +26,7 @@ from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
 from .rbac import _RolesAsync, _Roles
 from .types import NUMBER
+from .users import _UsersAsync, _Users
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
