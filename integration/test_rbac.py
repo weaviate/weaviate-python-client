@@ -366,7 +366,7 @@ def test_get_assigned_users_db(client_factory: ClientFactory, request: SubReques
         client.users.db.create(user_id=names)
 
         client.users.db.assign_roles(user_id=names, role_names=names)
-        assigned_users = client.roles.get_assignments(names)
+        assigned_users = client.roles.get_user_assignments(names)
         assert len(assigned_users) == 1
         assert assigned_users[0].user_id == names
         assert assigned_users[0].user_type == UserTypes.DB_DYNAMIC
@@ -388,7 +388,7 @@ def test_get_assigned_oidc_db(client_factory: ClientFactory, request: SubRequest
         )
 
         client.users.oidc.assign_roles(user_id=names, role_names=names)
-        assigned_users = client.roles.get_assignments(names)
+        assigned_users = client.roles.get_user_assignments(names)
         assert len(assigned_users) == 1
         assert assigned_users[0].user_id == names
         assert assigned_users[0].user_type == UserTypes.OIDC
