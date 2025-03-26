@@ -4,11 +4,7 @@ from typing import Dict, Generic, List, Optional, Sequence, Union
 from weaviate.connect.executor import ExecutorResult
 from weaviate.connect.v4 import ConnectionType
 from weaviate.rbac.executor import _RolesExecutor
-from weaviate.rbac.models import (
-    PermissionsOutputType,
-    PermissionsInputType,
-    Role,
-)
+from weaviate.rbac.models import PermissionsOutputType, PermissionsInputType, Role, UserAssignment
 
 
 class _RolesBase(Generic[ConnectionType]):
@@ -83,6 +79,18 @@ class _RolesBase(Generic[ConnectionType]):
 
         Returns:
             A list of ids.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_user_assignments(self, role_name: str) -> ExecutorResult[List[UserAssignment]]:
+        """Get the ids and usertype of users that have been assigned this role.
+
+        Args:
+            role_name: The role to get the users for.
+
+        Returns:
+            A list of Assignments.
         """
         raise NotImplementedError()
 

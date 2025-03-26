@@ -6,9 +6,7 @@ from weaviate.auth import Auth
 
 import weaviate
 
-from weaviate.users.executor import DbUserTypes
-
-from weaviate.rbac.models import Role, RoleBase
+from weaviate.rbac.models import Role, RoleBase, UserTypes
 
 
 RBAC_PORTS = (8092, 50063)
@@ -76,7 +74,7 @@ def test_get_static_db_user(client_factory: ClientFactory) -> None:
         assert len(user.role_names) > 0
         assert user.user_id == "admin-user"
         assert user.active
-        assert user.db_user_type == DbUserTypes.STATIC
+        assert user.user_type == UserTypes.DB_STATIC
 
 
 def test_create_user_and_get(client_factory: ClientFactory) -> None:
@@ -93,7 +91,7 @@ def test_create_user_and_get(client_factory: ClientFactory) -> None:
             assert user.user_id == randomUserName
         user = client.users.db.get(user_id=randomUserName)
         assert user.user_id == randomUserName
-        assert user.db_user_type == DbUserTypes.DYNAMIC
+        assert user.user_type == UserTypes.DB_DYNAMIC
         assert client.users.db.delete(user_id=randomUserName)
 
 

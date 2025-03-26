@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any, Dict, Final, List, Literal, Optional, Union, cast
 
 from httpx import Response
@@ -10,6 +9,7 @@ from weaviate.rbac.models import (
     Role,
     RoleBase,
     WeaviateDBUserRoleNames,
+    UserTypes,
 )
 
 from weaviate.util import _decode_json_response_dict
@@ -25,17 +25,22 @@ class OwnUser:
     roles: Dict[str, Role]
 
 
-class DbUserTypes(str, Enum):
-    DYNAMIC = "dynamic"
-    STATIC = "static"
+@dataclass
+class UserBase:
+    user_id: str
+    role_names: List[str]
+    user_type: UserTypes
 
 
 @dataclass
-class UserDB:
-    user_id: str
-    role_names: List[str]
+class UserDB(UserBase):
+    user_type: UserTypes
     active: bool
-    db_user_type: DbUserTypes
+
+
+@dataclass
+class UserOIDC(UserBase):
+    user_type: UserTypes = UserTypes.OIDC
 
 
 class _BaseExecutor:
@@ -326,7 +331,7 @@ class _DBExecutor(_BaseExecutor):
                 user_id=parsed["userId"],
                 role_names=parsed["roles"],
                 active=parsed["active"],
-                db_user_type=DbUserTypes(parsed["dbUserType"]),
+                user_type=UserTypes(parsed["dbUserType"]),
             )
 
         return execute(
@@ -346,7 +351,7 @@ class _DBExecutor(_BaseExecutor):
                     user_id=user["userId"],
                     role_names=user["roles"],
                     active=user["active"],
-                    db_user_type=DbUserTypes(user["dbUserType"]),
+                    user_type=UserTypes(user["dbUserType"]),
                 )
                 for user in cast(List[WeaviateDBUserRoleNames], parsed)
             ]
