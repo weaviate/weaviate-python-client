@@ -2,21 +2,20 @@
 Client class definition.
 """
 
-from typing import Dict, Optional, Tuple, Union, Any
+from typing import Optional, Tuple, Union, Any
 
 from typing_extensions import deprecated
 
-from weaviate import syncify
 
 from .auth import AuthCredentials
 from .backup import _BackupAsync, _Backup
-from .client_base import _WeaviateClientInit
+from .client_base import _WeaviateClientBase
 from .collections.batch.client import _BatchClientWrapper
-from .collections.classes.internal import _RawGQLReturn
 from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections.async_ import _CollectionsAsync
 from .collections.collections.sync import _Collections
 from .config import AdditionalConfig
+from .connect import impl
 from .connect.base import (
     ConnectionParams,
 )
@@ -31,7 +30,8 @@ from .users import _UsersAsync, _Users
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
-class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
+@impl.generate("async")
+class WeaviateAsyncClient(_WeaviateClientBase[ConnectionAsync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
@@ -89,84 +89,15 @@ class WeaviateAsyncClient(_WeaviateClientInit[ConnectionAsync]):
         """This namespace contains all functionality to manage Weaviate users."""
 
     async def __aenter__(self) -> "WeaviateAsyncClient":
-        await aresult(self._executor.connect(self._connection))
+        await aresult(self.connect())
         return self
 
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        await aresult(self._executor.close(self._connection))
-
-    async def connect(self) -> None:
-        await aresult(self._executor.connect(self._connection))
-
-    async def close(self) -> None:
-        """
-        Close the connection to Weaviate.
-
-        This method should be called when the client is no longer needed to free up resources.
-        """
-        await aresult(self._executor.close(self._connection))
-
-    async def is_live(self) -> bool:
-        return await aresult(self._executor.is_live(self._connection))
-
-    async def is_ready(self) -> bool:
-        return await aresult(self._executor.is_ready(self._connection))
-
-    async def graphql_raw_query(self, gql_query: str) -> _RawGQLReturn:
-        """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
-
-        Be cautious of injection risks when generating query strings.
-
-        Arguments:
-            `gql_query`
-                GraphQL query as a string.
-
-        Returns:
-            A dict with the response from the GraphQL query.
-
-        Raises
-            `TypeError`
-                If 'gql_query' is not of type str.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-        """
-        return await aresult(self._executor.graphql_raw_query(self._connection, gql_query))
-
-    async def get_meta(self) -> dict:
-        """
-        Get the meta endpoint description of weaviate.
-
-        Returns:
-            `dict`
-                The `dict` describing the weaviate configuration.
-
-        Raises:
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
-        """
-
-        return await aresult(self._executor.get_meta(self._connection))
-
-    async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
-        """
-        Get the openid-configuration.
-
-        Returns
-            `dict`
-                The configuration or `None` if not configured.
-
-        Raises
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
-        """
-
-        return await aresult(self._executor.get_open_id_configuration(self._connection))
+        await aresult(self.close())
 
 
-@syncify.convert(WeaviateAsyncClient)
-class WeaviateClient(_WeaviateClientInit[ConnectionSync]):
+@impl.generate("sync")
+class WeaviateClient(_WeaviateClientBase[ConnectionSync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
@@ -232,11 +163,11 @@ class WeaviateClient(_WeaviateClientInit[ConnectionSync]):
         """This namespace contains all functionality to manage Weaviate users."""
 
     def __enter__(self) -> "WeaviateClient":
-        result(self._executor.connect(self._connection))
+        result(self.connect())
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        result(self._executor.close(self._connection))
+        result(self.close())
 
 
 @deprecated(

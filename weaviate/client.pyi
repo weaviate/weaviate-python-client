@@ -22,20 +22,22 @@ from .types import NUMBER
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
-from weaviate.client_base import _WeaviateClientInit
+from weaviate.client_base import _WeaviateClientBase
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 # Must define stubs here for WeaviateClient due to runtime patching of async -> sync methods
 # Cannot move Client nor WeaviateClient definitions away from client.py due to BC concerns
 # Must therefore duplicate the interface for all clients hiding their methods inside client.py
 
-class WeaviateAsyncClient(_WeaviateClientInit):
-    _connection: ConnectionV4
+class WeaviateAsyncClient(_WeaviateClientBase[ConnectionAsync]):
+    _connection: ConnectionAsync
     backup: _BackupAsync
     collections: _CollectionsAsync
     cluster: _ClusterAsync
     debug: _DebugAsync
     roles: _RolesAsync
     users: _UsersAsync
+
     async def close(self) -> None: ...
     async def connect(self) -> None: ...
     def is_connected(self) -> bool: ...
@@ -47,8 +49,8 @@ class WeaviateAsyncClient(_WeaviateClientInit):
     async def __aenter__(self) -> "WeaviateAsyncClient": ...
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None: ...
 
-class WeaviateClient(_WeaviateClientInit):
-    _connection: ConnectionV4
+class WeaviateClient(_WeaviateClientBase[ConnectionSync]):
+    _connection: ConnectionSync
     backup: _Backup
     batch: _BatchClientWrapper
     collections: _Collections

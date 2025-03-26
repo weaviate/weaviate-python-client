@@ -35,7 +35,6 @@ def generate(colour: Colour) -> Callable[[Type], Type]:
                 _Meta(name=name, method=method, parameters=inspect.signature(method).parameters)
             )
 
-        print(len(metadata), cls.__name__)
         # Create sync versions of the async methods
         for metadatum in metadata:
             if colour == "async":
