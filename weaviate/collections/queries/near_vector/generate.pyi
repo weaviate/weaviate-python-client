@@ -26,12 +26,13 @@ from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseGenerate
+from weaviate.collections.queries.near_vector.base import _NearVectorGenerateBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 class _NearVectorGenerateAsync(
-    Generic[Properties, References], _BaseGenerate[ConnectionAsync, Properties, References]
+    Generic[Properties, References],
+    _NearVectorGenerateBase[ConnectionAsync, Properties, References],
 ):
     @overload
     async def near_vector(
@@ -337,7 +338,7 @@ class _NearVectorGenerateAsync(
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...
 
 class _NearVectorGenerate(
-    Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
+    Generic[Properties, References], _NearVectorGenerateBase[ConnectionSync, Properties, References]
 ):
     @overload
     def near_vector(

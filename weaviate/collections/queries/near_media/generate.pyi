@@ -26,12 +26,12 @@ from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseGenerate
+from weaviate.collections.queries.near_media.base import _NearMediaGenerateBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
 
 class _NearMediaGenerateAsync(
-    Generic[Properties, References], _BaseGenerate[ConnectionAsync, Properties, References]
+    Generic[Properties, References], _NearMediaGenerateBase[ConnectionAsync, Properties, References]
 ):
     @overload
     async def near_media(
@@ -350,7 +350,7 @@ class _NearMediaGenerateAsync(
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...
 
 class _NearMediaGenerate(
-    Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
+    Generic[Properties, References], _NearMediaGenerateBase[ConnectionSync, Properties, References]
 ):
     @overload
     def near_media(

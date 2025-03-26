@@ -21,12 +21,12 @@ from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseQuery
+from weaviate.collections.queries.near_text.base import _NearTextQueryBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 class _NearTextQueryAsync(
-    Generic[Properties, References], _BaseQuery[ConnectionAsync, Properties, References]
+    Generic[Properties, References], _NearTextQueryBase[ConnectionAsync, Properties, References]
 ):
     @overload
     async def near_text(
@@ -308,7 +308,7 @@ class _NearTextQueryAsync(
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...
 
 class _NearTextQuery(
-    Generic[Properties, References], _BaseQuery[ConnectionSync, Properties, References]
+    Generic[Properties, References], _NearTextQueryBase[ConnectionSync, Properties, References]
 ):
     @overload
     def near_text(

@@ -25,12 +25,12 @@ from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseGenerate
+from weaviate.collections.queries.near_image.base import _NearImageGenerateBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
 
 class _NearImageGenerateAsync(
-    Generic[Properties, References], _BaseGenerate[ConnectionAsync, Properties, References]
+    Generic[Properties, References], _NearImageGenerateBase[ConnectionAsync, Properties, References]
 ):
     @overload
     async def near_image(
@@ -336,7 +336,7 @@ class _NearImageGenerateAsync(
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...
 
 class _NearImageGenerate(
-    Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
+    Generic[Properties, References], _NearImageGenerateBase[ConnectionSync, Properties, References]
 ):
     @overload
     def near_image(

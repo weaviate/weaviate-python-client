@@ -20,12 +20,13 @@ from weaviate.collections.classes.internal import (
     GenerativeReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _BaseGenerate
+from weaviate.collections.queries.fetch_objects.base import _FetchObjectsGenerateBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import UUID, INCLUDE_VECTOR
 
 class _FetchObjectsGenerateAsync(
-    Generic[Properties, References], _BaseGenerate[ConnectionAsync, Properties, References]
+    Generic[Properties, References],
+    _FetchObjectsGenerateBase[ConnectionAsync, Properties, References],
 ):
     @overload
     async def fetch_objects(
@@ -155,7 +156,8 @@ class _FetchObjectsGenerateAsync(
     ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]: ...
 
 class _FetchObjectsGenerate(
-    Generic[Properties, References], _BaseGenerate[ConnectionSync, Properties, References]
+    Generic[Properties, References],
+    _FetchObjectsGenerateBase[ConnectionSync, Properties, References],
 ):
     @overload
     def fetch_objects(
