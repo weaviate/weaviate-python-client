@@ -1,12 +1,12 @@
 from typing import Optional
-from weaviate.backup.backup import (
+from weaviate.backup.executor import (
     BackupConfigCreate,
     BackupConfigRestore,
     BackupStatusReturn,
     BackupStorage,
     BackupLocationType,
 )
-from weaviate.collections.backups.async_ import _CollectionBackupBase
+from weaviate.collections.backups.base import _CollectionBackupBase
 from weaviate.connect.v4 import ConnectionSync
 
 class _CollectionBackup(_CollectionBackupBase[ConnectionSync]):
