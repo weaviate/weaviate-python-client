@@ -14,6 +14,23 @@ from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
 
 
+class UserTypes(str, Enum):
+    DB_DYNAMIC = "db_dynamic"
+    DB_STATIC = "db_static"
+    OIDC = "oidc"
+
+
+@dataclass
+class UserAssignment:
+    user_id: str
+    user_type: UserTypes
+
+
+class WeaviateUserAssignment(TypedDict):
+    userId: str
+    userType: str
+
+
 class RoleScope(str, BaseEnum):
     """Scope of the role permission."""
 

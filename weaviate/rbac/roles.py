@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Dict, List, Literal, Optional, Sequence, Union, cast
+from typing import Dict, List, Optional, Sequence, Union, cast
 
 from weaviate.connect import ConnectionV4
 from weaviate.connect.v4 import _ExpectedStatusCodes
@@ -11,10 +11,12 @@ from weaviate.rbac.models import (
     Role,
     WeaviatePermission,
     WeaviateRole,
+    UserAssignment,
+    WeaviateUserAssignment,
 )
 from typing_extensions import deprecated
 
-from weaviate.users.users import USER_TYPE_DB, USER_TYPE_OIDC
+from weaviate.users.users import UserTypes
 
 
 class _RolesBase:
@@ -73,13 +75,8 @@ class _RolesBase:
             status_codes=_ExpectedStatusCodes(ok_in=[204], error="Delete role"),
         )
 
-    async def _get_users_of_role(
-        self, name: str, user_type: Optional[Literal["db", "oidc"]]
-    ) -> List[str]:
+    async def _get_users_of_role_deprecated(self, name: str) -> List[str]:
         path = f"/authz/roles/{name}/users"
-
-        if user_type is not None:
-            path += "/" + user_type
 
         res = await self._connection.get(
             path,
@@ -87,6 +84,16 @@ class _RolesBase:
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get users of role"),
         )
         return cast(List[str], res.json())
+
+    async def _get_users_of_role(self, name: str) -> List[WeaviateUserAssignment]:
+        path = f"/authz/roles/{name}/user-assignments"
+
+        res = await self._connection.get(
+            path,
+            error_msg=f"Could not get users of role {name}",
+            status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get users of role"),
+        )
+        return cast(List[WeaviateUserAssignment], res.json())
 
     async def _add_permissions(self, permissions: List[WeaviatePermission], role: str) -> None:
         path = f"/authz/roles/{role}/add-permissions"
@@ -155,31 +162,24 @@ class _RolesAsync(_RolesBase):
             return None
         return Role._from_weaviate_role(r)
 
-    async def get_assigned_db_user_ids(self, role_name: str) -> List[str]:
-        """Get the ids of DB users that have been assigned this role.
+    async def get_user_assignments(self, role_name: str) -> List[UserAssignment]:
+        """Get the ids and usertype of users that have been assigned this role.
 
         Args:
             role_name: The role to get the users for.
 
         Returns:
-            A list of ids.
+            A list of Assignments.
         """
-        return await self._get_users_of_role(role_name, USER_TYPE_DB)
-
-    async def get_assigned_oidc_user_ids(self, role_name: str) -> List[str]:
-        """Get the ids of OIDC users that have been assigned this role.
-
-        Args:
-            role_name: The role to get the users for.
-
-        Returns:
-            A list of ids.
-        """
-        return await self._get_users_of_role(role_name, USER_TYPE_OIDC)
+        return [
+            UserAssignment(
+                user_id=assignment["userId"], user_type=UserTypes(assignment["userType"])
+            )
+            for assignment in await self._get_users_of_role(role_name)
+        ]
 
     @deprecated(
-        """This method is deprecated and will be removed in Q4 25.
-                Please use `roles.get_assigned_db_user_ids` and/or `roles.get_assigned_oidc_user_ids` instead."""
+        """This method is deprecated and will be removed in Q4 25. Please use `roles.get_user_assignments` instead."""
     )
     async def get_assigned_user_ids(self, role_name: str) -> List[str]:
         """Get the ids of users (DB + OIDC) that have been assigned this role.
@@ -190,7 +190,7 @@ class _RolesAsync(_RolesBase):
         Returns:
             A list of ids.
         """
-        return await self._get_users_of_role(role_name, None)
+        return await self._get_users_of_role_deprecated(role_name)
 
     async def delete(self, role_name: str) -> None:
         """Delete a role.

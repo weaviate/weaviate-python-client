@@ -19,6 +19,8 @@ from weaviate.rbac.models import (
 )
 from _pytest.fixtures import SubRequest
 
+from weaviate.users.users import UserTypes
+
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")
 
@@ -349,24 +351,49 @@ def test_get_assigned_users(client_factory: ClientFactory) -> None:
         assert assigned_users[0] == "admin-user"
 
 
-def test_get_assigned_users_db(client_factory: ClientFactory) -> None:
+def test_get_assigned_users_db(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
-        client.users.db.assign_roles(user_id="admin-user", role_names="viewer")
-        assigned_users = client.roles.get_assigned_db_user_ids("viewer")
+
+        names = _sanitize_collection_name(request.node.name)
+        client.roles.delete(names)
+        client.roles.create(
+            role_name=names,
+            permissions=Permissions.roles(role="test", read=True),
+        )
+
+        client.users.db.create(user_id=names)
+
+        client.users.db.assign_roles(user_id=names, role_names=names)
+        assigned_users = client.roles.get_user_assignments(names)
         assert len(assigned_users) == 1
-        assert assigned_users[0] == "admin-user"
+        assert assigned_users[0].user_id == names
+        assert assigned_users[0].user_type == UserTypes.DB_DYNAMIC
+
+        client.roles.delete(names)
+        client.users.db.delete(user_id=names)
 
 
-def test_get_assigned_oidc_db(client_factory: ClientFactory) -> None:
+def test_get_assigned_oidc_db(client_factory: ClientFactory, request: SubRequest) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
-        client.users.oidc.assign_roles(user_id="admin-user", role_names="viewer")
-        assigned_users = client.roles.get_assigned_oidc_user_ids("viewer")
+
+        names = _sanitize_collection_name(request.node.name)
+        client.roles.delete(names)
+        client.roles.create(
+            role_name=names,
+            permissions=Permissions.roles(role="test", read=True),
+        )
+
+        client.users.oidc.assign_roles(user_id=names, role_names=names)
+        assigned_users = client.roles.get_user_assignments(names)
         assert len(assigned_users) == 1
-        assert assigned_users[0] == "admin-user"
+        assert assigned_users[0].user_id == names
+        assert assigned_users[0].user_type == UserTypes.OIDC
+
+        client.roles.delete(names)
 
 
 def test_permission_output_as_input(client_factory: ClientFactory) -> None:
