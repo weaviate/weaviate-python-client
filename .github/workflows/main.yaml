@@ -65,11 +65,9 @@ jobs:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
-      # - name: Run mypy
-      #   run: mypy --config-file ./pyproject.toml --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
       - uses: jakebailey/pyright-action@v2
         with:
-          version: 1.1.397
+          version: 1.1.398
 
   unit-tests:
     name: Run Unit Tests
