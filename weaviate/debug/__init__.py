@@ -1,4 +1,4 @@
-from weaviate.debug.async_ import _DebugAsync
+from .async_ import _DebugAsync
 from .sync import _Debug
 
 __all__ = [
