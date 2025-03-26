@@ -1,6 +1,6 @@
-from typing import List, Optional, Union
+from abc import abstractmethod
+from typing import Generic, List, Optional, Union
 
-from weaviate import syncify
 from weaviate.collections.aggregations.base import _BaseAggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
@@ -9,13 +9,14 @@ from weaviate.collections.classes.aggregate import (
     GroupByAggregate,
 )
 from weaviate.collections.classes.filters import _Filters
-from weaviate.connect.executor import aresult
-from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
+from weaviate.connect.executor import ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.types import NUMBER
 
 
-class _HybridAsync(_BaseAggregate[ConnectionAsync]):
-    async def hybrid(
+class _HybridBase(Generic[ConnectionType], _BaseAggregate[ConnectionType]):
+    @abstractmethod
+    def hybrid(
         self,
         query: Optional[str],
         *,
@@ -29,7 +30,7 @@ class _HybridAsync(_BaseAggregate[ConnectionAsync]):
         max_vector_distance: Optional[NUMBER] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+    ) -> ExecutorResult[Union[AggregateReturn, AggregateGroupByReturn]]:
         """Aggregate metrics over all the objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         Arguments:
@@ -61,24 +62,4 @@ class _HybridAsync(_BaseAggregate[ConnectionAsync]):
             `weaviate.exceptions.WeaviateInvalidInputError`:
                 If any of the input arguments are of the wrong type.
         """
-        return await aresult(
-            self._executor.hybrid(
-                connection=self._connection,
-                query=query,
-                alpha=alpha,
-                vector=vector,
-                query_properties=query_properties,
-                object_limit=object_limit,
-                filters=filters,
-                group_by=group_by,
-                target_vector=target_vector,
-                max_vector_distance=max_vector_distance,
-                total_count=total_count,
-                return_metrics=return_metrics,
-            )
-        )
-
-
-@syncify.convert(_HybridAsync)
-class _Hybrid(_BaseAggregate[ConnectionSync]):
-    pass
+        raise NotImplementedError()

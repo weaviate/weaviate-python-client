@@ -1,6 +1,6 @@
-from typing import List, Optional, Union
+from abc import abstractmethod
+from typing import Generic, List, Optional, Union
 
-from weaviate import syncify
 from weaviate.collections.aggregations.base import _BaseAggregate
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
@@ -10,13 +10,14 @@ from weaviate.collections.classes.aggregate import (
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
-from weaviate.connect.executor import aresult
-from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
+from weaviate.connect.executor import ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.types import NUMBER
 
 
-class _NearTextAsync(_BaseAggregate[ConnectionAsync]):
-    async def near_text(
+class _NearTextBase(Generic[ConnectionType], _BaseAggregate[ConnectionType]):
+    @abstractmethod
+    def near_text(
         self,
         query: Union[List[str], str],
         *,
@@ -30,7 +31,7 @@ class _NearTextAsync(_BaseAggregate[ConnectionAsync]):
         target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+    ) -> ExecutorResult[Union[AggregateReturn, AggregateGroupByReturn]]:
         """Aggregate metrics over the objects returned by a near text vector search on this collection.
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
@@ -68,24 +69,4 @@ class _NearTextAsync(_BaseAggregate[ConnectionAsync]):
             `weaviate.exceptions.WeaviateInvalidInputError`:
                 If any of the input arguments are of the wrong type.
         """
-        return await aresult(
-            self._executor.near_text(
-                self._connection,
-                query=query,
-                certainty=certainty,
-                distance=distance,
-                move_to=move_to,
-                move_away=move_away,
-                object_limit=object_limit,
-                filters=filters,
-                group_by=group_by,
-                target_vector=target_vector,
-                total_count=total_count,
-                return_metrics=return_metrics,
-            )
-        )
-
-
-@syncify.convert(_NearTextAsync)
-class _NearText(_BaseAggregate[ConnectionSync]):
-    pass
+        raise NotImplementedError()

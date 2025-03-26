@@ -1,6 +1,8 @@
-from typing import List, Literal, Optional, Union, overload
+from io import BufferedReader
+from pathlib import Path
+from typing import Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.base import _BaseAggregate
+from weaviate.collections.aggregations.near_image.base import _NearImageBase
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -10,103 +12,92 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER
+from weaviate.util import BLOB_INPUT
 
-class _HybridAsync(_BaseAggregate[ConnectionAsync]):
+class _NearImageAsync(_NearImageBase[ConnectionAsync]):
     @overload
-    async def hybrid(
+    async def near_image(
         self,
-        query: Optional[str],
+        near_image: BLOB_INPUT,
         *,
-        alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         target_vector: Optional[str] = None,
-        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateReturn: ...
     @overload
-    async def hybrid(
+    async def near_image(
         self,
-        query: Optional[str],
+        near_image: BLOB_INPUT,
         *,
-        alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Union[str, GroupByAggregate],
         target_vector: Optional[str] = None,
-        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn: ...
     @overload
-    async def hybrid(
+    async def near_image(
         self,
-        query: Optional[str],
+        near_image: BLOB_INPUT,
         *,
-        alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
-        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
 
-class _Hybrid(_BaseAggregate[ConnectionSync]):
+class _NearImage(_NearImageBase[ConnectionSync]):
     @overload
-    def hybrid(
+    def near_image(
         self,
-        query: Optional[str],
+        near_image: BLOB_INPUT,
         *,
-        alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Literal[None] = None,
         target_vector: Optional[str] = None,
-        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateReturn: ...
     @overload
-    def hybrid(
+    def near_image(
         self,
-        query: Optional[str],
+        near_image: BLOB_INPUT,
         *,
-        alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Union[str, GroupByAggregate],
         target_vector: Optional[str] = None,
-        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn: ...
     @overload
-    def hybrid(
+    def near_image(
         self,
-        query: Optional[str],
+        near_image: BLOB_INPUT,
         *,
-        alpha: NUMBER = 0.7,
-        vector: Optional[List[float]] = None,
-        query_properties: Optional[List[str]] = None,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
         object_limit: Optional[int] = None,
         filters: Optional[_Filters] = None,
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
-        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
