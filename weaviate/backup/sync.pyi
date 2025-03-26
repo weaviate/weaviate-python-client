@@ -1,12 +1,12 @@
 from typing import Optional, Union, List
 
-from weaviate.backup.backup import (
+from weaviate.backup.base import _BackupBase
+from weaviate.backup.executor import (
     BackupStorage,
     BackupReturn,
     BackupStatusReturn,
     BackupConfigCreate,
     BackupConfigRestore,
-    _BackupBase,
 )
 from weaviate.backup.backup_location import BackupLocationType
 from weaviate.connect.v4 import ConnectionSync
