@@ -27,58 +27,58 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import (
     Properties,
 )
-from weaviate.collections.data.async_ import _DataBase
-from weaviate.connect.v4 import ConnectionSync
+from weaviate.collections.data.base import _DataBase
+from weaviate.connect.v4 import ConnectionAsync
 from weaviate.types import UUID, VECTORS
 
-class _DataCollection(Generic[Properties], _DataBase[ConnectionSync]):
+class _DataCollectionAsync(Generic[Properties], _DataBase[ConnectionAsync]):
     # def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]": ...
-    def insert(
+    async def insert(
         self,
         properties: Properties,
         references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[VECTORS] = None,
     ) -> uuid_package.UUID: ...
-    def insert_many(
+    async def insert_many(
         self,
         objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
     ) -> BatchObjectReturn: ...
-    def replace(
+    async def replace(
         self,
         uuid: UUID,
         properties: Properties,
         references: Optional[ReferenceInputs] = None,
         vector: Optional[VECTORS] = None,
     ) -> None: ...
-    def update(
+    async def update(
         self,
         uuid: UUID,
         properties: Optional[Properties] = None,
         references: Optional[ReferenceInputs] = None,
         vector: Optional[VECTORS] = None,
     ) -> None: ...
-    def reference_add(
+    async def reference_add(
         self, from_uuid: UUID, from_property: str, to: SingleReferenceInput
     ) -> None: ...
-    def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn: ...
-    def reference_delete(
+    async def reference_add_many(self, refs: List[DataReferences]) -> BatchReferenceReturn: ...
+    async def reference_delete(
         self, from_uuid: UUID, from_property: str, to: SingleReferenceInput
     ) -> None: ...
-    def reference_replace(
+    async def reference_replace(
         self, from_uuid: UUID, from_property: str, to: ReferenceInput
     ) -> None: ...
-    def exists(self, uuid: UUID) -> bool: ...
-    def delete_by_id(self, uuid: UUID) -> bool: ...
+    async def exists(self, uuid: UUID) -> bool: ...
+    async def delete_by_id(self, uuid: UUID) -> bool: ...
     @overload
-    def delete_many(
+    async def delete_many(
         self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
     ) -> DeleteManyReturn[None]: ...
     @overload
-    def delete_many(
+    async def delete_many(
         self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
     ) -> DeleteManyReturn[List[DeleteManyObject]]: ...
     @overload
-    def delete_many(
+    async def delete_many(
         self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
     ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...

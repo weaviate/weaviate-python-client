@@ -88,7 +88,12 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         self.config = _ConfigCollectionAsync(connection, name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollectionAsync[Properties](
-            connection, name, consistency_level, tenant, validate_arguments, properties
+            connection,
+            name,
+            consistency_level,
+            tenant,
+            validate_arguments,
+            # properties
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
         self.generate = _GenerateCollectionAsync[Properties, References](
