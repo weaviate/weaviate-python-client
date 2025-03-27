@@ -57,7 +57,7 @@ class _GenerativeConfigRuntime(BaseModel):
     def _validate_multi_modal(self, opts: _GenerativeConfigRuntimeOptions) -> None:
         if opts.images is not None or opts.image_properties is not None:
             raise WeaviateInvalidInputError(
-                "The generative-anyscale module does not support the `images` or `image_properties` options."
+                f"The {self.generative.value} module does not support the `images` or `image_properties` options."
             )
 
 
