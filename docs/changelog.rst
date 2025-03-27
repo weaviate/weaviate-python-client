@@ -1,6 +1,24 @@
 Changelog
 =========
 
+Version 4.11.3
+--------------
+This patch version includes:
+    - Fixes a rare bug when the batching algorithm waits for async indexing to complete far beyond the maximum number of allowed retries
+    - Removes the sync-in-async warning emitted by the sync client when used in an async context due to the warning being erroneously emitted in notebooks
+
+Version 4.11.2
+--------------
+This patch version includes:
+    - Adds exponential backoff on the UNAVAILABLE gRPC error code for the BatchObjects method
+        - This is used in the batching algorithm and in ``data.insert_many``
+        - Max number of retries is configurable using the ``WEAVIATE_BATCH_MAX_RETRIES`` env var
+    - Adds support for OIDC when using the ``text2vec-weaviate`` module
+    - Adds support for updating descriptions of properties in collections (needs compatible server version)
+    - Adds warning recommending to refactor to use AsyncClient if the SyncClient is used in an async context
+    - Fixes bugs when importing/exporting collection configurations with respect to property module configs
+    - Fixes bug when exporting config with multivector enabled between versions
+
 Version 4.11.1
 --------------
 This patch version incldues:
