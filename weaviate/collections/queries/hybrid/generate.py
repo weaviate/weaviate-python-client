@@ -1,8 +1,13 @@
-from typing import Generic, List, Optional
+from typing import Generic, List, Optional, Union
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
+)
+from weaviate.collections.classes.generative import (
+    _GenerativeConfigRuntime,
+    _GroupedTask,
+    _SinglePrompt,
 )
 from weaviate.collections.classes.grpc import (
     METADATA,
@@ -31,9 +36,10 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
         self,
         query: Optional[str],
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         alpha: NUMBER = 0.7,
         vector: Optional[HybridVectorType] = None,
         query_properties: Optional[List[str]] = None,
@@ -51,7 +57,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
-        """Perform retrieval-augmented generation (RaG) on the results of an object search in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
+        """Perform retrieval-augmented generation (RAG) on the results of an object search in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/hybrid) for a more detailed explanation.
 
@@ -59,11 +65,13 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
             `query`
                 The keyword-based query to search for, REQUIRED. If query and vector are both None, a normal search will be performed.
             `single_prompt`
-                The prompt to use for RaG on each object individually.
+                The prompt to use for generative query on each object individually.
             `grouped_task`
-                The prompt to use for RaG on the entire result set.
+                The prompt to use for generative query on the entire result set.
             `grouped_properties`
-                The properties to use in the RaG on the entire result set.
+                The properties to use in the generative query on the entire result set.
+            `generative_provider`
+                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
             `alpha`
                 The weight of the BM25 score. If not specified, the default weight specified by the server is used.
             `vector`
@@ -135,6 +143,7 @@ class _HybridGenerateAsync(Generic[Properties, References], _Base[Properties, Re
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
+                generative_provider=generative_provider,
             ),
         )
         return self._result_to_generative_return(

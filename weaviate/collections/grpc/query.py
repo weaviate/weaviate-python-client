@@ -8,6 +8,7 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    Tuple,
     TypeVar,
     Union,
     cast,
@@ -86,10 +87,32 @@ class _QueryGRPC(_BaseGRPC):
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
+        uses_125_api: bool,
+        uses_127_api: bool,
     ):
         super().__init__(connection, consistency_level, validate_arguments)
         self._name: str = name
         self._tenant = tenant
+        self._validate_arguments = validate_arguments
+        self.__uses_125_api = uses_125_api
+        self.__uses_127_api = uses_127_api
+
+    def __parse_near_options(
+        self,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+    ) -> Tuple[Optional[float], Optional[float]]:
+        if self._validate_arguments:
+            _validate_input(
+                [
+                    _ValidateArgument([float, int, None], "certainty", certainty),
+                    _ValidateArgument([float, int, None], "distance", distance),
+                ]
+            )
+        return (
+            float(certainty) if certainty is not None else None,
+            float(distance) if distance is not None else None,
+        )
 
     def get(
         self,
@@ -438,7 +461,8 @@ class _QueryGRPC(_BaseGRPC):
 
         return search_get_pb2.SearchRequest(
             uses_123_api=True,
-            uses_125_api=self._connection._weaviate_version.is_at_least(1, 25, 0),
+            uses_125_api=self.__uses_125_api,
+            uses_127_api=self.__uses_127_api,
             collection=self._name,
             limit=limit,
             offset=offset,
@@ -451,7 +475,11 @@ class _QueryGRPC(_BaseGRPC):
             consistency_level=self._consistency_level,
             tenant=self._tenant,
             filters=_FilterToGRPC.convert(filters),
-            generative=generative.to_grpc() if generative is not None else None,
+            generative=(
+                generative.to_grpc(self._connection._weaviate_version)
+                if generative is not None
+                else None
+            ),
             group_by=group_by.to_grpc() if group_by is not None else None,
             rerank=(
                 search_get_pb2.Rerank(property=rerank.prop, query=rerank.query)

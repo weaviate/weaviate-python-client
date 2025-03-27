@@ -14,6 +14,23 @@ from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
 
 
+class UserTypes(str, Enum):
+    DB_DYNAMIC = "db_user"
+    DB_STATIC = "db_env_user"
+    OIDC = "oidc"
+
+
+@dataclass
+class UserAssignment:
+    user_id: str
+    user_type: UserTypes
+
+
+class WeaviateUserAssignment(TypedDict):
+    userId: str
+    userType: str
+
+
 class RoleScope(str, BaseEnum):
     """Scope of the role permission."""
 
@@ -80,6 +97,14 @@ class WeaviateUser(TypedDict):
     groups: List[str]
 
 
+class WeaviateDBUserRoleNames(TypedDict):
+    userId: str
+    roles: List[str]
+    groups: List[str]
+    active: bool
+    dbUserType: str
+
+
 class _Action:
     pass
 
@@ -132,7 +157,10 @@ class RolesAction(str, _Action, Enum):
 
 
 class UsersAction(str, _Action, Enum):
+    CREATE = "create_users"
     READ = "read_users"
+    UPDATE = "update_users"
+    DELETE = "delete_users"
     ASSIGN_AND_REVOKE = "assign_and_revoke_users"
 
     @staticmethod
@@ -333,8 +361,12 @@ PermissionsOutputType = Union[
 
 
 @dataclass
-class Role:
+class RoleBase:
     name: str
+
+
+@dataclass
+class Role(RoleBase):
     cluster_permissions: List[ClusterPermissionOutput]
     collections_permissions: List[CollectionsPermissionOutput]
     data_permissions: List[DataPermissionOutput]
@@ -478,12 +510,6 @@ def _join_permissions(permissions: List[T]) -> List[T]:
         return_permission.append(permissions[i])
 
     return return_permission
-
-
-@dataclass
-class User:
-    user_id: str
-    roles: Dict[str, Role]
 
 
 ActionsType = Union[_Action, Sequence[_Action]]
@@ -661,7 +687,13 @@ class Permissions:
 
     @staticmethod
     def users(
-        *, user: Union[str, Sequence[str]], read: bool = False, assign_and_revoke: bool = False
+        *,
+        user: Union[str, Sequence[str]],
+        create: bool = False,
+        read: bool = False,
+        update: bool = False,
+        delete: bool = False,
+        assign_and_revoke: bool = False,
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
         if isinstance(user, str):
@@ -669,8 +701,14 @@ class Permissions:
         for u in user:
             permission = _UsersPermission(users=u, actions=set())
 
+            if create:
+                permission.actions.add(UsersAction.CREATE)
             if read:
                 permission.actions.add(UsersAction.READ)
+            if update:
+                permission.actions.add(UsersAction.UPDATE)
+            if delete:
+                permission.actions.add(UsersAction.DELETE)
             if assign_and_revoke:
                 permission.actions.add(UsersAction.ASSIGN_AND_REVOKE)
 

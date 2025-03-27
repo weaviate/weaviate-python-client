@@ -1,8 +1,13 @@
-from typing import Generic, List, Optional
+from typing import Generic, List, Optional, Union
 
 from weaviate import syncify
 from weaviate.collections.classes.filters import (
     _Filters,
+)
+from weaviate.collections.classes.generative import (
+    _GenerativeConfigRuntime,
+    _GroupedTask,
+    _SinglePrompt,
 )
 from weaviate.collections.classes.grpc import (
     METADATA,
@@ -29,9 +34,10 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         self,
         near_vector: NearVectorInputType,
         *,
-        single_prompt: Optional[str] = None,
-        grouped_task: Optional[str] = None,
+        single_prompt: Union[str, _SinglePrompt, None] = None,
+        grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         limit: Optional[int] = None,
@@ -46,13 +52,21 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]:
-        """Perform retrieval-augmented generation (RaG) on the results of a by-vector object search in this collection using vector-based similarity search.
+        """Perform retrieval-augmented generation (RAG) on the results of a by-vector object search in this collection using vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/similarity) for a more detailed explanation.
 
         Arguments:
             `near_vector`
                 The vector to search on, REQUIRED. This can be a base64 encoded string of the binary, a path to the file, or a file-like object.
+            `single_prompt`
+                The prompt to use for generative query on each object individually.
+            `grouped_task`
+                The prompt to use for generative query on the entire result set.
+            `grouped_properties`
+                The properties to use in the generative query on the entire result set.
+            `generative_provider`
+                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
             `certainty`
                 The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
             `distance`
@@ -103,6 +117,7 @@ class _NearVectorGenerateAsync(Generic[Properties, References], _Base[Properties
                 single=single_prompt,
                 grouped=grouped_task,
                 grouped_properties=grouped_properties,
+                generative_provider=generative_provider,
             ),
             limit=limit,
             offset=offset,
