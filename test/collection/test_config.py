@@ -760,7 +760,7 @@ TEST_CONFIG_WITH_VECTORIZER_AND_PROPERTIES_PARAMETERS = [
                 "moduleConfig": {
                     "text2vec-transformers": {
                         "skip": False,
-                        "vectorizePropertyName": True,
+                        "vectorizePropertyName": False,
                     }
                 },
             }
@@ -1284,7 +1284,7 @@ def test_config_create_with_properties(
                         "moduleConfig": {
                             vectorizer_config.vectorizer.value: {
                                 "skip": False,
-                                "vectorizePropertyName": True,
+                                "vectorizePropertyName": False,
                             },
                         },
                     }
@@ -1296,7 +1296,7 @@ def test_config_create_with_properties(
                     "moduleConfig": {
                         conf.vectorizer.vectorizer.value: {
                             "skip": False,
-                            "vectorizePropertyName": True,
+                            "vectorizePropertyName": False,
                         }
                         for conf in vectorizer_config
                     },
