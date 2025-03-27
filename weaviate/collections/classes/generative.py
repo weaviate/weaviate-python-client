@@ -982,7 +982,7 @@ class GenerativeParameters:
             prompt=prompt,
             non_blob_properties=non_blob_properties,
             image_properties=image_properties,
-            images=__parse_images(images),
+            images=GenerativeParameters.__parse_images(images),
             metadata=metadata,
         )
 
@@ -999,17 +999,17 @@ class GenerativeParameters:
         return _SinglePrompt(
             prompt=prompt,
             image_properties=image_properties,
-            images=__parse_images(images),
+            images=GenerativeParameters.__parse_images(images),
             metadata=metadata,
             debug=debug,
         )
 
-
-def __parse_images(
-    images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]]
-) -> Optional[Iterable[str]]:
-    if isinstance(images, (str, Path, BufferedReader)):
-        return (
-            parse_blob(images) for _ in "."
-        )  # creates an Iterable[str]-compatible Generator with a single element
-    return (parse_blob(image) for image in images) if images is not None else None
+    @staticmethod
+    def __parse_images(
+        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]]
+    ) -> Optional[Iterable[str]]:
+        if isinstance(images, (str, Path, BufferedReader)):
+            return (
+                parse_blob(images) for _ in "."
+            )  # creates an Iterable[str]-compatible Generator with a single element
+        return (parse_blob(image) for image in images) if images is not None else None
