@@ -334,12 +334,3 @@ class _Warnings:
             category=UserWarning,
             stacklevel=1,
         )
-
-    @staticmethod
-    def sync_in_async() -> None:
-        warnings.warn(
-            message="""Con006: You're using the sync client in an async context. This usage is discouraged to avoid blocking your async event loop with sync I/O calls.
-            We encourage you to update your code to use the async client instead when running inside async def functions!""",
-            category=UserWarning,
-            stacklevel=1,
-        )
