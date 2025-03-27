@@ -37,6 +37,8 @@ LOGO_ENCODED = "iVBORw0KGgoAAAANSUhEUgAAAZAAAAE5CAYAAAC+rHbqAAAAGXRFWHRTb2Z0d2Fy
     [
         lambda image: GenerativeParameters.grouped_task("whatever", images=[image]),
         lambda image: GenerativeParameters.single_prompt("whatever", images=[image]),
+        lambda image: GenerativeParameters.grouped_task("whatever", images=image),
+        lambda image: GenerativeParameters.single_prompt("whatever", images=image),
     ],
 )
 def test_generative_parameters_images_parsing(

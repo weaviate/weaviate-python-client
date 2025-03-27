@@ -1,5 +1,7 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
+from io import BufferedReader
+from pathlib import Path
 from typing import List, Optional, Union
 
 from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
@@ -55,7 +57,7 @@ class _GenerativeConfigRuntime(BaseModel):
     def _validate_multi_modal(self, opts: _GenerativeConfigRuntimeOptions) -> None:
         if opts.images is not None or opts.image_properties is not None:
             raise WeaviateInvalidInputError(
-                "The generative-anyscale module does not support the `images` or `image_properties` options."
+                f"The {self.generative.value} module does not support the `images` or `image_properties` options."
             )
 
 
@@ -972,7 +974,7 @@ class GenerativeParameters:
         *,
         non_blob_properties: Optional[List[str]] = None,
         image_properties: Optional[List[str]] = None,
-        images: Optional[Iterable[BLOB_INPUT]] = None,
+        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]] = None,
         metadata: bool = False,
     ) -> _GroupedTask:
         """Create a `_GroupedTask` object for use when performing AI generation using the `generate` namespace and the `grouped_task` field."""
@@ -980,7 +982,7 @@ class GenerativeParameters:
             prompt=prompt,
             non_blob_properties=non_blob_properties,
             image_properties=image_properties,
-            images=(parse_blob(image) for image in images) if images is not None else None,
+            images=GenerativeParameters.__parse_images(images),
             metadata=metadata,
         )
 
@@ -989,7 +991,7 @@ class GenerativeParameters:
         prompt: str,
         *,
         image_properties: Optional[List[str]] = None,
-        images: Optional[Iterable[BLOB_INPUT]] = None,
+        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]] = None,
         metadata: bool = False,
         debug: bool = False,
     ) -> _SinglePrompt:
@@ -997,7 +999,17 @@ class GenerativeParameters:
         return _SinglePrompt(
             prompt=prompt,
             image_properties=image_properties,
-            images=(parse_blob(image) for image in images) if images is not None else None,
+            images=GenerativeParameters.__parse_images(images),
             metadata=metadata,
             debug=debug,
         )
+
+    @staticmethod
+    def __parse_images(
+        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]]
+    ) -> Optional[Iterable[str]]:
+        if isinstance(images, (str, Path, BufferedReader)):
+            return (
+                parse_blob(images) for _ in "."
+            )  # creates an Iterable[str]-compatible Generator with a single element
+        return (parse_blob(image) for image in images) if images is not None else None
