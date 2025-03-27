@@ -1885,7 +1885,7 @@ class Property(_ConfigCreateModel):
     )
     skip_vectorization: bool = Field(default=False)
     tokenization: Optional[Tokenization] = Field(default=None)
-    vectorize_property_name: bool = Field(default=True)
+    vectorize_property_name: bool = Field(default=False)
 
     @field_validator("name")
     def _check_name(cls, v: str) -> str:
