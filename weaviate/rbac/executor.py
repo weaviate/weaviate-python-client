@@ -120,7 +120,7 @@ class _RolesExecutor:
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="Get role"),
         )
 
-    def create(self, *, permissions: PermissionsInputType, role_name: str) -> ExecutorResult[Role]:
+    def create(self, *, role_name: str, permissions: PermissionsInputType) -> ExecutorResult[Role]:
         """Create a new role.
 
         Args:

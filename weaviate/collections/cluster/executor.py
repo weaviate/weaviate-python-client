@@ -20,9 +20,9 @@ class _ClusterExecutor:
 
     def nodes(
         self,
-        collection: Optional[str],
+        collection: Optional[str] = None,
         *,
-        output: Optional[Verbosity],
+        output: Optional[Verbosity] = None,
     ) -> ExecutorResult[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]:
         """
         Get the status of all nodes in the cluster.
