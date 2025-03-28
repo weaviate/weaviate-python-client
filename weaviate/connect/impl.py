@@ -7,6 +7,8 @@ from typing import Any, Awaitable, Callable, Dict, List, Type, TypeVar
 from weaviate.connect.executor import Colour
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
+from weaviate.backup.executor import _BackupExecutor
+
 T = TypeVar("T")
 
 
@@ -29,10 +31,7 @@ def generate(colour: Colour) -> Callable[[Type], Type]:
                 continue
 
             parameters = inspect.signature(method).parameters
-            mutable_params = dict(parameters)
-            mutable_params.pop("connection", None)
-            parameters_mutated = MappingProxyType(mutable_params)
-            metadata.append(_Meta(name=name, method=method, parameters=parameters_mutated))
+            metadata.append(_Meta(name=name, method=method, parameters=parameters))
 
         # Create sync versions of the async methods
         for metadatum in metadata:
@@ -96,7 +95,10 @@ def generate(colour: Colour) -> Callable[[Type], Type]:
                         )
 
                     kwargs = __make_kwargs(meta.parameters, *args, **kwargs)
-                    result = executor_method(**kwargs, connection=connection)
+                    if isinstance(executor, _BackupExecutor):
+                        result = executor_method(**kwargs)
+                    else:
+                        result = executor_method(**kwargs, connection=connection)
                     assert not isinstance(result, Awaitable)
                     return result
 

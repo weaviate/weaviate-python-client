@@ -7,14 +7,13 @@ from weaviate.backup.executor import (
     BackupStatusReturn,
     BackupStorage,
 )
-from weaviate.backup.executor import _BackupExecutor
 from weaviate.backup.backup_location import BackupLocationType
 from weaviate.connect.executor import execute, ExecutorResult
 from weaviate.connect.v4 import ConnectionType
 
 
 class _CollectionBackupExecutor:
-    _executor = _BackupExecutor()
+    _executor = None
 
     def __init__(self, name: str) -> None:
         self._name = name

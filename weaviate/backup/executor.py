@@ -103,9 +103,11 @@ class BackupReturn(BackupStatusReturn):
 
 
 class _BackupExecutor:
+    def __init__(self, connection: Connection):
+        self._connection = connection
+
     def create(
         self,
-        connection: Connection,
         backup_id: str,
         backend: BackupStorage,
         include_collections: Union[List[str], str, None] = None,
@@ -169,9 +171,9 @@ class _BackupExecutor:
         }
 
         if config is not None:
-            if connection._weaviate_version.is_lower_than(1, 25, 0):
+            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCreate", str(connection._weaviate_version), "1.25.0"
+                    "BackupConfigCreate", str(self._connection._weaviate_version), "1.25.0"
                 )
             if not isinstance(config, BackupConfigCreate):
                 raise WeaviateInvalidInputError(
@@ -180,10 +182,10 @@ class _BackupExecutor:
             payload["config"] = config._to_dict()
 
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigCreate dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
             if "config" not in payload:
@@ -192,11 +194,11 @@ class _BackupExecutor:
 
         path = f"/backups/{backend.value}"
 
-        if isinstance(connection, ConnectionAsync):
+        if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> BackupReturn:
                 res = await aresult(
-                    connection.post(
+                    self._connection.post(
                         path=path,
                         weaviate_object=payload,
                         error_msg="Backup creation failed due to connection error.",
@@ -208,7 +210,6 @@ class _BackupExecutor:
                     while True:
                         status = await aresult(
                             self.get_create_status(
-                                connection=connection,
                                 backup_id=backup_id,
                                 backend=backend,
                                 backup_location=backup_location,
@@ -231,7 +232,7 @@ class _BackupExecutor:
             return _execute()
 
         res = result(
-            connection.post(
+            self._connection.post(
                 path=path,
                 weaviate_object=payload,
                 error_msg="Backup creation failed due to connection error.",
@@ -243,7 +244,6 @@ class _BackupExecutor:
             while True:
                 status = result(
                     self.get_create_status(
-                        connection=connection,
                         backup_id=backup_id,
                         backend=backend,
                         backup_location=backup_location,
@@ -265,7 +265,6 @@ class _BackupExecutor:
 
     def get_create_status(
         self,
-        connection: Connection,
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
@@ -278,10 +277,10 @@ class _BackupExecutor:
         path = f"/backups/{backend.value}/{backup_id}"
         params: Dict[str, str] = {}
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigCreateStatus dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
 
@@ -296,7 +295,7 @@ class _BackupExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path=path,
             params=params,
             error_msg="Backup creation status failed due to connection error.",
@@ -304,7 +303,6 @@ class _BackupExecutor:
 
     def restore(
         self,
-        connection: Connection,
         backup_id: str,
         backend: BackupStorage,
         wait_for_completion: bool,
@@ -332,9 +330,9 @@ class _BackupExecutor:
         }
 
         if config is not None:
-            if connection._weaviate_version.is_lower_than(1, 25, 0):
+            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigRestore", str(connection._weaviate_version), "1.25.0"
+                    "BackupConfigRestore", str(self._connection._weaviate_version), "1.25.0"
                 )
             if not isinstance(config, BackupConfigRestore):
                 raise WeaviateInvalidInputError(
@@ -343,10 +341,10 @@ class _BackupExecutor:
             payload["config"] = config._to_dict()
 
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigRestore dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
 
@@ -356,11 +354,11 @@ class _BackupExecutor:
 
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
-        if isinstance(connection, ConnectionAsync):
+        if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> BackupReturn:
                 response = await aresult(
-                    connection.post(
+                    self._connection.post(
                         path=path,
                         weaviate_object=payload,
                         error_msg="Backup restore failed due to connection error.",
@@ -372,7 +370,6 @@ class _BackupExecutor:
                     while True:
                         status = await aresult(
                             self.get_restore_status(
-                                connection=connection,
                                 backup_id=backup_id,
                                 backend=backend,
                                 backup_location=backup_location,
@@ -396,7 +393,7 @@ class _BackupExecutor:
             return _execute()
 
         response = result(
-            connection.post(
+            self._connection.post(
                 path=path,
                 weaviate_object=payload,
                 error_msg="Backup restore failed due to connection error.",
@@ -408,7 +405,6 @@ class _BackupExecutor:
             while True:
                 status = result(
                     self.get_restore_status(
-                        connection=connection,
                         backup_id=backup_id,
                         backend=backend,
                         backup_location=backup_location,
@@ -431,7 +427,6 @@ class _BackupExecutor:
 
     def get_restore_status(
         self,
-        connection: Connection,
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
@@ -444,10 +439,10 @@ class _BackupExecutor:
 
         params: Dict[str, str] = {}
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigRestore status dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
             params.update(backup_location._to_dict())
@@ -461,7 +456,7 @@ class _BackupExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path=path,
             params=params,
             error_msg="Backup restore status failed due to connection error.",
