@@ -85,7 +85,36 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 collections_permissions=[],
                 roles_permissions=[],
                 data_permissions=[
-                    DataPermissionOutput(collection="*", actions={Actions.Data.CREATE})
+                    DataPermissionOutput(collection="*", tenant="*", actions={Actions.Data.CREATE})
+                ],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[],
+            ),
+        ),
+        (
+            Permissions.data(
+                collection=["ColA", "ColB"], tenant=["tenant1", "tenant2"], create=True
+            ),
+            Role(
+                name="CreateDataInColsAndTenants",
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[
+                    DataPermissionOutput(
+                        collection="ColA", tenant="tenant1", actions={Actions.Data.CREATE}
+                    ),
+                    DataPermissionOutput(
+                        collection="ColA", tenant="tenant2", actions={Actions.Data.CREATE}
+                    ),
+                    DataPermissionOutput(
+                        collection="ColB", tenant="tenant1", actions={Actions.Data.CREATE}
+                    ),
+                    DataPermissionOutput(
+                        collection="ColB", tenant="tenant2", actions={Actions.Data.CREATE}
+                    ),
                 ],
                 backups_permissions=[],
                 nodes_permissions=[],
@@ -159,8 +188,47 @@ RBAC_AUTH_CREDS = Auth.api_key("admin-key")
                 nodes_permissions=[],
                 tenants_permissions=[
                     TenantsPermissionOutput(
-                        collection="*", actions={Actions.Tenants.READ, Actions.Tenants.UPDATE}
+                        collection="*",
+                        tenant="*",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
                     )
+                ],
+            ),
+        ),
+        (
+            Permissions.tenants(
+                collection=["ColA", "ColB"], tenant=["tenant1", "tenant2"], read=True, update=True
+            ),
+            Role(
+                name="ReadSpecificTenantsInCols",
+                cluster_permissions=[],
+                users_permissions=[],
+                collections_permissions=[],
+                roles_permissions=[],
+                data_permissions=[],
+                backups_permissions=[],
+                nodes_permissions=[],
+                tenants_permissions=[
+                    TenantsPermissionOutput(
+                        collection="ColA",
+                        tenant="tenant1",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
+                    ),
+                    TenantsPermissionOutput(
+                        collection="ColA",
+                        tenant="tenant2",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
+                    ),
+                    TenantsPermissionOutput(
+                        collection="ColB",
+                        tenant="tenant1",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
+                    ),
+                    TenantsPermissionOutput(
+                        collection="ColB",
+                        tenant="tenant2",
+                        actions={Actions.Tenants.READ, Actions.Tenants.UPDATE},
+                    ),
                 ],
             ),
         ),
@@ -199,7 +267,6 @@ def test_create_role(
             role = client.roles.get(expected.name)
             assert role is not None
             assert role == expected
-            assert len(role.permissions) == 1
         finally:
             client.roles.delete(expected.name)
 
