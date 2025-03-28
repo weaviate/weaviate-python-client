@@ -60,13 +60,9 @@ class _BatchWrapper:
         Upon network error, it will retry to get the shards' status for `how_many_failures` times
         with exponential backoff (2**n seconds with n=0,1,2,...,how_many_failures).
 
-        Arguments:
-            `shards`
-                The shards to check the status of. If `None` it will
-                check the status of all the shards of the imported objects in the batch.
-            `how_many_failures`
-                How many times to try to get the shards' status before
-                raising an exception. Default 5.
+        Args:
+            shards: The shards to check the status of. If `None` it will check the status of all the shards of the imported objects in the batch.
+            how_many_failures: How many times to try to get the shards' status before raising an exception. Default 5.
         """
         if shards is not None and not isinstance(shards, list):
             raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
@@ -101,8 +97,7 @@ class _BatchWrapper:
         """Get all failed objects from the batch manager.
 
         Returns:
-            `List[ErrorObject]`
-                A list of all the failed objects from the batch.
+            A list of all the failed objects from the batch.
         """
         return self._batch_data.failed_objects
 
@@ -111,8 +106,7 @@ class _BatchWrapper:
         """Get all failed references from the batch manager.
 
         Returns:
-            `List[ErrorReference]`
-                A list of all the failed references from the batch.
+            A list of all the failed references from the batch.
         """
         return self._batch_data.failed_references
 
@@ -121,8 +115,7 @@ class _BatchWrapper:
         """Get the results of the batch operation.
 
         Returns:
-            `BatchResult`
-                The results of the batch operation.
+            The results of the batch operation.
         """
         return self._batch_data.results
 

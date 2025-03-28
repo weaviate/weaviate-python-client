@@ -35,7 +35,7 @@ class _FetchObjectsByIDsGenerateAsync(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
-        """Special case of fetch_objects based on filters on uuid"""
+        """Handle a special case of fetching objects based on filters on uuid."""
         if not ids:
             res = search_get_pb2.SearchReply(results=None)
         else:

@@ -31,8 +31,7 @@ class _EventLoop:
     def run_until_complete(
         self, f: Callable[P, Coroutine[Any, Any, T]], *args: P.args, **kwargs: P.kwargs
     ) -> T:
-        """This method runs the provided coroutine in a blocking manner by scheduling its execution
-        in an event loop running in a parallel thread.
+        """This method runs the provided coroutine in a blocking manner by scheduling its execution in an event loop running in a parallel thread.
 
         The result of the coroutine is returned, either when the coroutine completes or raises an exception.
         """
@@ -85,8 +84,9 @@ class _EventLoop:
 
     @staticmethod
     def patch_exception_handler(loop: asyncio.AbstractEventLoop) -> None:
-        """
-        This patches the asyncio exception handler to ignore the `BlockingIOError: [Errno 35] Resource temporarily unavailable` error
+        """This patches the asyncio exception handler.
+
+        It ignores the `BlockingIOError: [Errno 35] Resource temporarily unavailable` error
         that is emitted by `aio.grpc` when multiple event loops are used in separate threads. This error is not actually an implementation/call error,
         it's just a problem with grpc's cython implementation of `aio.Channel.__init__` whereby a `socket.recv(1)` call only works on the first call with
         all subsequent calls to `aio.Channel.__init__` throwing the above error.
