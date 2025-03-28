@@ -55,7 +55,7 @@ class _BatchCollection(Generic[Properties], _BatchBase):
 
         NOTE: If the UUID of one of the objects already exists then the existing object will be replaced by the new object.
 
-        Arguments:
+        Args:
             properties: The data properties of the object to be added as a dictionary.
             references: The references of the object to be added as a dictionary.
             uuid: The UUID of the object as an uuid.UUID object or str. If it is None an UUIDv4 will generated, by default None
