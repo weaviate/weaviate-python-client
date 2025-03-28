@@ -269,6 +269,23 @@ class _BackupExecutor:
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupStatusReturn]:
+        """
+        Checks if a started backup job has completed.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage eNUM
+            The backend storage where the backup was created.
+        backup_location: BackupLocationType
+            The dynamic location of a backup. By default None.
+
+        Returns
+        -------
+         A `BackupStatusReturn` object that contains the backup creation status response.
+        """
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
             backend=backend,  # this check can be removed when we remove the old backup class
@@ -311,6 +328,41 @@ class _BackupExecutor:
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupReturn]:
+        """
+        Restore a backup of all/per collection Weaviate objects.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage from where to restore the backup.
+        include_collections : Union[List[str], str], optional
+            The collection/list of collections to be included in the backup restore. If not specified all
+            collections will be included (that were backup-ed). Either `include_collections` or
+            `exclude_collections` can be set. By default None.
+        exclude_collections : Union[List[str], str], optional
+            The collection/list of collections to be excluded in the backup restore.
+            Either `include_collections` or `exclude_collections` can be set. By default None.
+        wait_for_completion : bool, optional
+            Whether to wait until the backup restore is done.
+        config: BackupConfigRestore, optional
+            The configuration of the backup restoration. By default None.
+        backup_location:
+            The dynamic location of a backup. By default None.
+
+        Returns
+        -------
+         A `BackupReturn` object that contains the backup restore response.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
         (
             backup_id,
             backend,
@@ -431,6 +483,23 @@ class _BackupExecutor:
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupStatusReturn]:
+        """
+        Checks if a started restore job has completed.
+
+        Parameters
+        ----------
+        backup_id:
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend:
+            The backend storage where to create the backup.
+        backup_location:
+            The dynamic location of a backup. By default None.
+
+        Returns
+        -------
+         A `BackupStatusReturn` object that contains the backup restore status response.
+        """
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
             backend=backend,
@@ -468,6 +537,28 @@ class _BackupExecutor:
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[bool]:
+        """
+        Cancels a running backup.
+
+        Parameters
+        ----------
+        backup_id:
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend:
+            The backend storage where to create the backup.
+        backup_location:
+            The dynamic location of a backup. By default None.
+
+        Raises
+        ------
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+
+        Returns
+        -------
+         A bool indicating if the cancellation was successful.
+        """
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
             backend=backend,

@@ -76,6 +76,10 @@ def generate(colour: Colour) -> Callable[[Type], Type]:
                     meta: _Meta = metadatum,
                     **kwargs,
                 ) -> Any:
+                    if isinstance(self, _BackupExecutor):
+                        result = meta.method(self, *args, **kwargs)
+                        assert not isinstance(result, Awaitable)
+                        return result
                     # Have to get the executor within the method so that any classes that have to
                     # instantiate _executor in their __init__ files, e.g. _DataCollection, because of
                     # tenant/consistency_level injection, can do so without being None here.
@@ -95,10 +99,7 @@ def generate(colour: Colour) -> Callable[[Type], Type]:
                         )
 
                     kwargs = __make_kwargs(meta.parameters, *args, **kwargs)
-                    if isinstance(executor, _BackupExecutor):
-                        result = executor_method(**kwargs)
-                    else:
-                        result = executor_method(**kwargs, connection=connection)
+                    result = executor_method(**kwargs, connection=connection)
                     assert not isinstance(result, Awaitable)
                     return result
 

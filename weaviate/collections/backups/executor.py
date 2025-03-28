@@ -35,7 +35,7 @@ class _CollectionBackupExecutor:
 
         return execute(
             response_callback=resp,
-            method=self._executor.create,
+            method=self._executor.create,  # type: ignore
             connection=connection,
             backup_id=backup_id,
             backend=backend,
@@ -63,7 +63,7 @@ class _CollectionBackupExecutor:
 
         return execute(
             response_callback=resp,
-            method=self._executor.restore,
+            method=self._executor.restore,  # type: ignore
             connection=connection,
             backup_id=backup_id,
             backend=backend,
@@ -82,7 +82,7 @@ class _CollectionBackupExecutor:
         *,
         connection: ConnectionType
     ) -> ExecutorResult[BackupStatusReturn]:
-        return self._executor.get_create_status(
+        return self._executor.get_create_status(  # type: ignore
             connection=connection,
             backup_id=backup_id,
             backend=backend,
@@ -97,7 +97,7 @@ class _CollectionBackupExecutor:
         *,
         connection: ConnectionType
     ) -> ExecutorResult[BackupStatusReturn]:
-        return self._executor.get_restore_status(
+        return self._executor.get_restore_status(  # type: ignore
             connection=connection,
             backup_id=backup_id,
             backend=backend,
