@@ -33,7 +33,7 @@ weaviate.auth
    :undoc-members:
    :private-members:
 
-weaviate.config 
+weaviate.config
 ^^^^^^^^^^^^^^^
 
 .. automodule:: weaviate.config

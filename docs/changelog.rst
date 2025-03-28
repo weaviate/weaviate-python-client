@@ -476,15 +476,15 @@ This beta version has breaking changes, a migration guide is available at https:
 
 Improvements include:
 - Introduction of the ``.by_ref_count()`` method on ``Filter`` to filter on the number of references present in a reference property of an object.
-    
+
     - This was previously achievable with ``Filter([refProp]).greater_than(0)`` but is now more explicit using the chaining syntax.
 
-- The syntax for sorting now feels similar to the new filtering syntax.   
+- The syntax for sorting now feels similar to the new filtering syntax.
     - |
         Supports method chaining like ``Sort.by_property(prop).by_creation_time()`` which will apply the sorting in the order they are chained, i.e.,
         this chain is equivalent to the previous syntax of ``[Sort(prop), Sort("_creationTimeUnix")]``.
 
-Fixes include: 
+Fixes include:
 - The potential for deadlocks and data races when batching has been reduced.
 - Fixes a number of missing properties and poor docstrings in ``weaviate.connect_to_x`` methods.
 - Adds the missing ``offset`` parameter to all queries.
