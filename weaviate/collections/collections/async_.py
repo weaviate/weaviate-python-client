@@ -12,14 +12,13 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.collections.collection import CollectionAsync
 from weaviate.collections.collections.base import _CollectionsBase
-from weaviate.connect import impl
-from weaviate.connect.executor import aresult
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync
 
 
-@impl.wrap("async")
+@executor.wrap("async")
 class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
-    @impl.no_wrapping
+    @executor.no_wrapping
     def use(
         self,
         name: str,
@@ -36,14 +35,14 @@ class _CollectionsAsync(_CollectionsBase[ConnectionAsync]):
         assert isinstance(collection, CollectionAsync)
         return collection
 
-    @impl.no_wrapping
+    @executor.no_wrapping
     async def create_from_dict(self, config: dict) -> CollectionAsync:
-        collection = await aresult(self._create_from_dict(config))
+        collection = await executor.aresult(self._create_from_dict(config))
         assert isinstance(collection, CollectionAsync)
         return collection
 
-    @impl.no_wrapping
+    @executor.no_wrapping
     async def create_from_config(self, config: CollectionConfig) -> CollectionAsync:
-        collection = await aresult(self._create_from_config(config))
+        collection = await executor.aresult(self._create_from_config(config))
         assert isinstance(collection, CollectionAsync)
         return collection

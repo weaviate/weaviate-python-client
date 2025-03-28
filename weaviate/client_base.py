@@ -21,13 +21,12 @@ from weaviate.integrations import _Integrations
 
 from .auth import AuthCredentials
 from .config import AdditionalConfig
-from .connect import impl
+from .connect import executor
 from .connect.v4 import Connection, ConnectionAsync, ConnectionSync
 from .connect.base import (
     ConnectionParams,
     ProtocolParams,
 )
-from .connect.executor import aresult, do_nothing, result, ExecutorResult, execute
 from .connect.v4 import _ExpectedStatusCodes
 from .embedded import EmbeddedOptions, EmbeddedV4
 from .types import NUMBER
@@ -42,9 +41,9 @@ class _WeaviateClientExecutor:
         self._connection = connection
 
     async def __close_async(self) -> None:
-        await aresult(self._connection.close("async"))
+        await executor.aresult(self._connection.close("async"))
 
-    def close(self) -> ExecutorResult[None]:
+    def close(self) -> executor.ExecutorResult[None]:
         """
         Close the connection to Weaviate.
 
@@ -52,21 +51,21 @@ class _WeaviateClientExecutor:
         """
         if isinstance(self._connection, ConnectionAsync):
             return self.__close_async()
-        return result(self._connection.close("sync"))
+        return executor.result(self._connection.close("sync"))
 
-    def connect(self) -> ExecutorResult[None]:
+    def connect(self) -> executor.ExecutorResult[None]:
         """
         Connect to Weaviate.
 
         It is required that this method is called before any other operations can be made successfully.
         If not done so, exepctions will be raised.
         """
-        return execute(
+        return executor.execute(
             response_callback=lambda _: None,
             method=self._connection.connect,
         )
 
-    def is_live(self) -> ExecutorResult[bool]:
+    def is_live(self) -> executor.ExecutorResult[bool]:
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
@@ -74,14 +73,14 @@ class _WeaviateClientExecutor:
             print(e)
             return False
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             exception_callback=exc,
             method=self._connection.get,
             path="/.well-known/live",
         )
 
-    def is_ready(self) -> ExecutorResult[bool]:
+    def is_ready(self) -> executor.ExecutorResult[bool]:
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
@@ -89,14 +88,14 @@ class _WeaviateClientExecutor:
             print(e)
             return False
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             exception_callback=exc,
             method=self._connection.get,
             path="/.well-known/ready",
         )
 
-    def graphql_raw_query(self, gql_query: str) -> ExecutorResult[_RawGQLReturn]:
+    def graphql_raw_query(self, gql_query: str) -> executor.ExecutorResult[_RawGQLReturn]:
         """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
 
         Be cautious of injection risks when generating query strings.
@@ -139,7 +138,7 @@ class _WeaviateClientExecutor:
         def exc(e: Exception) -> _RawGQLReturn:
             raise e
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             exception_callback=exc,
             method=self._connection.post,
@@ -150,7 +149,7 @@ class _WeaviateClientExecutor:
             is_gql_query=True,
         )
 
-    def get_meta(self) -> ExecutorResult[dict]:
+    def get_meta(self) -> executor.ExecutorResult[dict]:
         """
         Get the meta endpoint description of weaviate.
 
@@ -162,14 +161,14 @@ class _WeaviateClientExecutor:
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a none OK status.
         """
-        return execute(
-            response_callback=do_nothing,
+        return executor.execute(
+            response_callback=executor.do_nothing,
             method=self._connection.get_meta,
         )
 
     def get_open_id_configuration(
         self,
-    ) -> ExecutorResult[Optional[Dict[str, Any]]]:
+    ) -> executor.ExecutorResult[Optional[Dict[str, Any]]]:
         """
         Get the openid-configuration.
 
@@ -181,8 +180,8 @@ class _WeaviateClientExecutor:
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a none OK status.
         """
-        return execute(
-            response_callback=do_nothing,
+        return executor.execute(
+            response_callback=executor.do_nothing,
             method=self._connection.get_open_id_configuration,
         )
 
@@ -289,7 +288,7 @@ class _WeaviateClientBase(Generic[C], _WeaviateClientExecutor):
 
         return connection_params, None
 
-    @impl.no_wrapping
+    @executor.no_wrapping
     def is_connected(self) -> bool:
         """Check if the client is connected to Weaviate.
 

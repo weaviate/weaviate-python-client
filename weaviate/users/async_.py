@@ -1,4 +1,4 @@
-from weaviate.connect import impl
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync
 from weaviate.users.base import (
     _UsersBase,
@@ -7,17 +7,17 @@ from weaviate.users.base import (
 )
 
 
-@impl.wrap("async")
+@executor.wrap("async")
 class _UsersDBAsync(_UsersDBBase[ConnectionAsync]):
     pass
 
 
-@impl.wrap("async")
+@executor.wrap("async")
 class _UsersOIDCAsync(_UsersOIDCBase[ConnectionAsync]):
     pass
 
 
-@impl.wrap("async")
+@executor.wrap("async")
 class _UsersAsync(_UsersBase[ConnectionAsync]):
     def __init__(self, connection: ConnectionAsync):
         super().__init__(connection)

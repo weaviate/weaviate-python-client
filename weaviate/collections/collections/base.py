@@ -16,7 +16,7 @@ from weaviate.collections.classes.types import (
 )
 from weaviate.collections.collection import CollectionAsync, Collection
 from weaviate.collections.collections.executor import _CollectionsExecutor
-from weaviate.connect import impl
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 
 
@@ -24,7 +24,7 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor):
     def __init__(self, connection: ConnectionType) -> None:
         self._connection = connection
 
-    @impl.no_wrapping
+    @executor.no_wrapping
     def get(
         self,
         name: str,

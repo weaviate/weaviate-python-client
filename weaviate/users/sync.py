@@ -1,4 +1,4 @@
-from weaviate.connect import impl
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.users.base import (
     _UsersBase,
@@ -7,17 +7,17 @@ from weaviate.users.base import (
 )
 
 
-@impl.wrap("sync")
+@executor.wrap("sync")
 class _UsersDB(_UsersDBBase[ConnectionSync]):
     pass
 
 
-@impl.wrap("sync")
+@executor.wrap("sync")
 class _UsersOIDC(_UsersOIDCBase[ConnectionSync]):
     pass
 
 
-@impl.wrap("sync")
+@executor.wrap("sync")
 class _Users(_UsersBase[ConnectionSync]):
     def __init__(self, connection: ConnectionSync):
         super().__init__(connection)

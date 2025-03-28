@@ -3,14 +3,13 @@ from weaviate.collections.classes.internal import Properties, References
 from weaviate.collections.collections.base import _CollectionsBase
 from weaviate.collections.collection.sync import Collection
 from weaviate.collections.classes.config import CollectionConfig
-from weaviate.connect import impl
-from weaviate.connect.executor import result
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 
 
-@impl.wrap("sync")
+@executor.wrap("sync")
 class _Collections(_CollectionsBase[ConnectionSync]):
-    @impl.no_wrapping
+    @executor.no_wrapping
     def use(
         self,
         name: str,
@@ -27,14 +26,14 @@ class _Collections(_CollectionsBase[ConnectionSync]):
         assert isinstance(collection, Collection)
         return collection
 
-    @impl.no_wrapping
+    @executor.no_wrapping
     def create_from_dict(self, config: dict) -> Collection:
-        collection = result(self._create_from_dict(config))
+        collection = executor.result(self._create_from_dict(config))
         assert isinstance(collection, Collection)
         return collection
 
-    @impl.no_wrapping
+    @executor.no_wrapping
     def create_from_config(self, config: CollectionConfig) -> Collection:
-        collection = result(self._create_from_config(config))
+        collection = executor.result(self._create_from_config(config))
         assert isinstance(collection, Collection)
         return collection
