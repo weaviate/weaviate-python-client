@@ -220,7 +220,7 @@ class _OIDCExecutor(_BaseExecutor):
     def get_assigned_roles(
         self,
         user_id: str,
-        include_permissions: bool,
+        include_permissions: bool = False,
     ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         """Get the roles assigned to a user specific to the configured OIDC's dynamic auth functionality.
 
@@ -275,9 +275,7 @@ class _OIDCExecutor(_BaseExecutor):
 
 class _DBExecutor(_BaseExecutor):
     def get_assigned_roles(
-        self,
-        user_id: str,
-        include_permissions: bool,
+        self, user_id: str, include_permissions: bool = False
     ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         """Get the roles assigned to a user.
 
