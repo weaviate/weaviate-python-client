@@ -305,11 +305,11 @@ class _BackupExecutor:
         self,
         backup_id: str,
         backend: BackupStorage,
-        wait_for_completion: bool,
-        config: Optional[BackupConfigRestore] = None,
-        backup_location: Optional[BackupLocationType] = None,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
+        wait_for_completion: bool = False,
+        config: Optional[BackupConfigRestore] = None,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupReturn]:
         (
             backup_id,
@@ -464,8 +464,6 @@ class _BackupExecutor:
 
     def cancel(
         self,
-        connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
@@ -478,10 +476,10 @@ class _BackupExecutor:
         params: Dict[str, str] = {}
 
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigCancel dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
             params.update(backup_location._to_dict())
@@ -496,7 +494,7 @@ class _BackupExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.delete,
+            method=self._connection.delete,
             path=path,
             params=params,
             error_msg="Backup cancel failed due to connection error.",
