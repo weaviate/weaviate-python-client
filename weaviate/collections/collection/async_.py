@@ -119,7 +119,9 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         self.tenants = _TenantsAsync(connection, name, validate_arguments)
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
 
-    def with_tenant(self, tenant: Union[str, Tenant]) -> "CollectionAsync[Properties, References]":
+    def with_tenant(
+        self, tenant: Union[str, Tenant, None]
+    ) -> "CollectionAsync[Properties, References]":
         """Use this method to return a collection object specific to a single tenant.
 
         If multi-tenancy is not configured for this collection then Weaviate will throw an error.
@@ -142,7 +144,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         )
 
     def with_consistency_level(
-        self, consistency_level: ConsistencyLevel
+        self, consistency_level: Union[ConsistencyLevel, None]
     ) -> "CollectionAsync[Properties, References]":
         """Use this method to return a collection object specific to a single consistency level.
 

@@ -44,13 +44,14 @@ class UserOIDC(UserBase):
 
 
 class _BaseExecutor:
+    def __init__(self, connection: Connection):
+        self._connection: Connection = connection
+
     def _get_roles_of_user(
         self,
         user_id: str,
         user_type: USER_TYPE,
         include_permissions: bool,
-        *,
-        connection: Connection,
     ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         path = f"/authz/users/{user_id}/roles/{user_type}"
 
@@ -62,7 +63,7 @@ class _BaseExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path=path,
             params={"includeFullRoles": include_permissions},
             error_msg=f"Could not get roles of user {user_id}",
@@ -72,8 +73,6 @@ class _BaseExecutor:
     def _get_roles_of_user_deprecated(
         self,
         user_id: str,
-        *,
-        connection: Connection,
     ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         path = f"/authz/users/{user_id}/roles"
 
@@ -82,7 +81,7 @@ class _BaseExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path=path,
             error_msg=f"Could not get roles of user {user_id}",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles of user"),
@@ -93,8 +92,6 @@ class _BaseExecutor:
         roles: List[str],
         user_id: str,
         user_type: Optional[USER_TYPE],
-        *,
-        connection: Connection,
     ) -> ExecutorResult[None]:
         path = f"/authz/users/{user_id}/assign"
 
@@ -107,7 +104,7 @@ class _BaseExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.post,
+            method=self._connection.post,
             path=path,
             weaviate_object=payload,
             error_msg=f"Could not assign roles {roles} to user {user_id}",
@@ -119,8 +116,6 @@ class _BaseExecutor:
         roles: Union[str, List[str]],
         user_id: str,
         user_type: Optional[USER_TYPE],
-        *,
-        connection: Connection,
     ) -> ExecutorResult[None]:
         path = f"/authz/users/{user_id}/revoke"
 
@@ -133,7 +128,7 @@ class _BaseExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.post,
+            method=self._connection.post,
             path=path,
             weaviate_object={"roles": roles},
             error_msg=f"Could not revoke roles {roles} from user {user_id}",
@@ -142,7 +137,12 @@ class _BaseExecutor:
 
 
 class _DeprecatedExecutor(_BaseExecutor):
-    def get_my_user(self, connection: Connection) -> ExecutorResult[OwnUser]:
+    def get_my_user(self) -> ExecutorResult[OwnUser]:
+        """Get the currently authenticated user.
+
+        Returns:
+            A user object.
+        """
         path = "/users/own-info"
 
         def resp(res: Response) -> OwnUser:
@@ -161,99 +161,178 @@ class _DeprecatedExecutor(_BaseExecutor):
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path=path,
             error_msg="Could not get roles",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own roles"),
         )
 
-    def get_assigned_roles(
-        self, user_id: str, *, connection: Connection
-    ) -> ExecutorResult[Dict[str, Role]]:
+    def get_assigned_roles(self, user_id: str) -> ExecutorResult[Dict[str, Role]]:
+        """Get the roles assigned to a user.
+
+        Args:
+            user_id: The user ID to get the roles for.
+
+        Returns:
+            A dictionary with role names as keys and the `Role` objects as values.
+        """
         # cast here because the deprecated method is only used in the deprecated class and this type is known
-        return cast(
-            Dict[str, Role], self._get_roles_of_user_deprecated(user_id, connection=connection)
-        )
+        return cast(Dict[str, Role], self._get_roles_of_user_deprecated(user_id))
 
     def assign_roles(
-        self, *, user_id: str, role_names: Union[str, List[str]], connection: Connection
+        self,
+        *,
+        user_id: str,
+        role_names: Union[str, List[str]],
     ) -> ExecutorResult[None]:
+        """Assign roles to a user.
+
+        Args:
+            role_names: The names of the roles to assign to the user.
+            user_id: The user to assign the roles to.
+        """
         return self._assign_roles_to_user(
             [role_names] if isinstance(role_names, str) else role_names,
             user_id,
             None,
-            connection=connection,
         )
 
     def revoke_roles(
-        self, *, user_id: str, role_names: Union[str, List[str]], connection: Connection
+        self,
+        *,
+        user_id: str,
+        role_names: Union[str, List[str]],
     ) -> ExecutorResult[None]:
+        """Revoke roles from a user.
+
+        Args:
+            role_names: The names of the roles to revoke from the user.
+            user_id: The user to revoke the roles from.
+        """
         return self._revoke_roles_from_user(
             [role_names] if isinstance(role_names, str) else role_names,
             user_id,
             None,
-            connection=connection,
         )
 
 
 class _OIDCExecutor(_BaseExecutor):
     def get_assigned_roles(
-        self, user_id: str, include_permissions: bool, *, connection: Connection
+        self,
+        user_id: str,
+        include_permissions: bool,
     ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+        """Get the roles assigned to a user specific to the configured OIDC's dynamic auth functionality.
+
+        Args:
+            user_id: The user ID to get the roles for.
+
+        Returns:
+            A dictionary with role names as keys and the `Role` objects as values.
+        """
         return self._get_roles_of_user(
-            user_id, USER_TYPE_OIDC, include_permissions, connection=connection
+            user_id,
+            USER_TYPE_OIDC,
+            include_permissions,
         )
 
     def assign_roles(
-        self, *, user_id: str, role_names: Union[str, List[str]], connection: Connection
+        self,
+        *,
+        user_id: str,
+        role_names: Union[str, List[str]],
     ) -> ExecutorResult[None]:
+        """Assign roles to a user specific to the configured OIDC's dynamic auth functionality.
+
+        Args:
+            role_names: The names of the roles to assign to the user.
+            user_id: The user to assign the roles to.
+        """
         return self._assign_roles_to_user(
             [role_names] if isinstance(role_names, str) else role_names,
             user_id,
             USER_TYPE_OIDC,
-            connection=connection,
         )
 
     def revoke_roles(
-        self, *, user_id: str, role_names: Union[str, List[str]], connection: Connection
+        self,
+        *,
+        user_id: str,
+        role_names: Union[str, List[str]],
     ) -> ExecutorResult[None]:
+        """Revoke roles from a user specific to the configured OIDC's dynamic auth functionality.
+
+        Args:
+            role_names: The names of the roles to revoke from the user.
+            user_id: The user to revoke the roles from.
+        """
         return self._revoke_roles_from_user(
             [role_names] if isinstance(role_names, str) else role_names,
             user_id,
             USER_TYPE_OIDC,
-            connection=connection,
         )
 
 
 class _DBExecutor(_BaseExecutor):
     def get_assigned_roles(
-        self, user_id: str, include_permissions: bool, *, connection: Connection
+        self,
+        user_id: str,
+        include_permissions: bool,
     ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+        """Get the roles assigned to a user.
+
+        Args:
+            user_id: The user ID to get the roles for.
+
+        Returns:
+            A dictionary with role names as keys and the `Role` objects as values.
+        """
         return self._get_roles_of_user(
-            user_id, USER_TYPE_DB, include_permissions, connection=connection
+            user_id,
+            USER_TYPE_DB,
+            include_permissions,
         )
 
     def assign_roles(
-        self, *, user_id: str, role_names: Union[str, List[str]], connection: Connection
+        self,
+        *,
+        user_id: str,
+        role_names: Union[str, List[str]],
     ) -> ExecutorResult[None]:
+        """Assign roles to a user.
+
+        Args:
+            role_names: The names of the roles to assign to the user.
+            user_id: The user to assign the roles to.
+        """
         return self._assign_roles_to_user(
             [role_names] if isinstance(role_names, str) else role_names,
             user_id,
             USER_TYPE_DB,
-            connection=connection,
         )
 
     def revoke_roles(
-        self, *, user_id: str, role_names: Union[str, List[str]], connection: Connection
+        self, *, user_id: str, role_names: Union[str, List[str]]
     ) -> ExecutorResult[None]:
+        """Revoke roles from a user.
+
+        Args:
+            role_names: The names of the roles to revoke from the user.
+            user_id: The user to revoke the roles from.
+        """
         return self._revoke_roles_from_user(
             [role_names] if isinstance(role_names, str) else role_names,
             user_id,
             USER_TYPE_DB,
-            connection=connection,
         )
 
-    def create(self, *, user_id: str, connection: Connection) -> ExecutorResult[str]:
+    def create(self, *, user_id: str) -> ExecutorResult[str]:
+        """Create a new db user.
+
+        Args:
+            user_id: The id of the new user.
+        """
+
         def resp(res: Response) -> str:
             resp = _decode_json_response_dict(res, "Create user")
             assert resp is not None
@@ -261,26 +340,38 @@ class _DBExecutor(_BaseExecutor):
 
         return execute(
             response_callback=resp,
-            method=connection.post,
+            method=self._connection.post,
             path=f"/users/db/{user_id}",
             weaviate_object={},
             error_msg=f"Could not create user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create user"),
         )
 
-    def delete(self, *, user_id: str, connection: Connection) -> ExecutorResult[bool]:
+    def delete(self, *, user_id: str) -> ExecutorResult[bool]:
+        """Delete a (dynamic) db user.
+
+        Args:
+            user_id: The id of the user to be deleted.
+        """
+
         def resp(res: Response) -> bool:
             return res.status_code == 204
 
         return execute(
             response_callback=resp,
-            method=connection.delete,
+            method=self._connection.delete,
             path=f"/users/db/{user_id}",
             error_msg=f"Could not delete user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="Delete user"),
         )
 
-    def rotate_key(self, *, user_id: str, connection: Connection) -> ExecutorResult[str]:
+    def rotate_key(self, *, user_id: str) -> ExecutorResult[str]:
+        """Rotate the key of a new db user.
+
+        Args:
+            user_id: The id of the user.
+        """
+
         def resp(res: Response) -> str:
             resp = _decode_json_response_dict(res, "Rotate key")
             assert resp is not None
@@ -288,40 +379,58 @@ class _DBExecutor(_BaseExecutor):
 
         return execute(
             response_callback=resp,
-            method=connection.post,
+            method=self._connection.post,
             path=f"/users/db/{user_id}/rotate-key",
             weaviate_object={},
             error_msg=f"Could not rotate key for user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Rotate key"),
         )
 
-    def activate(self, *, user_id: str, connection: Connection) -> ExecutorResult[bool]:
+    def activate(self, *, user_id: str) -> ExecutorResult[bool]:
+        """Activate a deactivated user.
+
+        Args:
+            user_id: The id of the user.
+        """
+
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
         return execute(
             response_callback=resp,
-            method=connection.post,
+            method=self._connection.post,
             path=f"/users/db/{user_id}/activate",
             weaviate_object={},
             error_msg=f"Could not activate user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="Activate user"),
         )
 
-    def deactivate(self, *, user_id: str, connection: Connection) -> ExecutorResult[bool]:
+    def deactivate(self, *, user_id: str) -> ExecutorResult[bool]:
+        """Deactivate an active user.
+
+        Args:
+            user_id: The id of the user.
+        """
+
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
         return execute(
             response_callback=resp,
-            method=connection.post,
+            method=self._connection.post,
             path=f"/users/db/{user_id}/deactivate",
             weaviate_object={},
             error_msg=f"Could not deactivate user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="Deactivate user"),
         )
 
-    def get(self, *, user_id: str, connection: Connection) -> ExecutorResult[Optional[UserDB]]:
+    def get(self, *, user_id: str) -> ExecutorResult[Optional[UserDB]]:
+        """Get all information about an user.
+
+        Args:
+            user_id: The id of the user.
+        """
+
         def resp(res: Response) -> Optional[UserDB]:
             if res.status_code == 404:
                 return None
@@ -336,13 +445,15 @@ class _DBExecutor(_BaseExecutor):
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path=f"/users/db/{user_id}",
             error_msg=f"Could not get user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get user"),
         )
 
-    def list_all(self, *, connection: Connection) -> ExecutorResult[List[UserDB]]:
+    def list_all(self) -> ExecutorResult[List[UserDB]]:
+        """List all DB users."""
+
         def resp(res: Response) -> List[UserDB]:
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
@@ -358,7 +469,7 @@ class _DBExecutor(_BaseExecutor):
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path="/users/db",
             error_msg="Could not list all users",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="list all users"),

@@ -3,11 +3,11 @@ from weaviate.collections.aggregations.near_object.base import _NearObjectBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _NearObjectAsync(_NearObjectBase[ConnectionAsync]):
     pass
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _NearObject(_NearObjectBase[ConnectionSync]):
     pass

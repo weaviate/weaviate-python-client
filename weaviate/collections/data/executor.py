@@ -68,39 +68,56 @@ class _ExecutorOptions:
 
 
 class _DataExecutor:
-    # def __init__(self, options: Optional[_ExecutorOptions] = None) -> None:
-    #     self._options = options
-
     def __init__(
         self,
-        weaviate_version: _ServerVersion,
+        connection: Connection,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
         validate_arguments: bool,
     ) -> None:
-        self.__weaviate_version = weaviate_version
-        self.__name = name
-        self.__consistency_level = consistency_level
-        self.__tenant = tenant
-        self.__validate_arguments = validate_arguments
+        self._connection = connection
+        self._name = name
+        self._consistency_level = consistency_level
+        self._tenant = tenant
+        self._validate_arguments = validate_arguments
         self.__batch_grpc = _BatchGRPC(
-            weaviate_version=weaviate_version, consistency_level=consistency_level
+            weaviate_version=connection._weaviate_version, consistency_level=consistency_level
         )
         self.__batch_rest = _BatchREST(consistency_level=consistency_level)
 
     def insert(
         self,
         properties: Properties,
-        references: Optional[ReferenceInputs],
-        uuid: Optional[UUID],
-        vector: Optional[VECTORS],
-        *,
-        connection: Connection,
+        references: Optional[ReferenceInputs] = None,
+        uuid: Optional[UUID] = None,
+        vector: Optional[VECTORS] = None,
     ) -> ExecutorResult[uuid_package.UUID]:
+        """Insert a single object into the collection.
+
+        Arguments:
+            `properties`
+                The properties of the object, REQUIRED.
+            `references`
+                Any references to other objects in Weaviate.
+            `uuid`
+                The UUID of the object. If not provided, a random UUID will be generated.
+            `vector`
+                The vector(s) of the object.
+                Supported types are
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+
+        Returns:
+            `uuid.UUID`, the UUID of the inserted object.
+
+        Raises:
+            `weaviate.exceptions.UnexpectedStatusCodeError`:
+                If any unexpected error occurs during the insert operation, for example the given UUID already exists.
+        """
         path = "/objects"
 
-        if self.__validate_arguments:
+        if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument(expected=[UUID, None], name="uuid", value=uuid),
@@ -113,7 +130,7 @@ class _DataExecutor:
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
-            "class": self.__name,
+            "class": self._name,
             "properties": {**props, **refs},
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
@@ -127,7 +144,7 @@ class _DataExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.post,
+            method=self._connection.post,
             path=path,
             weaviate_object=weaviate_obj,
             params=params,
@@ -138,28 +155,41 @@ class _DataExecutor:
     def insert_many(
         self,
         objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
-        *,
-        connection: Connection,
     ) -> ExecutorResult[BatchObjectReturn]:
+        """Insert multiple objects into the collection.
 
+        Arguments:
+            `objects`
+                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, ReferenceInputs]`
+                    If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
+                        If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
+
+        Raises:
+            `weaviate.exceptions.WeaviateGRPCBatchError`:
+                If any unexpected error occurs during the batch operation.
+            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
+                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+            `weaviate.exceptions.WeaviateInsertManyAllFailedError`:
+                If every object in the batch fails to be inserted. The exception message contains details about the failure.
+        """
         objs = [
             (
                 _BatchObject(
-                    collection=self.__name,
+                    collection=self._name,
                     vector=obj.vector,
                     uuid=str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
                     properties=cast(dict, obj.properties),
-                    tenant=self.__tenant,
+                    tenant=self._tenant,
                     references=obj.references,
                     index=idx,
                 )
                 if isinstance(obj, DataObject)
                 else _BatchObject(
-                    collection=self.__name,
+                    collection=self._name,
                     vector=None,
                     uuid=str(uuid_package.uuid4()),
                     properties=cast(dict, obj),
-                    tenant=self.__tenant,
+                    tenant=self._tenant,
                     references=None,
                     index=idx,
                 )
@@ -180,16 +210,28 @@ class _DataExecutor:
         return execute(
             response_callback=resp,
             method=self.__batch_grpc.objects,
-            connection=connection,
+            connection=self._connection,
             objects=objs,
-            timeout=connection.timeout_config.insert,
+            timeout=self._connection.timeout_config.insert,
             max_retries=2,
         )
 
-    def exists(self, uuid: UUID, *, connection: Connection) -> ExecutorResult[bool]:
+    def exists(self, uuid: UUID) -> ExecutorResult[bool]:
+        """Check for existence of a single object in the collection.
 
+        Arguments:
+            `uuid`
+                The UUID of the object.
+
+        Returns:
+            `bool`, True if objects exists and False if not.
+
+        Raises:
+            `weaviate.exceptions.UnexpectedStatusCodeError`:
+                If any unexpected error occurs during the operation.
+        """
         _validate_input(_ValidateArgument(expected=[UUID], name="uuid", value=uuid))
-        path = "/objects/" + self.__name + "/" + str(uuid)
+        path = "/objects/" + self._name + "/" + str(uuid)
         params = self.__apply_context({})
 
         def resp(res: Response) -> bool:
@@ -197,7 +239,7 @@ class _DataExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.head,
+            method=self._connection.head,
             path=path,
             params=params,
             error_msg="object existence",
@@ -208,15 +250,39 @@ class _DataExecutor:
         self,
         uuid: UUID,
         properties: Properties,
-        references: Optional[ReferenceInputs],
-        vector: Optional[VECTORS],
-        *,
-        connection: Connection,
+        references: Optional[ReferenceInputs] = None,
+        vector: Optional[VECTORS] = None,
     ) -> ExecutorResult[None]:
+        """Replace an object in the collection.
 
-        path = f"/objects/{self.__name}/{uuid}"
+        This is equivalent to a PUT operation.
 
-        if self.__validate_arguments:
+        Arguments:
+            `uuid`
+                The UUID of the object, REQUIRED.
+            `properties`
+                The properties of the object, REQUIRED.
+            `references`
+                Any references to other objects in Weaviate, REQUIRED.
+            `vector`
+                The vector(s) of the object.
+                Supported types are
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.exceptions.WeaviateInvalidInputError`:
+                If any of the arguments are invalid.
+            `weaviate.UnexpectedStatusCodeError`:
+                If Weaviate reports a non-OK status.
+            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
+                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+        """
+        path = f"/objects/{self._name}/{uuid}"
+
+        if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
@@ -229,7 +295,7 @@ class _DataExecutor:
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
-            "class": self.__name,
+            "class": self._name,
             "properties": {**props, **refs},
         }
         if vector is not None:
@@ -243,7 +309,7 @@ class _DataExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.put,
+            method=self._connection.put,
             path=path,
             weaviate_object=weaviate_obj,
             params=params,
@@ -254,16 +320,32 @@ class _DataExecutor:
     def update(
         self,
         uuid: UUID,
-        properties: Optional[Properties],
-        references: Optional[ReferenceInputs],
-        vector: Optional[VECTORS],
-        *,
-        connection: Connection,
+        properties: Optional[Properties] = None,
+        references: Optional[ReferenceInputs] = None,
+        vector: Optional[VECTORS] = None,
     ) -> ExecutorResult[None]:
+        """Update an object in the collection.
 
-        path = f"/objects/{self.__name}/{uuid}"
+        This is equivalent to a PATCH operation.
 
-        if self.__validate_arguments:
+        If the object does not exist yet, it will be created.
+
+        Arguments:
+            `uuid`
+                The UUID of the object, REQUIRED.
+            `properties`
+                The properties of the object.
+            `references`
+                Any references to other objects in Weaviate.
+            `vector`
+                The vector(s) of the object.
+                Supported types are
+                - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
+                - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
+        """
+        path = f"/objects/{self._name}/{uuid}"
+
+        if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument(expected=[UUID], name="uuid", value=uuid),
@@ -277,7 +359,7 @@ class _DataExecutor:
             )
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
-        weaviate_obj: Dict[str, Any] = {"class": self.__name, "properties": {**props, **refs}}
+        weaviate_obj: Dict[str, Any] = {"class": self._name, "properties": {**props, **refs}}
         if vector is not None:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
@@ -288,7 +370,7 @@ class _DataExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.patch,
+            method=self._connection.patch,
             path=path,
             weaviate_object=weaviate_obj,
             params=params,
@@ -301,15 +383,28 @@ class _DataExecutor:
         from_uuid: UUID,
         from_property: str,
         to: SingleReferenceInput,
-        *,
-        connection: Connection,
     ) -> ExecutorResult[None]:
+        """Create a reference between an object in this collection and any other object in Weaviate.
 
+        Arguments:
+            `from_uuid`
+                The UUID of the object in this collection, REQUIRED.
+            `from_property`
+                The name of the property in the object in this collection, REQUIRED.
+            `to`
+                The reference to add, REQUIRED.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`:
+                If Weaviate reports a non-OK status.
+        """
         params: Dict[str, str] = {}
 
-        path = f"/objects/{self.__name}/{from_uuid}/references/{from_property}"
+        path = f"/objects/{self._name}/{from_uuid}/references/{from_property}"
 
-        if self.__validate_arguments:
+        if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
@@ -328,13 +423,13 @@ class _DataExecutor:
             raise WeaviateInvalidInputError(
                 "reference_add does not support adding multiple objects to a reference at once. Use reference_add_many or reference_replace instead."
             )
-        if isinstance(connection, ConnectionAsync):
+        if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> None:
                 await asyncio.gather(
                     *[
                         aresult(
-                            connection.post(
+                            self._connection.post(
                                 path=path,
                                 weaviate_object=beacon,
                                 params=self.__apply_context(params),
@@ -351,7 +446,7 @@ class _DataExecutor:
             return _execute()
         for beacon in ref._to_beacons():
             result(
-                connection.post(
+                self._connection.post(
                     path=path,
                     weaviate_object=beacon,
                     params=self.__apply_context(params),
@@ -361,35 +456,58 @@ class _DataExecutor:
             )
 
     def reference_add_many(
-        self, refs: List[DataReferences], *, connection: Connection
+        self,
+        refs: List[DataReferences],
     ) -> ExecutorResult[BatchReferenceReturn]:
+        """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
 
+        Arguments:
+            `refs`
+                The references to add including the prop name, from UUID, and to UUID.
+
+        Returns:
+            `BatchReferenceReturn`
+                A `BatchReferenceReturn` object containing the results of the batch operation.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeError
+                If Weaviate reports a non-OK status.
+        """
         batch = [
             _BatchReference(
-                from_=f"{BEACON}{self.__name}/{ref.from_uuid}/{ref.from_property}",
+                from_=f"{BEACON}{self._name}/{ref.from_uuid}/{ref.from_property}",
                 to=beacon,
-                tenant=self.__tenant,
+                tenant=self._tenant,
                 from_uuid=str(ref.from_uuid),
                 to_uuid=None,  # not relevant here, this entry is only needed for the batch module
             )
             for ref in refs
             for beacon in ref._to_beacons()
         ]
-        return self.__batch_rest.references(connection, references=list(batch))
+        return self.__batch_rest.references(self._connection, references=list(batch))
 
     def reference_delete(
         self,
         from_uuid: UUID,
         from_property: str,
         to: SingleReferenceInput,
-        *,
-        connection: Connection,
     ) -> ExecutorResult[None]:
+        """Delete a reference from an object within the collection.
 
+        Arguments:
+            `from_uuid`
+                The UUID of the object in this collection, REQUIRED.
+            `from_property`
+                The name of the property in the object in this collection from which the reference should be deleted, REQUIRED.
+            `to`
+                The reference to delete, REQUIRED.
+        """
         params: Dict[str, str] = {}
-        path = f"/objects/{self.__name}/{from_uuid}/references/{from_property}"
+        path = f"/objects/{self._name}/{from_uuid}/references/{from_property}"
 
-        if self.__validate_arguments:
+        if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
@@ -408,13 +526,13 @@ class _DataExecutor:
             raise WeaviateInvalidInputError(
                 "reference_delete does not support deleting multiple objects from a reference at once. Use reference_replace instead."
             )
-        if isinstance(connection, ConnectionAsync):
+        if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> None:
                 await asyncio.gather(
                     *[
                         aresult(
-                            connection.delete(
+                            self._connection.delete(
                                 path=path,
                                 weaviate_object=beacon,
                                 params=self.__apply_context(params),
@@ -431,7 +549,7 @@ class _DataExecutor:
             return _execute()
         for beacon in ref._to_beacons():
             result(
-                connection.delete(
+                self._connection.delete(
                     path=path,
                     weaviate_object=beacon,
                     params=self.__apply_context(params),
@@ -447,14 +565,21 @@ class _DataExecutor:
         from_uuid: UUID,
         from_property: str,
         to: ReferenceInput,
-        *,
-        connection: Connection,
     ) -> ExecutorResult[None]:
+        """Replace a reference of an object within the collection.
 
+        Arguments:
+            `from_uuid`
+                The UUID of the object in this collection, REQUIRED.
+            `from_property`
+                The name of the property in the object in this collection from which the reference should be replaced, REQUIRED.
+            `to`
+                The reference to replace, REQUIRED.
+        """
         params: Dict[str, str] = {}
-        path = f"/objects/{self.__name}/{from_uuid}/references/{from_property}"
+        path = f"/objects/{self._name}/{from_uuid}/references/{from_property}"
 
-        if self.__validate_arguments:
+        if self._validate_arguments:
             _validate_input(
                 [
                     _ValidateArgument(expected=[UUID], name="from_uuid", value=from_uuid),
@@ -482,7 +607,7 @@ class _DataExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.put,
+            method=self._connection.put,
             path=path,
             weaviate_object=ref._to_beacons(),
             params=self.__apply_context(params),
@@ -490,16 +615,21 @@ class _DataExecutor:
             status_codes=_ExpectedStatusCodes(ok_in=200, error="replace reference on object"),
         )
 
-    def delete_by_id(self, uuid: UUID, *, connection: Connection) -> ExecutorResult[bool]:
+    def delete_by_id(self, uuid: UUID) -> ExecutorResult[bool]:
+        """Delete an object from the collection based on its UUID.
 
-        path = f"/objects/{self.__name}/{uuid}"
+        Arguments:
+            `uuid`
+                The UUID of the object to delete, REQUIRED.
+        """
+        path = f"/objects/{self._name}/{uuid}"
 
         def resp(res: Response) -> bool:
             return res.status_code == 204
 
         return execute(
             response_callback=resp,
-            method=connection.delete,
+            method=self._connection.delete,
             path=path,
             params=self.__apply_context({}),
             error_msg="Object could not be deleted.",
@@ -507,22 +637,32 @@ class _DataExecutor:
         )
 
     def delete_many(
-        self,
-        where: _Filters,
-        verbose: bool,
-        *,
-        dry_run: bool,
-        connection: Connection,
+        self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
     ) -> ExecutorResult[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
+        """Delete multiple objects from the collection based on a filter.
 
+        Arguments:
+            `where`
+                The filter to apply. This filter is the same that is used when performing queries and has the same syntax, REQUIRED.
+            `verbose`
+                Whether to return the deleted objects in the response.
+            `dry_run`
+                Whether to perform a dry run. If set to `True`, the objects will not be deleted, but the response will contain the objects that would have been deleted.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`:
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`:
+                If Weaviate reports a non-OK status.
+        """
         _ValidateArgument(expected=[_Filters], name="where", value=where)
 
         request = BatchDeleteRequest(
-            collection=self.__name,
-            consistency_level=self.__consistency_level,
+            collection=self._name,
+            consistency_level=self._consistency_level,
             verbose=verbose,
             dry_run=dry_run,
-            tenant=self.__tenant,
+            tenant=self._tenant,
             filters=_FilterToGRPC.convert(where),
         )
 
@@ -551,26 +691,26 @@ class _DataExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.grpc_batch_delete,
+            method=self._connection.grpc_batch_delete,
             request=request,
         )
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
 
-        if self.__tenant is not None:
-            params["tenant"] = self.__tenant
-        if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level.value
+        if self._tenant is not None:
+            params["tenant"] = self._tenant
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level.value
         return params
 
     def __apply_context_to_params_and_object(
         self, params: Dict[str, Any], obj: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
-        if self.__tenant is not None:
-            obj["tenant"] = self.__tenant
-        if self.__consistency_level is not None:
-            params["consistency_level"] = self.__consistency_level.value
+        if self._tenant is not None:
+            obj["tenant"] = self._tenant
+        if self._consistency_level is not None:
+            params["consistency_level"] = self._consistency_level.value
         return params, obj
 
     def __serialize_props(self, props: Properties) -> Dict[str, Any]:

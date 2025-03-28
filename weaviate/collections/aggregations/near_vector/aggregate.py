@@ -3,11 +3,11 @@ from weaviate.connect import impl
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _NearVectorAsync(_NearVectorBase[ConnectionAsync]):
     pass
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _NearVector(_NearVectorBase[ConnectionSync]):
     pass

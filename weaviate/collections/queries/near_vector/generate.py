@@ -6,7 +6,7 @@ from weaviate.collections.queries.near_vector.base import _NearVectorGenerateBas
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _NearVectorGenerateAsync(
     Generic[Properties, References],
     _NearVectorGenerateBase[ConnectionAsync, Properties, References],
@@ -14,7 +14,7 @@ class _NearVectorGenerateAsync(
     pass
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _NearVectorGenerate(
     Generic[Properties, References], _NearVectorGenerateBase[ConnectionSync, Properties, References]
 ):

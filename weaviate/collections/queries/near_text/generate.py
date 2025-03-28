@@ -6,14 +6,14 @@ from weaviate.collections.queries.near_text.base import _NearTextGenerateBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _NearTextGenerateAsync(
     Generic[Properties, References], _NearTextGenerateBase[ConnectionAsync, Properties, References]
 ):
     pass
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _NearTextGenerate(
     Generic[Properties, References], _NearTextGenerateBase[ConnectionSync, Properties, References]
 ):

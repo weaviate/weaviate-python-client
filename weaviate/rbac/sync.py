@@ -3,6 +3,6 @@ from weaviate.connect.v4 import ConnectionSync
 from weaviate.rbac.base import _RolesBase
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _Roles(_RolesBase[ConnectionSync]):
     pass

@@ -6,14 +6,14 @@ from weaviate.collections.queries.bm25.base import _BM25QueryBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _BM25QueryAsync(
     Generic[Properties, References], _BM25QueryBase[ConnectionAsync, Properties, References]
 ):
     pass
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _BM25Query(
     Generic[Properties, References], _BM25QueryBase[ConnectionSync, Properties, References]
 ):

@@ -7,19 +7,19 @@ from weaviate.users.base import (
 )
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _UsersDBAsync(_UsersDBBase[ConnectionAsync]):
     pass
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _UsersOIDCAsync(_UsersOIDCBase[ConnectionAsync]):
     pass
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _UsersAsync(_UsersBase[ConnectionAsync]):
-    def __init__(self, connection):
+    def __init__(self, connection: ConnectionAsync):
         super().__init__(connection)
-        self.db = _UsersDBAsync(self._connection)
-        self.oidc = _UsersOIDCAsync(self._connection)
+        self.db = _UsersDBAsync(connection)
+        self.oidc = _UsersOIDCAsync(connection)

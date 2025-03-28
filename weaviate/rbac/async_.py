@@ -3,6 +3,6 @@ from weaviate.connect.v4 import ConnectionAsync
 from weaviate.rbac.base import _RolesBase
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _RolesAsync(_RolesBase[ConnectionAsync]):
     pass

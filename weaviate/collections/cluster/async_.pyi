@@ -31,5 +31,6 @@ class _ClusterAsync(_ClusterBase[ConnectionAsync]):
     async def nodes(
         self,
         collection: Optional[str] = None,
+        *,
         output: Optional[Verbosity] = None,
     ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]: ...

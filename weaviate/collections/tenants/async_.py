@@ -3,6 +3,6 @@ from weaviate.connect.v4 import ConnectionAsync
 from weaviate.collections.tenants.base import _TenantsBase
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _TenantsAsync(_TenantsBase[ConnectionAsync]):
     pass

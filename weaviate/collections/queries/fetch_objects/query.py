@@ -6,14 +6,14 @@ from weaviate.collections.queries.fetch_objects.base import _FetchObjectsQueryBa
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _FetchObjectsQueryAsync(
     Generic[Properties, References], _FetchObjectsQueryBase[ConnectionAsync, Properties, References]
 ):
     pass
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _FetchObjectsQuery(
     Generic[Properties, References], _FetchObjectsQueryBase[ConnectionSync, Properties, References]
 ):

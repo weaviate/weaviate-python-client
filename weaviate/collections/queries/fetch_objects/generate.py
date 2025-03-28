@@ -6,7 +6,7 @@ from weaviate.collections.queries.fetch_objects.base import _FetchObjectsGenerat
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _FetchObjectsGenerateAsync(
     Generic[Properties, References],
     _FetchObjectsGenerateBase[ConnectionAsync, Properties, References],
@@ -14,7 +14,7 @@ class _FetchObjectsGenerateAsync(
     pass
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _FetchObjectsGenerate(
     Generic[Properties, References],
     _FetchObjectsGenerateBase[ConnectionSync, Properties, References],

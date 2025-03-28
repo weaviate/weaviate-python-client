@@ -6,14 +6,14 @@ from weaviate.collections.queries.near_media.base import _NearMediaQueryBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _NearMediaQueryAsync(
     Generic[Properties, References], _NearMediaQueryBase[ConnectionAsync, Properties, References]
 ):
     pass
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _NearMediaQuery(
     Generic[Properties, References], _NearMediaQueryBase[ConnectionSync, Properties, References]
 ):

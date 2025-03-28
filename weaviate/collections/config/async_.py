@@ -3,6 +3,6 @@ from weaviate.connect.v4 import ConnectionAsync
 from weaviate.collections.config.base import _ConfigCollectionBase
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _ConfigCollectionAsync(_ConfigCollectionBase[ConnectionAsync]):
     pass

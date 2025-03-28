@@ -30,7 +30,7 @@ from .users import _UsersAsync, _Users
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class WeaviateAsyncClient(_WeaviateClientBase[ConnectionAsync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
@@ -96,7 +96,7 @@ class WeaviateAsyncClient(_WeaviateClientBase[ConnectionAsync]):
         await aresult(self.close())
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class WeaviateClient(_WeaviateClientBase[ConnectionSync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.

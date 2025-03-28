@@ -41,7 +41,7 @@ from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.proto.v1 import aggregate_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.util import parse_blob, _decode_json_response_dict, _ServerVersion
+from weaviate.util import parse_blob, _decode_json_response_dict
 from weaviate.validator import _ValidateArgument, _validate_input
 from weaviate.warnings import _Warnings
 
@@ -52,17 +52,18 @@ T = TypeVar("T")
 class _BaseExecutor:
     def __init__(
         self,
-        weaviate_version: _ServerVersion,
+        connection: Connection,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
         validate_arguments: bool,
     ) -> None:
-        self.__name = name
+        self._connection = connection
+        self._name = name
         self._tenant = tenant
         self._consistency_level = consistency_level
         self._grpc = _AggregateGRPC(
-            weaviate_version=weaviate_version,
+            weaviate_version=connection._weaviate_version,
             name=name,
             tenant=tenant,
             consistency_level=consistency_level,
@@ -71,14 +72,14 @@ class _BaseExecutor:
 
     def _query(self) -> AggregateBuilder:
         return AggregateBuilder(
-            self.__name,
+            self._name,
         )
 
     def _to_aggregate_result(
         self, response: dict, metrics: Optional[List[_Metrics]]
     ) -> AggregateReturn:
         try:
-            result: dict = response["data"]["Aggregate"][self.__name][0]
+            result: dict = response["data"]["Aggregate"][self._name][0]
             return AggregateReturn(
                 properties=self.__parse_properties(result, metrics) if metrics is not None else {},
                 total_count=result["meta"]["count"] if result.get("meta") is not None else None,
@@ -163,7 +164,7 @@ class _BaseExecutor:
         self, response: dict, metrics: Optional[List[_Metrics]]
     ) -> AggregateGroupByReturn:
         try:
-            results: dict = response["data"]["Aggregate"][self.__name]
+            results: dict = response["data"]["Aggregate"][self._name]
             return AggregateGroupByReturn(
                 groups=[
                     AggregateGroup(
@@ -347,7 +348,7 @@ class _BaseExecutor:
             builder = builder.with_tenant(self._tenant)
         return builder
 
-    def _do(self, connection: Connection, *, query: AggregateBuilder) -> ExecutorResult[dict]:
+    def _do(self, query: AggregateBuilder) -> ExecutorResult[dict]:
         def resp(res: Response) -> dict:
             data = _decode_json_response_dict(res, "Query was not successful")
             assert data is not None
@@ -365,7 +366,7 @@ class _BaseExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.post,
+            method=self._connection.post,
             path="/graphql",
             weaviate_object={"query": query.build()},
         )

@@ -3,6 +3,6 @@ from weaviate.connect.v4 import ConnectionAsync
 from weaviate.backup.base import _BackupBase
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _BackupAsync(_BackupBase[ConnectionAsync]):
     pass

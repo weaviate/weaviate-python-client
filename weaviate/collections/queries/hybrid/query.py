@@ -6,14 +6,14 @@ from weaviate.collections.queries.hybrid.base import _HybridQueryBase
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 
-@impl.generate("async")
+@impl.wrap("async")
 class _HybridQueryAsync(
     Generic[Properties, References], _HybridQueryBase[ConnectionAsync, Properties, References]
 ):
     pass
 
 
-@impl.generate("sync")
+@impl.wrap("sync")
 class _HybridQuery(
     Generic[Properties, References], _HybridQueryBase[ConnectionSync, Properties, References]
 ):

@@ -72,13 +72,13 @@ class _DataCollection(Generic[Properties], _DataBase[ConnectionSync]):
     def delete_by_id(self, uuid: UUID) -> bool: ...
     @overload
     def delete_many(
-        self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
+        self, where: _Filters, *, verbose: Literal[False] = False, dry_run: bool = False
     ) -> DeleteManyReturn[None]: ...
     @overload
     def delete_many(
-        self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
+        self, where: _Filters, *, verbose: Literal[True], dry_run: bool = False
     ) -> DeleteManyReturn[List[DeleteManyObject]]: ...
     @overload
     def delete_many(
-        self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
+        self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
     ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...
