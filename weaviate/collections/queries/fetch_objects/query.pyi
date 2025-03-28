@@ -1,4 +1,4 @@
-from typing import Generic, List, Literal, Optional, Union, Type, overload
+from typing import Generic, Literal, Optional, Union, Type, overload
 
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Sorting
@@ -10,10 +10,13 @@ from weaviate.collections.classes.internal import (
     QueryReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
+from weaviate.collections.queries.fetch_objects.base import _FetchObjectsQueryBase
 from weaviate.types import UUID, INCLUDE_VECTOR
 
-class _FetchObjectsQueryAsync(Generic[Properties, References], _Base[Properties, References]):
+class _FetchObjectsQueryAsync(
+    Generic[Properties, References], _FetchObjectsQueryBase[ConnectionAsync, Properties, References]
+):
     @overload
     async def fetch_objects(
         self,
@@ -113,7 +116,9 @@ class _FetchObjectsQueryAsync(Generic[Properties, References], _Base[Properties,
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> QueryReturnType[Properties, References, TProperties, TReferences]: ...
 
-class _FetchObjectsQuery(Generic[Properties, References], _Base[Properties, References]):
+class _FetchObjectsQuery(
+    Generic[Properties, References], _FetchObjectsQueryBase[ConnectionSync, Properties, References]
+):
     @overload
     def fetch_objects(
         self,

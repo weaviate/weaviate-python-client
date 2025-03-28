@@ -3,9 +3,10 @@ Weaviate Exceptions.
 """
 
 from json.decoder import JSONDecodeError
-from typing import Tuple, Union
+from typing import Tuple, Union, cast
 
 import httpx
+from grpc import Call, StatusCode  # type: ignore
 from grpc.aio import AioRpcError  # type: ignore
 
 ERROR_CODE_EXPLANATION = {
@@ -40,7 +41,7 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
     not handled in the client implementation and suggests an error.
     """
 
-    def __init__(self, message: str, response: Union[httpx.Response, AioRpcError]):
+    def __init__(self, message: str, response: Union[httpx.Response, AioRpcError, Call]):
         """
         Is raised in case the status code returned from Weaviate is
         not handled in the client implementation and suggests an error.
@@ -75,6 +76,13 @@ class UnexpectedStatusCodeError(WeaviateBaseError):
             msg = (
                 message
                 + f"! Unexpected status code: {response.code().value[1]}, with response body: {response.details()}."
+            )
+        elif isinstance(response, Call):
+            code = cast(StatusCode, response.code())
+            self._status_code = int(code.value[0])
+            msg = (
+                message
+                + f"! Unexpected status code: {code.value[1]}, with response body: {response.details()}."
             )
         super().__init__(msg)
 
@@ -369,7 +377,7 @@ class WeaviateRetryError(WeaviateBaseError):
 class InsufficientPermissionsError(UnexpectedStatusCodeError):
     """Is raised when a request to Weaviate fails due to insufficient permissions."""
 
-    def __init__(self, res: Union[httpx.Response, AioRpcError]) -> None:
+    def __init__(self, res: Union[httpx.Response, AioRpcError, Call]) -> None:
         super().__init__("forbidden", res)
 
 

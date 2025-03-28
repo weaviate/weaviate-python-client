@@ -1,6 +1,7 @@
 from typing import Optional, Union, List
 
-from weaviate.backup.backup import (
+from weaviate.backup.base import _BackupBase
+from weaviate.backup.executor import (
     BackupStorage,
     BackupReturn,
     BackupStatusReturn,
@@ -8,13 +9,10 @@ from weaviate.backup.backup import (
     BackupConfigRestore,
 )
 from weaviate.backup.backup_location import BackupLocationType
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionSync
 
-class _Backup:
+class _Backup(_BackupBase[ConnectionSync]):
     """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
-
-    def __init__(self, connection: ConnectionV4):
-        self._connection = connection
 
     def cancel(
         self,

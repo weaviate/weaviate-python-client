@@ -1,8 +1,9 @@
-from weaviate.backup.backup import (
+from weaviate.backup.executor import (
     BackupCompressionLevel,
     BackupConfigCreate,
     BackupConfigRestore,
     BackupStorage,
+    BackupLocationType,
 )
 from weaviate.backup.backup_location import BackupLocation
 
@@ -13,4 +14,5 @@ __all__ = [
     "BackupConfigRestore",
     "BackupStorage",
     "BackupLocation",
+    "BackupLocationType",
 ]

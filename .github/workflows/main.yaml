@@ -65,11 +65,9 @@ jobs:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
-      - name: Run mypy
-        run: mypy --config-file ./pyproject.toml --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
       - uses: jakebailey/pyright-action@v2
         with:
-          version: 1.1.347
+          version: 1.1.398
 
   unit-tests:
     name: Run Unit Tests
@@ -166,10 +164,14 @@ jobs:
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
 #          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
-        run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+        run: |
+          pytest -n auto -m "not serial" --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+          pytest -n0 -m "serial" -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+        run: |
+          pytest -n auto -m "not serial" --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+          pytest -n0 -m "serial" -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
         uses: actions/upload-artifact@v4

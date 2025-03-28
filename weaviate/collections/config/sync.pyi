@@ -18,9 +18,10 @@ from weaviate.collections.classes.config import (
     _RerankerProvider,
 )
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
-from weaviate.collections.config.config import _ConfigCollectionBase
+from weaviate.collections.config.async_ import _ConfigCollectionBase
+from weaviate.connect.v4 import ConnectionSync
 
-class _ConfigCollection(_ConfigCollectionBase):
+class _ConfigCollection(_ConfigCollectionBase[ConnectionSync]):
     @overload
     def get(self, simple: Literal[False] = ...) -> CollectionConfig: ...
     @overload
