@@ -106,7 +106,6 @@ class _BackupExecutor:
     def create(
         self,
         connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
         include_collections: Union[List[str], str, None] = None,
@@ -115,6 +114,41 @@ class _BackupExecutor:
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupReturn]:
+        """Create a backup of all/per collection Weaviate objects.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage where to create the backup.
+        include_collections : Union[List[str], str], optional
+            The collection/list of collections to be included in the backup. If not specified all
+            collections will be included. Either `include_collections` or `exclude_collections` can be set. By default None.
+        exclude_collections : Union[List[str], str], optional
+            The collection/list of collections to be excluded in the backup.
+            Either `include_collections` or `exclude_collections` can be set. By default None.
+        wait_for_completion : bool, optional
+            Whether to wait until the backup is done. By default False.
+        config: BackupConfigCreate, optional
+            The configuration of the backup creation. By default None.
+        backup_location:
+            The dynamic location of a backup. By default None.
+
+        Returns
+        -------
+         A `_BackupReturn` object that contains the backup creation response.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            One of the arguments have a wrong type.
+        """
         (
             backup_id,
             backend,
@@ -232,10 +266,9 @@ class _BackupExecutor:
     def get_create_status(
         self,
         connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
+        backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupStatusReturn]:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
@@ -272,12 +305,11 @@ class _BackupExecutor:
     def restore(
         self,
         connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
         wait_for_completion: bool,
-        config: Optional[BackupConfigRestore],
-        backup_location: Optional[BackupLocationType],
+        config: Optional[BackupConfigRestore] = None,
+        backup_location: Optional[BackupLocationType] = None,
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
     ) -> ExecutorResult[BackupReturn]:
@@ -400,10 +432,9 @@ class _BackupExecutor:
     def get_restore_status(
         self,
         connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
+        backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupStatusReturn]:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
@@ -442,7 +473,7 @@ class _BackupExecutor:
         *,
         backup_id: str,
         backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
+        backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[bool]:
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,

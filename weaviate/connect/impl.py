@@ -25,15 +25,14 @@ def generate(colour: Colour) -> Callable[[Type], Type]:
             # pulls the original method if it was wrapped by functools.wraps, e.g. @deprecated
             method = getattr(method, "__wrapped__", method)
 
-            if name.startswith("__"):
+            if name.startswith("_"):
                 continue
 
-            if not getattr(method, "__isabstractmethod__", False):
-                continue
-
-            metadata.append(
-                _Meta(name=name, method=method, parameters=inspect.signature(method).parameters)
-            )
+            parameters = inspect.signature(method).parameters
+            mutable_params = dict(parameters)
+            mutable_params.pop("connection", None)
+            parameters_mutated = MappingProxyType(mutable_params)
+            metadata.append(_Meta(name=name, method=method, parameters=parameters_mutated))
 
         # Create sync versions of the async methods
         for metadatum in metadata:
