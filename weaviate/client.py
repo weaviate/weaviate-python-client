@@ -15,11 +15,10 @@ from .collections.cluster import _Cluster, _ClusterAsync
 from .collections.collections.async_ import _CollectionsAsync
 from .collections.collections.sync import _Collections
 from .config import AdditionalConfig
-from .connect import impl
+from .connect import executor
 from .connect.base import (
     ConnectionParams,
 )
-from .connect.executor import aresult, result
 from .connect.v4 import ConnectionAsync, ConnectionSync
 from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
@@ -30,7 +29,7 @@ from .users import _UsersAsync, _Users
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
-@impl.generate("async")
+@executor.wrap("async")
 class WeaviateAsyncClient(_WeaviateClientBase[ConnectionAsync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
@@ -89,14 +88,14 @@ class WeaviateAsyncClient(_WeaviateClientBase[ConnectionAsync]):
         """This namespace contains all functionality to manage Weaviate users."""
 
     async def __aenter__(self) -> "WeaviateAsyncClient":
-        await aresult(self.connect())
+        await executor.aresult(self.connect())
         return self
 
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        await aresult(self.close())
+        await executor.aresult(self.close())
 
 
-@impl.generate("sync")
+@executor.wrap("sync")
 class WeaviateClient(_WeaviateClientBase[ConnectionSync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
@@ -163,11 +162,11 @@ class WeaviateClient(_WeaviateClientBase[ConnectionSync]):
         """This namespace contains all functionality to manage Weaviate users."""
 
     def __enter__(self) -> "WeaviateClient":
-        result(self.connect())
+        executor.result(self.connect())
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        result(self.close())
+        executor.result(self.close())
 
 
 @deprecated(

@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from weaviate.collections.aggregations.executors.base import _BaseExecutor
+from weaviate.collections.aggregations.executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -10,7 +10,6 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect.executor import execute, ExecutorResult
-from weaviate.connect.v4 import Connection
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import NUMBER
 
@@ -18,23 +17,53 @@ from weaviate.types import NUMBER
 class _HybridExecutor(_BaseExecutor):
     def hybrid(
         self,
-        connection: Connection,
-        *,
         query: Optional[str],
-        alpha: NUMBER,
-        vector: Optional[List[float]],
-        query_properties: Optional[List[str]],
-        object_limit: Optional[int],
-        filters: Optional[_Filters],
-        group_by: Optional[Union[str, GroupByAggregate]],
-        target_vector: Optional[str],
-        max_vector_distance: Optional[NUMBER],
+        *,
+        alpha: NUMBER = 0.7,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
         total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics],
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> ExecutorResult[Union[AggregateReturn, AggregateGroupByReturn]]:
-        if group_by is not None and connection._weaviate_version.is_lower_than(1, 25, 0):
+        """Aggregate metrics over all the objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
+
+        Arguments:
+            `query`
+                The keyword-based query to search for, REQUIRED. If query and vector are both None, a normal search will be performed.
+            `alpha`
+                The weight of the BM25 score. If not specified, the default weight specified by the server is used.
+            `vector`
+                The specific vector to search for. If not specified, the query is vectorized and used in the similarity search.
+            `query_properties`
+                The properties to search in. If not specified, all properties are searched.
+            `object_limit`
+                The maximum number of objects to return from the hybrid vector search prior to the aggregation.
+            `filters`
+                The filters to apply to the search.
+            `group_by`
+                How to group the aggregation by.
+            `total_count`
+                Whether to include the total number of objects that match the query in the response.
+            `return_metrics`
+                A list of property metrics to aggregate together after the text search.
+
+        Returns:
+            Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
+
+        Raises:
+            `weaviate.exceptions.WeaviateQueryError`:
+                If an error occurs while performing the query against Weaviate.
+            `weaviate.exceptions.WeaviateInvalidInputError`:
+                If any of the input arguments are of the wrong type.
+        """
+        if group_by is not None and self._connection._weaviate_version.is_lower_than(1, 25, 0):
             raise WeaviateUnsupportedFeatureError(
-                "Hybrid aggregation", connection.server_version, "1.25.0"
+                "Hybrid aggregation", self._connection.server_version, "1.25.0"
             )
         return_metrics = (
             return_metrics
@@ -45,7 +74,7 @@ class _HybridExecutor(_BaseExecutor):
         if isinstance(group_by, str):
             group_by = GroupByAggregate(prop=group_by)
 
-        if connection._weaviate_version.is_lower_than(1, 29, 0):
+        if self._connection._weaviate_version.is_lower_than(1, 29, 0):
             # use gql, remove once 1.29 is the minimum supported version
             def resp(res: dict) -> Union[AggregateReturn, AggregateGroupByReturn]:
                 return (
@@ -69,7 +98,6 @@ class _HybridExecutor(_BaseExecutor):
             return execute(
                 response_callback=resp,
                 method=self._do,
-                connection=connection,
                 query=builder,
             )
         else:
@@ -94,6 +122,6 @@ class _HybridExecutor(_BaseExecutor):
             )
             return execute(
                 response_callback=self._to_result,
-                method=connection.grpc_aggregate,
+                method=self._connection.grpc_aggregate,
                 request=request,
             )

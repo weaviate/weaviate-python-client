@@ -15,13 +15,35 @@ from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
 
 class _ClusterExecutor:
+    def __init__(self, connection: Connection):
+        self._connection = connection
+
     def nodes(
         self,
-        collection: Optional[str],
+        collection: Optional[str] = None,
         *,
-        connection: Connection,
-        output: Optional[Verbosity],
+        output: Optional[Verbosity] = None,
     ) -> ExecutorResult[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]:
+        """
+        Get the status of all nodes in the cluster.
+
+        Arguments:
+            `collection`
+                Get the status for the given collection. If not given all collections will be included.
+            `output`
+                Set the desired output verbosity level. Can be [`minimal` | `verbose`], defaults to `None`, which is server-side default of `minimal`.
+
+        Returns:
+            List of nodes and their respective status.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`
+                If the network connection to weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If weaviate reports a none OK status.
+            `weaviate.EmptyResponseError`
+                If the response is empty.
+        """
         path = "/nodes"
         params = None
         if collection is not None:
@@ -44,7 +66,7 @@ class _ClusterExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path=path,
             params=params,
             error_msg="Get nodes status failed",

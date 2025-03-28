@@ -2,7 +2,6 @@
 Client class definition.
 """
 
-from abc import abstractmethod
 from typing import (
     Any,
     Generic,
@@ -22,12 +21,12 @@ from weaviate.integrations import _Integrations
 
 from .auth import AuthCredentials
 from .config import AdditionalConfig
+from .connect import executor
 from .connect.v4 import Connection, ConnectionAsync, ConnectionSync
 from .connect.base import (
     ConnectionParams,
     ProtocolParams,
 )
-from .connect.executor import aresult, do_nothing, result, ExecutorResult, execute
 from .connect.v4 import _ExpectedStatusCodes
 from .embedded import EmbeddedOptions, EmbeddedV4
 from .types import NUMBER
@@ -38,21 +37,35 @@ TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
 class _WeaviateClientExecutor:
-    async def __close_async(self, connection: ConnectionAsync) -> None:
-        await aresult(connection.close("async"))
+    def __init__(self, connection: Connection):
+        self._connection = connection
 
-    def close(self, connection: Connection) -> ExecutorResult[None,]:
-        if isinstance(connection, ConnectionAsync):
-            return self.__close_async(connection)
-        return result(connection.close("sync"))
+    async def __close_async(self) -> None:
+        await executor.aresult(self._connection.close("async"))
 
-    def connect(self, connection: Connection) -> ExecutorResult[None]:
-        return execute(
+    def close(self) -> executor.ExecutorResult[None]:
+        """
+        Close the connection to Weaviate.
+
+        This method should be called when the client is no longer needed to free up resources.
+        """
+        if isinstance(self._connection, ConnectionAsync):
+            return self.__close_async()
+        return executor.result(self._connection.close("sync"))
+
+    def connect(self) -> executor.ExecutorResult[None]:
+        """
+        Connect to Weaviate.
+
+        It is required that this method is called before any other operations can be made successfully.
+        If not done so, exepctions will be raised.
+        """
+        return executor.execute(
             response_callback=lambda _: None,
-            method=connection.connect,
+            method=self._connection.connect,
         )
 
-    def is_live(self, connection: Connection) -> ExecutorResult[bool]:
+    def is_live(self) -> executor.ExecutorResult[bool]:
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
@@ -60,14 +73,14 @@ class _WeaviateClientExecutor:
             print(e)
             return False
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             exception_callback=exc,
-            method=connection.get,
+            method=self._connection.get,
             path="/.well-known/live",
         )
 
-    def is_ready(self, connection: Connection) -> ExecutorResult[bool]:
+    def is_ready(self) -> executor.ExecutorResult[bool]:
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
@@ -75,16 +88,33 @@ class _WeaviateClientExecutor:
             print(e)
             return False
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             exception_callback=exc,
-            method=connection.get,
+            method=self._connection.get,
             path="/.well-known/ready",
         )
 
-    def graphql_raw_query(
-        self, connection: Connection, gql_query: str
-    ) -> ExecutorResult[_RawGQLReturn]:
+    def graphql_raw_query(self, gql_query: str) -> executor.ExecutorResult[_RawGQLReturn]:
+        """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
+
+        Be cautious of injection risks when generating query strings.
+
+        Arguments:
+            `gql_query`
+                GraphQL query as a string.
+
+        Returns:
+            A dict with the response from the GraphQL query.
+
+        Raises
+            `TypeError`
+                If 'gql_query' is not of type str.
+            `weaviate.WeaviateConnectionError`
+                If the network connection to weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If weaviate reports a none OK status.
+        """
         _validate_input(_ValidateArgument([str], "gql_query", gql_query))
         json_query = {"query": gql_query}
 
@@ -108,10 +138,10 @@ class _WeaviateClientExecutor:
         def exc(e: Exception) -> _RawGQLReturn:
             raise e
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             exception_callback=exc,
-            method=connection.post,
+            method=self._connection.post,
             path="/graphql",
             weaviate_object=json_query,
             error_msg="Raw GQL query failed",
@@ -119,28 +149,49 @@ class _WeaviateClientExecutor:
             is_gql_query=True,
         )
 
-    def get_meta(self, connection: Connection) -> ExecutorResult[dict]:
-        return execute(
-            response_callback=do_nothing,
-            method=connection.get_meta,
+    def get_meta(self) -> executor.ExecutorResult[dict]:
+        """
+        Get the meta endpoint description of weaviate.
+
+        Returns:
+            `dict`
+                The `dict` describing the weaviate configuration.
+
+        Raises:
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a none OK status.
+        """
+        return executor.execute(
+            response_callback=executor.do_nothing,
+            method=self._connection.get_meta,
         )
 
     def get_open_id_configuration(
-        self, connection: Connection
-    ) -> ExecutorResult[Optional[Dict[str, Any]]]:
-        return execute(
-            response_callback=do_nothing,
-            method=connection.get_open_id_configuration,
+        self,
+    ) -> executor.ExecutorResult[Optional[Dict[str, Any]]]:
+        """
+        Get the openid-configuration.
+
+        Returns
+            `dict`
+                The configuration or `None` if not configured.
+
+        Raises
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a none OK status.
+        """
+        return executor.execute(
+            response_callback=executor.do_nothing,
+            method=self._connection.get_open_id_configuration,
         )
 
 
 C = TypeVar("C", ConnectionAsync, ConnectionSync)
 
 
-class _WeaviateClientBase(Generic[C]):
+class _WeaviateClientBase(Generic[C], _WeaviateClientExecutor):
     _connection: C
     _connection_type: Type[C]
-    _executor = _WeaviateClientExecutor()
 
     def __init__(
         self,
@@ -183,21 +234,21 @@ class _WeaviateClientBase(Generic[C]):
         )
         config = additional_config or AdditionalConfig()
 
-        self._connection = (
-            self._connection_type(  # pyright: ignore reportIncompatibleVariableOverride
-                connection_params=connection_params,
-                auth_client_secret=auth_client_secret,
-                timeout_config=config.timeout,
-                additional_headers=additional_headers,
-                embedded_db=embedded_db,
-                connection_config=config.connection,
-                proxies=config.proxies,
-                trust_env=config.trust_env,
-                skip_init_checks=skip_init_checks,
-            )
+        connection = self._connection_type(  # pyright: ignore reportIncompatibleVariableOverride
+            connection_params=connection_params,
+            auth_client_secret=auth_client_secret,
+            timeout_config=config.timeout,
+            additional_headers=additional_headers,
+            embedded_db=embedded_db,
+            connection_config=config.connection,
+            proxies=config.proxies,
+            trust_env=config.trust_env,
+            skip_init_checks=skip_init_checks,
         )
 
-        self.integrations = _Integrations(self._connection)
+        self.integrations = _Integrations(connection)
+
+        super().__init__(connection)
 
     def __parse_connection_params_and_embedded_db(
         self,
@@ -237,6 +288,7 @@ class _WeaviateClientBase(Generic[C]):
 
         return connection_params, None
 
+    @executor.no_wrapping
     def is_connected(self) -> bool:
         """Check if the client is connected to Weaviate.
 
@@ -245,83 +297,3 @@ class _WeaviateClientBase(Generic[C]):
                 `True` if the client is connected to Weaviate with an open connection pool, `False` otherwise.
         """
         return self._connection.is_connected()
-
-    @abstractmethod
-    def connect(self) -> ExecutorResult[None]:
-        """
-        Connect to Weaviate.
-
-        It is required that this method is called before any other operations can be made successfully.
-        If not done so, exepctions will be raised.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def close(self) -> ExecutorResult[None]:
-        """
-        Close the connection to Weaviate.
-
-        This method should be called when the client is no longer needed to free up resources.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def is_live(self) -> ExecutorResult[bool]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def is_ready(self) -> ExecutorResult[bool]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def graphql_raw_query(self, gql_query: str) -> ExecutorResult[_RawGQLReturn]:
-        """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
-
-        Be cautious of injection risks when generating query strings.
-
-        Arguments:
-            `gql_query`
-                GraphQL query as a string.
-
-        Returns:
-            A dict with the response from the GraphQL query.
-
-        Raises
-            `TypeError`
-                If 'gql_query' is not of type str.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def get_meta(self) -> ExecutorResult[dict]:
-        """
-        Get the meta endpoint description of weaviate.
-
-        Returns:
-            `dict`
-                The `dict` describing the weaviate configuration.
-
-        Raises:
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def get_open_id_configuration(self) -> ExecutorResult[Optional[Dict[str, Any]]]:
-        """
-        Get the openid-configuration.
-
-        Returns
-            `dict`
-                The configuration or `None` if not configured.
-
-        Raises
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
-        """
-        raise NotImplementedError()

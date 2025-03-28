@@ -41,12 +41,12 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import GeoCoordinate, _PhoneNumber, TReferences
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
+from weaviate.connect.v4 import Connection
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2, generative_pb2, properties_pb2, search_get_pb2
 from weaviate.types import INCLUDE_VECTOR
 from weaviate.util import (
     _datetime_from_weaviate_str,
-    _ServerVersion,
     _WeaviateUUIDInt,
 )
 from weaviate.validator import _validate_input, _ValidateArgument
@@ -56,7 +56,7 @@ from weaviate.warnings import _Warnings
 class _BaseExecutor:
     def __init__(
         self,
-        weaviate_version: _ServerVersion,
+        connection: Connection,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
@@ -64,7 +64,7 @@ class _BaseExecutor:
         references: Optional[Type[Optional[Mapping[str, Any]]]],
         validate_arguments: bool,
     ) -> None:
-        self._weaviate_version = weaviate_version
+        self._connection = connection
         self._name = name
         self.__tenant = tenant
         self.__consistency_level = consistency_level
@@ -72,10 +72,10 @@ class _BaseExecutor:
         self._references = references
         self._validate_arguments = validate_arguments
 
-        self.__uses_125_api = weaviate_version.is_at_least(1, 25, 0)
-        self.__uses_127_api = weaviate_version.is_at_least(1, 27, 0)
+        self.__uses_125_api = connection._weaviate_version.is_at_least(1, 25, 0)
+        self.__uses_127_api = connection._weaviate_version.is_at_least(1, 27, 0)
         self._query = _QueryGRPC(
-            weaviate_version,
+            connection._weaviate_version,
             self._name,
             self.__tenant,
             self.__consistency_level,
@@ -280,7 +280,7 @@ class _BaseExecutor:
         if value.HasField("list_value"):
             return (
                 self.__deserialize_list_value_prop_125(value.list_value)
-                if self._weaviate_version.is_at_least(1, 25, 0)
+                if self._connection._weaviate_version.is_at_least(1, 25, 0)
                 else self.__deserialize_list_value_prop_123(value.list_value)
             )
         if value.HasField("object_value"):

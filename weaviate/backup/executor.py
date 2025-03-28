@@ -103,10 +103,11 @@ class BackupReturn(BackupStatusReturn):
 
 
 class _BackupExecutor:
+    def __init__(self, connection: Connection):
+        self._connection = connection
+
     def create(
         self,
-        connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
         include_collections: Union[List[str], str, None] = None,
@@ -115,6 +116,41 @@ class _BackupExecutor:
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupReturn]:
+        """Create a backup of all/per collection Weaviate objects.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage where to create the backup.
+        include_collections : Union[List[str], str], optional
+            The collection/list of collections to be included in the backup. If not specified all
+            collections will be included. Either `include_collections` or `exclude_collections` can be set. By default None.
+        exclude_collections : Union[List[str], str], optional
+            The collection/list of collections to be excluded in the backup.
+            Either `include_collections` or `exclude_collections` can be set. By default None.
+        wait_for_completion : bool, optional
+            Whether to wait until the backup is done. By default False.
+        config: BackupConfigCreate, optional
+            The configuration of the backup creation. By default None.
+        backup_location:
+            The dynamic location of a backup. By default None.
+
+        Returns
+        -------
+         A `_BackupReturn` object that contains the backup creation response.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        TypeError
+            One of the arguments have a wrong type.
+        """
         (
             backup_id,
             backend,
@@ -135,9 +171,9 @@ class _BackupExecutor:
         }
 
         if config is not None:
-            if connection._weaviate_version.is_lower_than(1, 25, 0):
+            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCreate", str(connection._weaviate_version), "1.25.0"
+                    "BackupConfigCreate", str(self._connection._weaviate_version), "1.25.0"
                 )
             if not isinstance(config, BackupConfigCreate):
                 raise WeaviateInvalidInputError(
@@ -146,10 +182,10 @@ class _BackupExecutor:
             payload["config"] = config._to_dict()
 
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigCreate dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
             if "config" not in payload:
@@ -158,11 +194,11 @@ class _BackupExecutor:
 
         path = f"/backups/{backend.value}"
 
-        if isinstance(connection, ConnectionAsync):
+        if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> BackupReturn:
                 res = await aresult(
-                    connection.post(
+                    self._connection.post(
                         path=path,
                         weaviate_object=payload,
                         error_msg="Backup creation failed due to connection error.",
@@ -174,7 +210,6 @@ class _BackupExecutor:
                     while True:
                         status = await aresult(
                             self.get_create_status(
-                                connection=connection,
                                 backup_id=backup_id,
                                 backend=backend,
                                 backup_location=backup_location,
@@ -197,7 +232,7 @@ class _BackupExecutor:
             return _execute()
 
         res = result(
-            connection.post(
+            self._connection.post(
                 path=path,
                 weaviate_object=payload,
                 error_msg="Backup creation failed due to connection error.",
@@ -209,7 +244,6 @@ class _BackupExecutor:
             while True:
                 status = result(
                     self.get_create_status(
-                        connection=connection,
                         backup_id=backup_id,
                         backend=backend,
                         backup_location=backup_location,
@@ -231,12 +265,27 @@ class _BackupExecutor:
 
     def get_create_status(
         self,
-        connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
+        backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupStatusReturn]:
+        """
+        Checks if a started backup job has completed.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage eNUM
+            The backend storage where the backup was created.
+        backup_location: BackupLocationType
+            The dynamic location of a backup. By default None.
+
+        Returns
+        -------
+         A `BackupStatusReturn` object that contains the backup creation status response.
+        """
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
             backend=backend,  # this check can be removed when we remove the old backup class
@@ -245,10 +294,10 @@ class _BackupExecutor:
         path = f"/backups/{backend.value}/{backup_id}"
         params: Dict[str, str] = {}
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigCreateStatus dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
 
@@ -263,7 +312,7 @@ class _BackupExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path=path,
             params=params,
             error_msg="Backup creation status failed due to connection error.",
@@ -271,16 +320,49 @@ class _BackupExecutor:
 
     def restore(
         self,
-        connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
-        wait_for_completion: bool,
-        config: Optional[BackupConfigRestore],
-        backup_location: Optional[BackupLocationType],
         include_collections: Union[List[str], str, None] = None,
         exclude_collections: Union[List[str], str, None] = None,
+        wait_for_completion: bool = False,
+        config: Optional[BackupConfigRestore] = None,
+        backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupReturn]:
+        """
+        Restore a backup of all/per collection Weaviate objects.
+
+        Parameters
+        ----------
+        backup_id : str
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend : BackupStorage
+            The backend storage from where to restore the backup.
+        include_collections : Union[List[str], str], optional
+            The collection/list of collections to be included in the backup restore. If not specified all
+            collections will be included (that were backup-ed). Either `include_collections` or
+            `exclude_collections` can be set. By default None.
+        exclude_collections : Union[List[str], str], optional
+            The collection/list of collections to be excluded in the backup restore.
+            Either `include_collections` or `exclude_collections` can be set. By default None.
+        wait_for_completion : bool, optional
+            Whether to wait until the backup restore is done.
+        config: BackupConfigRestore, optional
+            The configuration of the backup restoration. By default None.
+        backup_location:
+            The dynamic location of a backup. By default None.
+
+        Returns
+        -------
+         A `BackupReturn` object that contains the backup restore response.
+
+        Raises
+        ------
+        requests.ConnectionError
+            If the network connection to weaviate fails.
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+        """
         (
             backup_id,
             backend,
@@ -300,9 +382,9 @@ class _BackupExecutor:
         }
 
         if config is not None:
-            if connection._weaviate_version.is_lower_than(1, 25, 0):
+            if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigRestore", str(connection._weaviate_version), "1.25.0"
+                    "BackupConfigRestore", str(self._connection._weaviate_version), "1.25.0"
                 )
             if not isinstance(config, BackupConfigRestore):
                 raise WeaviateInvalidInputError(
@@ -311,10 +393,10 @@ class _BackupExecutor:
             payload["config"] = config._to_dict()
 
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigRestore dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
 
@@ -324,11 +406,11 @@ class _BackupExecutor:
 
         path = f"/backups/{backend.value}/{backup_id}/restore"
 
-        if isinstance(connection, ConnectionAsync):
+        if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> BackupReturn:
                 response = await aresult(
-                    connection.post(
+                    self._connection.post(
                         path=path,
                         weaviate_object=payload,
                         error_msg="Backup restore failed due to connection error.",
@@ -340,7 +422,6 @@ class _BackupExecutor:
                     while True:
                         status = await aresult(
                             self.get_restore_status(
-                                connection=connection,
                                 backup_id=backup_id,
                                 backend=backend,
                                 backup_location=backup_location,
@@ -364,7 +445,7 @@ class _BackupExecutor:
             return _execute()
 
         response = result(
-            connection.post(
+            self._connection.post(
                 path=path,
                 weaviate_object=payload,
                 error_msg="Backup restore failed due to connection error.",
@@ -376,7 +457,6 @@ class _BackupExecutor:
             while True:
                 status = result(
                     self.get_restore_status(
-                        connection=connection,
                         backup_id=backup_id,
                         backend=backend,
                         backup_location=backup_location,
@@ -399,12 +479,27 @@ class _BackupExecutor:
 
     def get_restore_status(
         self,
-        connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
+        backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[BackupStatusReturn]:
+        """
+        Checks if a started restore job has completed.
+
+        Parameters
+        ----------
+        backup_id:
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend:
+            The backend storage where to create the backup.
+        backup_location:
+            The dynamic location of a backup. By default None.
+
+        Returns
+        -------
+         A `BackupStatusReturn` object that contains the backup restore status response.
+        """
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
             backend=backend,
@@ -413,10 +508,10 @@ class _BackupExecutor:
 
         params: Dict[str, str] = {}
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigRestore status dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
             params.update(backup_location._to_dict())
@@ -430,7 +525,7 @@ class _BackupExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.get,
+            method=self._connection.get,
             path=path,
             params=params,
             error_msg="Backup restore status failed due to connection error.",
@@ -438,12 +533,32 @@ class _BackupExecutor:
 
     def cancel(
         self,
-        connection: Connection,
-        *,
         backup_id: str,
         backend: BackupStorage,
-        backup_location: Optional[BackupLocationType],
+        backup_location: Optional[BackupLocationType] = None,
     ) -> ExecutorResult[bool]:
+        """
+        Cancels a running backup.
+
+        Parameters
+        ----------
+        backup_id:
+            The identifier name of the backup.
+            NOTE: Case insensitive.
+        backend:
+            The backend storage where to create the backup.
+        backup_location:
+            The dynamic location of a backup. By default None.
+
+        Raises
+        ------
+        weaviate.UnexpectedStatusCodeException
+            If weaviate reports a none OK status.
+
+        Returns
+        -------
+         A bool indicating if the cancellation was successful.
+        """
         backup_id, backend = _get_and_validate_get_status(
             backup_id=backup_id,
             backend=backend,
@@ -452,10 +567,10 @@ class _BackupExecutor:
         params: Dict[str, str] = {}
 
         if backup_location is not None:
-            if connection._weaviate_version.is_lower_than(1, 27, 2):
+            if self._connection._weaviate_version.is_lower_than(1, 27, 2):
                 raise WeaviateUnsupportedFeatureError(
                     "BackupConfigCancel dynamic backup location",
-                    str(connection._weaviate_version),
+                    str(self._connection._weaviate_version),
                     "1.27.2",
                 )
             params.update(backup_location._to_dict())
@@ -470,7 +585,7 @@ class _BackupExecutor:
 
         return execute(
             response_callback=resp,
-            method=connection.delete,
+            method=self._connection.delete,
             path=path,
             params=params,
             error_msg="Backup cancel failed due to connection error.",

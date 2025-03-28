@@ -14,9 +14,9 @@ from weaviate.collections.classes.internal import (
     _GroupedTask,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.executors.base import _BaseExecutor
+from weaviate.collections.queries.executor import _BaseExecutor
 from weaviate.connect.executor import ExecutorResult, execute
-from weaviate.connect.v4 import Connection, ConnectionAsync
+from weaviate.connect.v4 import ConnectionAsync
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import UUID, INCLUDE_VECTOR
 
@@ -24,9 +24,8 @@ from weaviate.types import UUID, INCLUDE_VECTOR
 class _FetchObjectsByIdsGenerateExecutor(Generic[Properties, References], _BaseExecutor):
     def fetch_objects_by_ids(
         self,
-        *,
-        connection: Connection,
         ids: Iterable[UUID],
+        *,
         single_prompt: Union[str, _SinglePrompt, None] = None,
         grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
@@ -40,6 +39,11 @@ class _FetchObjectsByIdsGenerateExecutor(Generic[Properties, References], _BaseE
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> ExecutorResult[GenerativeReturnType[Properties, References, TProperties, TReferences]]:
+        """Perform retrieval-augmented generation (RAG) on the results of a simple get query of objects matching the provided IDs in this collection.
+
+        See the docstring of `fetch_objects` for more information on the arguments.
+        """
+
         def resp(
             res: SearchReply,
         ) -> GenerativeReturnType[Properties, References, TProperties, TReferences]:
@@ -75,7 +79,7 @@ class _FetchObjectsByIdsGenerateExecutor(Generic[Properties, References], _BaseE
         )
         return execute(
             response_callback=resp,
-            method=connection.grpc_search,
+            method=self._connection.grpc_search,
             request=request,
         )
 
@@ -83,9 +87,8 @@ class _FetchObjectsByIdsGenerateExecutor(Generic[Properties, References], _BaseE
 class _FetchObjectsByIdsQueryExecutor(Generic[Properties, References], _BaseExecutor):
     def fetch_objects_by_ids(
         self,
-        *,
-        connection: Connection,
         ids: Iterable[UUID],
+        *,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         after: Optional[UUID] = None,
@@ -95,6 +98,11 @@ class _FetchObjectsByIdsQueryExecutor(Generic[Properties, References], _BaseExec
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> ExecutorResult[QueryReturnType[Properties, References, TProperties, TReferences]]:
+        """Perform a special case of fetch_objects based on filters on uuid.
+
+        See the docstring of `fetch_objects` for more information on the arguments.
+        """
+
         def resp(
             res: SearchReply,
         ) -> QueryReturnType[Properties, References, TProperties, TReferences]:
@@ -113,7 +121,7 @@ class _FetchObjectsByIdsQueryExecutor(Generic[Properties, References], _BaseExec
             )
 
         if not ids:
-            if isinstance(connection, ConnectionAsync):
+            if isinstance(self._connection, ConnectionAsync):
 
                 async def _execute() -> (
                     QueryReturnType[Properties, References, TProperties, TReferences]
@@ -135,6 +143,6 @@ class _FetchObjectsByIdsQueryExecutor(Generic[Properties, References], _BaseExec
         )
         return execute(
             response_callback=resp,
-            method=connection.grpc_search,
+            method=self._connection.grpc_search,
             request=request,
         )
