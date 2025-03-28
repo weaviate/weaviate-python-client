@@ -35,8 +35,7 @@ class _BatchReference:
 
 
 class BatchObject(BaseModel):
-    """
-    A Weaviate object to be added to the database.
+    """A Weaviate object to be added to the database.
 
     Performs validation on the class name and UUID, and automatically generates a UUID if one is not provided.
     Also converts the vector to a list of floats if it is provided as a numpy array.
@@ -106,8 +105,7 @@ class Shard(BaseModel):
 
 
 class BatchReference(BaseModel):
-    """
-    A reference between two objects in Weaviate.
+    """A reference between two objects in Weaviate.
 
     Performs validation on the class names and UUIDs.
 

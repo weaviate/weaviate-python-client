@@ -88,9 +88,7 @@ class _ExpectedStatusCodes:
 
 
 class ConnectionV4:
-    """
-    Connection class used to communicate to a weaviate instance.
-    """
+    """Connection class used to communicate to a weaviate instance."""
 
     def __init__(
         self,
@@ -349,7 +347,8 @@ class ConnectionV4:
 
         While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
         X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
-        expire. Therefore, refresh manually shortly before expiration time is up."""
+        expire. Therefore, refresh manually shortly before expiration time is up.
+        """
         assert isinstance(self._client, AsyncOAuth2Client)
         if "refresh_token" not in self._client.token and _auth is None:
             return
@@ -442,7 +441,8 @@ class ConnectionV4:
     def __get_timeout(
         self, method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"], is_gql_query: bool
     ) -> Timeout:
-        """
+        """Returns the timeout for the given method.
+
         In this way, the client waits the `httpx` default of 5s when connecting to a socket (connect), writing chunks (write), and
         acquiring a connection from the pool (pool), but a custom amount as specified for reading the response (read).
 
@@ -606,9 +606,7 @@ class ConnectionV4:
 
     @property
     def server_version(self) -> str:
-        """
-        Version of the weaviate instance.
-        """
+        """Version of the weaviate instance."""
         return str(self._weaviate_version)
 
     def get_proxies(self) -> Dict[str, str]:
@@ -619,19 +617,14 @@ class ConnectionV4:
         return self.__additional_headers
 
     async def get_meta(self) -> Dict[str, str]:
-        """
-        Returns the meta endpoint.
-        """
+        """Returns the meta endpoint."""
         response = await self.get(path="/meta")
         res = _decode_json_response_dict(response, "Meta endpoint")
         assert res is not None
         return res
 
     async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
-        """
-        Get the openid-configuration.
-        """
-
+        """Get the openid-configuration."""
         response = await self.get(path="/.well-known/openid-configuration")
         if response.status_code == 200:
             return _decode_json_response_dict(response, "OpenID Configuration")
@@ -643,8 +636,7 @@ class ConnectionV4:
         return self._weaviate_version.is_at_least(1, 25, 0)
 
     async def wait_for_weaviate(self, startup_period: int) -> None:
-        """
-        Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
+        """Waits until weaviate is ready or the time limit given in 'startup_period' has passed.
 
         Args:
             startup_period: Describes how long the client will wait for weaviate to start in seconds.

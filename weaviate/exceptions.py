@@ -1,6 +1,4 @@
-"""
-Weaviate Exceptions.
-"""
+"""Weaviate Exceptions."""
 
 from json.decoder import JSONDecodeError
 from typing import Tuple, Union
@@ -15,34 +13,24 @@ ERROR_CODE_EXPLANATION = {
 
 
 class WeaviateBaseError(Exception):
-    """
-    Weaviate base exception that all Weaviate exceptions should inherit from.
+    """Weaviate base exception that all Weaviate exceptions should inherit from.
 
     This error can be used to catch any Weaviate exceptions.
     """
 
     def __init__(self, message: str = ""):
-        """
-        Weaviate base exception initializer.
+        """Weaviate base exception initializer.
 
         Args:
             message (str): An error message specific to the context in which the error occurred.
         """
-
         self.message = message
         super().__init__(message)
 
 
 class UnexpectedStatusCodeError(WeaviateBaseError):
-    """
-    Is raised in case the status code returned from Weaviate is
-    not handled in the client implementation and suggests an error.
-    """
-
     def __init__(self, message: str, response: Union[httpx.Response, AioRpcError]):
-        """
-        Is raised in case the status code returned from Weaviate is
-        not handled in the client implementation and suggests an error.
+        """Is raised in case the status code returned from Weaviate is not handled in the client implementation and suggests an error.
 
         Custom code can act on the attributes:
         - status_code
@@ -85,7 +73,7 @@ UnexpectedStatusCodeException = UnexpectedStatusCodeError
 
 class ResponseCannotBeDecodedError(WeaviateBaseError):
     def __init__(self, location: str, response: httpx.Response):
-        """Raised when a weaviate response cannot be decoded to json
+        """Raised when a weaviate response cannot be decoded to json.
 
         Args:
             location: From which code path the exception was raised.
@@ -104,51 +92,39 @@ ResponseCannotBeDecodedException = ResponseCannotBeDecodedError
 
 
 class ObjectAlreadyExistsError(WeaviateBaseError):
-    """
-    Object Already Exists Exception.
-    """
+    """Object Already Exists Exception."""
 
 
 ObjectAlreadyExistsException = ObjectAlreadyExistsError
 
 
 class AuthenticationFailedError(WeaviateBaseError):
-    """
-    Authentication Failed Exception.
-    """
+    """Authentication Failed Exception."""
 
 
 AuthenticationFailedException = AuthenticationFailedError
 
 
 class SchemaValidationError(WeaviateBaseError):
-    """
-    Schema Validation Exception.
-    """
+    """Schema Validation Exception."""
 
 
 SchemaValidationException = SchemaValidationError
 
 
 class BackupFailedError(WeaviateBaseError):
-    """
-    Backup Failed Exception.
-    """
+    """Backup Failed Exception."""
 
 
 BackupFailedException = BackupFailedError
 
 
 class BackupCanceledError(WeaviateBaseError):
-    """
-    Backup canceled Exception.
-    """
+    """Backup canceled Exception."""
 
 
 class EmptyResponseError(WeaviateBaseError):
-    """
-    Occurs when an HTTP request unexpectedly returns an empty response
-    """
+    """Occurs when an HTTP request unexpectedly returns an empty response."""
 
 
 EmptyResponseException = EmptyResponseError
@@ -179,7 +155,7 @@ AdditionalPropertiesException = AdditionalPropertiesError
 
 
 class InvalidDataModelError(WeaviateBaseError):
-    """Is raised when the user provides a generic that is not supported"""
+    """Is raised when the user provides a generic that is not supported."""
 
     def __init__(self, type_: str) -> None:
         msg = f"""{type_} can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"""

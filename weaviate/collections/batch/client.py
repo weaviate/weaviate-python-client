@@ -37,8 +37,7 @@ class _BatchClient(_BatchBase):
         vector: Optional[VECTORS] = None,
         tenant: Optional[Union[str, Tenant]] = None,
     ) -> UUID:
-        """
-        Add one object to this batch.
+        """Add one object to this batch.
 
         NOTE: If the UUID of one of the objects already exists then the existing object will be
         replaced by the new object.

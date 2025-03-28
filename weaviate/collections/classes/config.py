@@ -655,6 +655,7 @@ class _Generative:
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnyscale(model=model, temperature=temperature, baseURL=base_url)
 
@@ -705,8 +706,7 @@ class _Generative:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> _GenerativeProvider:
-        """
-        Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
+        """Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
 
         Args:
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
@@ -731,6 +731,7 @@ class _Generative:
             model: The model to use. Defaults to `None`, which uses the server-defined default
             temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeMistral(
             model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
@@ -744,8 +745,7 @@ class _Generative:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
     ) -> _GenerativeProvider:
-        """
-        Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
+        """Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
 
         Args:
             base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
@@ -763,8 +763,7 @@ class _Generative:
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
     ) -> _GenerativeProvider:
-        """
-        Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
+        """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
 
         Args:
             api_endpoint: The API endpoint to use. Defaults to `None`, which uses the server-defined default
@@ -990,8 +989,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> _GenerativeProvider:
-        """
-        Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
+        """Create a `_GenerativeAnthropicConfig` object for use when performing AI generation using the `generative-anthropic` module.
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default
@@ -1095,7 +1093,7 @@ class _Reranker:
 
         Args:
             model: The model to use. Defaults to `None`, which uses the server-defined default
-            baseurl: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default.
+            base_url: The base URL to send the reranker requests to. Defaults to `None`, which uses the server-defined default.
         """
         return _RerankerNvidiaConfig(model=model, baseURL=base_url)
 

@@ -1,7 +1,4 @@
-"""
-GraphQL filters for `Get` and `Aggregate` commands.
-GraphQL abstract class for GraphQL commands to inherit from.
-"""
+"""GraphQL filters for `Get` and `Aggregate` commands. GraphQL abstract class for GraphQL commands to inherit from."""
 
 import warnings
 from abc import ABC, abstractmethod
@@ -71,15 +68,11 @@ class MediaType(Enum):
 
 
 class GraphQL(ABC):
-    """
-    A base abstract class for GraphQL commands, such as Get, Aggregate.
-    """
+    """A base abstract class for GraphQL commands, such as Get, Aggregate."""
 
     @abstractmethod
     def build(self) -> str:
-        """
-        Build method to be overloaded by the child classes. It should return the
-        GraphQL query as a str.
+        """Build method to be overloaded by the child classes. It should return the GraphQL query as a str.
 
         Returns:
             The query.
@@ -87,18 +80,14 @@ class GraphQL(ABC):
 
 
 class Filter(ABC):
-    """
-    A base abstract class for all filters.
-    """
+    """A base abstract class for all filters."""
 
     def __init__(self, content: dict):
-        """
-        Initialize a Filter class instance.
+        """Initialize a Filter class instance.
 
         Args:
             content: The content of the `Filter` clause.
         """
-
         if not isinstance(content, dict):
             raise TypeError(
                 f"{self.__class__.__name__} filter is expected to "
@@ -108,9 +97,7 @@ class Filter(ABC):
 
     @abstractmethod
     def __str__(self) -> str:
-        """
-        Should be implemented in each inheriting class.
-        """
+        """Should be implemented in each inheriting class."""
 
     @property
     def content(self) -> dict:
@@ -118,14 +105,13 @@ class Filter(ABC):
 
 
 class NearText(Filter):
-    """
-    NearText class used to filter weaviate objects. Can be used with text models only (text2vec).
-    E.g.: text2vec-contextionary, text2vec-transformers.
+    """NearText class used to filter weaviate objects.
+
+    Can be used with text models only (text2vec), e.g.: text2vec-contextionary, text2vec-transformers.
     """
 
     def __init__(self, content: dict):
-        """
-        Initialize a NearText class instance.
+        """Initialize a NearText class instance.
 
         Args:
             content: The content of the `nearText` clause.
@@ -134,7 +120,6 @@ class NearText(Filter):
             TypeError: If 'content' is not of type dict.
             ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
-
         super().__init__(content)
 
         _check_concept(self._content)
@@ -188,13 +173,10 @@ class NearText(Filter):
 
 
 class NearVector(Filter):
-    """
-    NearVector class used to filter weaviate objects.
-    """
+    """NearVector class used to filter weaviate objects."""
 
     def __init__(self, content: dict):
-        """
-        Initialize a NearVector class instance.
+        """Initialize a NearVector class instance.
 
         Args:
             content: The content of the `nearVector` clause.
@@ -206,7 +188,6 @@ class NearVector(Filter):
             AttributeError: If invalid 'content' keys are provided.
             ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
-
         super().__init__(content)
 
         if "vector" not in self._content:
@@ -237,13 +218,10 @@ class NearVector(Filter):
 
 
 class NearObject(Filter):
-    """
-    NearObject class used to filter weaviate objects.
-    """
+    """NearObject class used to filter weaviate objects."""
 
     def __init__(self, content: dict, is_server_version_14: bool):
-        """
-        Initialize a NearVector class instance.
+        """Initialize a NearVector class instance.
 
         Args:
             content: The content of the `nearVector` clause.
@@ -254,7 +232,6 @@ class NearObject(Filter):
             ValueError: If 'content' has key "certainty"/"distance" but the value is not float.
             TypeError: If 'id'/'beacon' key does not have a value of type str!
         """
-
         super().__init__(content)
 
         if ("id" in self._content) and ("beacon" in self._content):
@@ -295,13 +272,10 @@ class NearObject(Filter):
 
 
 class Ask(Filter):
-    """
-    Ask class used to filter weaviate objects by asking a question.
-    """
+    """Ask class used to filter weaviate objects by asking a question."""
 
     def __init__(self, content: dict):
-        """
-        Initialize a Ask class instance.
+        """Initialize a Ask class instance.
 
         Args:
             content: The content of the `ask` clause.
@@ -311,7 +285,6 @@ class Ask(Filter):
             ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
             TypeError: If 'content'  has key "properties" but the type is not list or str.
         """
-
         super().__init__(content)
 
         if "question" not in self._content:
@@ -360,8 +333,7 @@ class NearMedia(Filter):
         content: dict,
         media_type: MediaType,
     ):
-        """
-        Initialize a NearMedia class instance.
+        """Initialize a NearMedia class instance.
 
         Args:
             content: The content of the `near<Media>` clause.
@@ -371,7 +343,6 @@ class NearMedia(Filter):
             TypeError: If 'content["<media>"]' is not of type str.
             ValueError: If 'content'  has key "certainty"/"distance" but the value is not float.
         """
-
         super().__init__(content)
 
         self._media_type = media_type
@@ -409,16 +380,13 @@ class NearMedia(Filter):
 
 
 class NearImage(NearMedia):
-    """
-    NearImage class used to filter weaviate objects.
-    """
+    """NearImage class used to filter weaviate objects."""
 
     def __init__(
         self,
         content: dict,
     ):
-        """
-        Initialize a NearImage class instance.
+        """Initialize a NearImage class instance.
 
         Args:
             content: The content of the `nearImage` clause.
@@ -432,16 +400,13 @@ class NearImage(NearMedia):
 
 
 class NearVideo(NearMedia):
-    """
-    NearVideo class used to filter weaviate objects.
-    """
+    """NearVideo class used to filter weaviate objects."""
 
     def __init__(
         self,
         content: dict,
     ):
-        """
-        Initialize a NearVideo class instance.
+        """Initialize a NearVideo class instance.
 
         Args:
             content: The content of the `nearVideo` clause.
@@ -455,16 +420,13 @@ class NearVideo(NearMedia):
 
 
 class NearAudio(NearMedia):
-    """
-    NearAudio class used to filter weaviate objects.
-    """
+    """NearAudio class used to filter weaviate objects."""
 
     def __init__(
         self,
         content: dict,
     ):
-        """
-        Initialize a NearAudio class instance.
+        """Initialize a NearAudio class instance.
 
         Args:
             content: The content of the `nearAudio` clause.
@@ -478,16 +440,13 @@ class NearAudio(NearMedia):
 
 
 class NearDepth(NearMedia):
-    """
-    NearDepth class used to filter weaviate objects.
-    """
+    """NearDepth class used to filter weaviate objects."""
 
     def __init__(
         self,
         content: dict,
     ):
-        """
-        Initialize a NearDepth class instance.
+        """Initialize a NearDepth class instance.
 
         Args:
             content: The content of the `nearDepth` clause.
@@ -501,16 +460,13 @@ class NearDepth(NearMedia):
 
 
 class NearThermal(NearMedia):
-    """
-    NearThermal class used to filter weaviate objects.
-    """
+    """NearThermal class used to filter weaviate objects."""
 
     def __init__(
         self,
         content: dict,
     ):
-        """
-        Initialize a NearThermal class instance.
+        """Initialize a NearThermal class instance.
 
         Args:
             content: The content of the `nearThermal` clause.
@@ -524,16 +480,13 @@ class NearThermal(NearMedia):
 
 
 class NearIMU(NearMedia):
-    """
-    NearIMU class used to filter weaviate objects.
-    """
+    """NearIMU class used to filter weaviate objects."""
 
     def __init__(
         self,
         content: dict,
     ):
-        """
-        Initialize a NearIMU class instance.
+        """Initialize a NearIMU class instance.
 
         Args:
             content: The content of the `nearIMU` clause.
@@ -547,13 +500,10 @@ class NearIMU(NearMedia):
 
 
 class Sort(Filter):
-    """
-    Sort filter class used to sort weaviate objects.
-    """
+    """Sort filter class used to sort weaviate objects."""
 
     def __init__(self, content: Union[dict, list]):
-        """
-        Initialize a Where filter class instance.
+        """Initialize a Where filter class instance.
 
         Args:
             content: The content of the `sort` filter clause or a single clause.
@@ -562,7 +512,6 @@ class Sort(Filter):
             TypeError: If 'content' is not of type dict.
             ValueError: If a mandatory key is missing in the filter content.
         """
-
         # content is a empty list because it is going to the the list with sort clauses.
 
         super().__init__(content={"sort": []})
@@ -570,8 +519,7 @@ class Sort(Filter):
         self.add(content=content)
 
     def add(self, content: Union[dict, list]) -> None:
-        """
-        Add more sort clauses to the already existing sort clauses.
+        """Add more sort clauses to the already existing sort clauses.
 
         Args:
             content: The content of the `sort` filter clause or a single clause to be added to the already
@@ -581,7 +529,6 @@ class Sort(Filter):
             TypeError: If 'content' is not of type dict.
             ValueError: If a mandatory key is missing in the filter content.
         """
-
         if isinstance(content, dict):
             content = [content]
 
@@ -625,13 +572,10 @@ class Sort(Filter):
 
 
 class Where(Filter):
-    """
-    Where filter class used to filter weaviate objects.
-    """
+    """Where filter class used to filter weaviate objects."""
 
     def __init__(self, content: dict):
-        """
-        Initialize a Where filter class instance.
+        """Initialize a Where filter class instance.
 
         Args:
             content: The content of the `where` filter clause.
@@ -640,7 +584,6 @@ class Where(Filter):
             TypeError: If 'content' is not of type dict.
             ValueError: If a mandatory key is missing in the filter content.
         """
-
         super().__init__(content)
 
         if "path" in self._content:
@@ -655,8 +598,7 @@ class Where(Filter):
             )
 
     def _parse_filter(self, content: dict) -> None:
-        """
-        Set filter fields for the Where filter.
+        """Set filter fields for the Where filter.
 
         Args:
             content: The content of the `where` filter clause.
@@ -664,7 +606,6 @@ class Where(Filter):
         Raises:
             ValueError: If 'content' is missing required fields.
         """
-
         if "operator" not in content:
             raise ValueError("Filter is missing required field `operator`. " f"Given: {content}")
         if content["operator"] not in WHERE_OPERATORS:
@@ -684,8 +625,7 @@ class Where(Filter):
             )
 
     def _parse_operator(self, content: dict) -> None:
-        """
-        Set operator fields for the Where filter.
+        """Set operator fields for the Where filter.
 
         Args:
             content: The content of the `where` filter clause.
@@ -693,7 +633,6 @@ class Where(Filter):
         Raises:
             ValueError: If 'content' is missing required fields.
         """
-
         if "operator" not in content:
             raise ValueError("Filter is missing required field `operator`." f" Given: {content}")
         if content["operator"] not in WHERE_OPERATORS:
@@ -772,8 +711,9 @@ class Where(Filter):
 
 
 def _convert_value_type(_type: str) -> str:
-    """Convert the value type to match `json` formatting required by the Weaviate-defined
-    GraphQL endpoints. NOTE: This is crucially different to the Batch REST endpoints wherein
+    """Convert the value type to match `json` formatting required by the Weaviate-defined GraphQL endpoints.
+
+    NOTE: This is crucially different to the Batch REST endpoints wherein
     the where filter is also used.
 
     Args:
@@ -849,8 +789,7 @@ def _check_is_not_list(value: Any, _type: str) -> None:
 
 
 def _geo_range_to_str(value: dict) -> str:
-    """
-    Convert the valueGeoRange object to match `json` formatting.
+    """Convert the valueGeoRange object to match `json` formatting.
 
     Args:
         value: The value to be converted.
@@ -865,8 +804,7 @@ def _geo_range_to_str(value: dict) -> str:
 
 
 def _bool_to_str(value: bool) -> str:
-    """
-    Convert a bool value to string (lowercased) to match `json` formatting.
+    """Convert a bool value to string (lowercased) to match `json` formatting.
 
     Args:
         value: The value to be converted
@@ -874,15 +812,13 @@ def _bool_to_str(value: bool) -> str:
     Returns:
         The string interpretation of the value in `json` format.
     """
-
     if value is True:
         return "true"
     return "false"
 
 
 def _check_direction_clause(direction: dict) -> None:
-    """
-    Validate the direction sub clause.
+    """Validate the direction sub clause.
 
     Args:
         direction: A sub clause of the Explore filter.
@@ -892,7 +828,6 @@ def _check_direction_clause(direction: dict) -> None:
         TypeError: If the value of the "force" key is not float.
         ValueError: If no "force" key in the 'direction'.
     """
-
     _check_type(var_name="moveXXX", value=direction, dtype=dict)
 
     if ("concepts" not in direction) and ("objects" not in direction):
@@ -908,8 +843,7 @@ def _check_direction_clause(direction: dict) -> None:
 
 
 def _check_concept(content: dict) -> None:
-    """
-    Validate the concept sub clause.
+    """Validate the concept sub clause.
 
     Args:
         content: An Explore (sub) clause to check for 'concepts'.
@@ -918,7 +852,6 @@ def _check_concept(content: dict) -> None:
         ValueError: If no "concepts" key in the 'content' dict.
         TypeError: If the value of the  "concepts" is of wrong type.
     """
-
     if "concepts" not in content:
         raise ValueError("No concepts in content")
 
@@ -932,8 +865,7 @@ def _check_concept(content: dict) -> None:
 
 
 def _check_objects(content: dict) -> None:
-    """
-    Validate the `objects` sub clause of the `move` clause.
+    """Validate the `objects` sub clause of the `move` clause.
 
     Args:
         content: An Explore (sub) clause to check for 'objects'.
@@ -942,7 +874,6 @@ def _check_objects(content: dict) -> None:
         ValueError: If no "concepts" key in the 'content' dict.
         TypeError: If the value of the  "concepts" is of wrong type.
     """
-
     _check_type(var_name="objects", value=content["objects"], dtype=(list, dict))
     if isinstance(content["objects"], dict):
         content["objects"] = [content["objects"]]
@@ -958,8 +889,7 @@ def _check_objects(content: dict) -> None:
 
 
 def _check_type(var_name: str, value: Any, dtype: Union[Tuple[type, type], type]) -> None:
-    """
-    Check key-value type.
+    """Check key-value type.
 
     Args:
         var_name: The variable name for which to check the type (used for error message)!
@@ -969,7 +899,6 @@ def _check_type(var_name: str, value: Any, dtype: Union[Tuple[type, type], type]
     Raises:
         TypeError: If the `value` type does not match the expected `dtype`.
     """
-
     if not isinstance(value, dtype):
         raise TypeError(
             f"'{var_name}' key-value is expected to be of type {dtype} but is {type(value)}!"
@@ -977,8 +906,7 @@ def _check_type(var_name: str, value: Any, dtype: Union[Tuple[type, type], type]
 
 
 def _find_value_type(content: dict) -> str:
-    """
-    Find the correct type of the content.
+    """Find the correct type of the content.
 
     Args:
         content: The content for which to find the appropriate data type.
@@ -989,7 +917,6 @@ def _find_value_type(content: dict) -> str:
     Raises:
         ValueError: If missing required fields.
     """
-
     value_type = ALL_VALUE_TYPES & set(content.keys())
 
     if len(value_type) == 0:
@@ -1003,16 +930,14 @@ def _find_value_type(content: dict) -> str:
 
 
 def _move_clause_objects_to_str(objects: list) -> str:
-    """
-    Creates the Weaviate `moveTo`/`moveAwayFrom` clause given the list of objects.
+    """Creates the Weaviate `moveTo`/`moveAwayFrom` clause given the list of objects.
 
     Args:
-        objects:  The list of objects to be used for the `moveTo`/`moveAwayFrom` clause.
+        objects: The list of objects to be used for the `moveTo`/`moveAwayFrom` clause.
 
     Returns:
         The `moveTo`/`moveAwayFrom` clause as a string.
     """
-
     to_return = " objects: ["
     for obj in objects:
         if "id" in obj:

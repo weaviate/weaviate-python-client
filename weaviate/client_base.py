@@ -1,6 +1,4 @@
-"""
-Client class definition.
-"""
+"""Client class definition."""
 
 import asyncio
 from typing import Optional, Tuple, Union, Dict, Any
@@ -125,7 +123,8 @@ class _WeaviateClientBase(_WeaviateClientInit):
         """In order to clean up any resources used by the client, call this method when you are done with it.
 
         If you do not do this, memory leaks may occur due to stale connections.
-        This method also closes the embedded database if one was started."""
+        This method also closes the embedded database if one was started.
+        """
         await self._connection.close()
 
     async def connect(self) -> None:
@@ -217,8 +216,7 @@ class _WeaviateClientBase(_WeaviateClientInit):
         return _RawGQLReturn(aggregate={}, explore={}, get={}, errors=errors)
 
     async def get_meta(self) -> dict:
-        """
-        Get the meta endpoint description of weaviate.
+        """Get the meta endpoint description of weaviate.
 
         Returns:
             The `dict` describing the weaviate configuration.
@@ -226,12 +224,10 @@ class _WeaviateClientBase(_WeaviateClientInit):
         Raises:
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
         """
-
         return await self._connection.get_meta()
 
     async def get_open_id_configuration(self) -> Optional[Dict[str, Any]]:
-        """
-        Get the openid-configuration.
+        """Get the openid-configuration.
 
         Returns:
             The configuration or `None` if not configured.
@@ -239,5 +235,4 @@ class _WeaviateClientBase(_WeaviateClientInit):
         Raises:
             weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
         """
-
         return await self._connection.get_open_id_configuration()

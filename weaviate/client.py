@@ -1,6 +1,4 @@
-"""
-Client class definition.
-"""
+"""Client class definition."""
 
 import asyncio
 from typing import Optional, Tuple, Union, Any
@@ -35,8 +33,7 @@ TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 @syncify.convert
 class WeaviateClient(_WeaviateClientBase):
-    """
-    The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+    """The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
     WARNING: This client is only compatible with Weaviate v1.23.6 and higher!
 
@@ -105,8 +102,7 @@ class WeaviateClient(_WeaviateClientBase):
 
 
 class WeaviateAsyncClient(_WeaviateClientBase):
-    """
-    The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
+    """The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
     WARNING: This client is only compatible with Weaviate v1.23.6 and higher!
 

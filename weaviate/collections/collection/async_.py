@@ -120,8 +120,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
             return False
 
     async def shards(self) -> List[Shard]:
-        """
-        Get the statuses of all the shards of this collection.
+        """Get the statuses of all the shards of this collection.
 
         Returns:
             The list of shards belonging to this collection.

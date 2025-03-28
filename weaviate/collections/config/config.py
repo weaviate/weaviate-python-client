@@ -109,23 +109,6 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
 
         Use the `weaviate.classes.Reconfigure` class to generate the necessary configuration objects for this method.
 
-<<<<<<< HEAD
-        Arguments:
-            `description`
-                A description of the collection.
-            `property_descriptions`
-                A dictionary of property names and their descriptions.
-            `inverted_index_config`
-                Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
-            `replication_config`
-                Configuration for the replication. Use `Reconfigure.replication` to generate one.
-            `reranker_config`
-                Configuration for the reranker. Use `Reconfigure.replication` to generate one.
-            `vector_index_config` DEPRECATED USE `vectorizer_config` INSTEAD
-                Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
-            `vectorizer_config`
-                Configurations for the vector index (or indices) of your collection.
-=======
         Args:
             description: A description of the collection.
             inverted_index_config: Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
@@ -133,7 +116,6 @@ class _ConfigCollectionAsync(_ConfigCollectionBase):
             reranker_config: Configuration for the reranker. Use `Reconfigure.replication` to generate one.
             vector_index_config`: DEPRECATED USE `vectorizer_config` INSTEAD. Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
             vectorizer_config: Configurations for the vector index (or indices) of your collection.
->>>>>>> ae2fb3ac (update all docstrings to Google style)
                 Use `Reconfigure.vector_index` if there is only one vectorizer and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
             multi_tenancy_config: Configuration for multi-tenancy settings. Use `Reconfigure.multi_tenancy` to generate one.
                 Only `auto_tenant_creation` is supported.

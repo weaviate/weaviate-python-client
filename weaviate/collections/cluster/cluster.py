@@ -55,8 +55,7 @@ class _ClusterAsync(_ClusterBase):
         collection: Optional[str] = None,
         output: Optional[Verbosity] = None,
     ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]:
-        """
-        Get the status of all nodes in the cluster.
+        """Get the status of all nodes in the cluster.
 
         Args:
             collection: Get the status for the given collection. If not given all collections will be included.

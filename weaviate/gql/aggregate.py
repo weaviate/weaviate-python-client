@@ -1,6 +1,4 @@
-"""
-GraphQL `Aggregate` command.
-"""
+"""GraphQL `Aggregate` command."""
 
 import json
 from dataclasses import dataclass
@@ -61,13 +59,10 @@ class Hybrid:
 
 
 class AggregateBuilder(GraphQL):
-    """
-    AggregateBuilder class used to aggregate Weaviate objects.
-    """
+    """AggregateBuilder class used to aggregate Weaviate objects."""
 
     def __init__(self, class_name: str):
-        """
-        Initialize a AggregateBuilder class instance.
+        """Initialize a AggregateBuilder class instance.
 
         Args:
             class_name: Class name of the objects to be aggregated.
@@ -94,20 +89,16 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_meta_count(self) -> "AggregateBuilder":
-        """
-        Set Meta Count to True.
+        """Set Meta Count to True.
 
         Returns:
             Updated AggregateBuilder.
         """
-
         self._with_meta_count = True
         return self
 
     def with_object_limit(self, limit: int) -> "AggregateBuilder":
-        """
-        Set objectLimit to limit vector search results used within the aggregation query
-        only when with near<MEDIA> filter.
+        """Set objectLimit to limit vector search results used within the aggregation query only when with near<MEDIA> filter.
 
         Args:
             limit: The object limit.
@@ -115,13 +106,11 @@ class AggregateBuilder(GraphQL):
         Returns:
             Updated AggregateBuilder.
         """
-
         self._object_limit = limit
         return self
 
     def with_limit(self, limit: int) -> "AggregateBuilder":
-        """
-        Set limit to limit the number of returned results from the aggregation query.
+        """Set limit to limit the number of returned results from the aggregation query.
 
         Args:
             limit: The limit.
@@ -129,13 +118,11 @@ class AggregateBuilder(GraphQL):
         Returns:
             Updated AggregateBuilder.
         """
-
         self._limit = limit
         return self
 
     def with_fields(self, field: str) -> "AggregateBuilder":
-        """
-        Include a field in the aggregate query.
+        """Include a field in the aggregate query.
 
         Args:
             field: Field to include in the aggregate query. e.g. '<property_name> { count }'
@@ -143,13 +130,11 @@ class AggregateBuilder(GraphQL):
         Returns:
             Updated AggregateBuilder.
         """
-
         self._fields.append(field)
         return self
 
     def with_where(self, content: dict) -> "AggregateBuilder":
-        """
-        Set 'where' filter.
+        """Set 'where' filter.
 
         Args:
             content: The where filter to include in the aggregate query. See examples below.
@@ -157,7 +142,6 @@ class AggregateBuilder(GraphQL):
         Returns:
             Updated AggregateBuilder.
         """
-
         self._where = Where(content)
         self._uses_filter = True
         return self
@@ -178,9 +162,7 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_group_by_filter(self, properties: List[str]) -> "AggregateBuilder":
-        """
-        Add a group by filter to the query. Might requires the user to set
-        an additional group by clause using `with_fields(..)`.
+        """Add a group by filter to the query. Might requires the user to set an additional group by clause using `with_fields(..)`.
 
         Args:
             properties: The list of properties that are included in the group by filter.
@@ -190,14 +172,14 @@ class AggregateBuilder(GraphQL):
         Returns:
             Updated AggregateBuilder.
         """
-
         self._group_by_properties = properties
         self._uses_filter = True
         return self
 
     def with_near_text(self, content: dict) -> "AggregateBuilder":
-        """
-        Set `nearText` filter. This filter can be used with text modules (text2vec).
+        """Set `nearText` filter.
+
+        This filter can be used with text modules (text2vec).
         E.g.: text2vec-contextionary, text2vec-transformers.
         NOTE: The 'autocorrect' field is enabled only with the `text-spellcheck` Weaviate module.
 
@@ -210,7 +192,6 @@ class AggregateBuilder(GraphQL):
         Raises:
             AttributeError: If another 'near' filter was already set.
         """
-
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")
         if self._hybrid is not None:
@@ -220,8 +201,7 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_near_vector(self, content: dict) -> "AggregateBuilder":
-        """
-        Set `nearVector` filter.
+        """Set `nearVector` filter.
 
         Args:
             content: The content of the `nearVector` filter to set. See examples below.
@@ -232,7 +212,6 @@ class AggregateBuilder(GraphQL):
         Raises:
             AttributeError: If another 'near' filter was already set.
         """
-
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")
         if self._hybrid is not None:
@@ -242,8 +221,7 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_near_object(self, content: dict) -> "AggregateBuilder":
-        """
-        Set `nearObject` filter.
+        """Set `nearObject` filter.
 
         Args:
             content: The content of the `nearObject` filter to set. See examples below.
@@ -254,7 +232,6 @@ class AggregateBuilder(GraphQL):
         Raises:
             AttributeError: If another 'near' filter was already set.
         """
-
         if self._near is not None:
             raise AttributeError("Cannot use multiple 'near' filters.")
         if self._hybrid is not None:
@@ -264,8 +241,7 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_near_image(self, content: dict, encode: bool = True) -> "AggregateBuilder":
-        """
-        Set `nearImage` filter.
+        """Set `nearImage` filter.
 
         Args:
             content: The content of the `nearImage` filter to set. See examples below.
@@ -296,8 +272,7 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_near_audio(self, content: dict, encode: bool = True) -> "AggregateBuilder":
-        """
-        Set `nearAudio` filter.
+        """Set `nearAudio` filter.
 
         Args:
             content: The content of the `nearAudio` filter to set. See examples below.
@@ -313,7 +288,6 @@ class AggregateBuilder(GraphQL):
         Raises:
             AttributeError: If another 'near' filter was already set.
         """
-
         self._media_type = MediaType.AUDIO
         if self._near is not None:
             raise AttributeError(
@@ -329,8 +303,7 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_near_video(self, content: dict, encode: bool = True) -> "AggregateBuilder":
-        """
-        Set `nearVideo` filter.
+        """Set `nearVideo` filter.
 
         Args:
             content: The content of the `nearVideo` filter to set. See examples below.
@@ -346,7 +319,6 @@ class AggregateBuilder(GraphQL):
         Raises:
             AttributeError: If another 'near' filter was already set.
         """
-
         self._media_type = MediaType.VIDEO
         if self._near is not None:
             raise AttributeError(
@@ -362,8 +334,7 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_near_depth(self, content: dict, encode: bool = True) -> "AggregateBuilder":
-        """
-        Set `nearDepth` filter.
+        """Set `nearDepth` filter.
 
         Args:
             content: The content of the `nearDepth` filter to set. See examples below.
@@ -379,7 +350,6 @@ class AggregateBuilder(GraphQL):
         Raises:
             AttributeError: If another 'near' filter was already set.
         """
-
         self._media_type = MediaType.DEPTH
         if self._near is not None:
             raise AttributeError(
@@ -395,8 +365,7 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_near_thermal(self, content: dict, encode: bool = True) -> "AggregateBuilder":
-        """
-        Set `nearThermal` filter.
+        """Set `nearThermal` filter.
 
         Args:
             content: The content of the `nearThermal` filter to set. See examples below.
@@ -412,7 +381,6 @@ class AggregateBuilder(GraphQL):
         Raises:
             AttributeError: If another 'near' filter was already set.
         """
-
         self._media_type = MediaType.THERMAL
         if self._near is not None:
             raise AttributeError(
@@ -428,8 +396,7 @@ class AggregateBuilder(GraphQL):
         return self
 
     def with_near_imu(self, content: dict, encode: bool = True) -> "AggregateBuilder":
-        """
-        Set `nearIMU` filter.
+        """Set `nearIMU` filter.
 
         Args:
             content: The content of the `nearIMU` filter to set. See examples below.
@@ -445,7 +412,6 @@ class AggregateBuilder(GraphQL):
         Raises:
             AttributeError: If another 'near' filter was already set.
         """
-
         self._media_type = MediaType.IMU
         if self._near is not None:
             raise AttributeError(
@@ -461,13 +427,11 @@ class AggregateBuilder(GraphQL):
         return self
 
     def build(self) -> str:
-        """
-        Build the query and return the string.
+        """Build the query and return the string.
 
         Returns:
             The GraphQL query as a string.
         """
-
         # Path
         query = f"{{Aggregate{{{self._class_name}"
 

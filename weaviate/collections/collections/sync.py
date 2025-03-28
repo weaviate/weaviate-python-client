@@ -165,6 +165,7 @@ class _Collections:
                 If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
             `skip_argument_validation`
                 If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
+
         Raises:
             `weaviate.WeaviateInvalidInputError`
                 If the input parameters are invalid.

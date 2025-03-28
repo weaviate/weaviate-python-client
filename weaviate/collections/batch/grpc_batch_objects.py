@@ -88,6 +88,7 @@ class _BatchGRPC(_BaseGRPC):
                 The UUIDs of the inserted objects will be returned in the `uuids` attribute of the returned `_BatchReturn` object.
                 The UUIDs of the objects that failed to be inserted will be returned in the `errors` attribute of the returned `_BatchReturn` object.
             timeout: The timeout in seconds for the request.
+            max_retries: The maximum number of retries in case of a failure.
         """
         weaviate_objs = self.__grpc_objects(objects)
 

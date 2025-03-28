@@ -66,8 +66,7 @@ class _CollectionBackupAsync(_CollectionBackupBase):
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn:
-        """
-        Restore a backup of all/per class Weaviate objects.
+        """Restore a backup of all/per class Weaviate objects.
 
         Args:
             backup_id: The identifier name of the backup. NOTE: Case insensitive.

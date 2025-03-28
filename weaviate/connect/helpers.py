@@ -33,8 +33,7 @@ def connect_to_weaviate_cloud(
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
-    """
-    Connect to a Weaviate Cloud (WCD) instance.
+    """Connect to a Weaviate Cloud (WCD) instance.
 
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
@@ -117,8 +116,7 @@ def connect_to_local(
     skip_init_checks: bool = False,
     auth_credentials: Optional[AuthCredentials] = None,
 ) -> WeaviateClient:
-    """
-    Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
+    """Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
 
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
@@ -185,8 +183,7 @@ def connect_to_embedded(
     binary_path: Optional[str] = None,
     environment_variables: Optional[Dict[str, str]] = None,
 ) -> WeaviateClient:
-    """
-    Connect to an embedded Weaviate instance.
+    """Connect to an embedded Weaviate instance.
 
     This method handles automatically connecting to Weaviate but not automatically closing the connection. Once you are done with the client
     you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
@@ -262,8 +259,7 @@ def connect_to_custom(
     auth_credentials: Optional[AuthCredentials] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateClient:
-    """
-    Connect to a Weaviate instance with custom connection parameters.
+    """Connect to a Weaviate instance with custom connection parameters.
 
     If this is not sufficient for your customization needs then instantiate a `weaviate.WeaviateClient` instance directly.
 
@@ -350,8 +346,7 @@ def use_async_with_weaviate_cloud(
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateAsyncClient:
-    """
-    Create an async client object ready to connect to a Weaviate Cloud (WCD) instance.
+    """Create an async client object ready to connect to a Weaviate Cloud (WCD) instance.
 
     This method handles creating the `WeaviateAsyncClient` instance with relevant options to Weaviate Cloud connections but you must manually call `await client.connect()`.
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
@@ -413,8 +408,7 @@ def use_async_with_local(
     skip_init_checks: bool = False,
     auth_credentials: Optional[AuthCredentials] = None,
 ) -> WeaviateAsyncClient:
-    """
-    Create an async client object ready to connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
+    """Create an async client object ready to connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
 
     This method handles creating the `WeaviateAsyncClient` instance with relevant options to Weaviate Cloud connections but you must manually call `await client.connect()`.
     Once you are done with the client you should call `client.close()` to close the connection and free up resources. Alternatively, you can use the client as a context manager
@@ -482,8 +476,7 @@ def use_async_with_embedded(
     binary_path: Optional[str] = None,
     environment_variables: Optional[Dict[str, str]] = None,
 ) -> WeaviateAsyncClient:
-    """
-    Create an async client object ready to connect to an embedded Weaviate instance.
+    """Create an async client object ready to connect to an embedded Weaviate instance.
 
     If this is not sufficient for your customization needs then instantiate a `weaviate.WeaviateAsyncClient` instance directly.
 
@@ -563,8 +556,7 @@ def use_async_with_custom(
     auth_credentials: Optional[AuthCredentials] = None,
     skip_init_checks: bool = False,
 ) -> WeaviateAsyncClient:
-    """
-    Create an async client object ready to connect to a Weaviate instance with custom connection parameters.
+    """Create an async client object ready to connect to a Weaviate instance with custom connection parameters.
 
     If this is not sufficient for your customization needs then instantiate a `weaviate.WeaviateAsyncClient` instance directly.
 

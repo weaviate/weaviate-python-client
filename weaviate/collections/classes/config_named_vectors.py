@@ -347,9 +347,10 @@ class _NamedVectors:
 
         Args:
             name: The name of the named vector.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            model: The model to use. Defaults to `None`, which uses the server-defined default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
@@ -467,7 +468,9 @@ class _NamedVectors:
         Args:
             name: The name of the named vector.
             region: The AWS region to run the model from, REQUIRED.
+            endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default.
             model: The model to use.
+            service: The AWS service to use. Defaults to `bedrock`.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
@@ -674,6 +677,13 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
         Args:
             name: The name of the named vector.
+            audio_fields: The audio fields to use in vectorization.
+            depth_fields: The depth fields to use in vectorization.
+            image_fields: The image fields to use in vectorization.
+            imu_fields: The IMU fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
+            thermal_fields: The thermal fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
@@ -798,8 +808,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Args:
             name: The name of the named vector.
             reference_properties: The reference properties to use in vectorization, REQUIRED.
+            method: The method to use. Defaults to `mean`.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -834,6 +844,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             deployment_id: The deployment ID to use, REQUIRED.
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.

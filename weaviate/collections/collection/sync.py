@@ -155,8 +155,7 @@ class Collection(Generic[Properties, References], _CollectionBase[Properties, Re
             return False
 
     def shards(self) -> List[Shard]:
-        """
-        Get the statuses of all the shards of this collection.
+        """Get the statuses of all the shards of this collection.
 
         Returns:
             The list of shards belonging to this collection.

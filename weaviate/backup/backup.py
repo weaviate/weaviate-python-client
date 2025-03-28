@@ -1,6 +1,4 @@
-"""
-Backup class definition.
-"""
+"""Backup class definition."""
 
 from enum import Enum
 from time import sleep
@@ -249,8 +247,7 @@ class _BackupAsync:
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn:
-        """
-        Checks if a started backup job has completed.
+        """Checks if a started backup job has completed.
 
         Args:
             backup_id: The identifier name of the backup. NOTE: Case insensitive.
@@ -272,8 +269,7 @@ class _BackupAsync:
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
     ) -> BackupReturn:
-        """
-        Restore a backup of all/per collection Weaviate objects.
+        """Restore a backup of all/per collection Weaviate objects.
 
         Args:
             backup_id: The identifier name of the backup. NOTE: Case insensitive.
@@ -402,8 +398,7 @@ class _BackupAsync:
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn:
-        """
-        Checks if a started restore job has completed.
+        """Checks if a started restore job has completed.
 
         Args:
             backup_id: The identifier name of the backup. NOTE: Case insensitive.
@@ -458,8 +453,7 @@ class _BackupAsync:
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> bool:
-        """
-        Cancels a running backup.
+        """Cancels a running backup.
 
         Args:
             backup_id: The identifier name of the backup. NOTE: Case insensitive.
@@ -488,8 +482,7 @@ class _BackupAsync:
 
     # did not make it into 1.27, will come later
     # async def list_backups(self, backend: BackupStorage) -> List[BackupReturn]:
-    #     """
-    #     List all backups that are currently in progress.
+    #     """List all backups that are currently in progress.
     #
     #     Args:
     #         backend: The backend storage where to create the backup.
@@ -507,8 +500,7 @@ def _get_and_validate_create_restore_arguments(
     exclude_classes: Union[List[str], str, None],
     wait_for_completion: bool,
 ) -> Tuple[str, BackupStorage, List[str], List[str]]:
-    """
-    Validate and return the Backup.create/Backup.restore arguments.
+    """Validate and return the Backup.create/Backup.restore arguments.
 
     Args:
         backup_id: The identifier name of the backup.
@@ -526,7 +518,6 @@ def _get_and_validate_create_restore_arguments(
         TypeError: If one of the arguments have a wrong type.
         ValueError: If 'backend' does not have an accepted value.
     """
-
     if not isinstance(backup_id, str):
         raise TypeError(f"'backup_id' must be of type str. Given type: {type(backup_id)}.")
     if isinstance(backend, str):
@@ -577,8 +568,7 @@ def _get_and_validate_create_restore_arguments(
 def _get_and_validate_get_status(
     backup_id: str, backend: Union[str, BackupStorage]
 ) -> Tuple[str, BackupStorage]:
-    """
-    Checks if a started classification job has completed.
+    """Checks if a started classification job has completed.
 
     Args:
         backup_id: The identifier name of the backup. NOTE: Case insensitive.
@@ -589,9 +579,8 @@ def _get_and_validate_get_status(
         Validated and processed (backup_id, backend, include_classes, exclude_classes).
 
     Raises:
-    TypeError: One of the arguments is of a wrong type.
+        TypeError: One of the arguments is of a wrong type.
     """
-
     if not isinstance(backup_id, str):
         raise TypeError(f"'backup_id' must be of type str. Given type: {type(backup_id)}.")
     if isinstance(backend, str):

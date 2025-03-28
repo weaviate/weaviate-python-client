@@ -990,6 +990,7 @@ class _Vectorizer:
         for detailed usage.
 
         Args:
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
@@ -1012,7 +1013,7 @@ class _Vectorizer:
         Args:
             api_endpoint: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
                 Docker users may need to specify an alias, such as `http://host.docker.internal:11434` so that the container can access the host machine.
-            modelId: The model to use. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecOllamaConfig(

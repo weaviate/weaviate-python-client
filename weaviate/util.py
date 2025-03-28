@@ -1,6 +1,4 @@
-"""
-Helper functions!
-"""
+"""Helper functions."""
 
 import base64
 import datetime
@@ -34,9 +32,7 @@ BYTES_PER_CHUNK = 65535  # The number of bytes to read per chunk when encoding f
 
 
 def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str:
-    """
-    Encode a image in a Weaviate understandable format from a binary read file or by providing
-    the image path.
+    """Encode a image in a Weaviate understandable format from a binary read file or by providing the image path.
 
     Args:
         image_or_image_path: The binary read file or the path to the file.
@@ -48,7 +44,6 @@ def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str
         ValueError: If the argument is str and does not point to an existing file.
         TypeError: If the argument is of a wrong data type.
     """
-
     if isinstance(image_or_image_path, str):
         if not os.path.isfile(image_or_image_path):
             raise ValueError("No file found at location " + image_or_image_path)
@@ -66,9 +61,7 @@ def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str
 
 
 def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> str:
-    """
-    Encode a file in a Weaviate understandable format from an io.BufferedReader binary read file or by providing
-    the file path as either a string of a pathlib.Path object
+    """Encode a file in a Weaviate understandable format.
 
     If you pass an io.BufferedReader object, it is your responsibility to close it after encoding.
 
@@ -130,8 +123,7 @@ def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> 
 
 
 def image_decoder_b64(encoded_image: str) -> bytes:
-    """
-    Decode image from a Weaviate format image.
+    """Decode image from a Weaviate format image.
 
     Args:
         encoded_image: The encoded image.
@@ -139,13 +131,11 @@ def image_decoder_b64(encoded_image: str) -> bytes:
     Returns:
         Decoded image as a binary string.
     """
-
     return base64.b64decode(encoded_image.encode("utf-8"))
 
 
 def file_decoder_b64(encoded_file: str) -> bytes:
-    """
-    Decode file from a Weaviate format image.
+    """Decode file from a Weaviate format image.
 
     Args:
         encoded_file: The encoded file.
@@ -155,13 +145,13 @@ def file_decoder_b64(encoded_file: str) -> bytes:
         handling code to convert it into a specific file type of choice.
         E.g., PIL for images.
     """
-
     return base64.b64decode(encoded_file.encode("utf-8"))
 
 
 def is_weaviate_object_url(url: str) -> bool:
-    """
-    Checks if the input follows a normal Weaviate 'beacon' like this:
+    """Checks if the input follows a normal Weaviate 'beacon'.
+
+     Weaviate beacons look like this:
     'weaviate://localhost/ClassName/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
 
     Args:
@@ -170,7 +160,6 @@ def is_weaviate_object_url(url: str) -> bool:
     Returns:
         True if the 'url' is a Weaviate object URL. False otherwise.
     """
-
     if not isinstance(url, str):
         return False
     if not url.startswith("weaviate://"):
@@ -190,9 +179,10 @@ def is_weaviate_object_url(url: str) -> bool:
 
 
 def is_object_url(url: str) -> bool:
-    """
-    Validates an url like 'http://localhost:8080/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446'
-    or '/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446' references a object. It only validates
+    """Validates an Weaviater object URL.
+
+    Valid URLs should look like 'http://localhost:8080/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446'
+    or '/v1/objects/1c9cd584-88fe-5010-83d0-017cb3fcb446' reference to an object. It only validates
     the path format and UUID, not the host or the protocol.
 
     Args:
@@ -201,7 +191,6 @@ def is_object_url(url: str) -> bool:
     Returns:
         True if the 'url' is a valid path to an object. False otherwise.
     """
-
     v1_split = url.split("/v1/")
 
     if len(v1_split) != 2:
@@ -222,18 +211,15 @@ def is_object_url(url: str) -> bool:
 
 
 def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
-    """
-    Validate and extract the UUID.
+    """Validate and extract the UUID.
 
     Args:
         uuid: The UUID to be validated and extracted.
             Should be in the form of an UUID or in form of an URL (weaviate 'beacon' or 'href').
             E.g.
             'http://localhost:8080/v1/objects/fc7eb129-f138-457f-b727-1b29db191a67'
-            or
-            'weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
-            or
-            'fc7eb129-f138-457f-b727-1b29db191a67'
+            or 'weaviate://localhost/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
+            or 'fc7eb129-f138-457f-b727-1b29db191a67'
 
     Returns:
         The extracted UUID.
@@ -242,7 +228,6 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
         TypeError: If 'uuid' is not of type str.
         ValueError: If 'uuid' is not valid or cannot be extracted.
     """
-
     if isinstance(uuid, uuid_lib.UUID):
         return str(uuid)
 
@@ -262,8 +247,7 @@ def get_valid_uuid(uuid: Union[str, uuid_lib.UUID]) -> str:
 
 
 def get_vector(vector: Sequence) -> Sequence[float]:
-    """
-    Get weaviate compatible format of the embedding vector.
+    """Get weaviate compatible format of the embedding vector.
 
     Args:
         vector: The embedding of an object. Used only for class objects that do not have a vectorization module.
@@ -275,7 +259,6 @@ def get_vector(vector: Sequence) -> Sequence[float]:
     Raises:
         TypeError: If 'vector' is not of a supported type.
     """
-
     if isinstance(vector, list):
         # if vector is already a list
         return vector
@@ -310,8 +293,7 @@ def _get_vector_v4(vector: Any) -> Sequence[float]:
 
 
 def get_domain_from_weaviate_url(url: str) -> str:
-    """
-    Get the domain from a weaviate URL.
+    """Get the domain from a weaviate URL.
 
     Args:
         url: The weaviate URL of this form: 'weaviate://localhost/objects/28f3f61b-b524-45e0-9bbe-2c1550bf73d2'
@@ -319,13 +301,11 @@ def get_domain_from_weaviate_url(url: str) -> str:
     Returns:
         The domain.
     """
-
     return url[11:].split("/")[0]
 
 
 def _is_sub_schema(sub_schema: dict, schema: dict) -> bool:
-    """
-    Check for a subset in a schema.
+    """Check for a subset in a schema.
 
     Args:
         sub_schema: The smaller schema that should be contained in the 'schema'.
@@ -334,7 +314,6 @@ def _is_sub_schema(sub_schema: dict, schema: dict) -> bool:
     Returns:
         True is 'sub_schema' is a subset of the 'schema'. False otherwise.
     """
-
     schema_classes = schema.get("classes", [])
     if "classes" in sub_schema:
         sub_schema_classes = sub_schema["classes"]
@@ -344,8 +323,7 @@ def _is_sub_schema(sub_schema: dict, schema: dict) -> bool:
 
 
 def _compare_class_sets(sub_set: list, set_: list) -> bool:
-    """
-    Check for a subset in a set of classes.
+    """Check for a subset in a set of classes.
 
     Args:
         sub_set: The smaller set that should be contained in the 'set'.
@@ -354,7 +332,6 @@ def _compare_class_sets(sub_set: list, set_: list) -> bool:
     Returns:
         True is 'sub_set' is a subset of the 'set'. False otherwise.
     """
-
     for sub_set_class in sub_set:
         found = False
         for set_class in set_:
@@ -374,8 +351,7 @@ def _compare_class_sets(sub_set: list, set_: list) -> bool:
 
 
 def _compare_properties(sub_set: list, set_: list) -> bool:
-    """
-    Check for a subset in a set of properties.
+    """Check for a subset in a set of properties.
 
     Args:
         sub_set: The smaller set that should be contained in the 'set'.
@@ -384,7 +360,6 @@ def _compare_properties(sub_set: list, set_: list) -> bool:
     Returns:
         True is 'sub_set' is a subset of the 'set'. False otherwise.
     """
-
     for sub_set_property in sub_set:
         found = False
         for set_property in set_:
@@ -397,9 +372,7 @@ def _compare_properties(sub_set: list, set_: list) -> bool:
 
 
 def generate_uuid5(identifier: Any, namespace: Any = "") -> str:
-    """
-    Generate an UUIDv5, may be used to consistently generate the same UUID for a specific
-    identifier and namespace.
+    """Generate an UUIDv5, may be used to consistently generate the same UUID for a specific identifier and namespace.
 
     Args:
         identifier: The identifier/object that should be used as basis for the UUID.
@@ -408,13 +381,11 @@ def generate_uuid5(identifier: Any, namespace: Any = "") -> str:
     Returns:
         The UUID as a string.
     """
-
     return str(uuid_lib.uuid5(uuid_lib.NAMESPACE_DNS, str(namespace) + str(identifier)))
 
 
 def _capitalize_first_letter(string: str) -> str:
-    """
-    Capitalize only the first letter of the `string`.
+    """Capitalize only the first letter of the `string`.
 
     Args:
         string: The string to be capitalized.
@@ -422,7 +393,6 @@ def _capitalize_first_letter(string: str) -> str:
     Returns:
         The capitalized string.
     """
-
     if len(string) == 1:
         return string.capitalize()
     return string[0].capitalize() + string[1:]
@@ -431,13 +401,11 @@ def _capitalize_first_letter(string: str) -> str:
 def check_batch_result(
     results: Optional[List[Dict[str, Any]]],
 ) -> None:
-    """
-    Check batch results for errors.
+    """Check batch results for errors.
 
     Args:
         results: The Weaviate batch creation return value.
     """
-
     if results is None:
         return
     for result in results:
@@ -449,8 +417,7 @@ def check_batch_result(
 def _check_positive_num(
     value: Any, arg_name: str, data_type: type, include_zero: bool = False
 ) -> None:
-    """
-    Check if the `value` of the `arg_name` is a positive number.
+    """Check if the `value` of the `arg_name` is a positive number.
 
     Args:
         value: The value to check.
@@ -462,7 +429,6 @@ def _check_positive_num(
         TypeError: If the `value` is not of type `data_type`.
         ValueError: If the `value` has a non positive value.
     """
-
     if not isinstance(value, data_type) or isinstance(value, bool):
         raise TypeError(f"'{arg_name}' must be of type {data_type}.")
     if include_zero:
@@ -486,8 +452,7 @@ def strip_newlines(s: str) -> str:
 
 
 def _sanitize_str(value: str) -> str:
-    """
-    Ensures string is sanitized for GraphQL.
+    """Ensures string is sanitized for GraphQL.
 
     Args:
         value: The value to be converted.
@@ -503,8 +468,7 @@ def _sanitize_str(value: str) -> str:
 
 
 def parse_version_string(ver_str: str) -> tuple:
-    """
-    Parse a version string into a float.
+    """Parse a version string into a float.
 
     Args:
         ver_str: The version string to parse. (e.g. "v1.18.2" or "1.18.0")
@@ -604,36 +568,29 @@ class _ServerVersion:
 
 
 def is_weaviate_too_old(current_version_str: str) -> bool:
-    """
-    Check if the user should be gently nudged to upgrade their Weaviate server version.
+    """Check if the user should be gently nudged to upgrade their Weaviate server version.
 
     Args:
         current_version_str: The version of the Weaviate server that the client is connected to. (e.g. "v1.18.2" or "1.18.0")
 
     Returns:
         True if the user should be nudged to upgrade.
-
     """
-
     current_version = parse_version_string(current_version_str)
     minimum_version = parse_version_string(MINIMUM_NO_WARNING_VERSION)
     return minimum_version > current_version
 
 
 def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str) -> bool:
-    """
-    Check if the user should be gently nudged to upgrade their Weaviate client version.
+    """Check if the user should be gently nudged to upgrade their Weaviate client version.
 
     Args:
         current_version_str: The version of the Weaviate client that is being used (e.g. "v1.18.2" or "1.18.0")
         latest_version_str: The latest version of the Weaviate client to compare against (e.g. "v1.18.2" or "1.18.0")
 
     Returns:
-    True if the user should be nudged to upgrade.
-    False if the user is using a valid version or if the version could not be parsed.
-
+        `True` if the user should be nudged to upgrade. `False` if the user is using a valid version or if the version could not be parsed.
     """
-
     try:
         current_version = parse_version_string(current_version_str)
         latest_major, latest_minor = parse_version_string(latest_version_str)
@@ -647,8 +604,7 @@ def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str
 def _get_valid_timeout_config(
     timeout_config: Union[Tuple[NUMBER, NUMBER], NUMBER, None]
 ) -> Tuple[NUMBER, NUMBER]:
-    """
-    Validate and return TimeOut configuration.
+    """Validate and return TimeOut configuration.
 
     Args:
         timeout_config: Set the timeout configuration for all requests to the Weaviate server. It can be a

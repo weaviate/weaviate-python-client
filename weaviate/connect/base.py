@@ -140,8 +140,8 @@ class ConnectionParams(BaseModel):
 
 
 def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> Dict[str, str]:
-    """
-    Get proxies as dict, compatible with 'requests' library.
+    """Get proxies as dict, compatible with 'requests' library.
+
     NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'
     is ignored.
 
@@ -156,7 +156,6 @@ def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> D
     Returns:
         A dictionary with proxies, either set from 'proxies' or read from ENV VARs.
     """
-
     if proxies is not None:
         if isinstance(proxies, str):
             return {
@@ -195,12 +194,10 @@ def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> D
 
 
 def _get_epoch_time() -> int:
-    """
-    Get the current epoch time as an integer.
+    """Get the current epoch time as an integer.
 
     Returns:
         Current epoch time.
     """
-
     dts = datetime.datetime.utcnow()
     return round(time.mktime(dts.timetuple()) + dts.microsecond / 1e6)
