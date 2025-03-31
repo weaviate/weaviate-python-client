@@ -125,7 +125,6 @@ def no_wrapping(func: T) -> T:
 
 def wrap(colour: Colour) -> Callable[[T], T]:
     def decorator(cls: T) -> T:
-        # Find all abstract methods in the async class
         methods: List[Tuple[str, FunctionType]] = []
         for name, method in inspect.getmembers(cls, inspect.isfunction):
             # pulls the original method if it was wrapped by functools.wraps, e.g. @deprecated
@@ -136,7 +135,11 @@ def wrap(colour: Colour) -> Callable[[T], T]:
 
             methods.append((name, method))
 
-        # Create sync versions of the async methods
+        # loop through all executor methods and wrap them either as sync or async
+        # depending on the colour passed to the decorator
+        # if the method has been marked with @no_wrapping, skip it
+        # this is used for methods that are always sync, i.e. do no I/O, but still
+        # need to be inherited from the base executor class
         for name, method in methods:
             if getattr(method, "__no_wrapping__", method):
                 continue

@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     Sequence,
     Tuple,
+    Type,
     Union,
     cast,
 )
@@ -76,9 +77,10 @@ class _DataExecutor(Generic[ConnectionType]):
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],
         validate_arguments: bool,
+        type_: Optional[Type[Properties]] = None,
     ) -> None:
         self._connection = connection
-        self._name = name
+        self.name = name
         self._consistency_level = consistency_level
         self._tenant = tenant
         self._validate_arguments = validate_arguments
@@ -86,6 +88,7 @@ class _DataExecutor(Generic[ConnectionType]):
             weaviate_version=connection._weaviate_version, consistency_level=consistency_level
         )
         self.__batch_rest = _BatchREST(consistency_level=consistency_level)
+        self._type = type_
 
     def insert(
         self,
@@ -131,7 +134,7 @@ class _DataExecutor(Generic[ConnectionType]):
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
-            "class": self._name,
+            "class": self.name,
             "properties": {**props, **refs},
             "id": str(uuid if uuid is not None else uuid_package.uuid4()),
         }
@@ -176,7 +179,7 @@ class _DataExecutor(Generic[ConnectionType]):
         objs = [
             (
                 _BatchObject(
-                    collection=self._name,
+                    collection=self.name,
                     vector=obj.vector,
                     uuid=str(obj.uuid if obj.uuid is not None else uuid_package.uuid4()),
                     properties=cast(dict, obj.properties),
@@ -186,7 +189,7 @@ class _DataExecutor(Generic[ConnectionType]):
                 )
                 if isinstance(obj, DataObject)
                 else _BatchObject(
-                    collection=self._name,
+                    collection=self.name,
                     vector=None,
                     uuid=str(uuid_package.uuid4()),
                     properties=cast(dict, obj),
@@ -232,7 +235,7 @@ class _DataExecutor(Generic[ConnectionType]):
                 If any unexpected error occurs during the operation.
         """
         _validate_input(_ValidateArgument(expected=[UUID], name="uuid", value=uuid))
-        path = "/objects/" + self._name + "/" + str(uuid)
+        path = "/objects/" + self.name + "/" + str(uuid)
         params = self.__apply_context({})
 
         def resp(res: Response) -> bool:
@@ -281,7 +284,7 @@ class _DataExecutor(Generic[ConnectionType]):
             `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
                 If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
-        path = f"/objects/{self._name}/{uuid}"
+        path = f"/objects/{self.name}/{uuid}"
 
         if self._validate_arguments:
             _validate_input(
@@ -296,7 +299,7 @@ class _DataExecutor(Generic[ConnectionType]):
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
         weaviate_obj: Dict[str, Any] = {
-            "class": self._name,
+            "class": self.name,
             "properties": {**props, **refs},
         }
         if vector is not None:
@@ -344,7 +347,7 @@ class _DataExecutor(Generic[ConnectionType]):
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
         """
-        path = f"/objects/{self._name}/{uuid}"
+        path = f"/objects/{self.name}/{uuid}"
 
         if self._validate_arguments:
             _validate_input(
@@ -360,7 +363,7 @@ class _DataExecutor(Generic[ConnectionType]):
             )
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
-        weaviate_obj: Dict[str, Any] = {"class": self._name, "properties": {**props, **refs}}
+        weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
         if vector is not None:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
@@ -403,7 +406,7 @@ class _DataExecutor(Generic[ConnectionType]):
         """
         params: Dict[str, str] = {}
 
-        path = f"/objects/{self._name}/{from_uuid}/references/{from_property}"
+        path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
 
         if self._validate_arguments:
             _validate_input(
@@ -478,7 +481,7 @@ class _DataExecutor(Generic[ConnectionType]):
         """
         batch = [
             _BatchReference(
-                from_=f"{BEACON}{self._name}/{ref.from_uuid}/{ref.from_property}",
+                from_=f"{BEACON}{self.name}/{ref.from_uuid}/{ref.from_property}",
                 to=beacon,
                 tenant=self._tenant,
                 from_uuid=str(ref.from_uuid),
@@ -506,7 +509,7 @@ class _DataExecutor(Generic[ConnectionType]):
                 The reference to delete, REQUIRED.
         """
         params: Dict[str, str] = {}
-        path = f"/objects/{self._name}/{from_uuid}/references/{from_property}"
+        path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
 
         if self._validate_arguments:
             _validate_input(
@@ -578,7 +581,7 @@ class _DataExecutor(Generic[ConnectionType]):
                 The reference to replace, REQUIRED.
         """
         params: Dict[str, str] = {}
-        path = f"/objects/{self._name}/{from_uuid}/references/{from_property}"
+        path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
 
         if self._validate_arguments:
             _validate_input(
@@ -623,7 +626,7 @@ class _DataExecutor(Generic[ConnectionType]):
             `uuid`
                 The UUID of the object to delete, REQUIRED.
         """
-        path = f"/objects/{self._name}/{uuid}"
+        path = f"/objects/{self.name}/{uuid}"
 
         def resp(res: Response) -> bool:
             return res.status_code == 204
@@ -659,7 +662,7 @@ class _DataExecutor(Generic[ConnectionType]):
         _ValidateArgument(expected=[_Filters], name="where", value=where)
 
         request = BatchDeleteRequest(
-            collection=self._name,
+            collection=self.name,
             consistency_level=self._consistency_level,
             verbose=verbose,
             dry_run=dry_run,

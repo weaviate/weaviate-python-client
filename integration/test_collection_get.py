@@ -8,6 +8,7 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from integration.conftest import CollectionFactoryGet, CollectionFactory
 from weaviate.collections import Collection
+from weaviate.collections.data.sync import _DataCollection
 from weaviate.exceptions import InvalidDataModelException
 
 
@@ -26,16 +27,16 @@ def test_get_with_dict_generic(
     assert isinstance(col, Collection)
 
 
-# def test_data_with_data_model_with_dict_generic(
-#     collection_factory_get: CollectionFactoryGet, request: SubRequest
-# ) -> None:
-#     class Right(TypedDict):
-#         name: str
+def test_data_with_data_model_with_dict_generic(
+    collection_factory_get: CollectionFactoryGet, request: SubRequest
+) -> None:
+    class Right(TypedDict):
+        name: str
 
-#     col = collection_factory_get(request.node.name)
-#     assert isinstance(col, Collection)
-#     data = col.data.with_data_model(Right)
-#     assert isinstance(data, _DataCollection)
+    col = collection_factory_get(request.node.name)
+    assert isinstance(col, Collection)
+    data = col.data.with_data_model(Right)
+    assert isinstance(data, _DataCollection)
 
 
 WRONG_PROPERTIES_ERROR_MSG = "properties can only be a dict type, e.g. Dict[str, Any], or a class that inherits from TypedDict"

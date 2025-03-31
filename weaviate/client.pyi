@@ -4,8 +4,6 @@ Client class definition.
 
 from typing import Optional, Tuple, Union, Dict, Any
 
-from weaviate.backup.backup import _BackupAsync
-from weaviate.backup.sync import _Backup
 from weaviate.collections.classes.internal import _RawGQLReturn
 from weaviate.collections.collections.async_ import _CollectionsAsync
 from weaviate.collections.collections.sync import _Collections
@@ -13,6 +11,7 @@ from weaviate.collections.collections.sync import _Collections
 from weaviate.users.async_ import _UsersAsync
 
 from weaviate.users.sync import _Users
+from .backup import _Backup, _BackupAsync
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
 from .connect.v4 import ConnectionV4

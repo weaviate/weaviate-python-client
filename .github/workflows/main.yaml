@@ -164,14 +164,10 @@ jobs:
           WCS_DUMMY_CI_PW: ${{ secrets.WCS_DUMMY_CI_PW }}
           OKTA_DUMMY_CI_PW: ${{ secrets.OKTA_DUMMY_CI_PW }}
 #          OPENAI_APIKEY: ${{ secrets.OPENAI_APIKEY }}  disabled until we have a working key
-        run: |
-          pytest -n auto -m "not serial" --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
-          pytest -n0 -m "serial" -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+        run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
-        run: |
-          pytest -n auto -m "not serial" --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
-          pytest -n0 -m "serial" -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+        run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
         uses: actions/upload-artifact@v4

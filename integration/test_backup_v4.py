@@ -7,7 +7,7 @@ import pytest
 
 import weaviate
 import weaviate.classes as wvc
-from weaviate.backup.executor import (
+from weaviate.backup.backup import (
     BackupCompressionLevel,
     BackupConfigCreate,
     BackupConfigRestore,
@@ -117,7 +117,6 @@ def _create_backup_id() -> str:
     return str(round(time.time_ns() * 1000))
 
 
-@pytest.mark.serial
 def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient) -> None:
     """Create and restore backup with waiting."""
     backup_id = _create_backup_id()
@@ -156,7 +155,6 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("include", [["Article"], "Article"])
 def test_create_and_restore_backup_without_waiting(
     client: weaviate.WeaviateClient, include: Union[str, List[str]]
@@ -212,7 +210,6 @@ def test_create_and_restore_backup_without_waiting(
     assert len(client.collections.use("Article")) == len(ARTICLES_IDS)
 
 
-@pytest.mark.serial
 def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> None:
     """Create and restore 1 of 2 classes."""
     backup_id = _create_backup_id()
@@ -248,7 +245,6 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-@pytest.mark.serial
 def test_fail_on_non_existing_class(client: weaviate.WeaviateClient) -> None:
     """Fail backup functions on non-existing class"""
     backup_id = _create_backup_id()
@@ -260,7 +256,6 @@ def test_fail_on_non_existing_class(client: weaviate.WeaviateClient) -> None:
             assert "422" in str(excinfo.value)
 
 
-@pytest.mark.serial
 def test_fail_restoring_backup_for_existing_class(client: weaviate.WeaviateClient) -> None:
     """Fail restoring backup for existing class."""
     backup_id = _create_backup_id()
@@ -285,7 +280,6 @@ def test_fail_restoring_backup_for_existing_class(client: weaviate.WeaviateClien
         assert "already exists" in str(excinfo.value)
 
 
-@pytest.mark.serial
 def test_fail_creating_existing_backup(client: weaviate.WeaviateClient) -> None:
     """Fail creating existing backup."""
     backup_id = _create_backup_id()
@@ -310,7 +304,6 @@ def test_fail_creating_existing_backup(client: weaviate.WeaviateClient) -> None:
         assert "422" in str(excinfo.value)
 
 
-@pytest.mark.serial
 def test_fail_restoring_non_existing_backup(client: weaviate.WeaviateClient) -> None:
     """Fail restoring non-existing backup."""
     backup_id = _create_backup_id()
@@ -320,7 +313,6 @@ def test_fail_restoring_non_existing_backup(client: weaviate.WeaviateClient) -> 
         assert "404" in str(excinfo.value)
 
 
-@pytest.mark.serial
 def test_fail_checking_status_for_non_existing_restore(client: weaviate.WeaviateClient) -> None:
     """Fail checking restore status for non-existing restore."""
     backup_id = _create_backup_id()
@@ -334,7 +326,6 @@ def test_fail_checking_status_for_non_existing_restore(client: weaviate.Weaviate
             assert "404" in str(excinfo)
 
 
-@pytest.mark.serial
 def test_fail_creating_backup_for_both_include_and_exclude_classes(
     client: weaviate.WeaviateClient,
 ) -> None:
@@ -357,7 +348,6 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(
             )
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])
 def test_backup_and_restore_with_collection(
     client: weaviate.WeaviateClient, dynamic_backup_location: bool, tmp_path: pathlib.Path
@@ -414,7 +404,6 @@ def test_backup_and_restore_with_collection(
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-@pytest.mark.serial
 def test_backup_and_restore_with_collection_and_config_1_24_x(
     client: weaviate.WeaviateClient,
 ) -> None:
@@ -462,7 +451,6 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
     assert restore_status.status == BackupStatus.SUCCESS
 
 
-@pytest.mark.serial
 def test_backup_and_restore_with_collection_and_config_1_23_x(
     client: weaviate.WeaviateClient,
 ) -> None:
@@ -508,7 +496,6 @@ def test_backup_and_restore_with_collection_and_config_1_23_x(
 #     assert backup_id in [b.backup_id for b in backups]
 
 
-@pytest.mark.serial
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])
 def test_cancel_backup(
     client: weaviate.WeaviateClient, dynamic_backup_location, tmp_path: pathlib.Path

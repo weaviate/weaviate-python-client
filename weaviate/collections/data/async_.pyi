@@ -32,7 +32,9 @@ from weaviate.connect.v4 import ConnectionAsync
 from weaviate.types import UUID, VECTORS
 
 class _DataCollectionAsync(Generic[Properties], _DataExecutor[ConnectionAsync]):
-    # def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]": ...
+    def with_data_model(
+        self, data_model: Type[TProperties]
+    ) -> "_DataCollectionAsync[TProperties]": ...
     async def insert(
         self,
         properties: Properties,

@@ -32,7 +32,7 @@ from weaviate.connect.v4 import ConnectionSync
 from weaviate.types import UUID, VECTORS
 
 class _DataCollection(Generic[Properties], _DataExecutor[ConnectionSync]):
-    # def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]": ...
+    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]": ...
     def insert(
         self,
         properties: Properties,

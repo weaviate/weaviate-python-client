@@ -1,11 +1,10 @@
-from weaviate.backup.executor import (
+from weaviate.backup.backup import (
     BackupCompressionLevel,
     BackupConfigCreate,
     BackupConfigRestore,
     BackupStorage,
-    BackupLocationType,
 )
-from weaviate.backup.backup_location import BackupLocation
+from weaviate.backup.backup_location import BackupLocation, BackupLocationType
 
 
 __all__ = [
