@@ -945,7 +945,7 @@ class GenerativeConfig:
         )
 
     @staticmethod
-    def xAI(
+    def xai(
         *,
         base_url: Optional[str] = None,
         max_tokens: Optional[int] = None,
@@ -1066,7 +1066,7 @@ class GenerativeParameters:
 
     @staticmethod
     def __parse_images(
-        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]]
+        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]],
     ) -> Optional[Iterable[str]]:
         if isinstance(images, (str, Path, BufferedReader)):
             return (

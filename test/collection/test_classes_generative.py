@@ -400,7 +400,7 @@ def test_generative_parameters_images_parsing(
             ),
         ),
         (
-            GenerativeConfig.xAI(
+            GenerativeConfig.xai(
                 base_url="http://localhost:8080",
                 max_tokens=100,
                 model="text-to-image",
