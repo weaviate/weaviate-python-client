@@ -17,12 +17,15 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executor import _BaseExecutor
 from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import INCLUDE_VECTOR
 
 
-class _BM25GenerateExecutor(Generic[Properties, References], _BaseExecutor):
+class _BM25GenerateExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def bm25(
         self,
         query: Optional[str],
@@ -144,7 +147,9 @@ class _BM25GenerateExecutor(Generic[Properties, References], _BaseExecutor):
         return execute(response_callback=resp, method=self._connection.grpc_search, request=request)
 
 
-class _BM25QueryExecutor(Generic[Properties, References], _BaseExecutor):
+class _BM25QueryExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def bm25(
         self,
         query: Optional[str],

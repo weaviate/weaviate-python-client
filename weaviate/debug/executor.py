@@ -1,17 +1,16 @@
-from typing import Dict, Optional
+from typing import Dict, Generic, Optional
 
 from httpx import Response
 
 from weaviate.classes.config import ConsistencyLevel
 from weaviate.connect.executor import execute, ExecutorResult, raise_exception
-from weaviate.connect.v4 import Connection
-from weaviate.connect.v4 import _ExpectedStatusCodes
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType
 from weaviate.debug.types import DebugRESTObject
 from weaviate.types import UUID
 
 
-class _DebugExecutor:
-    def __init__(self, connection: Connection):
+class _DebugExecutor(Generic[ConnectionType]):
+    def __init__(self, connection: ConnectionType):
         self._connection = connection
 
     def get_object_over_rest(

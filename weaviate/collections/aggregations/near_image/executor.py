@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Generic, Optional, Union
 
 from weaviate.collections.aggregations.executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -10,11 +10,12 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.types import BLOB_INPUT, NUMBER
 from weaviate.util import parse_blob
 
 
-class _NearImageExecutor(_BaseExecutor):
+class _NearImageExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def near_image(
         self,
         near_image: BLOB_INPUT,

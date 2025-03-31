@@ -13,12 +13,12 @@ from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.bm25.base import _BM25QueryBase
+from weaviate.collections.queries.bm25.executors import _BM25QueryExecutor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import INCLUDE_VECTOR
 
 class _BM25QueryAsync(
-    Generic[Properties, References], _BM25QueryBase[ConnectionAsync, Properties, References]
+    Generic[Properties, References], _BM25QueryExecutor[ConnectionAsync, Properties, References]
 ):
     @overload
     async def bm25(
@@ -246,7 +246,7 @@ class _BM25QueryAsync(
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...
 
 class _BM25Query(
-    Generic[Properties, References], _BM25QueryBase[ConnectionSync, Properties, References]
+    Generic[Properties, References], _BM25QueryExecutor[ConnectionSync, Properties, References]
 ):
     @overload
     def bm25(

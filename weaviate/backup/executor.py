@@ -5,14 +5,14 @@ Backup class definition.
 import asyncio
 import time
 from enum import Enum
-from typing import Optional, Union, List, Tuple, Dict, Any, cast
+from typing import Generic, Optional, Union, List, Tuple, Dict, Any, cast
 
 from httpx import Response
 from pydantic import BaseModel, Field
 
 from weaviate.backup.backup_location import _BackupLocationConfig, BackupLocationType
 from weaviate.connect.executor import execute, ExecutorResult, aresult, result
-from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync
+from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync, ConnectionType
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
@@ -102,7 +102,7 @@ class BackupReturn(BackupStatusReturn):
     collections: List[str] = Field(default_factory=list, alias="classes")
 
 
-class _BackupExecutor:
+class _BackupExecutor(Generic[ConnectionType]):
     def __init__(self, connection: Connection):
         self._connection = connection
 

@@ -1,6 +1,6 @@
 from typing import Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.near_object.base import _NearObjectBase
+from weaviate.collections.aggregations.near_object.executor import _NearObjectExecutor
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -11,7 +11,7 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, UUID
 
-class _NearObjectAsync(_NearObjectBase[ConnectionAsync]):
+class _NearObjectAsync(_NearObjectExecutor[ConnectionAsync]):
     @overload
     async def near_object(
         self,
@@ -55,7 +55,7 @@ class _NearObjectAsync(_NearObjectBase[ConnectionAsync]):
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
 
-class _NearObject(_NearObjectBase[ConnectionSync]):
+class _NearObject(_NearObjectExecutor[ConnectionSync]):
     @overload
     def near_object(
         self,

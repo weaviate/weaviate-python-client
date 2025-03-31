@@ -3,9 +3,9 @@ from typing_extensions import deprecated
 
 from weaviate.connect.v4 import ConnectionAsync
 from weaviate.rbac.models import PermissionsOutputType, PermissionsInputType, Role, UserAssignment
-from weaviate.rbac.base import _RolesBase
+from weaviate.rbac.executor import _RolesExecutor
 
-class _RolesAsync(_RolesBase[ConnectionAsync]):
+class _RolesAsync(_RolesExecutor[ConnectionAsync]):
     async def list_all(self) -> Dict[str, Role]: ...
     async def get_current_roles(self) -> List[Role]: ...
     async def get(self, role_name: str) -> Optional[Role]: ...

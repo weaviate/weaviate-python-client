@@ -25,11 +25,14 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executor import _BaseExecutor
 from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _NearTextGenerateExecutor(Generic[Properties, References], _BaseExecutor):
+class _NearTextGenerateExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def near_text(
         self,
         query: Union[List[str], str],
@@ -164,7 +167,9 @@ class _NearTextGenerateExecutor(Generic[Properties, References], _BaseExecutor):
         )
 
 
-class _NearTextQueryExecutor(Generic[Properties, References], _BaseExecutor):
+class _NearTextQueryExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def near_text(
         self,
         query: Union[List[str], str],

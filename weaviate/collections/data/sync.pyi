@@ -27,11 +27,11 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import (
     Properties,
 )
-from weaviate.collections.data.async_ import _DataBase
+from weaviate.collections.data.executor import _DataExecutor
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.types import UUID, VECTORS
 
-class _DataCollection(Generic[Properties], _DataBase[ConnectionSync]):
+class _DataCollection(Generic[Properties], _DataExecutor[ConnectionSync]):
     # def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]": ...
     def insert(
         self,

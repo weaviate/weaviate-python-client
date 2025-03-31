@@ -16,12 +16,15 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executor import _BaseExecutor
 from weaviate.connect.executor import ExecutorResult, execute
-from weaviate.connect.v4 import ConnectionAsync
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType
+
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import UUID, INCLUDE_VECTOR
 
 
-class _FetchObjectsByIdsGenerateExecutor(Generic[Properties, References], _BaseExecutor):
+class _FetchObjectsByIdsGenerateExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def fetch_objects_by_ids(
         self,
         ids: Iterable[UUID],
@@ -61,6 +64,17 @@ class _FetchObjectsByIdsGenerateExecutor(Generic[Properties, References], _BaseE
                 ),
             )
 
+        if not ids:
+            if isinstance(self._connection, ConnectionAsync):
+
+                async def _execute() -> (
+                    GenerativeReturnType[Properties, References, TProperties, TReferences]
+                ):
+                    return resp(SearchReply())
+
+                return _execute()
+            return resp(SearchReply())
+
         request = self._query.get(
             limit=limit,
             offset=offset,
@@ -84,7 +98,9 @@ class _FetchObjectsByIdsGenerateExecutor(Generic[Properties, References], _BaseE
         )
 
 
-class _FetchObjectsByIdsQueryExecutor(Generic[Properties, References], _BaseExecutor):
+class _FetchObjectsByIdsQueryExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def fetch_objects_by_ids(
         self,
         ids: Iterable[UUID],

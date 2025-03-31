@@ -15,12 +15,15 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executor import _BaseExecutor
+from weaviate.connect.v4 import ConnectionType
 from weaviate.connect.executor import ExecutorResult, execute
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import UUID, INCLUDE_VECTOR
 
 
-class _FetchObjectsGenerateExecutor(Generic[Properties, References], _BaseExecutor):
+class _FetchObjectsGenerateExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def fetch_objects(
         self,
         *,
@@ -121,7 +124,9 @@ class _FetchObjectsGenerateExecutor(Generic[Properties, References], _BaseExecut
         )
 
 
-class _FetchObjectsQueryExecutor(Generic[Properties, References], _BaseExecutor):
+class _FetchObjectsQueryExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def fetch_objects(
         self,
         *,

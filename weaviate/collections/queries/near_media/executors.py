@@ -25,12 +25,15 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executor import _BaseExecutor
 from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
 from weaviate.util import parse_blob
 
 
-class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor):
+class _NearMediaGenerateExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def near_media(
         self,
         media: BLOB_INPUT,
@@ -165,7 +168,9 @@ class _NearMediaGenerateExecutor(Generic[Properties, References], _BaseExecutor)
         )
 
 
-class _NearMediaQueryExecutor(Generic[Properties, References], _BaseExecutor):
+class _NearMediaQueryExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def near_media(
         self,
         media: BLOB_INPUT,

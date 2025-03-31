@@ -2,11 +2,11 @@ from typing import Optional
 
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.classes.config import ConsistencyLevel
-from weaviate.debug.base import _DebugBase
+from weaviate.debug.executor import _DebugExecutor
 from weaviate.debug.types import DebugRESTObject
 from weaviate.types import UUID
 
-class _Debug(_DebugBase[ConnectionSync]):
+class _Debug(_DebugExecutor[ConnectionSync]):
     def get_object_over_rest(
         self,
         collection: str,

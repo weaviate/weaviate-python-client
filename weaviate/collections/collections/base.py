@@ -20,7 +20,7 @@ from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 
 
-class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor):
+class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionType]):
     def __init__(self, connection: ConnectionType) -> None:
         self._connection = connection
 

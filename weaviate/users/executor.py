@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Final, List, Literal, Optional, Union, cast
+from typing import Any, Dict, Final, Generic, List, Literal, Optional, Union, cast
 
 from httpx import Response
 
 from weaviate.connect.executor import ExecutorResult, execute
-from weaviate.connect.v4 import _ExpectedStatusCodes, Connection
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType
 from weaviate.rbac.models import (
     Role,
     RoleBase,
@@ -43,9 +43,9 @@ class UserOIDC(UserBase):
     user_type: UserTypes = UserTypes.OIDC
 
 
-class _BaseExecutor:
-    def __init__(self, connection: Connection):
-        self._connection: Connection = connection
+class _BaseExecutor(Generic[ConnectionType]):
+    def __init__(self, connection: ConnectionType):
+        self._connection = connection
 
     def _get_roles_of_user(
         self,
@@ -136,7 +136,7 @@ class _BaseExecutor:
         )
 
 
-class _DeprecatedExecutor(_BaseExecutor):
+class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_my_user(self) -> ExecutorResult[OwnUser]:
         """Get the currently authenticated user.
 
@@ -216,7 +216,7 @@ class _DeprecatedExecutor(_BaseExecutor):
         )
 
 
-class _OIDCExecutor(_BaseExecutor):
+class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_assigned_roles(
         self,
         user_id: str,
@@ -273,7 +273,7 @@ class _OIDCExecutor(_BaseExecutor):
         )
 
 
-class _DBExecutor(_BaseExecutor):
+class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_assigned_roles(
         self, user_id: str, include_permissions: bool = False
     ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:

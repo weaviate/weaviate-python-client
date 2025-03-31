@@ -1,6 +1,6 @@
 import datetime
 import uuid as uuid_lib
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, cast
+from typing import Any, Dict, Generic, List, Mapping, Optional, Sequence, Type, Union, cast
 
 from typing_extensions import is_typeddict
 
@@ -41,7 +41,7 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import GeoCoordinate, _PhoneNumber, TReferences
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
-from weaviate.connect.v4 import Connection
+from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2, generative_pb2, properties_pb2, search_get_pb2
 from weaviate.types import INCLUDE_VECTOR
@@ -53,10 +53,10 @@ from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 
-class _BaseExecutor:
+class _BaseExecutor(Generic[ConnectionType]):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionType,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],

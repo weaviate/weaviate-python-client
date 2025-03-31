@@ -2,7 +2,7 @@ from io import BufferedReader
 from pathlib import Path
 from typing import Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.near_image.base import _NearImageBase
+from weaviate.collections.aggregations.near_image.executor import _NearImageExecutor
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -14,7 +14,7 @@ from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER
 from weaviate.util import BLOB_INPUT
 
-class _NearImageAsync(_NearImageBase[ConnectionAsync]):
+class _NearImageAsync(_NearImageExecutor[ConnectionAsync]):
     @overload
     async def near_image(
         self,
@@ -58,7 +58,7 @@ class _NearImageAsync(_NearImageBase[ConnectionAsync]):
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
 
-class _NearImage(_NearImageBase[ConnectionSync]):
+class _NearImage(_NearImageExecutor[ConnectionSync]):
     @overload
     def near_image(
         self,

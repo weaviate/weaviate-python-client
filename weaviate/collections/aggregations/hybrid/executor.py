@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Generic, List, Optional, Union
 
 from weaviate.collections.aggregations.executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -10,11 +10,12 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import NUMBER
 
 
-class _HybridExecutor(_BaseExecutor):
+class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def hybrid(
         self,
         query: Optional[str],

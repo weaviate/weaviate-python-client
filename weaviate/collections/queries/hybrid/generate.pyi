@@ -27,12 +27,13 @@ from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.hybrid.base import _HybridGenerateBase
+from weaviate.collections.queries.hybrid.executors import _HybridGenerateExecutor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 class _HybridGenerateAsync(
-    Generic[Properties, References], _HybridGenerateBase[ConnectionAsync, Properties, References]
+    Generic[Properties, References],
+    _HybridGenerateExecutor[ConnectionAsync, Properties, References],
 ):
     @overload
     async def hybrid(
@@ -377,7 +378,7 @@ class _HybridGenerateAsync(
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...
 
 class _HybridGenerate(
-    Generic[Properties, References], _HybridGenerateBase[ConnectionSync, Properties, References]
+    Generic[Properties, References], _HybridGenerateExecutor[ConnectionSync, Properties, References]
 ):
     @overload
     def hybrid(

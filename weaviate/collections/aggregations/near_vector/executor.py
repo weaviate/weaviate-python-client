@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, cast
+from typing import Generic, List, Optional, Union, cast
 
 from weaviate.collections.aggregations.executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -14,11 +14,12 @@ from weaviate.collections.classes.grpc import (
 )
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.types import NUMBER
 
 
-class _NearVectorExecutor(_BaseExecutor):
+class _NearVectorExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def near_vector(
         self,
         near_vector: NearVectorInputType,

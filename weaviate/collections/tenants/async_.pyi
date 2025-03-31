@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Sequence, Union
 from weaviate.collections.classes.tenants import Tenant
-from weaviate.collections.tenants.base import _TenantsBase
+from weaviate.collections.tenants.executor import _TenantsExecutor
 from weaviate.collections.tenants.executor import (
     TenantCreateInputType,
     TenantOutputType,
@@ -8,7 +8,7 @@ from weaviate.collections.tenants.executor import (
 )
 from weaviate.connect.v4 import ConnectionAsync
 
-class _TenantsAsync(_TenantsBase[ConnectionAsync]):
+class _TenantsAsync(_TenantsExecutor[ConnectionAsync]):
     async def create(
         self, tenants: Union[TenantCreateInputType, Sequence[TenantCreateInputType]]
     ) -> None: ...

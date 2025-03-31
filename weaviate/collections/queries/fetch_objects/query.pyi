@@ -11,11 +11,12 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
-from weaviate.collections.queries.fetch_objects.base import _FetchObjectsQueryBase
+from weaviate.collections.queries.fetch_objects.executors import _FetchObjectsQueryExecutor
 from weaviate.types import UUID, INCLUDE_VECTOR
 
 class _FetchObjectsQueryAsync(
-    Generic[Properties, References], _FetchObjectsQueryBase[ConnectionAsync, Properties, References]
+    Generic[Properties, References],
+    _FetchObjectsQueryExecutor[ConnectionAsync, Properties, References],
 ):
     @overload
     async def fetch_objects(
@@ -117,7 +118,8 @@ class _FetchObjectsQueryAsync(
     ) -> QueryReturnType[Properties, References, TProperties, TReferences]: ...
 
 class _FetchObjectsQuery(
-    Generic[Properties, References], _FetchObjectsQueryBase[ConnectionSync, Properties, References]
+    Generic[Properties, References],
+    _FetchObjectsQueryExecutor[ConnectionSync, Properties, References],
 ):
     @overload
     def fetch_objects(

@@ -1,6 +1,6 @@
 import asyncio
 from math import ceil
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, Generic, List, Optional, Sequence, Union
 
 from httpx import Response
 
@@ -15,7 +15,7 @@ from weaviate.collections.classes.tenants import (
 )
 from weaviate.collections.grpc.tenants import _TenantsGRPC
 from weaviate.connect.executor import aresult, execute, ExecutorResult
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, Connection
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import tenants_pb2
 from weaviate.validator import _validate_input, _ValidateArgument
@@ -27,10 +27,10 @@ TenantOutputType = Tenant
 UPDATE_TENANT_BATCH_SIZE = 100
 
 
-class _TenantsExecutor:
+class _TenantsExecutor(Generic[ConnectionType]):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionType,
         name: str,
         validate_arguments: bool = True,
     ) -> None:

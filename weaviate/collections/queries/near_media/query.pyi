@@ -23,12 +23,13 @@ from weaviate.collections.classes.internal import (
     QuerySearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.near_media.base import _NearMediaQueryBase
+from weaviate.collections.queries.near_media.executors import _NearMediaQueryExecutor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
 
 class _NearMediaQueryAsync(
-    Generic[Properties, References], _NearMediaQueryBase[ConnectionAsync, Properties, References]
+    Generic[Properties, References],
+    _NearMediaQueryExecutor[ConnectionAsync, Properties, References],
 ):
     @overload
     async def near_media(
@@ -297,7 +298,7 @@ class _NearMediaQueryAsync(
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...
 
 class _NearMediaQuery(
-    Generic[Properties, References], _NearMediaQueryBase[ConnectionSync, Properties, References]
+    Generic[Properties, References], _NearMediaQueryExecutor[ConnectionSync, Properties, References]
 ):
     @overload
     def near_media(

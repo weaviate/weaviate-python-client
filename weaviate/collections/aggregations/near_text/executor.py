@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Generic, List, Optional, Union
 
 from weaviate.collections.aggregations.executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -11,10 +11,11 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.types import NUMBER
 
 
-class _NearTextExecutor(_BaseExecutor):
+class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def near_text(
         self,
         query: Union[List[str], str],

@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Any, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, cast
 
 from httpx import Response
 from pydantic_core import ValidationError
@@ -30,7 +30,7 @@ from weaviate.collections.classes.config_methods import (
 )
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 from weaviate.connect.executor import aresult, execute, result, ExecutorResult
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, Connection
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
@@ -39,14 +39,14 @@ from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 
-class _ConfigExecutor:
+class _ConfigExecutor(Generic[ConnectionType]):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionType,
         name: str,
         tenant: Optional[str] = None,
     ) -> None:
-        self._connection: Connection = connection
+        self._connection = connection
         self._name = name
         self._tenant = tenant
 

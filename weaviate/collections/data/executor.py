@@ -3,8 +3,9 @@ import datetime
 import uuid as uuid_package
 from dataclasses import dataclass
 from typing import (
-    Dict,
     Any,
+    Dict,
+    Generic,
     Optional,
     List,
     Mapping,
@@ -42,7 +43,7 @@ from weaviate.collections.classes.types import (
     WeaviateField,
 )
 from weaviate.connect.executor import aresult, execute, result, ExecutorResult
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, Connection
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
 from weaviate.logger import logger
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _datetime_to_string, _get_vector_v4
@@ -67,10 +68,10 @@ class _ExecutorOptions:
     batch_rest: _BatchREST
 
 
-class _DataExecutor:
+class _DataExecutor(Generic[ConnectionType]):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionType,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],

@@ -19,11 +19,14 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executor import _BaseExecutor
 from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import NUMBER, INCLUDE_VECTOR, UUID
 
 
-class _NearObjectGenerateExecutor(Generic[Properties, References], _BaseExecutor):
+class _NearObjectGenerateExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def near_object(
         self,
         near_object: UUID,
@@ -147,7 +150,9 @@ class _NearObjectGenerateExecutor(Generic[Properties, References], _BaseExecutor
         return execute(response_callback=resp, method=self._connection.grpc_search, request=request)
 
 
-class _NearObjectQueryExecutor(Generic[Properties, References], _BaseExecutor):
+class _NearObjectQueryExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def near_object(
         self,
         near_object: UUID,

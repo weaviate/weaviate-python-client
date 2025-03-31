@@ -1,12 +1,12 @@
 from typing import Dict, List, Literal, Union, overload
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.users.base import _UsersBase, _UsersOIDCBase, _UsersDBBase
+from weaviate.users.executor import _DeprecatedExecutor, _DBExecutor, _OIDCExecutor
 from weaviate.users.executor import UserDB, OwnUser
 
 from weaviate.rbac.models import Role, RoleBase
 from typing_extensions import deprecated
 
-class _UsersOIDC(_UsersOIDCBase[ConnectionSync]):
+class _UsersOIDC(_OIDCExecutor[ConnectionSync]):
     @overload
     def get_assigned_roles(
         self, user_id: str, include_permissions: Literal[False] = False
@@ -22,7 +22,7 @@ class _UsersOIDC(_UsersOIDCBase[ConnectionSync]):
     def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
     def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
 
-class _UsersDB(_UsersDBBase[ConnectionSync]):
+class _UsersDB(_DBExecutor[ConnectionSync]):
     @overload
     def get_assigned_roles(
         self, user_id: str, include_permissions: Literal[False] = False
@@ -45,7 +45,7 @@ class _UsersDB(_UsersDBBase[ConnectionSync]):
     def get(self, *, user_id: str) -> UserDB: ...
     def list_all(self) -> List[UserDB]: ...
 
-class _Users(_UsersBase[ConnectionSync]):
+class _Users(_DeprecatedExecutor[ConnectionSync]):
     def get_my_user(self) -> OwnUser: ...
     @deprecated(
         """This method is deprecated and will be removed in Q4 25.

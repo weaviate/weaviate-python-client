@@ -2,6 +2,7 @@ import asyncio
 from typing import (
     Awaitable,
     Dict,
+    Generic,
     List,
     Optional,
     Sequence,
@@ -43,7 +44,7 @@ from weaviate.collections.classes.types import (
 from weaviate.collections.collection import CollectionAsync, Collection
 from weaviate.connect.executor import aresult, execute, result, ExecutorResult
 from weaviate.connect.v4 import (
-    Connection,
+    ConnectionType,
     ConnectionAsync,
     _ExpectedStatusCodes,
 )
@@ -54,8 +55,8 @@ from weaviate.validator import _validate_input, _ValidateArgument
 CollectionType = TypeVar("CollectionType", Collection, CollectionAsync)
 
 
-class _CollectionsExecutor:
-    def __init__(self, connection: Connection):
+class _CollectionsExecutor(Generic[ConnectionType]):
+    def __init__(self, connection: ConnectionType):
         self._connection = connection
 
     def _use(

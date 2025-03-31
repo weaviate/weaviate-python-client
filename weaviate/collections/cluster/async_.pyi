@@ -1,11 +1,11 @@
 from typing import List, Literal, Optional, Union, overload
 
 from weaviate.collections.classes.cluster import Node, Shards, Stats
-from weaviate.collections.cluster.base import _ClusterBase
+from weaviate.collections.cluster.executor import _ClusterExecutor
 from weaviate.cluster.types import Verbosity
 from weaviate.connect.v4 import ConnectionAsync
 
-class _ClusterAsync(_ClusterBase[ConnectionAsync]):
+class _ClusterAsync(_ClusterExecutor[ConnectionAsync]):
     @overload
     async def nodes(
         self,

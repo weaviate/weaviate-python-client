@@ -1,10 +1,10 @@
 import asyncio
 import json
-from typing import Dict, List, Optional, Sequence, Union, cast
+from typing import Dict, Generic, List, Optional, Sequence, Union, cast
 
 from httpx import Response
 
-from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType, ConnectionAsync
 from weaviate.connect.executor import ExecutorResult, aresult, execute, raise_exception, result
 from weaviate.rbac.models import (
     _Permission,
@@ -32,8 +32,8 @@ def _flatten_permissions(
     return flattened_permissions
 
 
-class _RolesExecutor:
-    def __init__(self, connection: Connection):
+class _RolesExecutor(Generic[ConnectionType]):
+    def __init__(self, connection: ConnectionType):
         self._connection = connection
 
     def list_all(self) -> ExecutorResult[Dict[str, Role]]:

@@ -1,12 +1,12 @@
 from typing import Dict, List, Literal, Union, overload
 from weaviate.connect.v4 import ConnectionAsync
-from weaviate.users.base import _UsersBase, _UsersOIDCBase, _UsersDBBase
+from weaviate.users.executor import _DeprecatedExecutor, _DBExecutor, _OIDCExecutor
 from weaviate.users.executor import UserDB, OwnUser
 
 from weaviate.rbac.models import Role, RoleBase
 from typing_extensions import deprecated
 
-class _UsersOIDCAsync(_UsersOIDCBase[ConnectionAsync]):
+class _UsersOIDCAsync(_OIDCExecutor[ConnectionAsync]):
     @overload
     async def get_assigned_roles(
         self, user_id: str, include_permissions: Literal[False] = False
@@ -22,7 +22,7 @@ class _UsersOIDCAsync(_UsersOIDCBase[ConnectionAsync]):
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
     async def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
 
-class _UsersDBAsync(_UsersDBBase[ConnectionAsync]):
+class _UsersDBAsync(_DBExecutor[ConnectionAsync]):
     @overload
     async def get_assigned_roles(
         self, user_id: str, include_permissions: Literal[False] = False
@@ -45,7 +45,7 @@ class _UsersDBAsync(_UsersDBBase[ConnectionAsync]):
     async def get(self, *, user_id: str) -> UserDB: ...
     async def list_all(self) -> List[UserDB]: ...
 
-class _UsersAsync(_UsersBase[ConnectionAsync]):
+class _UsersAsync(_DeprecatedExecutor[ConnectionAsync]):
     async def get_my_user(self) -> OwnUser: ...
     @deprecated(
         """This method is deprecated and will be removed in Q4 25.

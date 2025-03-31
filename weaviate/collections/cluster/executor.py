@@ -1,9 +1,8 @@
+from typing import Generic, List, Optional, Union
+
 from httpx import Response
 from weaviate.connect.executor import execute, ExecutorResult
-from weaviate.connect.v4 import Connection
-
-
-from typing import List, Optional, Union
+from weaviate.connect.v4 import ConnectionType
 
 from weaviate.cluster.types import Verbosity
 from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST, Stats
@@ -14,8 +13,8 @@ from weaviate.exceptions import (
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
 
-class _ClusterExecutor:
-    def __init__(self, connection: Connection):
+class _ClusterExecutor(Generic[ConnectionType]):
+    def __init__(self, connection: ConnectionType):
         self._connection = connection
 
     def nodes(

@@ -1,8 +1,8 @@
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync
-from weaviate.collections.tenants.base import _TenantsBase
+from weaviate.collections.tenants.executor import _TenantsExecutor
 
 
 @executor.wrap("async")
-class _TenantsAsync(_TenantsBase[ConnectionAsync]):
+class _TenantsAsync(_TenantsExecutor[ConnectionAsync]):
     pass

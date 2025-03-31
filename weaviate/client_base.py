@@ -10,7 +10,6 @@ from typing import (
     Union,
     Dict,
     Type,
-    TypeVar,
 )
 
 from httpx import Response
@@ -22,12 +21,12 @@ from weaviate.integrations import _Integrations
 from .auth import AuthCredentials
 from .config import AdditionalConfig
 from .connect import executor
-from .connect.v4 import Connection, ConnectionAsync, ConnectionSync
+from .connect.v4 import ConnectionAsync
 from .connect.base import (
     ConnectionParams,
     ProtocolParams,
 )
-from .connect.v4 import _ExpectedStatusCodes
+from .connect.v4 import _ExpectedStatusCodes, ConnectionType
 from .embedded import EmbeddedOptions, EmbeddedV4
 from .types import NUMBER
 from .util import _decode_json_response_dict
@@ -36,8 +35,8 @@ from .validator import _validate_input, _ValidateArgument
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
-class _WeaviateClientExecutor:
-    def __init__(self, connection: Connection):
+class _WeaviateClientExecutor(Generic[ConnectionType]):
+    def __init__(self, connection: ConnectionType):
         self._connection = connection
 
     async def __close_async(self) -> None:
@@ -186,12 +185,9 @@ class _WeaviateClientExecutor:
         )
 
 
-C = TypeVar("C", ConnectionAsync, ConnectionSync)
-
-
-class _WeaviateClientBase(Generic[C], _WeaviateClientExecutor):
-    _connection: C
-    _connection_type: Type[C]
+class _WeaviateClientBase(Generic[ConnectionType], _WeaviateClientExecutor[ConnectionType]):
+    _connection: ConnectionType
+    _connection_type: Type[ConnectionType]
 
     def __init__(
         self,

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Generic, Optional
 
 from weaviate.backup.executor import (
     BackupConfigCreate,
@@ -10,11 +10,11 @@ from weaviate.backup.executor import (
 )
 from weaviate.backup.backup_location import BackupLocationType
 from weaviate.connect.executor import execute, ExecutorResult
-from weaviate.connect.v4 import Connection
+from weaviate.connect.v4 import ConnectionType
 
 
-class _CollectionBackupExecutor:
-    def __init__(self, connection: Connection, name: str) -> None:
+class _CollectionBackupExecutor(Generic[ConnectionType]):
+    def __init__(self, connection: ConnectionType, name: str) -> None:
         self._executor = _BackupExecutor(connection)
         self._name = name
 

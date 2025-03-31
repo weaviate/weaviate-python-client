@@ -1,6 +1,6 @@
 from typing import Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.over_all.base import _OverAllBase
+from weaviate.collections.aggregations.over_all.executor import _OverAllExecutor
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -10,7 +10,7 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
-class _OverAllAsync(_OverAllBase[ConnectionAsync]):
+class _OverAllAsync(_OverAllExecutor[ConnectionAsync]):
     @overload
     async def over_all(
         self,
@@ -39,7 +39,7 @@ class _OverAllAsync(_OverAllBase[ConnectionAsync]):
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
 
-class _OverAll(_OverAllBase[ConnectionSync]):
+class _OverAll(_OverAllExecutor[ConnectionSync]):
     @overload
     def over_all(
         self,

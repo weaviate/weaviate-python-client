@@ -1,8 +1,8 @@
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync
-from weaviate.collections.config.base import _ConfigCollectionBase
+from weaviate.collections.config.executor import _ConfigExecutor
 
 
 @executor.wrap("async")
-class _ConfigCollectionAsync(_ConfigCollectionBase[ConnectionAsync]):
+class _ConfigCollectionAsync(_ConfigExecutor[ConnectionAsync]):
     pass

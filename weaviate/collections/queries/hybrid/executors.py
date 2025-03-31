@@ -26,12 +26,15 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executor import _BaseExecutor
 from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
 
-class _HybridGenerateExecutor(Generic[Properties, References], _BaseExecutor):
+class _HybridGenerateExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def hybrid(
         self,
         query: Optional[str],
@@ -175,7 +178,9 @@ class _HybridGenerateExecutor(Generic[Properties, References], _BaseExecutor):
         )
 
 
-class _HybridQueryExecutor(Generic[Properties, References], _BaseExecutor):
+class _HybridQueryExecutor(
+    Generic[ConnectionType, Properties, References], _BaseExecutor[ConnectionType]
+):
     def hybrid(
         self,
         query: Optional[str],

@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Generic, Optional, Union
 
 from weaviate.collections.aggregations.executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -10,10 +10,11 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect.executor import ExecutorResult, execute
+from weaviate.connect.v4 import ConnectionType
 from weaviate.types import NUMBER, UUID
 
 
-class _NearObjectExecutor(_BaseExecutor):
+class _NearObjectExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def near_object(
         self,
         near_object: UUID,

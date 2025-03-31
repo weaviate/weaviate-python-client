@@ -1,6 +1,6 @@
 from typing import List, Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.near_text.base import _NearTextBase
+from weaviate.collections.aggregations.near_text.executor import _NearTextExecutor
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -12,7 +12,7 @@ from weaviate.collections.classes.grpc import Move
 from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER
 
-class _NearTextAsync(_NearTextBase[ConnectionAsync]):
+class _NearTextAsync(_NearTextExecutor[ConnectionAsync]):
     @overload
     async def near_text(
         self,
@@ -62,7 +62,7 @@ class _NearTextAsync(_NearTextBase[ConnectionAsync]):
         return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
 
-class _NearText(_NearTextBase[ConnectionSync]):
+class _NearText(_NearTextExecutor[ConnectionSync]):
     @overload
     def near_text(
         self,

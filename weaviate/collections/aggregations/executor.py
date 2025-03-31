@@ -1,7 +1,7 @@
 import io
 import json
 import pathlib
-from typing import List, Optional, TypeVar, Union, cast
+from typing import Generic, List, Optional, TypeVar, Union, cast
 
 from httpx import Response
 from typing_extensions import ParamSpec
@@ -36,7 +36,7 @@ from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.filters import _FilterToREST
 from weaviate.collections.grpc.aggregate import _AggregateGRPC
 from weaviate.connect.executor import execute, ExecutorResult
-from weaviate.connect.v4 import Connection
+from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.proto.v1 import aggregate_pb2
@@ -49,10 +49,10 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-class _BaseExecutor:
+class _BaseExecutor(Generic[ConnectionType]):
     def __init__(
         self,
-        connection: Connection,
+        connection: ConnectionType,
         name: str,
         consistency_level: Optional[ConsistencyLevel],
         tenant: Optional[str],

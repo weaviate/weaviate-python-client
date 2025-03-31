@@ -1,8 +1,8 @@
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync
-from weaviate.rbac.base import _RolesBase
+from weaviate.rbac.executor import _RolesExecutor
 
 
 @executor.wrap("async")
-class _RolesAsync(_RolesBase[ConnectionAsync]):
+class _RolesAsync(_RolesExecutor[ConnectionAsync]):
     pass
