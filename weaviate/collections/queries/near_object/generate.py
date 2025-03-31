@@ -44,35 +44,21 @@ class _NearObjectGenerateAsync(Generic[Properties, References], _Base[Properties
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#nearobject) for a more detailed explanation.
 
-        Arguments:
-            `near_object`
-                The UUID of the object to search on, REQUIRED.
-            `certainty`
-                The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
-            `distance`
-                The maximum distance to search. If not specified, the default distance specified by the server is used.
-            `limit`
-                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
-            `offset`
-                The offset to start from. If not specified, the retrieval begins from the first object in the server.
-            `auto_limit`
-                The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
-            `filters`
-                The filters to apply to the search.
-            `group_by`
-                How the results should be grouped by a specific property.
-            `rerank`
-                How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
-            `target_vector`
-                The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
-            `include_vector`
-                Whether to include the vector in the results. If not specified, this is set to False.
-            `return_metadata`
-                The metadata to return for each object, defaults to `None`.
-            `return_properties`
-                The properties to return for each object.
-            `return_references`
-                The references to return for each object.
+        Args:
+            near_object: The UUID of the object to search on, REQUIRED.
+            certainty: The minimum similarity score to return. If not specified, the default certainty specified by the server is used.
+            distance: The maximum distance to search. If not specified, the default distance specified by the server is used.
+            limit: The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            offset: The offset to start from. If not specified, the retrieval begins from the first object in the server.
+            auto_limit: The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            filters: The filters to apply to the search.
+            group_by: How the results should be grouped by a specific property.
+            rerank: How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            target_vector: The name of the vector space to search in for named vector configurations. Required if multiple spaces are configured.
+            include_vector: Whether to include the vector in the results. If not specified, this is set to False.
+            return_metadata: The metadata to return for each object, defaults to `None`.
+            return_properties: The properties to return for each object.
+            return_references: The references to return for each object.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -84,8 +70,7 @@ class _NearObjectGenerateAsync(Generic[Properties, References], _Base[Properties
             If `group_by` is provided then a `GenerativeGroupByReturn` object is returned, otherwise a `GenerativeReturn` object is returned.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
-                If the request to the Weaviate server fails.
+            weaviate.exceptions.WeaviateGRPCQueryError: If the request to the Weaviate server fails.
         """
         res = await self._query.near_object(
             near_object=near_object,

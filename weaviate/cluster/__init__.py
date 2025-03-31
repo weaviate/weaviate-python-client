@@ -1,3 +1,1 @@
-"""
-Module for interacting with Weaviate cluster information
-"""
+"""Module for interacting with Weaviate cluster information."""

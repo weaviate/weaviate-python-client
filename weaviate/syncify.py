@@ -8,9 +8,7 @@ C = TypeVar("C")
 
 
 def convert(cls: C) -> C:
-    """
-    Class decorator that converts async methods to sync methods preserving all overloads and documentation.
-    """
+    """Class decorator that converts async methods to sync methods preserving all overloads and documentation."""
     for name, method in cls.__bases__[0].__dict__.items():  # type: ignore
         if asyncio.iscoroutinefunction(method) and not name.startswith("_"):
             new_name = "__" + name

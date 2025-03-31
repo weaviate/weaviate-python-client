@@ -2,8 +2,10 @@ import warnings
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, cast
 
+from deprecation import deprecated as docstring_deprecated
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
-from typing_extensions import TypeAlias, deprecated
+from typing_extensions import TypeAlias
+from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _EnumLikeStr
 from ...warnings import _Warnings
@@ -77,46 +79,26 @@ class Vectorizers(str, Enum):
     See the [docs](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules) for more details.
 
     Attributes:
-        `NONE`
-            No vectorizer.
-        `TEXT2VEC_AWS`
-            Weaviate module backed by AWS text-based embedding models.
-        `TEXT2VEC_COHERE`
-            Weaviate module backed by Cohere text-based embedding models.
-        `TEXT2VEC_CONTEXTIONARY`
-            Weaviate module backed by Contextionary text-based embedding models.
-        `TEXT2VEC_GPT4ALL`
-            Weaviate module backed by GPT-4-All text-based embedding models.
-        `TEXT2VEC_HUGGINGFACE`
-            Weaviate module backed by HuggingFace text-based embedding models.
-        `TEXT2VEC_OPENAI`
-            Weaviate module backed by OpenAI and Azure-OpenAI text-based embedding models.
-        `TEXT2VEC_PALM`
-            Weaviate module backed by PaLM text-based embedding models.
-        `TEXT2VEC_TRANSFORMERS`
-            Weaviate module backed by Transformers text-based embedding models.
-        `TEXT2VEC_JINAAI`
-            Weaviate module backed by Jina AI text-based embedding models.
-        `TEXT2VEC_VOYAGEAI`
-            Weaviate module backed by Voyage AI text-based embedding models.
-        `TEXT2VEC_NVIDIA`
-            Weaviate module backed by NVIDIA text-based embedding models.
-        `TEXT2VEC_WEAVIATE`
-            Weaviate module backed by Weaviate's self-hosted text-based embedding models.
-        `IMG2VEC_NEURAL`
-            Weaviate module backed by a ResNet-50 neural network for images.
-        `MULTI2VEC_CLIP`
-            Weaviate module backed by a Sentence-BERT CLIP model for images and text.
-        `MULTI2VEC_PALM`
-            Weaviate module backed by a palm model for images and text.
-        `MULTI2VEC_BIND`
-            Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
-        `MULTI2VEC_VOYAGEAI`
-            Weaviate module backed by a Voyage AI multimodal embedding models.
-        `MULTI2VEC_NVIDIA`
-            Weaviate module backed by NVIDIA multimodal embedding models.
-        `REF2VEC_CENTROID`
-            Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
+        NONE: No vectorizer.
+        TEXT2VEC_AWS: Weaviate module backed by AWS text-based embedding models.
+        TEXT2VEC_COHERE: Weaviate module backed by Cohere text-based embedding models.
+        TEXT2VEC_CONTEXTIONARY: Weaviate module backed by Contextionary text-based embedding models.
+        TEXT2VEC_GPT4ALL: Weaviate module backed by GPT-4-All text-based embedding models.
+        TEXT2VEC_HUGGINGFACE: Weaviate module backed by HuggingFace text-based embedding models.
+        TEXT2VEC_OPENAI: Weaviate module backed by OpenAI and Azure-OpenAI text-based embedding models.
+        TEXT2VEC_PALM: Weaviate module backed by PaLM text-based embedding models.
+        TEXT2VEC_TRANSFORMERS: Weaviate module backed by Transformers text-based embedding models.
+        TEXT2VEC_JINAAI: Weaviate module backed by Jina AI text-based embedding models.
+        TEXT2VEC_VOYAGEAI: Weaviate module backed by Voyage AI text-based embedding models.
+        TEXT2VEC_NVIDIA: Weaviate module backed by NVIDIA text-based embedding models.
+        TEXT2VEC_WEAVIATE: Weaviate module backed by Weaviate's self-hosted text-based embedding models.
+        IMG2VEC_NEURAL: Weaviate module backed by a ResNet-50 neural network for images.
+        MULTI2VEC_CLIP: Weaviate module backed by a Sentence-BERT CLIP model for images and text.
+        MULTI2VEC_PALM: Weaviate module backed by a palm model for images and text.
+        MULTI2VEC_BIND: Weaviate module backed by the ImageBind model for images, text, audio, depth, IMU, thermal, and video.
+        MULTI2VEC_VOYAGEAI: Weaviate module backed by a Voyage AI multimodal embedding models.
+        MULTI2VEC_NVIDIA: Weaviate module backed by NVIDIA multimodal embedding models.
+        REF2VEC_CENTROID: Weaviate module backed by a centroid-based model that calculates an object's vectors from its referenced vectors.
     """
 
     NONE = "none"
@@ -154,16 +136,11 @@ class VectorDistances(str, Enum):
     specific distance metric and following their advice.
 
     Attributes:
-        `COSINE`
-            Cosine distance: [reference](https://en.wikipedia.org/wiki/Cosine_similarity)
-        `DOT`
-            Dot distance: [reference](https://en.wikipedia.org/wiki/Dot_product)
-        `L2_SQUARED`
-            L2 squared distance: [reference](https://en.wikipedia.org/wiki/Euclidean_distance)
-        `HAMMING`
-            Hamming distance: [reference](https://en.wikipedia.org/wiki/Hamming_distance)
-        `MANHATTAN`
-            Manhattan distance: [reference](https://en.wikipedia.org/wiki/Taxicab_geometry)
+        COSINE: Cosine distance: [reference](https://en.wikipedia.org/wiki/Cosine_similarity)
+        DOT: Dot distance: [reference](https://en.wikipedia.org/wiki/Dot_product)
+        L2_SQUARED: L2 squared distance: [reference](https://en.wikipedia.org/wiki/Euclidean_distance)
+        HAMMING: Hamming distance: [reference](https://en.wikipedia.org/wiki/Hamming_distance)
+        MANHATTAN: Manhattan distance: [reference](https://en.wikipedia.org/wiki/Taxicab_geometry)
     """
 
     COSINE = "cosine"
@@ -574,13 +551,12 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
         for detailed usage.
 
-        Arguments:
-            `image_fields`
-                The image fields to use. This is a required field and must match the property fields
+        Args:
+            image_fields: The image fields to use. This is a required field and must match the property fields
                 of the collection that are defined as `DataType.BLOB`.
 
         Raises:
-            `pydantic.ValidationError` if `image_fields` is not a `list`.
+            pydantic.ValidationError: If `image_fields` is not a `list`.
         """
         return _Img2VecNeuralConfig(imageFields=image_fields)
 
@@ -597,18 +573,14 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `inference_url`
-                The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
+            inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `image_fields` or `text_fields` are not `None` or a `list`.
+            pydantic.ValidationError: If `image_fields` or `text_fields` are not `None` or a `list`.
         """
         if interference_url is not None:
             if inference_url is not None:
@@ -645,26 +617,18 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/imagebind/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `audio_fields`
-                The audio fields to use in vectorization.
-            `depth_fields`
-                The depth fields to use in vectorization.
-            `image_fields`
-                The image fields to use in vectorization.
-            `imu_fields`
-                The IMU fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `thermal_fields`
-                The thermal fields to use in vectorization.
-            `video_fields`
-                The video fields to use in vectorization.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            audio_fields: The audio fields to use in vectorization.
+            depth_fields: The depth fields to use in vectorization.
+            image_fields: The image fields to use in vectorization.
+            imu_fields: The IMU fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
+            thermal_fields: The thermal fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if any of the `*_fields` are not `None` or a `list`.
+            pydantic.ValidationError: If any of the `*_fields` are not `None` or a `list`.
         """
         return _Multi2VecBindConfig(
             audioFields=_map_multi2vec_fields(audio_fields),
@@ -687,14 +651,12 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/ref2vec-centroid)
         for detailed usage.
 
-        Arguments:
-            `reference_properties`
-                The reference properties to use in vectorization, REQUIRED.
-            `method`
-                The method to use in vectorization. Defaults to `mean`.
+        Args:
+            reference_properties: The reference properties to use in vectorization, REQUIRED.
+            method: The method to use in vectorization. Defaults to `mean`.
 
         Raises:
-            `pydantic.ValidationError` if `reference_properties` is not a `list`.
+            pydantic.ValidationError: If `reference_properties` is not a `list`.
         """
         return _Ref2VecCentroidConfig(
             referenceProperties=reference_properties,
@@ -714,17 +676,12 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use, REQUIRED for service "bedrock".
-            `region`
-                The AWS region to run the model from, REQUIRED.
-            `endpoint`
-                The model to use, REQUIRED for service "sagemaker".
-            `service`
-                The AWS service to use, options are "bedrock" and "sagemaker".
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            model: The model to use, REQUIRED for service "bedrock".
+            region: The AWS region to run the model from, REQUIRED.
+            endpoint: The model to use, REQUIRED for service "sagemaker".
+            service: The AWS service to use, options are "bedrock" and "sagemaker".
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecAWSConfig(
             model=model,
@@ -748,22 +705,15 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai-azure/embeddings)
         for detailed usage.
 
-        Arguments:
-            `resource_name`
-                The resource name to use, REQUIRED.
-            `deployment_id`
-                The deployment ID to use, REQUIRED.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `dimensions`
-                The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
+        Args:
+            resource_name: The resource name to use, REQUIRED.
+            deployment_id: The deployment ID to use, REQUIRED.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `resource_name` or `deployment_id` are not `str`.
+            pydantic.ValidationError: If `resource_name` or `deployment_id` are not `str`.
         """
         return _Text2VecAzureOpenAIConfig(
             baseURL=base_url,
@@ -781,12 +731,11 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
         for detailed usage.
 
-        Arguments:
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError`` if `vectorize_collection_name` is not a `bool`.
+            pydantic.ValidationError: If `vectorize_collection_name` is not a `bool`.
         """
         return _Text2VecContextionaryConfig(vectorizeClassName=vectorize_collection_name)
 
@@ -796,11 +745,9 @@ class _Vectorizer:
     ) -> _VectorizerConfigCreate:
         """Create a `_VectorizerCustomConfig` object for use when vectorizing using a custom specification.
 
-        Arguments:
-            `module_name`
-                The name of the module to use, REQUIRED.
-            `module_config`
-                The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
+        Args:
+            module_name: The name of the module to use, REQUIRED.
+            module_config: The configuration to use for the module. Defaults to `None`, which uses the server-defined default.
         """
         return _VectorizerCustomConfig(
             vectorizer=_EnumLikeStr(module_name), module_config=module_config
@@ -818,18 +765,14 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `truncate`
-                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `CohereModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `CohereModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _Text2VecCohereConfig(
             baseURL=base_url,
@@ -853,22 +796,16 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `truncate`
-                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _Multi2VecCohereConfig(
             baseURL=base_url,
@@ -895,24 +832,17 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `truncate`
-                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `output_encoding`
-                Format in which the embeddings are encoded. Defaults to `None`, so the embeddings are represented as a list of floating-point numbers.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            output_encoding: Format in which the embeddings are encoded. Defaults to `None`, so the embeddings are represented as a list of floating-point numbers.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _Multi2VecVoyageaiConfig(
             baseURL=base_url,
@@ -940,24 +870,17 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `truncate`
-                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `output_encoding`
-                Format in which the embeddings are encoded. Defaults to `None`, so the embeddings are represented as a list of floating-point numbers.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            output_encoding: Format in which the embeddings are encoded. Defaults to `None`, so the embeddings are represented as a list of floating-point numbers.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `NvidiaMultimodalModel` type or if `truncate` is not a valid value from the `NvidiaTruncation` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `NvidiaMultimodalModel` type or if `truncate` is not a valid value from the `NvidiaTruncation` type.
         """
         return _Multi2VecNvidiaConfig(
             baseURL=base_url,
@@ -981,16 +904,13 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/databricks/embeddings)
         for detailed usage.
 
-        Arguments:
-            `endpoint`
-                The endpoint to use.
-            `instruction`
-                The instruction strategy to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            endpoint: The endpoint to use.
+            instruction: The instruction strategy to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `truncate` is not a valid value from the `CohereModel` type.
+            pydantic.ValidationError: If `truncate` is not a valid value from the `CohereModel` type.
         """
         return _Text2VecDatabricksConfig(
             endpoint=endpoint,
@@ -1007,12 +927,11 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/gpt4all/embeddings)
         for detailed usage.
 
-        Arguments:
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `vectorize_collection_name` is not a `bool`.
+            pydantic.ValidationError: If `vectorize_collection_name` is not a `bool`.
         """
         return _Text2VecGPT4AllConfig(vectorizeClassName=vectorize_collection_name)
 
@@ -1032,28 +951,20 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `passage_model`
-                The passage model to use. Defaults to `None`, which uses the server-defined default.
-            `query_model`
-                The query model to use. Defaults to `None`, which uses the server-defined default.
-            `endpoint_url`
-                The endpoint URL to use. Defaults to `None`, which uses the server-defined default.
-            `wait_for_model`
-                Whether to wait for the model to be loaded. Defaults to `None`, which uses the server-defined default.
-            `use_gpu`
-                Whether to use the GPU. Defaults to `None`, which uses the server-defined default.
-            `use_cache`
-                Whether to use the cache. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            passage_model: The passage model to use. Defaults to `None`, which uses the server-defined default.
+            query_model: The query model to use. Defaults to `None`, which uses the server-defined default.
+            endpoint_url: The endpoint URL to use. Defaults to `None`, which uses the server-defined default.
+            wait_for_model: Whether to wait for the model to be loaded. Defaults to `None`, which uses the server-defined default.
+            use_gpu: Whether to use the GPU. Defaults to `None`, which uses the server-defined default.
+            use_cache: Whether to use the cache. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if the arguments passed to the function are invalid.
+            pydantic.ValidationError: If the arguments passed to the function are invalid.
                 It is important to note that some of these variables are mutually exclusive.
-                    See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings#vectorizer-parameters) for more details.
+                See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings#vectorizer-parameters) for more details.
         """
         return _Text2VecHuggingFaceConfig(
             model=model,
@@ -1078,11 +989,10 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/mistral/embeddings)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecMistralConfig(
             baseURL=base_url, model=model, vectorizeClassName=vectorize_collection_name
@@ -1100,14 +1010,11 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/ollama/embeddings)
         for detailed usage.
 
-        Arguments:
-            `api_endpoint`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+        Args:
+            api_endpoint: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
                 Docker users may need to specify an alias, such as `http://host.docker.internal:11434` so that the container can access the host machine.
-            `modelId`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecOllamaConfig(
             apiEndpoint=api_endpoint,
@@ -1129,22 +1036,16 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai/embeddings)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `model_version`
-                The model version to use. Defaults to `None`, which uses the server-defined default.
-            `type_`
-                The type of model to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `dimensions`
-                Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            model_version: The model version to use. Defaults to `None`, which uses the server-defined default.
+            type_: The type of model to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `type_` is not a valid value from the `OpenAIType` type.
+            pydantic.ValidationError: If `type_` is not a valid value from the `OpenAIType` type.
         """
         return _Text2VecOpenAIConfig(
             baseURL=base_url,
@@ -1156,8 +1057,14 @@ class _Vectorizer:
         )
 
     @staticmethod
-    @deprecated(
-        "This method is deprecated and will be removed in Q2 25. Please use `text2vec_google` instead."
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="""
+This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._Vectorizer.text2vec_google` instead.
+""",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '25. Please use `text2vec_google` instead."
     )
     def text2vec_palm(
         project_id: str,
@@ -1171,20 +1078,15 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
-        Arguments:
-            `project_id`
-                The project ID to use, REQUIRED.
-            `api_endpoint`
-                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `title_property`
-                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            project_id: The project ID to use, REQUIRED.
+            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
         _Warnings.palm_to_google_t2v()
         return _Text2VecGoogleConfig(
@@ -1206,16 +1108,13 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
-        Arguments:
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `title_property`
-                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
         return _Text2VecGoogleConfig(
             projectId=None,
@@ -1238,20 +1137,15 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
-        Arguments:
-            `project_id`
-                The project ID to use, REQUIRED.
-            `api_endpoint`
-                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `title_property`
-                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            project_id: The project ID to use, REQUIRED.
+            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
         return _Text2VecGoogleConfig(
             projectId=project_id,
@@ -1262,8 +1156,14 @@ class _Vectorizer:
         )
 
     @staticmethod
-    @deprecated(
-        "This method is deprecated and will be removed in Q2 25. Please use `multi2vec_google` instead."
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="""
+This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._Vectorizer.multi2vec_google` instead.
+""",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '25. Please use `multi2vec_google` instead."
     )
     def multi2vec_palm(
         *,
@@ -1282,28 +1182,19 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `location`
-                Where the model runs. REQUIRED.
-            `project_id`
-                The project ID to use, REQUIRED.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `video_fields`
-                The video fields to use in vectorization.
-            `dimensions`
-                The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `video_interval_seconds`
-                Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            location: Where the model runs. REQUIRED.
+            project_id: The project ID to use, REQUIRED.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
+            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
         _Warnings.palm_to_google_m2v()
         return _Multi2VecGoogleConfig(
@@ -1336,28 +1227,19 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `location`
-                Where the model runs. REQUIRED.
-            `project_id`
-                The project ID to use, REQUIRED.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `video_fields`
-                The video fields to use in vectorization.
-            `dimensions`
-                The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `video_interval_seconds`
-                Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            location: Where the model runs. REQUIRED.
+            project_id: The project ID to use, REQUIRED.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
+            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
 
         Raises:
-            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
         return _Multi2VecGoogleConfig(
             projectId=project_id,
@@ -1384,20 +1266,15 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings)
         for detailed usage.
 
-        Arguments:
-            `pooling_strategy`
-                The pooling strategy to use. Defaults to `masked_mean`.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `inference_url`
-                The inference url to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
-            `passage_inference_url`
-                The inference url to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
-            `query_inference_url`
-                The inference url to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
+        Args:
+            pooling_strategy: The pooling strategy to use. Defaults to `masked_mean`.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            inference_url: The inference url to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
+            passage_inference_url: The inference url to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
+            query_inference_url: The inference url to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
+            pydantic.ValidationError: If `pooling_strategy` is not a valid value from the `PoolingStrategy` type.
         """
         return _Text2VecTransformersConfig(
             poolingStrategy=pooling_strategy,
@@ -1419,17 +1296,13 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings#available-models) for more details.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `base_url`
-                The base URL to send the vectorization requests to. Defaults to `None`, which uses the server-defined default.
-            `dimensions`
-                The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to send the vectorization requests to. Defaults to `None`, which uses the server-defined default.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
         """
         return _Text2VecJinaConfig(
             model=model,
@@ -1453,22 +1326,16 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `dimensions`
-                The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `JinaMultimodalModel` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
         """
         return _Multi2VecJinaConfig(
             baseURL=base_url,
@@ -1492,17 +1359,13 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings#available-models) for more details.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `truncate`
-                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecVoyageConfig(
             model=model,
@@ -1540,17 +1403,13 @@ class _Vectorizer:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
+        Args:
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings#available-models) for more details.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `truncate`
-                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _Text2VecNvidiaConfig(
             model=model,

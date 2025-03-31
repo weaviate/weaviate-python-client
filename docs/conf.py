@@ -41,7 +41,7 @@ except PackageNotFoundError:
 # -- Project information -----------------------------------------------------
 
 project = "Weaviate Python Client"
-copyright = "2021-2024, Weaviate"
+copyright = "2021-2025, Weaviate"
 author = "Weaviate"
 
 
@@ -51,6 +51,7 @@ author = "Weaviate"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
@@ -66,6 +67,9 @@ autodoc_pydantic_model_show_field_summary = False
 autodoc_pydantic_model_undoc_members = False
 autodoc_pydantic_model_members = False
 
+autodoc_typehints = "description"
+autodoc_member_order = "bysource"
+autodoc_dataclass_fields = False
 
 # Make sure the target is unique
 autosectionlabel_prefix_document = True
@@ -78,7 +82,13 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.rst"]
+
+suppress_warnings = [
+    "docutils",
+    "autodoc",
+    "autosectionlabel",
+]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -87,7 +97,55 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #
 html_theme = "sphinx_rtd_theme"
 
+html_theme_options = {"navigation_depth": 10}  # Increase this to match `toctree`
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ["_static"]
+
+import re
+
+
+def convert_markdown_links(lines):
+    """Convert Markdown-style [text](url) links to reST-style `text <url>`_ links."""
+    md_link_pattern = re.compile(r"\[([^\]]+)\]\((http[^\)]+)\)")
+    return [md_link_pattern.sub(r"`\1 <\2>`_", line) for line in lines]
+
+
+def replace_client_parent_docstring_to_match_child(what, obj, lines):
+    """Replace the parent class docstring with the child class docstring."""
+    if what != "class" or not obj.__name__ in ("WeaviateClient", "WeaviateAsyncClient"):
+        return lines
+
+    # Replace Parent class's "WeaviateClient/WeaviateClientAsync" with the child class's name
+    text = "\n".join(lines)
+    text = text.replace("WeaviateClient/WeaviateClientAsync", obj.__name__)
+
+    # Make the connect_to function references into links to actual functions
+    pattern = re.compile(r"\b(weaviate\.connect_to_[a-zA-Z_][a-zA-Z0-9_]*)\b")
+    text = pattern.sub(r":func:`\1`", text)
+
+    # Rename the connect_to function to use_async_with for the WeaviateAsyncClient
+    if obj.__name__ == "WeaviateAsyncClient":
+        text = text.replace("connect_to", "use_async_with")
+
+    return text.split("\n")
+
+
+def shorthand_weaviate_exceptions_display(lines):
+    """Replace weaviate.exceptions.* with ~weaviate.exceptions.* to make it a shorthand."""
+    pattern = re.compile(r"\b(weaviate\.exceptions\.[a-zA-Z_][a-zA-Z0-9_]*)\b")
+    return [pattern.sub(r"~\1", line) for line in lines]
+
+
+def autodoc_process_docstring(app, what, name, obj, options, lines):
+    """Apply the conversion to all docstrings."""
+    lines[:] = convert_markdown_links(lines)
+    lines[:] = replace_client_parent_docstring_to_match_child(what, obj, lines)
+    lines[:] = shorthand_weaviate_exceptions_display(lines)
+
+
+def setup(app):
+    app.add_css_file("custom.css")
+    app.connect("autodoc-process-docstring", autodoc_process_docstring)
