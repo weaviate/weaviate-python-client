@@ -1,7 +1,7 @@
 from typing import Generic, List, Optional, Union
 
 from httpx import Response
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 
 from weaviate.cluster.types import Verbosity
@@ -22,7 +22,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
         collection: Optional[str] = None,
         *,
         output: Optional[Verbosity] = None,
-    ) -> ExecutorResult[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]:
+    ) -> executor.Result[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]:
         """
         Get the status of all nodes in the cluster.
 
@@ -63,7 +63,7 @@ class _ClusterExecutor(Generic[ConnectionType]):
             else:
                 return _ConvertFromREST.nodes_minimal(nodes)
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=path,

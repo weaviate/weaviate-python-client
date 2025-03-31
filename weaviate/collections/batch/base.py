@@ -37,7 +37,7 @@ from weaviate.collections.classes.internal import (
     ReferenceInputs,
 )
 from weaviate.collections.classes.types import WeaviateProperties
-from weaviate.connect.executor import result
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import WeaviateBatchValidationError, EmptyResponseException
 from weaviate.logger import logger
@@ -480,7 +480,7 @@ class _BatchBase:
         if (n_objs := len(objs)) > 0:
             start = time.time()
             try:
-                response_obj = result(
+                response_obj = executor.result(
                     self.__batch_grpc.objects(
                         connection=self.__connection,
                         objects=objs,
@@ -613,7 +613,7 @@ class _BatchBase:
         if (n_refs := len(refs)) > 0:
             start = time.time()
             try:
-                response_ref = result(
+                response_ref = executor.result(
                     self.__batch_rest.references(connection=self.__connection, references=refs)
                 )
             except Exception as e:
@@ -753,7 +753,7 @@ class _ClusterBatch:
         self,
     ) -> List[Node]:
         try:
-            response = result(self._connection.get(path="/nodes"))
+            response = executor.result(self._connection.get(path="/nodes"))
         except ConnectError as conn_err:
             raise ConnectError("Get nodes status failed due to connection error") from conn_err
 

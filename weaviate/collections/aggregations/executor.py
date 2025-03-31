@@ -35,7 +35,7 @@ from weaviate.collections.classes.grpc import Move
 from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.filters import _FilterToREST
 from weaviate.collections.grpc.aggregate import _AggregateGRPC
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
@@ -348,7 +348,7 @@ class _BaseExecutor(Generic[ConnectionType]):
             builder = builder.with_tenant(self._tenant)
         return builder
 
-    def _do(self, query: AggregateBuilder) -> ExecutorResult[dict]:
+    def _do(self, query: AggregateBuilder) -> executor.Result[dict]:
         def resp(res: Response) -> dict:
             data = _decode_json_response_dict(res, "Query was not successful")
             assert data is not None
@@ -364,7 +364,7 @@ class _BaseExecutor(Generic[ConnectionType]):
                 )
             return data
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path="/graphql",

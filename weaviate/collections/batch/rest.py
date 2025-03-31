@@ -9,7 +9,7 @@ from weaviate.collections.classes.batch import (
     BatchReferenceReturn,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import Connection, _ExpectedStatusCodes
 from weaviate.util import _decode_json_response_list
 
@@ -20,7 +20,7 @@ class _BatchREST:
 
     def references(
         self, connection: Connection, *, references: List[_BatchReference]
-    ) -> ExecutorResult[BatchReferenceReturn]:
+    ) -> executor.Result[BatchReferenceReturn]:
         params: Dict[str, str] = {}
         if self.__consistency_level is not None:
             params["consistency_level"] = self.__consistency_level.value
@@ -51,7 +51,7 @@ class _BatchREST:
                 has_errors=len(errors) > 0,
             )
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=connection.post,
             path="/batch/references",

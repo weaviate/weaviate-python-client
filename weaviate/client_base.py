@@ -42,7 +42,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
     async def __close_async(self) -> None:
         await executor.aresult(self._connection.close("async"))
 
-    def close(self) -> executor.ExecutorResult[None]:
+    def close(self) -> executor.Result[None]:
         """
         Close the connection to Weaviate.
 
@@ -52,7 +52,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             return self.__close_async()
         return executor.result(self._connection.close("sync"))
 
-    def connect(self) -> executor.ExecutorResult[None]:
+    def connect(self) -> executor.Result[None]:
         """
         Connect to Weaviate.
 
@@ -64,7 +64,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             method=self._connection.connect,
         )
 
-    def is_live(self) -> executor.ExecutorResult[bool]:
+    def is_live(self) -> executor.Result[bool]:
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
@@ -79,7 +79,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             path="/.well-known/live",
         )
 
-    def is_ready(self) -> executor.ExecutorResult[bool]:
+    def is_ready(self) -> executor.Result[bool]:
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
@@ -94,7 +94,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             path="/.well-known/ready",
         )
 
-    def graphql_raw_query(self, gql_query: str) -> executor.ExecutorResult[_RawGQLReturn]:
+    def graphql_raw_query(self, gql_query: str) -> executor.Result[_RawGQLReturn]:
         """Allows to send graphQL string queries, this should only be used for weaviate-features that are not yet supported.
 
         Be cautious of injection risks when generating query strings.
@@ -148,7 +148,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
             is_gql_query=True,
         )
 
-    def get_meta(self) -> executor.ExecutorResult[dict]:
+    def get_meta(self) -> executor.Result[dict]:
         """
         Get the meta endpoint description of weaviate.
 
@@ -167,7 +167,7 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
 
     def get_open_id_configuration(
         self,
-    ) -> executor.ExecutorResult[Optional[Dict[str, Any]]]:
+    ) -> executor.Result[Optional[Dict[str, Any]]]:
         """
         Get the openid-configuration.
 

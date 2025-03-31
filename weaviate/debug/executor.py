@@ -3,7 +3,7 @@ from typing import Dict, Generic, Optional
 from httpx import Response
 
 from weaviate.classes.config import ConsistencyLevel
-from weaviate.connect.executor import execute, ExecutorResult, raise_exception
+from weaviate.connect import executor
 from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType
 from weaviate.debug.types import DebugRESTObject
 from weaviate.types import UUID
@@ -21,7 +21,7 @@ class _DebugExecutor(Generic[ConnectionType]):
         consistency_level: Optional[ConsistencyLevel] = None,
         node_name: Optional[str] = None,
         tenant: Optional[str] = None,
-    ) -> ExecutorResult[Optional[DebugRESTObject]]:
+    ) -> executor.Result[Optional[DebugRESTObject]]:
         """Use the REST API endpoint /objects/{className}/{id} to retrieve an object directly from the database without search.
 
         The key difference between `debug.get_object_over_rest` and `query.fetch_object_by_id` is the underlying protocol.
@@ -42,9 +42,8 @@ class _DebugExecutor(Generic[ConnectionType]):
                 return None
             return DebugRESTObject(**response.json())
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.get,
             path=path,
             params=params,

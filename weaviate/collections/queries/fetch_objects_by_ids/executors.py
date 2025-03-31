@@ -15,7 +15,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executor import _BaseExecutor
-from weaviate.connect.executor import ExecutorResult, execute
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType
 
 from weaviate.proto.v1.search_get_pb2 import SearchReply
@@ -41,7 +41,7 @@ class _FetchObjectsByIdsGenerateExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
-    ) -> ExecutorResult[GenerativeReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> executor.Result[GenerativeReturnType[Properties, References, TProperties, TReferences]]:
         """Perform retrieval-augmented generation (RAG) on the results of a simple get query of objects matching the provided IDs in this collection.
 
         See the docstring of `fetch_objects` for more information on the arguments.
@@ -91,7 +91,7 @@ class _FetchObjectsByIdsGenerateExecutor(
                 generative_provider=generative_provider,
             ),
         )
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.grpc_search,
             request=request,
@@ -113,7 +113,7 @@ class _FetchObjectsByIdsQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
-    ) -> ExecutorResult[QueryReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> executor.Result[QueryReturnType[Properties, References, TProperties, TReferences]]:
         """Perform a special case of fetch_objects based on filters on uuid.
 
         See the docstring of `fetch_objects` for more information on the arguments.
@@ -157,7 +157,7 @@ class _FetchObjectsByIdsQueryExecutor(
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(cast(Any, return_references)),
         )
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.grpc_search,
             request=request,

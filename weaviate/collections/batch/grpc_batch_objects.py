@@ -16,7 +16,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
 from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, _is_1d_vector
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import Connection
 from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
@@ -83,7 +83,7 @@ class _BatchGRPC(_BaseGRPC):
         objects: List[_BatchObject],
         timeout: Union[int, float],
         max_retries: float,
-    ) -> ExecutorResult[BatchObjectReturn]:
+    ) -> executor.Result[BatchObjectReturn]:
         """Insert multiple objects into Weaviate through the gRPC API.
 
         Parameters:
@@ -138,7 +138,7 @@ class _BatchGRPC(_BaseGRPC):
             objects=weaviate_objs,
             consistency_level=self._consistency_level,
         )
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=connection.grpc_batch_objects,
             request=request,

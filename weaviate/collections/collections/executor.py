@@ -42,7 +42,7 @@ from weaviate.collections.classes.types import (
     _check_references_generic,
 )
 from weaviate.collections.collection import CollectionAsync, Collection
-from weaviate.connect.executor import aresult, execute, result, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import (
     ConnectionType,
     ConnectionAsync,
@@ -132,8 +132,8 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         assert isinstance(collection, Collection)
         return collection
 
-    def __delete(self, *, name: str) -> ExecutorResult[None]:
-        return execute(
+    def __delete(self, *, name: str) -> executor.Result[None]:
+        return executor.execute(
             response_callback=lambda res: None,
             method=self._connection.delete,
             path=f"/schema/{name}",
@@ -161,7 +161,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
-    ) -> ExecutorResult[
+    ) -> executor.Result[
         Union[
             Collection[Properties, References], Awaitable[CollectionAsync[Properties, References]]
         ]
@@ -254,7 +254,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     def delete(
         self,
         name: Union[str, List[str]],
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Use this method to delete collection(s) from the Weaviate instance by its/their name(s).
 
         WARNING: If you have instances of `client.collections.use()` or `client.collections.create()`
@@ -278,23 +278,23 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             if isinstance(self._connection, ConnectionAsync):
 
                 async def _execute() -> None:
-                    await aresult(self.__delete(name=name))
+                    await executor.aresult(self.__delete(name=name))
 
                 return _execute()
-            return result(self.__delete(name=name))
+            return executor.result(self.__delete(name=name))
         else:
             if isinstance(self._connection, ConnectionAsync):
 
                 async def _execute() -> None:
-                    await asyncio.gather(*[aresult(self.__delete(name=n)) for n in name])
+                    await asyncio.gather(*[executor.aresult(self.__delete(name=n)) for n in name])
 
                 return _execute()
             for n in name:
                 n = _capitalize_first_letter(n)
-                result(self.__delete(name=n))
+                executor.result(self.__delete(name=n))
             return None
 
-    def delete_all(self) -> ExecutorResult[None]:
+    def delete_all(self) -> executor.Result[None]:
         """Use this method to delete all collections from the Weaviate instance.
 
         WARNING: If you have instances of `client.collections.use()` or client.collections.create()
@@ -311,14 +311,14 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> None:
-                collections = (await aresult(self.list_all())).keys()
-                await aresult(self.delete(list(collections)))
+                collections = (await executor.aresult(self.list_all())).keys()
+                await executor.aresult(self.delete(list(collections)))
 
             return _execute()
-        collections = result(self.list_all()).keys()
-        return result(self.delete(list(collections)))
+        collections = executor.result(self.list_all()).keys()
+        return executor.result(self.delete(list(collections)))
 
-    def exists(self, name: str) -> ExecutorResult[bool]:
+    def exists(self, name: str) -> executor.Result[bool]:
         """Use this method to check if a collection exists in the Weaviate instance.
 
         Arguments:
@@ -342,7 +342,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=path,
@@ -353,7 +353,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     def export_config(
         self,
         name: str,
-    ) -> ExecutorResult[CollectionConfig]:
+    ) -> executor.Result[CollectionConfig]:
         """Use this method to export the configuration of a collection from the Weaviate instance.
 
         Arguments:
@@ -378,7 +378,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             assert data is not None
             return _collection_config_from_json(data)
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=path,
@@ -388,7 +388,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     def list_all(
         self,
         simple: bool = True,
-    ) -> ExecutorResult[Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]]:
+    ) -> executor.Result[Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]]:
         """List the configurations of the all the collections currently in the Weaviate instance.
 
         Arguments:
@@ -418,7 +418,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
                 return _collection_configs_simple_from_json(data)
             return _collection_configs_from_json(data)
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path="/schema",
@@ -434,5 +434,5 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     def _create_from_config(
         self,
         config: CollectionConfig,
-    ) -> ExecutorResult[Union[Collection, CollectionAsync]]:
+    ) -> executor.Result[Union[Collection, CollectionAsync]]:
         return self._create_from_dict(config=config.to_dict())

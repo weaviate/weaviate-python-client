@@ -9,7 +9,7 @@ from weaviate.collections.batch.base import (
 )
 from weaviate.collections.classes.batch import BatchResult, ErrorObject, ErrorReference, Shard
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.connect.executor import result
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.logger import logger
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
@@ -78,7 +78,7 @@ class _BatchWrapper:
 
     def __get_shards_readiness(self, shard: Shard) -> List[bool]:
         path = f"/schema/{_capitalize_first_letter(shard.collection)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
-        response = result(self._connection.get(path=path))
+        response = executor.result(self._connection.get(path=path))
 
         res = _decode_json_response_list(response, "Get shards' status")
         assert res is not None

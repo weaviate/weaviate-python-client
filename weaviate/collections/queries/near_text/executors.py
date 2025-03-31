@@ -24,7 +24,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
 from weaviate.collections.queries.executor import _BaseExecutor
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.proto.v1.search_get_pb2 import SearchReply
 from weaviate.types import NUMBER, INCLUDE_VECTOR
@@ -56,7 +56,7 @@ class _NearTextGenerateExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> ExecutorResult[
+    ) -> executor.Result[
         GenerativeSearchReturnType[Properties, References, TProperties, TReferences]
     ]:
         """Perform retrieval-augmented generation (RAG) on the results of a by-image object search in this collection using the image-capable vectorization module and vector-based similarity search.
@@ -160,7 +160,7 @@ class _NearTextGenerateExecutor(
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
         )
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.grpc_search,
             request=request,
@@ -189,7 +189,7 @@ class _NearTextQueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> ExecutorResult[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> executor.Result[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
         """Search for objects in this collection by text using text-capable vectorization module and vector-based similarity search.
 
         See the [docs](https://weaviate.io/developers/weaviate/api/graphql/search-operators#neartext) for a more detailed explanation.
@@ -277,7 +277,7 @@ class _NearTextQueryExecutor(
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(return_references),
         )
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.grpc_search,
             request=request,

@@ -9,7 +9,7 @@ from weaviate.collections.classes.aggregate import (
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import WeaviateUnsupportedFeatureError
 from weaviate.types import NUMBER
@@ -30,7 +30,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         max_vector_distance: Optional[float] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> ExecutorResult[Union[AggregateReturn, AggregateGroupByReturn]]:
+    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]:
         """Aggregate metrics over all the objects in this collection using the hybrid algorithm blending keyword-based BM25 and vector-based similarity.
 
         Arguments:
@@ -96,7 +96,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 max_vector_distance,
             )
             builder = self._add_groupby_to_builder(builder, group_by)
-            return execute(
+            return executor.execute(
                 response_callback=resp,
                 method=self._do,
                 query=builder,
@@ -121,7 +121,7 @@ class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 limit=group_by.limit if group_by is not None else None,
                 objects_count=total_count,
             )
-            return execute(
+            return executor.execute(
                 response_callback=self._to_result,
                 method=self._connection.grpc_aggregate,
                 request=request,

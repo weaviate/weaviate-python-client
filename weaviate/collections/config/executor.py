@@ -29,7 +29,7 @@ from weaviate.collections.classes.config_methods import (
     _collection_config_simple_from_json,
 )
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
-from weaviate.connect.executor import aresult, execute, result, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
@@ -50,11 +50,11 @@ class _ConfigExecutor(Generic[ConnectionType]):
         self._name = name
         self._tenant = tenant
 
-    def __get(self) -> ExecutorResult[Dict[str, Any]]:
+    def __get(self) -> executor.Result[Dict[str, Any]]:
         def resp(res: Response) -> Dict[str, Any]:
             return cast(Dict[str, Any], res.json())
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=f"/schema/{self._name}",
@@ -65,7 +65,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
     def get(
         self,
         simple: bool = False,
-    ) -> ExecutorResult[Union[CollectionConfig, CollectionConfigSimple]]:
+    ) -> executor.Result[Union[CollectionConfig, CollectionConfigSimple]]:
         """Get the configuration for this collection from Weaviate.
 
         Arguments:
@@ -84,7 +84,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
                 return _collection_config_simple_from_json(res)
             return _collection_config_from_json(res)
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self.__get,
         )
@@ -113,7 +113,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
         ] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         reranker_config: Optional[_RerankerProvider] = None,
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Update the configuration for this collection in Weaviate.
 
         Use the `weaviate.classes.Reconfigure` class to generate the necessary configuration objects for this method.
@@ -168,13 +168,13 @@ class _ConfigExecutor(Generic[ConnectionType]):
         except ValidationError as e:
             raise WeaviateInvalidInputError("Invalid collection config update parameters.") from e
 
-        def resp(schema: Dict[str, Any]) -> ExecutorResult[None]:
+        def resp(schema: Dict[str, Any]) -> executor.Result[None]:
             schema = config.merge_with_existing(schema)
 
             def inner_resp(res: Response) -> None:
                 return None
 
-            return execute(
+            return executor.execute(
                 response_callback=inner_resp,
                 method=self._connection.put,
                 path=f"/schema/{self._name}",
@@ -188,18 +188,18 @@ class _ConfigExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> None:
-                schema = await aresult(self.__get())
-                return await aresult(resp(schema))
+                schema = await executor.aresult(self.__get())
+                return await executor.aresult(resp(schema))
 
             return _execute()
-        schema = result(self.__get())
-        return result(resp(schema))
+        schema = executor.result(self.__get())
+        return executor.result(resp(schema))
 
-    def __add_property(self, additional_property: PropertyType) -> ExecutorResult[None]:
+    def __add_property(self, additional_property: PropertyType) -> executor.Result[None]:
         path = f"/schema/{self._name}/properties"
         obj = additional_property._to_dict()
 
-        def resp(schema: Dict[str, Any]) -> ExecutorResult[None]:
+        def resp(schema: Dict[str, Any]) -> executor.Result[None]:
             if schema.get("moduleConfig"):
                 configured_module = list(schema.get("moduleConfig", {}).keys())[0]
                 modconf = {}
@@ -217,7 +217,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
             def inner_resp(res: Response) -> None:
                 return None
 
-            return execute(
+            return executor.execute(
                 response_callback=inner_resp,
                 method=self._connection.post,
                 path=path,
@@ -229,14 +229,14 @@ class _ConfigExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> None:
-                schema = await aresult(self.__get())
-                return await aresult(resp(schema))
+                schema = await executor.aresult(self.__get())
+                return await executor.aresult(resp(schema))
 
             return _execute()
-        schema = result(self.__get())
-        return result(resp(schema))
+        schema = executor.result(self.__get())
+        return executor.result(resp(schema))
 
-    def __property_exists(self, property_name: str) -> ExecutorResult[bool]:
+    def __property_exists(self, property_name: str) -> executor.Result[bool]:
         def resp(schema: Dict[str, Any]) -> bool:
             conf = _collection_config_simple_from_json(schema)
             if len(conf.properties) == 0:
@@ -246,12 +246,12 @@ class _ConfigExecutor(Generic[ConnectionType]):
                     return True
             return False
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self.__get,
         )
 
-    def __reference_exists(self, reference_name: str) -> ExecutorResult[bool]:
+    def __reference_exists(self, reference_name: str) -> executor.Result[bool]:
         def resp(schema: Dict[str, Any]) -> bool:
             conf = _collection_config_simple_from_json(schema)
             if len(conf.references) == 0:
@@ -261,12 +261,12 @@ class _ConfigExecutor(Generic[ConnectionType]):
                     return True
             return False
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self.__get,
         )
 
-    def __get_shards(self) -> ExecutorResult[List[ShardStatus]]:
+    def __get_shards(self) -> executor.Result[List[ShardStatus]]:
         def resp(res: Response) -> List[ShardStatus]:
             shards = _decode_json_response_list(res, "get shards")
             assert shards is not None
@@ -279,14 +279,14 @@ class _ConfigExecutor(Generic[ConnectionType]):
                 for shard in shards
             ]
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=f"/schema/{self._name}/shards{f'?tenant={self._tenant}' if self._tenant else ''}",
             error_msg="Shard statuses could not be retrieved.",
         )
 
-    def get_shards(self) -> ExecutorResult[List[ShardStatus]]:
+    def get_shards(self) -> executor.Result[List[ShardStatus]]:
         """Get the statuses of the shards of this collection.
 
         If the collection is multi-tenancy and you did not call `.with_tenant` then you
@@ -307,7 +307,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
 
     def __update_shard(
         self, shard_name: str, status: str
-    ) -> ExecutorResult[Tuple[str, ShardTypes]]:
+    ) -> executor.Result[Tuple[str, ShardTypes]]:
         path = f"/schema/{self._name}/shards/{shard_name}"
         data = {"status": status}
 
@@ -316,7 +316,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
             assert shard is not None
             return shard_name, shard["status"]
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.put,
             path=path,
@@ -328,7 +328,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
         self,
         status: Literal["READY", "READONLY"],
         shard_names: Optional[Union[str, List[str]]] = None,
-    ) -> ExecutorResult[Dict[str, ShardTypes]]:
+    ) -> executor.Result[Dict[str, ShardTypes]]:
         """Update the status of one or all shards of this collection.
 
         Returns:
@@ -353,14 +353,14 @@ class _ConfigExecutor(Generic[ConnectionType]):
                 shard_names: Optional[Union[str, List[str]]]
             ) -> Dict[str, ShardTypes]:
                 if shard_names is None:
-                    shards_config = await aresult(self.__get_shards())
+                    shards_config = await executor.aresult(self.__get_shards())
                     shard_names = [shard_config.name for shard_config in shards_config]
                 elif isinstance(shard_names, str):
                     shard_names = [shard_names]
 
                 results = await asyncio.gather(
                     *[
-                        aresult(self.__update_shard(shard_name=shard_name, status=status))
+                        executor.aresult(self.__update_shard(shard_name=shard_name, status=status))
                         for shard_name in shard_names
                     ]
                 )
@@ -370,7 +370,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
             return _execute(shard_names)
 
         if shard_names is None:
-            shards_config = result(self.__get_shards())
+            shards_config = executor.result(self.__get_shards())
             shard_names = [shard_config.name for shard_config in shards_config]
         elif isinstance(shard_names, str):
             shard_names = [shard_names]
@@ -378,12 +378,12 @@ class _ConfigExecutor(Generic[ConnectionType]):
         return {
             result[0]: result[1]
             for result in [
-                result(self.__update_shard(shard_name=shard_name, status=status))
+                executor.result(self.__update_shard(shard_name=shard_name, status=status))
                 for shard_name in shard_names
             ]
         }
 
-    def add_property(self, prop: Property) -> ExecutorResult[None]:
+    def add_property(self, prop: Property) -> executor.Result[None]:
         """Add a property to the collection in Weaviate.
 
         Arguments:
@@ -399,7 +399,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
         """
         _validate_input([_ValidateArgument(expected=[Property], name="prop", value=prop)])
 
-        def resp(exists: bool) -> ExecutorResult[None]:
+        def resp(exists: bool) -> executor.Result[None]:
             if exists:
                 raise WeaviateInvalidInputError(
                     f"Property with name '{prop.name}' already exists in collection '{self._name}'."
@@ -409,17 +409,17 @@ class _ConfigExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> None:
-                exists = await aresult(self.__property_exists(property_name=prop.name))
-                return await aresult(resp(exists))
+                exists = await executor.aresult(self.__property_exists(property_name=prop.name))
+                return await executor.aresult(resp(exists))
 
             return _execute()
-        exists = result(self.__property_exists(property_name=prop.name))
-        return result(resp(exists))
+        exists = executor.result(self.__property_exists(property_name=prop.name))
+        return executor.result(resp(exists))
 
     def add_reference(
         self,
         ref: Union[ReferenceProperty, _ReferencePropertyMultiTarget],
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Add a reference to the collection in Weaviate.
 
         Arguments:
@@ -443,7 +443,7 @@ class _ConfigExecutor(Generic[ConnectionType]):
             ]
         )
 
-        def resp(exists: bool) -> ExecutorResult[None]:
+        def resp(exists: bool) -> executor.Result[None]:
             if exists:
                 raise WeaviateInvalidInputError(
                     f"Reference with name '{ref.name}' already exists in collection '{self._name}'."
@@ -453,9 +453,9 @@ class _ConfigExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> None:
-                exists = await aresult(self.__reference_exists(reference_name=ref.name))
-                return await aresult(resp(exists))
+                exists = await executor.aresult(self.__reference_exists(reference_name=ref.name))
+                return await executor.aresult(resp(exists))
 
             return _execute()
-        exists = result(self.__reference_exists(reference_name=ref.name))
-        return result(resp(exists))
+        exists = executor.result(self.__reference_exists(reference_name=ref.name))
+        return executor.result(resp(exists))

@@ -3,7 +3,7 @@ from typing import Any, Dict, Final, Generic, List, Literal, Optional, Union, ca
 
 from httpx import Response
 
-from weaviate.connect.executor import ExecutorResult, execute
+from weaviate.connect import executor
 from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType
 from weaviate.rbac.models import (
     Role,
@@ -52,7 +52,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         user_id: str,
         user_type: USER_TYPE,
         include_permissions: bool,
-    ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         path = f"/authz/users/{user_id}/roles/{user_type}"
 
         def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
@@ -61,7 +61,7 @@ class _BaseExecutor(Generic[ConnectionType]):
                 return {role["name"]: Role._from_weaviate_role(role) for role in roles}
             return {role["name"]: RoleBase(role["name"]) for role in roles}
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=path,
@@ -73,13 +73,13 @@ class _BaseExecutor(Generic[ConnectionType]):
     def _get_roles_of_user_deprecated(
         self,
         user_id: str,
-    ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         path = f"/authz/users/{user_id}/roles"
 
         def resp(res: Response) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
             return {role["name"]: Role._from_weaviate_role(role) for role in res.json()}
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=path,
@@ -92,7 +92,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         roles: List[str],
         user_id: str,
         user_type: Optional[USER_TYPE],
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         path = f"/authz/users/{user_id}/assign"
 
         payload: Dict[str, Any] = {"roles": roles}
@@ -102,7 +102,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> None:
             pass
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=path,
@@ -116,7 +116,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         roles: Union[str, List[str]],
         user_id: str,
         user_type: Optional[USER_TYPE],
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         path = f"/authz/users/{user_id}/revoke"
 
         payload: Dict[str, Any] = {"roles": roles}
@@ -126,7 +126,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> None:
             pass
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=path,
@@ -137,7 +137,7 @@ class _BaseExecutor(Generic[ConnectionType]):
 
 
 class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
-    def get_my_user(self) -> ExecutorResult[OwnUser]:
+    def get_my_user(self) -> executor.Result[OwnUser]:
         """Get the currently authenticated user.
 
         Returns:
@@ -159,7 +159,7 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
                 ),
             )
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=path,
@@ -167,7 +167,7 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own roles"),
         )
 
-    def get_assigned_roles(self, user_id: str) -> ExecutorResult[Dict[str, Role]]:
+    def get_assigned_roles(self, user_id: str) -> executor.Result[Dict[str, Role]]:
         """Get the roles assigned to a user.
 
         Args:
@@ -184,7 +184,7 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         *,
         user_id: str,
         role_names: Union[str, List[str]],
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Assign roles to a user.
 
         Args:
@@ -202,7 +202,7 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         *,
         user_id: str,
         role_names: Union[str, List[str]],
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Revoke roles from a user.
 
         Args:
@@ -221,7 +221,7 @@ class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         self,
         user_id: str,
         include_permissions: bool = False,
-    ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         """Get the roles assigned to a user specific to the configured OIDC's dynamic auth functionality.
 
         Args:
@@ -241,7 +241,7 @@ class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         *,
         user_id: str,
         role_names: Union[str, List[str]],
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Assign roles to a user specific to the configured OIDC's dynamic auth functionality.
 
         Args:
@@ -259,7 +259,7 @@ class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         *,
         user_id: str,
         role_names: Union[str, List[str]],
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Revoke roles from a user specific to the configured OIDC's dynamic auth functionality.
 
         Args:
@@ -276,7 +276,7 @@ class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_assigned_roles(
         self, user_id: str, include_permissions: bool = False
-    ) -> ExecutorResult[Union[Dict[str, Role], Dict[str, RoleBase]]]:
+    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         """Get the roles assigned to a user.
 
         Args:
@@ -296,7 +296,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         *,
         user_id: str,
         role_names: Union[str, List[str]],
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Assign roles to a user.
 
         Args:
@@ -311,7 +311,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
     def revoke_roles(
         self, *, user_id: str, role_names: Union[str, List[str]]
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Revoke roles from a user.
 
         Args:
@@ -324,7 +324,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             USER_TYPE_DB,
         )
 
-    def create(self, *, user_id: str) -> ExecutorResult[str]:
+    def create(self, *, user_id: str) -> executor.Result[str]:
         """Create a new db user.
 
         Args:
@@ -336,7 +336,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             assert resp is not None
             return str(resp["apikey"])
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=f"/users/db/{user_id}",
@@ -345,7 +345,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create user"),
         )
 
-    def delete(self, *, user_id: str) -> ExecutorResult[bool]:
+    def delete(self, *, user_id: str) -> executor.Result[bool]:
         """Delete a (dynamic) db user.
 
         Args:
@@ -355,7 +355,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         def resp(res: Response) -> bool:
             return res.status_code == 204
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.delete,
             path=f"/users/db/{user_id}",
@@ -363,7 +363,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="Delete user"),
         )
 
-    def rotate_key(self, *, user_id: str) -> ExecutorResult[str]:
+    def rotate_key(self, *, user_id: str) -> executor.Result[str]:
         """Rotate the key of a new db user.
 
         Args:
@@ -375,7 +375,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             assert resp is not None
             return str(resp["apikey"])
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=f"/users/db/{user_id}/rotate-key",
@@ -384,7 +384,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Rotate key"),
         )
 
-    def activate(self, *, user_id: str) -> ExecutorResult[bool]:
+    def activate(self, *, user_id: str) -> executor.Result[bool]:
         """Activate a deactivated user.
 
         Args:
@@ -394,7 +394,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=f"/users/db/{user_id}/activate",
@@ -403,7 +403,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="Activate user"),
         )
 
-    def deactivate(self, *, user_id: str) -> ExecutorResult[bool]:
+    def deactivate(self, *, user_id: str) -> executor.Result[bool]:
         """Deactivate an active user.
 
         Args:
@@ -413,7 +413,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=f"/users/db/{user_id}/deactivate",
@@ -422,7 +422,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="Deactivate user"),
         )
 
-    def get(self, *, user_id: str) -> ExecutorResult[Optional[UserDB]]:
+    def get(self, *, user_id: str) -> executor.Result[Optional[UserDB]]:
         """Get all information about an user.
 
         Args:
@@ -441,7 +441,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 user_type=UserTypes(parsed["dbUserType"]),
             )
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=f"/users/db/{user_id}",
@@ -449,7 +449,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get user"),
         )
 
-    def list_all(self) -> ExecutorResult[List[UserDB]]:
+    def list_all(self) -> executor.Result[List[UserDB]]:
         """List all DB users."""
 
         def resp(res: Response) -> List[UserDB]:
@@ -465,7 +465,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 for user in cast(List[WeaviateDBUserRoleNames], parsed)
             ]
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path="/users/db",

@@ -11,7 +11,7 @@ from httpx import Response
 from pydantic import BaseModel, Field
 
 from weaviate.backup.backup_location import _BackupLocationConfig, BackupLocationType
-from weaviate.connect.executor import execute, ExecutorResult, aresult, result
+from weaviate.connect import executor
 from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync, ConnectionType
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
@@ -115,7 +115,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
-    ) -> ExecutorResult[BackupReturn]:
+    ) -> executor.Result[BackupReturn]:
         """Create a backup of all/per collection Weaviate objects.
 
         Parameters
@@ -197,7 +197,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> BackupReturn:
-                res = await aresult(
+                res = await executor.aresult(
                     self._connection.post(
                         path=path,
                         weaviate_object=payload,
@@ -208,7 +208,7 @@ class _BackupExecutor(Generic[ConnectionType]):
                 assert create_status is not None
                 if wait_for_completion:
                     while True:
-                        status = await aresult(
+                        status = await executor.aresult(
                             self.get_create_status(
                                 backup_id=backup_id,
                                 backend=backend,
@@ -231,7 +231,7 @@ class _BackupExecutor(Generic[ConnectionType]):
 
             return _execute()
 
-        res = result(
+        res = executor.result(
             self._connection.post(
                 path=path,
                 weaviate_object=payload,
@@ -242,7 +242,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         assert create_status is not None
         if wait_for_completion:
             while True:
-                status = result(
+                status = executor.result(
                     self.get_create_status(
                         backup_id=backup_id,
                         backend=backend,
@@ -268,7 +268,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
-    ) -> ExecutorResult[BackupStatusReturn]:
+    ) -> executor.Result[BackupStatusReturn]:
         """
         Checks if a started backup job has completed.
 
@@ -310,7 +310,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             typed_response["id"] = backup_id
             return BackupStatusReturn(**typed_response)
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=path,
@@ -327,7 +327,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
-    ) -> ExecutorResult[BackupReturn]:
+    ) -> executor.Result[BackupReturn]:
         """
         Restore a backup of all/per collection Weaviate objects.
 
@@ -409,7 +409,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute() -> BackupReturn:
-                response = await aresult(
+                response = await executor.aresult(
                     self._connection.post(
                         path=path,
                         weaviate_object=payload,
@@ -420,7 +420,7 @@ class _BackupExecutor(Generic[ConnectionType]):
                 assert restore_status is not None
                 if wait_for_completion:
                     while True:
-                        status = await aresult(
+                        status = await executor.aresult(
                             self.get_restore_status(
                                 backup_id=backup_id,
                                 backend=backend,
@@ -444,7 +444,7 @@ class _BackupExecutor(Generic[ConnectionType]):
 
             return _execute()
 
-        response = result(
+        response = executor.result(
             self._connection.post(
                 path=path,
                 weaviate_object=payload,
@@ -455,7 +455,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         assert restore_status is not None
         if wait_for_completion:
             while True:
-                status = result(
+                status = executor.result(
                     self.get_restore_status(
                         backup_id=backup_id,
                         backend=backend,
@@ -482,7 +482,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
-    ) -> ExecutorResult[BackupStatusReturn]:
+    ) -> executor.Result[BackupStatusReturn]:
         """
         Checks if a started restore job has completed.
 
@@ -523,7 +523,7 @@ class _BackupExecutor(Generic[ConnectionType]):
             typed_response["id"] = backup_id
             return BackupStatusReturn(**typed_response)
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=path,
@@ -536,7 +536,7 @@ class _BackupExecutor(Generic[ConnectionType]):
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
-    ) -> ExecutorResult[bool]:
+    ) -> executor.Result[bool]:
         """
         Cancels a running backup.
 
@@ -583,7 +583,7 @@ class _BackupExecutor(Generic[ConnectionType]):
                 raise EmptyResponseException()
             return False
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.delete,
             path=path,

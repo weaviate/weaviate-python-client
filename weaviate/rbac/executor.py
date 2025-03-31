@@ -5,7 +5,7 @@ from typing import Dict, Generic, List, Optional, Sequence, Union, cast
 from httpx import Response
 
 from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType, ConnectionAsync
-from weaviate.connect.executor import ExecutorResult, aresult, execute, raise_exception, result
+from weaviate.connect import executor
 from weaviate.rbac.models import (
     _Permission,
     PermissionsOutputType,
@@ -36,7 +36,7 @@ class _RolesExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
 
-    def list_all(self) -> ExecutorResult[Dict[str, Role]]:
+    def list_all(self) -> executor.Result[Dict[str, Role]]:
         """Get all roles.
 
         Returns:
@@ -47,32 +47,30 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> Dict[str, Role]:
             return {role["name"]: Role._from_weaviate_role(role) for role in res.json()}
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.get,
             path=path,
             error_msg="Could not get roles",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get roles"),
         )
 
-    def get_current_roles(self) -> ExecutorResult[List[Role]]:
+    def get_current_roles(self) -> executor.Result[List[Role]]:
         # TODO: Add documentation here and this method to the stubs plus tests
         path = "/authz/users/own-roles"
 
         def resp(res: Response) -> List[Role]:
             return [Role._from_weaviate_role(role) for role in cast(List[WeaviateRole], res.json())]
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.get,
             path=path,
             error_msg="Could not get roles",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own roles"),
         )
 
-    def exists(self, role_name: str) -> ExecutorResult[bool]:
+    def exists(self, role_name: str) -> executor.Result[bool]:
         """Check if a role exists.
 
         Args:
@@ -86,16 +84,15 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.get,
             path=path,
             error_msg=f"Could not get role {role_name}",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="Get role"),
         )
 
-    def get(self, role_name: str) -> ExecutorResult[Optional[Role]]:
+    def get(self, role_name: str) -> executor.Result[Optional[Role]]:
         """Get the permissions granted to this role.
 
         Args:
@@ -111,16 +108,15 @@ class _RolesExecutor(Generic[ConnectionType]):
                 return None
             return Role._from_weaviate_role(cast(WeaviateRole, res.json()))
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.get,
             path=path,
             error_msg=f"Could not get role {role_name}",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="Get role"),
         )
 
-    def create(self, *, role_name: str, permissions: PermissionsInputType) -> ExecutorResult[Role]:
+    def create(self, *, role_name: str, permissions: PermissionsInputType) -> executor.Result[Role]:
         """Create a new role.
 
         Args:
@@ -144,9 +140,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> Role:
             return Role._from_weaviate_role(role)
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.post,
             path=path,
             weaviate_object=role,
@@ -154,7 +149,7 @@ class _RolesExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[201], error="Create role"),
         )
 
-    def get_user_assignments(self, role_name: str) -> ExecutorResult[List[UserAssignment]]:
+    def get_user_assignments(self, role_name: str) -> executor.Result[List[UserAssignment]]:
         """Get the ids and usertype of users that have been assigned this role.
 
         Args:
@@ -173,7 +168,7 @@ class _RolesExecutor(Generic[ConnectionType]):
                 for assignment in res.json()
             ]
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.get,
             path=path,
@@ -184,7 +179,7 @@ class _RolesExecutor(Generic[ConnectionType]):
     def get_assigned_user_ids(
         self,
         role_name: str,
-    ) -> ExecutorResult[List[str]]:
+    ) -> executor.Result[List[str]]:
         """Get the ids of user that have been assigned this role.
 
         Args:
@@ -198,9 +193,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> List[str]:
             return cast(List[str], res.json())
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.get,
             path=path,
             error_msg=f"Could not get users of role {role_name}",
@@ -210,7 +204,7 @@ class _RolesExecutor(Generic[ConnectionType]):
     def delete(
         self,
         role_name: str,
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Delete a role.
 
         Args:
@@ -221,9 +215,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> None:
             return None
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.delete,
             path=path,
             error_msg=f"Could not delete role {role_name}",
@@ -232,7 +225,7 @@ class _RolesExecutor(Generic[ConnectionType]):
 
     def add_permissions(
         self, *, permissions: PermissionsInputType, role_name: str
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Add permissions to a role.
 
         Note: This method is an upsert operation. If the permission already exists, it will be updated. If it does not exist, it will be created.
@@ -249,9 +242,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> None:
             return None
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.post,
             path=path,
             weaviate_object={
@@ -267,7 +259,7 @@ class _RolesExecutor(Generic[ConnectionType]):
 
     def remove_permissions(
         self, *, permissions: PermissionsInputType, role_name: str
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Remove permissions from a role.
 
         Note: This method is a downsert operation. If the permission does not exist, it will be ignored. If these permissions are the only permissions of the role, the role will be deleted.
@@ -284,9 +276,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> None:
             return None
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
-            exception_callback=raise_exception,
             method=self._connection.post,
             path=path,
             weaviate_object={
@@ -305,13 +296,13 @@ class _RolesExecutor(Generic[ConnectionType]):
         *,
         permission: WeaviatePermission,
         role: str,
-    ) -> ExecutorResult[bool]:
+    ) -> executor.Result[bool]:
         path = f"/authz/roles/{role}/has-permission"
 
         def resp(res: Response) -> bool:
             return res.status_code == 200
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=path,
@@ -327,7 +318,7 @@ class _RolesExecutor(Generic[ConnectionType]):
             PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
         ],
         role: str,
-    ) -> ExecutorResult[bool]:
+    ) -> executor.Result[bool]:
         """Check if a role has a specific set of permission.
 
         Args:
@@ -343,7 +334,7 @@ class _RolesExecutor(Generic[ConnectionType]):
                 return all(
                     await asyncio.gather(
                         *[
-                            aresult(self.__has_permission(permission=weav_perm, role=role))
+                            executor.aresult(self.__has_permission(permission=weav_perm, role=role))
                             for permission in _flatten_permissions(permissions)
                             for weav_perm in permission._to_weaviate()
                         ]
@@ -353,7 +344,7 @@ class _RolesExecutor(Generic[ConnectionType]):
             return execute()
 
         return all(
-            result(self.__has_permission(permission=weav_perm, role=role))
+            executor.result(self.__has_permission(permission=weav_perm, role=role))
             for permission in _flatten_permissions(permissions)
             for weav_perm in permission._to_weaviate()
         )

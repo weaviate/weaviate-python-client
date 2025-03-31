@@ -9,7 +9,7 @@ from weaviate.backup.executor import (
     _BackupExecutor,
 )
 from weaviate.backup.backup_location import BackupLocationType
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 
 
@@ -25,7 +25,7 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
-    ) -> ExecutorResult[BackupStatusReturn]:
+    ) -> executor.Result[BackupStatusReturn]:
         """Create a backup of this collection.
 
         Arguments:
@@ -59,7 +59,7 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
                 error=res.error, status=res.status, path=res.path, id=backup_id
             )
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._executor.create,
             backup_id=backup_id,
@@ -78,7 +78,7 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
         wait_for_completion: bool = False,
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
-    ) -> ExecutorResult[BackupStatusReturn]:
+    ) -> executor.Result[BackupStatusReturn]:
         """
         Restore a backup of all/per class Weaviate objects.
 
@@ -112,7 +112,7 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
                 error=res.error, status=res.status, path=res.path, id=backup_id
             )
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._executor.restore,
             backup_id=backup_id,
@@ -129,7 +129,7 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
-    ) -> ExecutorResult[BackupStatusReturn]:
+    ) -> executor.Result[BackupStatusReturn]:
         """Check if a started backup job has completed.
 
         Arguments:
@@ -155,7 +155,7 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
         backup_id: str,
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
-    ) -> ExecutorResult[BackupStatusReturn]:
+    ) -> executor.Result[BackupStatusReturn]:
         """Check if a started classification job has completed.
 
         Arguments:

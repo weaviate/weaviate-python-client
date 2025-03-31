@@ -18,7 +18,7 @@ SyncOrAsyncMethod = Union[
     Callable[P, R], Callable[P, Awaitable[R]], Callable[P, Union[R, Awaitable[R]]]
 ]
 
-ExecutorResult = Union[T, Awaitable[T]]
+Result = Union[T, Awaitable[T]]
 Colour = Literal["async", "sync"]
 
 
@@ -87,17 +87,17 @@ def execute(
         return cast(T, exception_callback(e))
 
 
-def result(result: ExecutorResult[T]) -> T:
+def result(result: Result[T]) -> T:
     assert not isinstance(result, Awaitable), f"Expected sync result, got {result}"
     return result
 
 
-async def aresult(result: ExecutorResult[T]) -> T:
+async def aresult(result: Result[T]) -> T:
     assert isinstance(result, Awaitable), f"Expected async result, got {result}"
     return await result
 
 
-def return_(value: T, colour: Colour) -> ExecutorResult[T]:
+def return_(value: T, colour: Colour) -> Result[T]:
     if colour == "async":
 
         async def execute_() -> T:
@@ -107,7 +107,7 @@ def return_(value: T, colour: Colour) -> ExecutorResult[T]:
     return value
 
 
-def empty(colour: Colour) -> ExecutorResult[None]:
+def empty(colour: Colour) -> Result[None]:
     return return_(None, colour)
 
 

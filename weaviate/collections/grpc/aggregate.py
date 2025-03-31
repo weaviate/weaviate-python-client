@@ -8,7 +8,7 @@ from weaviate.collections.classes.grpc import (
     HybridVectorType,
 )
 from weaviate.collections.grpc.shared import _BaseGRPC
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import Connection
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
@@ -31,11 +31,11 @@ class _AggregateGRPC(_BaseGRPC):
         self._name: str = name
         self._tenant = tenant
 
-    def objects_count(self, connection: Connection) -> ExecutorResult[int]:
+    def objects_count(self, connection: Connection) -> executor.Result[int]:
         def resp(res: aggregate_pb2.AggregateReply) -> int:
             return res.single_result.objects_count
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=connection.grpc_aggregate,
             request=self.__create_request(objects_count=True),

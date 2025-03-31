@@ -55,7 +55,7 @@ from weaviate.connect.base import (
     JSONPayload,
     _get_proxies,
 )
-from weaviate.connect.executor import aresult, result, empty, execute, Colour, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.event_loop import _EventLoopSingleton
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
@@ -190,7 +190,7 @@ class _ConnectionBase:
     @overload
     def _make_client(self, colour: Literal["sync"]) -> Client: ...
 
-    def _make_client(self, colour: Colour) -> Union[AsyncClient, Client]:
+    def _make_client(self, colour: executor.Colour) -> Union[AsyncClient, Client]:
         if colour == "async":
             return AsyncClient(
                 headers=self._headers,
@@ -211,7 +211,7 @@ class _ConnectionBase:
     def _make_mounts(self, colour: Literal["sync"]) -> Dict[str, HTTPTransport]: ...
 
     def _make_mounts(
-        self, colour: Colour
+        self, colour: executor.Colour
     ) -> Union[Dict[str, AsyncHTTPTransport], Dict[str, HTTPTransport]]:
         if colour == "async":
             return {
@@ -312,7 +312,7 @@ class _ConnectionBase:
                 self.get_current_bearer_token(),
             )
 
-    def _ping_grpc(self, colour: Colour) -> Union[None, Awaitable[None]]:
+    def _ping_grpc(self, colour: executor.Colour) -> Union[None, Awaitable[None]]:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
         if not self.is_connected():
             raise WeaviateClosedClientError()
@@ -380,7 +380,7 @@ class _ConnectionBase:
     def __make_clients(self, colour: Literal["async", "sync"]) -> None:
         self._client = self._make_client(colour)
 
-    def open_connection_grpc(self, colour: Colour) -> None:
+    def open_connection_grpc(self, colour: executor.Colour) -> None:
         channel = self._connection_params._grpc_channel(
             proxies=self._proxies, grpc_msg_size=self._grpc_max_msg_size, is_async=colour == "async"
         )
@@ -389,21 +389,21 @@ class _ConnectionBase:
         self._grpc_stub = weaviate_pb2_grpc.WeaviateStub(self._grpc_channel)
 
     def _open_connections_rest(
-        self, auth_client_secret: Optional[AuthCredentials], colour: Colour
+        self, auth_client_secret: Optional[AuthCredentials], colour: executor.Colour
     ) -> Union[None, Awaitable[None]]:
         # API keys are separate from OIDC and do not need any config from weaviate
         if auth_client_secret is not None and isinstance(auth_client_secret, AuthApiKey):
             self.__make_clients(colour)
-            return empty(colour)
+            return executor.empty(colour)
 
         if "authorization" in self._headers and auth_client_secret is None:
             self.__make_clients(colour)
-            return empty(colour)
+            return executor.empty(colour)
 
         # no need to check OIDC if no auth is provided and users dont want any checks at initialization time
         if self._skip_init_checks and auth_client_secret is None:
             self.__make_clients(colour)
-            return empty(colour)
+            return executor.empty(colour)
 
         oidc_url = self.url + self._api_version_path + "/.well-known/openid-configuration"
         if colour == "async":
@@ -440,7 +440,7 @@ class _ConnectionBase:
         response: Response,
         auth_client_secret: Optional[AuthCredentials],
         oidc_url: str,
-        colour: Colour,
+        colour: executor.Colour,
     ) -> Union[None, Awaitable[None]]:
         if response.status_code == 200:
             # Some setups are behind proxies that return some default page - for example a login - for all requests.
@@ -451,13 +451,13 @@ class _ConnectionBase:
             except Exception:
                 _Warnings.auth_cannot_parse_oidc_config(oidc_url)
                 self.__make_clients(colour)
-                return empty(colour)
+                return executor.empty(colour)
 
             if auth_client_secret is not None:
                 if colour == "async":
 
                     async def execute() -> None:
-                        _auth = await aresult(
+                        _auth = await executor.aresult(
                             _Auth.use(
                                 oidc_config=resp,
                                 credentials=auth_client_secret,
@@ -480,7 +480,7 @@ class _ConnectionBase:
 
                     return execute()
                 else:
-                    _auth = result(
+                    _auth = executor.result(
                         _Auth.use(
                             oidc_config=resp,
                             credentials=auth_client_secret,
@@ -523,7 +523,7 @@ class _ConnectionBase:
             self.__make_clients(colour)
         else:
             self.__make_clients(colour)
-        return empty(colour)
+        return executor.empty(colour)
 
     def _create_background_token_refresh(self, _auth: Optional[_Auth] = None) -> None:
         """Create a background thread that periodically refreshes access and refresh tokens.
@@ -680,7 +680,7 @@ class _ConnectionBase:
         is_gql_query: bool = False,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
-    ) -> ExecutorResult[Response]:
+    ) -> executor.Result[Response]:
         if not self.is_connected():
             raise WeaviateClosedClientError()
         if self.embedded_db is not None:
@@ -701,14 +701,14 @@ class _ConnectionBase:
         def exc(e: Exception) -> None:
             self.__handle_exceptions(e, error_msg)
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             exception_callback=exc,
             method=self._client.send,
             request=request,
         )
 
-    def close(self, colour: Colour) -> ExecutorResult[None]:
+    def close(self, colour: executor.Colour) -> executor.Result[None]:
         if self.embedded_db is not None:
             self.embedded_db.stop()
         if colour == "async":
@@ -739,7 +739,7 @@ class _ConnectionBase:
             self._grpc_channel = None
         self._connected = False
 
-    def _check_package_version(self, colour: Colour) -> ExecutorResult[None]:
+    def _check_package_version(self, colour: executor.Colour) -> executor.Result[None]:
         def resp(res: Response) -> None:
             pkg_info: dict = res.json().get("info", {})
             latest_version = pkg_info.get("version", "unknown version")
@@ -771,7 +771,7 @@ class _ConnectionBase:
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> ExecutorResult[Response]:
+    ) -> executor.Result[Response]:
         return self._send(
             "DELETE",
             url=self.url + self._api_version_path + path,
@@ -788,7 +788,7 @@ class _ConnectionBase:
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> ExecutorResult[Response]:
+    ) -> executor.Result[Response]:
         return self._send(
             "PATCH",
             url=self.url + self._api_version_path + path,
@@ -806,7 +806,7 @@ class _ConnectionBase:
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
         is_gql_query: bool = False,
-    ) -> ExecutorResult[Response]:
+    ) -> executor.Result[Response]:
         return self._send(
             "POST",
             url=self.url + self._api_version_path + path,
@@ -824,7 +824,7 @@ class _ConnectionBase:
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> ExecutorResult[Response]:
+    ) -> executor.Result[Response]:
         return self._send(
             "PUT",
             url=self.url + self._api_version_path + path,
@@ -840,7 +840,7 @@ class _ConnectionBase:
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> ExecutorResult[Response]:
+    ) -> executor.Result[Response]:
         return self._send(
             "GET",
             url=self.url + self._api_version_path + path,
@@ -855,7 +855,7 @@ class _ConnectionBase:
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
-    ) -> ExecutorResult[Response]:
+    ) -> executor.Result[Response]:
         return self._send(
             "HEAD",
             url=self.url + self._api_version_path + path,
@@ -864,15 +864,15 @@ class _ConnectionBase:
             status_codes=status_codes,
         )
 
-    def get_meta(self) -> ExecutorResult[Dict[str, str]]:
+    def get_meta(self) -> executor.Result[Dict[str, str]]:
         def resp(res: Response) -> Dict[str, str]:
             data = _decode_json_response_dict(res, "Meta endpoint")
             assert data is not None
             return data
 
-        return execute(response_callback=resp, method=self.get, path="/meta")
+        return executor.execute(response_callback=resp, method=self.get, path="/meta")
 
-    def get_open_id_configuration(self) -> ExecutorResult[Optional[Dict[str, Any]]]:
+    def get_open_id_configuration(self) -> executor.Result[Optional[Dict[str, Any]]]:
         def resp(res: Response) -> Optional[Dict[str, Any]]:
             if res.status_code == 200:
                 return _decode_json_response_dict(res, "OpenID Configuration")
@@ -880,7 +880,7 @@ class _ConnectionBase:
                 return None
             raise UnexpectedStatusCodeError("Meta endpoint", res)
 
-        return execute(
+        return executor.execute(
             response_callback=resp, method=self.get, path="/.well-known/openid-configuration"
         )
 
@@ -900,7 +900,7 @@ class ConnectionSync(_ConnectionBase):
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = result(self.get_meta())
+            meta = executor.result(self.get_meta())
             self._weaviate_version = _ServerVersion.from_string(meta["version"])
             if "grpcMaxMessageSize" in meta:
                 self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
@@ -934,8 +934,8 @@ class ConnectionSync(_ConnectionBase):
 
         if not self._skip_init_checks:
             try:
-                result(self._ping_grpc("sync"))
-                result(self._check_package_version("sync"))
+                executor.result(self._ping_grpc("sync"))
+                executor.result(self._check_package_version("sync"))
             except Exception as e:
                 self._connected = False
                 raise e
@@ -943,13 +943,13 @@ class ConnectionSync(_ConnectionBase):
     def wait_for_weaviate(self, startup_period: int) -> None:
         for _i in range(startup_period):
             try:
-                result(self.get("/.well-known/ready")).raise_for_status()
+                executor.result(self.get("/.well-known/ready")).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
-            result(self.get("/.well-known/ready")).raise_for_status()
+            executor.result(self.get("/.well-known/ready")).raise_for_status()
             return
         except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(
@@ -1075,7 +1075,7 @@ class ConnectionAsync(_ConnectionBase):
 
         self._connected = True
 
-        await aresult(self._open_connections_rest(self._auth, "async"))
+        await executor.aresult(self._open_connections_rest(self._auth, "async"))
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
@@ -1114,8 +1114,8 @@ class ConnectionAsync(_ConnectionBase):
 
         if not self._skip_init_checks:
             try:
-                await aresult(self._ping_grpc("async"))
-                await aresult(self._check_package_version("async"))
+                await executor.aresult(self._ping_grpc("async"))
+                await executor.aresult(self._check_package_version("async"))
             except Exception as e:
                 self._connected = False
                 raise e
@@ -1125,13 +1125,13 @@ class ConnectionAsync(_ConnectionBase):
     async def wait_for_weaviate(self, startup_period: int) -> None:
         for _i in range(startup_period):
             try:
-                (await aresult(self.get("/.well-known/ready"))).raise_for_status()
+                (await executor.aresult(self.get("/.well-known/ready"))).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
-            (await aresult(self.get("/.well-known/ready"))).raise_for_status()
+            (await executor.aresult(self.get("/.well-known/ready"))).raise_for_status()
             return
         except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(

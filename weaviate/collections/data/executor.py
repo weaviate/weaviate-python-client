@@ -42,7 +42,7 @@ from weaviate.collections.classes.types import (
     Properties,
     WeaviateField,
 )
-from weaviate.connect.executor import aresult, execute, result, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
 from weaviate.logger import logger
 from weaviate.types import BEACON, UUID, VECTORS
@@ -93,7 +93,7 @@ class _DataExecutor(Generic[ConnectionType]):
         references: Optional[ReferenceInputs] = None,
         uuid: Optional[UUID] = None,
         vector: Optional[VECTORS] = None,
-    ) -> ExecutorResult[uuid_package.UUID]:
+    ) -> executor.Result[uuid_package.UUID]:
         """Insert a single object into the collection.
 
         Arguments:
@@ -143,7 +143,7 @@ class _DataExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> uuid_package.UUID:
             return uuid_package.UUID(weaviate_obj["id"])
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.post,
             path=path,
@@ -156,7 +156,7 @@ class _DataExecutor(Generic[ConnectionType]):
     def insert_many(
         self,
         objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
-    ) -> ExecutorResult[BatchObjectReturn]:
+    ) -> executor.Result[BatchObjectReturn]:
         """Insert multiple objects into the collection.
 
         Arguments:
@@ -208,7 +208,7 @@ class _DataExecutor(Generic[ConnectionType]):
                 )
             return res
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self.__batch_grpc.objects,
             connection=self._connection,
@@ -217,7 +217,7 @@ class _DataExecutor(Generic[ConnectionType]):
             max_retries=2,
         )
 
-    def exists(self, uuid: UUID) -> ExecutorResult[bool]:
+    def exists(self, uuid: UUID) -> executor.Result[bool]:
         """Check for existence of a single object in the collection.
 
         Arguments:
@@ -238,7 +238,7 @@ class _DataExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> bool:
             return res.status_code == 204
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.head,
             path=path,
@@ -253,7 +253,7 @@ class _DataExecutor(Generic[ConnectionType]):
         properties: Properties,
         references: Optional[ReferenceInputs] = None,
         vector: Optional[VECTORS] = None,
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Replace an object in the collection.
 
         This is equivalent to a PUT operation.
@@ -308,7 +308,7 @@ class _DataExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> None:
             return None
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.put,
             path=path,
@@ -324,7 +324,7 @@ class _DataExecutor(Generic[ConnectionType]):
         properties: Optional[Properties] = None,
         references: Optional[ReferenceInputs] = None,
         vector: Optional[VECTORS] = None,
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Update an object in the collection.
 
         This is equivalent to a PATCH operation.
@@ -369,7 +369,7 @@ class _DataExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> None:
             return None
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.patch,
             path=path,
@@ -384,7 +384,7 @@ class _DataExecutor(Generic[ConnectionType]):
         from_uuid: UUID,
         from_property: str,
         to: SingleReferenceInput,
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Create a reference between an object in this collection and any other object in Weaviate.
 
         Arguments:
@@ -429,7 +429,7 @@ class _DataExecutor(Generic[ConnectionType]):
             async def _execute() -> None:
                 await asyncio.gather(
                     *[
-                        aresult(
+                        executor.aresult(
                             self._connection.post(
                                 path=path,
                                 weaviate_object=beacon,
@@ -446,7 +446,7 @@ class _DataExecutor(Generic[ConnectionType]):
 
             return _execute()
         for beacon in ref._to_beacons():
-            result(
+            executor.result(
                 self._connection.post(
                     path=path,
                     weaviate_object=beacon,
@@ -459,7 +459,7 @@ class _DataExecutor(Generic[ConnectionType]):
     def reference_add_many(
         self,
         refs: List[DataReferences],
-    ) -> ExecutorResult[BatchReferenceReturn]:
+    ) -> executor.Result[BatchReferenceReturn]:
         """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
 
         Arguments:
@@ -494,7 +494,7 @@ class _DataExecutor(Generic[ConnectionType]):
         from_uuid: UUID,
         from_property: str,
         to: SingleReferenceInput,
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Delete a reference from an object within the collection.
 
         Arguments:
@@ -532,7 +532,7 @@ class _DataExecutor(Generic[ConnectionType]):
             async def _execute() -> None:
                 await asyncio.gather(
                     *[
-                        aresult(
+                        executor.aresult(
                             self._connection.delete(
                                 path=path,
                                 weaviate_object=beacon,
@@ -549,7 +549,7 @@ class _DataExecutor(Generic[ConnectionType]):
 
             return _execute()
         for beacon in ref._to_beacons():
-            result(
+            executor.result(
                 self._connection.delete(
                     path=path,
                     weaviate_object=beacon,
@@ -566,7 +566,7 @@ class _DataExecutor(Generic[ConnectionType]):
         from_uuid: UUID,
         from_property: str,
         to: ReferenceInput,
-    ) -> ExecutorResult[None]:
+    ) -> executor.Result[None]:
         """Replace a reference of an object within the collection.
 
         Arguments:
@@ -606,7 +606,7 @@ class _DataExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> None:
             return None
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.put,
             path=path,
@@ -616,7 +616,7 @@ class _DataExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=200, error="replace reference on object"),
         )
 
-    def delete_by_id(self, uuid: UUID) -> ExecutorResult[bool]:
+    def delete_by_id(self, uuid: UUID) -> executor.Result[bool]:
         """Delete an object from the collection based on its UUID.
 
         Arguments:
@@ -628,7 +628,7 @@ class _DataExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> bool:
             return res.status_code == 204
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.delete,
             path=path,
@@ -639,7 +639,7 @@ class _DataExecutor(Generic[ConnectionType]):
 
     def delete_many(
         self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
-    ) -> ExecutorResult[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
+    ) -> executor.Result[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
         """Delete multiple objects from the collection based on a filter.
 
         Arguments:
@@ -690,7 +690,7 @@ class _DataExecutor(Generic[ConnectionType]):
                     failed=res.failed, successful=res.successful, matches=res.matches, objects=None
                 )
 
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=self._connection.grpc_batch_delete,
             request=request,

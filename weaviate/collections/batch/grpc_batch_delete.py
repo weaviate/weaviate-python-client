@@ -8,7 +8,7 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.collections.grpc.shared import _BaseGRPC
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import Connection
 from weaviate.proto.v1 import batch_delete_pb2
 from weaviate.util import _ServerVersion, _WeaviateUUIDInt
@@ -31,7 +31,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
         verbose: bool,
         dry_run: bool,
         tenant: Optional[str]
-    ) -> ExecutorResult[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
+    ) -> executor.Result[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
         def resp(
             res: batch_delete_pb2.BatchDeleteReply,
         ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
@@ -63,7 +63,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
             tenant=tenant,
             filters=_FilterToGRPC.convert(filters),
         )
-        return execute(
+        return executor.execute(
             response_callback=resp,
             method=connection.grpc_batch_delete,
             request=request,

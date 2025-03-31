@@ -10,7 +10,7 @@ from weaviate.collections.classes.aggregate import (
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
 from weaviate.collections.filters import _FilterToGRPC
-from weaviate.connect.executor import execute, ExecutorResult
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.types import NUMBER
 
@@ -30,7 +30,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         target_vector: Optional[str] = None,
         total_count: bool = True,
         return_metrics: Optional[PropertiesMetrics] = None,
-    ) -> ExecutorResult[Union[AggregateReturn, AggregateGroupByReturn]]:
+    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]:
         """Aggregate metrics over the objects returned by a near text vector search on this collection.
 
         At least one of `certainty`, `distance`, or `object_limit` must be specified here for the vector search.
@@ -98,7 +98,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 object_limit=object_limit,
                 target_vector=target_vector,
             )
-            return execute(
+            return executor.execute(
                 response_callback=resp,
                 method=self._do,
                 query=builder,
@@ -123,7 +123,7 @@ class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
                 objects_count=total_count,
                 object_limit=object_limit,
             )
-            return execute(
+            return executor.execute(
                 response_callback=self._to_result,
                 method=self._connection.grpc_aggregate,
                 request=request,
