@@ -66,14 +66,14 @@ def test_authentication_client_credentials(
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port,scope,warning",
     [
-        # (  # WCS keycloak times out too often
-        #     "WCS",
-        #     "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
-        #     "WCS_DUMMY_CI_PW",
-        #     WCS_PORT,
-        #     None,
-        #     False,
-        # ),
+        (  # WCS keycloak times out too often
+            "WCS",
+            "oidc-test-user@weaviate.io",
+            "WCS_DUMMY_CI_PW",
+            WCS_PORT,
+            None,
+            False,
+        ),
         (
             "okta",
             "test@test.de",
@@ -168,12 +168,12 @@ def _get_access_token(url: str, user: str, pw: str) -> Dict[str, str]:
 @pytest.mark.parametrize(
     "name,user,env_variable_name,port",
     [
-        # (  # WCS keycloak times out too often
-        #     "WCS",
-        #     "ms_2d0e007e7136de11d5f29fce7a53dae219a51458@existiert.net",
-        #     "WCS_DUMMY_CI_PW",
-        #     WCS_PORT,
-        # ),
+        (  # WCS keycloak times out too often
+            "WCS",
+            "oidc-test-user@weaviate.io",
+            "WCS_DUMMY_CI_PW",
+            WCS_PORT,
+        ),
         (
             "okta",
             "test@test.de",
@@ -200,7 +200,7 @@ def test_authentication_with_bearer_token(
         refresh_token=token["refresh_token"],
     )
     with weaviate.connect_to_local(port=port, auth_credentials=auth) as client:
-        client.collections.list_all()
+        client.collections.exists("something")
 
 
 def test_authentication_with_bearer_token_no_refresh() -> None:
