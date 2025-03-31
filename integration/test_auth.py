@@ -200,7 +200,7 @@ def test_authentication_with_bearer_token(
         refresh_token=token["refresh_token"],
     )
     with weaviate.connect_to_local(port=port, auth_credentials=auth) as client:
-        client.collections.list_all()
+        client.collections.exists("something")
 
 
 def test_authentication_with_bearer_token_no_refresh() -> None:
