@@ -7,11 +7,12 @@ from weaviate.backup.executor import (
     BackupStatusReturn,
     BackupConfigCreate,
     BackupConfigRestore,
+    _BackupExecutor,
 )
 from weaviate.backup.backup_location import BackupLocationType
 from weaviate.connect.v4 import ConnectionAsync
 
-class _BackupAsync(_BackupBase[ConnectionAsync]):
+class _BackupAsync(_BackupExecutor[ConnectionAsync]):
     """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
 
     async def cancel(
