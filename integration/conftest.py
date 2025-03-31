@@ -131,7 +131,7 @@ def collection_factory(
         reranker_config: Optional[_RerankerProvider] = None,
     ) -> Collection[Any, Any]:
         try:
-            nonlocal client_fixture, name_fixtures, call_counter
+            nonlocal client_fixture, name_fixtures, call_counter  # noqa: F824
             call_counter += 1
             name_fixture = (
                 _sanitize_collection_name(request.node.fspath.basename + "_" + request.node.name)
@@ -268,7 +268,7 @@ async def async_collection_factory(
         reranker_config: Optional[_RerankerProvider] = None,
     ) -> CollectionAsync[Any, Any]:
         try:
-            nonlocal client_fixture, name_fixtures
+            nonlocal client_fixture, name_fixtures  # noqa: F824
             name_fixture = _sanitize_collection_name(request.node.name) + name
             name_fixtures.append(name_fixture)
             client_fixture = await async_client_factory(
