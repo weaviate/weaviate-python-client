@@ -307,20 +307,24 @@ class _TenantsAsync(_TenantsBase):
             `weaviate.UnexpectedStatusCodeError`
                 If Weaviate reports a non-OK status.
         """
-        self._connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_name' method")
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(expected=[Union[str, Tenant]], name="tenant", value=tenant)
             )
-        response = await self._grpc.get(
-            names=[tenant.name if isinstance(tenant, Tenant) else tenant]
+        tenant_name = tenant.name if isinstance(tenant, Tenant) else tenant
+        response = await self._connection.get(
+            path=f"/schema/{self._name}/tenants/{tenant_name}",
+            error_msg=f"Could not get tenant {tenant_name} for collection {self._name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=[200, 404], error=f"Get tenant {tenant_name} for collection {self._name}"
+            ),
         )
-        if len(response.tenants) == 0:
+        if response.status_code == 404:
             return None
-        return Tenant(
-            name=response.tenants[0].name,
-            activity_status=self._grpc.map_activity_status(response.tenants[0].activity_status),
-        )
+        data = response.json()
+        if not data:
+            return None
+        return Tenant(**data)
 
     async def update(
         self, tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
