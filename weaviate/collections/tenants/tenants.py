@@ -312,15 +312,27 @@ class _TenantsAsync(_TenantsBase):
             _validate_input(
                 _ValidateArgument(expected=[Union[str, Tenant]], name="tenant", value=tenant)
             )
-        response = await self._grpc.get(
-            names=[tenant.name if isinstance(tenant, Tenant) else tenant]
+        tenant_name = tenant.name if isinstance(tenant, Tenant) else tenant
+        if self._connection._weaviate_version.is_lower_than(1, 28, 0):
+            # For Weaviate versions < 1.28.0, we need to use the gRPC API
+            # such versions don't have RBAC so the filtering issue doesn't exist therein
+            tenants = await self.__get_with_grpc([tenant_name])
+            if len(tenants) == 0:
+                return None
+            return tenants[tenant_name]
+        # For Weaviate versions >= 1.28.0, we need to use the REST API
+        # as the gRPC API filters out tenants that are not accessible to the user
+        # due to RBAC requirements
+        response = await self._connection.get(
+            path=f"/schema/{self._name}/tenants/{tenant_name}",
+            error_msg=f"Could not get tenant {tenant_name} for collection {self._name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=[200, 404], error=f"Get tenant {tenant_name} for collection {self._name}"
+            ),
         )
-        if len(response.tenants) == 0:
+        if response.status_code == 404:
             return None
-        return Tenant(
-            name=response.tenants[0].name,
-            activity_status=self._grpc.map_activity_status(response.tenants[0].activity_status),
-        )
+        return Tenant(**response.json())
 
     async def update(
         self, tenants: Union[TenantUpdateInputType, Sequence[TenantUpdateInputType]]
