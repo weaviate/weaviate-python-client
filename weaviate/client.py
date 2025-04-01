@@ -9,11 +9,10 @@ from typing_extensions import deprecated
 
 from .auth import AuthCredentials
 from .backup import _BackupAsync, _Backup
-from .client_base import _WeaviateClientBase
+from weaviate.client_executor import _WeaviateClientExecutor
 from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
-from .collections.collections.async_ import _CollectionsAsync
-from .collections.collections.sync import _Collections
+from .collections.collections import _Collections, _CollectionsAsync
 from .config import AdditionalConfig
 from .connect import executor
 from .connect.base import (
@@ -30,7 +29,7 @@ TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
 
 
 @executor.wrap("async")
-class WeaviateAsyncClient(_WeaviateClientBase[ConnectionAsync]):
+class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
@@ -42,11 +41,17 @@ class WeaviateAsyncClient(_WeaviateClientBase[ConnectionAsync]):
 
     Attributes:
         `backup`
-            A `Backup` object instance connected to the same Weaviate instance as the Client.
+            A `_BackupAsync` object instance connected to the same Weaviate instance as the Client.
         `cluster`
-            A `Cluster` object instance connected to the same Weaviate instance as the Client.
+            A `ClusterAsync` object instance connected to the same Weaviate instance as the Client.
         `collections`
             A `_CollectionsAsync` object instance connected to the same Weaviate instance as the Client.
+        `debug`
+            A `_DebugAsync` object instance connected to the same Weaviate instance as the Client.
+        `roles`
+            A `_RolesAsync` object instance connected to the same Weaviate instance as the Client.
+        `users`
+            A `_UsersAsync` object instance connected to the same Weaviate instance as the Client.
     """
 
     def __init__(
@@ -96,7 +101,7 @@ class WeaviateAsyncClient(_WeaviateClientBase[ConnectionAsync]):
 
 
 @executor.wrap("sync")
-class WeaviateClient(_WeaviateClientBase[ConnectionSync]):
+class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
     """
     The v4 Python-native Weaviate Client class that encapsulates Weaviate functionalities in one object.
 
@@ -117,6 +122,12 @@ class WeaviateClient(_WeaviateClientBase[ConnectionSync]):
             A `Cluster` object instance connected to the same Weaviate instance as the Client.
         `collections`
             A `_Collections` object instance connected to the same Weaviate instance as the Client.
+        `debug`
+            A `_Debug` object instance connected to the same Weaviate instance as the Client.
+        `roles`
+            A `_Roles` object instance connected to the same Weaviate instance as the Client.
+        `users`
+            A `_Users` object instance connected to the same Weaviate instance as the Client.
     """
 
     def __init__(
