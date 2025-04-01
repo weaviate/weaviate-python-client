@@ -26,6 +26,7 @@ from weaviate.proto.v1.generative_pb2 import (
     GenerativeNvidia,
     GenerativeOllama,
     GenerativeOpenAI,
+    GenerativeXAI,
     GenerativeProvider as GenerativeProviderGRPC,
     GenerativeSearch,
 )
@@ -391,6 +392,31 @@ class _GenerativeGoogle(_GenerativeConfigRuntime):
                 stop_sequences=_to_text_array(self.stop_sequences),
                 temperature=self.temperature,
                 top_k=self.top_k,
+                top_p=self.top_p,
+                images=_to_text_array(opts.images),
+                image_properties=_to_text_array(opts.image_properties),
+            ),
+        )
+
+
+class _GenerativeXAI(_GenerativeConfigRuntime):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.XAI, frozen=True, exclude=True
+    )
+    base_url: Optional[AnyHttpUrl]
+    max_tokens: Optional[int]
+    model: Optional[str]
+    temperature: Optional[float]
+    top_p: Optional[float]
+
+    def _to_grpc(self, opts: _GenerativeConfigRuntimeOptions) -> GenerativeProviderGRPC:
+        return GenerativeProviderGRPC(
+            return_metadata=opts.return_metadata,
+            xai=GenerativeXAI(
+                base_url=_parse_anyhttpurl(self.base_url),
+                max_tokens=self.max_tokens,
+                model=self.model,
+                temperature=self.temperature,
                 top_p=self.top_p,
                 images=_to_text_array(opts.images),
                 image_properties=_to_text_array(opts.image_properties),
@@ -918,6 +944,40 @@ class GenerativeConfig:
             is_azure=True,
         )
 
+    @staticmethod
+    def xai(
+        *,
+        base_url: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        top_p: Optional[float] = None,
+    ) -> _GenerativeConfigRuntime:
+        """Create a `_GenerativeXAI` object for use when performing AI generation using the `generative-xai` module.
+
+        See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-xai)
+        for detailed usage.
+
+        Arguments:
+            `base_url`
+                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            `max_tokens`
+                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            `model`
+                The model to use. Defaults to `None`, which uses the server-defined default
+            `temperature`
+                The temperature to use. Defaults to `None`, which uses the server-defined default
+            `top_p`
+                The top P to use. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeXAI(
+            base_url=AnyUrl(base_url) if base_url is not None else None,
+            max_tokens=max_tokens,
+            model=model,
+            temperature=temperature,
+            top_p=top_p,
+        )
+
 
 class _GroupedTask(BaseModel):
     prompt: str
@@ -1006,7 +1066,7 @@ class GenerativeParameters:
 
     @staticmethod
     def __parse_images(
-        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]]
+        images: Optional[Union[BLOB_INPUT, Iterable[BLOB_INPUT]]],
     ) -> Optional[Iterable[str]]:
         if isinstance(images, (str, Path, BufferedReader)):
             return (

@@ -85,6 +85,7 @@ class GenerativeProvider(_message.Message):
         "databricks",
         "friendliai",
         "nvidia",
+        "xai",
     )
     RETURN_METADATA_FIELD_NUMBER: _ClassVar[int]
     ANTHROPIC_FIELD_NUMBER: _ClassVar[int]
@@ -99,6 +100,7 @@ class GenerativeProvider(_message.Message):
     DATABRICKS_FIELD_NUMBER: _ClassVar[int]
     FRIENDLIAI_FIELD_NUMBER: _ClassVar[int]
     NVIDIA_FIELD_NUMBER: _ClassVar[int]
+    XAI_FIELD_NUMBER: _ClassVar[int]
     return_metadata: bool
     anthropic: GenerativeAnthropic
     anyscale: GenerativeAnyscale
@@ -112,6 +114,7 @@ class GenerativeProvider(_message.Message):
     databricks: GenerativeDatabricks
     friendliai: GenerativeFriendliAI
     nvidia: GenerativeNvidia
+    xai: GenerativeXAI
     def __init__(
         self,
         return_metadata: bool = ...,
@@ -127,6 +130,7 @@ class GenerativeProvider(_message.Message):
         databricks: _Optional[_Union[GenerativeDatabricks, _Mapping]] = ...,
         friendliai: _Optional[_Union[GenerativeFriendliAI, _Mapping]] = ...,
         nvidia: _Optional[_Union[GenerativeNvidia, _Mapping]] = ...,
+        xai: _Optional[_Union[GenerativeXAI, _Mapping]] = ...,
     ) -> None: ...
 
 class GenerativeAnthropic(_message.Message):
@@ -545,6 +549,41 @@ class GenerativeNvidia(_message.Message):
         max_tokens: _Optional[int] = ...,
     ) -> None: ...
 
+class GenerativeXAI(_message.Message):
+    __slots__ = (
+        "base_url",
+        "model",
+        "temperature",
+        "top_p",
+        "max_tokens",
+        "images",
+        "image_properties",
+    )
+    BASE_URL_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    TEMPERATURE_FIELD_NUMBER: _ClassVar[int]
+    TOP_P_FIELD_NUMBER: _ClassVar[int]
+    MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_PROPERTIES_FIELD_NUMBER: _ClassVar[int]
+    base_url: str
+    model: str
+    temperature: float
+    top_p: float
+    max_tokens: int
+    images: _base_pb2.TextArray
+    image_properties: _base_pb2.TextArray
+    def __init__(
+        self,
+        base_url: _Optional[str] = ...,
+        model: _Optional[str] = ...,
+        temperature: _Optional[float] = ...,
+        top_p: _Optional[float] = ...,
+        max_tokens: _Optional[int] = ...,
+        images: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
+        image_properties: _Optional[_Union[_base_pb2.TextArray, _Mapping]] = ...,
+    ) -> None: ...
+
 class GenerativeAnthropicMetadata(_message.Message):
     __slots__ = ("usage",)
 
@@ -829,6 +868,30 @@ class GenerativeNvidiaMetadata(_message.Message):
         self, usage: _Optional[_Union[GenerativeNvidiaMetadata.Usage, _Mapping]] = ...
     ) -> None: ...
 
+class GenerativeXAIMetadata(_message.Message):
+    __slots__ = ("usage",)
+
+    class Usage(_message.Message):
+        __slots__ = ("prompt_tokens", "completion_tokens", "total_tokens")
+        PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+        COMPLETION_TOKENS_FIELD_NUMBER: _ClassVar[int]
+        TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
+        prompt_tokens: int
+        completion_tokens: int
+        total_tokens: int
+        def __init__(
+            self,
+            prompt_tokens: _Optional[int] = ...,
+            completion_tokens: _Optional[int] = ...,
+            total_tokens: _Optional[int] = ...,
+        ) -> None: ...
+
+    USAGE_FIELD_NUMBER: _ClassVar[int]
+    usage: GenerativeXAIMetadata.Usage
+    def __init__(
+        self, usage: _Optional[_Union[GenerativeXAIMetadata.Usage, _Mapping]] = ...
+    ) -> None: ...
+
 class GenerativeMetadata(_message.Message):
     __slots__ = (
         "anthropic",
@@ -843,6 +906,7 @@ class GenerativeMetadata(_message.Message):
         "databricks",
         "friendliai",
         "nvidia",
+        "xai",
     )
     ANTHROPIC_FIELD_NUMBER: _ClassVar[int]
     ANYSCALE_FIELD_NUMBER: _ClassVar[int]
@@ -856,6 +920,7 @@ class GenerativeMetadata(_message.Message):
     DATABRICKS_FIELD_NUMBER: _ClassVar[int]
     FRIENDLIAI_FIELD_NUMBER: _ClassVar[int]
     NVIDIA_FIELD_NUMBER: _ClassVar[int]
+    XAI_FIELD_NUMBER: _ClassVar[int]
     anthropic: GenerativeAnthropicMetadata
     anyscale: GenerativeAnyscaleMetadata
     aws: GenerativeAWSMetadata
@@ -868,6 +933,7 @@ class GenerativeMetadata(_message.Message):
     databricks: GenerativeDatabricksMetadata
     friendliai: GenerativeFriendliAIMetadata
     nvidia: GenerativeNvidiaMetadata
+    xai: GenerativeXAIMetadata
     def __init__(
         self,
         anthropic: _Optional[_Union[GenerativeAnthropicMetadata, _Mapping]] = ...,
@@ -882,6 +948,7 @@ class GenerativeMetadata(_message.Message):
         databricks: _Optional[_Union[GenerativeDatabricksMetadata, _Mapping]] = ...,
         friendliai: _Optional[_Union[GenerativeFriendliAIMetadata, _Mapping]] = ...,
         nvidia: _Optional[_Union[GenerativeNvidiaMetadata, _Mapping]] = ...,
+        xai: _Optional[_Union[GenerativeXAIMetadata, _Mapping]] = ...,
     ) -> None: ...
 
 class GenerativeReply(_message.Message):
