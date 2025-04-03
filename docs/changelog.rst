@@ -1,6 +1,17 @@
 Changelog
 =========
 
+Version 4.12.0
+--------------
+This minor version includes:
+    - Support for new 1.30 features:
+        - Dynamic user management of OIDC and native DB users
+        - Improved multi-dimensional/colBERT vectors
+        - Query-time configuration of generative modules
+        - Tenant-based filtering of data permissions in RBAC
+        - The new ``generative-xai`` module
+
+
 Version 4.11.3
 --------------
 This patch version includes:
@@ -35,7 +46,7 @@ Version 4.11.0
 This minor version includes:
     - Support for new 1.29 features:
         - RBAC is ready for production
-        - Multi-dimensional/COLBert vectors  experimental, breaking changes are expected)
+        - Multi-dimensional/COLBert vectors  experimental, breaking changes are expected
         - Aggregations are using GRPC now
     - Improved exception handling for errors returned by Weaviate
     - Add support for NVIDIA modules:
