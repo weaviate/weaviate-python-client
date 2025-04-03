@@ -340,14 +340,35 @@ class _TenantsExecutor(Generic[ConnectionType]):
             _validate_input(
                 _ValidateArgument(expected=[Union[str, Tenant]], name="tenant", value=tenant)
             )
+        tenant_name = tenant.name if isinstance(tenant, Tenant) else tenant
+        if self._connection._weaviate_version.is_lower_than(1, 28, 0):
+            # For Weaviate versions < 1.28.0, we need to use the gRPC API
+            # such versions don't have RBAC so the filtering issue doesn't exist therein
+            def resp_grpc(res: Dict[str, TenantOutputType]) -> Optional[TenantOutputType]:
+                return res.get(tenant_name)
 
-        def resp(res: Dict[str, TenantOutputType]) -> Optional[TenantOutputType]:
-            return res.get(tenant.name if isinstance(tenant, Tenant) else tenant)
+            return executor.execute(
+                response_callback=resp_grpc,
+                method=self.__get_with_grpc,
+                tenants=[tenant_name],
+            )
+
+        # For Weaviate versions >= 1.28.0, we need to use the REST API
+        # as the gRPC API filters out tenants that are not accessible to the user
+        # due to RBAC requirements
+        def resp_rest(res: Response) -> Optional[TenantOutputType]:
+            if res.status_code == 404:
+                return None
+            return Tenant(**res.json())
 
         return executor.execute(
-            response_callback=resp,
-            method=self.get_by_names,
-            tenants=[tenant],
+            response_callback=resp_rest,
+            method=self._connection.get,
+            path=f"/schema/{self._name}/tenants/{tenant_name}",
+            error_msg=f"Could not get tenant {tenant_name} for collection {self._name}",
+            status_codes=_ExpectedStatusCodes(
+                ok_in=[200, 404], error=f"Get tenant {tenant_name} for collection {self._name}"
+            ),
         )
 
     def __update(
