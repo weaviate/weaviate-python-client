@@ -127,11 +127,11 @@ class _UsersBase(_UsersInit):
         assert resp_typed is not None
         return str(resp_typed["apikey"])
 
-    async def _deactivate(self, user_id: str) -> bool:
+    async def _deactivate(self, user_id: str, revoke_key: bool) -> bool:
         path = f"/users/db/{user_id}/deactivate"
         resp = await self._connection.post(
             path,
-            weaviate_object={},
+            weaviate_object={"revoke_key": revoke_key},
             error_msg=f"Could not deactivate user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="deactivate key"),
         )
@@ -251,13 +251,14 @@ class _UserDBAsync(_UsersBase):
         """
         return await self._activate(user_id)
 
-    async def deactivate(self, *, user_id: str) -> bool:
+    async def deactivate(self, *, user_id: str, revoke_key: bool = False) -> bool:
         """Deactivate an active user.
 
         Args:
             user_id: The id of the user.
+            revoke_key: If True, the old key will be revoked and needs to be rotated.
         """
-        return await self._deactivate(user_id)
+        return await self._deactivate(user_id, revoke_key)
 
     async def get(self, *, user_id: str) -> UserDB:
         """Get all information about an user.
