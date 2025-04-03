@@ -219,6 +219,7 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
 class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_assigned_roles(
         self,
+        *,
         user_id: str,
         include_permissions: bool = False,
     ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
@@ -275,7 +276,7 @@ class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
 
 class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_assigned_roles(
-        self, user_id: str, include_permissions: bool = False
+        self, *, user_id: str, include_permissions: bool = False
     ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:
         """Get the roles assigned to a user.
 
@@ -403,11 +404,12 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="Activate user"),
         )
 
-    def deactivate(self, *, user_id: str) -> executor.Result[bool]:
+    def deactivate(self, *, user_id: str, revoke_key: bool) -> executor.Result[bool]:
         """Deactivate an active user.
 
         Args:
             user_id: The id of the user.
+            revoke_key: If True, the old key will be revoked and needs to be rotated.
         """
 
         def resp(res: Response) -> bool:
@@ -417,7 +419,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             response_callback=resp,
             method=self._connection.post,
             path=f"/users/db/{user_id}/deactivate",
-            weaviate_object={},
+            weaviate_object={"revoke_key": revoke_key},
             error_msg=f"Could not deactivate user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="Deactivate user"),
         )
