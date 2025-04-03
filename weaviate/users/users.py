@@ -173,16 +173,16 @@ class _UsersBase(_UsersInit):
 class _UserDBAsync(_UsersBase):
     @overload
     async def get_assigned_roles(
-        self, user_id: str, include_permissions: Literal[False] = ...
+        self, *, user_id: str, include_permissions: Literal[False] = ...
     ) -> Dict[str, RoleBase]: ...
 
     @overload
     async def get_assigned_roles(
-        self, user_id: str, include_permissions: Literal[True] = ...
+        self, *, user_id: str, include_permissions: Literal[True] = ...
     ) -> Dict[str, Role]: ...
 
     async def get_assigned_roles(
-        self, user_id: str, include_permissions: bool = False
+        self, *, user_id: str, include_permissions: bool = False
     ) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
         """Get the roles assigned to a user.
 
@@ -292,16 +292,16 @@ class _UserDBAsync(_UsersBase):
 class _UserOIDCAsync(_UsersBase):
     @overload
     async def get_assigned_roles(
-        self, user_id: str, include_permissions: Literal[False] = ...
+        self, *, user_id: str, include_permissions: Literal[False] = ...
     ) -> Dict[str, RoleBase]: ...
 
     @overload
     async def get_assigned_roles(
-        self, user_id: str, include_permissions: Literal[True] = ...
+        self, *, user_id: str, include_permissions: Literal[True] = ...
     ) -> Dict[str, Role]: ...
 
     async def get_assigned_roles(
-        self, user_id: str, include_permissions: bool = False
+        self, *, user_id: str, include_permissions: bool = False
     ) -> Union[Dict[str, Role], Dict[str, RoleBase]]:
         """Get the roles assigned to a user.
 
