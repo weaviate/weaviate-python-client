@@ -34,12 +34,12 @@ def test_get_user_roles_db(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
-        roles_base = client.users.db.get_assigned_roles("admin-user")
+        roles_base = client.users.db.get_assigned_roles(user_id="admin-user")
         names = list(roles_base.keys())
         assert len(roles_base) > 0
         assert isinstance(roles_base[names[0]], RoleBase)
 
-        roles = client.users.db.get_assigned_roles("admin-user", include_permissions=True)
+        roles = client.users.db.get_assigned_roles(user_id="admin-user", include_permissions=True)
         assert len(roles) > 0
         assert isinstance(roles[names[0]], Role)
 
@@ -48,12 +48,12 @@ def test_get_user_roles_oidc(client_factory: ClientFactory) -> None:
     with client_factory(ports=RBAC_PORTS, auth_credentials=RBAC_AUTH_CREDS) as client:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
-        roles_base = client.users.oidc.get_assigned_roles("admin-user")
+        roles_base = client.users.oidc.get_assigned_roles(user_id="admin-user")
         names = list(roles_base.keys())
         assert len(roles_base) > 0
         assert isinstance(roles_base[names[0]], RoleBase)
 
-        roles = client.users.oidc.get_assigned_roles("admin-user", include_permissions=True)
+        roles = client.users.oidc.get_assigned_roles(user_id="admin-user", include_permissions=True)
         assert len(roles) > 0
         assert isinstance(roles[names[0]], Role)
 
