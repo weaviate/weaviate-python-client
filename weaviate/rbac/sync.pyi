@@ -1,17 +1,21 @@
 from typing import Dict, List, Optional, Sequence, Union
+from typing_extensions import deprecated
 
 from weaviate.rbac.models import (
     PermissionsOutputType,
     PermissionsInputType,
     Role,
-    User,
 )
-from weaviate.rbac.roles import _RolesBase
+from weaviate.rbac.roles import _RolesBase, UserAssignment
 
 class _Roles(_RolesBase):
     def list_all(self) -> Dict[str, Role]: ...
     def get(self, role_name: str) -> Optional[Role]: ...
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25. Please use `roles.get_user_assignments` instead."""
+    )
     def get_assigned_user_ids(self, role_name: str) -> List[str]: ...
+    def get_user_assignments(self, role_name: str) -> List[UserAssignment]: ...
     def delete(self, role_name: str) -> None: ...
     def create(self, *, role_name: str, permissions: PermissionsInputType) -> Role: ...
     def exists(self, *, role_name: str) -> bool: ...

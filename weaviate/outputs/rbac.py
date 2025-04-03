@@ -8,6 +8,7 @@ from weaviate.rbac.models import (
     RolesPermissionOutput,
     UsersPermissionOutput,
     RoleScope,
+    UserAssignment,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "RolesPermissionOutput",
     "RoleScope",
     "UsersPermissionOutput",
+    "UserAssignment",
 ]
