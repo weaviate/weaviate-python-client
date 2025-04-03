@@ -404,7 +404,7 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="Activate user"),
         )
 
-    def deactivate(self, *, user_id: str, revoke_key: bool) -> executor.Result[bool]:
+    def deactivate(self, *, user_id: str, revoke_key: bool = False) -> executor.Result[bool]:
         """Deactivate an active user.
 
         Args:
