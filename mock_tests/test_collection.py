@@ -443,7 +443,7 @@ def test_grpc_retry_logic(
     service = retries[1]
 
     with pytest.raises(weaviate.exceptions.WeaviateQueryError):
-        # checks first call correctly handles error that isn't UNAVAILABLE
+        # checks first call correctly handles INTERNAL error
         collection.query.fetch_objects()
 
     # should perform one retry and then succeed subsequently

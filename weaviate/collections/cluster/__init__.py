@@ -1,4 +1,4 @@
-from .cluster import _ClusterAsync
+from .async_ import _ClusterAsync
 from .sync import _Cluster
 
 __all__ = [

@@ -27,10 +27,11 @@ from weaviate.collections.classes.internal import (
 from weaviate.collections.classes.types import (
     Properties,
 )
-from weaviate.collections.data.data import _DataBase
+from weaviate.collections.data.executor import _DataExecutor
+from weaviate.connect.v4 import ConnectionSync
 from weaviate.types import UUID, VECTORS
 
-class _DataCollection(Generic[Properties], _DataBase):
+class _DataCollection(Generic[Properties], _DataExecutor[ConnectionSync]):
     def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]": ...
     def insert(
         self,
@@ -71,13 +72,13 @@ class _DataCollection(Generic[Properties], _DataBase):
     def delete_by_id(self, uuid: UUID) -> bool: ...
     @overload
     def delete_many(
-        self, where: _Filters, verbose: Literal[False] = ..., *, dry_run: bool = False
+        self, where: _Filters, *, verbose: Literal[False] = False, dry_run: bool = False
     ) -> DeleteManyReturn[None]: ...
     @overload
     def delete_many(
-        self, where: _Filters, verbose: Literal[True], *, dry_run: bool = False
+        self, where: _Filters, *, verbose: Literal[True], dry_run: bool = False
     ) -> DeleteManyReturn[List[DeleteManyObject]]: ...
     @overload
     def delete_many(
-        self, where: _Filters, verbose: bool = ..., *, dry_run: bool = False
+        self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
     ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]: ...

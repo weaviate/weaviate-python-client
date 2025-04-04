@@ -356,7 +356,7 @@ def test_backup_and_restore_with_collection(
 
     conf_create: Optional[wvc.backup.BackupConfigCreate] = None
     conf_restore: Optional[wvc.backup.BackupConfigRestore] = None
-    backup_location: Optional[wvc.backup.BackupLocation] = None
+    backup_location: Optional[wvc.backup.BackupLocationType] = None
     if dynamic_backup_location:
         if client._connection._weaviate_version.is_lower_than(1, 27, 2):
             pytest.skip("Cancel backups is only supported from 1.27.2")
@@ -505,7 +505,7 @@ def test_cancel_backup(
     if client._connection._weaviate_version.is_lower_than(1, 24, 25):
         pytest.skip("Cancel backups is only supported from 1.24.25")
 
-    backup_location: Optional[wvc.backup.BackupLocation] = None
+    backup_location: Optional[wvc.backup.BackupLocationType] = None
     if dynamic_backup_location:
         if client._connection._weaviate_version.is_lower_than(1, 27, 2):
             pytest.skip("Cancel backups is only supported from 1.27.2")
