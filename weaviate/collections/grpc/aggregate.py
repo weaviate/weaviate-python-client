@@ -1,6 +1,6 @@
 from typing import Awaitable, List, Literal, Optional, Union, cast
 
-from grpc.aio import AioRpcError  # type: ignore
+from grpc.aio import AioRpcError
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
