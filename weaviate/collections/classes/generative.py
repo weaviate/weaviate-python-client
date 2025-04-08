@@ -886,7 +886,7 @@ class GenerativeConfig:
         )
 
     @staticmethod
-    def openai_azure(
+    def azure_openai(
         *,
         api_version: Optional[str] = None,
         base_url: Optional[str] = None,

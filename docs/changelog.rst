@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.12.1
+--------------
+This patch version includes:
+    - Renames ``GenerativeConfig.openai_azure`` to ``GenerativeConfig.azure_openai`` to align with the convention of ``Configure.Generative.azure_openai``
+
 Version 4.12.0
 --------------
 This minor version includes:

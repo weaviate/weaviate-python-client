@@ -362,7 +362,7 @@ def test_generative_parameters_images_parsing(
             ),
         ),
         (
-            GenerativeConfig.openai_azure(
+            GenerativeConfig.azure_openai(
                 api_version="2020-05-03",
                 base_url="http://localhost:8080",
                 deployment_id="12345678901234567890123456789012",
