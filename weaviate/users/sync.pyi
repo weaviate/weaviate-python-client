@@ -1,7 +1,7 @@
 from typing import Dict, List, Literal, Union, overload
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.users.executor import _DeprecatedExecutor, _DBExecutor, _OIDCExecutor
-from weaviate.users.executor import UserDB, OwnUser
+from weaviate.users.users import UserDB, OwnUser
 
 from weaviate.rbac.models import Role, RoleBase
 from typing_extensions import deprecated

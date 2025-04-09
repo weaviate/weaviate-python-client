@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from typing import Any, Dict, Final, Generic, List, Literal, Optional, Union, cast
+from typing import Any, Dict, Generic, List, Optional, Union, cast
 
 from httpx import Response
 
@@ -11,36 +10,14 @@ from weaviate.rbac.models import (
     WeaviateDBUserRoleNames,
     UserTypes,
 )
-
+from weaviate.users.users import (
+    USER_TYPE_DB,
+    USER_TYPE_OIDC,
+    USER_TYPE,
+    UserDB,
+    OwnUser,
+)
 from weaviate.util import _decode_json_response_dict
-
-USER_TYPE_DB: Final = "db"
-USER_TYPE_OIDC: Final = "oidc"
-USER_TYPE = Literal["db", "oidc"]
-
-
-@dataclass
-class OwnUser:
-    user_id: str
-    roles: Dict[str, Role]
-
-
-@dataclass
-class UserBase:
-    user_id: str
-    role_names: List[str]
-    user_type: UserTypes
-
-
-@dataclass
-class UserDB(UserBase):
-    user_type: UserTypes
-    active: bool
-
-
-@dataclass
-class UserOIDC(UserBase):
-    user_type: UserTypes = UserTypes.OIDC
 
 
 class _BaseExecutor(Generic[ConnectionType]):

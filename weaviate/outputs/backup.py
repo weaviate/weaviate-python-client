@@ -1,4 +1,4 @@
-from weaviate.backup.executor import BackupStatus, BackupStatusReturn, BackupStorage, BackupReturn
+from weaviate.backup.backup import BackupStatus, BackupStatusReturn, BackupStorage, BackupReturn
 
 __all__ = [
     "BackupStatus",
