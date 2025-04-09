@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 4.13.0
+--------------
+This minor version provides a complete top-down refactor of the underlying transport for the sync and async clients.
+    - Introduction of a dependency injection system whereby the sync/async connections are injected into each client independently thereby removing their cross-dependency.
+    - Removal of the ``event_loop.py`` file and all logic surrounding its usage by the sync client.
+    - Refactoring of the batching algorithm to use blocking threads with a sync connection, rather than the event loop sidecar thread.
+
+
 Version 4.12.1
 --------------
 This patch version includes:
