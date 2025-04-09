@@ -1,77 +1,139 @@
-from typing import Dict, Union
+from abc import abstractmethod
+from typing import (
+    Awaitable,
+    Generic,
+    Optional,
+    Type,
+    Union,
+)
 
 from weaviate.collections.classes.config import (
-    _CollectionConfig,
     CollectionConfig,
-    CollectionConfigSimple,
 )
-from weaviate.collections.classes.config_methods import (
-    _collection_config_from_json,
-    _collection_configs_from_json,
-    _collection_configs_simple_from_json,
+from weaviate.collections.classes.internal import References
+from weaviate.collections.classes.types import (
+    Properties,
 )
-from weaviate.connect import ConnectionV4
-from weaviate.util import _decode_json_response_dict
+from weaviate.collections.collection import CollectionAsync, Collection
+from weaviate.collections.collections.executor import _CollectionsExecutor
+from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionType
 
-from weaviate.connect.v4 import _ExpectedStatusCodes
 
-
-class _CollectionsBase:
-    def __init__(self, connection: ConnectionV4):
+class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionType]):
+    def __init__(self, connection: ConnectionType) -> None:
         self._connection = connection
 
-    async def _create(
+    @executor.no_wrapping
+    def get(
         self,
-        config: dict,
-    ) -> str:
-        response = await self._connection.post(
-            path="/schema",
-            weaviate_object=config,
-            error_msg="Collection may not have been created properly.",
-            status_codes=_ExpectedStatusCodes(ok_in=200, error="Create collection"),
+        name: str,
+        data_model_properties: Optional[Type[Properties]] = None,
+        data_model_references: Optional[Type[References]] = None,
+        skip_argument_validation: bool = False,
+    ) -> Union[Collection[Properties, References], CollectionAsync[Properties, References]]:
+        """Use this method to return a collection object to be used when interacting with your Weaviate collection.
+
+        This method does not send a request to Weaviate. It simply creates a Python object for you to use to make requests.
+
+        Arguments:
+            `name`
+                The name of the collection to get.
+            `data_model_properties`
+                The generic class that you want to use to represent the properties of objects in this collection when mutating objects through the `.query` namespace.
+                The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
+                If you do not provide a generic, the methods in `.query` will return objects properties as `Dict[str, Any]`.
+            `data_model_references`
+                The generic class that you want to use to represent the objects of references in this collection when mutating objects through the `.query` namespace.
+                The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
+                If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
+            `skip_argument_validation`
+                If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
+        Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
+            `weaviate.exceptions.InvalidDataModelException`
+                If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
+        """
+        return self.use(
+            name=name,
+            data_model_properties=data_model_properties,
+            data_model_references=data_model_references,
+            skip_argument_validation=skip_argument_validation,
         )
 
-        collection_name = response.json()["class"]
-        assert isinstance(collection_name, str)
-        return collection_name
+    @abstractmethod
+    def use(
+        self,
+        name: str,
+        data_model_properties: Optional[Type[Properties]] = None,
+        data_model_references: Optional[Type[References]] = None,
+        skip_argument_validation: bool = False,
+    ) -> Union[Collection[Properties, References], CollectionAsync[Properties, References]]:
+        """Use this method to return a collection object to be used when interacting with your Weaviate collection.
 
-    async def _exists(self, name: str) -> bool:
-        path = f"/schema/{name}"
-        response = await self._connection.get(
-            path=path,
-            error_msg="Collection may not exist.",
-            status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="collection exists"),
-        )
+        This method does not send a request to Weaviate. It simply creates a Python object for you to use to make requests.
 
-        if response.status_code == 200:
-            return True
-        else:
-            assert response.status_code == 404
-            return False
+        Arguments:
+            `name`
+                The name of the collection to get.
+            `data_model_properties`
+                The generic class that you want to use to represent the properties of objects in this collection when mutating objects through the `.query` namespace.
+                The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
+                If you do not provide a generic, the methods in `.query` will return objects properties as `Dict[str, Any]`.
+            `data_model_references`
+                The generic class that you want to use to represent the objects of references in this collection when mutating objects through the `.query` namespace.
+                The generic provided in this argument will propagate to the methods in `.query` and allow you to do `mypy` static type checking on your codebase.
+                If you do not provide a generic, the methods in `.query` will return properties of referenced objects as `Dict[str, Any]`.
+            `skip_argument_validation`
+                If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
+        Raises:
+            `weaviate.WeaviateInvalidInputError`
+                If the input parameters are invalid.
+            `weaviate.exceptions.InvalidDataModelException`
+                If the data model is not a valid data model, i.e., it is not a `dict` nor a `TypedDict`.
+        """
+        raise NotImplementedError()
 
-    async def _export(self, name: str) -> _CollectionConfig:
-        path = f"/schema/{name}"
-        response = await self._connection.get(
-            path=path, error_msg="Could not export collection config"
-        )
-        res = _decode_json_response_dict(response, "Get schema export")
-        assert res is not None
-        return _collection_config_from_json(res)
+    @abstractmethod
+    def create_from_dict(
+        self, config: dict
+    ) -> Union[
+        Collection[Properties, References], Awaitable[CollectionAsync[Properties, References]]
+    ]:
+        """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration dictionary object.
 
-    async def _delete(self, name: str) -> None:
-        path = f"/schema/{name}"
-        await self._connection.delete(
-            path=path,
-            error_msg="Collection may not have been deleted properly.",
-            status_codes=_ExpectedStatusCodes(ok_in=200, error="Delete collection"),
-        )
+        This method is helpful for those making the v3 -> v4 migration and for those interfacing with any experimental
+        Weaviate features that are not yet fully supported by the Weaviate Python client.
 
-    async def _get_all(
-        self, simple: bool
-    ) -> Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]:
-        response = await self._connection.get(path="/schema", error_msg="Get all collections")
-        res = _decode_json_response_dict(response, "Get schema all")
-        assert res is not None
-        if simple:
-            return _collection_configs_simple_from_json(res)
-        return _collection_configs_from_json(res)
+        Arguments:
+            `config`
+                The dictionary representation of the collection's configuration.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a non-OK status.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def create_from_config(
+        self, config: CollectionConfig
+    ) -> Union[
+        Collection[Properties, References], Awaitable[CollectionAsync[Properties, References]]
+    ]:
+        """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
+
+        Arguments:
+            `config`
+                The collection's configuration.
+
+        Raises:
+            `weaviate.WeaviateConnectionError`
+                If the network connection to Weaviate fails.
+            `weaviate.UnexpectedStatusCodeError`
+                If Weaviate reports a non-OK status.
+        """
+        raise NotImplementedError()

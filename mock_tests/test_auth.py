@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 import warnings
@@ -38,7 +39,7 @@ def test_user_password(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.S
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.AuthClientPassword(user, pw),
+        auth_credentials=weaviate.auth.AuthClientPassword(user, pw),
     ) as client:
         client.collections.list_all()  # some call that includes authorization
     weaviate_auth_mock.check_assertions()
@@ -54,7 +55,7 @@ def test_bearer_token(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Se
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.AuthBearerToken(ACCESS_TOKEN, refresh_token=REFRESH_TOKEN),
+        auth_credentials=weaviate.auth.AuthBearerToken(ACCESS_TOKEN, refresh_token=REFRESH_TOKEN),
     ) as client:
         client.collections.list_all()  # some call that includes authorization
 
@@ -74,7 +75,9 @@ def test_client_credentials(weaviate_auth_mock: HTTPServer, start_grpc_server: g
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.AuthClientCredentials(client_secret=CLIENT_SECRET, scope=SCOPE),
+        auth_credentials=weaviate.auth.AuthClientCredentials(
+            client_secret=CLIENT_SECRET, scope=SCOPE
+        ),
     ) as client:
         client.collections.list_all()  # some call that includes authorization
 
@@ -106,7 +109,7 @@ def test_auth_header_priority(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.AuthBearerToken(
+        auth_credentials=weaviate.auth.AuthBearerToken(
             access_token=ACCESS_TOKEN, refresh_token="SOMETHING"
         ),
         headers={header_name: "Bearer " + bearer_token},
@@ -140,12 +143,44 @@ def test_refresh(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server)
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.AuthBearerToken(
+        auth_credentials=weaviate.auth.AuthBearerToken(
             ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1
         ),
     ) as client:
         # client gets a new token 5s before expiration
         client.collections.list_all()  # some call that includes authorization
+    weaviate_auth_mock.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_refresh_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """Test that refresh tokens are used to get a new access token."""
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+    weaviate_auth_mock.expect_request(
+        "/auth",
+        data=f"grant_type=refresh_token&refresh_token={REFRESH_TOKEN}&client_id={CLIENT_ID}",
+    ).respond_with_json(
+        {
+            "access_token": ACCESS_TOKEN,
+            "expires_in": 1,
+            "refresh_token": REFRESH_TOKEN + str(time.time()),
+        }
+    )
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1
+        ),
+    ) as client:
+        # client gets a new token 5s before expiration
+        await client.collections.list_all()  # some call that includes authorization
     weaviate_auth_mock.check_assertions()
 
 
@@ -180,13 +215,60 @@ def test_refresh_of_refresh(weaviate_auth_mock: HTTPServer, start_grpc_server: g
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.AuthBearerToken(
+        auth_credentials=weaviate.auth.AuthBearerToken(
             ACCESS_TOKEN, refresh_token=REFRESH_TOKEN + str(refresh_calls), expires_in=1
         ),
     ) as client:
         # client gets a new token 5s before expiration
         time.sleep(5)
         client.collections.list_all()
+
+    # make sure that refresh token was actually refreshed and used again
+    assert refresh_calls > 1
+    weaviate_auth_mock.check_assertions()
+
+
+@pytest.mark.asyncio
+async def test_refresh_of_refresh_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server
+) -> None:
+    """Test that refresh tokens are used to get a new refresh token token."""
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN}
+    ).respond_with_json({"classes": []})
+
+    # the handler will return a new refresh token with each call and asserts that the new token is used
+    refresh_calls = 0
+
+    def handler(request: Request) -> Response:
+        nonlocal refresh_calls
+        data = request.data.decode("utf-8")
+        assert f"refresh_token={REFRESH_TOKEN}{refresh_calls}" in data
+
+        refresh_calls += 1
+        return Response(
+            json.dumps(
+                {
+                    "access_token": ACCESS_TOKEN,
+                    "expires_in": 1,
+                    "refresh_token": REFRESH_TOKEN + str(refresh_calls),
+                }
+            )
+        )
+
+    weaviate_auth_mock.expect_request("/auth").respond_with_handler(handler)
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN + str(refresh_calls), expires_in=1
+        ),
+    ) as client:
+        # client gets a new token 5s before expiration
+        await asyncio.sleep(5)
+        await client.collections.list_all()
 
     # make sure that refresh token was actually refreshed and used again
     assert refresh_calls > 1
@@ -225,7 +307,7 @@ def test_auth_header_with_catchall_proxy(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.AuthClientPassword(
+        auth_credentials=weaviate.auth.AuthClientPassword(
             username="test-username", password="test-password"
         ),
     ) as client:
@@ -243,7 +325,7 @@ def test_missing_scope(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.S
             host=MOCK_IP,
             port=MOCK_PORT,
             grpc_port=MOCK_PORT_GRPC,
-            auth_credentials=weaviate.AuthClientCredentials(
+            auth_credentials=weaviate.auth.AuthClientCredentials(
                 client_secret=CLIENT_SECRET, scope=None
             ),
         )
@@ -275,12 +357,52 @@ def test_token_refresh_timeout(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.AuthBearerToken(
+        auth_credentials=weaviate.auth.AuthBearerToken(
             ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1  # force immediate refresh
         ),
     ) as client:
         time.sleep(9)  # sleep longer than the timeout, to give client time to retry
         client.collections.list_all()
+    weaviate_auth_mock.check_assertions()
+
+    w = [w for w in recwarn if str(w.message).startswith("Con001")]
+    assert len(w) == 1
+    assert issubclass(w[0].category, UserWarning)
+
+
+@pytest.mark.asyncio
+async def test_token_refresh_timeout_async(
+    weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, recwarn
+) -> None:
+    """Test that the token refresh background thread can handle timeouts of the auth server."""
+    first_request = True
+
+    # This handler lets the refresh request timeout for the first time. Then, the client retries the refresh which
+    # should succeed.
+    def handler(request: Request):
+        nonlocal first_request
+        if first_request:
+            time.sleep(6)  # Timeout for auth connections is 5s. We need to wait longer
+            first_request = False
+        return Response(json.dumps({"access_token": ACCESS_TOKEN + "_1", "expires_in": 31}))
+
+    weaviate_auth_mock.expect_request("/auth").respond_with_handler(handler)
+
+    # This handler only accepts the refreshed token, to make sure that the refresh happened
+    weaviate_auth_mock.expect_request(
+        "/v1/schema", headers={"Authorization": "Bearer " + ACCESS_TOKEN + "_1"}
+    ).respond_with_json({"classes": []})
+
+    async with weaviate.use_async_with_local(
+        host=MOCK_IP,
+        port=MOCK_PORT,
+        grpc_port=MOCK_PORT_GRPC,
+        auth_credentials=weaviate.auth.AuthBearerToken(
+            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1  # force immediate refresh
+        ),
+    ) as client:
+        await asyncio.sleep(9)  # sleep longer than the timeout, to give client time to retry
+        await client.collections.list_all()
     weaviate_auth_mock.check_assertions()
 
     w = [w for w in recwarn if str(w.message).startswith("Con001")]
@@ -299,7 +421,7 @@ def test_with_simple_auth_no_oidc_via_api_key(
         host=MOCK_IP,
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
-        auth_credentials=weaviate.AuthApiKey(api_key="Super-secret-key"),
+        auth_credentials=weaviate.auth.AuthApiKey(api_key="Super-secret-key"),
     )
     client.collections.list_all()
 

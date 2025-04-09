@@ -26,10 +26,14 @@ from weaviate.collections.classes.internal import (
     GenerativeSearchReturnType,
 )
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base import _Base
+from weaviate.collections.queries.near_text.executors import _NearTextGenerateExecutor
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.types import NUMBER, INCLUDE_VECTOR
 
-class _NearTextGenerateAsync(Generic[Properties, References], _Base[Properties, References]):
+class _NearTextGenerateAsync(
+    Generic[Properties, References],
+    _NearTextGenerateExecutor[ConnectionAsync, Properties, References],
+):
     @overload
     async def near_text(
         self,
@@ -359,7 +363,10 @@ class _NearTextGenerateAsync(Generic[Properties, References], _Base[Properties, 
         return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> GenerativeSearchReturnType[Properties, References, TProperties, TReferences]: ...
 
-class _NearTextGenerate(Generic[Properties, References], _Base[Properties, References]):
+class _NearTextGenerate(
+    Generic[Properties, References],
+    _NearTextGenerateExecutor[ConnectionSync, Properties, References],
+):
     @overload
     def near_text(
         self,

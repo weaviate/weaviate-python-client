@@ -16,10 +16,9 @@ from weaviate.rbac.models import (
     NodesPermissionOutput,
     TenantsPermissionOutput,
     UsersPermissionOutput,
+    UserTypes,
 )
 from _pytest.fixtures import SubRequest
-
-from weaviate.users.users import UserTypes
 
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")

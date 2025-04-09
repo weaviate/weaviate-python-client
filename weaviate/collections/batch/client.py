@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Union
 
 from weaviate.collections.batch.base import (
@@ -19,7 +20,7 @@ from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.exceptions import UnexpectedStatusCodeError
 from weaviate.types import UUID, VECTORS
 
-from weaviate.connect.v4 import ConnectionV4
+from weaviate.connect.v4 import ConnectionSync
 
 from typing import TYPE_CHECKING
 
@@ -123,13 +124,15 @@ ClientBatchingContextManager = _ContextManagerWrapper[BatchClient]
 class _BatchClientWrapper(_BatchWrapper):
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: ConnectionSync,
         config: "_Collections",
         consistency_level: Optional[ConsistencyLevel] = None,
     ):
         super().__init__(connection, consistency_level)
         self.__config = config
         self._vectorizer_batching: Optional[bool] = None
+        self.__executor = ThreadPoolExecutor()
+        # define one executor per client with it shared between all child batch contexts
 
     def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchClient]:
         if self._vectorizer_batching is None or not self._vectorizer_batching:
@@ -165,7 +168,7 @@ class _BatchClientWrapper(_BatchWrapper):
                 consistency_level=self._consistency_level,
                 results=self._batch_data,
                 batch_mode=self._batch_mode,
-                event_loop=self._event_loop,
+                executor=self.__executor,
                 vectorizer_batching=self._vectorizer_batching,
             )
         )

@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, cast
 
 from weaviate import WeaviateAsyncClient, WeaviateClient, connect_to_local, use_async_with_local
-from weaviate.classes.config import Configure, DataType, Property
+from weaviate.classes.config import DataType, Property
 
 
 class SyncJourneys:
@@ -25,14 +25,13 @@ class SyncJourneys:
                 Property(name="name", data_type=DataType.TEXT),
                 Property(name="age", data_type=DataType.INT),
             ],
-            vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
         )
         with collection.batch.dynamic() as batch:
             for i in range(1000):
                 batch.add_object({"name": f"Person {i}", "age": i})
         res = collection.query.fetch_objects(limit=100)
         self.__client.collections.delete(name)
-        return [obj.properties for obj in res.objects]
+        return [cast(dict, obj.properties) for obj in res.objects]
 
 
 class AsyncJourneys:
@@ -58,9 +57,8 @@ class AsyncJourneys:
                 Property(name="name", data_type=DataType.TEXT),
                 Property(name="age", data_type=DataType.INT),
             ],
-            vectorizer_config=Configure.Vectorizer.text2vec_contextionary(),
         )
         await collection.data.insert_many([{"name": f"Person {i}", "age": i} for i in range(100)])
         res = await collection.query.fetch_objects(limit=1000)
         await self.__client.collections.delete(name)
-        return [obj.properties for obj in res.objects]
+        return [cast(dict, obj.properties) for obj in res.objects]

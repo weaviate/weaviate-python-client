@@ -1,10 +1,12 @@
 from typing import Dict, List, Literal, Union, overload
-from weaviate.users.users import _UsersInit, UserDB, OwnUser
+from weaviate.connect.v4 import ConnectionSync
+from weaviate.users.executor import _DeprecatedExecutor, _DBExecutor, _OIDCExecutor
+from weaviate.users.users import UserDB, OwnUser
 
 from weaviate.rbac.models import Role, RoleBase
 from typing_extensions import deprecated
 
-class _UsersOIDC(_UsersInit):
+class _UsersOIDC(_OIDCExecutor[ConnectionSync]):
     @overload
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: Literal[False] = False
@@ -20,7 +22,7 @@ class _UsersOIDC(_UsersInit):
     def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
     def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
 
-class _UsersDB(_UsersInit):
+class _UsersDB(_DBExecutor[ConnectionSync]):
     @overload
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: Literal[False] = False
@@ -43,7 +45,7 @@ class _UsersDB(_UsersInit):
     def get(self, *, user_id: str) -> UserDB: ...
     def list_all(self) -> List[UserDB]: ...
 
-class _Users(_UsersInit):
+class _Users(_DeprecatedExecutor[ConnectionSync]):
     def get_my_user(self) -> OwnUser: ...
     @deprecated(
         """This method is deprecated and will be removed in Q4 25.

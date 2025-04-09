@@ -879,3 +879,9 @@ def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
             "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
             "%Y-%m-%dT%H:%M:%S%z",
         )
+
+
+class _WeaviateUUIDInt(uuid_lib.UUID):
+    def __init__(self, hex_: int) -> None:
+        object.__setattr__(self, "int", hex_)
+        object.__setattr__(self, "is_safe", uuid_lib.SafeUUID.unknown)
