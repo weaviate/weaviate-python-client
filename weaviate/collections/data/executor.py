@@ -51,11 +51,10 @@ from weaviate.util import _datetime_to_string, _get_vector_v4
 from weaviate.validator import _validate_input, _ValidateArgument
 
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
+from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 from weaviate.collections.batch.rest import _BatchREST
-from weaviate.collections.filters import _FilterToGRPC
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.proto.v1.batch_delete_pb2 import BatchDeleteRequest, BatchDeleteReply
-from weaviate.util import _ServerVersion, _WeaviateUUIDInt
+from weaviate.util import _ServerVersion
 
 
 @dataclass
@@ -88,6 +87,9 @@ class _DataExecutor(Generic[ConnectionType]):
             weaviate_version=connection._weaviate_version, consistency_level=consistency_level
         )
         self.__batch_rest = _BatchREST(consistency_level=consistency_level)
+        self.__batch_delete = _BatchDeleteGRPC(
+            weaviate_version=connection._weaviate_version, consistency_level=consistency_level
+        )
         self._type = type_
 
     def insert(
@@ -660,43 +662,13 @@ class _DataExecutor(Generic[ConnectionType]):
                 If Weaviate reports a non-OK status.
         """
         _ValidateArgument(expected=[_Filters], name="where", value=where)
-
-        request = BatchDeleteRequest(
-            collection=self.name,
-            consistency_level=self._consistency_level,
+        return self.__batch_delete.batch_delete(
+            self._connection,
+            name=self.name,
+            filters=where,
             verbose=verbose,
             dry_run=dry_run,
             tenant=self._tenant,
-            filters=_FilterToGRPC.convert(where),
-        )
-
-        def resp(
-            res: BatchDeleteReply,
-        ) -> Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]:
-            if verbose:
-                objects: List[DeleteManyObject] = [
-                    DeleteManyObject(
-                        uuid=_WeaviateUUIDInt(int.from_bytes(obj.uuid, byteorder="big")),
-                        successful=obj.successful,
-                        error=obj.error if obj.error != "" else None,
-                    )
-                    for obj in res.objects
-                ]
-                return DeleteManyReturn(
-                    failed=res.failed,
-                    successful=res.successful,
-                    matches=res.matches,
-                    objects=objects,
-                )
-            else:
-                return DeleteManyReturn(
-                    failed=res.failed, successful=res.successful, matches=res.matches, objects=None
-                )
-
-        return executor.execute(
-            response_callback=resp,
-            method=self._connection.grpc_batch_delete,
-            request=request,
         )
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:

@@ -19,6 +19,7 @@ from weaviate.collections.classes.filters import (
 )
 from weaviate.collections.classes.internal import ReferenceToMulti
 from weaviate.collections.classes.tenants import Tenant
+from weaviate.classes.config import ConsistencyLevel
 from weaviate.exceptions import (
     WeaviateQueryException,
 )
@@ -633,3 +634,26 @@ def test_delete_by_time_metadata_with_ref(
     assert len(source) == 1
     assert source.query.fetch_object_by_id(uuid=uuid_source1) is not None
     assert source.query.fetch_object_by_id(uuid=uuid_source2) is None
+
+
+def test_delete_many_with_consistency_level(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        ports=(8087, 50058),
+        properties=[
+            Property(name="text", data_type=DataType.TEXT),
+            Property(name="int", data_type=DataType.INT),
+        ],
+    ).with_consistency_level(ConsistencyLevel.ALL)
+    collection.data.insert_many(
+        [
+            DataObject(properties={"int": 10}, uuid=UUID1),
+            DataObject(properties={"text": "I am ageless"}, uuid=UUID2),
+        ]
+    )
+    assert len(collection.query.fetch_objects().objects) == 2
+
+    collection.data.delete_many(where=Filter.by_id().equal(UUID1))
+    objects = collection.query.fetch_objects().objects
+    assert len(objects) == 1
