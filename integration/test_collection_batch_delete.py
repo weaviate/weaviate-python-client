@@ -647,7 +647,7 @@ def test_delete_many_with_consistency_level(
             Property(name="int", data_type=DataType.INT),
         ],
     ).with_consistency_level(ConsistencyLevel.ALL)
-    time.sleep(1)
+    time.sleep(5)
     collection.data.insert_many(
         [
             DataObject(properties={"int": 10}, uuid=UUID1),
