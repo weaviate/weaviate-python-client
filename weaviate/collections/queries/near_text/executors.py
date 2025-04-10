@@ -40,7 +40,7 @@ class _NearTextGenerateExecutor(
         single_prompt: Union[str, _SinglePrompt, None] = None,
         grouped_task: Union[str, _GroupedTask, None] = None,
         grouped_properties: Optional[List[str]] = None,
-        generative_provider: Optional[_GenerativeConfigRuntime],
+        generative_provider: Optional[_GenerativeConfigRuntime] = None,
         certainty: Optional[NUMBER] = None,
         distance: Optional[NUMBER] = None,
         move_to: Optional[Move] = None,
