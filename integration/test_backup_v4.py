@@ -76,7 +76,7 @@ ARTICLES_PROPS = [
 
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
-    client = weaviate.connect_to_local()
+    client = weaviate.connect_to_local(port=8091, grpc_port=50062)
     client.collections.delete("Paragraph")
     client.collections.delete("Article")
 
