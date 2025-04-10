@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.13.1
+--------------
+This patch version includes:
+   - Fixes ``generative.near_text()`` to not require ``generative_provider``
+
 Version 4.13.0
 --------------
 This minor version provides a complete top-down refactor of the underlying transport for the sync and async clients.
