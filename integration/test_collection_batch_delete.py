@@ -640,12 +640,11 @@ def test_delete_many_with_consistency_level(
     collection_factory: CollectionFactory,
 ) -> None:
     collection = collection_factory(
-        ports=(8087, 50058),
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="int", data_type=DataType.INT),
         ],
-    ).with_consistency_level(ConsistencyLevel.ONE)
+    ).with_consistency_level(ConsistencyLevel.ALL)
     collection.data.insert_many(
         [
             DataObject(properties={"int": 10}, uuid=UUID1),
