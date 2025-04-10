@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.13.2
+--------------
+This patch version includes:
+    - Fixes a parsing bug when providing URLs with ``GenerativeConfig`` for runtime generate queries
+
 Version 4.13.1
 --------------
 This patch version includes:
