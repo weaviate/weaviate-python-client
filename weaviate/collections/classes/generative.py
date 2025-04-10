@@ -37,10 +37,7 @@ from weaviate.types import BLOB_INPUT
 def _parse_anyhttpurl(url: Optional[AnyHttpUrl]) -> Optional[str]:
     if url is None:
         return None
-    str_ = str(url)
-    if str_[-1] == "/":
-        str_ = str_[:-1]
-    return str_
+    return str(url).strip("/")
 
 
 def _to_text_array(values: Optional[Iterable[str]]) -> Optional[TextArray]:
