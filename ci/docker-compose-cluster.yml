@@ -22,6 +22,7 @@ services:
       CONTEXTIONARY_URL: contextionary:9999
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
+      AUTOSCHEMA_ENABLED: 'false'
 
   weaviate-node-2:
     init: true
@@ -54,6 +55,7 @@ services:
       CONTEXTIONARY_URL: contextionary:9999
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
+      AUTOSCHEMA_ENABLED: 'false'
 
   weaviate-node-3:
     init: true
@@ -86,4 +88,5 @@ services:
       CONTEXTIONARY_URL: contextionary:9999
       DEFAULT_VECTORIZER_MODULE: text2vec-contextionary
       ENABLE_MODULES: text2vec-contextionary
+      AUTOSCHEMA_ENABLED: 'false'
 ...
