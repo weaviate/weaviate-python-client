@@ -1,4 +1,5 @@
 import datetime
+import time
 import uuid
 from typing import List
 
@@ -645,7 +646,8 @@ def test_delete_many_with_consistency_level(
             Property(name="text", data_type=DataType.TEXT),
             Property(name="int", data_type=DataType.INT),
         ],
-    ).with_consistency_level(ConsistencyLevel.ONE)
+    ).with_consistency_level(ConsistencyLevel.ALL)
+    time.sleep(1)
     collection.data.insert_many(
         [
             DataObject(properties={"int": 10}, uuid=UUID1),
