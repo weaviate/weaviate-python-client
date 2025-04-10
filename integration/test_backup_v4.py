@@ -72,13 +72,13 @@ ARTICLES_PROPS = [
         "datePublished": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     },
 ]
+CLASSES = ["Paragraph", "Article"]
 
 
 @pytest.fixture(scope="module")
 def client() -> Generator[weaviate.WeaviateClient, None, None]:
     client = weaviate.connect_to_local()
-    client.collections.delete("Paragraph")
-    client.collections.delete("Article")
+    client.collections.delete(CLASSES)
 
     col_para = client.collections.create(
         name="Paragraph",
@@ -123,7 +123,9 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
 
     # create backup
     classes = ["Article", "Paragraph"]
-    resp = client.backup.create(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
+    resp = client.backup.create(
+        backup_id=backup_id, backend=BACKEND, wait_for_completion=True, include_collections=CLASSES
+    )
     assert resp.status == BackupStatus.SUCCESS
     for cls in classes:
         assert cls in resp.collections
@@ -141,7 +143,9 @@ def test_create_and_restore_backup_with_waiting(client: weaviate.WeaviateClient)
     client.collections.delete("Paragraph")
 
     # restore backup
-    restore = client.backup.restore(backup_id=backup_id, backend=BACKEND, wait_for_completion=True)
+    restore = client.backup.restore(
+        backup_id=backup_id, backend=BACKEND, wait_for_completion=True, include_collections=CLASSES
+    )
     assert restore.status == BackupStatus.SUCCESS
     for cls in classes:
         assert cls in resp.collections
@@ -349,7 +353,7 @@ def test_fail_creating_backup_for_both_include_and_exclude_classes(
 
 
 @pytest.mark.parametrize("dynamic_backup_location", [False, True])
-def test_backup_and_restore_with_collection(
+def test_backup_and_restore_with_dynamic_location(
     client: weaviate.WeaviateClient, dynamic_backup_location: bool, tmp_path: pathlib.Path
 ) -> None:
     backup_id = _create_backup_id()
@@ -513,7 +517,10 @@ def test_cancel_backup(
         backup_location = wvc.backup.BackupLocation.FileSystem(path=str(tmp_path))
 
     resp = client.backup.create(
-        backup_id=backup_id, backend=BACKEND, backup_location=backup_location
+        backup_id=backup_id,
+        backend=BACKEND,
+        backup_location=backup_location,
+        include_collections=CLASSES,
     )
     assert resp.status == BackupStatus.STARTED
 
