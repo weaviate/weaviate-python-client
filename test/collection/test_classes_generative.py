@@ -86,7 +86,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 anthropic=GenerativeAnthropic(
-                    base_url="http://localhost:8080/",
+                    base_url="http://localhost:8080",
                     model="text-to-image",
                     max_tokens=100,
                     stop_sequences=TextArray(values=["\n"]),
@@ -107,7 +107,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 anyscale=GenerativeAnyscale(
-                    base_url="http://localhost:8080/",
+                    base_url="http://localhost:8080",
                     model="text-to-image",
                     temperature=0.5,
                 ),
@@ -130,7 +130,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 aws=GenerativeAWS(
-                    endpoint="http://localhost:8080/",
+                    endpoint="http://localhost:8080",
                     model="text-to-image",
                     region="us-west-2",
                     service="sagemaker",
@@ -156,7 +156,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 cohere=GenerativeCohere(
-                    base_url="http://localhost:8080/",
+                    base_url="http://localhost:8080",
                     k=5,
                     max_tokens=100,
                     model="text-to-image",
@@ -184,7 +184,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 databricks=GenerativeDatabricks(
-                    endpoint="http://localhost:8080/",
+                    endpoint="http://localhost:8080",
                     frequency_penalty=0.5,
                     log_probs=True,
                     max_tokens=100,
@@ -216,7 +216,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 friendliai=GenerativeFriendliAI(
-                    base_url="http://localhost:8080/",
+                    base_url="http://localhost:8080",
                     max_tokens=100,
                     model="text-to-image",
                     n=5,
@@ -247,7 +247,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 google=GenerativeGoogle(
-                    api_endpoint="localhost:8080/",
+                    api_endpoint="localhost:8080",
                     endpoint_id="12345678901234567890123456789012",
                     frequency_penalty=0.5,
                     max_tokens=100,
@@ -275,7 +275,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 mistral=GenerativeMistral(
-                    base_url="http://localhost:8080/",
+                    base_url="http://localhost:8080",
                     max_tokens=100,
                     model="text-to-image",
                     temperature=0.5,
@@ -294,7 +294,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 nvidia=GenerativeNvidia(
-                    base_url="http://localhost:8080/",
+                    base_url="http://localhost:8080",
                     max_tokens=100,
                     model="text-to-image",
                     temperature=0.5,
@@ -315,7 +315,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 ollama=GenerativeOllama(
-                    api_endpoint="http://localhost:8080/",
+                    api_endpoint="http://localhost:8080",
                     model="text-to-image",
                     temperature=0.5,
                     images=TextArray(values=[LOGO_ENCODED]),
@@ -345,7 +345,7 @@ def test_generative_parameters_images_parsing(
                 return_metadata=True,
                 openai=GenerativeOpenAI(
                     api_version="2020-05-03",
-                    base_url="http://localhost:8080/",
+                    base_url="http://localhost:8080",
                     deployment_id="12345678901234567890123456789012",
                     frequency_penalty=0.5,
                     max_tokens=100,
@@ -383,7 +383,7 @@ def test_generative_parameters_images_parsing(
                 return_metadata=True,
                 openai=GenerativeOpenAI(
                     api_version="2020-05-03",
-                    base_url="http://localhost:8080/",
+                    base_url="http://localhost:8080",
                     deployment_id="12345678901234567890123456789012",
                     frequency_penalty=0.5,
                     max_tokens=100,
@@ -414,7 +414,7 @@ def test_generative_parameters_images_parsing(
             GenerativeProvider(
                 return_metadata=True,
                 xai=GenerativeXAI(
-                    base_url="http://localhost:8080/",
+                    base_url="http://localhost:8080",
                     max_tokens=100,
                     model="text-to-image",
                     temperature=0.5,
