@@ -15,12 +15,3 @@ weaviate.collections.backups.backups
    :undoc-members:
    :show-inheritance:
    :private-members:
-
-weaviate.collections.backups.sync
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. automodule:: weaviate.collections.backups.sync
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:

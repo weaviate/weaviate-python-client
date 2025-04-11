@@ -25,11 +25,11 @@ weaviate.rbac.roles
    :show-inheritance:
    :private-members:
 
-weaviate.rbac.sync
-^^^^^^^^^^^^^^^^^^
+.. weaviate.rbac.sync
+.. ^^^^^^^^^^^^^^^^^^
 
-.. automodule:: weaviate.rbac.sync
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :private-members:
+.. .. automodule:: weaviate.rbac.sync
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
+..    :private-members:
