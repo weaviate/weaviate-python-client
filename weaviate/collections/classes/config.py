@@ -31,6 +31,7 @@ from weaviate.collections.classes.config_named_vectors import (
 )
 from weaviate.collections.classes.config_vector_index import (
     _MultiVectorConfigCreate,
+    _MuveraConfigCreate,
     VectorIndexType as VectorIndexTypeAlias,
     VectorFilterStrategy,
 )
@@ -2150,9 +2151,19 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 class _VectorIndexMultiVector:
     @staticmethod
     def multi_vector(
+        muvera_enabled: Optional[bool] = None,
+        muvera_ksim: Optional[int] = None,
+        muvera_dprojections: Optional[int] = None,
+        muvera_repetitions: Optional[int] = None,
         aggregation: Optional[MultiVectorAggregation] = None,
     ) -> _MultiVectorConfigCreate:
         return _MultiVectorConfigCreate(
+            muveraConfig=_MuveraConfigCreate(
+                enabled=muvera_enabled,
+                ksim=muvera_ksim,
+                dprojections=muvera_dprojections,
+                repetitions=muvera_repetitions,
+            ),
             aggregation=aggregation.value if aggregation is not None else None,
         )
 

@@ -37,12 +37,41 @@ class VectorIndexType(str, Enum):
     FLAT = "flat"
     DYNAMIC = "dynamic"
 
+class _MuveraConfigCreate(_ConfigCreateModel):
+    enabled: Optional[bool]
+    ksim: Optional[int]
+    dprojections: Optional[int]
+    repetitions: Optional[int]
+
+
+class _MuveraConfigCreate(_ConfigUpdateModel):
+    enabled: Optional[bool]
+    ksim: Optional[int]
+    dprojections: Optional[int]
+    repetitions: Optional[int]
+
+    def merge_with_existing(self, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """Must be done manually since Pydantic does not work well with type and type_.
+
+        Errors shadowing type occur if we want to use type as a field name.
+        """
+        if self.enabled is not None:
+            schema["enabled"] = str(self.enabled.value)
+        if self.ksim is not None:
+            schema["ksim"] = str(self.ksim.value)
+        if self.dprojections is not None:
+            schema["dprojections"] = str(self.dprojections.value)
+        if self.repetitions is not None:
+            schema["repetitions"] = str(self.repetitions.value)
+        return schema
+
 
 class _MultiVectorConfigCreateBase(_ConfigCreateModel):
     enabled: bool = Field(default=True)
 
 
 class _MultiVectorConfigCreate(_MultiVectorConfigCreateBase):
+    muveraConfig: _MuveraConfigCreate
     aggregation: Optional[str]
 
 
