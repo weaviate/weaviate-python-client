@@ -2151,20 +2151,26 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 class _VectorIndexMultiVector:
     @staticmethod
     def multi_vector(
-        muvera_enabled: Optional[bool] = None,
-        muvera_ksim: Optional[int] = None,
-        muvera_dprojections: Optional[int] = None,
-        muvera_repetitions: Optional[int] = None,
+        muvera_config: Optional[_MuveraConfigCreate] = None,
         aggregation: Optional[MultiVectorAggregation] = None,
     ) -> _MultiVectorConfigCreate:
         return _MultiVectorConfigCreate(
-            muveraConfig=_MuveraConfigCreate(
-                enabled=muvera_enabled,
-                ksim=muvera_ksim,
-                dprojections=muvera_dprojections,
-                repetitions=muvera_repetitions,
-            ),
+            muveraConfig=muvera_config if muvera_config is not None else None,
             aggregation=aggregation.value if aggregation is not None else None,
+        )
+
+    @staticmethod
+    def muvera(
+        enabled: Optional[bool] = None,
+        ksim: Optional[int] = None,
+        dprojections: Optional[int] = None,
+        repetitions: Optional[int] = None,
+    ) -> _MuveraConfigCreate:
+        return _MuveraConfigCreate(
+            enabled=enabled,
+            ksim=ksim,
+            dprojections=dprojections,
+            repetitions=repetitions,
         )
 
 
