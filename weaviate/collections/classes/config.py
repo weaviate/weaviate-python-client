@@ -1664,6 +1664,7 @@ SQConfig = _SQConfig
 
 @dataclass
 class _MultiVectorConfig(_ConfigBase):
+    muvera_config: Optional[_MuveraConfigCreate]
     aggregation: str
 
 
