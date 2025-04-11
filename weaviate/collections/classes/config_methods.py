@@ -155,6 +155,7 @@ def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
         if config.get("multivector") is None
         or not config.get("multivector", {"enabled": False}).get("enabled")
         else _MultiVectorConfig(
+            muvera_config=config["multivector"]["muvera"],
             aggregation=config["multivector"]["aggregation"],
         )
     )
@@ -244,6 +245,7 @@ def __get_vector_config(
                 ),
                 vector_index_config=vector_index_config,
             )
+            print(named_vectors[name])
         return named_vectors
     else:
         return None
