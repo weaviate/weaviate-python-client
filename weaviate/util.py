@@ -123,9 +123,7 @@ def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> 
 
 
 def parse_blob(media: BLOB_INPUT) -> str:
-    """
-    Parse a blob input to a base64 encoded string.
-    """
+    """Parse a blob input to a base64 encoded string."""
     if isinstance(media, str):  # if already encoded by user or string to path
         if os.path.isfile(media):
             return file_encoder_b64(media)

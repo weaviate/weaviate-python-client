@@ -695,18 +695,20 @@ class _ByteOps:
     @staticmethod
     def decode_float32s(byte_vector: bytes) -> List[float]:
         return [
-            float(val) for val in struct.unpack(f"{len(byte_vector)//UINT32_LEN}f", byte_vector)
+            float(val) for val in struct.unpack(f"{len(byte_vector) // UINT32_LEN}f", byte_vector)
         ]
 
     @staticmethod
     def decode_float64s(byte_vector: bytes) -> List[float]:
         return [
-            float(val) for val in struct.unpack(f"{len(byte_vector)//UINT64_LEN}d", byte_vector)
+            float(val) for val in struct.unpack(f"{len(byte_vector) // UINT64_LEN}d", byte_vector)
         ]
 
     @staticmethod
     def decode_int64s(byte_vector: bytes) -> List[int]:
-        return [int(val) for val in struct.unpack(f"{len(byte_vector)//UINT64_LEN}q", byte_vector)]
+        return [
+            int(val) for val in struct.unpack(f"{len(byte_vector) // UINT64_LEN}q", byte_vector)
+        ]
 
 
 @dataclass

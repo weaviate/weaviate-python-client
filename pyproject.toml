@@ -39,3 +39,6 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = ["deprecation.*"]
 follow_untyped_imports = true
+
+[tool.pydoclint]
+style = "google"

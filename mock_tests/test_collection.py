@@ -79,7 +79,6 @@ def test_auth_header_priority(
     weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, header_name: str
 ) -> None:
     """Test that auth_client_secret has priority over the auth header."""
-
     bearer_token = "OTHER TOKEN"
 
     weaviate_auth_mock.expect_request("/auth").respond_with_json(
