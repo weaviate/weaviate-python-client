@@ -9,7 +9,7 @@ from weaviate.collections.classes.types import GeoCoordinate
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.types import UUID
 from weaviate.proto.v1 import base_pb2
-from weaviate.util import get_valid_uuid
+from weaviate.util import get_valid_uuid, _capitalize_first_letter
 
 from weaviate.exceptions import WeaviateInvalidInputError
 
@@ -489,6 +489,7 @@ class _FilterByRef:
 
     def by_ref_multi_target(self, reference: str, target_collection: str) -> "_FilterByRef":
         """Filter on the given multi-target reference."""
+        target_collection = _capitalize_first_letter(target_collection)
         self.__last_target.target = _MultiTargetRef(
             link_on=reference, target_collection=target_collection
         )
@@ -537,6 +538,7 @@ class Filter:
     @staticmethod
     def by_ref_multi_target(link_on: str, target_collection: str) -> _FilterByRef:
         """Define a filter based on a reference to be used when querying and deleting from a collection."""
+        target_collection = _capitalize_first_letter(target_collection)
         return _FilterByRef(_MultiTargetRef(link_on=link_on, target_collection=target_collection))
 
     @staticmethod
