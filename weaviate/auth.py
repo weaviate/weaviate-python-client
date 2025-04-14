@@ -115,10 +115,10 @@ AuthCredentials = Union[OidcAuth, _APIKey]
 
 # required to ease v3 -> v4 transition
 AuthApiKey = _APIKey
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""@deprecated; use wvc.init.Auth.api_key() instead."""
 AuthBearerToken = _BearerToken
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""@deprecated; use wvc.init.Auth.api_key() instead."""
 AuthClientCredentials = _ClientCredentials
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""@deprecated; use wvc.init.Auth.api_key() instead."""
 AuthClientPassword = _ClientPassword
-"""@deprecated; use wvc.Auth.api_key() instead."""
+"""@deprecated; use wvc.init.Auth.api_key() instead."""
