@@ -1,6 +1,4 @@
-from typing import Awaitable, List, Literal, Optional, Union, cast
-
-from grpc.aio import AioRpcError  # type: ignore
+from typing import List, Literal, Optional, Union
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
@@ -9,35 +7,39 @@ from weaviate.collections.classes.grpc import (
     Move,
     HybridVectorType,
 )
-from weaviate.collections.grpc.retry import _Retry
-from weaviate.collections.grpc.shared import _BaseGRPC, PERMISSION_DENIED
-from weaviate.connect.v4 import ConnectionV4
+from weaviate.collections.grpc.shared import _BaseGRPC
+from weaviate.connect import executor
+from weaviate.connect.v4 import Connection
 from weaviate.exceptions import (
-    InsufficientPermissionsError,
-    WeaviateQueryError,
-    WeaviateRetryError,
     WeaviateInvalidInputError,
 )
 from weaviate.proto.v1 import aggregate_pb2, base_pb2, base_search_pb2
 from weaviate.types import NUMBER, UUID
+from weaviate.util import _ServerVersion
 
 
 class _AggregateGRPC(_BaseGRPC):
     def __init__(
         self,
-        connection: ConnectionV4,
+        weaviate_version: _ServerVersion,
         name: str,
         tenant: Optional[str],
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
     ):
-        super().__init__(connection, consistency_level, validate_arguments)
+        super().__init__(weaviate_version, consistency_level, validate_arguments)
         self._name: str = name
         self._tenant = tenant
 
-    async def objects_count(self) -> int:
-        res = await self.__call(self.__create_request(objects_count=True))
-        return res.single_result.objects_count
+    def objects_count(self, connection: Connection) -> executor.Result[int]:
+        def resp(res: aggregate_pb2.AggregateReply) -> int:
+            return res.single_result.objects_count
+
+        return executor.execute(
+            response_callback=resp,
+            method=connection.grpc_aggregate,
+            request=self.__create_request(objects_count=True),
+        )
 
     def hybrid(
         self,
@@ -54,8 +56,8 @@ class _AggregateGRPC(_BaseGRPC):
         limit: Optional[int],
         object_limit: Optional[int],
         objects_count: bool,
-    ) -> Awaitable[aggregate_pb2.AggregateReply]:
-        request = self.__create_request(
+    ) -> aggregate_pb2.AggregateRequest:
+        return self.__create_request(
             aggregations=aggregations,
             filters=filters,
             group_by=group_by,
@@ -72,7 +74,6 @@ class _AggregateGRPC(_BaseGRPC):
             object_limit=object_limit,
             objects_count=objects_count,
         )
-        return self.__call(request)
 
     def near_media(
         self,
@@ -88,14 +89,14 @@ class _AggregateGRPC(_BaseGRPC):
         limit: Optional[int],
         object_limit: Optional[int],
         objects_count: bool,
-    ) -> Awaitable[aggregate_pb2.AggregateReply]:
+    ) -> aggregate_pb2.AggregateRequest:
         if self._validate_arguments:
             self.__check_vector_search_args(
                 certainty=certainty,
                 distance=distance,
                 object_limit=object_limit,
             )
-        request = self.__create_request(
+        return self.__create_request(
             aggregations=aggregations,
             filters=filters,
             group_by=group_by,
@@ -110,7 +111,6 @@ class _AggregateGRPC(_BaseGRPC):
             object_limit=object_limit,
             objects_count=objects_count,
         )
-        return self.__call(request)
 
     def near_object(
         self,
@@ -125,14 +125,14 @@ class _AggregateGRPC(_BaseGRPC):
         limit: Optional[int],
         object_limit: Optional[int],
         objects_count: bool,
-    ) -> Awaitable[aggregate_pb2.AggregateReply]:
+    ) -> aggregate_pb2.AggregateRequest:
         if self._validate_arguments:
             self.__check_vector_search_args(
                 certainty=certainty,
                 distance=distance,
                 object_limit=object_limit,
             )
-        request = self.__create_request(
+        return self.__create_request(
             aggregations=aggregations,
             filters=filters,
             group_by=group_by,
@@ -141,7 +141,6 @@ class _AggregateGRPC(_BaseGRPC):
             object_limit=object_limit,
             objects_count=objects_count,
         )
-        return self.__call(request)
 
     def near_text(
         self,
@@ -158,14 +157,14 @@ class _AggregateGRPC(_BaseGRPC):
         limit: Optional[int],
         object_limit: Optional[int],
         objects_count: bool,
-    ) -> Awaitable[aggregate_pb2.AggregateReply]:
+    ) -> aggregate_pb2.AggregateRequest:
         if self._validate_arguments:
             self.__check_vector_search_args(
                 certainty=certainty,
                 distance=distance,
                 object_limit=object_limit,
             )
-        request = self.__create_request(
+        return self.__create_request(
             aggregations=aggregations,
             filters=filters,
             group_by=group_by,
@@ -181,7 +180,6 @@ class _AggregateGRPC(_BaseGRPC):
             object_limit=object_limit,
             objects_count=objects_count,
         )
-        return self.__call(request)
 
     def near_vector(
         self,
@@ -196,14 +194,14 @@ class _AggregateGRPC(_BaseGRPC):
         limit: Optional[int],
         object_limit: Optional[int],
         objects_count: bool,
-    ) -> Awaitable[aggregate_pb2.AggregateReply]:
+    ) -> aggregate_pb2.AggregateRequest:
         if self._validate_arguments:
             self.__check_vector_search_args(
                 certainty=certainty,
                 distance=distance,
                 object_limit=object_limit,
             )
-        req = self.__create_request(
+        return self.__create_request(
             aggregations=aggregations,
             filters=filters,
             group_by=group_by,
@@ -217,7 +215,6 @@ class _AggregateGRPC(_BaseGRPC):
             object_limit=object_limit,
             objects_count=objects_count,
         )
-        return self.__call(req)
 
     def over_all(
         self,
@@ -227,15 +224,14 @@ class _AggregateGRPC(_BaseGRPC):
         group_by: Optional[aggregate_pb2.AggregateRequest.GroupBy],
         limit: Optional[int],
         objects_count: bool = False,
-    ) -> Awaitable[aggregate_pb2.AggregateReply]:
-        req = self.__create_request(
+    ) -> aggregate_pb2.AggregateRequest:
+        return self.__create_request(
             aggregations=aggregations,
             filters=filters,
             group_by=group_by,
             limit=limit,
             objects_count=objects_count,
         )
-        return self.__call(req)
 
     def __check_vector_search_args(
         self,
@@ -277,22 +273,3 @@ class _AggregateGRPC(_BaseGRPC):
             objects_count=objects_count,
             tenant=self._tenant,
         )
-
-    async def __call(self, request: aggregate_pb2.AggregateRequest) -> aggregate_pb2.AggregateReply:
-        try:
-            assert self._connection.grpc_stub is not None
-            res = await _Retry(4).with_exponential_backoff(
-                0,
-                f"Searching in collection {request.collection}",
-                self._connection.grpc_stub.Aggregate,
-                request,
-                metadata=self._connection.grpc_headers(),
-                timeout=self._connection.timeout_config.query,
-            )
-            return cast(aggregate_pb2.AggregateReply, res)
-        except AioRpcError as e:
-            if e.code().name == PERMISSION_DENIED:
-                raise InsufficientPermissionsError(e)
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
-        except WeaviateRetryError as e:
-            raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore

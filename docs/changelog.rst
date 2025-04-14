@@ -1,6 +1,40 @@
 Changelog
 =========
 
+Version 4.13.2
+--------------
+This patch version includes:
+    - Fixes a parsing bug when providing URLs with ``GenerativeConfig`` for runtime generate queries
+
+Version 4.13.1
+--------------
+This patch version includes:
+   - Fixes ``generative.near_text()`` to not require ``generative_provider``
+
+Version 4.13.0
+--------------
+This minor version provides a complete top-down refactor of the underlying transport for the sync and async clients.
+    - Introduction of a dependency injection system whereby the sync/async connections are injected into each client independently thereby removing their cross-dependency.
+    - Removal of the ``event_loop.py`` file and all logic surrounding its usage by the sync client.
+    - Refactoring of the batching algorithm to use blocking threads with a sync connection, rather than the event loop sidecar thread.
+
+
+Version 4.12.1
+--------------
+This patch version includes:
+    - Renames ``GenerativeConfig.openai_azure`` to ``GenerativeConfig.azure_openai`` to align with the convention of ``Configure.Generative.azure_openai``
+
+Version 4.12.0
+--------------
+This minor version includes:
+    - Support for new 1.30 features:
+        - Dynamic user management of OIDC and native DB users
+        - Improved multi-dimensional/colBERT vectors
+        - Query-time configuration of generative modules
+        - Tenant-based filtering of data permissions in RBAC
+        - The new ``generative-xai`` module
+
+
 Version 4.11.3
 --------------
 This patch version includes:
@@ -35,7 +69,7 @@ Version 4.11.0
 This minor version includes:
     - Support for new 1.29 features:
         - RBAC is ready for production
-        - Multi-dimensional/COLBert vectors  experimental, breaking changes are expected)
+        - Multi-dimensional/COLBert vectors  experimental, breaking changes are expected
         - Aggregations are using GRPC now
     - Improved exception handling for errors returned by Weaviate
     - Add support for NVIDIA modules:

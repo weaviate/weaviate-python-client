@@ -4,7 +4,7 @@ from .base import ConnectionParams, ProtocolParams
 from .v4 import ConnectionV4
 
 __all__ = [
-    "ConnectionParams",
     "ConnectionV4",
+    "ConnectionParams",
     "ProtocolParams",
 ]

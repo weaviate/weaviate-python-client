@@ -1,27 +1,36 @@
-from typing import List, Literal, Optional, overload
+from typing import List, Literal, Optional, Union, overload
 
 from weaviate.collections.classes.cluster import Node, Shards, Stats
-from weaviate.collections.cluster.cluster import _ClusterBase
+from weaviate.collections.cluster.executor import _ClusterExecutor
+from weaviate.cluster.types import Verbosity
+from weaviate.connect.v4 import ConnectionSync
 
-class _Cluster(_ClusterBase):
+class _Cluster(_ClusterExecutor[ConnectionSync]):
     @overload
-    def nodes(
+    async def nodes(
         self,
         collection: Optional[str] = None,
         *,
         output: Literal[None] = None,
     ) -> List[Node[None, None]]: ...
     @overload
-    def nodes(
+    async def nodes(
         self,
         collection: Optional[str] = None,
         *,
         output: Literal["minimal"],
     ) -> List[Node[None, None]]: ...
     @overload
-    def nodes(
+    async def nodes(
         self,
         collection: Optional[str] = None,
         *,
         output: Literal["verbose"],
     ) -> List[Node[Shards, Stats]]: ...
+    @overload
+    async def nodes(
+        self,
+        collection: Optional[str] = None,
+        *,
+        output: Optional[Verbosity] = None,
+    ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]: ...

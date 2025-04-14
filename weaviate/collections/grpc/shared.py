@@ -29,18 +29,14 @@ from weaviate.collections.classes.grpc import (
     TwoDimensionalVectorType,
     PrimitiveVectorType,
 )
-from weaviate.connect import ConnectionV4
 from weaviate.exceptions import (
     WeaviateUnsupportedFeatureError,
     WeaviateInvalidInputError,
 )
 from weaviate.proto.v1 import base_search_pb2, base_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.util import _get_vector_v4
+from weaviate.util import _get_vector_v4, _ServerVersion
 from weaviate.validator import _is_valid, _ValidateArgument, _validate_input, _ExtraTypes
-
-
-PERMISSION_DENIED = "PERMISSION_DENIED"
 
 UINT32_LEN = 4
 UINT64_LEN = 8
@@ -49,11 +45,11 @@ UINT64_LEN = 8
 class _BaseGRPC:
     def __init__(
         self,
-        connection: ConnectionV4,
+        weaviate_version: _ServerVersion,
         consistency_level: Optional[ConsistencyLevel],
         validate_arguments: bool,
     ):
-        self._connection = connection
+        self._weaviate_version = weaviate_version
         self._consistency_level = self._get_consistency_level(consistency_level)
         self._validate_arguments = validate_arguments
 
@@ -92,7 +88,7 @@ class _BaseGRPC:
         if target_vector is None:
             return None, None
 
-        if self._connection._weaviate_version.is_lower_than(1, 26, 0):
+        if self._weaviate_version.is_lower_than(1, 26, 0):
             if isinstance(target_vector, str):
                 return None, [target_vector]
             elif isinstance(target_vector, list) and len(target_vector) == 1:
@@ -100,7 +96,7 @@ class _BaseGRPC:
             else:
                 raise WeaviateUnsupportedFeatureError(
                     "Multiple target vectors in search",
-                    str(self._connection._weaviate_version),
+                    str(self._weaviate_version),
                     "1.26.0",
                 )
 
@@ -109,7 +105,7 @@ class _BaseGRPC:
         elif isinstance(target_vector, list):
             return base_search_pb2.Targets(target_vectors=target_vector), None
         else:
-            return target_vector.to_grpc_target_vector(self._connection._weaviate_version), None
+            return target_vector.to_grpc_target_vector(self._weaviate_version), None
 
     def _vector_per_target(
         self,
@@ -187,7 +183,7 @@ class _BaseGRPC:
             ):
                 raise invalid_nv_exception
 
-            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+            if self._weaviate_version.is_lower_than(1, 29, 0):
                 vector_for_target.append(
                     base_search_pb2.VectorForTarget(name=key, vector_bytes=_Pack.single(vec))
                 )
@@ -207,7 +203,7 @@ class _BaseGRPC:
             target_vectors.append(key)
 
         def add_2d_vector(value: TwoDimensionalVectorType, key: str) -> None:
-            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+            if self._weaviate_version.is_lower_than(1, 29, 0):
                 for v in value:
                     add_1d_vector(v, key)
                 return
@@ -228,13 +224,13 @@ class _BaseGRPC:
         def add_list_of_vectors(value: _ListOfVectorsQuery, key: str) -> None:
             if _ListOfVectorsQuery.is_one_dimensional(
                 value
-            ) and self._connection._weaviate_version.is_lower_than(1, 29, 0):
+            ) and self._weaviate_version.is_lower_than(1, 29, 0):
                 for v in value.vectors:
                     add_1d_vector(v, key)
                 return
             elif _ListOfVectorsQuery.is_one_dimensional(
                 value
-            ) and self._connection._weaviate_version.is_at_least(1, 29, 0):
+            ) and self._weaviate_version.is_at_least(1, 29, 0):
                 vectors = [
                     base_pb2.Vectors(
                         name=key,
@@ -341,7 +337,7 @@ class _BaseGRPC:
 
         if _is_1d_vector(near_vector) and len(near_vector) > 0:
             # fast path for simple single-vector
-            if self._connection._weaviate_version.is_lower_than(1, 29, 0):
+            if self._weaviate_version.is_lower_than(1, 29, 0):
                 near_vector_grpc: Optional[bytes] = struct.pack(
                     "{}f".format(len(near_vector)), *near_vector
                 )
@@ -358,9 +354,7 @@ class _BaseGRPC:
                         type=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
                     )
                 ]
-        elif _is_2d_vector(near_vector) and self._connection._weaviate_version.is_at_least(
-            1, 29, 0
-        ):
+        elif _is_2d_vector(near_vector) and self._weaviate_version.is_at_least(1, 29, 0):
             # fast path for simple multi-vector
             near_vector_grpc = None
             vector_per_target_tmp = None
@@ -372,7 +366,7 @@ class _BaseGRPC:
                 )
             ]
         else:
-            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
+            if self._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, near_vector_grpc = self._vector_per_target(
                     near_vector, targets, "near_vector"
                 )
@@ -561,12 +555,12 @@ class _BaseGRPC:
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
     ) -> Union[base_search_pb2.Hybrid, None]:
-        if self._connection._weaviate_version.is_lower_than(1, 25, 0) and (
+        if self._weaviate_version.is_lower_than(1, 25, 0) and (
             isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
         ):
             raise WeaviateUnsupportedFeatureError(
                 "Hybrid search with NearText or NearVector",
-                str(self._connection._weaviate_version),
+                str(self._weaviate_version),
                 "1.25.0",
             )
         if self._validate_arguments:
@@ -619,7 +613,7 @@ class _BaseGRPC:
                 move_to=self.__parse_move(vector.move_to),
             )
         elif isinstance(vector, _HybridNearVector):
-            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
+            if self._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, vector_bytes_tmp = self._vector_per_target(
                     vector.vector, targets, "vector"
                 )
@@ -644,7 +638,7 @@ class _BaseGRPC:
                 vector_for_targets=vector_for_targets_tmp,
             )
         else:
-            if self._connection._weaviate_version.is_lower_than(1, 27, 0):
+            if self._weaviate_version.is_lower_than(1, 27, 0):
                 vector_per_target_tmp, vector_bytes_tmp = self._vector_per_target(
                     vector, targets, "vector"
                 )

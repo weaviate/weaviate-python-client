@@ -20,7 +20,7 @@ from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
-from weaviate.types import NUMBER, UUIDS, TIME
+from weaviate.types import BLOB_INPUT, NUMBER, UUIDS, TIME
 from weaviate.warnings import _Warnings
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
@@ -120,6 +120,23 @@ def file_encoder_b64(file_or_file_path: Union[str, Path, io.BufferedReader]) -> 
             file.close()
 
     return encoded
+
+
+def parse_blob(media: BLOB_INPUT) -> str:
+    """
+    Parse a blob input to a base64 encoded string.
+    """
+    if isinstance(media, str):  # if already encoded by user or string to path
+        if os.path.isfile(media):
+            return file_encoder_b64(media)
+        else:
+            return media
+    elif isinstance(media, Path) or isinstance(media, io.BufferedReader):
+        return file_encoder_b64(media)
+    else:
+        raise WeaviateInvalidInputError(
+            f"media must be a string, pathlib.Path, or io.BufferedReader but is {type(media)}"
+        )
 
 
 def image_decoder_b64(encoded_image: str) -> bytes:
@@ -708,3 +725,9 @@ def _datetime_from_weaviate_str(string: str) -> datetime.datetime:
             "".join(string.rsplit(":", 1) if string[-1] != "Z" else string),
             "%Y-%m-%dT%H:%M:%S%z",
         )
+
+
+class _WeaviateUUIDInt(uuid_lib.UUID):
+    def __init__(self, hex_: int) -> None:
+        object.__setattr__(self, "int", hex_)
+        object.__setattr__(self, "is_safe", uuid_lib.SafeUUID.unknown)

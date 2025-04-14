@@ -88,7 +88,7 @@ def client_factory(
     def _factory(
         name: str = "", ports: Tuple[int, int] = (8080, 50051), multi_tenant: bool = False
     ) -> Tuple[weaviate.WeaviateClient, str]:
-        nonlocal client_fixture, name_fixtures
+        nonlocal client_fixture, name_fixtures  # noqa: F824
         name_fixture = _sanitize_collection_name(request.node.name) + name
         name_fixtures.append(name_fixture)
         if client_fixture is None:

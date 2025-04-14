@@ -19,11 +19,12 @@ concurrency:
 
 env:
   WEAVIATE_124: 1.24.26
-  WEAVIATE_125: stable-v1.25-58e6503
-  WEAVIATE_126: 1.26.17-c1737a0
-  WEAVIATE_127: 1.27.15
-  WEAVIATE_128: 1.28.10
+  WEAVIATE_125: 1.25.34
+  WEAVIATE_126: 1.26.17
+  WEAVIATE_127: 1.27.14
+  WEAVIATE_128: 1.28.8
   WEAVIATE_129: 1.29.1
+  WEAVIATE_130: 1.30.0-rc.0-c1830a7-amd64
 
 jobs:
   lint-and-format:
@@ -64,11 +65,9 @@ jobs:
           python-version: ${{ matrix.version }}
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
-      - name: Run mypy
-        run: mypy --config-file ./pyproject.toml --warn-unused-ignores --python-version ${{matrix.version}} ${{ matrix.folder }}
       - uses: jakebailey/pyright-action@v2
         with:
-          version: 1.1.347
+          version: 1.1.398
 
   unit-tests:
     name: Run Unit Tests
@@ -130,11 +129,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_129},
-          { py: "3.10", weaviate: $WEAVIATE_129},
-          { py: "3.11", weaviate: $WEAVIATE_129},
-          { py: "3.12", weaviate: $WEAVIATE_129},
-          { py: "3.13", weaviate: $WEAVIATE_129}
+          { py: "3.9", weaviate: $WEAVIATE_130},
+          { py: "3.10", weaviate: $WEAVIATE_130},
+          { py: "3.11", weaviate: $WEAVIATE_130},
+          { py: "3.12", weaviate: $WEAVIATE_130},
+          { py: "3.13", weaviate: $WEAVIATE_130}
         ]
         optional_dependencies: [false]
     steps:
@@ -168,7 +167,7 @@ jobs:
         run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Run integration tests without auth secrets (for forks)
         if: ${{ github.event.pull_request.head.repo.fork }}
-        run: pytest -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
+        run: pytest -n auto --dist loadgroup -v --cov --cov-report=term-missing --cov=weaviate --cov-report xml:coverage-integration.xml integration
       - name: Archive code coverage results
         if: matrix.versions.py == '3.10' && (github.ref_name != 'main')
         uses: actions/upload-artifact@v4
@@ -279,7 +278,8 @@ jobs:
           $WEAVIATE_126,
           $WEAVIATE_127,
           $WEAVIATE_128,
-          $WEAVIATE_129
+          $WEAVIATE_129,
+          $WEAVIATE_130
         ]
     steps:
       - name: Checkout

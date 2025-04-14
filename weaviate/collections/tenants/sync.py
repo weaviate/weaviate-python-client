@@ -1,7 +1,8 @@
-from weaviate import syncify
-from weaviate.collections.tenants.tenants import _TenantsAsync
+from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionSync
+from weaviate.collections.tenants.executor import _TenantsExecutor
 
 
-@syncify.convert
-class _Tenants(_TenantsAsync):
+@executor.wrap("sync")
+class _Tenants(_TenantsExecutor[ConnectionSync]):
     pass

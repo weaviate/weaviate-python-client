@@ -14,6 +14,23 @@ from weaviate.util import _capitalize_first_letter
 from weaviate.warnings import _Warnings
 
 
+class UserTypes(str, Enum):
+    DB_DYNAMIC = "db_user"
+    DB_STATIC = "db_env_user"
+    OIDC = "oidc"
+
+
+@dataclass
+class UserAssignment:
+    user_id: str
+    user_type: UserTypes
+
+
+class WeaviateUserAssignment(TypedDict):
+    userId: str
+    userType: str
+
+
 class RoleScope(str, BaseEnum):
     """Scope of the role permission."""
 
@@ -23,6 +40,7 @@ class RoleScope(str, BaseEnum):
 
 class PermissionData(TypedDict):
     collection: str
+    tenant: str
 
 
 class PermissionCollections(TypedDict):
@@ -80,6 +98,14 @@ class WeaviateUser(TypedDict):
     groups: List[str]
 
 
+class WeaviateDBUserRoleNames(TypedDict):
+    userId: str
+    roles: List[str]
+    groups: List[str]
+    active: bool
+    dbUserType: str
+
+
 class _Action:
     pass
 
@@ -132,7 +158,10 @@ class RolesAction(str, _Action, Enum):
 
 
 class UsersAction(str, _Action, Enum):
+    CREATE = "create_users"
     READ = "read_users"
+    UPDATE = "update_users"
+    DELETE = "delete_users"
     ASSIGN_AND_REVOKE = "assign_and_revoke_users"
 
     @staticmethod
@@ -192,6 +221,7 @@ class _CollectionsPermission(_Permission[CollectionsAction]):
 
 class _TenantsPermission(_Permission[TenantsAction]):
     collection: str
+    tenant: str
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
@@ -199,7 +229,7 @@ class _TenantsPermission(_Permission[TenantsAction]):
                 "action": action,
                 "tenants": {
                     "collection": _capitalize_first_letter(self.collection),
-                    "tenant": "*",
+                    "tenant": self.tenant,
                 },
             }
             for action in self.actions
@@ -275,6 +305,7 @@ class _ClusterPermission(_Permission[ClusterAction]):
 
 class _DataPermission(_Permission[DataAction]):
     collection: str
+    tenant: str
 
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
@@ -282,6 +313,7 @@ class _DataPermission(_Permission[DataAction]):
                 "action": action,
                 "data": {
                     "collection": _capitalize_first_letter(self.collection),
+                    "tenant": self.tenant,
                 },
             }
             for action in self.actions
@@ -333,8 +365,12 @@ PermissionsOutputType = Union[
 
 
 @dataclass
-class Role:
+class RoleBase:
     name: str
+
+
+@dataclass
+class Role(RoleBase):
     cluster_permissions: List[ClusterPermissionOutput]
     collections_permissions: List[CollectionsPermissionOutput]
     data_permissions: List[DataPermissionOutput]
@@ -396,6 +432,7 @@ class Role:
                     tenants_permissions.append(
                         TenantsPermissionOutput(
                             collection=tenants["collection"],
+                            tenant=tenants.get("tenant", "*"),
                             actions={TenantsAction(permission["action"])},
                         )
                     )
@@ -416,6 +453,7 @@ class Role:
                     data_permissions.append(
                         DataPermissionOutput(
                             collection=data["collection"],
+                            tenant=data.get("tenant", "*"),
                             actions={DataAction(permission["action"])},
                         )
                     )
@@ -478,12 +516,6 @@ def _join_permissions(permissions: List[T]) -> List[T]:
         return_permission.append(permissions[i])
 
     return return_permission
-
-
-@dataclass
-class User:
-    user_id: str
-    roles: Dict[str, Role]
 
 
 ActionsType = Union[_Action, Sequence[_Action]]
@@ -550,6 +582,7 @@ class Permissions:
     def data(
         *,
         collection: Union[str, Sequence[str]],
+        tenant: Union[str, Sequence[str], None] = None,
         create: bool = False,
         read: bool = False,
         update: bool = False,
@@ -558,20 +591,25 @@ class Permissions:
         permissions: List[_Permission] = []
         if isinstance(collection, str):
             collection = [collection]
+        if tenant is None:
+            tenant = ["*"]
+        if isinstance(tenant, str):
+            tenant = [tenant]
         for c in collection:
-            permission = _DataPermission(collection=c, actions=set())
+            for t in tenant:
+                permission = _DataPermission(collection=c, tenant=t, actions=set())
 
-            if create:
-                permission.actions.add(DataAction.CREATE)
-            if read:
-                permission.actions.add(DataAction.READ)
-            if update:
-                permission.actions.add(DataAction.UPDATE)
-            if delete:
-                permission.actions.add(DataAction.DELETE)
+                if create:
+                    permission.actions.add(DataAction.CREATE)
+                if read:
+                    permission.actions.add(DataAction.READ)
+                if update:
+                    permission.actions.add(DataAction.UPDATE)
+                if delete:
+                    permission.actions.add(DataAction.DELETE)
 
-            if len(permission.actions) > 0:
-                permissions.append(permission)
+                if len(permission.actions) > 0:
+                    permissions.append(permission)
         return permissions
 
     @staticmethod
@@ -605,6 +643,7 @@ class Permissions:
     def tenants(
         *,
         collection: Union[str, Sequence[str]],
+        tenant: Union[str, Sequence[str], None] = None,
         create: bool = False,
         read: bool = False,
         update: bool = False,
@@ -613,19 +652,25 @@ class Permissions:
         permissions: List[_Permission] = []
         if isinstance(collection, str):
             collection = [collection]
+        if tenant is None:
+            tenant = ["*"]
+        if isinstance(tenant, str):
+            tenant = [tenant]
         for c in collection:
-            permission = _TenantsPermission(collection=c, actions=set())
-            if create:
-                permission.actions.add(TenantsAction.CREATE)
-            if read:
-                permission.actions.add(TenantsAction.READ)
-            if update:
-                permission.actions.add(TenantsAction.UPDATE)
-            if delete:
-                permission.actions.add(TenantsAction.DELETE)
+            for t in tenant:
+                permission = _TenantsPermission(collection=c, tenant=t, actions=set())
 
-            if len(permission.actions) > 0:
-                permissions.append(permission)
+                if create:
+                    permission.actions.add(TenantsAction.CREATE)
+                if read:
+                    permission.actions.add(TenantsAction.READ)
+                if update:
+                    permission.actions.add(TenantsAction.UPDATE)
+                if delete:
+                    permission.actions.add(TenantsAction.DELETE)
+
+                if len(permission.actions) > 0:
+                    permissions.append(permission)
 
         return permissions
 
@@ -661,7 +706,13 @@ class Permissions:
 
     @staticmethod
     def users(
-        *, user: Union[str, Sequence[str]], read: bool = False, assign_and_revoke: bool = False
+        *,
+        user: Union[str, Sequence[str]],
+        create: bool = False,
+        read: bool = False,
+        update: bool = False,
+        delete: bool = False,
+        assign_and_revoke: bool = False,
     ) -> PermissionsCreateType:
         permissions: List[_Permission] = []
         if isinstance(user, str):
@@ -669,8 +720,14 @@ class Permissions:
         for u in user:
             permission = _UsersPermission(users=u, actions=set())
 
+            if create:
+                permission.actions.add(UsersAction.CREATE)
             if read:
                 permission.actions.add(UsersAction.READ)
+            if update:
+                permission.actions.add(UsersAction.UPDATE)
+            if delete:
+                permission.actions.add(UsersAction.DELETE)
             if assign_and_revoke:
                 permission.actions.add(UsersAction.ASSIGN_AND_REVOKE)
 

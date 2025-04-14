@@ -1,4 +1,3 @@
-import asyncio
 import time
 from typing import Generic, List, Optional, Any, TypeVar, cast
 
@@ -10,8 +9,8 @@ from weaviate.collections.batch.base import (
 )
 from weaviate.collections.classes.batch import BatchResult, ErrorObject, ErrorReference, Shard
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.connect import ConnectionV4
-from weaviate.event_loop import _EventLoopSingleton
+from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionSync
 from weaviate.logger import logger
 from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 
@@ -19,7 +18,7 @@ from weaviate.util import _capitalize_first_letter, _decode_json_response_list
 class _BatchWrapper:
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: ConnectionSync,
         consistency_level: Optional[ConsistencyLevel],
     ):
         self._connection = connection
@@ -30,18 +29,14 @@ class _BatchWrapper:
 
         self._batch_data = _BatchDataWrapper()
 
-        self._event_loop = _EventLoopSingleton.get_instance()
-
-    async def __is_ready(
+    def __is_ready(
         self, max_count: int, shards: Optional[List[Shard]], backoff_count: int = 0
     ) -> bool:
         try:
-            readinesses = await asyncio.gather(
-                *[
-                    self.__get_shards_readiness(shard)
-                    for shard in shards or self._batch_data.imported_shards
-                ]
-            )
+            readinesses = [
+                self.__get_shards_readiness(shard)
+                for shard in shards or self._batch_data.imported_shards
+            ]
             return all(all(readiness) for readiness in readinesses)
         except Exception as e:
             logger.warning(
@@ -49,8 +44,8 @@ class _BatchWrapper:
             )
             if backoff_count >= max_count:
                 raise e
-            await asyncio.sleep(2**backoff_count)
-            return await self.__is_ready(max_count, shards, backoff_count + 1)
+            time.sleep(2**backoff_count)
+            return self.__is_ready(max_count, shards, backoff_count + 1)
 
     def wait_for_vector_indexing(
         self, shards: Optional[List[Shard]] = None, how_many_failures: int = 5
@@ -70,16 +65,16 @@ class _BatchWrapper:
             raise TypeError(f"'shards' must be of type List[Shard]. Given type: {type(shards)}.")
 
         waiting_count = 0
-        while not self._event_loop.run_until_complete(self.__is_ready, how_many_failures, shards):
+        while not self.__is_ready(how_many_failures, shards):
             if waiting_count % 20 == 0:  # print every 5s
                 logger.debug("Waiting for async indexing to finish...")
             time.sleep(0.25)
             waiting_count += 1
         logger.debug("Async indexing finished!")
 
-    async def __get_shards_readiness(self, shard: Shard) -> List[bool]:
+    def __get_shards_readiness(self, shard: Shard) -> List[bool]:
         path = f"/schema/{_capitalize_first_letter(shard.collection)}/shards{'' if shard.tenant is None else f'?tenant={shard.tenant}'}"
-        response = await self._connection.get(path=path)
+        response = executor.result(self._connection.get(path=path))
 
         res = _decode_json_response_list(response, "Get shards' status")
         assert res is not None
@@ -90,7 +85,7 @@ class _BatchWrapper:
         ]
 
     def _get_shards_readiness(self, shard: Shard) -> List[bool]:
-        return self._event_loop.run_until_complete(self.__get_shards_readiness, shard)
+        return self.__get_shards_readiness(shard)
 
     @property
     def failed_objects(self) -> List[ErrorObject]:

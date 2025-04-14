@@ -173,12 +173,14 @@ class GenerativeSearches(str, BaseEnum):
     ANYSCALE = "generative-anyscale"
     COHERE = "generative-cohere"
     DATABRICKS = "generative-databricks"
+    DUMMY = "generative-dummy"
     FRIENDLIAI = "generative-friendliai"
     MISTRAL = "generative-mistral"
     NVIDIA = "generative-nvidia"
     OLLAMA = "generative-ollama"
     OPENAI = "generative-openai"
     PALM = "generative-palm"  # rename to google once all versions support it
+    XAI = "generative-xai"
 
 
 class Rerankers(str, BaseEnum):
@@ -462,6 +464,16 @@ class _GenerativeMistral(_GenerativeProvider):
 class _GenerativeNvidia(_GenerativeProvider):
     generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
         default=GenerativeSearches.NVIDIA, frozen=True, exclude=True
+    )
+    temperature: Optional[float]
+    model: Optional[str]
+    maxTokens: Optional[int]
+    baseURL: Optional[str]
+
+
+class _GenerativeXai(_GenerativeProvider):
+    generative: Union[GenerativeSearches, _EnumLikeStr] = Field(
+        default=GenerativeSearches.XAI, frozen=True, exclude=True
     )
     temperature: Optional[float]
     model: Optional[str]
@@ -754,6 +766,26 @@ class _Generative:
             max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeNvidia(
+            model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
+        )
+
+    @staticmethod
+    def xai(
+        *,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+    ) -> _GenerativeProvider:
+        """Create a `_GenerativeXai` object for use when performing AI generation using the `generative-xai` module.
+
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+        """
+        return _GenerativeXai(
             model=model, temperature=temperature, maxTokens=max_tokens, baseURL=base_url
         )
 

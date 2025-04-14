@@ -15,6 +15,7 @@ from weaviate.collections.classes.internal import (
     ReturnReferences,
     TReferences,
 )
+from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
 from weaviate.collections.config import _ConfigCollectionAsync
 from weaviate.collections.data import _DataCollectionAsync
@@ -22,13 +23,13 @@ from weaviate.collections.generate import _GenerateCollectionAsync
 from weaviate.collections.iterator import _IteratorInputs, _ObjectAIterator
 from weaviate.collections.query import _QueryCollectionAsync
 from weaviate.collections.tenants import _TenantsAsync
-from weaviate.connect import ConnectionV4
+from weaviate.connect.v4 import ConnectionAsync
 from weaviate.types import UUID
 
 from .base import _CollectionBase
 
 
-class CollectionAsync(Generic[Properties, References], _CollectionBase[Properties, References]):
+class CollectionAsync(Generic[Properties, References], _CollectionBase[ConnectionAsync]):
     """The collection class is the main entry point for interacting with a collection in Weaviate.
 
     This class is returned by the `client.collections.create` and `client.collections.get` methods. It provides
@@ -50,7 +51,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
 
     def __init__(
         self,
-        connection: ConnectionV4,
+        connection: ConnectionAsync,
         name: str,
         validate_arguments: bool,
         consistency_level: Optional[ConsistencyLevel] = None,
@@ -64,9 +65,9 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
             validate_arguments,
             consistency_level,
             tenant,
-            properties,
-            references,
         )
+        self.__properties = properties
+        self.__references = references
 
         self.__cluster = _ClusterAsync(connection)
 
@@ -76,9 +77,9 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
         self.backup: _CollectionBackupAsync = _CollectionBackupAsync(connection, name)
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
-        self.config: _ConfigCollectionAsync = self._config
+        self.config = _ConfigCollectionAsync(connection, name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
-        self.data: _DataCollectionAsync[Properties] = _DataCollectionAsync[Properties](
+        self.data = _DataCollectionAsync[Properties](
             connection, name, consistency_level, tenant, validate_arguments, properties
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
@@ -94,10 +95,64 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
             validate_arguments,
         )
         """This namespace includes all the querying methods available to you when using Weaviate's generative capabilities."""
-        self.query: _QueryCollectionAsync[Properties, References] = self._query
+        self.query = _QueryCollectionAsync[Properties, References](
+            connection,
+            name,
+            consistency_level,
+            tenant,
+            properties,
+            references,
+            validate_arguments,
+        )
         """This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities."""
-        self.tenants: _TenantsAsync = _TenantsAsync(connection, name)
+        self.tenants = _TenantsAsync(connection, name, validate_arguments)
         """This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate."""
+
+    def with_tenant(
+        self, tenant: Union[str, Tenant, None]
+    ) -> "CollectionAsync[Properties, References]":
+        """Use this method to return a collection object specific to a single tenant.
+
+        If multi-tenancy is not configured for this collection then Weaviate will throw an error.
+
+        This method does not send a request to Weaviate. It only returns a new collection object that is specific
+        to the tenant you specify.
+
+        Args:
+            tenant: The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
+        """
+        return CollectionAsync(
+            connection=self._connection,
+            name=self.name,
+            validate_arguments=self._validate_arguments,
+            consistency_level=self.consistency_level,
+            tenant=tenant.name if isinstance(tenant, Tenant) else tenant,
+            properties=self.__properties,
+            references=self.__references,
+        )
+
+    def with_consistency_level(
+        self, consistency_level: Union[ConsistencyLevel, None]
+    ) -> "CollectionAsync[Properties, References]":
+        """Use this method to return a collection object specific to a single consistency level.
+
+        If replication is not configured for this collection then Weaviate will throw an error.
+
+        This method does not send a request to Weaviate. It only returns a new collection object that is specific
+        to the consistency level you specify.
+
+        Args:
+            consistency_level: The consistency level to use.
+        """
+        return CollectionAsync(
+            connection=self._connection,
+            name=self.name,
+            validate_arguments=self._validate_arguments,
+            consistency_level=consistency_level,
+            tenant=self.tenant,
+            properties=self.__properties,
+            references=self.__references,
+        )
 
     async def length(self) -> int:
         """Get the total number of objects in the collection."""
@@ -114,7 +169,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Propertie
     async def exists(self) -> bool:
         """Check if the collection exists in Weaviate."""
         try:
-            await self._config.get(simple=True)
+            await self.config.get(simple=True)
             return True
         except Exception:
             return False
