@@ -246,9 +246,6 @@ class _ConnectionBase:
         return self._connected
 
     def get_current_bearer_token(self) -> str:
-        if not self.is_connected():
-            raise WeaviateClosedClientError()
-
         if "authorization" in self._headers:
             return self._headers["authorization"]
         elif isinstance(self._client, (OAuth2Client, AsyncOAuth2Client)):
@@ -314,8 +311,6 @@ class _ConnectionBase:
 
     def _ping_grpc(self, colour: executor.Colour) -> Union[None, Awaitable[None]]:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
-        if not self.is_connected():
-            raise WeaviateClosedClientError()
         assert self._grpc_channel is not None
         try:
             res = self._grpc_channel.unary_unary(
@@ -680,8 +675,9 @@ class _ConnectionBase:
         is_gql_query: bool = False,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
+        check_is_connected: bool = True,
     ) -> executor.Result[Response]:
-        if not self.is_connected():
+        if check_is_connected and not self.is_connected():
             raise WeaviateClosedClientError()
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
@@ -840,6 +836,7 @@ class _ConnectionBase:
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
+        check_is_connected: bool = True,
     ) -> executor.Result[Response]:
         return self._send(
             "GET",
@@ -847,6 +844,7 @@ class _ConnectionBase:
             params=params,
             error_msg=error_msg,
             status_codes=status_codes,
+            check_is_connected=check_is_connected,
         )
 
     def head(
@@ -864,13 +862,18 @@ class _ConnectionBase:
             status_codes=status_codes,
         )
 
-    def get_meta(self) -> executor.Result[Dict[str, str]]:
+    def get_meta(self, check_is_connected: bool = True) -> executor.Result[Dict[str, str]]:
         def resp(res: Response) -> Dict[str, str]:
             data = _decode_json_response_dict(res, "Meta endpoint")
             assert data is not None
             return data
 
-        return executor.execute(response_callback=resp, method=self.get, path="/meta")
+        return executor.execute(
+            response_callback=resp,
+            method=self.get,
+            path="/meta",
+            check_is_connected=check_is_connected,
+        )
 
     def get_open_id_configuration(self) -> executor.Result[Optional[Dict[str, Any]]]:
         def resp(res: Response) -> Optional[Dict[str, Any]]:
@@ -898,7 +901,7 @@ class ConnectionSync(_ConnectionBase):
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = executor.result(self.get_meta())
+            meta = executor.result(self.get_meta(False))
             self._weaviate_version = _ServerVersion.from_string(meta["version"])
             if "grpcMaxMessageSize" in meta:
                 self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
@@ -1077,7 +1080,7 @@ class ConnectionAsync(_ConnectionBase):
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = await self.get_meta()
+            meta = await self.get_meta(False)
             self._weaviate_version = _ServerVersion.from_string(meta["version"])
             if "grpcMaxMessageSize" in meta:
                 self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
