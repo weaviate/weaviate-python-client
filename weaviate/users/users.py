@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Dict, Final, List, Literal
+import datetime
+from typing import Dict, Final, Generic, List, Literal, TypeVar
 
 from weaviate.rbac.models import (
     Role,
@@ -24,10 +25,17 @@ class UserBase:
     user_type: UserTypes
 
 
+# generic type for UserDB
+T = TypeVar("T")
+
+
 @dataclass
-class UserDB(UserBase):
+class UserDB(UserBase, Generic[T]):
     user_type: UserTypes
     active: bool
+    created_at: datetime.datetime
+    last_used: T
+    apikey_first_letters: str
 
 
 @dataclass
