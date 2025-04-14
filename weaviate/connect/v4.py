@@ -894,8 +894,6 @@ class ConnectionSync(_ConnectionBase):
         if self._connected:
             return None
 
-        self._connected = True
-
         self._open_connections_rest(self._auth, "sync")
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
@@ -939,6 +937,8 @@ class ConnectionSync(_ConnectionBase):
             except Exception as e:
                 self._connected = False
                 raise e
+
+        self._connected = True
 
     def wait_for_weaviate(self, startup_period: int) -> None:
         for _i in range(startup_period):
@@ -1073,8 +1073,6 @@ class ConnectionAsync(_ConnectionBase):
         if self._connected:
             return None
 
-        self._connected = True
-
         await executor.aresult(self._open_connections_rest(self._auth, "async"))
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
@@ -1096,7 +1094,6 @@ class ConnectionAsync(_ConnectionBase):
             raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
         self.open_connection_grpc("async")
-        self._connected = True
         if self.embedded_db is not None:
             try:
                 await self.wait_for_weaviate(10)
