@@ -946,13 +946,17 @@ class ConnectionSync(_ConnectionBase):
     def wait_for_weaviate(self, startup_period: int) -> None:
         for _i in range(startup_period):
             try:
-                executor.result(self.get("/.well-known/ready")).raise_for_status()
+                executor.result(
+                    self.get("/.well-known/ready", check_is_connected=False)
+                ).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
-            executor.result(self.get("/.well-known/ready")).raise_for_status()
+            executor.result(
+                self.get("/.well-known/ready", check_is_connected=False)
+            ).raise_for_status()
             return
         except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(
@@ -1125,13 +1129,17 @@ class ConnectionAsync(_ConnectionBase):
     async def wait_for_weaviate(self, startup_period: int) -> None:
         for _i in range(startup_period):
             try:
-                (await executor.aresult(self.get("/.well-known/ready"))).raise_for_status()
+                (
+                    await executor.aresult(self.get("/.well-known/ready", check_is_connected=False))
+                ).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
-            (await executor.aresult(self.get("/.well-known/ready"))).raise_for_status()
+            (
+                await executor.aresult(self.get("/.well-known/ready", check_is_connected=False))
+            ).raise_for_status()
             return
         except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(
