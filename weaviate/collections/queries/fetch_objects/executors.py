@@ -41,35 +41,21 @@ class _FetchObjectsGenerateExecutor(
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None
     ) -> executor.Result[GenerativeReturnType[Properties, References, TProperties, TReferences]]:
-        """Perform retrieval-augmented generation (RAG) on the results of a simple get query of objects in this collection.
+        """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
 
-        Arguments:
-            `single_prompt`
-                The prompt to use for generative query on each object individually.
-            `grouped_task`
-                The prompt to use for generative query on the entire result set.
-            `grouped_properties`
-                The properties to use in the generative query on the entire result set.
-            `generative_provider`
-                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
-            `limit`
-                The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
-            `offset`
-                The offset to start from. If not specified, the retrieval begins from the first object in Weaviate.
-            `after`
-                The UUID of the object to start from. If not specified, the retrieval begins from the first object in Weaviate.
-            `filters`
-                The filters to apply to the retrieval.
-            `sort`
-                The sorting to apply to the retrieval.
-            `include_vector`
-                Whether to include the vector in the results. If not specified, this is set to False.
-            `return_metadata`
-                The metadata to return for each object, defaults to `None`.
-            `return_properties`
-                The properties to return for each object.
-            `return_references`
-                The references to return for each object.
+        Args:
+            single_prompt: The prompt to use for RaG on each object individually.
+            grouped_task: The prompt to use for RaG on the entire result set.
+            grouped_properties: The properties to use in the RaG on the entire result set.
+            limit: The maximum number of results to return. If not specified, the default limit specified by Weaviate is returned.
+            offset: The offset to start from. If not specified, the retrieval begins from the first object in Weaviate.
+            after: The UUID of the object to start from. If not specified, the retrieval begins from the first object in Weaviate.
+            filters: The filters to apply to the retrieval.
+            sort: The sorting to apply to the retrieval.
+            include_vector: Whether to include the vector in the results. If not specified, this is set to False.
+            return_metadata: The metadata to return for each object, defaults to `None`.
+            return_properties: The properties to return for each object.
+            return_references: The references to return for each object.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -80,8 +66,7 @@ class _FetchObjectsGenerateExecutor(
             A `_GenerativeNearMediaReturn` object that includes the searched objects with per-object generated results and group generated results.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
-                If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateGRPCQueryError: If the network connection to Weaviate fails.
         """
 
         def resp(
@@ -142,25 +127,16 @@ class _FetchObjectsQueryExecutor(
     ) -> executor.Result[QueryReturnType[Properties, References, TProperties, TReferences]]:
         """Retrieve the objects in this collection without any search.
 
-        Arguments:
-            `limit`
-                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
-            `offset`
-                The offset to start from. If not specified, the retrieval begins from the first object in the server.
-            `after`
-                The UUID of the object to start from. If not specified, the retrieval begins from the first object in the server.
-            `filters`
-                The filters to apply to the retrieval.
-            `sort`
-                The sorting to apply to the retrieval.
-            `include_vector`
-                Whether to include the vector in the results. If not specified, this is set to False.
-            `return_metadata`
-                The metadata to return for each object, defaults to `None`.
-            `return_properties`
-                The properties to return for each object.
-            `return_references`
-                The references to return for each object.
+        Args:
+            limit: The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            offset: The offset to start from. If not specified, the retrieval begins from the first object in the server.
+            after: The UUID of the object to start from. If not specified, the retrieval begins from the first object in the server.
+            filters: The filters to apply to the retrieval.
+            sort: The sorting to apply to the retrieval.
+            include_vector: Whether to include the vector in the results. If not specified, this is set to False.
+            return_metadata: The metadata to return for each object, defaults to `None`.
+            return_properties: The properties to return for each object.
+            return_references: The references to return for each object.
 
         NOTE:
             - If `return_properties` is not provided then all properties are returned except for blob properties.
@@ -171,8 +147,7 @@ class _FetchObjectsQueryExecutor(
             A `QueryReturn` object that includes the searched objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
-                If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateGRPCQueryError: If the network connection to Weaviate fails.
         """
 
         def resp(

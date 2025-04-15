@@ -86,14 +86,14 @@ class _BatchGRPC(_BaseGRPC):
     ) -> executor.Result[BatchObjectReturn]:
         """Insert multiple objects into Weaviate through the gRPC API.
 
-        Parameters:
-            `objects`
-                A list of `WeaviateObject` containing the data of the objects to be inserted. The class name must be
+        Args:
+            connection: The connection to the Weaviate instance.
+            objects: A list of `WeaviateObject` containing the data of the objects to be inserted. The class name must be
                 provided for each object, and the UUID is optional. If no UUID is provided, one will be generated for each object.
                 The UUIDs of the inserted objects will be returned in the `uuids` attribute of the returned `_BatchReturn` object.
                 The UUIDs of the objects that failed to be inserted will be returned in the `errors` attribute of the returned `_BatchReturn` object.
-            `tenant`
-                The tenant to be used for this batch operation
+            timeout: The timeout in seconds for the request.
+            max_retries: The maximum number of retries in case of a failure.
         """
         weaviate_objs = self.__grpc_objects(objects)
         start = time.time()

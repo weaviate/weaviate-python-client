@@ -32,9 +32,9 @@ repos:
     - id: flake8
       name: docstrings
       additional_dependencies: [
-        'flake8-docstrings==1.7.0'
+        'flake8-docstrings==1.7.0',
+        'pydoclint==0.6.5',
       ]
-      files: '^weaviate/collections'
 
 - repo: local
   hooks:

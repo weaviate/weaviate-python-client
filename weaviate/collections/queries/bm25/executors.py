@@ -48,43 +48,26 @@ class _BM25GenerateExecutor(
     ) -> executor.Result[
         GenerativeSearchReturnType[Properties, References, TProperties, TReferences]
     ]:
-        """Perform retrieval-augmented generation (RAG) on the results of a keyword-based BM25 search of objects in this collection.
+        """Perform retrieval-augmented generation (RaG) on the results of a keyword-based BM25 search of objects in this collection.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
 
-        Arguments:
-            `query`
-                The keyword-based query to search for, REQUIRED. If None, a normal search will be performed.
-            `single_prompt`
-                The prompt to use for generative query on each object individually.
-            `grouped_task`
-                The prompt to use for generative query on the entire result set.
-            `grouped_properties`
-                The properties to use in the generative query on the entire result set.
-            `generative_provider`
-                Specify the generative provider and provier-specific options with a suitable `GenerativeProvider.<provider>()` factory function.
-            `query_properties`
-                The properties to search in. If not specified, all properties are searched.
-            `limit`
-                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
-            `offset`
-                The offset to start from. If not specified, the retrieval begins from the first object in the server.
-            `auto_limit`
-                The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
-            `filters`
-                The filters to apply to the search.
-            `group_by`
-                How the results should be grouped by a specific property.
-            `rerank`
-                How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
-            `include_vector`
-                Whether to include the vector in the results. If not specified, this is set to False.
-            `return_metadata`
-                The metadata to return for each object, defaults to `None`.
-            `return_properties`
-                The properties to return for each object.
-            `return_references`
-                The references to return for each object.
+        Args:
+            query: The keyword-based query to search for, REQUIRED. If None, a normal search will be performed.
+            single_prompt: The prompt to use for RaG on each object individually.
+            grouped_task: The prompt to use for RaG on the entire result set.
+            grouped_properties: The properties to use in the RaG on the entire result set.
+            query_properties: The properties to search in. If not specified, all properties are searched.
+            limit: The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            offset: The offset to start from. If not specified, the retrieval begins from the first object in the server.
+            auto_limit: The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            filters: The filters to apply to the search.
+            group_by: How the results should be grouped by a specific property.
+            rerank: How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            include_vector: Whether to include the vector in the results. If not specified, this is set to False.
+            return_metadata: The metadata to return for each object, defaults to `None`.
+            return_properties: The properties to return for each object.
+            return_references: The references to return for each object.
 
         NOTE:
             If `return_properties` is not provided then all non-reference properties are returned including nested properties.
@@ -96,10 +79,8 @@ class _BM25GenerateExecutor(
             If `group_by` is provided then a `GenerativeGroupByReturn` object is returned, otherwise a `GenerativeReturn` object is returned.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryError`:
-                If the network connection to Weaviate fails.
-            `weaviate.exceptions.WeaviateUnsupportedFeatureError`:
-                If a group by is provided and the Weaviate server version is lower than 1.25.0.
+            weaviate.exceptions.WeaviateQueryError: If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateUnsupportedFeatureError: If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
         if group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid():
             raise WeaviateUnsupportedFeatureError(
@@ -172,29 +153,18 @@ class _BM25QueryExecutor(
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
 
-        Arguments:
-            `query`
-                The keyword-based query to search for, REQUIRED. If None, a normal search will be performed.
-            `query_properties`
-                The properties to search in. If not specified, all properties are searched.
-            `limit`
-                The maximum number of results to return. If not specified, the default limit specified by the server is returned.
-            `offset`
-                The offset to start from. If not specified, the retrieval begins from the first object in the server.
-            `auto_limit`
-                The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
-            `filters`
-                The filters to apply to the search.
-            `group_by`
-                How the results should be grouped by a specific property.
-            `rerank`
-                How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
-            `include_vector`
-                Whether to include the vector in the results. If not specified, this is set to False.
-            `return_metadata`
-                The metadata to return for each object, defaults to `None`.
-            `return_properties`
-                The properties to return for each object.
+        Args:
+            query: The keyword-based query to search for, REQUIRED. If None, a normal search will be performed.
+            query_properties: The properties to search in. If not specified, all properties are searched.
+            limit: The maximum number of results to return. If not specified, the default limit specified by the server is returned.
+            offset: The offset to start from. If not specified, the retrieval begins from the first object in the server.
+            auto_limit: The maximum number of [autocut](https://weaviate.io/developers/weaviate/api/graphql/additional-operators#autocut) results to return. If not specified, no limit is applied.
+            filters: The filters to apply to the search.
+            group_by: How the results should be grouped by a specific property.
+            rerank: How the results should be reranked. NOTE: A `rerank-*` module must be enabled for this functionality to work.
+            include_vector: Whether to include the vector in the results. If not specified, this is set to False.
+            return_metadata: The metadata to return for each object, defaults to `None`.
+            return_properties: The properties to return for each object.
 
         NOTE:
             If `return_properties` is not provided then all non-reference properties are returned including nested properties.
@@ -206,10 +176,8 @@ class _BM25QueryExecutor(
             If `group_by` is provided then a `GroupByReturn` object is returned, otherwise a `QueryReturn` object is returned.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryError`:
-                If the network connection to Weaviate fails.
-            `weaviate.exceptions.WeaviateNotImplementedError`:
-                If a group by is provided and the Weaviate server version is lower than 1.25.0.
+            weaviate.exceptions.WeaviateQueryError: If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateNotImplementedError: If a group by is provided and the Weaviate server version is lower than 1.25.0.
         """
         if group_by is not None and not self._connection.supports_groupby_in_bm25_and_hybrid():
             raise WeaviateUnsupportedFeatureError(

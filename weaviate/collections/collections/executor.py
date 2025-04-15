@@ -178,45 +178,27 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         This method sends a request to Weaviate to create the collection given the configuration. It then returns the newly
         created collection Python object for you to use to make requests.
 
-        Arguments:
-            `name`
-                The name of the collection to create.
-            `description`
-                A description of the collection to create.
-            `generative_config`
-                The configuration for Weaviate's generative capabilities.
-            `inverted_index_config`
-                The configuration for Weaviate's inverted index.
-            `multi_tenancy_config`
-                The configuration for Weaviate's multi-tenancy capabilities.
-            `properties`
-                The properties of the objects in the collection.
-            `references`
-                The references of the objects in the collection.
-            `replication_config`
-                The configuration for Weaviate's replication strategy.
-            `sharding_config`
-                The configuration for Weaviate's sharding strategy.
-            `vector_index_config`
-                The configuration for Weaviate's default vector index.
-            `vectorizer_config`
-                The configuration for Weaviate's default vectorizer or a list of named vectorizers.
-            `data_model_properties`
-                The generic class that you want to use to represent the properties of objects in this collection. See the `get` method for more information.
-            `data_model_references`
-                The generic class that you want to use to represent the references of objects in this collection. See the `get` method for more information.
-            `skip_argument_validation`
-                If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
+        Args:
+            name: The name of the collection to create.
+            description: A description of the collection to create.
+            generative_config: The configuration for Weaviate's generative capabilities.
+            inverted_index_config: The configuration for Weaviate's inverted index.
+            multi_tenancy_config: The configuration for Weaviate's multi-tenancy capabilities.
+            properties: The properties of the objects in the collection.
+            references: The references of the objects in the collection.
+            replication_config: The configuration for Weaviate's replication strategy.
+            sharding_config: The configuration for Weaviate's sharding strategy.
+            vector_index_config: The configuration for Weaviate's default vector index.
+            vectorizer_config: The configuration for Weaviate's default vectorizer or a list of named vectorizers.
+            data_model_properties: The generic class that you want to use to represent the properties of objects in this collection. See the `get` method for more information.
+            data_model_references: The generic class that you want to use to represent the references of objects in this collection. See the `get` method for more information.
+            skip_argument_validation: If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
 
         Raises:
-            `weaviate.WeaviateInvalidInputError`
-                If the input parameters are invalid.
-            `weaviate.exceptions.WeaviateUnsupportedFeatureError`
-                If the Weaviate version is lower than 1.24.0 and named vectorizers are provided.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateUnsupportedFeatureError: If the Weaviate version is lower than 1.24.0 and named vectorizers are provided.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         if isinstance(vectorizer_config, list) and self._connection._weaviate_version.is_lower_than(
             1, 24, 0
@@ -260,17 +242,13 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         WARNING: If you have instances of `client.collections.use()` or `client.collections.create()`
         for these collections within your code, they will cease to function correctly after this operation.
 
-        Arguments:
-            `name`
-                The name(s) of the collection(s) to delete.
+        Args:
+            name: The name(s) of the collection(s) to delete.
 
         Raises:
-            `weaviate.WeaviateInvalidInputError`
-                If the input parameters are invalid.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _validate_input([_ValidateArgument(expected=[str, List[str]], name="name", value=name)])
         if isinstance(name, str):
@@ -301,12 +279,9 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         for these collections within your code, they will cease to function correctly after this operation.
 
         Raises:
-            `weaviate.WeaviateInvalidInputError`
-                If the input parameters are invalid.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         if isinstance(self._connection, ConnectionAsync):
 
@@ -321,20 +296,16 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     def exists(self, name: str) -> executor.Result[bool]:
         """Use this method to check if a collection exists in the Weaviate instance.
 
-        Arguments:
-            `name`
-                The name of the collection to check.
+        Args:
+            name: The name of the collection to check.
 
         Returns:
             `True` if the collection exists, `False` otherwise.
 
         Raises:
-            `weaviate.WeaviateInvalidInputError`
-                If the input parameters are invalid.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _validate_input([_ValidateArgument(expected=[str], name="name", value=name)])
         path = f"/schema/{_capitalize_first_letter(name)}"
@@ -356,20 +327,15 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     ) -> executor.Result[CollectionConfig]:
         """Use this method to export the configuration of a collection from the Weaviate instance.
 
-        Arguments:
-            `name`
-                The name of the collection to export.
+        Args:            name: The name of the collection to export.
 
         Returns:
             The configuration of the collection as a `CollectionConfig` object.
 
         Raises:
-            `weaviate.WeaviateInvalidInputError`
-                If the input parameters are invalid.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         path = f"/schema/{_capitalize_first_letter(name)}"
 
@@ -391,21 +357,17 @@ class _CollectionsExecutor(Generic[ConnectionType]):
     ) -> executor.Result[Union[Dict[str, CollectionConfig], Dict[str, CollectionConfigSimple]]]:
         """List the configurations of the all the collections currently in the Weaviate instance.
 
-        Arguments:
-            `simple`
-                If `True`, return a simplified version of the configuration containing only name and properties.
+        Args:
+            simple: If `True`, return a simplified version of the configuration containing only name and properties.
 
         Returns:
             A dictionary containing the configurations of all the collections currently in the Weaviate instance mapping
             collection name to collection configuration.
 
         Raises:
-            `weaviate.WeaviateInvalidInputError`
-                If the input parameters are invalid.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
 

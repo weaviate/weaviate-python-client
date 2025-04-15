@@ -104,7 +104,7 @@ def test_add_reference(
     from_uuid: UUID,
     to_uuid: UUID,
 ) -> None:
-    """Test the `add_reference` method"""
+    """Test the `add_reference` method."""
     collection = batch_collection()
 
     with collection.batch.dynamic() as batch:

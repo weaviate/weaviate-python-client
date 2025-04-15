@@ -28,30 +28,21 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
     ) -> executor.Result[BackupStatusReturn]:
         """Create a backup of this collection.
 
-        Arguments:
-            `backup_id`
-                The identifier name of the backup. NOTE: Case insensitive.
-            `backend`
-                The backend storage where to create the backup.
-            `wait_for_completion`
-                Whether to wait until the backup is done. By default False.
-            `config`
-                The configuration for the backup creation. By default None.
-            `backup_location`:
-                The dynamic location of a backup. By default None.
+        Args:
+            backup_id: The identifier name of the backup. NOTE: Case insensitive.
+            backend: The backend storage where to create the backup.
+            wait_for_completion: Whether to wait until the backup is done. By default False.
+            config: The configuration for the backup creation. By default None.
+            backup_location`: The dynamic location of a backup. By default None.
 
         Returns:
             A `BackupStatusReturn` object that contains the backup creation response.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-            `weaviate.BackupFailedError`
-                If the backup failed.
-            `TypeError`
-                One of the arguments have a wrong type.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.BackupFailedError: If the backup failed.
+            TypeError: One of the arguments have a wrong type.
         """
 
         def resp(res: BackupReturn) -> BackupStatusReturn:
@@ -79,32 +70,22 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
         config: Optional[BackupConfigRestore] = None,
         backup_location: Optional[BackupLocationType] = None,
     ) -> executor.Result[BackupStatusReturn]:
-        """
-        Restore a backup of all/per class Weaviate objects.
+        """Restore a backup of all/per class Weaviate objects.
 
-        Arguments:
-            `backup_id`
-                The identifier name of the backup.
-                NOTE: Case insensitive.
-            `backend`
-                The backend storage from where to restore the backup.
-            `wait_for_completion`
-                Whether to wait until the backup restore is done. By default False.
-            `config`
-                The configuration for the backup restoration. By default None.
-            `backup_location`:
-                The dynamic location of a backup. By default None.
+        Args:
+            backup_id: The identifier name of the backup. NOTE: Case insensitive.
+            backend: The backend storage from where to restore the backup.
+            wait_for_completion: Whether to wait until the backup restore is done. By default False.
+            config: The configuration for the backup restoration. By default None.
+            backup_location`: The dynamic location of a backup. By default None.
 
         Returns:
             A `BackupStatusReturn` object that contains the backup restore response.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-            `weaviate.BackupFailedError`
-                If the backup failed.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.BackupFailedError: If the backup failed.
         """
 
         def resp(res: BackupReturn) -> BackupStatusReturn:
@@ -132,14 +113,10 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
     ) -> executor.Result[BackupStatusReturn]:
         """Check if a started backup job has completed.
 
-        Arguments:
-            `backup_id`
-                The identifier name of the backup.
-                NOTE: Case insensitive.
-            `backend`
-                The backend storage where the backup was created.
-            `backup_location`:
-                The dynamic location of a backup. By default None.
+        Args:
+            backup_id: The identifier name of the backup. NOTE: Case insensitive.
+            backend: The backend storage where the backup was created.
+            backup_location`: The dynamic location of a backup. By default None.
 
         Returns:
             A `BackupStatusReturn` object that contains the backup creation status response.
@@ -158,14 +135,10 @@ class _CollectionBackupExecutor(Generic[ConnectionType]):
     ) -> executor.Result[BackupStatusReturn]:
         """Check if a started classification job has completed.
 
-        Arguments:
-            `backup_id`
-                The identifier name of the backup.
-                NOTE: Case insensitive.
-            `backend`
-                The backend storage where to create the backup.
-            `backup_location`:
-                The dynamic location of a backup. By default None.
+        Args:
+            backup_id: The identifier name of the backup. NOTE: Case insensitive.
+            backend: The backend storage where to create the backup.
+            backup_location`: The dynamic location of a backup. By default None.
 
         Returns:
             A `BackupStatusReturn` object that contains the backup restore status response.

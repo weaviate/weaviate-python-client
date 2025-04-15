@@ -365,9 +365,7 @@ class _ConnectionBase:
 
     @property
     def server_version(self) -> str:
-        """
-        Version of the weaviate instance.
-        """
+        """Version of the weaviate instance."""
         return str(self._weaviate_version)
 
     def get_proxies(self) -> Dict[str, str]:
@@ -530,7 +528,8 @@ class _ConnectionBase:
 
         While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
         X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
-        expire. Therefore, refresh manually shortly before expiration time is up."""
+        expire. Therefore, refresh manually shortly before expiration time is up.
+        """
         assert isinstance(self._client, (OAuth2Client, AsyncOAuth2Client))
         if "refresh_token" not in self._client.token and _auth is None:
             return
@@ -629,7 +628,8 @@ class _ConnectionBase:
     def __get_timeout(
         self, method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"], is_gql_query: bool
     ) -> Timeout:
-        """
+        """Get the timeout for the request.
+
         In this way, the client waits the `httpx` default of 5s when connecting to a socket (connect), writing chunks (write), and
         acquiring a connection from the pool (pool), but a custom amount as specified for reading the response (read).
 
@@ -886,9 +886,7 @@ class _ConnectionBase:
 
 
 class ConnectionSync(_ConnectionBase):
-    """
-    Connection class used to communicate to a weaviate instance.
-    """
+    """Connection class used to communicate to a weaviate instance."""
 
     def connect(self) -> None:
         if self._connected:
@@ -1065,9 +1063,7 @@ class ConnectionSync(_ConnectionBase):
 
 
 class ConnectionAsync(_ConnectionBase):
-    """
-    Connection class used to communicate to a weaviate instance.
-    """
+    """Connection class used to communicate to a weaviate instance."""
 
     async def connect(self) -> None:
         if self._connected:

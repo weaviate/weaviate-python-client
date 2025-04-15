@@ -1,6 +1,4 @@
-"""
-Module for backup/restore operations
-"""
+"""Module for backup/restore operations."""
 
 from .async_ import _BackupAsync
 from .executor import BackupStorage

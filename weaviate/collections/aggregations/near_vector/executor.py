@@ -39,32 +39,22 @@ class _NearVectorExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
 
         This method requires that the objects in the collection have associated vectors.
 
-        Arguments:
-            `near_vector`
-                The vector to search on.
-            `certainty`
-                The minimum certainty of the vector search.
-            `distance`
-                The maximum distance of the vector search.
-            `object_limit`
-                The maximum number of objects to return from the vector search prior to the aggregation.
-            `filters`
-                The filters to apply to the search.
-            `group_by`
-                How to group the aggregation by.
-            `total_count`
-                Whether to include the total number of objects that match the query in the response.
-            `return_metrics`
-                A list of property metrics to aggregate together after the text search.
+        Args:
+            near_vector: The vector to search on.
+            certainty: The minimum certainty of the vector search.
+            distance: The maximum distance of the vector search.
+            object_limit: The maximum number of objects to return from the vector search prior to the aggregation.
+            filters: The filters to apply to the search.
+            group_by: How to group the aggregation by.
+            total_count: Whether to include the total number of objects that match the query in the response.
+            return_metrics: A list of property metrics to aggregate together after the text search.
 
         Returns:
             Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryError`:
-                If an error occurs while performing the query against Weaviate.
-            `weaviate.exceptions.WeaviateInvalidInputError`:
-                If any of the input arguments are of the wrong type.
+            weaviate.exceptions.WeaviateQueryError: If an error occurs while performing the query against Weaviate.
+            weaviate.exceptions.WeaviateInvalidInputError: If any of the input arguments are of the wrong type.
         """
         return_metrics = (
             return_metrics

@@ -36,7 +36,7 @@ UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
 
 @pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
 def test_collection_length(collection_factory: CollectionFactory, how_many: int) -> None:
-    """Uses .aggregate behind-the-scenes"""
+    """Uses `.aggregate` behind-the-scenes."""
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
     )
@@ -46,7 +46,7 @@ def test_collection_length(collection_factory: CollectionFactory, how_many: int)
 
 @pytest.mark.parametrize("how_many", [1, 10000, 20000, 20001, 100000])
 def test_collection_length_tenant(collection_factory: CollectionFactory, how_many: int) -> None:
-    """Uses .aggregate behind-the-scenes"""
+    """Uses `.aggregate` behind-the-scenes."""
     collection = collection_factory(
         vectorizer_config=Configure.Vectorizer.none(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),

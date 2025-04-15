@@ -20,7 +20,6 @@ REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
 
 def test_user_password(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
     """Test that client sends username and pw with the correct body to the token endpoint and uses the correct token."""
-
     user = "AUsername"
     pw = "SomePassWord"
 
@@ -89,7 +88,6 @@ def test_auth_header_priority(
     recwarn, weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, header_name: str
 ) -> None:
     """Test that auth_credentials has priority over the auth header."""
-
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 

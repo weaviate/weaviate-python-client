@@ -1,19 +1,49 @@
 [flake8]
 max-line-length = 100
-exclude = .git, venv, .venv, .pytest_cache, dist, .idea, docs/conf.py, weaviate/collections/orm.py, weaviate/collections/classes/orm.py, weaviate/proto/**/*.py
-ignore = D100, D104, D105, D107, E203, E266, E501, E704, E731, W503
+docstring-convention = google
+; enable-extensions = G  # if using flake8-google-style plugins
+exclude =
+    .git,
+    venv,
+    .venv,
+    .pytest_cache,
+    dist,
+    .idea,
+    docs/conf.py,
+    weaviate/collections/orm.py,
+    weaviate/collections/classes/orm.py,
+    weaviate/proto/**/*.py,
+    build/
+ignore = D100, D101, D102, D103, D104, D105, D107, E203, E266, E501, E704, E731, W503, DOC301
 per-file-ignores =
-    weaviate/cluster/types.py:A005
-    weaviate/collections/classes/types.py:A005
-    weaviate/collections/collections/__init__.py:A005
-    weaviate/collections/__init__.py:A005
-    weaviate/debug/types.py:A005
-    weaviate/types.py:A005
-    weaviate/warnings.py:A005
+    weaviate/cluster/types.py: A005
+    weaviate/collections/classes/types.py: A005
+    weaviate/collections/collections/__init__.py: A005
+    weaviate/collections/__init__.py: A005
+    weaviate/debug/types.py: A005
+    weaviate/types.py: A005
+    weaviate/warnings.py: A005
+    test/*: D100, D101, D102, D103, D104, D105, D107, PYD001
+    mock_tests/*: D100, D101, D102, D103, D104, D105, D107, PYD001
+    integration/*: D100, D101, D102, D103, D104, D105, D107, PYD001
 
-# D100: Missing docstring in public module
-# D104: Missing docstring in public package
-# D105: Missing docstring in magic method
-# D107: Missing docstring in __init__
+# D100: Missing docstring in a public module
+# D101: Missing docstring in a public class
+# D102: Missing docstring in a public method
+# D103: Missing docstring in a public function
+# D104: Missing docstring in a public package
+# D105: Missing docstring in a magic method
+# D107: Missing docstring in an __init__ method
+# E203: Whitespace before ':'
+# E266: Too many consecutive '#' in a comment
+# E501: Line too long
 # E704: Multiple statements on one line (def)
+# E731: Do not assign a lambda expression, use a def instead
+# W503: Line break before a binary operator
+# DOC301: Class method __init__ should not have a docstring
 
+[tool.pydoclint]
+style = google  # or numpy or sphinx
+arg-type-hints-in-docstring = true  # Optional: require types in docstrings
+check-return-types = true
+require-return-section-when-returning-none = false

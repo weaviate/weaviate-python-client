@@ -11,37 +11,25 @@ def mock_connection_func(
     server_version: str = "1.13.2,",
     timeout_config: tuple = (10, 60),
 ) -> Mock:
-    """
-    Mock the Connection class and mocking its public method/s.
+    """Mock the Connection class and mocking its public method/s.
 
-    Parameters
-    ----------
-    rest_method : str
-        The REST method to mock, accepted values: 'delete', 'post', 'put', 'patch' and 'get'.
-        NOTE: It is case insensitive.
-    return_json : [Union[list, dict, None], optional
-        The return value of the `.json()` method on the response of the `rest_method` method.
-        By default None.
-    status_code : int, optional
-        The code the `rest_method` should return, by default 200.
-    side_effect : Union[Exception, Callable, None], optional
-        The side effect of the `rest_method`. If `side_effect` is not None the other arguments are
-        not used, by default None.
-    connection_mock : Optional[Mock], optional
-        The already mocked Connection object to add on top a new mocked method or to overwrite an
-        existing one. If None start from a new mocked Connection, by default None.
+    Args:
+        rest_method: The REST method to mock, accepted values: 'delete', 'post', 'put', 'patch' and 'get'.
+            NOTE: It is case insensitive.
+        return_json: The return value of the `.json()` method on the response of the `rest_method` method.
+            By default None.
+        status_code: The code the `rest_method` should return, by default 200.
+        side_effect: The side effect of the `rest_method`. If `side_effect` is not None the other arguments are
+            not used, by default None.
+        connection_mock: The already mocked Connection object to add on top a new mocked method or to overwrite an
+            existing one. If None start from a new mocked Connection, by default None.
 
-    Returns
-    -------
-    Mock
+    Returns:
         The mocked Connection object.
 
-    Raises
-    ------
-    ValueError
-        If `rest_method` does not have an accepted value.
+    Raises:
+        ValueError: If `rest_method` does not have an accepted value.
     """
-
     if connection_mock is None:
         connection_mock = Mock()
 
@@ -84,30 +72,22 @@ def mock_connection_func(
 
 
 def check_error_message(self, error, message):
-    """
-    Check if 'error' message equal 'message'.
+    """Check if 'error' message equal 'message'.
 
-    Parameters
-    ----------
-    error : unittest.case._AssertRaisesContext
-        Unittest assertion error
-    message : str
-        Expected message.
+    Args:
+        self: Unittest instance
+        error: Unittest assertion error
+        message: Expected message.
     """
-
     self.assertEqual(str(error.exception), message)
 
 
 def check_startswith_error_message(self, error, message):
-    """
-    Check if 'error' message equal 'message'.
+    """Check if 'error' message equal 'message'.
 
-    Parameters
-    ----------
-    error : unittest.case._AssertRaisesContext
-        Unittest assertion error
-    message : str
-        Expected start of the error message.
+    Args:
+        self: Unittest instance
+        error: Unittest assertion error
+        message: Expected message.
     """
-
     self.assertTrue(str(error.exception).startswith(message))

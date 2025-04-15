@@ -1,4 +1,4 @@
-weaviate.exceptions
+Weaviate Exceptions
 ===================
 
 .. automodule:: weaviate.exceptions

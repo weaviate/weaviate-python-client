@@ -250,7 +250,7 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
 
 
 def test_fail_on_non_existing_class(client: weaviate.WeaviateClient) -> None:
-    """Fail backup functions on non-existing class"""
+    """Fail backup functions on non-existing class."""
     backup_id = _create_backup_id()
     class_name = "NonExistingClass"
     for func in [client.backup.create, client.backup.restore]:

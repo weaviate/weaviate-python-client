@@ -790,7 +790,7 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
 def test_include_vector_on_references(
     collection_factory: CollectionFactory, include_vector: INCLUDE_VECTOR, expected: dict
 ) -> None:
-    """Test include vector on reference"""
+    """Test include vector on reference."""
     dummy = collection_factory()
     if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
         pytest.skip("Named vectorizers are only supported in Weaviate v1.24.0 and higher.")

@@ -26,14 +26,15 @@ There are two versions of the Weaviate Python client. The latest version, v4, is
 - `Python Client v3 overview <https://weaviate.io/developers/weaviate/client-libraries/python_v3>`_
 - `Weaviate feature documentation and examples <https://weaviate.io/developers/weaviate>`_
 
-Articles
---------
+Learning Resources
+------------------
 
-Here are some articles on Weaviate:
+Here are some learning resources to get you started or upgrade your Weaviate skills:
 
-- `Semantic Search Queries Return More Informed Results <https://hackernoon.com/semantic-search-queries-return-more-informed-results-nr5335nw>`_
-- `Getting Started with Weaviate Python Library <https://towardsdatascience.com/getting-started-with-weaviate-python-client-e85d14f19e4f>`_
-- `A sub-50ms neural search with DistilBERT and Weaviate <https://towardsdatascience.com/a-sub-50ms-neural-search-with-distilbert-and-weaviate-4857ae390154>`_
+- `Quickstart with Weaviate <https://weaviate.io/developers/weaviate/quickstart>`_
+- `Weaviate Academy <https://weaviate.io/developers/academy>`_
+- `Similarity search recipies with Weaviate <https://github.com/weaviate/recipes/tree/main/weaviate-features/similarity-search>`_
+- `Weaviate documentation <https://weaviate.io/developers/weaviate>`_
 
 Support
 -------
@@ -56,7 +57,9 @@ Method Index
 .. toctree::
    :maxdepth: 2
    :hidden:
+   :caption: Contents:
 
-   weaviate
+   modules
+   weaviate.exceptions
    changelog
    genindex

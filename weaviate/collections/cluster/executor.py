@@ -23,25 +23,19 @@ class _ClusterExecutor(Generic[ConnectionType]):
         *,
         output: Optional[Verbosity] = None,
     ) -> executor.Result[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]:
-        """
-        Get the status of all nodes in the cluster.
+        """Get the status of all nodes in the cluster.
 
-        Arguments:
-            `collection`
-                Get the status for the given collection. If not given all collections will be included.
-            `output`
-                Set the desired output verbosity level. Can be [`minimal` | `verbose`], defaults to `None`, which is server-side default of `minimal`.
+        Args:
+            collection: Get the status for the given collection. If not given all collections will be included.
+            output: Set the desired output verbosity level. Can be [`minimal` | `verbose`], defaults to `None`, which is server-side default of `minimal`.
 
         Returns:
             List of nodes and their respective status.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-            `weaviate.EmptyResponseError`
-                If the response is empty.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.EmptyResponseError: If the response is empty.
         """
         path = "/nodes"
         params = None
