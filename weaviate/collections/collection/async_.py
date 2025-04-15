@@ -290,7 +290,7 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         to request the vector back as well. In addition, if `return_references=None` then none of the references
         are returned. Use `wvc.QueryReference` to specify which references to return.
 
-        Arguments:
+        Args:
             include_vector: Whether to include the vector in the metadata of the returned objects.
             return_metadata: The metadata to return with each object.
             return_properties: The properties to return with each object.

@@ -140,25 +140,12 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         collections = _Collections(self._connection)
 
         self.batch = _BatchClientWrapper(self._connection, config=collections)
-        """This namespace contains all the functionality to upload data in batches to Weaviate for all collections and tenants."""
         self.backup = _Backup(self._connection)
-        """This namespace contains all functionality to backup data."""
         self.cluster = _Cluster(self._connection)
-        """This namespace contains all functionality to inspect the connected Weaviate cluster."""
         self.collections = collections
-        """This namespace contains all the functionality to manage Weaviate data collections. It is your main entry point for all collection-related functionality.
-
-        Use it to retrieve collection objects using `client.collections.use("MyCollection")` or to create new collections using `client.collections.create("MyCollection", ...)`.
-        """
         self.debug = _Debug(self._connection)
-        """This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
-
-        We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk."""
         self.roles = _Roles(self._connection)
-        """This namespace contains all functionality to manage Weaviate's RBAC functionality."""
-
         self.users = _Users(self._connection)
-        """This namespace contains all functionality to manage Weaviate users."""
 
     def __enter__(self) -> "WeaviateClient":
         executor.result(self.connect())
