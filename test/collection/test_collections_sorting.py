@@ -24,7 +24,7 @@ def test_collection_configs_from_json_sorting():
     ):
         # Call the function
         result = _collection_configs_from_json(mock_schema)
-        
+
         # Check that the keys are in alphabetical order
         assert list(result.keys()) == ["CollectionA", "CollectionB", "CollectionC"]
 
@@ -47,6 +47,6 @@ def test_collection_configs_simple_from_json_sorting():
     ):
         # Call the function
         result = _collection_configs_simple_from_json(mock_schema)
-        
+
         # Check that the keys are in alphabetical order
         assert list(result.keys()) == ["CollectionA", "CollectionB", "CollectionC"]

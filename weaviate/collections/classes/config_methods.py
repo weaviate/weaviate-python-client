@@ -343,7 +343,9 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
 
 
 def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _CollectionConfig]:
-    configs = {schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]}
+    configs = {
+        schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]
+    }
     return dict(sorted(configs.items()))
 
 
