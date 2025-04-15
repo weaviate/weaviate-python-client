@@ -2161,7 +2161,7 @@ class _VectorIndexMultiVector:
         )
 
     @staticmethod
-    def muvera(
+    def muvera_config(
         enabled: Optional[bool] = None,
         ksim: Optional[int] = None,
         dprojections: Optional[int] = None,
