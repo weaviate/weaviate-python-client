@@ -25,7 +25,7 @@ env:
   WEAVIATE_128: 1.28.8
   WEAVIATE_129: 1.29.1
   WEAVIATE_130: 1.30.1
-  WEAVIATE_131: 1.31.0-dev-bb8712f
+  WEAVIATE_131: main-d459f5e
 
 jobs:
   lint-and-format:
