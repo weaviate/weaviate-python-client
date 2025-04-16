@@ -1,3 +1,4 @@
+import datetime
 from typing import Any, Dict, Generic, List, Optional, Union, cast
 
 from httpx import Response
@@ -17,7 +18,7 @@ from weaviate.users.users import (
     UserDB,
     OwnUser,
 )
-from weaviate.util import _decode_json_response_dict
+from weaviate.util import _datetime_from_weaviate_str, _decode_json_response_dict
 
 
 class _BaseExecutor(Generic[ConnectionType]):
@@ -401,53 +402,88 @@ class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200, 409], error="Deactivate user"),
         )
 
-    def get(self, *, user_id: str) -> executor.Result[Optional[UserDB]]:
+    def get(
+        self, *, user_id: str, include_last_used_at_time: bool = False
+    ) -> executor.Result[Optional[Union[UserDB[None], UserDB[datetime.datetime]]]]:
         """Get all information about an user.
 
         Args:
             user_id: The id of the user.
         """
 
-        def resp(res: Response) -> Optional[UserDB]:
+        def resp(res: Response) -> Optional[Union[UserDB[None], UserDB[datetime.datetime]]]:
             if res.status_code == 404:
                 return None
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
-            return UserDB(
-                user_id=parsed["userId"],
-                role_names=parsed["roles"],
-                active=parsed["active"],
-                user_type=UserTypes(parsed["dbUserType"]),
+            user = cast(WeaviateDBUserRoleNames, parsed)
+            ret = UserDB(
+                user_id=user["userId"],
+                role_names=user["roles"],
+                active=user["active"],
+                user_type=UserTypes(user["dbUserType"]),
+                created_at=_datetime_from_weaviate_str(user["createdAt"]),
+                last_used=get_last_used_at_time(user=user) if include_last_used_at_time else None,
+                apikey_first_letters=get_api_key_first_letters(user=user),
             )
+            if include_last_used_at_time:
+                return cast(UserDB[datetime.datetime], ret)
+            return cast(UserDB[None], ret)
 
         return executor.execute(
             response_callback=resp,
             method=self._connection.get,
+            params={"includeLastUsedTime": include_last_used_at_time},
             path=f"/users/db/{user_id}",
             error_msg=f"Could not get user '{user_id}'",
             status_codes=_ExpectedStatusCodes(ok_in=[200, 404], error="get user"),
         )
 
-    def list_all(self) -> executor.Result[List[UserDB]]:
+    def list_all(
+        self, *, include_last_used_at_time: bool = False
+    ) -> executor.Result[Union[List[UserDB[None]], List[UserDB[datetime.datetime]]]]:
         """List all DB users."""
 
-        def resp(res: Response) -> List[UserDB]:
+        def resp(res: Response) -> Union[List[UserDB[None]], List[UserDB[datetime.datetime]]]:
             parsed = _decode_json_response_dict(res, "Get user")
             assert parsed is not None
-            return [
+
+            ret = [
                 UserDB(
                     user_id=user["userId"],
                     role_names=user["roles"],
                     active=user["active"],
                     user_type=UserTypes(user["dbUserType"]),
+                    created_at=_datetime_from_weaviate_str(user["createdAt"]),
+                    last_used=(
+                        get_last_used_at_time(user=user) if include_last_used_at_time else None
+                    ),
+                    apikey_first_letters=get_api_key_first_letters(user=user),
                 )
                 for user in cast(List[WeaviateDBUserRoleNames], parsed)
             ]
 
+            if include_last_used_at_time:
+                return cast(List[UserDB[datetime.datetime]], ret)
+            return cast(List[UserDB[None]], ret)
+
         return executor.execute(
             response_callback=resp,
             method=self._connection.get,
+            params={"includeLastUsedTime": include_last_used_at_time},
             path="/users/db",
             error_msg="Could not list all users",
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="list all users"),
         )
+
+
+def get_last_used_at_time(user: WeaviateDBUserRoleNames) -> datetime.datetime:
+    lastused = user.get("lastUsedAt", None)
+    if lastused is None:
+        return datetime.datetime.min
+    return _datetime_from_weaviate_str(lastused)
+
+
+def get_api_key_first_letters(user: WeaviateDBUserRoleNames) -> str:
+    first_letters = user.get("apiKeyFirstLetters", "")
+    return first_letters if first_letters else ""
