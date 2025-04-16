@@ -1,4 +1,4 @@
-from typing import Generator, List, Optional
+from typing import Generator, List, Optional, Union
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
@@ -32,6 +32,8 @@ from weaviate.collections.classes.config import (
     Rerankers,
     _RerankerProvider,
     Tokenization,
+    _NamedVectorConfigCreate,
+    _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
@@ -1412,3 +1414,30 @@ def test_config_multi_vector_disabled(
     conf = config.vector_config["vec"].vector_index_config
     assert isinstance(conf, _VectorIndexConfigHNSW)
     assert conf.multi_vector is None
+
+
+@pytest.mark.parametrize(
+    "existing_vectors",
+    [
+        None,
+        Configure.Vectorizer.none(),
+        [Configure.NamedVectors.none("another")],
+    ],
+)
+def test_config_add_vector(
+    collection_factory: CollectionFactory,
+    existing_vectors: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate], None],
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=existing_vectors,
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+    )
+
+    collection.config.add_vector(
+        vector_config=Configure.NamedVectors.none(
+            name="vec",
+        ),
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    assert "vec" in config.vector_config
