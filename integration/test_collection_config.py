@@ -1,4 +1,4 @@
-from typing import Generator, List, Optional
+from typing import Generator, List, Optional, Union
 
 import pytest as pytest
 from _pytest.fixtures import SubRequest
@@ -32,6 +32,8 @@ from weaviate.collections.classes.config import (
     Rerankers,
     _RerankerProvider,
     Tokenization,
+    _NamedVectorConfigCreate,
+    _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
@@ -1357,8 +1359,9 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
         update()
 
         config = collection.config.get()
-        assert config.properties[0].description == "Name of the person"
-        assert config.properties[1].description == "Age of the person"
+        descriptions = [p.description for p in config.properties]
+        assert "Age of the person" in descriptions
+        assert "Name of the person" in descriptions
     else:
         with pytest.raises(UnexpectedStatusCodeError):
             update()
@@ -1412,3 +1415,34 @@ def test_config_multi_vector_disabled(
     conf = config.vector_config["vec"].vector_index_config
     assert isinstance(conf, _VectorIndexConfigHNSW)
     assert conf.multi_vector is None
+
+
+@pytest.mark.parametrize(
+    "existing_vectors",
+    [
+        None,
+        Configure.Vectorizer.none(),
+        [Configure.NamedVectors.none("another")],
+    ],
+)
+def test_config_add_vector(
+    collection_factory: CollectionFactory,
+    existing_vectors: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate], None],
+) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 31, 0):
+        pytest.skip("Adding vectors is not supported in Weaviate versions lower than 1.31.0")
+
+    collection = collection_factory(
+        vectorizer_config=existing_vectors,
+        properties=[Property(name="name", data_type=DataType.TEXT)],
+    )
+
+    collection.config.add_vector(
+        vector_config=Configure.NamedVectors.none(
+            name="vec",
+        ),
+    )
+    config = collection.config.get()
+    assert config.vector_config is not None
+    assert "vec" in config.vector_config
