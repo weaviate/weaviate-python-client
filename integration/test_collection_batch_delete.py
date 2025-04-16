@@ -35,7 +35,7 @@ UUID3 = uuid.uuid4()
 
 @pytest.mark.parametrize("verbose", [True, False])
 def test_verbosity(collection_factory: CollectionFactory, verbose: bool) -> None:
-    collection = collection_factory(vectorizer_config=Configure.Vectorizer.none())
+    collection = collection_factory(vectorizer_config=Configure.Vectorizer.user_provided())
 
     uuid1 = collection.data.insert(properties={})
     uuid2 = collection.data.insert(properties={})
@@ -63,7 +63,7 @@ def test_verbosity(collection_factory: CollectionFactory, verbose: bool) -> None
 
 def test_batch_delete_with_tenant(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     collection.tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
@@ -87,7 +87,7 @@ def test_batch_delete_with_tenant(collection_factory: CollectionFactory) -> None
 
 @pytest.mark.parametrize("dry_run", [True, False])
 def test_dry_run(collection_factory: CollectionFactory, dry_run: bool) -> None:
-    collection = collection_factory(vectorizer_config=Configure.Vectorizer.none())
+    collection = collection_factory(vectorizer_config=Configure.Vectorizer.user_provided())
     uuid1 = collection.data.insert(properties={})
     uuid2 = collection.data.insert(properties={})
 
@@ -111,7 +111,7 @@ def test_dry_run(collection_factory: CollectionFactory, dry_run: bool) -> None:
 def test_delete_by_time_metadata(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
 
     uuid1 = collection.data.insert(properties={})
@@ -133,7 +133,7 @@ def test_delete_many_or(collection_factory: CollectionFactory) -> None:
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     collection.data.insert_many(
         [
@@ -159,7 +159,7 @@ def test_delete_many_return(collection_factory: CollectionFactory) -> None:
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     collection.data.insert_many(
         [
@@ -179,7 +179,7 @@ def test_delete_many_and(collection_factory: CollectionFactory) -> None:
             Property(name="Name", data_type=DataType.TEXT),
             Property(name="Age", data_type=DataType.INT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     collection.data.insert_many(
         [
@@ -533,7 +533,7 @@ def test_delete_many_simple(
     collection = collection_factory(
         properties=properties,
         inverted_index_config=Configure.inverted_index(index_null_state=True),
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     collection.data.insert_many(inserts)
     assert len(collection.query.fetch_objects().objects) == len(inserts)

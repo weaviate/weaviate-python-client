@@ -63,7 +63,7 @@ def batch_collection(
     def _factory(name: str = "", multi_tenancy: bool = False) -> Collection[Any, Any]:
         collection = collection_factory(
             name=name,
-            vectorizer_config=Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.user_provided(),
             properties=[
                 Property(name="name", data_type=DataType.TEXT),
                 Property(name="age", data_type=DataType.INT),

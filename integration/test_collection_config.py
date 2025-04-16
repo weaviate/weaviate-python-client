@@ -48,7 +48,7 @@ def client() -> Generator[weaviate.WeaviateClient, None, None]:
 
 def test_collections_list(client: weaviate.WeaviateClient) -> None:
     client.collections.create(
-        name="TestCollectionsList", vectorizer_config=Configure.Vectorizer.none()
+        name="TestCollectionsList", vectorizer_config=Configure.Vectorizer.user_provided()
     )
 
     collections = client.collections.list_all()
@@ -64,7 +64,7 @@ def test_collections_list(client: weaviate.WeaviateClient) -> None:
 
 def test_collection_get_simple(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -109,7 +109,7 @@ def test_collection_vectorizer_config(collection_factory: CollectionFactory) -> 
 
 def test_collection_generative_config(openai_collection: OpenAICollection) -> None:
     collection = openai_collection(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
 
     config = collection.config.get()
@@ -178,7 +178,7 @@ def test_collection_config_defaults(collection_factory: CollectionFactory) -> No
         multi_tenancy_config=Configure.multi_tenancy(),
         replication_config=Configure.replication(),
         vector_index_config=Configure.VectorIndex.hnsw(),
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     config = collection.config.get()
 
@@ -389,7 +389,7 @@ def test_collection_config_full(collection_factory: CollectionFactory) -> None:
 
 def test_collection_config_update(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -676,7 +676,7 @@ def test_update_flat(collection_factory: CollectionFactory) -> None:
 
 def test_collection_config_get_shards(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -690,7 +690,7 @@ def test_collection_config_get_shards(collection_factory: CollectionFactory) -> 
 
 def test_collection_update_shards(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
 
@@ -722,7 +722,7 @@ def test_collection_update_shards(collection_factory: CollectionFactory) -> None
 
 def test_collection_config_get_shards_multi_tenancy(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
@@ -799,7 +799,7 @@ def test_config_reranker_module(
 ) -> None:
     collection = collection_factory(
         reranker_config=reranker_config,
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     conf = collection.config.get()
     assert conf.reranker_config is not None
@@ -809,7 +809,7 @@ def test_config_reranker_module(
 
 def test_config_nested_properties(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(
                 name="name",
@@ -833,7 +833,7 @@ def test_config_nested_properties(collection_factory: CollectionFactory) -> None
 
 def test_config_export_and_recreate_from_config(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),
@@ -856,7 +856,7 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
         generative_config=Configure.Generative.custom(
             "generative-anyscale", module_config={"temperature": 0.5}
         ),
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         reranker_config=Configure.Reranker.custom(
             "reranker-cohere", module_config={"model": "rerank-english-v2.0"}
         ),
@@ -974,7 +974,7 @@ def test_config_export_and_recreate_from_dict(collection_factory: CollectionFact
 
 def test_config_add_existing_property_and_reference(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
@@ -992,7 +992,7 @@ def test_config_add_existing_property_and_reference(collection_factory: Collecti
 
 def test_config_skip_vector_index(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         vector_index_config=Configure.VectorIndex.none(),
     )
     config = collection.config.get()
@@ -1321,7 +1321,7 @@ def test_replication_config(
 
 def test_update_property_descriptions(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
             Property(name="age", data_type=DataType.INT),

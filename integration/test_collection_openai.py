@@ -537,7 +537,7 @@ def test_openai_invalid_key(request: SubRequest) -> None:
             name=request.node.name,
             properties=[Property(name="text", data_type=DataType.TEXT)],
             generative_config=Configure.Generative.openai(),
-            vectorizer_config=Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.user_provided(),
         )
         collection.data.insert(properties={"text": "test"})
         with pytest.raises(WeaviateQueryError):
@@ -552,7 +552,7 @@ def test_openai_no_module(request: SubRequest) -> None:
             name=request.node.name,
             properties=[Property(name="text", data_type=DataType.TEXT)],
             generative_config=Configure.Generative.openai(),
-            vectorizer_config=Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.user_provided(),
         )
         try:
             collection.data.insert(properties={"text": "test"})

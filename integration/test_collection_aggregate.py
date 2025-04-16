@@ -38,7 +38,7 @@ UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
 def test_collection_length(collection_factory: CollectionFactory, how_many: int) -> None:
     """Uses `.aggregate` behind-the-scenes."""
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     collection.data.insert_many([{} for _ in range(how_many)])
     assert len(collection) == how_many
@@ -48,7 +48,7 @@ def test_collection_length(collection_factory: CollectionFactory, how_many: int)
 def test_collection_length_tenant(collection_factory: CollectionFactory, how_many: int) -> None:
     """Uses `.aggregate` behind-the-scenes."""
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         multi_tenancy_config=Configure.multi_tenancy(enabled=True),
     )
     collection.tenants.create(
