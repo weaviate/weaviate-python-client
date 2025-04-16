@@ -253,6 +253,8 @@ class _DataExecutor(Generic[ConnectionType]):
 
         This is equivalent to a PUT operation.
 
+        If the object does not exist yet, it will be created.
+
         Args:
             uuid: The UUID of the object, REQUIRED.
             properties: The properties of the object, REQUIRED.
@@ -314,8 +316,6 @@ class _DataExecutor(Generic[ConnectionType]):
         """Update an object in the collection.
 
         This is equivalent to a PATCH operation.
-
-        If the object does not exist yet, it will be created.
 
         Args:
             uuid: The UUID of the object, REQUIRED.
