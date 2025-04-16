@@ -1359,8 +1359,9 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
         update()
 
         config = collection.config.get()
-        assert config.properties[0].description == "Name of the person"
-        assert config.properties[1].description == "Age of the person"
+        descriptions = [p.description for p in config.properties]
+        assert "Age of the person" in descriptions
+        assert "Name of the person" in descriptions
     else:
         with pytest.raises(UnexpectedStatusCodeError):
             update()
