@@ -1428,6 +1428,10 @@ def test_config_add_vector(
     collection_factory: CollectionFactory,
     existing_vectors: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate], None],
 ) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 31, 0):
+        pytest.skip("Adding vectors is not supported in Weaviate versions lower than 1.31.0")
+
     collection = collection_factory(
         vectorizer_config=existing_vectors,
         properties=[Property(name="name", data_type=DataType.TEXT)],
