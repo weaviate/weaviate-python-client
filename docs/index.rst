@@ -61,6 +61,6 @@ Method Index
 
    modules
    weaviate.exceptions
-   weaviate-agents-python-client/docs/index
+   weaviate-agents-python-client/docs/modules
    changelog
    genindex
