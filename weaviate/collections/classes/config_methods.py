@@ -343,15 +343,19 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
 
 
 def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _CollectionConfig]:
-    return {schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]}
+    configs = {
+        schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]
+    }
+    return dict(sorted(configs.items()))
 
 
 def _collection_configs_simple_from_json(
     schema: Dict[str, Any]
 ) -> Dict[str, _CollectionConfigSimple]:
-    return {
+    configs = {
         schema["class"]: _collection_config_simple_from_json(schema) for schema in schema["classes"]
     }
+    return dict(sorted(configs.items()))
 
 
 def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedProperty]:
