@@ -767,7 +767,7 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
             target_vector=["first", "second", "second"],
             return_metadata=wvc.query.MetadataQuery.full(),
         )
-    assert "Providing lists of lists has been deprecated" in str(e)
+    assert "This input appears to be a nested list of embeddings." in str(e)
 
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection.query.near_vector(
@@ -775,7 +775,7 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
             target_vector=["first", "second"],
             return_metadata=wvc.query.MetadataQuery.full(),
         )
-    assert "Providing lists of lists has been deprecated" in str(e)
+    assert "This input appears to be a nested list of embeddings." in str(e)
 
 
 @pytest.mark.parametrize(
