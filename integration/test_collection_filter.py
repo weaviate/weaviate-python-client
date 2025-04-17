@@ -47,7 +47,7 @@ def test_filters_text(
 ) -> None:
     collection = collection_factory(
         properties=[Property(name="Name", data_type=DataType.TEXT)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
 
     uuids = [
@@ -80,7 +80,7 @@ def test_array_types(
     results: List[int],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
             Property(name="ints", data_type=DataType.INT_ARRAY),
@@ -117,7 +117,7 @@ def test_filter_with_wrong_types(
     results: Optional[List[int]],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="int", data_type=DataType.INT),
             Property(name="float", data_type=DataType.NUMBER),
@@ -172,7 +172,7 @@ def test_filters_nested(
     results: List[int],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[Property(name="num", data_type=DataType.NUMBER)],
         inverted_index_config=Configure.inverted_index(index_null_state=True),
     )
@@ -193,7 +193,7 @@ def test_filters_nested(
 
 def test_length_filter(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[Property(name="field", data_type=DataType.TEXT)],
         inverted_index_config=Configure.inverted_index(index_property_length=True),
     )
@@ -226,7 +226,7 @@ def test_filters_comparison(
     results: List[int],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[Property(name="number", data_type=DataType.INT)],
         inverted_index_config=Configure.inverted_index(index_null_state=True),
     )
@@ -290,7 +290,7 @@ def test_filters_contains(
     results: List[int],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="texts", data_type=DataType.TEXT_ARRAY),
@@ -398,7 +398,7 @@ def test_ref_filters(
 ) -> None:
     to_collection = collection_factory(
         name="Target",
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="int", data_type=DataType.INT),
             Property(name="text", data_type=DataType.TEXT),
@@ -415,7 +415,7 @@ def test_ref_filters(
             Property(name="name", data_type=DataType.TEXT),
         ],
         references=[ReferenceProperty(name="ref", target_collection=to_collection.name)],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     from_collection.config.add_reference(
         ReferenceProperty(name="ref2", target_collection=from_collection.name)
@@ -446,7 +446,7 @@ def test_ref_filters(
 def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None:
     to_collection = collection_factory(
         name="target",
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[Property(name="int", data_type=DataType.INT)],
     )
 
@@ -457,7 +457,7 @@ def test_ref_filters_multi_target(collection_factory: CollectionFactory) -> None
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     from_collection.config.add_reference(
         ReferenceProperty.MultiTarget(
@@ -533,7 +533,7 @@ def test_filter_id(collection_factory: CollectionFactory, weav_filter: _FilterVa
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
 
     collection.data.insert_many(
@@ -578,7 +578,7 @@ def test_filter_ids(
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
 
     collection.data.insert_many(
@@ -601,7 +601,7 @@ def test_filter_timestamp_direct_path(collection_factory: CollectionFactory, pat
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
 
@@ -628,7 +628,7 @@ def test_time_update_and_creation_time(collection_factory: CollectionFactory) ->
         properties=[
             Property(name="Name", data_type=DataType.TEXT),
         ],
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
 
@@ -678,7 +678,7 @@ def test_time_filter(
     results: List[int],
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
     collection.data.insert(properties={})
@@ -700,7 +700,7 @@ def test_time_filter(
 
 def test_time_filter_contains(collection_factory: CollectionFactory) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         inverted_index_config=Configure.inverted_index(index_timestamps=True),
     )
     collection.data.insert(properties={})

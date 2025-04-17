@@ -125,6 +125,24 @@ class _NamedVectors:
         )
 
     @staticmethod
+    def user_provided(
+        name: str,
+        *,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ) -> _NamedVectorConfigCreate:
+        """Create a named vector using no vectorizer. You will need to provide the vectors yourself.
+
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+        """
+        return _NamedVectorConfigCreate(
+            name=name,
+            vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
+            vector_index_config=vector_index_config,
+        )
+
+    @staticmethod
     def custom(
         name: str,
         *,

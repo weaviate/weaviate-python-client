@@ -166,7 +166,9 @@ def test_create_get_and_delete(client: weaviate.WeaviateClient, request: SubRequ
     name = request.node.name
     client.collections.delete(name)
 
-    col = client.collections.create(name=name, vectorizer_config=Configure.Vectorizer.none())
+    col = client.collections.create(
+        name=name, vectorizer_config=Configure.Vectorizer.user_provided()
+    )
     assert client.collections.exists(name)
     assert isinstance(col, Collection)
 
@@ -184,11 +186,11 @@ def test_delete_multiple(client: weaviate.WeaviateClient, request: SubRequest) -
 
     client.collections.create(
         name=name1,
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     client.collections.create(
         name=name2,
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
     )
     assert client.collections.exists(name1)
     assert client.collections.exists(name2)
@@ -304,7 +306,9 @@ def test_create_export_and_recreate_named_vectors(
                 source_properties=["name"],
                 vectorize_collection_name=False,
             ),
-            Configure.NamedVectors.none("custom", vector_index_config=Configure.VectorIndex.flat()),
+            Configure.NamedVectors.user_provided(
+                "custom", vector_index_config=Configure.VectorIndex.flat()
+            ),
         ],
     )
     conf = col.config.get()
@@ -326,7 +330,7 @@ def test_collection_name_capitalization(
     try:
         collection = client.collections.create(
             name=name_small,
-            vectorizer_config=Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.user_provided(),
         )
         assert collection.name == name_big
         client.collections.delete(name_small)
@@ -341,7 +345,7 @@ def test_client_cluster_with_lazy_shard_loading(
 ) -> None:
     try:
         collection = client.collections.create(
-            name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+            name=request.node.name, vectorizer_config=Configure.Vectorizer.user_provided()
         )
 
         nodes = client.cluster.nodes(collection.name, output="verbose")
@@ -366,7 +370,7 @@ def test_client_cluster_without_lazy_shard_loading(
     client = client_factory(8090, 50061)
     try:
         collection = client.collections.create(
-            name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+            name=request.node.name, vectorizer_config=Configure.Vectorizer.user_provided()
         )
 
         nodes = client.cluster.nodes(collection.name, output="verbose")
@@ -392,7 +396,7 @@ def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: Su
         collection = client.collections.create(
             name=request.node.name,
             multi_tenancy_config=Configure.multi_tenancy(enabled=True),
-            vectorizer_config=Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.user_provided(),
         )
 
         nodes = client.cluster.nodes(collection.name, output="verbose")
@@ -405,7 +409,7 @@ def test_client_cluster_multitenant(client: weaviate.WeaviateClient, request: Su
 def test_client_cluster_minimal(client: weaviate.WeaviateClient, request: SubRequest) -> None:
     try:
         collection = client.collections.create(
-            name=request.node.name, vectorizer_config=Configure.Vectorizer.none()
+            name=request.node.name, vectorizer_config=Configure.Vectorizer.user_provided()
         )
 
         nodes = client.cluster.nodes(collection.name, output="minimal")
@@ -529,7 +533,7 @@ def test_client_with_skip_init_check(request: SubRequest) -> None:
         client.collections.delete(request.node.name)
         col = client.collections.create(
             name=request.node.name,
-            vectorizer_config=Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.user_provided(),
             properties=[
                 Property(name="name", data_type=DataType.TEXT),
                 Property(name="age", data_type=DataType.INT),
@@ -643,7 +647,7 @@ def test_local_proxies() -> None:
         collection = client.collections.create(
             "TestLocalProxies",
             properties=[wvc.config.Property(name="name", data_type=wvc.config.DataType.TEXT)],
-            vectorizer_config=Configure.Vectorizer.none(),
+            vectorizer_config=Configure.Vectorizer.user_provided(),
         )
         collection.data.insert({"name": "Test"})
         assert collection.query.fetch_objects().objects[0].properties["name"] == "Test"

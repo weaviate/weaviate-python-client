@@ -75,8 +75,8 @@ def test_create_named_vectors(
                 source_properties=["title", "content"],
                 vectorize_collection_name=False,
             ),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn2"),
+            wvc.config.Configure.NamedVectors.user_provided(name="bringYourOwn"),
+            wvc.config.Configure.NamedVectors.user_provided(name="bringYourOwn2"),
         ],
     )
 
@@ -119,7 +119,7 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 "title", source_properties=["title"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+            wvc.config.Configure.NamedVectors.user_provided(name="bringYourOwn"),
         ],
     )
 
@@ -149,7 +149,7 @@ def test_update(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+            wvc.config.Configure.NamedVectors.user_provided(name="bringYourOwn"),
         ],
     )
 
@@ -184,7 +184,7 @@ def test_replace(collection_factory: CollectionFactory) -> None:
             wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
         ],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+            wvc.config.Configure.NamedVectors.user_provided(name="bringYourOwn"),
         ],
     )
 
@@ -300,7 +300,7 @@ def test_batch_add(collection_factory: CollectionFactory) -> None:
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
                 "title", source_properties=["title"], vectorize_collection_name=False
             ),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn"),
+            wvc.config.Configure.NamedVectors.user_provided(name="bringYourOwn"),
         ],
     )
     uuid1 = uuid.uuid4()
@@ -336,7 +336,7 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
                     quantizer=wvc.config.Configure.VectorIndex.Quantizer.bq(rescore_limit=10),
                 ),
             ),
-            wvc.config.Configure.NamedVectors.none(
+            wvc.config.Configure.NamedVectors.user_provided(
                 "custom",
             ),
             wvc.config.Configure.NamedVectors.text2vec_contextionary(
@@ -586,8 +586,8 @@ def test_named_vector_multi_target(
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+            wvc.config.Configure.NamedVectors.user_provided("first"),
+            wvc.config.Configure.NamedVectors.user_provided("second"),
         ],
     )
 
@@ -606,8 +606,8 @@ def test_named_vector_multi_target_vector_per_target(collection_factory: Collect
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+            wvc.config.Configure.NamedVectors.user_provided("first"),
+            wvc.config.Configure.NamedVectors.user_provided("second"),
         ],
     )
 
@@ -628,8 +628,8 @@ def test_multi_query_error_no_target_vector(collection_factory: CollectionFactor
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+            wvc.config.Configure.NamedVectors.user_provided("first"),
+            wvc.config.Configure.NamedVectors.user_provided("second"),
         ],
     )
 
@@ -675,8 +675,8 @@ def test_same_target_vector_multiple_input(
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+            wvc.config.Configure.NamedVectors.user_provided("first"),
+            wvc.config.Configure.NamedVectors.user_provided("second"),
         ],
     )
 
@@ -727,8 +727,8 @@ def test_same_target_vector_multiple_input_combinations(
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+            wvc.config.Configure.NamedVectors.user_provided("first"),
+            wvc.config.Configure.NamedVectors.user_provided("second"),
         ],
     )
 
@@ -753,8 +753,8 @@ def test_deprecated_syntax(collection_factory: CollectionFactory):
     collection = collection_factory(
         properties=[],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none("first"),
-            wvc.config.Configure.NamedVectors.none("second"),
+            wvc.config.Configure.NamedVectors.user_provided("first"),
+            wvc.config.Configure.NamedVectors.user_provided("second"),
         ],
     )
 
@@ -798,8 +798,8 @@ def test_include_vector_on_references(
     ref_collection = collection_factory(
         name="Target",
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn1"),
-            wvc.config.Configure.NamedVectors.none(name="bringYourOwn2"),
+            wvc.config.Configure.NamedVectors.user_provided(name="bringYourOwn1"),
+            wvc.config.Configure.NamedVectors.user_provided(name="bringYourOwn2"),
         ],
     )
 
@@ -834,7 +834,7 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
             )
         ],
         vectorizer_config=[
-            wvc.config.Configure.NamedVectors.none(
+            wvc.config.Configure.NamedVectors.user_provided(
                 name="colbert",
                 vector_index_config=wvc.config.Configure.VectorIndex.hnsw(
                     multi_vector=wvc.config.Configure.VectorIndex.MultiVector.multi_vector(
@@ -842,7 +842,7 @@ def test_colbert_vectors_byov(collection_factory: CollectionFactory) -> None:
                     )
                 ),
             ),
-            wvc.config.Configure.NamedVectors.none(
+            wvc.config.Configure.NamedVectors.user_provided(
                 name="regular",
             ),
         ],
