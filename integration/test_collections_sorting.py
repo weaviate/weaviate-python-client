@@ -5,10 +5,10 @@ from integration.conftest import ClientFactory
 @pytest.fixture
 def sorting_test_client(client_factory: ClientFactory):
     client = client_factory()
-    client.collections.delete_all()
-    yield client
-    client.collections.delete_all()
-    client.close()
+    try:
+        yield client
+    finally:
+        client.close()
 
 
 def test_collections_list_all_sorting(sorting_test_client):
@@ -16,26 +16,30 @@ def test_collections_list_all_sorting(sorting_test_client):
 
     client = sorting_test_client
 
-    # Create collections with names in non-alphabetical order
-    client.collections.create(name="TestCollectionC")
-    client.collections.create(name="TestCollectionA")
-    client.collections.create(name="TestCollectionB")
+    try:
+        # Create collections with names in non-alphabetical order
+        client.collections.create(name="SortingTestCollectionC")
+        client.collections.create(name="SortingTestCollectionA")
+        client.collections.create(name="SortingTestCollectionB")
 
-    # Get all collections
-    collections = client.collections.list_all()
+        # Get all collections
+        collections = client.collections.list_all()
 
-    # Get the keys and filter only our test collections
-    collection_keys = list(collections.keys())
-    test_collections = [k for k in collection_keys if k.startswith("TestCollection")]
+        # Get the keys and filter only our test collections
+        collection_keys = list(collections.keys())
+        test_collections = [k for k in collection_keys if k.startswith("SortingTestCollection")]
 
-    # Verify they are in alphabetical order
-    assert test_collections == sorted(test_collections)
+        # Verify they are in alphabetical order
+        assert test_collections == sorted(test_collections)
 
-    # Test with simple=False as well
-    collections = client.collections.list_all(simple=False)
-    collection_keys = list(collections.keys())
-    test_collections = [k for k in collection_keys if k.startswith("TestCollection")]
-    assert test_collections == sorted(test_collections)
+        # Test with simple=False as well
+        collections = client.collections.list_all(simple=False)
+        collection_keys = list(collections.keys())
+        test_collections = [k for k in collection_keys if k.startswith("SortingTestCollection")]
+        assert test_collections == sorted(test_collections)
 
-    # Clean up
-    client.collections.delete(["TestCollectionA", "TestCollectionB", "TestCollectionC"])
+    finally:
+        # Clean up
+        client.collections.delete(
+            ["SortingTestCollectionA", "SortingTestCollectionB", "SortingTestCollectionC"]
+        )
