@@ -73,9 +73,6 @@ class ExecutorTransformer(ast.NodeTransformer):
                         # We don't want to include ConnectionType
                         continue
                     new_bases.append(base)
-            # if isinstance(base.value, ast.Name) and base.value.id == "_BaseExecutor":
-            #     # This is class from collections/queries
-            #     return []
         connection_type = ast.Name(id=self.__which_connection_type(), ctx=ast.Load())
         if len(new_bases) == 0:
             # no generics, we need to add the ConnectionType
