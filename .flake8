@@ -22,7 +22,7 @@ per-file-ignores =
     weaviate/collections/collections/__init__.py: A005
     weaviate/collections/__init__.py: A005
     weaviate/debug/types.py: A005
-    weaviate/tenants/types.py: A005
+    weaviate/collections/tenants/types.py: A005
     weaviate/types.py: A005
     weaviate/warnings.py: A005
     test/*: D100, D101, D102, D103, D104, D105, D107, PYD001
