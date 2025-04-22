@@ -1,3 +1,4 @@
+import datetime
 import random
 import pytest
 
@@ -82,16 +83,37 @@ def test_create_user_and_get(client_factory: ClientFactory) -> None:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
+        before = datetime.datetime.now(tz=datetime.timezone.utc)
+
         randomUserName = "new-user" + str(random.randint(1, 1000))
         apiKey = client.users.db.create(user_id=randomUserName)
+
+        after_creation = datetime.datetime.now(tz=datetime.timezone.utc)
+
         with weaviate.connect_to_local(
             port=RBAC_PORTS[0], grpc_port=RBAC_PORTS[1], auth_credentials=Auth.api_key(apiKey)
         ) as client2:
             user = client2.users.get_my_user()
             assert user.user_id == randomUserName
+
+        after_login = datetime.datetime.now(tz=datetime.timezone.utc)
+
         user = client.users.db.get(user_id=randomUserName)
         assert user.user_id == randomUserName
         assert user.user_type == UserTypes.DB_DYNAMIC
+        assert user.last_used is None
+
+        user = client.users.db.get(user_id=randomUserName, include_last_used_at_time=True)
+        assert user.active
+        assert user.last_used is not None
+        assert user.last_used > after_creation
+        assert user.last_used < after_login
+
+        assert len(user.apikey_first_letters) == 3
+        assert user.apikey_first_letters == apiKey[:3]
+        assert user.created_at < after_creation
+        assert user.created_at > before
+
         assert client.users.db.delete(user_id=randomUserName)
 
 
@@ -150,6 +172,11 @@ def test_de_activate(client_factory: ClientFactory) -> None:
         )  # second activation returns a conflict => false
         user = client.users.db.get(user_id=randomUserName)
         assert user.active
+        assert user.last_used is None
+
+        user = client.users.db.get(user_id=randomUserName, include_last_used_at_time=True)
+        assert user.active
+        assert user.last_used is not None
 
         client.users.db.delete(user_id=randomUserName)
 
@@ -206,12 +233,27 @@ def test_list_all_users(client_factory: ClientFactory) -> None:
         if client._connection._weaviate_version.is_lower_than(1, 30, 0):
             pytest.skip("This test requires Weaviate 1.30.0 or higher")
 
+        before = datetime.datetime.now(tz=datetime.timezone.utc)
+
         for i in range(5):
             client.users.db.delete(user_id=f"list-all-user-{i}")
             client.users.db.create(user_id=f"list-all-user-{i}")
 
-        users = client.users.db.list_all()
-        dynamic_users = [user for user in users if user.user_id.startswith("list-all-")]
-        assert len(dynamic_users) == 5
+        after = datetime.datetime.now(tz=datetime.timezone.utc)
+
+        for include in [True, False]:
+            users = client.users.db.list_all(include_last_used_at_time=include)
+            dynamic_users = [user for user in users if user.user_id.startswith("list-all-")]
+            assert len(dynamic_users) == 5
+            assert all(user.user_type == UserTypes.DB_DYNAMIC for user in dynamic_users)
+            assert all(user.active for user in dynamic_users)
+            assert all(len(user.apikey_first_letters) == 3 for user in dynamic_users)
+            assert all(user.created_at < after for user in dynamic_users)
+            assert all(user.created_at > before for user in dynamic_users)
+            if include:
+                assert all(user.last_used is not None for user in dynamic_users)
+            else:
+                assert all(user.last_used is None for user in dynamic_users)
+
         for i in range(5):
             client.users.db.delete(user_id=f"list-all-{i}")

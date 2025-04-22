@@ -104,6 +104,9 @@ class WeaviateDBUserRoleNames(TypedDict):
     groups: List[str]
     active: bool
     dbUserType: str
+    lastUsedAt: Optional[str]
+    createdAt: str
+    apikeyFirstLetters: Optional[str]
 
 
 class _Action:

@@ -1357,8 +1357,9 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
         update()
 
         config = collection.config.get()
-        assert config.properties[0].description == "Name of the person"
-        assert config.properties[1].description == "Age of the person"
+        props = {prop.name: prop for prop in config.properties}
+        assert props["name"].description == "Name of the person"
+        assert props["age"].description == "Age of the person"
     else:
         with pytest.raises(UnexpectedStatusCodeError):
             update()
