@@ -39,7 +39,7 @@ from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 
-class _ConfigExecutor(Generic[ConnectionType]):
+class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def __init__(
         self,
         connection: ConnectionType,

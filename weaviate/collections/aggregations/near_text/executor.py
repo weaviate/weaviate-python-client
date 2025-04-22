@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Union
+from typing import Generic, List, Literal, Optional, Union, overload
 
 from weaviate.collections.aggregations.executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -16,6 +16,57 @@ from weaviate.types import NUMBER
 
 
 class _NearTextExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        *,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
+        target_vector: Optional[str] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateReturn]: ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        *,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Union[str, GroupByAggregate],
+        target_vector: Optional[str] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateGroupByReturn]: ...
+
+    @overload
+    def near_text(
+        self,
+        query: Union[List[str], str],
+        *,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        move_to: Optional[Move] = None,
+        move_away: Optional[Move] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        target_vector: Optional[str] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]: ...
+
     def near_text(
         self,
         query: Union[List[str], str],

@@ -14,6 +14,7 @@ exclude =
     weaviate/collections/classes/orm.py,
     weaviate/proto/**/*.py,
     build/
+    tools/stubs.py,
 ignore = D100, D101, D102, D103, D104, D105, D107, E203, E266, E501, E704, E731, W503, DOC301
 per-file-ignores =
     weaviate/cluster/types.py: A005

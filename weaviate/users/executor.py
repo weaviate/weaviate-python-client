@@ -113,7 +113,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         )
 
 
-class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+class _UsersExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_my_user(self) -> executor.Result[OwnUser]:
         """Get the currently authenticated user.
 
@@ -193,7 +193,7 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         )
 
 
-class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+class _UsersOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_assigned_roles(
         self,
         *,
@@ -251,7 +251,7 @@ class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         )
 
 
-class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: bool = False
     ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:

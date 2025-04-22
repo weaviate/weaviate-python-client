@@ -1,4 +1,4 @@
-from typing import Generic, Optional, Union
+from typing import Generic, Literal, Optional, Union, overload
 
 from weaviate.collections.aggregations.executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
@@ -14,6 +14,36 @@ from weaviate.connect.v4 import ConnectionType
 
 
 class _OverAllExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+    @overload
+    def over_all(
+        self,
+        *,
+        filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateReturn]: ...
+
+    @overload
+    def over_all(
+        self,
+        *,
+        filters: Optional[_Filters] = None,
+        group_by: Union[str, GroupByAggregate],
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateGroupByReturn]: ...
+
+    @overload
+    def over_all(
+        self,
+        *,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]: ...
+
     def over_all(
         self,
         *,

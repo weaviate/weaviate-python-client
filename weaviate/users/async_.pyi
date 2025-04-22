@@ -1,37 +1,41 @@
-from typing import Dict, List, Literal, Union, overload
+from typing import Any, Dict, Generic, List, Optional, Union, cast
+from httpx import Response
+from weaviate.connect import executor
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType
+from weaviate.rbac.models import Role, RoleBase, WeaviateDBUserRoleNames, UserTypes
+from weaviate.users.users import USER_TYPE_DB, USER_TYPE_OIDC, USER_TYPE, UserDB, OwnUser
+from weaviate.util import _decode_json_response_dict
 from weaviate.connect.v4 import ConnectionAsync
-from weaviate.users.executor import _DeprecatedExecutor, _DBExecutor, _OIDCExecutor
-from weaviate.users.users import UserDB, OwnUser
+from .executor import _BaseExecutor, _UsersExecutor, _UsersOIDCExecutor, _UsersDBExecutor
 
-from weaviate.rbac.models import Role, RoleBase
-from typing_extensions import deprecated
+class _BaseAsync(_BaseExecutor[ConnectionAsync]):
+    async def _get_roles_of_user(
+        self, user_id: str, user_type: USER_TYPE, include_permissions: bool
+    ) -> Union[Dict[str, Role], Dict[str, RoleBase]]: ...
+    async def _get_roles_of_user_deprecated(
+        self, user_id: str
+    ) -> Union[Dict[str, Role], Dict[str, RoleBase]]: ...
+    async def _assign_roles_to_user(
+        self, roles: List[str], user_id: str, user_type: Optional[USER_TYPE]
+    ) -> None: ...
+    async def _revoke_roles_from_user(
+        self, roles: Union[str, List[str]], user_id: str, user_type: Optional[USER_TYPE]
+    ) -> None: ...
 
-class _UsersOIDCAsync(_OIDCExecutor[ConnectionAsync]):
-    @overload
-    async def get_assigned_roles(
-        self, *, user_id: str, include_permissions: Literal[False] = False
-    ) -> Dict[str, RoleBase]: ...
-    @overload
-    async def get_assigned_roles(
-        self, *, user_id: str, include_permissions: Literal[True]
-    ) -> Dict[str, Role]: ...
-    @overload
+class _UsersAsync(_UsersExecutor[ConnectionAsync]):
+    async def get_my_user(self) -> OwnUser: ...
+    async def get_assigned_roles(self, user_id: str) -> Dict[str, Role]: ...
+    async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
+    async def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
+
+class _UsersOIDCAsync(_UsersOIDCExecutor[ConnectionAsync]):
     async def get_assigned_roles(
         self, *, user_id: str, include_permissions: bool = False
     ) -> Union[Dict[str, Role], Dict[str, RoleBase]]: ...
     async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
     async def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
 
-class _UsersDBAsync(_DBExecutor[ConnectionAsync]):
-    @overload
-    async def get_assigned_roles(
-        self, *, user_id: str, include_permissions: Literal[False] = False
-    ) -> Dict[str, RoleBase]: ...
-    @overload
-    async def get_assigned_roles(
-        self, *, user_id: str, include_permissions: Literal[True]
-    ) -> Dict[str, Role]: ...
-    @overload
+class _UsersDBAsync(_UsersDBExecutor[ConnectionAsync]):
     async def get_assigned_roles(
         self, *, user_id: str, include_permissions: bool = False
     ) -> Union[Dict[str, Role], Dict[str, RoleBase]]: ...
@@ -40,27 +44,7 @@ class _UsersDBAsync(_DBExecutor[ConnectionAsync]):
     async def create(self, *, user_id: str) -> str: ...
     async def delete(self, *, user_id: str) -> bool: ...
     async def rotate_key(self, *, user_id: str) -> str: ...
-    async def deactivate(self, *, user_id: str, revoke_key: bool = False) -> bool: ...
     async def activate(self, *, user_id: str) -> bool: ...
-    async def get(self, *, user_id: str) -> UserDB: ...
+    async def deactivate(self, *, user_id: str, revoke_key: bool = False) -> bool: ...
+    async def get(self, *, user_id: str) -> Optional[UserDB]: ...
     async def list_all(self) -> List[UserDB]: ...
-
-class _UsersAsync(_DeprecatedExecutor[ConnectionAsync]):
-    async def get_my_user(self) -> OwnUser: ...
-    @deprecated(
-        """This method is deprecated and will be removed in Q4 25.
-                Please use `users.db.get_assigned_roles` and/or `users.oidc.get_assigned_roles` instead."""
-    )
-    async def get_assigned_roles(self, user_id: str) -> Dict[str, Role]: ...
-    @deprecated(
-        """This method is deprecated and will be removed in Q4 25.
-                Please use `users.db.assign_roles` and/or `users.oidc.assign_roles` instead."""
-    )
-    async def assign_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
-    @deprecated(
-        """This method is deprecated and will be removed in Q4 25.
-                Please use `users.db.revoke_roles` and/or `users.oidc.revoke_roles` instead."""
-    )
-    async def revoke_roles(self, *, user_id: str, role_names: Union[str, List[str]]) -> None: ...
-    db: _UsersDBAsync
-    oidc: _UsersOIDCAsync

@@ -1,6 +1,7 @@
 import asyncio
 import json
 from typing import Dict, Generic, List, Optional, Sequence, Union, cast
+from typing_extensions import deprecated
 
 from httpx import Response
 
@@ -176,6 +177,9 @@ class _RolesExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get users of role"),
         )
 
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25. Please use `roles.get_user_assignments` instead."""
+    )
     def get_assigned_user_ids(
         self,
         role_name: str,
