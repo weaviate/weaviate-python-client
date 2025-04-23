@@ -386,8 +386,7 @@ def test_hybrid_aggregation_group_by(
 def test_hybrid_aggregation_group_by_with_named_vectors(
     collection_factory: CollectionFactory, group_by: Union[str, GroupByAggregate]
 ) -> None:
-    dummy = collection_factory("dummy")
-    collection_maker = lambda: collection_factory(
+    collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
@@ -395,12 +394,7 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
             )
         ],
     )
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        with pytest.raises(WeaviateInvalidInputError):
-            collection_maker()
-        return
 
-    collection = collection_maker()
     text_1 = "some text"
     text_2 = "nothing like the other one at all, not even a little bit"
     collection.data.insert({"text": text_1})
@@ -415,7 +409,7 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
         object_limit=2,  # has no effect due to alpha=0
         target_vector="all",
     )
-    if dummy._connection._weaviate_version.is_lower_than(1, 25, 0):
+    if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
         with pytest.raises(WeaviateUnsupportedFeatureError):
             querier()
         return
