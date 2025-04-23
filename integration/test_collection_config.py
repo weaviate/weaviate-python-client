@@ -575,10 +575,6 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
 
 def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
@@ -1199,10 +1195,6 @@ def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None
 
 
 def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -> None:
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named index is not supported in Weaviate versions lower than 1.24.0")
-
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[

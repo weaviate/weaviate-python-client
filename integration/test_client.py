@@ -282,9 +282,6 @@ def test_create_export_and_recreate(client: weaviate.WeaviateClient, request: Su
 def test_create_export_and_recreate_named_vectors(
     client: weaviate.WeaviateClient, request: SubRequest
 ) -> None:
-    if client._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectors are not supported in versions lower than 1.24.0")
-
     name1 = request.node.name
     name2 = request.node.name + "2"
     client.collections.delete([name1, name2])
@@ -352,10 +349,7 @@ def test_client_cluster_with_lazy_shard_loading(
         assert nodes[0].shards[0].vector_indexing_status == "READY"
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
-        if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-            assert nodes[0].shards[0].loaded is None
-        else:
-            assert nodes[0].shards[0].loaded is True
+        assert nodes[0].shards[0].loaded is True
     finally:
         client.collections.delete(request.node.name)
 
@@ -377,9 +371,7 @@ def test_client_cluster_without_lazy_shard_loading(
         assert nodes[0].shards[0].vector_indexing_status == "READY"
         assert nodes[0].shards[0].vector_queue_length == 0
         assert nodes[0].shards[0].compressed is False
-        if collection._connection._weaviate_version.is_lower_than(1, 24, 0):
-            assert nodes[0].shards[0].loaded is None
-        elif collection._connection._weaviate_version.is_lower_than(1, 25, 0):
+        if collection._connection._weaviate_version.is_lower_than(1, 25, 0):
             assert nodes[0].shards[0].loaded is True
         else:
             assert nodes[0].shards[0].loaded is False
