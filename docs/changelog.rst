@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 4.14.0
+--------------
+This minor version includes a major update to the docstrings and documentation of the client.
+    - All docstrings have been aligned with Google's style format
+    - The read-the-docs page has been streamlined and improved for ease of use: https://weaviate-python-client.readthedocs.io/en/stable/
+    - Fixes a bug when adding a property to a collection configured with both named vectors and a generative module
+    - Potential fixes for race conditions when instantiating async clients
+    - A number of minor fixes to the public `.pyi` stub files found by developing a stub auto-generating tool for the codebase
+
+
 Version 4.13.2
 --------------
 This patch version includes:
