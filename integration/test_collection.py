@@ -1,6 +1,7 @@
 import datetime
 import io
 import pathlib
+import struct
 import time
 import uuid
 from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Union
@@ -1754,3 +1755,71 @@ def test_none_query_hybrid_bm25(collection_factory: CollectionFactory) -> None:
     bm25_objs = collection.query.bm25(query=None, return_metadata=MetadataQuery.full()).objects
     assert len(bm25_objs) == 3
     assert all(obj.metadata.score is not None and obj.metadata.score == 0.0 for obj in bm25_objs)
+
+
+def test_bad_vector_inputs_when_inserting_legacy_vectors(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=Configure.Vectorizer.none(),
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+    )
+
+    props = {"name": "Jim"}
+    vec = ["0.1", "0.2"]
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.data.insert(properties=props, vector=vec)  # type: ignore
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.data.replace(uuid=UUID1, properties=props, vector=vec)  # type: ignore
+
+    with pytest.raises(struct.error):
+        collection.data.insert_many([DataObject(properties=props, vector=vec)])  # type: ignore
+
+    with collection.batch.dynamic() as batch:
+        # batch parses the list[str] into list[float] using pydantic
+        batch.add_object(
+            properties=props,
+            vector=vec,  # type: ignore
+        )
+    assert len(collection) == 1
+    assert collection.query.fetch_objects(include_vector=True).objects[0].vector["default"] == [
+        0.10000000149011612,
+        0.20000000298023224,
+    ]  # because of float precision
+
+
+def test_bad_vector_inputs_when_inserting_named_vectors(
+    collection_factory: CollectionFactory,
+) -> None:
+    collection = collection_factory(
+        vectorizer_config=[Configure.NamedVectors.none(name="vec")],
+        properties=[
+            Property(name="name", data_type=DataType.TEXT),
+        ],
+    )
+
+    props = {"name": "Jim"}
+    vec = {"vec": ["0.1", "0.2"]}
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.data.insert(properties=props, vector=vec)  # type: ignore
+
+    with pytest.raises(UnexpectedStatusCodeError):
+        collection.data.replace(uuid=UUID1, properties=props, vector=vec)  # type: ignore
+
+    with pytest.raises(struct.error):
+        collection.data.insert_many([DataObject(properties=props, vector=vec)])  # type: ignore
+
+    with collection.batch.dynamic() as batch:
+        # batch parses the list[str] into list[float] using pydantic
+        batch.add_object(
+            properties=props,
+            vector=vec,  # type: ignore
+        )
+    assert len(collection) == 1
+    assert collection.query.fetch_objects(include_vector=True).objects[0].vector["vec"] == [
+        0.10000000149011612,
+        0.20000000298023224,
+    ]  # because of float precision

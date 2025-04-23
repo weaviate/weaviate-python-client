@@ -1,6 +1,6 @@
 import uuid as uuid_package
 from dataclasses import dataclass, field
-from typing import Any, Dict, Generic, List, Optional, TypeVar, Union, cast
+from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -68,7 +68,7 @@ class BatchObject(BaseModel):
     def _to_internal(self) -> _BatchObject:
         return _BatchObject(
             collection=self.collection,
-            vector=cast(list, self.vector),
+            vector=self.vector,
             uuid=str(self.uuid),
             properties=self.properties,
             tenant=self.tenant,
