@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, cast, overload
 from httpx import Response
 from pydantic_core import ValidationError
 from weaviate.collections.classes.config import (
@@ -37,6 +37,11 @@ from weaviate.connect.v4 import ConnectionAsync
 from .executor import _ConfigCollectionExecutor
 
 class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
+    @overload
+    async def get(self, simple: Literal[False] = False) -> CollectionConfig: ...
+    @overload
+    async def get(self, simple: Literal[True]) -> CollectionConfigSimple: ...
+    @overload
     async def get(
         self, simple: bool = False
     ) -> Union[CollectionConfig, CollectionConfigSimple]: ...

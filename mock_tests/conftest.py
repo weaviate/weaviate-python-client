@@ -214,10 +214,8 @@ def year_zero_collection(
         def Search(
             self, request: search_get_pb2.SearchRequest, context: grpc.ServicerContext
         ) -> search_get_pb2.SearchReply:
-            zero_date: properties_pb2.Value.date_value = properties_pb2.Value(
-                date_value="0000-01-30T00:00:00Z"
-            )
-            date_prop: Mapping[str, properties_pb2.Value.date_value] = {"date": zero_date}
+            zero_date = properties_pb2.Value(date_value="0000-01-30T00:00:00Z")
+            date_prop: Mapping[str, properties_pb2.Value] = {"date": zero_date}
             return search_get_pb2.SearchReply(
                 results=[
                     search_get_pb2.SearchResult(

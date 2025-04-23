@@ -1,7 +1,7 @@
 import datetime
 import json
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Literal
 
 import grpc
 import pytest
@@ -17,6 +17,7 @@ from mock_tests.conftest import (
     CLIENT_ID,
     MockRetriesWeaviateService,
 )
+from weaviate.backup.backup import BackupStorage
 from weaviate.collections.classes.config import (
     CollectionConfig,
     VectorIndexConfigFlat,
@@ -30,6 +31,7 @@ from weaviate.collections.classes.config import (
     Vectorizers,
     VectorIndexType,
     ShardingConfig,
+    ReplicationDeletionStrategy,
 )
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
@@ -171,7 +173,7 @@ def test_missing_multi_tenancy_config(
         vector_cache_max_objects=10,
         multi_vector=None,
     )
-    vic.distance = vic.distance_metric
+    vic.distance = vic.distance_metric  # type: ignore
     response_json = CollectionConfig(
         name="Test",
         description="",
@@ -202,7 +204,11 @@ def test_missing_multi_tenancy_config(
         ),
         properties=[],
         references=[],
-        replication_config=ReplicationConfig(factor=0, async_enabled=False, deletion_strategy=None),
+        replication_config=ReplicationConfig(
+            factor=0,
+            async_enabled=False,
+            deletion_strategy=ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION,
+        ),
         vector_index_config=vic,
         vector_index_type=VectorIndexType.FLAT,
         vectorizer=Vectorizers.NONE,
@@ -361,7 +367,7 @@ def test_year_zero(year_zero_collection: weaviate.collections.Collection) -> Non
 
 @pytest.mark.parametrize("output", ["minimal", "verbose"])
 def test_node_with_timeout(
-    httpserver: HTTPServer, start_grpc_server: grpc.Server, output: str
+    httpserver: HTTPServer, start_grpc_server: grpc.Server, output: Literal["minimal", "verbose"]
 ) -> None:
     httpserver.expect_request("/v1/.well-known/ready").respond_with_json({})
     httpserver.expect_request("/v1/meta").respond_with_json({"version": "1.24"})
@@ -423,14 +429,14 @@ def test_backup_cancel_while_create_and_restore(
     with pytest.raises(BackupCanceledError):
         client.backup.create(
             backup_id=backup_id,
-            backend="filesystem",
+            backend=BackupStorage.FILESYSTEM,
             wait_for_completion=True,
         )
 
     with pytest.raises(BackupCanceledError):
         client.backup.restore(
             backup_id=backup_id,
-            backend="filesystem",
+            backend=BackupStorage.FILESYSTEM,
             wait_for_completion=True,
         )
 
