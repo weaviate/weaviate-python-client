@@ -173,7 +173,7 @@ def test_missing_multi_tenancy_config(
         vector_cache_max_objects=10,
         multi_vector=None,
     )
-    vic.distance_metric = vic.distance_metric
+    vic.distance = vic.distance_metric  # type: ignore
     response_json = CollectionConfig(
         name="Test",
         description="",
