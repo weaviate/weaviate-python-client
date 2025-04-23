@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, cast
+from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, cast, overload
 
 from httpx import Response
 from pydantic_core import ValidationError
@@ -61,6 +61,24 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             error_msg="Collection configuration could not be retrieved.",
             status_codes=_ExpectedStatusCodes(ok_in=200, error="Get collection configuration"),
         )
+
+    @overload
+    def get(
+        self,
+        simple: Literal[False] = False,
+    ) -> executor.Result[CollectionConfig]: ...
+
+    @overload
+    def get(
+        self,
+        simple: Literal[True],
+    ) -> executor.Result[CollectionConfigSimple]: ...
+
+    @overload
+    def get(
+        self,
+        simple: bool = False,
+    ) -> executor.Result[Union[CollectionConfig, CollectionConfigSimple]]: ...
 
     def get(
         self,

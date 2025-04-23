@@ -18,36 +18,36 @@ class _ClusterExecutor(Generic[ConnectionType]):
         self._connection = connection
 
     @overload
-    async def nodes(
+    def nodes(
         self,
         collection: Optional[str] = None,
         *,
         output: Literal[None] = None,
-    ) -> List[Node[None, None]]: ...
+    ) -> executor.Result[List[Node[None, None]]]: ...
 
     @overload
-    async def nodes(
+    def nodes(
         self,
         collection: Optional[str] = None,
         *,
         output: Literal["minimal"],
-    ) -> List[Node[None, None]]: ...
+    ) -> executor.Result[List[Node[None, None]]]: ...
 
     @overload
-    async def nodes(
+    def nodes(
         self,
         collection: Optional[str] = None,
         *,
         output: Literal["verbose"],
-    ) -> List[Node[Shards, Stats]]: ...
+    ) -> executor.Result[List[Node[Shards, Stats]]]: ...
 
     @overload
-    async def nodes(
+    def nodes(
         self,
         collection: Optional[str] = None,
         *,
         output: Optional[Verbosity] = None,
-    ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]: ...
+    ) -> executor.Result[Union[List[Node[None, None]], List[Node[Shards, Stats]]]]: ...
 
     def nodes(
         self,
