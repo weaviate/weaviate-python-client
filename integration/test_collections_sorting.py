@@ -13,7 +13,6 @@ def sorting_test_client(client_factory: ClientFactory):
 
 def test_collections_list_all_sorting(sorting_test_client):
     """Test that collections.list_all() returns collections sorted alphabetically by key."""
-
     client = sorting_test_client
 
     try:
