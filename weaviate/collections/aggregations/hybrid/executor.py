@@ -1,6 +1,6 @@
 from typing import Generic, List, Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.executor import _BaseExecutor
+from weaviate.collections.aggregations.base_executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,

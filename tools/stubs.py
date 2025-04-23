@@ -1,5 +1,7 @@
 import ast
+import importlib
 import inspect
+import os
 import textwrap
 from collections import defaultdict
 from typing import Literal, cast
@@ -123,107 +125,55 @@ class ExecutorTransformer(ast.NodeTransformer):
         return ast.copy_location(new_node, node)
 
 
-from weaviate.collections.aggregations.hybrid import executor as agg_hybrid
-from weaviate.collections.aggregations.near_image import executor as agg_near_image
-from weaviate.collections.aggregations.near_object import executor as agg_near_object
-from weaviate.collections.aggregations.near_text import executor as agg_near_text
-from weaviate.collections.aggregations.near_vector import executor as agg_near_vector
-from weaviate.collections.aggregations.over_all import executor as agg_over_all
-from weaviate.collections.backups import executor as backups
-from weaviate.collections.cluster import executor as cluster
-from weaviate.collections.config import executor as config
-from weaviate.collections.data import executor as data
-from weaviate.collections.queries.bm25.generate import executor as generate_bm25
-from weaviate.collections.queries.bm25.query import executor as query_bm25
-from weaviate.collections.queries.fetch_object_by_id import executor as fetch_object_by_id
-from weaviate.collections.queries.fetch_objects.generate import executor as generate_fetch_objects
-from weaviate.collections.queries.fetch_objects.query import executor as query_fetch_objects
-from weaviate.collections.queries.fetch_objects_by_ids.generate import (
-    executor as generate_fetch_objects_by_ids,
-)
-from weaviate.collections.queries.fetch_objects_by_ids.query import (
-    executor as query_fetch_objects_by_ids,
-)
-from weaviate.collections.queries.hybrid.generate import executor as generate_hybrid
-from weaviate.collections.queries.hybrid.query import executor as query_hybrid
-from weaviate.collections.queries.near_image.generate import executor as generate_near_image
-from weaviate.collections.queries.near_image.query import executor as query_near_image
-from weaviate.collections.queries.near_media.generate import executor as generate_near_media
-from weaviate.collections.queries.near_media.query import executor as query_near_media
-from weaviate.collections.queries.near_object.generate import executor as generate_near_object
-from weaviate.collections.queries.near_object.query import executor as query_near_object
-from weaviate.collections.queries.near_text.generate import executor as generate_near_text
-from weaviate.collections.queries.near_text.query import executor as query_near_text
-from weaviate.collections.queries.near_vector.generate import executor as generate_near_vector
-from weaviate.collections.queries.near_vector.query import executor as query_near_vector
-from weaviate.debug import executor as debug
-from weaviate.rbac import executor as rbac
-from weaviate.collections.tenants import executor as tenants
-from weaviate.users import executor as users
+for subdir, dirs, files in os.walk("./weaviate"):
+    for file in files:
+        if file != "executor.py":
+            continue
+        if "connect" in subdir:
+            # ignore weaviate/connect/executor.py file
+            continue
+        if "collections/collections" in subdir:
+            # ignore weaviate/collections/collections directory
+            continue
 
-for module in [
-    agg_hybrid,
-    agg_near_image,
-    agg_near_object,
-    agg_near_text,
-    agg_near_vector,
-    agg_over_all,
-    backups,
-    cluster,
-    config,
-    data,
-    debug,
-    generate_bm25,
-    generate_fetch_objects,
-    generate_fetch_objects_by_ids,
-    generate_hybrid,
-    generate_near_image,
-    generate_near_media,
-    generate_near_object,
-    generate_near_text,
-    generate_near_vector,
-    fetch_object_by_id,
-    query_bm25,
-    query_fetch_objects,
-    query_fetch_objects_by_ids,
-    query_hybrid,
-    query_near_image,
-    query_near_media,
-    query_near_object,
-    query_near_text,
-    query_near_vector,
-    rbac,
-    tenants,
-    users,
-]:
-    source = textwrap.dedent(inspect.getsource(module))
+        mod = os.path.join(subdir, file)
+        mod = mod[2:]  # remove the leading dot and slash
+        mod = mod[:-3]  # remove the .py
+        mod = mod.replace("/", ".")  # convert into pythonic import
 
-    colours: list[Literal["sync", "async"]] = ["sync", "async"]
-    for colour in colours:
-        tree = ast.parse(source, mode="exec", type_comments=True)
+        module = importlib.import_module(mod)
+        source = textwrap.dedent(inspect.getsource(module))
 
-        transformer = ExecutorTransformer(colour)
-        stubbed = transformer.visit(tree)
+        colours: list[Literal["sync", "async"]] = ["sync", "async"]
+        for colour in colours:
+            tree = ast.parse(source, mode="exec", type_comments=True)
 
-        imports = [
-            node for node in stubbed.body if isinstance(node, (ast.Import, ast.ImportFrom))
-        ] + [
-            ast.ImportFrom(
-                module="weaviate.connect.v4",
-                names=[ast.alias(name=f"Connection{colour.capitalize()}", asname=None)],
-                level=0,
-            ),
-            ast.ImportFrom(
-                module=".executor",
-                names=[ast.alias(name=name, asname=None) for name in transformer.executor_names],
-                level=0,
-            ),
-        ]
-        stubbed.body = imports + [node for node in stubbed.body if isinstance(node, ast.ClassDef)]
-        ast.fix_missing_locations(stubbed)
+            transformer = ExecutorTransformer(colour)
+            stubbed = transformer.visit(tree)
 
-        dir = cast(str, module.__package__).replace(".", "/")
-        file = f"{dir}/{colour}.pyi" if colour == "sync" else f"{dir}/{colour}_.pyi"
-        with open(file, "w") as f:
-            print(f"Writing {file}")
-            f.write(ast.unparse(stubbed))
+            imports = [
+                node for node in stubbed.body if isinstance(node, (ast.Import, ast.ImportFrom))
+            ] + [
+                ast.ImportFrom(
+                    module="weaviate.connect.v4",
+                    names=[ast.alias(name=f"Connection{colour.capitalize()}", asname=None)],
+                    level=0,
+                ),
+                ast.ImportFrom(
+                    module=".executor",
+                    names=[
+                        ast.alias(name=name, asname=None) for name in transformer.executor_names
+                    ],
+                    level=0,
+                ),
+            ]
+            stubbed.body = imports + [
+                node for node in stubbed.body if isinstance(node, ast.ClassDef)
+            ]
+            ast.fix_missing_locations(stubbed)
+
+            dir = cast(str, module.__package__).replace(".", "/")
+            file = f"{dir}/{colour}.pyi" if colour == "sync" else f"{dir}/{colour}_.pyi"
+            with open(file, "w") as f:
+                print(f"Writing {file}")
+                f.write(ast.unparse(stubbed))

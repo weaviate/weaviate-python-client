@@ -16,7 +16,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.grpc import PROPERTIES, REFERENCES
 from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.executor import _BaseExecutor
+from weaviate.collections.queries.base_executor import _BaseExecutor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.connect import executor
 from weaviate.proto.v1.search_get_pb2 import SearchReply

@@ -1,32 +1,37 @@
-from typing import Optional, Union, List
-
-from weaviate.backup.base import _BackupBase
-from weaviate.backup.executor import (
+import asyncio
+import time
+from typing import Generic, Optional, Union, List, Tuple, Dict
+from httpx import Response
+from weaviate.backup.backup import (
     BackupStorage,
     BackupReturn,
     BackupStatusReturn,
+    STORAGE_NAMES,
     BackupConfigCreate,
+    BackupStatus,
     BackupConfigRestore,
-    _BackupExecutor,
 )
 from weaviate.backup.backup_location import BackupLocationType
+from weaviate.connect import executor
+from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync, ConnectionType
+from weaviate.exceptions import (
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
+    BackupFailedException,
+    EmptyResponseException,
+    BackupCanceledError,
+)
+from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 from weaviate.connect.v4 import ConnectionSync
+from .executor import _BackupExecutor
 
 class _Backup(_BackupExecutor[ConnectionSync]):
-    """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
-
-    def cancel(
-        self,
-        backup_id: str,
-        backend: BackupStorage,
-        backup_location: Optional[BackupLocationType] = None,
-    ) -> bool: ...
     def create(
         self,
         backup_id: str,
         backend: BackupStorage,
-        include_collections: Optional[Union[List[str], str]] = None,
-        exclude_collections: Optional[Union[List[str], str]] = None,
+        include_collections: Union[List[str], str, None] = None,
+        exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -53,3 +58,9 @@ class _Backup(_BackupExecutor[ConnectionSync]):
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn: ...
+    def cancel(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
+    ) -> bool: ...
