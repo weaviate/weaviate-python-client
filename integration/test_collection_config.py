@@ -1404,3 +1404,39 @@ def test_config_multi_vector_disabled(
     conf = config.vector_config["vec"].vector_index_config
     assert isinstance(conf, _VectorIndexConfigHNSW)
     assert conf.multi_vector is None
+
+
+@pytest.mark.parametrize(
+    "generative_config",
+    [
+        None,
+        Configure.Generative.anyscale(),
+    ],
+)
+@pytest.mark.parametrize(
+    "vectorizer_config",
+    [
+        None,
+        Configure.Vectorizer.none(),
+        Configure.Vectorizer.text2vec_contextionary(vectorize_collection_name=False),
+        [
+            Configure.NamedVectors.text2vec_contextionary(
+                name="vec",
+                vectorize_collection_name=False,
+            )
+        ],
+    ],
+)
+def test_config_add_property(
+    collection_factory: CollectionFactory, generative_config, vectorizer_config
+) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="title", data_type=DataType.TEXT),
+        ],
+        generative_config=generative_config,
+        vectorizer_config=vectorizer_config,
+    )
+    collection.config.add_property(Property(name="description", data_type=DataType.TEXT))
+    config = collection.config.get()
+    assert "description" in [prop.name for prop in config.properties]

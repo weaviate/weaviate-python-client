@@ -186,19 +186,25 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         obj = additional_property._to_dict()
 
         def resp(schema: Dict[str, Any]) -> executor.Result[None]:
-            if schema.get("moduleConfig"):
-                configured_module = list(schema.get("moduleConfig", {}).keys())[0]
-                modconf = {}
-                if "skip_vectorization" in obj:
-                    modconf["skip"] = obj["skip_vectorization"]
-                    del obj["skip_vectorization"]
+            modconf = {}
+            if "skip_vectorization" in obj:
+                modconf["skip"] = obj["skip_vectorization"]
+                del obj["skip_vectorization"]
 
-                if "vectorize_property_name" in obj:
-                    modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
-                    del obj["vectorize_property_name"]
+            if "vectorize_property_name" in obj:
+                modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
+                del obj["vectorize_property_name"]
 
-                if len(modconf) > 0:
-                    obj["moduleConfig"] = {configured_module: modconf}
+            module_config: Dict[str, Any] = schema.get("moduleConfig", {})
+            legacy_vectorizer = [
+                str(k) for k in module_config if "generative" not in k and "reranker" not in k
+            ]
+            if len(legacy_vectorizer) > 0 and len(modconf) > 0:
+                obj["moduleConfig"] = {legacy_vectorizer[0]: modconf}
+
+            vector_config: Dict[str, Any] = schema.get("vectorConfig", {})
+            if len(vector_config) > 0:
+                obj["vectorConfig"] = {key: modconf for key in vector_config.keys()}
 
             def inner_resp(res: Response) -> None:
                 return None
