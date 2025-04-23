@@ -94,14 +94,14 @@ def test_auth_header_priority(
     weaviate_auth_mock.expect_request("/v1/schema").respond_with_handler(handler)
 
     with pytest.warns(UserWarning) as recwarn:
-        weaviate.connect_to_local(
+        with weaviate.connect_to_local(
             port=MOCK_PORT,
             host=MOCK_IP,
             grpc_port=MOCK_PORT_GRPC,
             headers={header_name: "Bearer " + bearer_token},
             auth_credentials=wvc.init.Auth.api_key("key"),
-        )
-        assert str(recwarn[0].message).startswith("Auth004")
+        ) as _:
+            assert str(recwarn[0].message).startswith("Auth004")
 
 
 def test_auth_header_with_catchall_proxy(
