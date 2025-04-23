@@ -317,7 +317,7 @@ def test_hybrid_near_text_search(collection_factory: CollectionFactory) -> None:
 
 
 def test_hybrid_near_text_search_named_vectors(collection_factory: CollectionFactory) -> None:
-    collection = lambda: collection_factory(
+    collection = collection_factory(
         properties=[
             Property(name="text", data_type=DataType.TEXT),
             Property(name="int", data_type=DataType.INT),
