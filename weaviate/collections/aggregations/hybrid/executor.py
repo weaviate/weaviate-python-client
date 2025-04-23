@@ -1,6 +1,6 @@
-from typing import Generic, List, Optional, Union
+from typing import Generic, List, Literal, Optional, Union, overload
 
-from weaviate.collections.aggregations.executor import _BaseExecutor
+from weaviate.collections.aggregations.base_executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
     PropertiesMetrics,
     AggregateReturn,
@@ -16,6 +16,57 @@ from weaviate.types import NUMBER
 
 
 class _HybridExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+    @overload
+    def hybrid(
+        self,
+        query: Optional[str],
+        *,
+        alpha: NUMBER = 0.7,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
+        target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateReturn]: ...
+
+    @overload
+    def hybrid(
+        self,
+        query: Optional[str],
+        *,
+        alpha: NUMBER = 0.7,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Union[str, GroupByAggregate],
+        target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateGroupByReturn]: ...
+
+    @overload
+    def hybrid(
+        self,
+        query: Optional[str],
+        *,
+        alpha: NUMBER = 0.7,
+        vector: Optional[List[float]] = None,
+        query_properties: Optional[List[str]] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        target_vector: Optional[str] = None,
+        max_vector_distance: Optional[float] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]: ...
+
     def hybrid(
         self,
         query: Optional[str],

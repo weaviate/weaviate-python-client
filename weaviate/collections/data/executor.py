@@ -1,19 +1,20 @@
 import asyncio
 import datetime
 import uuid as uuid_package
-from dataclasses import dataclass
 from typing import (
     Any,
     Dict,
     Generic,
     Optional,
     List,
+    Literal,
     Mapping,
     Sequence,
     Tuple,
     Type,
     Union,
     cast,
+    overload,
 )
 
 from httpx import Response
@@ -54,21 +55,9 @@ from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
 from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import _ServerVersion
 
 
-@dataclass
-class _ExecutorOptions:
-    weaviate_version: _ServerVersion
-    name: str
-    consistency_level: Optional[ConsistencyLevel]
-    tenant: Optional[str]
-    validate_arguments: bool
-    batch_grpc: _BatchGRPC
-    batch_rest: _BatchREST
-
-
-class _DataExecutor(Generic[ConnectionType]):
+class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
     def __init__(
         self,
         connection: ConnectionType,
@@ -602,6 +591,23 @@ class _DataExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
         )
 
+    @overload
+    def delete_many(
+        self, where: _Filters, *, verbose: Literal[False] = False, dry_run: bool = False
+    ) -> executor.Result[DeleteManyReturn[None]]: ...
+
+    @overload
+    def delete_many(
+        self, where: _Filters, *, verbose: Literal[True], dry_run: bool = False
+    ) -> executor.Result[DeleteManyReturn[List[DeleteManyObject]]]: ...
+
+    @overload
+    def delete_many(
+        self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
+    ) -> executor.Result[
+        Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]
+    ]: ...
+
     def delete_many(
         self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
     ) -> executor.Result[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
@@ -629,7 +635,6 @@ class _DataExecutor(Generic[ConnectionType]):
         )
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
-
         if self._tenant is not None:
             params["tenant"] = self._tenant
         if self._consistency_level is not None:

@@ -1,4 +1,5 @@
-from typing import Any, Dict, Generic, List, Optional, Union, cast
+from typing import Any, Dict, Generic, List, Literal, Optional, Union, cast, overload
+from typing_extensions import deprecated
 
 from httpx import Response
 
@@ -113,7 +114,7 @@ class _BaseExecutor(Generic[ConnectionType]):
         )
 
 
-class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+class _UsersExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
     def get_my_user(self) -> executor.Result[OwnUser]:
         """Get the currently authenticated user.
 
@@ -144,6 +145,10 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
             status_codes=_ExpectedStatusCodes(ok_in=[200], error="Get own roles"),
         )
 
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25.
+                Please use `users.db.get_assigned_roles` and/or `users.oidc.get_assigned_roles` instead."""
+    )
     def get_assigned_roles(self, user_id: str) -> executor.Result[Dict[str, Role]]:
         """Get the roles assigned to a user.
 
@@ -156,6 +161,10 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         # cast here because the deprecated method is only used in the deprecated class and this type is known
         return cast(Dict[str, Role], self._get_roles_of_user_deprecated(user_id))
 
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25.
+                Please use `users.db.assign_roles` and/or `users.oidc.assign_roles` instead."""
+    )
     def assign_roles(
         self,
         *,
@@ -174,6 +183,10 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
             None,
         )
 
+    @deprecated(
+        """This method is deprecated and will be removed in Q4 25.
+                Please use `users.db.revoke_roles` and/or `users.oidc.revoke_roles` instead."""
+    )
     def revoke_roles(
         self,
         *,
@@ -193,7 +206,25 @@ class _DeprecatedExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
         )
 
 
-class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+class _UsersOIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+    @overload
+    def get_assigned_roles(
+        self, *, user_id: str, include_permissions: Literal[False] = False
+    ) -> executor.Result[Dict[str, RoleBase]]: ...
+
+    @overload
+    def get_assigned_roles(
+        self, *, user_id: str, include_permissions: Literal[True]
+    ) -> executor.Result[Dict[str, Role]]: ...
+
+    @overload
+    def get_assigned_roles(
+        self,
+        *,
+        user_id: str,
+        include_permissions: bool = False,
+    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]: ...
+
     def get_assigned_roles(
         self,
         *,
@@ -251,7 +282,22 @@ class _OIDCExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
         )
 
 
-class _DBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+class _UsersDBExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+    @overload
+    def get_assigned_roles(
+        self, *, user_id: str, include_permissions: Literal[False] = False
+    ) -> executor.Result[Dict[str, RoleBase]]: ...
+
+    @overload
+    def get_assigned_roles(
+        self, *, user_id: str, include_permissions: Literal[True]
+    ) -> executor.Result[Dict[str, Role]]: ...
+
+    @overload
+    def get_assigned_roles(
+        self, *, user_id: str, include_permissions: bool = False
+    ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]: ...
+
     def get_assigned_roles(
         self, *, user_id: str, include_permissions: bool = False
     ) -> executor.Result[Union[Dict[str, Role], Dict[str, RoleBase]]]:

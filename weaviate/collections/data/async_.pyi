@@ -1,40 +1,63 @@
+import asyncio
+import datetime
 import uuid as uuid_package
 from typing import (
+    Any,
+    Dict,
+    Generic,
     Optional,
     List,
     Literal,
+    Mapping,
     Sequence,
-    Generic,
+    Tuple,
     Type,
     Union,
+    cast,
     overload,
 )
-
+from httpx import Response
 from weaviate.collections.classes.batch import (
     DeleteManyObject,
+    _BatchObject,
+    _BatchReference,
     BatchObjectReturn,
     BatchReferenceReturn,
     DeleteManyReturn,
 )
+from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.internal import (
+    _Reference,
+    ReferenceToMulti,
     SingleReferenceInput,
     ReferenceInput,
     ReferenceInputs,
-    TProperties,
 )
 from weaviate.collections.classes.types import (
+    GeoCoordinate,
+    PhoneNumber,
+    _PhoneNumber,
     Properties,
+    WeaviateField,
 )
-from weaviate.collections.data.executor import _DataExecutor
+from weaviate.connect import executor
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.logger import logger
+from weaviate.types import BEACON, UUID, VECTORS
+from weaviate.util import _datetime_to_string, _get_vector_v4
+from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
+from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
+from weaviate.collections.batch.rest import _BatchREST
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.connect.v4 import ConnectionAsync
-from weaviate.types import UUID, VECTORS
+from .executor import _DataCollectionExecutor
 
-class _DataCollectionAsync(Generic[Properties], _DataExecutor[ConnectionAsync]):
-    def with_data_model(
-        self, data_model: Type[TProperties]
-    ) -> "_DataCollectionAsync[TProperties]": ...
+class _DataCollectionAsync(
+    Generic[Properties,], _DataCollectionExecutor[ConnectionAsync, Properties]
+):
     async def insert(
         self,
         properties: Properties,
@@ -46,6 +69,7 @@ class _DataCollectionAsync(Generic[Properties], _DataExecutor[ConnectionAsync]):
         self,
         objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
     ) -> BatchObjectReturn: ...
+    async def exists(self, uuid: UUID) -> bool: ...
     async def replace(
         self,
         uuid: UUID,
@@ -70,7 +94,6 @@ class _DataCollectionAsync(Generic[Properties], _DataExecutor[ConnectionAsync]):
     async def reference_replace(
         self, from_uuid: UUID, from_property: str, to: ReferenceInput
     ) -> None: ...
-    async def exists(self, uuid: UUID) -> bool: ...
     async def delete_by_id(self, uuid: UUID) -> bool: ...
     @overload
     async def delete_many(

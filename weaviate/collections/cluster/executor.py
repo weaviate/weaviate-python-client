@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Union
+from typing import Generic, List, Literal, Optional, Union, overload
 
 from httpx import Response
 from weaviate.connect import executor
@@ -16,6 +16,38 @@ from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 class _ClusterExecutor(Generic[ConnectionType]):
     def __init__(self, connection: ConnectionType):
         self._connection = connection
+
+    @overload
+    async def nodes(
+        self,
+        collection: Optional[str] = None,
+        *,
+        output: Literal[None] = None,
+    ) -> List[Node[None, None]]: ...
+
+    @overload
+    async def nodes(
+        self,
+        collection: Optional[str] = None,
+        *,
+        output: Literal["minimal"],
+    ) -> List[Node[None, None]]: ...
+
+    @overload
+    async def nodes(
+        self,
+        collection: Optional[str] = None,
+        *,
+        output: Literal["verbose"],
+    ) -> List[Node[Shards, Stats]]: ...
+
+    @overload
+    async def nodes(
+        self,
+        collection: Optional[str] = None,
+        *,
+        output: Optional[Verbosity] = None,
+    ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]: ...
 
     def nodes(
         self,

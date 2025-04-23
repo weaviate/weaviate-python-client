@@ -1,9 +1,13 @@
-from typing import Dict, List, Literal, Optional, Union, overload
-
+import asyncio
+from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, cast
+from httpx import Response
+from pydantic_core import ValidationError
 from weaviate.collections.classes.config import (
+    _CollectionConfigUpdate,
     _InvertedIndexConfigUpdate,
     _ReplicationConfigUpdate,
     _VectorIndexConfigFlatUpdate,
+    PropertyType,
     Property,
     ReferenceProperty,
     _ReferencePropertyMultiTarget,
@@ -11,23 +15,31 @@ from weaviate.collections.classes.config import (
     CollectionConfig,
     CollectionConfigSimple,
     ShardStatus,
+    _ShardStatus,
     ShardTypes,
     _NamedVectorConfigUpdate,
     _MultiTenancyConfigUpdate,
     _GenerativeProvider,
     _RerankerProvider,
 )
+from weaviate.collections.classes.config_methods import (
+    _collection_config_from_json,
+    _collection_config_simple_from_json,
+)
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
-from weaviate.collections.config.executor import _ConfigExecutor
+from weaviate.connect import executor
+from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.util import _decode_json_response_dict, _decode_json_response_list
+from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.warnings import _Warnings
 from weaviate.connect.v4 import ConnectionAsync
+from .executor import _ConfigCollectionExecutor
 
-class _ConfigCollectionAsync(_ConfigExecutor[ConnectionAsync]):
-    @overload
-    async def get(self, simple: Literal[False] = ...) -> CollectionConfig: ...
-    @overload
-    async def get(self, simple: Literal[True]) -> CollectionConfigSimple: ...
-    @overload
-    async def get(self, simple: bool = ...) -> Union[CollectionConfig, CollectionConfigSimple]: ...
+class _ConfigCollectionAsync(_ConfigCollectionExecutor[ConnectionAsync]):
+    async def get(
+        self, simple: bool = False
+    ) -> Union[CollectionConfig, CollectionConfigSimple]: ...
     async def update(
         self,
         *,
@@ -37,10 +49,7 @@ class _ConfigCollectionAsync(_ConfigExecutor[ConnectionAsync]):
         multi_tenancy_config: Optional[_MultiTenancyConfigUpdate] = None,
         replication_config: Optional[_ReplicationConfigUpdate] = None,
         vector_index_config: Optional[
-            Union[
-                _VectorIndexConfigHNSWUpdate,
-                _VectorIndexConfigFlatUpdate,
-            ]
+            Union[_VectorIndexConfigHNSWUpdate, _VectorIndexConfigFlatUpdate]
         ] = None,
         vectorizer_config: Optional[
             Union[
@@ -51,7 +60,7 @@ class _ConfigCollectionAsync(_ConfigExecutor[ConnectionAsync]):
             ]
         ] = None,
         generative_config: Optional[_GenerativeProvider] = None,
-        reranker_config: Optional[_RerankerProvider] = None,
+        reranker_config: Optional[_RerankerProvider] = None
     ) -> None: ...
     async def get_shards(self) -> List[ShardStatus]: ...
     async def update_shards(

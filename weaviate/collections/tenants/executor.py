@@ -14,15 +14,17 @@ from weaviate.collections.classes.tenants import (
     TenantOutput,
 )
 from weaviate.collections.grpc.tenants import _TenantsGRPC
+from weaviate.collections.tenants.types import (
+    TenantCreateInputType,
+    TenantUpdateInputType,
+    TenantOutputType,
+)
 from weaviate.connect import executor
 from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import tenants_pb2
 from weaviate.validator import _validate_input, _ValidateArgument
 
-TenantCreateInputType = Union[str, Tenant, TenantCreate]
-TenantUpdateInputType = Union[Tenant, TenantUpdate]
-TenantOutputType = Tenant
 
 UPDATE_TENANT_BATCH_SIZE = 100
 
