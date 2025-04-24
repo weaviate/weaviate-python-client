@@ -243,6 +243,7 @@ class _BM25QueryExecutor(
         return_references: Type[TReferences],
     ) -> executor.Result[GroupByReturn[TProperties, TReferences]]: ...
 
+    @overload
     def bm25(
         self,
         query: Optional[str],
@@ -258,7 +259,26 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ) -> executor.Result[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
+    ) -> executor.Result[
+        QuerySearchReturnType[Properties, References, TProperties, TReferences]
+    ]: ...
+
+    def bm25(
+        self,
+        query: Optional[str],
+        *,
+        query_properties: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        auto_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[GroupBy] = None,
+        rerank: Optional[Rerank] = None,
+        include_vector: INCLUDE_VECTOR = False,
+        return_metadata: Optional[METADATA] = None,
+        return_properties: Optional[ReturnProperties[TProperties]] = None,
+        return_references: Optional[ReturnReferences[TReferences]] = None,
+    ):
         """Search for objects in this collection using the keyword-based BM25 algorithm.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
