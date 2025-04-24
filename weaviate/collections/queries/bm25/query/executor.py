@@ -278,7 +278,7 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
-    ):
+    ) -> executor.Result[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
         """Search for objects in this collection using the keyword-based BM25 algorithm.
 
         See the [docs](https://weaviate.io/developers/weaviate/search/bm25) for a more detailed explanation.
