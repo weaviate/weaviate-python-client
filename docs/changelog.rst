@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.14.1
+--------------
+This patch version includes:
+    - Fixes a missing ``typing.overload`` specification for the ``query.bm25`` method
+
 Version 4.14.0
 --------------
 This minor version includes a major update to the docstrings and documentation of the client.
