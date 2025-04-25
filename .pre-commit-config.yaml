@@ -13,10 +13,10 @@ repos:
   hooks:
     # Run the linter.
     - id: ruff
-      args: [ ./weaviate, --select, F401, --select, I, --fix ]
+      args: [ weaviate, integration, test, mock_tests, journey_tests, --select, F401, --select, I, --fix ]
     # Run the formatter.
     - id: ruff-format
-      args: [ ./weaviate ]
+      args: [ weaviate, integration, test, mock_tests, journey_tests ]
 
 - repo: https://github.com/PyCQA/flake8
   rev: 7.1.0

@@ -37,8 +37,10 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
-      - name: "Black"
-        run: black --check weaviate test mock_tests integration
+      - name: "Ruff lint"
+        run: ruff check weaviate test mock_tests integration
+      - name: "Ruff format"
+        run: ruff format --diff weaviate test mock_tests integration
       - name: "Flake 8"
         run: flake8 weaviate test mock_tests integration
       - name: "Check release for pypi"
