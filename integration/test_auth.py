@@ -113,19 +113,20 @@ def test_authentication_user_pw(
     else:
         auth = wvc.init.Auth.client_password(username=user, password=pw)
 
-    with weaviate.connect_to_local(port=port, auth_credentials=auth) as client:
-        client.collections.list_all()  # no exception
+    with pytest.warns(UserWarning) as recwarn:
+        with weaviate.connect_to_local(port=port, auth_credentials=auth) as client:
+            client.collections.list_all()  # no exception
 
-        if warning:
-            assert len(recwarn) == 1
-            w = recwarn.pop()
-            assert issubclass(w.category, UserWarning)
-            assert str(w.message).startswith("Auth002")
-        else:
-            if len(recwarn) != 0:
-                for rwarning in recwarn.list:
-                    print(rwarning.message)
-            assert len(recwarn) == 0
+            if warning:
+                assert len(recwarn) == 1
+                w = recwarn.pop()
+                assert issubclass(w.category, UserWarning)
+                assert str(w.message).startswith("Auth002")
+            else:
+                if len(recwarn) != 0:
+                    for rwarning in recwarn.list:
+                        print(rwarning.message)
+                assert len(recwarn) == 0
 
 
 def test_client_with_authentication_with_anon_weaviate() -> None:

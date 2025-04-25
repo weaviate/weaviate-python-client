@@ -6,5 +6,7 @@ requires = [
 ]
 build-backend = 'setuptools.build_meta'
 
+[tool.setuptools_scm]
+
 [tool.pydoclint]
 style = "google"
