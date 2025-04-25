@@ -199,7 +199,7 @@ def test_over_all_with_filters_ref(collection_factory: CollectionFactory) -> Non
     assert res.properties["text"].count == 1
     assert res.properties["text"].top_occurrences[0].value == "two"
 
-    query = lambda: collection.aggregate.over_all(
+    query = lambda: collection.aggregate.over_all(  # noqa: E731
         filters=Filter.by_ref("ref").by_property("text").equal("one"),
         return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
     )
@@ -361,7 +361,7 @@ def test_hybrid_aggregation_group_by(
     collection.data.insert({"text": text_1})
     collection.data.insert({"text": text_2})
 
-    querier = lambda: collection.aggregate.hybrid(
+    querier = lambda: collection.aggregate.hybrid(  # noqa: E731
         "text",
         alpha=0,
         query_properties=["text"],
@@ -398,7 +398,7 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
     collection.data.insert({"text": text_1})
     collection.data.insert({"text": text_2})
 
-    querier = lambda: collection.aggregate.hybrid(
+    querier = lambda: collection.aggregate.hybrid(  # noqa: E731
         "text",
         alpha=0,
         query_properties=["text"],
@@ -432,7 +432,7 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
 def test_near_vector_aggregation(
     collection_factory: CollectionFactory, option: dict, expected_len: int
 ) -> None:
-    collection_maker = lambda: collection_factory(
+    collection_maker = lambda: collection_factory(  # noqa: E731
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False

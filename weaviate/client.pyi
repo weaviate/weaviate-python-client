@@ -4,9 +4,11 @@ Client class definition.
 
 from typing import Any, Dict, Optional, Tuple, Union
 
+from weaviate.client_executor import _WeaviateClientExecutor
 from weaviate.collections.classes.internal import _RawGQLReturn
 from weaviate.collections.collections.async_ import _CollectionsAsync
 from weaviate.collections.collections.sync import _Collections
+from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 from weaviate.users.async_ import _UsersAsync
 from weaviate.users.sync import _Users
 
@@ -18,9 +20,6 @@ from .rbac import _Roles, _RolesAsync
 from .types import NUMBER
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
-
-from weaviate.client_executor import _WeaviateClientExecutor
-from weaviate.connect.v4 import ConnectionAsync, ConnectionSync
 
 class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
     _connection: ConnectionAsync
