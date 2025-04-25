@@ -1,15 +1,14 @@
 from typing import Generic, List, Literal, Optional, Union, overload
 
 from httpx import Response
-from weaviate.connect import executor
-from weaviate.connect.v4 import ConnectionType
 
 from weaviate.cluster.types import Verbosity
-from weaviate.collections.classes.cluster import Node, Shards, _ConvertFromREST, Stats
+from weaviate.collections.classes.cluster import Node, Shards, Stats, _ConvertFromREST
+from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionType
 from weaviate.exceptions import (
     EmptyResponseError,
 )
-
 from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 
 

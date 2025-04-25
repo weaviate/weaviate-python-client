@@ -5,12 +5,12 @@ from . import (
     batch,
     config,
     data,
-    generics,
     generate,
+    generics,
     init,
     query,
-    tenants,
     rbac,
+    tenants,
 )  # noqa: F401
 from .config import ConsistencyLevel
 

@@ -4,11 +4,12 @@ import json
 from dataclasses import dataclass
 from typing import List, Optional
 
-from weaviate.util import _capitalize_first_letter, file_encoder_b64, _sanitize_str
+from weaviate.util import _capitalize_first_letter, _sanitize_str, file_encoder_b64
+
 from .filter import (
-    Where,
-    GraphQL,
     Filter,
+    GraphQL,
+    MediaType,
     NearAudio,
     NearDepth,
     NearImage,
@@ -18,7 +19,7 @@ from .filter import (
     NearThermal,
     NearVector,
     NearVideo,
-    MediaType,
+    Where,
 )
 
 

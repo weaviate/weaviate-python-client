@@ -1,10 +1,10 @@
 from typing import Any, Dict, Generic, List, Literal, Optional, Union, cast, overload
-from typing_extensions import deprecated
 from httpx import Response
+from typing_extensions import deprecated
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType
-from weaviate.rbac.models import Role, RoleBase, WeaviateDBUserRoleNames, UserTypes
-from weaviate.users.users import USER_TYPE_DB, USER_TYPE_OIDC, USER_TYPE, UserDB, OwnUser
+from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
+from weaviate.rbac.models import Role, RoleBase, UserTypes, WeaviateDBUserRoleNames
+from weaviate.users.users import USER_TYPE, USER_TYPE_DB, USER_TYPE_OIDC, OwnUser, UserDB
 from weaviate.util import _decode_json_response_dict
 from weaviate.connect.v4 import ConnectionAsync
 from .executor import _BaseExecutor, _UsersExecutor, _UsersOIDCExecutor, _UsersDBExecutor

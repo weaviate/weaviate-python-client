@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import (
     ClassVar,
+    Dict,
     Generic,
     List,
     Literal,
@@ -10,18 +11,17 @@ from typing import (
     Sequence,
     Type,
     Union,
-    Dict,
     cast,
 )
-from typing_extensions import TypeGuard, TypeVar
 
 from pydantic import ConfigDict, Field
+from typing_extensions import TypeGuard, TypeVar
 
 from weaviate.collections.classes.types import _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_search_pb2
 from weaviate.str_enum import BaseEnum
-from weaviate.types import INCLUDE_VECTOR, UUID, NUMBER
+from weaviate.types import INCLUDE_VECTOR, NUMBER, UUID
 from weaviate.util import _ServerVersion
 
 

@@ -1,4 +1,5 @@
 from typing import Generic, Optional
+from weaviate.backup.backup_location import BackupLocationType
 from weaviate.backup.executor import (
     BackupConfigCreate,
     BackupConfigRestore,
@@ -7,7 +8,6 @@ from weaviate.backup.executor import (
     BackupStorage,
     _BackupExecutor,
 )
-from weaviate.backup.backup_location import BackupLocationType
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.connect.v4 import ConnectionSync

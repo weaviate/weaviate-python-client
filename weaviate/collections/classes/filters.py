@@ -1,17 +1,15 @@
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Sequence, Union
-from typing_extensions import TypeAlias
+
 from pydantic import Field
-from weaviate.collections.classes.types import GeoCoordinate
+from typing_extensions import TypeAlias
 
-
-from weaviate.collections.classes.types import _WeaviateInput
-from weaviate.types import UUID
-from weaviate.proto.v1 import base_pb2
-from weaviate.util import get_valid_uuid
-
+from weaviate.collections.classes.types import GeoCoordinate, _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.proto.v1 import base_pb2
+from weaviate.types import UUID
+from weaviate.util import get_valid_uuid
 
 
 class _Operator(str, Enum):

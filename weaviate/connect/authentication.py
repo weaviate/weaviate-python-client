@@ -3,18 +3,22 @@ from __future__ import annotations
 from typing import Awaitable, Callable, Dict, List, Optional, Union
 
 import httpx
-from authlib.integrations.httpx_client import OAuth2Client, AsyncOAuth2Client  # type: ignore
+from authlib.integrations.httpx_client import (  # type: ignore
+    AsyncOAuth2Client,
+    OAuth2Client,
+)
 
 from weaviate.auth import (
-    AuthCredentials,
-    AuthClientPassword,
     AuthBearerToken,
     AuthClientCredentials,
+    AuthClientPassword,
+    AuthCredentials,
 )
-from weaviate.exceptions import MissingScopeError, AuthenticationFailedError
-from . import executor
+from weaviate.exceptions import AuthenticationFailedError, MissingScopeError
+
 from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
+from . import executor
 
 AUTH_DEFAULT_TIMEOUT = 5
 OIDC_CONFIG = Dict[str, Union[str, List[str]]]

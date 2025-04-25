@@ -14,8 +14,8 @@ from weaviate.collections.classes.config import (
     Property,
 )
 from weaviate.collections.classes.grpc import (
-    HybridFusion,
     GroupBy,
+    HybridFusion,
     MetadataQuery,
     NearVectorInputType,
     _HybridNearVector,

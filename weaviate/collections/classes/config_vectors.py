@@ -66,8 +66,8 @@ from weaviate.collections.classes.config_vectorizers import (
 from ...warnings import _Warnings
 
 
-class _NamedVectorConfigCreate(_ConfigCreateModel):
-    name: str
+class _VectorConfigCreate(_ConfigCreateModel):
+    name: Optional[str]
     properties: Optional[List[str]] = Field(default=None, min_length=1, alias="source_properties")
     vectorizer: _VectorizerConfigCreate
     vectorIndexType: VectorIndexType = Field(default=VectorIndexType.HNSW, exclude=True)
@@ -91,23 +91,25 @@ class _NamedVectorConfigCreate(_ConfigCreateModel):
         return {"vectorizer": {self.vectorizer.vectorizer.value: vectorizer_options}}
 
 
-class _NamedVectorConfigUpdate(_ConfigUpdateModel):
+class _VectorConfigUpdate(_ConfigUpdateModel):
     name: str
     vectorIndexConfig: _VectorIndexConfigUpdate = Field(..., alias="vector_index_config")
 
 
-class _NamedVectors:
+class _Vectors:
     @staticmethod
     def none(
-        name: str, *, vector_index_config: Optional[_VectorIndexConfigCreate] = None
-    ) -> _NamedVectorConfigCreate:
+        *,
+        name: Optional[str] = None,
+        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
+    ):
         """Create a named vector using no vectorizer. You will need to provide the vectors yourself.
 
         Args:
             name: The name of the named vector.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE),
             vector_index_config=vector_index_config,
@@ -115,13 +117,13 @@ class _NamedVectors:
 
     @staticmethod
     def custom(
-        name: str,
         *,
+        name: Optional[str] = None,
         module_name: str,
         module_config: Optional[Dict[str, Any]] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using no vectorizer. You will need to provide the vectors yourself.
 
         Args:
@@ -131,7 +133,7 @@ class _NamedVectors:
             source_properties: Which properties should be included when vectorizing. By default all text properties are included.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_VectorizerCustomConfig(
@@ -142,14 +144,14 @@ class _NamedVectors:
 
     @staticmethod
     def text2colbert_jinaai(
-        name: str,
         *,
+        name: Optional[str] = None,
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2colbert_jinaai` module.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/colbert)
@@ -164,7 +166,7 @@ class _NamedVectors:
             model: The model to use. Defaults to `None`, which uses the server-defined default.
             dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vector_index_config=vector_index_config,
@@ -175,15 +177,15 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_cohere(
-        name: str,
         *,
+        name: Optional[str] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[Union[CohereModel, str]] = None,
         truncate: Optional[CohereTruncation] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_cohere` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings)
@@ -202,7 +204,7 @@ class _NamedVectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `CohereModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecCohereConfig(
@@ -216,8 +218,8 @@ class _NamedVectors:
 
     @staticmethod
     def multi2vec_cohere(
-        name: str,
         *,
+        name: Optional[str] = None,
         base_url: Optional[AnyHttpUrl] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         model: Optional[Union[CohereMultimodalModel, str]] = None,
@@ -225,7 +227,7 @@ class _NamedVectors:
         truncate: Optional[CohereTruncation] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `multi2vec_cohere` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
@@ -244,7 +246,7 @@ class _NamedVectors:
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecCohereConfig(
                 baseURL=base_url,
@@ -259,12 +261,12 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_contextionary(
-        name: str,
         *,
+        name: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_contextionary` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
@@ -276,7 +278,7 @@ class _NamedVectors:
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecContextionaryConfig(
@@ -287,14 +289,14 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_databricks(
-        name: str,
         *,
+        name: Optional[str] = None,
         endpoint: str,
         instruction: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec-databricks` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/databricks/embeddings)
@@ -308,7 +310,7 @@ class _NamedVectors:
             endpoint: The endpoint to use.
             instruction: The instruction strategy to use. Defaults to `None`, which uses the server-defined default.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecDatabricksConfig(
@@ -321,14 +323,14 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_mistral(
-        name: str,
         *,
+        name: Optional[str] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec-mistral` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/mistral/embeddings)
@@ -342,7 +344,7 @@ class _NamedVectors:
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecMistralConfig(
@@ -355,14 +357,14 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_ollama(
-        name: str,
         *,
+        name: Optional[str] = None,
         api_endpoint: Optional[str] = None,
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec-ollama` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/ollama/embeddings)
@@ -379,7 +381,7 @@ class _NamedVectors:
                 Docker users may need to specify an alias, such as `http://host.docker.internal:11434` so that the container can access the host machine.
 
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecOllamaConfig(
@@ -392,8 +394,8 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_openai(
-        name: str,
         *,
+        name: Optional[str] = None,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
         model: Optional[Union[OpenAIModel, str]] = None,
@@ -402,7 +404,7 @@ class _NamedVectors:
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai/embeddings)
@@ -423,7 +425,7 @@ class _NamedVectors:
         Raises:
             pydantic.ValidationError: If `type_` is not a valid value from the `OpenAIType` type.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecOpenAIConfig(
@@ -439,16 +441,16 @@ class _NamedVectors:
 
     @staticmethod
     def text2vec_aws(
-        name: str,
-        region: str,
         *,
+        region: str,
+        name: Optional[str] = None,
         endpoint: Optional[str] = None,
         model: Optional[Union[AWSModel, str]] = None,
         service: Union[AWSService, str] = "bedrock",
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_aws` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
@@ -464,7 +466,7 @@ class _NamedVectors:
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecAWSConfig(
@@ -479,11 +481,11 @@ class _NamedVectors:
 
     @staticmethod
     def img2vec_neural(
-        name: str,
-        image_fields: List[str],
         *,
+        name: Optional[str] = None,
+        image_fields: List[str],
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a `Img2VecNeuralConfig` object for use when vectorizing using the `img2vec-neural` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
@@ -497,7 +499,7 @@ class _NamedVectors:
         Raises:
             pydantic.ValidationError: If `image_fields` is not a `list`.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Img2VecNeuralConfig(imageFields=image_fields),
             vector_index_config=vector_index_config,
@@ -505,14 +507,14 @@ class _NamedVectors:
 
     @staticmethod
     def multi2vec_clip(
-        name: str,
         *,
+        name: Optional[str] = None,
         inference_url: Optional[str] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `multi2vec_clip` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings-multimodal)
@@ -526,7 +528,7 @@ class _NamedVectors:
             text_fields: The text fields to use in vectorization.
             inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecClipConfig(
                 imageFields=_map_multi2vec_fields(image_fields),
@@ -548,8 +550,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         "This method is deprecated and will be removed in Q2 '25. Please use `multi2vec_google` instead."
     )
     def multi2vec_palm(
-        name: str,
         *,
+        name: Optional[str] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
         location: str,
@@ -560,7 +562,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         dimensions: Optional[int] = None,
         video_interval_seconds: Optional[int] = None,
         model_id: Optional[str] = None,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `multi2vec_palm` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
@@ -580,7 +582,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
         """
         _Warnings.palm_to_google_m2v()
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecGoogleConfig(
                 projectId=project_id,
@@ -598,8 +600,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def multi2vec_google(
-        name: str,
         *,
+        name: Optional[str] = None,
         location: str,
         project_id: str,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -610,7 +612,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         model_id: Optional[str] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `multi2vec_google` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
@@ -629,7 +631,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
             model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecGoogleConfig(
                 projectId=project_id,
@@ -647,8 +649,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def multi2vec_bind(
-        name: str,
         *,
+        name: Optional[str] = None,
         audio_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         depth_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         image_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
@@ -658,7 +660,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         video_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `multi2vec_bind` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/imagebind/embeddings-multimodal)
@@ -676,7 +678,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecBindConfig(
                 audioFields=_map_multi2vec_fields(audio_fields),
@@ -693,8 +695,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def multi2vec_voyageai(
-        name: str,
         *,
+        name: Optional[str] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[Union[VoyageMultimodalModel, str]] = None,
         truncation: Optional[bool] = None,
@@ -703,7 +705,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `multi2vec_voyageai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings-multimodal)
@@ -722,7 +724,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `VoyageaiMultimodalModel` type.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecVoyageaiConfig(
                 baseURL=base_url,
@@ -738,8 +740,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def multi2vec_nvidia(
-        name: str,
         *,
+        name: Optional[str] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[str] = None,
         truncation: Optional[bool] = None,
@@ -748,7 +750,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `multi2vec_nvidia` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings-multimodal)
@@ -767,7 +769,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `NvidiaMultimodalModel` type.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecNvidiaConfig(
                 baseURL=base_url,
@@ -783,12 +785,12 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def ref2vec_centroid(
-        name: str,
-        reference_properties: List[str],
         *,
+        name: Optional[str] = None,
+        reference_properties: List[str],
         method: Literal["mean"] = "mean",
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `ref2vec_centroid` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
@@ -800,7 +802,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             method: The method to use. Defaults to `mean`.
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Ref2VecCentroidConfig(
                 referenceProperties=reference_properties,
@@ -811,17 +813,17 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_azure_openai(
-        name: str,
+        *,
+        name: Optional[str] = None,
         resource_name: str,
         deployment_id: str,
-        *,
         base_url: Optional[AnyHttpUrl] = None,
         dimensions: Optional[int] = None,
         model: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_azure_openai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai-azure/embeddings)
@@ -838,7 +840,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecAzureOpenAIConfig(
@@ -854,12 +856,12 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_gpt4all(
-        name: str,
         *,
+        name: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_gpt4all` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/gpt4all/embeddings)
@@ -871,7 +873,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
             vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecGPT4AllConfig(
@@ -882,8 +884,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_huggingface(
-        name: str,
         *,
+        name: Optional[str] = None,
         model: Optional[str] = None,
         passage_model: Optional[str] = None,
         query_model: Optional[str] = None,
@@ -894,7 +896,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_huggingface` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings)
@@ -918,7 +920,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
                 It is important to note that some of these variables are mutually exclusive.
                 See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings#vectorizer-parameters) for more details.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecHuggingFaceConfig(
@@ -935,71 +937,17 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         )
 
     @staticmethod
-    @docstring_deprecated(
-        deprecated_in="4.9.0",
-        details="""
-This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._NamedVectors.text2vec_google` instead.
-""",
-    )
-    @typing_deprecated(
-        "This method is deprecated and will be removed in Q2 '25. Please use `text2vec_google` instead."
-    )
-    def text2vec_palm(
-        name: str,
-        project_id: str,
-        *,
-        source_properties: Optional[List[str]] = None,
-        vector_index_config: Optional[_VectorIndexConfigCreate] = None,
-        vectorize_collection_name: bool = True,
-        api_endpoint: Optional[str] = None,
-        model_id: Optional[str] = None,
-        title_property: Optional[str] = None,
-    ) -> _NamedVectorConfigCreate:
-        """Create a named vector using the `text2vec_palm` model.
-
-        See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
-        for detailed usage.
-
-        Args:
-            name: The name of the named vector.
-            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
-            project_id: The project ID to use, REQUIRED.
-            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
-            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
-            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
-            title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
-
-        Raises:
-            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
-        """
-        _Warnings.palm_to_google_t2v()
-        return _NamedVectorConfigCreate(
-            name=name,
-            source_properties=source_properties,
-            vectorizer=_Text2VecGoogleConfig(
-                projectId=project_id,
-                apiEndpoint=api_endpoint,
-                modelId=model_id,
-                vectorizeClassName=vectorize_collection_name,
-                titleProperty=title_property,
-            ),
-            vector_index_config=vector_index_config,
-        )
-
-    @staticmethod
     def text2vec_google(
-        name: str,
-        project_id: str,
         *,
+        name: Optional[str] = None,
+        project_id: str,
         api_endpoint: Optional[str] = None,
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_palm` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
@@ -1019,7 +967,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecGoogleConfig(
@@ -1034,14 +982,14 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_google_aistudio(
-        name: str,
         *,
+        name: Optional[str] = None,
         model_id: Optional[str] = None,
         title_property: Optional[str] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_palm` model.
 
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
@@ -1059,7 +1007,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Raises:
             pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecGoogleConfig(
@@ -1074,8 +1022,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_transformers(
-        name: str,
         *,
+        name: Optional[str] = None,
         pooling_strategy: Literal["masked_mean", "cls"] = "masked_mean",
         inference_url: Optional[str] = None,
         passage_inference_url: Optional[str] = None,
@@ -1083,7 +1031,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec_transformers` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings)
@@ -1099,7 +1047,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             passage_inference_url: The inferenceUrl to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
             query_inference_url: The inferenceUrl to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecTransformersConfig(
@@ -1114,15 +1062,15 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_jinaai(
-        name: str,
         *,
+        name: Optional[str] = None,
         base_url: Optional[str] = None,
         dimensions: Optional[int] = None,
         model: Optional[Union[JinaModel, str]] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings) for detailed usage.
@@ -1136,7 +1084,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
             model: The model to use. Defaults to `None`, which uses the server-defined default.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecJinaConfig(
@@ -1150,8 +1098,8 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def multi2vec_jinaai(
-        name: str,
         *,
+        name: Optional[str] = None,
         base_url: Optional[AnyHttpUrl] = None,
         model: Optional[Union[JinaMultimodalModel, str]] = None,
         dimensions: Optional[int] = None,
@@ -1159,7 +1107,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         text_fields: Optional[Union[List[str], List[Multi2VecField]]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `multi2vec_jinaai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
@@ -1178,7 +1126,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         Raises:
             pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             vectorizer=_Multi2VecJinaConfig(
                 baseURL=base_url,
@@ -1193,15 +1141,15 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_voyageai(
-        name: str,
         *,
+        name: Optional[str] = None,
         model: Optional[Union[VoyageModel, str]] = None,
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec-jinaai` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
@@ -1218,7 +1166,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecVoyageConfig(
@@ -1232,16 +1180,16 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_weaviate(
-        name: str,
         *,
+        name: Optional[str] = None,
         model: Optional[Union[WeaviateModel, str]] = None,
         base_url: Optional[str] = None,
         dimensions: Optional[int] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
-        return _NamedVectorConfigCreate(
+    ) -> _VectorConfigCreate:
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecWeaviateConfig(
@@ -1255,15 +1203,15 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
 
     @staticmethod
     def text2vec_nvidia(
-        name: str,
         *,
+        name: Optional[str] = None,
         model: Optional[str] = None,
         base_url: Optional[str] = None,
         truncate: Optional[bool] = None,
         source_properties: Optional[List[str]] = None,
         vector_index_config: Optional[_VectorIndexConfigCreate] = None,
         vectorize_collection_name: bool = True,
-    ) -> _NamedVectorConfigCreate:
+    ) -> _VectorConfigCreate:
         """Create a named vector using the `text2vec-nvidia` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
@@ -1280,7 +1228,7 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
             base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
             truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
         """
-        return _NamedVectorConfigCreate(
+        return _VectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vectorizer=_Text2VecNvidiaConfig(
@@ -1293,17 +1241,17 @@ This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weav
         )
 
 
-class _NamedVectorsUpdate:
+class _VectorsUpdate:
     @staticmethod
     def update(
-        name: str,
         *,
+        name: Optional[str] = None,
         vector_index_config: Union[
             _VectorIndexConfigHNSWUpdate,
             _VectorIndexConfigFlatUpdate,
             _VectorIndexConfigDynamicUpdate,
         ],
-    ) -> _NamedVectorConfigUpdate:
+    ) -> _VectorConfigUpdate:
         """Update the vector index configuration of a named vector.
 
         This is the only update operation allowed currently. If you wish to change the vectorization configuration itself, you will have to
@@ -1313,7 +1261,7 @@ class _NamedVectorsUpdate:
             name: The name of the named vector.
             vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Reconfigure.VectorIndex` to create a vector index configuration. `None` by default
         """
-        return _NamedVectorConfigUpdate(
-            name=name,
+        return _VectorConfigUpdate(
+            name=name or "default",
             vector_index_config=vector_index_config,
         )

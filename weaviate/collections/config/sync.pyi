@@ -3,24 +3,25 @@ from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, ca
 from httpx import Response
 from pydantic_core import ValidationError
 from weaviate.collections.classes.config import (
-    _CollectionConfigUpdate,
-    _InvertedIndexConfigUpdate,
-    _ReplicationConfigUpdate,
-    _VectorIndexConfigFlatUpdate,
-    PropertyType,
-    Property,
-    ReferenceProperty,
-    _ReferencePropertyMultiTarget,
-    _VectorIndexConfigHNSWUpdate,
     CollectionConfig,
     CollectionConfigSimple,
+    Property,
+    PropertyType,
+    ReferenceProperty,
     ShardStatus,
-    _ShardStatus,
     ShardTypes,
-    _NamedVectorConfigUpdate,
-    _MultiTenancyConfigUpdate,
+    _CollectionConfigUpdate,
     _GenerativeProvider,
+    _InvertedIndexConfigUpdate,
+    _MultiTenancyConfigUpdate,
+    _NamedVectorConfigUpdate,
+    _ReferencePropertyMultiTarget,
+    _ReplicationConfigUpdate,
     _RerankerProvider,
+    _ShardStatus,
+    _VectorConfigUpdate,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
@@ -28,7 +29,7 @@ from weaviate.collections.classes.config_methods import (
 )
 from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.util import _decode_json_response_dict, _decode_json_response_list
 from weaviate.validator import _validate_input, _ValidateArgument
@@ -62,6 +63,7 @@ class _ConfigCollection(_ConfigCollectionExecutor[ConnectionSync]):
                 List[_NamedVectorConfigUpdate],
             ]
         ] = None,
+        vector_config: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = None,
         generative_config: Optional[_GenerativeProvider] = None,
         reranker_config: Optional[_RerankerProvider] = None
     ) -> None: ...

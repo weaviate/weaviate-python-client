@@ -3,17 +3,22 @@ from typing import Generic, Literal, Optional, Type, Union, cast, overload
 from weaviate.collections.classes.filters import (
     Filter,
 )
-from weaviate.collections.classes.grpc import MetadataQuery, PROPERTIES, REFERENCES
+from weaviate.collections.classes.grpc import PROPERTIES, REFERENCES, MetadataQuery
 from weaviate.collections.classes.internal import (
-    ObjectSingleReturn,
     CrossReferences,
     MetadataSingleObjectReturn,
+    ObjectSingleReturn,
     QuerySingleReturn,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
 )
-from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
+from weaviate.collections.classes.types import (
+    Properties,
+    References,
+    TProperties,
+    TReferences,
+)
 from weaviate.collections.queries.base_executor import _BaseExecutor
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType

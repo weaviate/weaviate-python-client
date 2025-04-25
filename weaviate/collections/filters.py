@@ -2,16 +2,16 @@ import uuid as uuid_lib
 from typing import Any, Dict, List, Literal, Optional, cast, overload
 
 from weaviate.collections.classes.filters import (
+    FilterValues,
     _CountRef,
-    _MultiTargetRef,
-    _SingleTargetRef,
-    _Filters,
     _FilterAnd,
     _FilterOr,
+    _Filters,
+    _FilterTargets,
     _FilterValue,
     _GeoCoordinateFilter,
-    FilterValues,
-    _FilterTargets,
+    _MultiTargetRef,
+    _SingleTargetRef,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2

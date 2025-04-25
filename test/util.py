@@ -1,4 +1,4 @@
-from typing import Union, Callable, Optional
+from typing import Callable, Optional, Union
 from unittest.mock import Mock
 
 

@@ -8,7 +8,7 @@ from json import dumps
 from typing import Any, Tuple, Union
 
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
-from weaviate.util import get_vector, _sanitize_str
+from weaviate.util import _sanitize_str, get_vector
 
 VALUE_LIST_TYPES = {
     "valueStringList",

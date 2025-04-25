@@ -8,19 +8,19 @@ import os
 import re
 import uuid as uuid_lib
 from pathlib import Path
-from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
+from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union, cast
 
 import httpx
 import validators
 
 from weaviate.exceptions import (
+    ResponseCannotBeDecodedError,
     SchemaValidationError,
     UnexpectedStatusCodeError,
-    ResponseCannotBeDecodedError,
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
-from weaviate.types import BLOB_INPUT, NUMBER, UUIDS, TIME
+from weaviate.types import BLOB_INPUT, NUMBER, TIME, UUIDS
 from weaviate.warnings import _Warnings
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"

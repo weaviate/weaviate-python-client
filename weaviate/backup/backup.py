@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional, cast
+
 from pydantic import BaseModel, Field
+
 from weaviate.backup.backup_location import _BackupLocationConfig
 
 STORAGE_NAMES = {

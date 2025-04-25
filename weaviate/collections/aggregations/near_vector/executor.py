@@ -2,15 +2,15 @@ from typing import Generic, List, Literal, Optional, Union, cast, overload
 
 from weaviate.collections.aggregations.base_executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
-    PropertiesMetrics,
-    AggregateReturn,
     AggregateGroupByReturn,
+    AggregateReturn,
     GroupByAggregate,
+    PropertiesMetrics,
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
-    TargetVectorJoinType,
     NearVectorInputType,
+    TargetVectorJoinType,
 )
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect import executor

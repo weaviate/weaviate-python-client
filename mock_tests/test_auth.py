@@ -9,7 +9,7 @@ from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
 import weaviate
-from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC, CLIENT_ID
+from mock_tests.conftest import CLIENT_ID, MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
 from weaviate.exceptions import MissingScopeException
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"

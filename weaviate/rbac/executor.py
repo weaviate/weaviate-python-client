@@ -1,21 +1,21 @@
 import asyncio
 import json
 from typing import Dict, Generic, List, Optional, Sequence, Union, cast
-from typing_extensions import deprecated
 
 from httpx import Response
+from typing_extensions import deprecated
 
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType, ConnectionAsync
 from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.rbac.models import (
-    _Permission,
-    PermissionsOutputType,
     PermissionsInputType,
+    PermissionsOutputType,
     Role,
     UserAssignment,
     UserTypes,
     WeaviatePermission,
     WeaviateRole,
+    _Permission,
 )
 
 

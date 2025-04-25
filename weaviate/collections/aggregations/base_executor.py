@@ -7,27 +7,27 @@ from httpx import Response
 from typing_extensions import ParamSpec
 
 from weaviate.collections.classes.aggregate import (
-    AProperties,
-    AggregateResult,
     AggregateBoolean,
     AggregateDate,
+    AggregateGroup,
+    AggregateGroupByReturn,
     AggregateInteger,
     AggregateNumber,
     AggregateReference,
-    AggregateText,
-    AggregateGroup,
-    AggregateGroupByReturn,
+    AggregateResult,
     AggregateReturn,
+    AggregateText,
+    AProperties,
     GroupByAggregate,
+    GroupedBy,
+    TopOccurrence,
     _Metrics,
     _MetricsBoolean,
     _MetricsDate,
-    _MetricsNumber,
     _MetricsInteger,
+    _MetricsNumber,
     _MetricsReference,
     _MetricsText,
-    GroupedBy,
-    TopOccurrence,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
@@ -41,8 +41,8 @@ from weaviate.exceptions import WeaviateInvalidInputError, WeaviateQueryError
 from weaviate.gql.aggregate import AggregateBuilder
 from weaviate.proto.v1 import aggregate_pb2
 from weaviate.types import NUMBER, UUID
-from weaviate.util import parse_blob, _decode_json_response_dict
-from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.util import _decode_json_response_dict, parse_blob
+from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 P = ParamSpec("P")

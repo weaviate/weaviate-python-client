@@ -23,62 +23,65 @@ from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
-from grpc import Channel as SyncChannel, RpcError, StatusCode, Call  # type: ignore
-from grpc.aio import Channel as AsyncChannel, AioRpcError  # type: ignore
+from grpc import Call, RpcError, StatusCode
+from grpc import Channel as SyncChannel  # type: ignore
+from grpc.aio import AioRpcError
+from grpc.aio import Channel as AsyncChannel  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
 
 # from grpclib.client import Channel
 from httpx import (
     AsyncClient,
     AsyncHTTPTransport,
-    HTTPTransport,
     Client,
     ConnectError,
     HTTPError,
     HTTPStatusError,
+    HTTPTransport,
     Limits,
+    Proxy,
     ReadError,
     ReadTimeout,
     RemoteProtocolError,
     RequestError,
     Response,
-    Proxy,
     Timeout,
 )
 
 from weaviate import __version__ as client_version
-from weaviate.auth import AuthCredentials, AuthApiKey, AuthClientCredentials
-from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
+from weaviate.auth import AuthApiKey, AuthClientCredentials, AuthCredentials
+from weaviate.config import ConnectionConfig, Proxies
+from weaviate.config import Timeout as TimeoutConfig
+from weaviate.connect import executor
 from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
     JSONPayload,
     _get_proxies,
 )
-from weaviate.connect import executor
 from weaviate.connect.event_loop import _EventLoopSingleton
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
     AuthenticationFailedError,
+    InsufficientPermissionsError,
     UnexpectedStatusCodeError,
+    WeaviateBatchError,
     WeaviateClosedClientError,
     WeaviateConnectionError,
-    WeaviateGRPCUnavailableError,
-    WeaviateStartUpError,
-    WeaviateTimeoutError,
-    InsufficientPermissionsError,
-    WeaviateBatchError,
-    WeaviateInvalidInputError,
-    WeaviateRetryError,
-    WeaviateQueryError,
     WeaviateDeleteManyError,
+    WeaviateGRPCUnavailableError,
+    WeaviateInvalidInputError,
+    WeaviateQueryError,
+    WeaviateRetryError,
+    WeaviateStartUpError,
     WeaviateTenantGetError,
+    WeaviateTimeoutError,
 )
 from weaviate.proto.v1 import (
     aggregate_pb2,
-    batch_pb2,
     batch_delete_pb2,
+    batch_pb2,
     search_get_pb2,
     tenants_pb2,
     weaviate_pb2_grpc,

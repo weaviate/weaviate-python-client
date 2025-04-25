@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+
 from weaviate.collections.classes.config_methods import (
     _collection_configs_from_json,
     _collection_configs_simple_from_json,

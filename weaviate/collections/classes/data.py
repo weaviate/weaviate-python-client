@@ -1,9 +1,10 @@
+import uuid as uuid_package
 from dataclasses import dataclass
 from typing import Any, Generic, List, Optional, Union
-from typing_extensions import TypeVar, TypeAlias
-from weaviate.types import BEACON, UUID, VECTORS
 
-import uuid as uuid_package
+from typing_extensions import TypeAlias, TypeVar
+
+from weaviate.types import BEACON, UUID, VECTORS
 
 
 @dataclass

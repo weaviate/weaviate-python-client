@@ -2,29 +2,27 @@
 
 from typing import (
     Any,
+    Dict,
     Generic,
     Optional,
     Tuple,
-    Union,
-    Dict,
     Type,
+    Union,
 )
 
 from httpx import Response
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
-
 from weaviate.integrations import _Integrations
 
 from .auth import AuthCredentials
 from .config import AdditionalConfig
 from .connect import executor
-from .connect.v4 import ConnectionAsync
 from .connect.base import (
     ConnectionParams,
     ProtocolParams,
 )
-from .connect.v4 import _ExpectedStatusCodes, ConnectionType
+from .connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from .embedded import EmbeddedOptions, EmbeddedV4
 from .types import NUMBER
 from .util import _decode_json_response_dict

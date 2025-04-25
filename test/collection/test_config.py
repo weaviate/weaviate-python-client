@@ -4,18 +4,21 @@ import pytest
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (
-    _CollectionConfigCreate,
-    DataType,
-    _GenerativeProvider,
-    _RerankerProvider,
-    _VectorizerConfigCreate,
     Configure,
+    DataType,
     Property,
     ReferenceProperty,
     Vectorizers,
+    _CollectionConfigCreate,
+    _GenerativeProvider,
+    _RerankerProvider,
+    _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
-from weaviate.collections.classes.config_vectorizers import Multi2VecField, VectorDistances
+from weaviate.collections.classes.config_vectorizers import (
+    Multi2VecField,
+    VectorDistances,
+)
 
 DEFAULTS = {
     "vectorizer": "none",

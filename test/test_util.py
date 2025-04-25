@@ -1,27 +1,27 @@
 import unittest
 import uuid as uuid_lib
 from copy import deepcopy
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
 from test.util import check_error_message
 from weaviate.exceptions import SchemaValidationException
 from weaviate.util import (
+    MINIMUM_NO_WARNING_VERSION,
+    _is_sub_schema,
+    _sanitize_str,
     generate_uuid5,
+    get_domain_from_weaviate_url,
+    get_valid_uuid,
+    get_vector,
     image_decoder_b64,
     image_encoder_b64,
     is_object_url,
-    is_weaviate_object_url,
-    get_vector,
-    get_valid_uuid,
-    get_domain_from_weaviate_url,
-    _is_sub_schema,
-    parse_version_string,
-    is_weaviate_too_old,
     is_weaviate_client_too_old,
-    MINIMUM_NO_WARNING_VERSION,
-    _sanitize_str,
+    is_weaviate_object_url,
+    is_weaviate_too_old,
+    parse_version_string,
 )
 
 schema_set = {

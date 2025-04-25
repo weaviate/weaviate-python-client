@@ -1,7 +1,17 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Generic, List, Optional, Sequence, Set, TypeVar, TypedDict, Union
+from typing import (
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    TypedDict,
+    TypeVar,
+    Union,
+)
 
 from pydantic import BaseModel
 from typing_extensions import NotRequired
@@ -9,8 +19,6 @@ from typing_extensions import NotRequired
 from weaviate.cluster.types import Verbosity
 from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
-
-
 from weaviate.warnings import _Warnings
 
 

@@ -8,6 +8,7 @@ from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _EnumLikeStr
+
 from ...warnings import _Warnings
 
 # See https://docs.cohere.com/docs/cohere-embed for reference

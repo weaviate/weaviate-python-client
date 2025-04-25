@@ -9,9 +9,12 @@ from weaviate.collections.batch.base import (
     _FixedSizeBatching,
     _RateLimitedBatching,
 )
-from weaviate.collections.batch.batch_wrapper import _BatchWrapper, _ContextManagerWrapper
+from weaviate.collections.batch.batch_wrapper import (
+    _BatchWrapper,
+    _ContextManagerWrapper,
+)
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
-from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
+from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.types import Properties
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import UnexpectedStatusCodeError

@@ -15,14 +15,13 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import deprecated
 
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, deprecated
 
 if sys.version_info < (3, 9):
-    from typing_extensions import Annotated, get_type_hints, get_origin, get_args
+    from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 else:
-    from typing import Annotated, get_type_hints, get_origin, get_args
+    from typing import Annotated, get_args, get_origin, get_type_hints
 
 from weaviate.collections.classes.generative import (
     _GenerativeConfigRuntime,
@@ -32,33 +31,35 @@ from weaviate.collections.classes.generative import (
     _to_text_array,
 )
 from weaviate.collections.classes.grpc import (
-    QueryNested,
-    _QueryReference,
-    _QueryReferenceMultiTarget,
-    GroupBy,
-    MetadataQuery,
     METADATA,
     PROPERTIES,
     REFERENCES,
+    GroupBy,
+    MetadataQuery,
+    QueryNested,
     Rerank,
+    _QueryReference,
+    _QueryReferenceMultiTarget,
 )
 from weaviate.collections.classes.types import (
-    Properties,
-    References,
     IReferences,
-    TReferences,
     M,
     P,
+    Properties,
     R,
+    References,
     TProperties,
+    TReferences,
     WeaviateProperties,
     _WeaviateInput,
 )
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
-from weaviate.util import _to_beacons, _ServerVersion
+from weaviate.exceptions import (
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
+)
+from weaviate.proto.v1 import generative_pb2, search_get_pb2
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
-
-from weaviate.proto.v1 import search_get_pb2, generative_pb2
+from weaviate.util import _ServerVersion, _to_beacons
 
 
 @dataclass

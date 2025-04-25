@@ -2,18 +2,18 @@ from weaviate.collections.classes.aggregate import Metrics
 from weaviate.collections.classes.filters import Filter
 from weaviate.collections.classes.generative import GenerativeConfig
 from weaviate.collections.classes.grpc import (
-    HybridFusion,
     GroupBy,
+    HybridFusion,
     HybridVector,
     MetadataQuery,
     Move,
-    TargetVectors,
     NearMediaType,
+    NearVector,
     QueryNested,
     QueryReference,
-    NearVector,
     Rerank,
     Sort,
+    TargetVectors,
 )
 from weaviate.collections.classes.types import GeoCoordinate
 

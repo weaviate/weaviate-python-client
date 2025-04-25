@@ -8,30 +8,35 @@ from weaviate.collections.classes.grpc import (
     PROPERTIES,
     REFERENCES,
     GroupBy,
+    NearVectorInputType,
     Rerank,
     TargetVectorJoinType,
-    NearVectorInputType,
 )
 from weaviate.collections.classes.internal import (
-    _Generative,
-    GenerativeSearchReturnType,
-    GenerativeReturn,
-    GenerativeGroupByReturn,
     CrossReferences,
-    _GroupBy,
+    GenerativeGroupByReturn,
+    GenerativeReturn,
+    GenerativeSearchReturnType,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
+    _Generative,
     _GenerativeConfigRuntime,
-    _SinglePrompt,
+    _GroupBy,
     _GroupedTask,
+    _QueryOptions,
+    _SinglePrompt,
 )
-from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
+from weaviate.collections.classes.types import (
+    Properties,
+    References,
+    TProperties,
+    TReferences,
+)
 from weaviate.collections.queries.base_executor import _BaseExecutor
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.proto.v1.search_get_pb2 import SearchReply
-from weaviate.types import NUMBER, INCLUDE_VECTOR
+from weaviate.types import INCLUDE_VECTOR, NUMBER
 
 
 class _NearVectorGenerateExecutor(

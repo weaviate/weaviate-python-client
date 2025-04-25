@@ -1,12 +1,12 @@
 import datetime
 import os
 import time
-from typing import Any, Dict, Mapping, Sequence, Tuple, TypeVar, Union, cast, Optional
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, TypeVar, Union, cast
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
-from grpc import ssl_channel_credentials
 from grpc import Channel as SyncChannel
+from grpc import ssl_channel_credentials
 from grpc.aio import Channel as AsyncChannel  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 

@@ -22,8 +22,8 @@ from weaviate.collections.classes.config_base import (
     _ConfigBase,
     _ConfigCreateModel,
     _ConfigUpdateModel,
-    _QuantizerConfigUpdate,
     _EnumLikeStr,
+    _QuantizerConfigUpdate,
 )
 from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorConfigCreate,
@@ -32,11 +32,8 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
-    _MultiVectorConfigCreate,
-    VectorIndexType as VectorIndexTypeAlias,
     VectorFilterStrategy,
-)
-from weaviate.collections.classes.config_vector_index import (
+    _MultiVectorConfigCreate,
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
     _VectorIndexConfigDynamicCreate,
@@ -48,10 +45,26 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
 )
-from weaviate.collections.classes.config_vectorizers import CohereModel
-from weaviate.collections.classes.config_vectorizers import VectorDistances as VectorDistancesAlias
-from weaviate.collections.classes.config_vectorizers import Vectorizers as VectorizersAlias
-from weaviate.collections.classes.config_vectorizers import _Vectorizer, _VectorizerConfigCreate
+from weaviate.collections.classes.config_vector_index import (
+    VectorIndexType as VectorIndexTypeAlias,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    CohereModel,
+    _Vectorizer,
+    _VectorizerConfigCreate,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    VectorDistances as VectorDistancesAlias,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    Vectorizers as VectorizersAlias,
+)
+from weaviate.collections.classes.config_vectors import (
+    _VectorConfigCreate,
+    _VectorConfigUpdate,
+    _Vectors,
+    _VectorsUpdate,
+)
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
@@ -1203,11 +1216,32 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
     vectorizerConfig: Optional[Union[_VectorIndexConfigUpdate, List[_NamedVectorConfigUpdate]]] = (
         Field(default=None, alias="vectorizer_config")
     )
+    vectorConfig: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]] = Field(
+        default=None, alias="vector_config"
+    )
     multiTenancyConfig: Optional[_MultiTenancyConfigUpdate] = Field(
         default=None, alias="multi_tenancy_config"
     )
     generativeConfig: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
     rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")
+
+    @field_validator("vectorConfig", mode="before")
+    def mutual_exclusivity(
+        cls,
+        v: Optional[Union[_VectorConfigUpdate, List[_VectorConfigUpdate]]],
+        info: ValidationInfo,
+    ):
+        if v is None:
+            return v
+        if info.data["vectorizerConfig"] is not None:
+            raise ValueError(
+                "Cannot specify vectorizerConfig when also specifying vectorConfig. Please use one or the other."
+            )
+        if info.data["vectorIndexConfig"] is not None:
+            raise ValueError(
+                "Cannot specify vectorIndexConfig when also specifying vectorConfig. Please use one or the other."
+            )
+        return v
 
     def __check_quantizers(
         self,
@@ -1318,6 +1352,29 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                     schema["vectorConfig"][vc.name][
                         "vectorIndexType"
                     ] = vc.vectorIndexConfig.vector_index_type()
+        if self.vectorConfig is not None:
+            vcs = (
+                [self.vectorConfig]
+                if isinstance(self.vectorConfig, _VectorConfigUpdate)
+                else self.vectorConfig
+            )
+            for vc in vcs:
+                if vc.name not in schema["vectorConfig"]:
+                    raise WeaviateInvalidInputError(
+                        f"Vector config with name {vc.name} does not exist in the existing vector config"
+                    )
+                self.__check_quantizers(
+                    vc.vectorIndexConfig.quantizer,
+                    schema["vectorConfig"][vc.name]["vectorIndexConfig"],
+                )
+                schema["vectorConfig"][vc.name]["vectorIndexConfig"] = (
+                    vc.vectorIndexConfig.merge_with_existing(
+                        schema["vectorConfig"][vc.name]["vectorIndexConfig"]
+                    )
+                )
+                schema["vectorConfig"][vc.name][
+                    "vectorIndexType"
+                ] = vc.vectorIndexConfig.vector_index_type()
         return schema
 
     @staticmethod
@@ -1917,17 +1974,22 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     vectorizerConfig: Optional[Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]] = (
         Field(default=_Vectorizer.none(), alias="vectorizer_config")
     )
+    vectorConfig: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = Field(
+        default=_Vectors.none(), alias="vector_config"
+    )
     generativeSearch: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
     rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")
 
     def model_post_init(self, __context: Any) -> None:
         self.name = _capitalize_first_letter(self.name)
 
-    @field_validator("vectorizerConfig", mode="after")
+    @field_validator("vectorizerConfig", "vectorConfig", mode="after")
     @classmethod
     def validate_vector_names(
-        cls, v: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]], info: ValidationInfo
-    ) -> Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]:
+        cls,
+        v: Union[_VectorizerConfigCreate, _NamedVectorConfigCreate, List[_NamedVectorConfigCreate]],
+        info: ValidationInfo,
+    ) -> Union[_VectorizerConfigCreate, _NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]:
         if isinstance(v, list):
             names = [vc.name for vc in v]
             if len(names) != len(set(names)):
@@ -1964,6 +2026,8 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             elif isinstance(val, _VectorIndexConfigCreate):
                 ret_dict["vectorIndexType"] = val.vector_index_type().value
                 ret_dict[cls_field] = val._to_dict()
+            elif isinstance(val, _VectorConfigCreate):
+                ret_dict["vectorConfig"] = {"default": val._to_dict()}
             elif (
                 isinstance(val, list)
                 and len(val) > 0
@@ -1971,7 +2035,19 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             ):
                 val = cast(List[_NamedVectorConfigCreate], val)
                 ret_dict["vectorConfig"] = {item.name: item._to_dict() for item in val}
-
+            elif (
+                isinstance(val, list)
+                and len(val) > 0
+                and all(isinstance(item, _VectorConfigCreate) for item in val)
+            ):
+                val = cast(List[_VectorConfigCreate], val)
+                ret_dict["vectorConfig"] = {}
+                for item in val:
+                    if item.name is None:
+                        raise WeaviateInvalidInputError(
+                            "Vector config name must be set when specifying multiple vectors"
+                        )
+                    ret_dict["vectorConfig"][item.name] = item._to_dict()
             else:
                 assert isinstance(val, _ConfigCreateModel)
                 ret_dict[cls_field] = val._to_dict()
@@ -2199,6 +2275,7 @@ class Configure:
     Vectorizer = _Vectorizer
     VectorIndex = _VectorIndex
     NamedVectors = _NamedVectors
+    Vectors = _Vectors
 
     @staticmethod
     def inverted_index(
@@ -2455,6 +2532,7 @@ class Reconfigure:
     """
 
     NamedVectors = _NamedVectorsUpdate
+    Vectors = _VectorsUpdate
     VectorIndex = _VectorIndexUpdate
     Generative = _Generative  # config is the same for create and update
     Reranker = _Reranker  # config is the same for create and update

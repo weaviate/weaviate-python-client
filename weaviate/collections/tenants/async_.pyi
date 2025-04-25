@@ -4,21 +4,21 @@ from typing import Any, Dict, Generic, List, Optional, Sequence, Union
 from httpx import Response
 from weaviate.collections.classes.tenants import (
     Tenant,
-    TenantCreate,
-    TenantUpdate,
     TenantActivityStatus,
+    TenantCreate,
     TenantCreateActivityStatus,
-    TenantUpdateActivityStatus,
     TenantOutput,
+    TenantUpdate,
+    TenantUpdateActivityStatus,
 )
 from weaviate.collections.grpc.tenants import _TenantsGRPC
 from weaviate.collections.tenants.types import (
     TenantCreateInputType,
-    TenantUpdateInputType,
     TenantOutputType,
+    TenantUpdateInputType,
 )
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import tenants_pb2
 from weaviate.validator import _validate_input, _ValidateArgument

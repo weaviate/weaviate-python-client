@@ -1,24 +1,24 @@
-from typing import Any, Generic, List, Literal, Iterable, Optional, Type, Union, cast, overload
+from typing import Any, Generic, Iterable, List, Literal, Optional, Type, Union, cast, overload
 from weaviate.collections.classes.filters import Filter
-from weaviate.collections.classes.grpc import METADATA, Sorting, PROPERTIES, REFERENCES
+from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Sorting
 from weaviate.collections.classes.internal import (
-    GenerativeReturnType,
-    GenerativeReturn,
     CrossReferences,
+    GenerativeReturn,
+    GenerativeReturnType,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
     _Generative,
     _GenerativeConfigRuntime,
-    _SinglePrompt,
     _GroupedTask,
+    _QueryOptions,
+    _SinglePrompt,
 )
-from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
+from weaviate.collections.classes.types import Properties, References, TProperties, TReferences
 from weaviate.collections.queries.base_executor import _BaseExecutor
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType
 from weaviate.proto.v1.search_get_pb2 import SearchReply
-from weaviate.types import UUID, INCLUDE_VECTOR
+from weaviate.types import INCLUDE_VECTOR, UUID
 from weaviate.connect.v4 import ConnectionSync
 from .executor import _FetchObjectsByIDsGenerateExecutor
 

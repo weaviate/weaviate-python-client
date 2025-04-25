@@ -3,6 +3,7 @@ import os
 import pytest
 
 import weaviate.classes as wvc
+
 from .conftest import CollectionFactory
 
 

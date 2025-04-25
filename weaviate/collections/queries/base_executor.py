@@ -1,44 +1,55 @@
 import datetime
 import uuid as uuid_lib
-from typing import Any, Dict, Generic, List, Mapping, Optional, Sequence, Type, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    cast,
+)
 
 from typing_extensions import is_typeddict
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    _QueryReference,
-    MetadataQuery,
-    _MetadataQuery,
-    QueryNested,
     METADATA,
     PROPERTIES,
     REFERENCES,
+    MetadataQuery,
+    QueryNested,
+    _MetadataQuery,
+    _QueryReference,
 )
 from weaviate.collections.classes.internal import (
-    GroupByObject,
-    MetadataReturn,
-    GroupByMetadataReturn,
-    GenerativeObject,
-    Object,
-    _extract_properties_from_data_model,
-    _extract_references_from_data_model,
-    GenerativeReturn,
+    CrossReferences,
+    GenerativeGroup,
     GenerativeGroupByReturn,
-    GenerativeSingle,
     GenerativeGrouped,
     GenerativeMetadata,
-    GroupByReturn,
+    GenerativeObject,
+    GenerativeReturn,
+    GenerativeSingle,
     Group,
-    GenerativeGroup,
+    GroupByMetadataReturn,
+    GroupByObject,
+    GroupByReturn,
+    MetadataReturn,
+    Object,
     QueryReturn,
-    _QueryOptions,
     ReturnProperties,
     ReturnReferences,
-    CrossReferences,
     WeaviateProperties,
     _CrossReference,
+    _extract_properties_from_data_model,
+    _extract_references_from_data_model,
+    _QueryOptions,
 )
-from weaviate.collections.classes.types import GeoCoordinate, _PhoneNumber, TReferences
+from weaviate.collections.classes.types import GeoCoordinate, TReferences, _PhoneNumber
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect.v4 import ConnectionType

@@ -1,7 +1,7 @@
 """Authentication class definitions."""
 
 from dataclasses import dataclass
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
 from weaviate.warnings import _Warnings
 

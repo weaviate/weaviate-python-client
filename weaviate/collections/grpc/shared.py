@@ -1,42 +1,48 @@
 import struct
 import uuid as uuid_lib
+from dataclasses import dataclass
 from typing import (
     Any,
     Dict,
     List,
     Literal,
     Optional,
+    Tuple,
     Union,
     cast,
-    Tuple,
     get_args,
 )
-from dataclasses import dataclass
+
 from typing_extensions import TypeGuard
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    _ListOfVectorsQuery,
-    _MultiTargetVectorJoin,
-    _HybridNearText,
-    _HybridNearVector,
     HybridFusion,
     HybridVectorType,
     Move,
-    TargetVectorJoinType,
     NearVectorInputType,
     OneDimensionalVectorType,
-    TwoDimensionalVectorType,
     PrimitiveVectorType,
+    TargetVectorJoinType,
+    TwoDimensionalVectorType,
+    _HybridNearText,
+    _HybridNearVector,
+    _ListOfVectorsQuery,
+    _MultiTargetVectorJoin,
 )
 from weaviate.exceptions import (
-    WeaviateUnsupportedFeatureError,
     WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
 )
-from weaviate.proto.v1 import base_search_pb2, base_pb2
+from weaviate.proto.v1 import base_pb2, base_search_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _get_vector_v4, _ServerVersion
-from weaviate.validator import _is_valid, _ValidateArgument, _validate_input, _ExtraTypes
+from weaviate.validator import (
+    _ExtraTypes,
+    _is_valid,
+    _validate_input,
+    _ValidateArgument,
+)
 
 UINT32_LEN = 4
 UINT64_LEN = 8

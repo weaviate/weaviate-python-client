@@ -14,7 +14,7 @@ from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
     Properties,
 )
-from weaviate.collections.collection import CollectionAsync, Collection
+from weaviate.collections.collection import Collection, CollectionAsync
 from weaviate.collections.collections.executor import _CollectionsExecutor
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType

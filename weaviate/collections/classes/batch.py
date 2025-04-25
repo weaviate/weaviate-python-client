@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.types import WeaviateField
 from weaviate.types import BEACON, UUID, VECTORS
-from weaviate.util import _capitalize_first_letter, get_valid_uuid, _get_vector_v4
+from weaviate.util import _capitalize_first_letter, _get_vector_v4, get_valid_uuid
 from weaviate.warnings import _Warnings
 
 MAX_STORED_RESULTS = 100000

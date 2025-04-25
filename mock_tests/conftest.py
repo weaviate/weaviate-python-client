@@ -6,23 +6,22 @@ from typing import Generator, Mapping
 import grpc
 import pytest
 from grpc import ServicerContext
-from grpc_health.v1.health_pb2 import HealthCheckResponse, HealthCheckRequest
+from grpc_health.v1.health_pb2 import HealthCheckRequest, HealthCheckResponse
 from grpc_health.v1.health_pb2_grpc import HealthServicer, add_HealthServicer_to_server
-from pytest_httpserver import HTTPServer, HeaderValueMatcher
+from pytest_httpserver import HeaderValueMatcher, HTTPServer
 from werkzeug.wrappers import Request, Response
 
 import weaviate
+from mock_tests.mock_data import mock_class
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.proto.v1 import (
-    batch_pb2,
     batch_delete_pb2,
+    batch_pb2,
     properties_pb2,
-    tenants_pb2,
     search_get_pb2,
+    tenants_pb2,
     weaviate_pb2_grpc,
 )
-
-from mock_tests.mock_data import mock_class
 
 MOCK_IP = "127.0.0.1"
 MOCK_PORT = 23536

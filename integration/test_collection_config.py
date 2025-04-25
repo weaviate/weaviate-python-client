@@ -5,33 +5,36 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
-from integration.conftest import OpenAICollection, CollectionFactory
-from integration.conftest import _sanitize_collection_name
+from integration.conftest import (
+    CollectionFactory,
+    OpenAICollection,
+    _sanitize_collection_name,
+)
 from weaviate.collections.classes.config import (
+    Configure,
+    DataType,
+    GenerativeSearches,
+    PQEncoderDistribution,
+    PQEncoderType,
+    Property,
+    Reconfigure,
+    ReferenceProperty,
+    Rerankers,
+    StopwordsPreset,
+    Tokenization,
+    VectorDistances,
+    VectorIndexType,
+    Vectorizers,
     _BQConfig,
-    _SQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
+    _RerankerProvider,
+    _SQConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
     _VectorIndexConfigHNSWUpdate,
-    Configure,
-    Reconfigure,
-    Property,
-    ReferenceProperty,
-    DataType,
-    PQEncoderType,
-    PQEncoderDistribution,
-    StopwordsPreset,
-    VectorDistances,
-    VectorIndexType,
-    Vectorizers,
-    GenerativeSearches,
-    Rerankers,
-    _RerankerProvider,
-    Tokenization,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
@@ -1249,6 +1252,30 @@ def test_named_vectors_export_and_import(
 
 
 @pytest.mark.parametrize("source_properties", [None, ["text"]])
+def test_vectors_export_and_import(
+    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vector_config=Configure.Vectors.text2vec_contextionary(
+            vectorize_collection_name=False,
+            source_properties=source_properties,
+        ),
+    )
+    config = collection.config.get()
+
+    name = f"TestCollectionConfigExportAndRecreate_{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_config(config)
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+@pytest.mark.parametrize("source_properties", [None, ["text"]])
 def test_named_vectors_export_and_import_dict(
     collection_factory: CollectionFactory, source_properties: Optional[List[str]]
 ) -> None:
@@ -1261,6 +1288,30 @@ def test_named_vectors_export_and_import_dict(
                 source_properties=source_properties,
             ),
         ],
+    )
+    config = collection.config.get()
+
+    name = f"TestCollectionConfigExportAndRecreateDict_{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+@pytest.mark.parametrize("source_properties", [None, ["text"]])
+def test_vectors_export_and_import_dict(
+    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vector_config=Configure.Vectors.text2vec_contextionary(
+            vectorize_collection_name=False,
+            source_properties=source_properties,
+        ),
     )
     config = collection.config.get()
 

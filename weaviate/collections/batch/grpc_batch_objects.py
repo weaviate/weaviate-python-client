@@ -7,23 +7,23 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 from google.protobuf.struct_pb2 import Struct
 
 from weaviate.collections.classes.batch import (
-    ErrorObject,
-    _BatchObject,
     BatchObject,
     BatchObjectReturn,
+    ErrorObject,
+    _BatchObject,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
+from weaviate.collections.classes.internal import ReferenceInputs, ReferenceToMulti
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, _is_1d_vector
+from weaviate.collections.grpc.shared import _BaseGRPC, _is_1d_vector, _Pack
 from weaviate.connect import executor
 from weaviate.connect.v4 import Connection
 from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
-    WeaviateInvalidInputError,
     WeaviateInsertManyAllFailedError,
+    WeaviateInvalidInputError,
 )
-from weaviate.proto.v1 import batch_pb2, base_pb2
+from weaviate.proto.v1 import base_pb2, batch_pb2
 from weaviate.types import VECTORS
 from weaviate.util import _datetime_to_string, _ServerVersion
 
