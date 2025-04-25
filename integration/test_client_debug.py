@@ -1,11 +1,11 @@
 import pytest
+
 from integration.conftest import (
     AsyncClientFactory,
     AsyncCollectionFactory,
     ClientFactory,
     CollectionFactory,
 )
-
 from weaviate.classes.config import DataType, Property
 from weaviate.classes.debug import DebugRESTObject
 

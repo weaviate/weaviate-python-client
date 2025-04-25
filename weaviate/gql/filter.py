@@ -8,7 +8,7 @@ from json import dumps
 from typing import Any, Tuple, Union
 
 from weaviate.error_msgs import FILTER_BEACON_V14_CLS_NS_W
-from weaviate.util import get_vector, _sanitize_str
+from weaviate.util import _sanitize_str, get_vector
 
 VALUE_LIST_TYPES = {
     "valueStringList",
@@ -144,29 +144,29 @@ class NearText(Filter):
             _check_type(var_name="autocorrect", value=self._content["autocorrect"], dtype=bool)
 
     def __str__(self) -> str:
-        near_text = f'nearText: {{concepts: {dumps(self._content["concepts"])}'
+        near_text = f"nearText: {{concepts: {dumps(self._content['concepts'])}"
         if "certainty" in self._content:
-            near_text += f' certainty: {self._content["certainty"]}'
+            near_text += f" certainty: {self._content['certainty']}"
         if "distance" in self._content:
-            near_text += f' distance: {self._content["distance"]}'
+            near_text += f" distance: {self._content['distance']}"
         if "moveTo" in self._content:
             move_to = self._content["moveTo"]
-            near_text += f' moveTo: {{force: {move_to["force"]}'
+            near_text += f" moveTo: {{force: {move_to['force']}"
             if "concepts" in move_to:
-                near_text += f' concepts: {dumps(move_to["concepts"])}'
+                near_text += f" concepts: {dumps(move_to['concepts'])}"
             if "objects" in move_to:
                 near_text += _move_clause_objects_to_str(move_to["objects"])
             near_text += "}"
         if "moveAwayFrom" in self._content:
             move_away_from = self._content["moveAwayFrom"]
-            near_text += f' moveAwayFrom: {{force: {move_away_from["force"]}'
+            near_text += f" moveAwayFrom: {{force: {move_away_from['force']}"
             if "concepts" in move_away_from:
-                near_text += f' concepts: {dumps(move_away_from["concepts"])}'
+                near_text += f" concepts: {dumps(move_away_from['concepts'])}"
             if "objects" in move_away_from:
                 near_text += _move_clause_objects_to_str(move_away_from["objects"])
             near_text += "}"
         if "autocorrect" in self._content:
-            near_text += f' autocorrect: {_bool_to_str(self._content["autocorrect"])}'
+            near_text += f" autocorrect: {_bool_to_str(self._content['autocorrect'])}"
         if "targetVector" in self._content:
             near_text += f' targetVectors: "{self._content["targetVector"]}"'
         return near_text + "} "
@@ -207,11 +207,11 @@ class NearVector(Filter):
         self._content["vector"] = get_vector(self._content["vector"])
 
     def __str__(self) -> str:
-        near_vector = f'nearVector: {{vector: {dumps(self._content["vector"])}'
+        near_vector = f"nearVector: {{vector: {dumps(self._content['vector'])}"
         if "certainty" in self._content:
-            near_vector += f' certainty: {self._content["certainty"]}'
+            near_vector += f" certainty: {self._content['certainty']}"
         if "distance" in self._content:
-            near_vector += f' distance: {self._content["distance"]}'
+            near_vector += f" distance: {self._content['distance']}"
         if "targetVector" in self._content:
             near_vector += f' targetVectors: "{self._content["targetVector"]}"'
         return near_vector + "} "
@@ -263,9 +263,9 @@ class NearObject(Filter):
     def __str__(self) -> str:
         near_object = f'nearObject: {{{self.obj_id}: "{self._content[self.obj_id]}"'
         if "certainty" in self._content:
-            near_object += f' certainty: {self._content["certainty"]}'
+            near_object += f" certainty: {self._content['certainty']}"
         if "distance" in self._content:
-            near_object += f' distance: {self._content["distance"]}'
+            near_object += f" distance: {self._content['distance']}"
         if "targetVector" in self._content:
             near_object += f' targetVectors: "{self._content["targetVector"]}"'
         return near_object + "} "
@@ -308,22 +308,26 @@ class Ask(Filter):
             _check_type(var_name="rerank", value=self._content["rerank"], dtype=bool)
 
         if "properties" in self._content:
-            _check_type(var_name="properties", value=self._content["properties"], dtype=(list, str))
+            _check_type(
+                var_name="properties",
+                value=self._content["properties"],
+                dtype=(list, str),
+            )
             if isinstance(self._content["properties"], str):
                 self._content["properties"] = [self._content["properties"]]
 
     def __str__(self) -> str:
-        ask = f'ask: {{question: {dumps(self._content["question"])}'
+        ask = f"ask: {{question: {dumps(self._content['question'])}"
         if "certainty" in self._content:
-            ask += f' certainty: {self._content["certainty"]}'
+            ask += f" certainty: {self._content['certainty']}"
         if "distance" in self._content:
-            ask += f' distance: {self._content["distance"]}'
+            ask += f" distance: {self._content['distance']}"
         if "properties" in self._content:
-            ask += f' properties: {dumps(self._content["properties"])}'
+            ask += f" properties: {dumps(self._content['properties'])}"
         if "autocorrect" in self._content:
-            ask += f' autocorrect: {_bool_to_str(self._content["autocorrect"])}'
+            ask += f" autocorrect: {_bool_to_str(self._content['autocorrect'])}"
         if "rerank" in self._content:
-            ask += f' rerank: {_bool_to_str(self._content["rerank"])}'
+            ask += f" rerank: {_bool_to_str(self._content['rerank'])}"
         return ask + "} "
 
 
@@ -351,7 +355,9 @@ class NearMedia(Filter):
             raise ValueError(f'"content" is missing the mandatory key "{self._media_type.value}"!')
 
         _check_type(
-            var_name=self._media_type.value, value=self._content[self._media_type.value], dtype=str
+            var_name=self._media_type.value,
+            value=self._content[self._media_type.value],
+            dtype=str,
         )
         if "certainty" in self._content:
             if "distance" in self._content:
@@ -371,9 +377,9 @@ class NearMedia(Filter):
             f'near{media}: {{{self._media_type.value}: "{self._content[self._media_type.value]}"'
         )
         if "certainty" in self._content:
-            near_media += f' certainty: {self._content["certainty"]}'
+            near_media += f" certainty: {self._content['certainty']}"
         if "distance" in self._content:
-            near_media += f' distance: {self._content["distance"]}'
+            near_media += f" distance: {self._content['distance']}"
         if "targetVector" in self._content:
             near_media += f' targetVectors: "{self._content["targetVector"]}"'
         return near_media + "} "
@@ -594,7 +600,7 @@ class Where(Filter):
             self._parse_operator(self._content)
         else:
             raise ValueError(
-                "Filter is missing required fields `path` or `operands`." f" Given: {self._content}"
+                f"Filter is missing required fields `path` or `operands`. Given: {self._content}"
             )
 
     def _parse_filter(self, content: dict) -> None:
@@ -607,7 +613,7 @@ class Where(Filter):
             ValueError: If 'content' is missing required fields.
         """
         if "operator" not in content:
-            raise ValueError("Filter is missing required field `operator`. " f"Given: {content}")
+            raise ValueError(f"Filter is missing required field `operator`. Given: {content}")
         if content["operator"] not in WHERE_OPERATORS:
             raise ValueError(
                 f"Operator {content['operator']} is not allowed. "
@@ -634,7 +640,7 @@ class Where(Filter):
             ValueError: If 'content' is missing required fields.
         """
         if "operator" not in content:
-            raise ValueError("Filter is missing required field `operator`." f" Given: {content}")
+            raise ValueError(f"Filter is missing required field `operator`. Given: {content}")
         if content["operator"] not in WHERE_OPERATORS:
             raise ValueError(
                 f"Operator {content['operator']} is not allowed. "
@@ -685,7 +691,11 @@ class Where(Filter):
                     gql += f"{_render_list(val)}}}"
                 else:
                     gql += f"{_sanitize_str(self.value)}}}"
-            elif self.value_type in ["valueBoolean", "valueBooleanArray", "valueBooleanList"]:
+            elif self.value_type in [
+                "valueBoolean",
+                "valueBooleanArray",
+                "valueBooleanList",
+            ]:
                 if self.value_type in ["valueBooleanArray", "valueBooleanList"]:
                     _check_is_list(self.value, self.value_type)
                 if isinstance(self.value, list):
@@ -884,7 +894,7 @@ def _check_objects(content: dict) -> None:
     for obj in content["objects"]:
         if len(obj) != 1 or ("id" not in obj and "beacon" not in obj):
             raise ValueError(
-                "Each object from the `move` clause should have ONLY `id` OR " "`beacon`!"
+                "Each object from the `move` clause should have ONLY `id` OR `beacon`!"
             )
 
 

@@ -8,19 +8,19 @@ import os
 import re
 import uuid as uuid_lib
 from pathlib import Path
-from typing import Union, Sequence, Any, Optional, List, Dict, Generator, Tuple, cast
+from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union, cast
 
 import httpx
 import validators
 
 from weaviate.exceptions import (
+    ResponseCannotBeDecodedError,
     SchemaValidationError,
     UnexpectedStatusCodeError,
-    ResponseCannotBeDecodedError,
     WeaviateInvalidInputError,
     WeaviateUnsupportedFeatureError,
 )
-from weaviate.types import BLOB_INPUT, NUMBER, UUIDS, TIME
+from weaviate.types import BLOB_INPUT, NUMBER, TIME, UUIDS
 from weaviate.warnings import _Warnings
 
 PYPI_PACKAGE_URL = "https://pypi.org/pypi/weaviate-client/json"
@@ -54,8 +54,7 @@ def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str
         content = image_or_image_path.read()
     else:
         raise TypeError(
-            '"image_or_image_path" should be a image path or a binary read file'
-            " (io.BufferedReader)"
+            '"image_or_image_path" should be a image path or a binary read file (io.BufferedReader)'
         )
     return base64.b64encode(content).decode("utf-8")
 
@@ -617,7 +616,7 @@ def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str
 
 
 def _get_valid_timeout_config(
-    timeout_config: Union[Tuple[NUMBER, NUMBER], NUMBER, None]
+    timeout_config: Union[Tuple[NUMBER, NUMBER], NUMBER, None],
 ) -> Tuple[NUMBER, NUMBER]:
     """Validate and return TimeOut configuration.
 

@@ -1,21 +1,10 @@
-import asyncio
-import json
-from typing import Dict, Generic, List, Optional, Sequence, Union, cast
+from typing import Dict, List, Optional, Sequence, Union
+
 from typing_extensions import deprecated
-from httpx import Response
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType, ConnectionAsync
-from weaviate.connect import executor
-from weaviate.rbac.models import (
-    _Permission,
-    PermissionsOutputType,
-    PermissionsInputType,
-    Role,
-    UserAssignment,
-    UserTypes,
-    WeaviatePermission,
-    WeaviateRole,
-)
+
 from weaviate.connect.v4 import ConnectionAsync
+from weaviate.rbac.models import PermissionsInputType, PermissionsOutputType, Role, UserAssignment
+
 from .executor import _RolesExecutor
 
 class _RolesAsync(_RolesExecutor[ConnectionAsync]):
@@ -42,5 +31,5 @@ class _RolesAsync(_RolesExecutor[ConnectionAsync]):
         permissions: Union[
             PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
         ],
-        role: str
+        role: str,
     ) -> bool: ...

@@ -1,17 +1,15 @@
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Sequence, Union
-from typing_extensions import TypeAlias
+
 from pydantic import Field
-from weaviate.collections.classes.types import GeoCoordinate
+from typing_extensions import TypeAlias
 
-
-from weaviate.collections.classes.types import _WeaviateInput
-from weaviate.types import UUID
-from weaviate.proto.v1 import base_pb2
-from weaviate.util import get_valid_uuid
-
+from weaviate.collections.classes.types import GeoCoordinate, _WeaviateInput
 from weaviate.exceptions import WeaviateInvalidInputError
+from weaviate.proto.v1 import base_pb2
+from weaviate.types import UUID
+from weaviate.util import get_valid_uuid
 
 
 class _Operator(str, Enum):
@@ -239,7 +237,9 @@ class _FilterByProperty(_FilterBase):
         return _FilterValue(
             target=self._target_path(),
             value=_GeoCoordinateFilter(
-                latitude=coordinate.latitude, longitude=coordinate.longitude, distance=distance
+                latitude=coordinate.latitude,
+                longitude=coordinate.longitude,
+                distance=distance,
             ),
             operator=_Operator.WITHIN_GEO_RANGE,
         )
@@ -339,7 +339,9 @@ class _FilterByTime(_FilterBase):
                 example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
-            target=self._target_path(), value=date, operator=_Operator.GREATER_THAN_EQUAL
+            target=self._target_path(),
+            value=date,
+            operator=_Operator.GREATER_THAN_EQUAL,
         )
 
 
@@ -459,7 +461,9 @@ class _FilterByCount(_FilterBase):
             count: count to filter on.
         """
         return _FilterValue(
-            target=self._target_path(), value=count, operator=_Operator.GREATER_THAN_EQUAL
+            target=self._target_path(),
+            value=count,
+            operator=_Operator.GREATER_THAN_EQUAL,
         )
 
 

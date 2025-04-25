@@ -1,5 +1,5 @@
-from weaviate.connect import executor
 from weaviate.collections.aggregations.near_image.executor import _NearImageExecutor
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync
 
 

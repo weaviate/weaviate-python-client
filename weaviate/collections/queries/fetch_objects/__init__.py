@@ -1,5 +1,5 @@
-from .generate import _FetchObjectsGenerateAsync, _FetchObjectsGenerate
-from .query import _FetchObjectsQueryAsync, _FetchObjectsQuery
+from .generate import _FetchObjectsGenerate, _FetchObjectsGenerateAsync
+from .query import _FetchObjectsQuery, _FetchObjectsQueryAsync
 
 __all__ = [
     "_FetchObjectsGenerate",

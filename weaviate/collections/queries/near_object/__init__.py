@@ -1,5 +1,5 @@
-from .generate import _NearObjectGenerateAsync, _NearObjectGenerate
-from .query import _NearObjectQueryAsync, _NearObjectQuery
+from .generate import _NearObjectGenerate, _NearObjectGenerateAsync
+from .query import _NearObjectQuery, _NearObjectQueryAsync
 
 __all__ = [
     "_NearObjectGenerate",

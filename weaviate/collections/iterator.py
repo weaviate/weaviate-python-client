@@ -1,18 +1,29 @@
 from dataclasses import dataclass
-from typing import Any, AsyncIterable, AsyncIterator, Generic, Iterable, Iterator, List, Optional
+from typing import (
+    Any,
+    AsyncIterable,
+    AsyncIterator,
+    Generic,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+)
 from uuid import UUID
 
 from weaviate.collections.classes.grpc import METADATA
 from weaviate.collections.classes.internal import (
-    TReferences,
-    TProperties,
+    Object,
     ReturnProperties,
     ReturnReferences,
-    Object,
+    TProperties,
+    TReferences,
 )
-from weaviate.collections.queries.fetch_objects import _FetchObjectsQuery, _FetchObjectsQueryAsync
+from weaviate.collections.queries.fetch_objects import (
+    _FetchObjectsQuery,
+    _FetchObjectsQueryAsync,
+)
 from weaviate.types import UUID as UUIDorStr
-
 
 ITERATOR_CACHE_SIZE = 100
 

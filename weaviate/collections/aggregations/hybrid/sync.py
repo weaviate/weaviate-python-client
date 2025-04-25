@@ -1,5 +1,5 @@
-from weaviate.connect import executor
 from weaviate.collections.aggregations.hybrid.executor import _HybridExecutor
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 
 

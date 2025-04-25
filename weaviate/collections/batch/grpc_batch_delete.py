@@ -18,7 +18,9 @@ class _BatchDeleteGRPC(_BaseGRPC):
     """This class is used to delete multiple objects from Weaviate using the gRPC API."""
 
     def __init__(
-        self, weaviate_version: _ServerVersion, consistency_level: Optional[ConsistencyLevel]
+        self,
+        weaviate_version: _ServerVersion,
+        consistency_level: Optional[ConsistencyLevel],
     ):
         super().__init__(weaviate_version, consistency_level, False)
 
@@ -30,7 +32,7 @@ class _BatchDeleteGRPC(_BaseGRPC):
         filters: _Filters,
         verbose: bool,
         dry_run: bool,
-        tenant: Optional[str]
+        tenant: Optional[str],
     ) -> executor.Result[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
         def resp(
             res: batch_delete_pb2.BatchDeleteReply,
@@ -52,7 +54,10 @@ class _BatchDeleteGRPC(_BaseGRPC):
                 )
             else:
                 return DeleteManyReturn(
-                    failed=res.failed, successful=res.successful, matches=res.matches, objects=None
+                    failed=res.failed,
+                    successful=res.successful,
+                    matches=res.matches,
+                    objects=None,
                 )
 
         request = batch_delete_pb2.BatchDeleteRequest(

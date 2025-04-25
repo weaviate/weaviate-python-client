@@ -2,7 +2,7 @@ import datetime
 import uuid as uuid_package
 from io import BufferedReader
 from pathlib import Path
-from typing import Dict, Union, Mapping, List, Sequence, Tuple
+from typing import Dict, List, Mapping, Sequence, Tuple, Union
 
 DATE = datetime.datetime
 UUID = Union[str, uuid_package.UUID]

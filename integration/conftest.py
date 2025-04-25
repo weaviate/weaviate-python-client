@@ -2,13 +2,13 @@ import os
 from typing import (
     Any,
     AsyncGenerator,
-    Optional,
-    List,
-    Generator,
-    Protocol,
-    Type,
     Dict,
+    Generator,
+    List,
+    Optional,
+    Protocol,
     Tuple,
+    Type,
     Union,
 )
 
@@ -19,17 +19,17 @@ from _pytest.fixtures import SubRequest
 import weaviate
 from weaviate.collections import Collection, CollectionAsync
 from weaviate.collections.classes.config import (
-    Property,
-    _VectorizerConfigCreate,
-    _InvertedIndexConfigCreate,
-    _ReferencePropertyBase,
     Configure,
-    _GenerativeProvider,
-    _ReplicationConfigCreate,
     DataType,
+    Property,
+    _GenerativeProvider,
+    _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
-    _VectorIndexConfigCreate,
+    _ReferencePropertyBase,
+    _ReplicationConfigCreate,
     _RerankerProvider,
+    _VectorIndexConfigCreate,
+    _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
 from weaviate.collections.classes.types import Properties

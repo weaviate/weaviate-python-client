@@ -3,8 +3,8 @@
 # - benchmark: pytest profiling/test_profiling.py --benchmark-only --benchmark-disable-gc
 import concurrent.futures
 import math
-from typing import Any, List
 import uuid
+from typing import Any, List
 
 import pytest
 

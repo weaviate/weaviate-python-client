@@ -15,14 +15,13 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import deprecated
 
-from typing_extensions import TypeAlias
+from typing_extensions import TypeAlias, deprecated
 
 if sys.version_info < (3, 9):
-    from typing_extensions import Annotated, get_type_hints, get_origin, get_args
+    from typing_extensions import Annotated, get_args, get_origin, get_type_hints
 else:
-    from typing import Annotated, get_type_hints, get_origin, get_args
+    from typing import Annotated, get_args, get_origin, get_type_hints
 
 from weaviate.collections.classes.generative import (
     _GenerativeConfigRuntime,
@@ -32,33 +31,35 @@ from weaviate.collections.classes.generative import (
     _to_text_array,
 )
 from weaviate.collections.classes.grpc import (
-    QueryNested,
-    _QueryReference,
-    _QueryReferenceMultiTarget,
-    GroupBy,
-    MetadataQuery,
     METADATA,
     PROPERTIES,
     REFERENCES,
+    GroupBy,
+    MetadataQuery,
+    QueryNested,
     Rerank,
+    _QueryReference,
+    _QueryReferenceMultiTarget,
 )
 from weaviate.collections.classes.types import (
-    Properties,
-    References,
     IReferences,
-    TReferences,
     M,
     P,
+    Properties,
     R,
+    References,
     TProperties,
+    TReferences,
     WeaviateProperties,
     _WeaviateInput,
 )
-from weaviate.exceptions import WeaviateInvalidInputError, WeaviateUnsupportedFeatureError
-from weaviate.util import _to_beacons, _ServerVersion
+from weaviate.exceptions import (
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
+)
+from weaviate.proto.v1 import generative_pb2, search_get_pb2
 from weaviate.types import INCLUDE_VECTOR, UUID, UUIDS
-
-from weaviate.proto.v1 import search_get_pb2, generative_pb2
+from weaviate.util import _ServerVersion, _to_beacons
 
 
 @dataclass
@@ -566,7 +567,8 @@ def _extract_types_from_reference(
 
 
 def _extract_types_from_annotated_reference(
-    type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation], field: str
+    type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation],
+    field: str,
 ) -> Tuple[Type[Properties], Type["References"]]:
     """Extract inner type from Annotated[CrossReference[Properties, References]]."""
     assert get_origin(type_) is Annotated, f"field: {field} with type: {type_} must be annotated"
@@ -588,14 +590,14 @@ def __create_link_to_from_annotated_reference(
     value: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation],
 ) -> Union[_QueryReference, _QueryReferenceMultiTarget]:
     """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
-    assert (
-        get_origin(value) is Annotated
-    ), f"field: {link_on} with type: {value} must be Annotated[CrossReference]"
+    assert get_origin(value) is Annotated, (
+        f"field: {link_on} with type: {value} must be Annotated[CrossReference]"
+    )
     args = cast(List[CrossReference[Properties, References]], get_args(value))
     inner_type = args[0]
-    assert (
-        get_origin(inner_type) is _CrossReference
-    ), f"field: {link_on} with inner_type: {inner_type} must be CrossReference"
+    assert get_origin(inner_type) is _CrossReference, (
+        f"field: {link_on} with inner_type: {inner_type} must be CrossReference"
+    )
     inner_type_metadata = cast(
         Tuple[CrossReferenceAnnotation], getattr(value, "__metadata__", None)
     )
@@ -645,7 +647,9 @@ def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
     ]
 
 
-def _extract_references_from_data_model(type_: Type["References"]) -> Optional[REFERENCES]:
+def _extract_references_from_data_model(
+    type_: Type["References"],
+) -> Optional[REFERENCES]:
     """Extract references of References recursively from References.
 
     Checks to see if there is a _Reference[References], Annotated[_Reference[References]], or _Nested[References]

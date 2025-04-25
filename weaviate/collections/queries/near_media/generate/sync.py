@@ -1,8 +1,10 @@
 from typing import Generic
 
-from weaviate.connect import executor
 from weaviate.collections.classes.types import Properties, References
-from weaviate.collections.queries.near_media.generate.executor import _NearMediaGenerateExecutor
+from weaviate.collections.queries.near_media.generate.executor import (
+    _NearMediaGenerateExecutor,
+)
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 
 

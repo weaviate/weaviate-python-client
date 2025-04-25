@@ -1,22 +1,36 @@
-from typing import Any, Generic, Literal, Iterable, Optional, Type, Union, cast, overload
+from typing import (
+    Any,
+    Generic,
+    Iterable,
+    Literal,
+    Optional,
+    Type,
+    Union,
+    cast,
+    overload,
+)
 
 from weaviate.collections.classes.filters import Filter
-from weaviate.collections.classes.grpc import METADATA, Sorting, PROPERTIES, REFERENCES
+from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES, Sorting
 from weaviate.collections.classes.internal import (
-    QueryReturnType,
-    QueryReturn,
     CrossReferences,
+    QueryReturn,
+    QueryReturnType,
     ReturnProperties,
     ReturnReferences,
     _QueryOptions,
 )
-from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
+from weaviate.collections.classes.types import (
+    Properties,
+    References,
+    TProperties,
+    TReferences,
+)
 from weaviate.collections.queries.base_executor import _BaseExecutor
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync, ConnectionType
-
 from weaviate.proto.v1.search_get_pb2 import SearchReply
-from weaviate.types import UUID, INCLUDE_VECTOR
+from weaviate.types import INCLUDE_VECTOR, UUID
 
 
 class _FetchObjectsByIDsQueryExecutor(
@@ -34,7 +48,7 @@ class _FetchObjectsByIDsQueryExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: Literal[None] = None
+        return_references: Literal[None] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
     @overload
@@ -49,7 +63,7 @@ class _FetchObjectsByIDsQueryExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: REFERENCES
+        return_references: REFERENCES,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -64,7 +78,7 @@ class _FetchObjectsByIDsQueryExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: Type[TReferences]
+        return_references: Type[TReferences],
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 
     @overload
@@ -79,7 +93,7 @@ class _FetchObjectsByIDsQueryExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: Literal[None] = None
+        return_references: Literal[None] = None,
     ) -> executor.Result[QueryReturn[TProperties, References]]: ...
 
     @overload
@@ -94,7 +108,7 @@ class _FetchObjectsByIDsQueryExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: REFERENCES
+        return_references: REFERENCES,
     ) -> executor.Result[QueryReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -109,7 +123,7 @@ class _FetchObjectsByIDsQueryExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: Type[TReferences]
+        return_references: Type[TReferences],
     ) -> executor.Result[QueryReturn[TProperties, TReferences]]: ...
 
     @overload
@@ -124,7 +138,7 @@ class _FetchObjectsByIDsQueryExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-        return_references: Optional[ReturnReferences[TReferences]] = None
+        return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> executor.Result[QueryReturnType[Properties, References, TProperties, TReferences]]: ...
 
     def fetch_objects_by_ids(
@@ -138,7 +152,7 @@ class _FetchObjectsByIDsQueryExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-        return_references: Optional[ReturnReferences[TReferences]] = None
+        return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> executor.Result[QueryReturnType[Properties, References, TProperties, TReferences]]:
         """Perform a special case of fetch_objects based on filters on uuid.
 
@@ -165,9 +179,9 @@ class _FetchObjectsByIDsQueryExecutor(
         if not ids:
             if isinstance(self._connection, ConnectionAsync):
 
-                async def _execute() -> (
-                    QueryReturnType[Properties, References, TProperties, TReferences]
-                ):
+                async def _execute() -> QueryReturnType[
+                    Properties, References, TProperties, TReferences
+                ]:
                     return resp(SearchReply())
 
                 return _execute()

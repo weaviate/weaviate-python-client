@@ -1,7 +1,7 @@
 import datetime
 import pathlib
 import time
-from typing import Generator, List, Union, Optional
+from typing import Generator, List, Optional, Union
 
 import pytest
 
@@ -16,8 +16,8 @@ from weaviate.backup.backup import (
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
 from weaviate.exceptions import (
-    UnexpectedStatusCodeException,
     BackupFailedException,
+    UnexpectedStatusCodeException,
 )
 
 pytestmark = pytest.mark.xdist_group(name="backup")

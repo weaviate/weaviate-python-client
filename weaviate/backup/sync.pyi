@@ -1,28 +1,15 @@
-import asyncio
-import time
-from typing import Generic, Optional, Union, List, Tuple, Dict
-from httpx import Response
+from typing import List, Optional, Union
+
 from weaviate.backup.backup import (
-    BackupStorage,
+    BackupConfigCreate,
+    BackupConfigRestore,
     BackupReturn,
     BackupStatusReturn,
-    STORAGE_NAMES,
-    BackupConfigCreate,
-    BackupStatus,
-    BackupConfigRestore,
+    BackupStorage,
 )
 from weaviate.backup.backup_location import BackupLocationType
-from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync, ConnectionType
-from weaviate.exceptions import (
-    WeaviateInvalidInputError,
-    WeaviateUnsupportedFeatureError,
-    BackupFailedException,
-    EmptyResponseException,
-    BackupCanceledError,
-)
-from weaviate.util import _capitalize_first_letter, _decode_json_response_dict
 from weaviate.connect.v4 import ConnectionSync
+
 from .executor import _BackupExecutor
 
 class _Backup(_BackupExecutor[ConnectionSync]):

@@ -1,36 +1,49 @@
 import asyncio
-from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, cast, overload
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
 from httpx import Response
 from pydantic_core import ValidationError
 
 from weaviate.collections.classes.config import (
-    _CollectionConfigUpdate,
-    _InvertedIndexConfigUpdate,
-    _ReplicationConfigUpdate,
-    _VectorIndexConfigFlatUpdate,
-    PropertyType,
-    Property,
-    ReferenceProperty,
-    _ReferencePropertyMultiTarget,
-    _VectorIndexConfigHNSWUpdate,
     CollectionConfig,
     CollectionConfigSimple,
+    Property,
+    PropertyType,
+    ReferenceProperty,
     ShardStatus,
-    _ShardStatus,
     ShardTypes,
-    _NamedVectorConfigUpdate,
-    _MultiTenancyConfigUpdate,
+    _CollectionConfigUpdate,
     _GenerativeProvider,
+    _InvertedIndexConfigUpdate,
+    _MultiTenancyConfigUpdate,
+    _NamedVectorConfigUpdate,
+    _ReferencePropertyMultiTarget,
+    _ReplicationConfigUpdate,
     _RerankerProvider,
+    _ShardStatus,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
-from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
+from weaviate.collections.classes.config_vector_index import (
+    _VectorIndexConfigDynamicUpdate,
+)
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
@@ -352,7 +365,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute(
-                shard_names: Optional[Union[str, List[str]]]
+                shard_names: Optional[Union[str, List[str]]],
             ) -> Dict[str, ShardTypes]:
                 if shard_names is None:
                     shards_config = await executor.aresult(self.__get_shards())

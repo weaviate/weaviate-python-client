@@ -1,6 +1,5 @@
-from .generate import _NearImageGenerateAsync, _NearImageGenerate
-from .query import _NearImageQueryAsync, _NearImageQuery
-
+from .generate import _NearImageGenerate, _NearImageGenerateAsync
+from .query import _NearImageQuery, _NearImageQueryAsync
 
 __all__ = [
     "_NearImageGenerate",

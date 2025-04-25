@@ -1,7 +1,17 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Generic, List, Optional, Sequence, Set, TypeVar, TypedDict, Union
+from typing import (
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    TypedDict,
+    TypeVar,
+    Union,
+)
 
 from pydantic import BaseModel
 from typing_extensions import NotRequired
@@ -9,8 +19,6 @@ from typing_extensions import NotRequired
 from weaviate.cluster.types import Verbosity
 from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
-
-
 from weaviate.warnings import _Warnings
 
 
@@ -293,7 +301,6 @@ class _BackupsPermission(_Permission[BackupsAction]):
 
 
 class _ClusterPermission(_Permission[ClusterAction]):
-
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
             {
@@ -414,7 +421,8 @@ class Role(RoleBase):
                 if users is not None:
                     users_permissions.append(
                         UsersPermissionOutput(
-                            actions={UsersAction(permission["action"])}, users=users["users"]
+                            actions={UsersAction(permission["action"])},
+                            users=users["users"],
                         )
                     )
             elif permission["action"] in CollectionsAction.values():
@@ -566,7 +574,6 @@ class NodesPermissions:
         *,
         read: bool = False,
     ) -> PermissionsCreateType:
-
         if read:
             permissions: List[_Permission] = [
                 _NodesPermission(collection="*", verbosity="minimal", actions={NodesAction.READ})

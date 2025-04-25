@@ -1,32 +1,27 @@
-from typing import Any, Generic, Literal, Optional, Type, Union, cast, overload
+from typing import Generic, Literal, Optional, Type, Union, overload
+
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
     METADATA,
     PROPERTIES,
     REFERENCES,
     GroupBy,
-    Rerank,
     NearMediaType,
+    Rerank,
     TargetVectorJoinType,
 )
 from weaviate.collections.classes.internal import (
-    _GroupBy,
-    QueryReturn,
-    GroupByReturn,
     CrossReferences,
+    GroupByReturn,
+    QueryReturn,
     QuerySearchReturnType,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
 )
-from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
-from weaviate.collections.queries.base_executor import _BaseExecutor
-from weaviate.connect import executor
-from weaviate.connect.v4 import ConnectionType
-from weaviate.proto.v1.search_get_pb2 import SearchReply
-from weaviate.types import BLOB_INPUT, NUMBER, INCLUDE_VECTOR
-from weaviate.util import parse_blob
+from weaviate.collections.classes.types import Properties, References, TProperties, TReferences
 from weaviate.connect.v4 import ConnectionAsync
+from weaviate.types import BLOB_INPUT, INCLUDE_VECTOR, NUMBER
+
 from .executor import _NearMediaQueryExecutor
 
 class _NearMediaQueryAsync(
@@ -51,7 +46,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: Literal[None] = None
+        return_references: Literal[None] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
     async def near_media(
@@ -71,7 +66,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: REFERENCES
+        return_references: REFERENCES,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
     async def near_media(
@@ -91,7 +86,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: Type[TReferences]
+        return_references: Type[TReferences],
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
     async def near_media(
@@ -111,7 +106,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: Literal[None] = None
+        return_references: Literal[None] = None,
     ) -> QueryReturn[TProperties, References]: ...
     @overload
     async def near_media(
@@ -131,7 +126,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: REFERENCES
+        return_references: REFERENCES,
     ) -> QueryReturn[TProperties, CrossReferences]: ...
     @overload
     async def near_media(
@@ -151,7 +146,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: Type[TReferences]
+        return_references: Type[TReferences],
     ) -> QueryReturn[TProperties, TReferences]: ...
     @overload
     async def near_media(
@@ -171,7 +166,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: Literal[None] = None
+        return_references: Literal[None] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
     async def near_media(
@@ -191,7 +186,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: REFERENCES
+        return_references: REFERENCES,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
     async def near_media(
@@ -211,7 +206,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: Type[TReferences]
+        return_references: Type[TReferences],
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
     async def near_media(
@@ -231,7 +226,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: Literal[None] = None
+        return_references: Literal[None] = None,
     ) -> GroupByReturn[TProperties, References]: ...
     @overload
     async def near_media(
@@ -251,7 +246,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: REFERENCES
+        return_references: REFERENCES,
     ) -> GroupByReturn[TProperties, CrossReferences]: ...
     @overload
     async def near_media(
@@ -271,7 +266,7 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: Type[TReferences]
+        return_references: Type[TReferences],
     ) -> GroupByReturn[TProperties, TReferences]: ...
     @overload
     async def near_media(
@@ -291,5 +286,5 @@ class _NearMediaQueryAsync(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-        return_references: Optional[ReturnReferences[TReferences]] = None
+        return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...

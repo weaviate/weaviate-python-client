@@ -1,23 +1,37 @@
 from typing import Generic
 
-from weaviate.collections.classes.types import TProperties, References
-
-from weaviate.collections.queries.bm25 import _BM25QueryAsync, _BM25Query
+from weaviate.collections.classes.types import References, TProperties
+from weaviate.collections.queries.bm25 import _BM25Query, _BM25QueryAsync
 from weaviate.collections.queries.fetch_object_by_id import (
-    _FetchObjectByIDQueryAsync,
     _FetchObjectByIDQuery,
+    _FetchObjectByIDQueryAsync,
+)
+from weaviate.collections.queries.fetch_objects import (
+    _FetchObjectsQuery,
+    _FetchObjectsQueryAsync,
 )
 from weaviate.collections.queries.fetch_objects_by_ids import (
-    _FetchObjectsByIDsQueryAsync,
     _FetchObjectsByIDsQuery,
+    _FetchObjectsByIDsQueryAsync,
 )
-from weaviate.collections.queries.fetch_objects import _FetchObjectsQueryAsync, _FetchObjectsQuery
-from weaviate.collections.queries.hybrid import _HybridQueryAsync, _HybridQuery
-from weaviate.collections.queries.near_image import _NearImageQueryAsync, _NearImageQuery
-from weaviate.collections.queries.near_media import _NearMediaQueryAsync, _NearMediaQuery
-from weaviate.collections.queries.near_object import _NearObjectQueryAsync, _NearObjectQuery
-from weaviate.collections.queries.near_text import _NearTextQueryAsync, _NearTextQuery
-from weaviate.collections.queries.near_vector import _NearVectorQueryAsync, _NearVectorQuery
+from weaviate.collections.queries.hybrid import _HybridQuery, _HybridQueryAsync
+from weaviate.collections.queries.near_image import (
+    _NearImageQuery,
+    _NearImageQueryAsync,
+)
+from weaviate.collections.queries.near_media import (
+    _NearMediaQuery,
+    _NearMediaQueryAsync,
+)
+from weaviate.collections.queries.near_object import (
+    _NearObjectQuery,
+    _NearObjectQueryAsync,
+)
+from weaviate.collections.queries.near_text import _NearTextQuery, _NearTextQueryAsync
+from weaviate.collections.queries.near_vector import (
+    _NearVectorQuery,
+    _NearVectorQueryAsync,
+)
 
 
 class _QueryCollectionAsync(

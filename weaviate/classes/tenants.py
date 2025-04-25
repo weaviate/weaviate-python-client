@@ -1,9 +1,9 @@
 from weaviate.collections.classes.tenants import (
     Tenant,
-    TenantCreate,
-    TenantUpdate,
     TenantActivityStatus,
+    TenantCreate,
     TenantCreateActivityStatus,
+    TenantUpdate,
     TenantUpdateActivityStatus,
 )
 from weaviate.collections.tenants import TenantCreateInputType, TenantUpdateInputType

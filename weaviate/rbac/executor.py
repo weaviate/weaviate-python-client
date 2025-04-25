@@ -1,26 +1,28 @@
 import asyncio
 import json
 from typing import Dict, Generic, List, Optional, Sequence, Union, cast
-from typing_extensions import deprecated
 
 from httpx import Response
+from typing_extensions import deprecated
 
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType, ConnectionAsync
 from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.rbac.models import (
-    _Permission,
-    PermissionsOutputType,
     PermissionsInputType,
+    PermissionsOutputType,
     Role,
     UserAssignment,
     UserTypes,
     WeaviatePermission,
     WeaviateRole,
+    _Permission,
 )
 
 
 def _flatten_permissions(
-    permissions: Union[PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]]
+    permissions: Union[
+        PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
+    ],
 ) -> List[_Permission]:
     if isinstance(permissions, _Permission):
         return [permissions]
@@ -164,7 +166,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> List[UserAssignment]:
             return [
                 UserAssignment(
-                    user_id=assignment["userId"], user_type=UserTypes(assignment["userType"])
+                    user_id=assignment["userId"],
+                    user_type=UserTypes(assignment["userType"]),
                 )
                 for assignment in res.json()
             ]

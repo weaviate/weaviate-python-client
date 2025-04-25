@@ -1,44 +1,55 @@
 import datetime
 import uuid as uuid_lib
-from typing import Any, Dict, Generic, List, Mapping, Optional, Sequence, Type, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+    cast,
+)
 
 from typing_extensions import is_typeddict
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    _QueryReference,
-    MetadataQuery,
-    _MetadataQuery,
-    QueryNested,
     METADATA,
     PROPERTIES,
     REFERENCES,
+    MetadataQuery,
+    QueryNested,
+    _MetadataQuery,
+    _QueryReference,
 )
 from weaviate.collections.classes.internal import (
-    GroupByObject,
-    MetadataReturn,
-    GroupByMetadataReturn,
-    GenerativeObject,
-    Object,
-    _extract_properties_from_data_model,
-    _extract_references_from_data_model,
-    GenerativeReturn,
+    CrossReferences,
+    GenerativeGroup,
     GenerativeGroupByReturn,
-    GenerativeSingle,
     GenerativeGrouped,
     GenerativeMetadata,
-    GroupByReturn,
+    GenerativeObject,
+    GenerativeReturn,
+    GenerativeSingle,
     Group,
-    GenerativeGroup,
+    GroupByMetadataReturn,
+    GroupByObject,
+    GroupByReturn,
+    MetadataReturn,
+    Object,
     QueryReturn,
-    _QueryOptions,
     ReturnProperties,
     ReturnReferences,
-    CrossReferences,
     WeaviateProperties,
     _CrossReference,
+    _extract_properties_from_data_model,
+    _extract_references_from_data_model,
+    _QueryOptions,
 )
-from weaviate.collections.classes.types import GeoCoordinate, _PhoneNumber, TReferences
+from weaviate.collections.classes.types import GeoCoordinate, TReferences, _PhoneNumber
 from weaviate.collections.grpc.query import _QueryGRPC
 from weaviate.collections.grpc.shared import _ByteOps, _Unpack
 from weaviate.connect.v4 import ConnectionType
@@ -112,9 +123,9 @@ class _BaseExecutor(Generic[ConnectionType]):
                 else None
             ),
             score=add_props.score if add_props.score_present else None,
-            explain_score=add_props.explain_score if add_props.explain_score_present else None,
-            is_consistent=add_props.is_consistent if add_props.is_consistent_present else None,
-            rerank_score=add_props.rerank_score if add_props.rerank_score_present else None,
+            explain_score=(add_props.explain_score if add_props.explain_score_present else None),
+            is_consistent=(add_props.is_consistent if add_props.is_consistent_present else None),
+            rerank_score=(add_props.rerank_score if add_props.rerank_score_present else None),
         )
         return meta
 
@@ -327,7 +338,9 @@ class _BaseExecutor(Generic[ConnectionType]):
             ref_prop.prop_name: _CrossReference._from(
                 [
                     self.__result_to_query_object(
-                        prop, prop.metadata, _QueryOptions(True, True, True, True, False)
+                        prop,
+                        prop.metadata,
+                        _QueryOptions(True, True, True, True, False),
                     )
                     for prop in ref_prop.properties
                 ]
@@ -357,7 +370,7 @@ class _BaseExecutor(Generic[ConnectionType]):
                 self.__parse_ref_properties_result(props) if options.include_references else None
             ),
             uuid=self.__extract_id_for_object(meta),
-            vector=self.__extract_vector_for_object(meta) if options.include_vector else {},
+            vector=(self.__extract_vector_for_object(meta) if options.include_vector else {}),
         )
 
     def __result_to_generative_object(
@@ -383,7 +396,7 @@ class _BaseExecutor(Generic[ConnectionType]):
                 self.__parse_ref_properties_result(props) if options.include_references else None
             ),
             uuid=self.__extract_id_for_object(meta),
-            vector=self.__extract_vector_for_object(meta) if options.include_vector else {},
+            vector=(self.__extract_vector_for_object(meta) if options.include_vector else {}),
             generated=(
                 self.__extract_generated_from_generative(gen)
                 if self.__uses_127_api
@@ -450,7 +463,7 @@ class _BaseExecutor(Generic[ConnectionType]):
                 self.__parse_ref_properties_result(props) if options.include_references else None
             ),
             uuid=self.__extract_id_for_object(meta),
-            vector=self.__extract_vector_for_object(meta) if options.include_vector else {},
+            vector=(self.__extract_vector_for_object(meta) if options.include_vector else {}),
             belongs_to_group=group_name,
         )
 
@@ -603,7 +616,9 @@ class _BaseExecutor(Generic[ConnectionType]):
             _validate_input(
                 [
                     _ValidateArgument(
-                        [Sequence[str], MetadataQuery, None], "return_metadata", return_metadata
+                        [Sequence[str], MetadataQuery, None],
+                        "return_metadata",
+                        return_metadata,
                     ),
                     _ValidateArgument([bool, str, Sequence], "include_vector", include_vector),
                 ]

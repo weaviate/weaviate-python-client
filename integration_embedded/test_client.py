@@ -1,5 +1,6 @@
-import pytest
 from typing import Tuple, Union
+
+import pytest
 
 import weaviate
 from weaviate.classes.init import AdditionalConfig, Timeout

@@ -8,6 +8,7 @@ from typing_extensions import TypeAlias
 from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import _ConfigCreateModel, _EnumLikeStr
+
 from ...warnings import _Warnings
 
 # See https://docs.cohere.com/docs/cohere-embed for reference
@@ -523,7 +524,7 @@ class _Ref2VecCentroidConfig(_VectorizerConfigCreate):
 
 
 def _map_multi2vec_fields(
-    fields: Optional[Union[List[str], List[Multi2VecField]]]
+    fields: Optional[Union[List[str], List[Multi2VecField]]],
 ) -> Optional[List[Multi2VecField]]:
     if fields is None:
         return None
@@ -725,7 +726,9 @@ class _Vectorizer:
         )
 
     @staticmethod
-    def text2vec_contextionary(vectorize_collection_name: bool = True) -> _VectorizerConfigCreate:
+    def text2vec_contextionary(
+        vectorize_collection_name: bool = True,
+    ) -> _VectorizerConfigCreate:
         """Create a `_Text2VecContextionaryConfigCreate` object for use when vectorizing using the `text2vec-contextionary` model.
 
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)

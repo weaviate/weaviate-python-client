@@ -7,23 +7,23 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union, cast
 from google.protobuf.struct_pb2 import Struct
 
 from weaviate.collections.classes.batch import (
-    ErrorObject,
-    _BatchObject,
     BatchObject,
     BatchObjectReturn,
+    ErrorObject,
+    _BatchObject,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
-from weaviate.collections.classes.internal import ReferenceToMulti, ReferenceInputs
+from weaviate.collections.classes.internal import ReferenceInputs, ReferenceToMulti
 from weaviate.collections.classes.types import GeoCoordinate, PhoneNumber
-from weaviate.collections.grpc.shared import _BaseGRPC, _Pack, _is_1d_vector
+from weaviate.collections.grpc.shared import _BaseGRPC, _is_1d_vector, _Pack
 from weaviate.connect import executor
 from weaviate.connect.v4 import Connection
 from weaviate.exceptions import (
     WeaviateInsertInvalidPropertyError,
-    WeaviateInvalidInputError,
     WeaviateInsertManyAllFailedError,
+    WeaviateInvalidInputError,
 )
-from weaviate.proto.v1 import batch_pb2, base_pb2
+from weaviate.proto.v1 import base_pb2, batch_pb2
 from weaviate.types import VECTORS
 from weaviate.util import _datetime_to_string, _ServerVersion
 
@@ -36,7 +36,9 @@ class _BatchGRPC(_BaseGRPC):
     """
 
     def __init__(
-        self, weaviate_version: _ServerVersion, consistency_level: Optional[ConsistencyLevel]
+        self,
+        weaviate_version: _ServerVersion,
+        consistency_level: Optional[ConsistencyLevel],
     ):
         super().__init__(weaviate_version, consistency_level, False)
 
@@ -60,7 +62,7 @@ class _BatchGRPC(_BaseGRPC):
         return [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                uuid=(str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4())),
                 properties=(
                     self.__translate_properties_from_python_to_grpc(
                         obj.properties,
@@ -109,7 +111,8 @@ class _BatchGRPC(_BaseGRPC):
 
             elapsed_time = time.time() - start
             all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
-                List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
+                List[Union[uuid_package.UUID, ErrorObject]],
+                list(range(len(weaviate_objs))),
             )
             return_success: Dict[int, uuid_package.UUID] = {}
             return_errors: Dict[int, ErrorObject] = {}
@@ -117,7 +120,9 @@ class _BatchGRPC(_BaseGRPC):
                 obj = objects[idx]
                 if idx in errors:
                     error = ErrorObject(
-                        errors[idx], BatchObject._from_internal(obj), original_uuid=obj.uuid
+                        errors[idx],
+                        BatchObject._from_internal(obj),
+                        original_uuid=obj.uuid,
                     )
                     return_errors[obj.index] = error
                     all_responses[idx] = error
@@ -166,7 +171,9 @@ class _BatchGRPC(_BaseGRPC):
             if isinstance(ref, ReferenceToMulti):
                 multi_target.append(
                     batch_pb2.BatchObject.MultiTargetRefProps(
-                        uuids=ref.uuids_str, target_collection=ref.target_collection, prop_name=key
+                        uuids=ref.uuids_str,
+                        target_collection=ref.target_collection,
+                        prop_name=key,
                     )
                 )
             elif isinstance(ref, str) or isinstance(ref, uuid_package.UUID):

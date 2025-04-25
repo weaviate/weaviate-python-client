@@ -1,6 +1,6 @@
 import pytest
-import weaviate
 
+import weaviate
 from weaviate.exceptions import WeaviateInvalidInputError
 
 

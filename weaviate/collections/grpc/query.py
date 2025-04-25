@@ -18,21 +18,21 @@ from typing_extensions import TypeAlias
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
-    HybridFusion,
-    _QueryReferenceMultiTarget,
-    _MetadataQuery,
-    HybridVectorType,
-    Move,
-    QueryNested,
-    _QueryReference,
     PROPERTIES,
     PROPERTY,
     REFERENCE,
     REFERENCES,
-    _Sorting,
+    HybridFusion,
+    HybridVectorType,
+    Move,
+    NearVectorInputType,
+    QueryNested,
     Rerank,
     TargetVectorJoinType,
-    NearVectorInputType,
+    _MetadataQuery,
+    _QueryReference,
+    _QueryReferenceMultiTarget,
+    _Sorting,
 )
 from weaviate.collections.classes.internal import (
     _Generative,
@@ -43,7 +43,7 @@ from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.proto.v1 import base_search_pb2, search_get_pb2
 from weaviate.types import NUMBER, UUID
 from weaviate.util import _ServerVersion
-from weaviate.validator import _ValidateArgument, _validate_input
+from weaviate.validator import _validate_input, _ValidateArgument
 
 # Can be found in the google.protobuf.internal.well_known_types.pyi stub file but is defined explicitly here for clarity.
 _PyValue: TypeAlias = Union[
@@ -421,7 +421,9 @@ class _QueryGRPC(_BaseGRPC):
                         return_properties,
                     ),
                     _ValidateArgument(
-                        [_QueryReference, Sequence, None], "return_references", return_references
+                        [_QueryReference, Sequence, None],
+                        "return_references",
+                        return_references,
                     ),
                 ]
             )
@@ -429,7 +431,9 @@ class _QueryGRPC(_BaseGRPC):
                 for prop in return_properties:
                     _validate_input(
                         _ValidateArgument(
-                            expected=[str, QueryNested], name="return_properties", value=prop
+                            expected=[str, QueryNested],
+                            name="return_properties",
+                            value=prop,
                         )
                     )
 
@@ -437,7 +441,9 @@ class _QueryGRPC(_BaseGRPC):
                 for ref in return_references:
                     _validate_input(
                         _ValidateArgument(
-                            expected=[_QueryReference], name="return_references", value=ref
+                            expected=[_QueryReference],
+                            name="return_references",
+                            value=ref,
                         )
                     )
 

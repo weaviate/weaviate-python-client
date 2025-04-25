@@ -1,18 +1,15 @@
-from typing import Generic, List, Literal, Optional, Union, overload
-from weaviate.collections.aggregations.base_executor import _BaseExecutor
+from typing import List, Literal, Optional, Union, overload
+
 from weaviate.collections.classes.aggregate import (
-    PropertiesMetrics,
-    AggregateReturn,
     AggregateGroupByReturn,
+    AggregateReturn,
     GroupByAggregate,
+    PropertiesMetrics,
 )
 from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.filters import _FilterToGRPC
-from weaviate.connect import executor
-from weaviate.connect.v4 import ConnectionType
-from weaviate.exceptions import WeaviateUnsupportedFeatureError
-from weaviate.types import NUMBER
 from weaviate.connect.v4 import ConnectionSync
+from weaviate.types import NUMBER
+
 from .executor import _HybridExecutor
 
 class _Hybrid(_HybridExecutor[ConnectionSync]):
@@ -30,7 +27,7 @@ class _Hybrid(_HybridExecutor[ConnectionSync]):
         target_vector: Optional[str] = None,
         max_vector_distance: Optional[float] = None,
         total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateReturn: ...
     @overload
     def hybrid(
@@ -46,7 +43,7 @@ class _Hybrid(_HybridExecutor[ConnectionSync]):
         target_vector: Optional[str] = None,
         max_vector_distance: Optional[float] = None,
         total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn: ...
     @overload
     def hybrid(
@@ -62,5 +59,5 @@ class _Hybrid(_HybridExecutor[ConnectionSync]):
         target_vector: Optional[str] = None,
         max_vector_distance: Optional[float] = None,
         total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...
