@@ -738,14 +738,16 @@ def test_include_vector_on_references(
 ) -> None:
     """Test include vector on reference."""
     dummy = collection_factory()
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named vectorizers are only supported in Weaviate v1.24.0 and higher.")
+    if dummy._connection._weaviate_version.is_lower_than(1, 26, 0):
+        pytest.skip(
+            "https://github.com/weaviate/weaviate/issues/6279 was resolved in >1.26.0 only."
+        )
 
     ref_collection = collection_factory(
         name="Target",
-        vector_config=[
-            wvc.config.Configure.Vectors.none(name="bringYourOwn1"),
-            wvc.config.Configure.Vectors.none(name="bringYourOwn2"),
+        vectorizer_config=[
+            wvc.config.Configure.NamedVectors.none(name="bringYourOwn1"),
+            wvc.config.Configure.NamedVectors.none(name="bringYourOwn2"),
         ],
     )
 
