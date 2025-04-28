@@ -5,7 +5,11 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
-from integration.conftest import CollectionFactory, OpenAICollection, _sanitize_collection_name
+from integration.conftest import (
+    CollectionFactory,
+    OpenAICollection,
+    _sanitize_collection_name,
+)
 from weaviate.collections.classes.config import (
     Configure,
     DataType,
@@ -1248,6 +1252,30 @@ def test_named_vectors_export_and_import(
 
 
 @pytest.mark.parametrize("source_properties", [None, ["text"]])
+def test_vectors_export_and_import(
+    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vector_config=Configure.Vectors.text2vec_contextionary(
+            vectorize_collection_name=False,
+            source_properties=source_properties,
+        ),
+    )
+    config = collection.config.get()
+
+    name = f"TestCollectionConfigExportAndRecreate_{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_config(config)
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+@pytest.mark.parametrize("source_properties", [None, ["text"]])
 def test_named_vectors_export_and_import_dict(
     collection_factory: CollectionFactory, source_properties: Optional[List[str]]
 ) -> None:
@@ -1260,6 +1288,30 @@ def test_named_vectors_export_and_import_dict(
                 source_properties=source_properties,
             ),
         ],
+    )
+    config = collection.config.get()
+
+    name = f"TestCollectionConfigExportAndRecreateDict_{collection.name}"
+    config.name = name
+    with weaviate.connect_to_local() as client:
+        client.collections.delete(name)
+        client.collections.create_from_dict(config.to_dict())
+        new = client.collections.use(name).config.get()
+        assert config == new
+        assert config.to_dict() == new.to_dict()
+        client.collections.delete(name)
+
+
+@pytest.mark.parametrize("source_properties", [None, ["text"]])
+def test_vectors_export_and_import_dict(
+    collection_factory: CollectionFactory, source_properties: Optional[List[str]]
+) -> None:
+    collection = collection_factory(
+        properties=[Property(name="text", data_type=DataType.TEXT)],
+        vector_config=Configure.Vectors.text2vec_contextionary(
+            vectorize_collection_name=False,
+            source_properties=source_properties,
+        ),
     )
     config = collection.config.get()
 
@@ -1348,8 +1400,11 @@ def test_update_property_descriptions(collection_factory: CollectionFactory) -> 
         update()
 
         config = collection.config.get()
-        assert config.properties[0].description == "Name of the person"
-        assert config.properties[1].description == "Age of the person"
+        for prop in config.properties:
+            if prop.name == "name":
+                assert prop.description == "Name of the person"
+            elif prop.name == "age":
+                assert prop.description == "Age of the person"
     else:
         with pytest.raises(UnexpectedStatusCodeError):
             update()

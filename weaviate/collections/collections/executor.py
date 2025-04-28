@@ -27,6 +27,7 @@ from weaviate.collections.classes.config import (
     _ReplicationConfigCreate,
     _RerankerProvider,
     _ShardingConfigCreate,
+    _VectorConfigCreate,
     _VectorIndexConfigCreate,
     _VectorizerConfigCreate,
 )
@@ -159,6 +160,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         vectorizer_config: Optional[
             Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
         ] = None,
+        vector_config: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = None,
         data_model_properties: Optional[Type[Properties]] = None,
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
@@ -190,8 +192,9 @@ class _CollectionsExecutor(Generic[ConnectionType]):
             references: The references of the objects in the collection.
             replication_config: The configuration for Weaviate's replication strategy.
             sharding_config: The configuration for Weaviate's sharding strategy.
-            vector_index_config: The configuration for Weaviate's default vector index.
-            vectorizer_config: The configuration for Weaviate's default vectorizer or a list of named vectorizers.
+            vector_index_config (DEPRECATED use `vector_config`): The configuration for Weaviate's default vector index.
+            vectorizer_config (DEPRECATED use `vector_config`): The configuration for Weaviate's default vectorizer or a list of named vectorizers.
+            vector_config: The configuration(s) for the vectorizer(s) to use for the collection.
             data_model_properties: The generic class that you want to use to represent the properties of objects in this collection. See the `get` method for more information.
             data_model_references: The generic class that you want to use to represent the references of objects in this collection. See the `get` method for more information.
             skip_argument_validation: If arguments to functions such as near_vector should be validated. Disable this if you need to squeeze out some extra performance.
@@ -221,6 +224,7 @@ class _CollectionsExecutor(Generic[ConnectionType]):
                 reranker_config=reranker_config,
                 sharding_config=sharding_config,
                 vectorizer_config=vectorizer_config,
+                vector_config=vector_config,
                 vector_index_config=vector_index_config,
             )
         except ValidationError as e:
