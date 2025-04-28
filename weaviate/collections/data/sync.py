@@ -1,8 +1,9 @@
 from typing import Generic, Type
-from weaviate.connect import executor
+
 from weaviate.collections.classes.internal import Properties, TProperties
 from weaviate.collections.classes.types import _check_properties_generic
 from weaviate.collections.data.executor import _DataCollectionExecutor
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 
 

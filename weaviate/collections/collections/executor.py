@@ -15,19 +15,19 @@ from httpx import Response
 from pydantic import ValidationError
 
 from weaviate.collections.classes.config import (
-    _NamedVectorConfigCreate,
     CollectionConfig,
     CollectionConfigSimple,
+    Property,
     _CollectionConfigCreate,
     _GenerativeProvider,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
-    _VectorIndexConfigCreate,
-    Property,
-    _ShardingConfigCreate,
+    _NamedVectorConfigCreate,
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
     _RerankerProvider,
+    _ShardingConfigCreate,
+    _VectorIndexConfigCreate,
     _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.config_methods import (
@@ -41,11 +41,11 @@ from weaviate.collections.classes.types import (
     _check_properties_generic,
     _check_references_generic,
 )
-from weaviate.collections.collection import CollectionAsync, Collection
+from weaviate.collections.collection import Collection, CollectionAsync
 from weaviate.connect import executor
 from weaviate.connect.v4 import (
-    ConnectionType,
     ConnectionAsync,
+    ConnectionType,
     _ExpectedStatusCodes,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
@@ -96,7 +96,8 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
     ) -> Union[
-        Collection[Properties, References], Awaitable[CollectionAsync[Properties, References]]
+        Collection[Properties, References],
+        Awaitable[CollectionAsync[Properties, References]],
     ]:
         result = self._connection.post(
             path="/schema",
@@ -163,7 +164,8 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         skip_argument_validation: bool = False,
     ) -> executor.Result[
         Union[
-            Collection[Properties, References], Awaitable[CollectionAsync[Properties, References]]
+            Collection[Properties, References],
+            Awaitable[CollectionAsync[Properties, References]],
         ]
     ]:
         """Use this method to create a collection in Weaviate and immediately return a collection object.

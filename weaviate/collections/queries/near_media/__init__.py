@@ -1,5 +1,5 @@
-from .generate import _NearMediaGenerateAsync, _NearMediaGenerate
-from .query import _NearMediaQueryAsync, _NearMediaQuery
+from .generate import _NearMediaGenerate, _NearMediaGenerateAsync
+from .query import _NearMediaQuery, _NearMediaQueryAsync
 
 __all__ = [
     "_NearMediaGenerate",

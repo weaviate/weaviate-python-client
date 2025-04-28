@@ -1,19 +1,29 @@
 from typing import Any, Generic, List, Literal, Optional, Type, Union, cast, overload
 
 from weaviate.collections.classes.filters import _Filters
-from weaviate.collections.classes.grpc import GroupBy, Rerank, METADATA
+from weaviate.collections.classes.grpc import (
+    METADATA,
+    PROPERTIES,
+    REFERENCES,
+    GroupBy,
+    Rerank,
+)
 from weaviate.collections.classes.internal import (
-    QuerySearchReturnType,
-    QueryReturn,
     CrossReferences,
     GroupByReturn,
+    QueryReturn,
+    QuerySearchReturnType,
     ReturnProperties,
     ReturnReferences,
-    _QueryOptions,
     _GroupBy,
+    _QueryOptions,
 )
-from weaviate.collections.classes.grpc import PROPERTIES, REFERENCES
-from weaviate.collections.classes.types import Properties, TProperties, References, TReferences
+from weaviate.collections.classes.types import (
+    Properties,
+    References,
+    TProperties,
+    TReferences,
+)
 from weaviate.collections.queries.base_executor import _BaseExecutor
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType

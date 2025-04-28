@@ -5,33 +5,32 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
-from integration.conftest import OpenAICollection, CollectionFactory
-from integration.conftest import _sanitize_collection_name
+from integration.conftest import CollectionFactory, OpenAICollection, _sanitize_collection_name
 from weaviate.collections.classes.config import (
+    Configure,
+    DataType,
+    GenerativeSearches,
+    PQEncoderDistribution,
+    PQEncoderType,
+    Property,
+    Reconfigure,
+    ReferenceProperty,
+    Rerankers,
+    StopwordsPreset,
+    Tokenization,
+    VectorDistances,
+    VectorIndexType,
+    Vectorizers,
     _BQConfig,
-    _SQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
+    _RerankerProvider,
+    _SQConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
     _VectorIndexConfigHNSWUpdate,
-    Configure,
-    Reconfigure,
-    Property,
-    ReferenceProperty,
-    DataType,
-    PQEncoderType,
-    PQEncoderDistribution,
-    StopwordsPreset,
-    VectorDistances,
-    VectorIndexType,
-    Vectorizers,
-    GenerativeSearches,
-    Rerankers,
-    _RerankerProvider,
-    Tokenization,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError

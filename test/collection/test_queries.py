@@ -1,7 +1,9 @@
-import pytest
 from typing import Awaitable
-from weaviate.connect import ConnectionV4
+
+import pytest
+
 from weaviate.collections.query import _QueryCollectionAsync
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
 
 # TODO: re-enable tests once string syntax is re-enabled in the API

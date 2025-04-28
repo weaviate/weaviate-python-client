@@ -1,10 +1,10 @@
 from typing import Generic
 
-from weaviate.connect import executor
 from weaviate.collections.classes.types import Properties, References
 from weaviate.collections.queries.fetch_objects_by_ids.query.executor import (
     _FetchObjectsByIDsQueryExecutor,
 )
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 
 

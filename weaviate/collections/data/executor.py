@@ -5,10 +5,10 @@ from typing import (
     Any,
     Dict,
     Generic,
-    Optional,
     List,
     Literal,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -19,42 +19,41 @@ from typing import (
 
 from httpx import Response
 
+from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
+from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
+from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
-    DeleteManyObject,
-    _BatchObject,
-    _BatchReference,
     BatchObjectReturn,
     BatchReferenceReturn,
+    DeleteManyObject,
     DeleteManyReturn,
+    _BatchObject,
+    _BatchReference,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.internal import (
-    _Reference,
-    ReferenceToMulti,
-    SingleReferenceInput,
     ReferenceInput,
     ReferenceInputs,
+    ReferenceToMulti,
+    SingleReferenceInput,
+    _Reference,
 )
 from weaviate.collections.classes.types import (
     GeoCoordinate,
     PhoneNumber,
-    _PhoneNumber,
     Properties,
     WeaviateField,
+    _PhoneNumber,
 )
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.logger import logger
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _datetime_to_string, _get_vector_v4
 from weaviate.validator import _validate_input, _ValidateArgument
-
-from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
-from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
-from weaviate.collections.batch.rest import _BatchREST
-from weaviate.exceptions import WeaviateInvalidInputError
 
 
 class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
@@ -73,11 +72,13 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
         self._tenant = tenant
         self._validate_arguments = validate_arguments
         self.__batch_grpc = _BatchGRPC(
-            weaviate_version=connection._weaviate_version, consistency_level=consistency_level
+            weaviate_version=connection._weaviate_version,
+            consistency_level=consistency_level,
         )
         self.__batch_rest = _BatchREST(consistency_level=consistency_level)
         self.__batch_delete = _BatchDeleteGRPC(
-            weaviate_version=connection._weaviate_version, consistency_level=consistency_level
+            weaviate_version=connection._weaviate_version,
+            consistency_level=consistency_level,
         )
         self._type = type_
 
@@ -330,7 +331,10 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             )
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
-        weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
+        weaviate_obj: Dict[str, Any] = {
+            "class": self.name,
+            "properties": {**props, **refs},
+        }
         if vector is not None:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
@@ -644,7 +648,6 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
     def __apply_context_to_params_and_object(
         self, params: Dict[str, Any], obj: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-
         if self._tenant is not None:
             obj["tenant"] = self._tenant
         if self._consistency_level is not None:

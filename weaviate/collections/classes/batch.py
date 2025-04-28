@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from weaviate.collections.classes.internal import ReferenceInputs
 from weaviate.collections.classes.types import WeaviateField
 from weaviate.types import BEACON, UUID, VECTORS
-from weaviate.util import _capitalize_first_letter, get_valid_uuid, _get_vector_v4
+from weaviate.util import _capitalize_first_letter, _get_vector_v4, get_valid_uuid
 from weaviate.warnings import _Warnings
 
 MAX_STORED_RESULTS = 100000
@@ -162,7 +162,7 @@ class BatchReference(BaseModel):
             from_object_collection=from_[1],
             from_object_uuid=ref.from_uuid,
             from_property_name=ref.from_[-1],
-            to_object_uuid=ref.to_uuid if ref.to_uuid is not None else uuid_package.UUID(to[-1]),
+            to_object_uuid=(ref.to_uuid if ref.to_uuid is not None else uuid_package.UUID(to[-1])),
             to_object_collection=to_object_collection,
             tenant=ref.tenant,
         )

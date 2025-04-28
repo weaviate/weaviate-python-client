@@ -1,15 +1,16 @@
 """Helper functions for creating new WeaviateClient or WeaviateAsyncClient instances in common scenarios."""
 
-from urllib.parse import urlparse
 from typing import Dict, Optional, Tuple
-from typing_extensions import deprecated as typing_deprecated
+from urllib.parse import urlparse
+
 from deprecation import deprecated as docstring_deprecated
+from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.auth import AuthCredentials
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
-from weaviate.embedded import EmbeddedOptions, WEAVIATE_VERSION
+from weaviate.embedded import WEAVIATE_VERSION, EmbeddedOptions
 from weaviate.validator import _validate_input, _ValidateArgument
 
 

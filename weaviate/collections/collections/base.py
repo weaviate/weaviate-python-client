@@ -14,7 +14,7 @@ from weaviate.collections.classes.internal import References
 from weaviate.collections.classes.types import (
     Properties,
 )
-from weaviate.collections.collection import CollectionAsync, Collection
+from weaviate.collections.collection import Collection, CollectionAsync
 from weaviate.collections.collections.executor import _CollectionsExecutor
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
@@ -89,7 +89,8 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
     def create_from_dict(
         self, config: dict
     ) -> Union[
-        Collection[Properties, References], Awaitable[CollectionAsync[Properties, References]]
+        Collection[Properties, References],
+        Awaitable[CollectionAsync[Properties, References]],
     ]:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration dictionary object.
 
@@ -109,7 +110,8 @@ class _CollectionsBase(Generic[ConnectionType], _CollectionsExecutor[ConnectionT
     def create_from_config(
         self, config: CollectionConfig
     ) -> Union[
-        Collection[Properties, References], Awaitable[CollectionAsync[Properties, References]]
+        Collection[Properties, References],
+        Awaitable[CollectionAsync[Properties, References]],
     ]:
         """Use this method to create a collection in Weaviate and immediately return a collection object using a pre-defined Weaviate collection configuration object.
 

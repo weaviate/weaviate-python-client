@@ -4,20 +4,19 @@ import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
+import weaviate.classes as wvc
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
     Configure,
-    _CollectionConfig,
     DataType,
     GenerativeSearches,
     Property,
     ReferenceProperty,
     Vectorizers,
+    _CollectionConfig,
 )
-from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
-import weaviate.classes as wvc
-
 from weaviate.config import Timeout
+from weaviate.exceptions import WeaviateClosedClientError, WeaviateStartUpError
 
 WCS_HOST = "piblpmmdsiknacjnm1ltla.c1.europe-west3.gcp.weaviate.cloud"
 WCS_URL = f"https://{WCS_HOST}"

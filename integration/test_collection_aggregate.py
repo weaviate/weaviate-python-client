@@ -12,23 +12,21 @@ from weaviate.collections.classes.aggregate import (
     AggregateDate,
     AggregateInteger,
     AggregateNumber,
-    AggregateText,
     AggregateReturn,
-    Metrics,
+    AggregateText,
     GroupByAggregate,
+    Metrics,
 )
-from weaviate.collections.classes.config import DataType, Property, ReferenceProperty, Configure
+from weaviate.collections.classes.config import Configure, DataType, Property, ReferenceProperty
 from weaviate.collections.classes.filters import Filter, _Filters
+from weaviate.collections.classes.grpc import Move
+from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
     WeaviateQueryError,
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.util import file_encoder_b64
-
-from weaviate.collections.classes.grpc import Move
-
-from weaviate.collections.classes.tenants import Tenant
 
 UUID1 = uuid.UUID("8ad0d33c-8db1-4437-87f3-72161ca2a51a")
 UUID2 = uuid.UUID("577887c1-4c6b-5594-aa62-f0c17883d9cf")
@@ -201,7 +199,7 @@ def test_over_all_with_filters_ref(collection_factory: CollectionFactory) -> Non
     assert res.properties["text"].count == 1
     assert res.properties["text"].top_occurrences[0].value == "two"
 
-    query = lambda: collection.aggregate.over_all(
+    query = lambda: collection.aggregate.over_all(  # noqa: E731
         filters=Filter.by_ref("ref").by_property("text").equal("one"),
         return_metrics=[Metrics("text").text(count=True, top_occurrences_value=True)],
     )
@@ -363,7 +361,7 @@ def test_hybrid_aggregation_group_by(
     collection.data.insert({"text": text_1})
     collection.data.insert({"text": text_2})
 
-    querier = lambda: collection.aggregate.hybrid(
+    querier = lambda: collection.aggregate.hybrid(  # noqa: E731
         "text",
         alpha=0,
         query_properties=["text"],
@@ -400,7 +398,7 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
     collection.data.insert({"text": text_1})
     collection.data.insert({"text": text_2})
 
-    querier = lambda: collection.aggregate.hybrid(
+    querier = lambda: collection.aggregate.hybrid(  # noqa: E731
         "text",
         alpha=0,
         query_properties=["text"],
@@ -434,7 +432,7 @@ def test_hybrid_aggregation_group_by_with_named_vectors(
 def test_near_vector_aggregation(
     collection_factory: CollectionFactory, option: dict, expected_len: int
 ) -> None:
-    collection_maker = lambda: collection_factory(
+    collection_maker = lambda: collection_factory(  # noqa: E731
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=Configure.Vectorizer.text2vec_contextionary(
             vectorize_collection_name=False

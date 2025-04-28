@@ -4,11 +4,12 @@ import json
 from dataclasses import dataclass
 from typing import List, Optional
 
-from weaviate.util import _capitalize_first_letter, file_encoder_b64, _sanitize_str
+from weaviate.util import _capitalize_first_letter, _sanitize_str, file_encoder_b64
+
 from .filter import (
-    Where,
-    GraphQL,
     Filter,
+    GraphQL,
+    MediaType,
     NearAudio,
     NearDepth,
     NearImage,
@@ -18,7 +19,7 @@ from .filter import (
     NearThermal,
     NearVector,
     NearVideo,
-    MediaType,
+    Where,
 )
 
 
@@ -260,8 +261,7 @@ class AggregateBuilder(GraphQL):
         self._media_type = MediaType.IMAGE
         if self._near is not None:
             raise AttributeError(
-                "Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!"
+                "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
             )
         if self._hybrid is not None:
             raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
@@ -291,8 +291,7 @@ class AggregateBuilder(GraphQL):
         self._media_type = MediaType.AUDIO
         if self._near is not None:
             raise AttributeError(
-                "Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!"
+                "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
             )
         if self._hybrid is not None:
             raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
@@ -322,8 +321,7 @@ class AggregateBuilder(GraphQL):
         self._media_type = MediaType.VIDEO
         if self._near is not None:
             raise AttributeError(
-                "Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!"
+                "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
             )
         if self._hybrid is not None:
             raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
@@ -353,8 +351,7 @@ class AggregateBuilder(GraphQL):
         self._media_type = MediaType.DEPTH
         if self._near is not None:
             raise AttributeError(
-                "Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!"
+                "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
             )
         if self._hybrid is not None:
             raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
@@ -384,8 +381,7 @@ class AggregateBuilder(GraphQL):
         self._media_type = MediaType.THERMAL
         if self._near is not None:
             raise AttributeError(
-                "Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!"
+                "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
             )
         if self._hybrid is not None:
             raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")
@@ -415,8 +411,7 @@ class AggregateBuilder(GraphQL):
         self._media_type = MediaType.IMU
         if self._near is not None:
             raise AttributeError(
-                "Cannot use multiple 'near' filters, or a 'near' filter along"
-                " with a 'ask' filter!"
+                "Cannot use multiple 'near' filters, or a 'near' filter along with a 'ask' filter!"
             )
         if self._hybrid is not None:
             raise AttributeError("Cannot use 'near' and 'hybrid' filters simultaneously.")

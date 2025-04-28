@@ -8,37 +8,5 @@ build-backend = 'setuptools.build_meta'
 
 [tool.setuptools_scm]
 
-[tool.black]
-line-length = 100
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.github
-  | \.pytest_cache
-  | \.venv
-  | \venv
-  | build
-  | dist
-  | docs
-)/
-'''
-
-[tool.mypy]
-python_version = "3.11"
-disallow_untyped_defs = true
-show_error_codes = true
-no_implicit_optional = true
-warn_return_any = true
-exclude = ["weaviate/proto", "docs", "integration_v3"]
-
-[[tool.mypy.overrides]]
-module = "weaviate.proto.v1.*"
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-module = ["deprecation.*"]
-follow_untyped_imports = true
-
 [tool.pydoclint]
 style = "google"

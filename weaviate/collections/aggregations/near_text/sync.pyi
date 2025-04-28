@@ -1,18 +1,16 @@
-from typing import Generic, List, Literal, Optional, Union, overload
-from weaviate.collections.aggregations.base_executor import _BaseExecutor
+from typing import List, Literal, Optional, Union, overload
+
 from weaviate.collections.classes.aggregate import (
-    PropertiesMetrics,
-    AggregateReturn,
     AggregateGroupByReturn,
+    AggregateReturn,
     GroupByAggregate,
+    PropertiesMetrics,
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import Move
-from weaviate.collections.filters import _FilterToGRPC
-from weaviate.connect import executor
-from weaviate.connect.v4 import ConnectionType
-from weaviate.types import NUMBER
 from weaviate.connect.v4 import ConnectionSync
+from weaviate.types import NUMBER
+
 from .executor import _NearTextExecutor
 
 class _NearText(_NearTextExecutor[ConnectionSync]):
@@ -30,7 +28,7 @@ class _NearText(_NearTextExecutor[ConnectionSync]):
         group_by: Literal[None] = None,
         target_vector: Optional[str] = None,
         total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateReturn: ...
     @overload
     def near_text(
@@ -46,7 +44,7 @@ class _NearText(_NearTextExecutor[ConnectionSync]):
         group_by: Union[str, GroupByAggregate],
         target_vector: Optional[str] = None,
         total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> AggregateGroupByReturn: ...
     @overload
     def near_text(
@@ -62,5 +60,5 @@ class _NearText(_NearTextExecutor[ConnectionSync]):
         group_by: Optional[Union[str, GroupByAggregate]] = None,
         target_vector: Optional[str] = None,
         total_count: bool = True,
-        return_metrics: Optional[PropertiesMetrics] = None
+        return_metrics: Optional[PropertiesMetrics] = None,
     ) -> Union[AggregateReturn, AggregateGroupByReturn]: ...

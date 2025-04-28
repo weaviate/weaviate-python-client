@@ -1,7 +1,7 @@
 """Authentication class definitions."""
 
 from dataclasses import dataclass
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
 from weaviate.warnings import _Warnings
 
@@ -104,7 +104,9 @@ class Auth:
         access_token: str, expires_in: int = 60, refresh_token: Optional[str] = None
     ) -> _BearerToken:
         return _BearerToken(
-            access_token=access_token, expires_in=expires_in, refresh_token=refresh_token
+            access_token=access_token,
+            expires_in=expires_in,
+            refresh_token=refresh_token,
         )
 
 

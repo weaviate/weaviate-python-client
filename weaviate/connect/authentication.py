@@ -3,25 +3,27 @@ from __future__ import annotations
 from typing import Awaitable, Callable, Dict, List, Optional, Union
 
 import httpx
-from authlib.integrations.httpx_client import OAuth2Client, AsyncOAuth2Client  # type: ignore
+from authlib.integrations.httpx_client import AsyncOAuth2Client, OAuth2Client  # type: ignore
 
 from weaviate.auth import (
-    AuthCredentials,
-    AuthClientPassword,
     AuthBearerToken,
     AuthClientCredentials,
+    AuthClientPassword,
+    AuthCredentials,
 )
-from weaviate.exceptions import MissingScopeError, AuthenticationFailedError
-from . import executor
+from weaviate.exceptions import AuthenticationFailedError, MissingScopeError
+
 from ..util import _decode_json_response_dict
 from ..warnings import _Warnings
+from . import executor
 
 AUTH_DEFAULT_TIMEOUT = 5
 OIDC_CONFIG = Dict[str, Union[str, List[str]]]
 
 Result = Union[OAuth2Client, Awaitable[AsyncOAuth2Client]]
 MountsMaker = Union[
-    Callable[[], Dict[str, httpx.AsyncHTTPTransport]], Callable[[], Dict[str, httpx.HTTPTransport]]
+    Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
+    Callable[[], Dict[str, httpx.HTTPTransport]],
 ]
 
 
@@ -244,7 +246,7 @@ class _Auth:
             client_id=self._client_id,
             client_secret=config.client_secret,
             token_endpoint_auth_method="client_secret_post",
-            scope=scope if len(scope) > 0 else executor.result(self.__get_common_scopes()),
+            scope=(scope if len(scope) > 0 else executor.result(self.__get_common_scopes())),
             token_endpoint=self._token_endpoint,
             grant_type="client_credentials",
             token={"access_token": None, "expires_in": -100},

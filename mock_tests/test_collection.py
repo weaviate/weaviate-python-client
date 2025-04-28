@@ -8,34 +8,34 @@ from pytest_httpserver import HTTPServer
 import weaviate
 import weaviate.classes as wvc
 from mock_tests.conftest import (
-    MOCK_PORT,
     MOCK_IP,
+    MOCK_PORT,
     MOCK_PORT_GRPC,
     MockRetriesWeaviateService,
 )
 from weaviate.backup.backup import BackupStorage
 from weaviate.collections.classes.config import (
+    BM25Config,
     CollectionConfig,
-    VectorIndexConfigFlat,
-    VectorDistances,
     InvertedIndexConfig,
     MultiTenancyConfig,
-    BM25Config,
+    ReplicationConfig,
+    ReplicationDeletionStrategy,
+    ShardingConfig,
     StopwordsConfig,
     StopwordsPreset,
-    ReplicationConfig,
-    Vectorizers,
+    VectorDistances,
+    VectorIndexConfigFlat,
     VectorIndexType,
-    ShardingConfig,
-    ReplicationDeletionStrategy,
+    Vectorizers,
 )
 from weaviate.connect.base import ConnectionParams, ProtocolParams
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.exceptions import (
-    WeaviateStartUpError,
     BackupCanceledError,
     InsufficientPermissionsError,
     UnexpectedStatusCodeError,
+    WeaviateStartUpError,
 )
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -367,7 +367,7 @@ def test_backup_cancel_while_create_and_restore(
 
 
 def test_grpc_retry_logic(
-    retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService]
+    retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
 ) -> None:
     collection = retries[0]
     service = retries[1]

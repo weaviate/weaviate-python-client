@@ -1,13 +1,12 @@
-from typing import Any, Dict, Generic, List, Literal, Optional, Union, cast, overload
+from typing import Dict, List, Literal, Optional, Union, overload
+
 from typing_extensions import deprecated
-from httpx import Response
-from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionType
-from weaviate.rbac.models import Role, RoleBase, WeaviateDBUserRoleNames, UserTypes
-from weaviate.users.users import USER_TYPE_DB, USER_TYPE_OIDC, USER_TYPE, UserDB, OwnUser
-from weaviate.util import _decode_json_response_dict
+
 from weaviate.connect.v4 import ConnectionSync
-from .executor import _BaseExecutor, _UsersExecutor, _UsersOIDCExecutor, _UsersDBExecutor
+from weaviate.rbac.models import Role, RoleBase
+from weaviate.users.users import USER_TYPE, OwnUser, UserDB
+
+from .executor import _BaseExecutor, _UsersDBExecutor, _UsersExecutor, _UsersOIDCExecutor
 
 class _Base(_BaseExecutor[ConnectionSync]):
     def _get_roles_of_user(

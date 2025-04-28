@@ -2,16 +2,16 @@ import uuid as uuid_lib
 from typing import Any, Dict, List, Literal, Optional, cast, overload
 
 from weaviate.collections.classes.filters import (
+    FilterValues,
     _CountRef,
-    _MultiTargetRef,
-    _SingleTargetRef,
-    _Filters,
     _FilterAnd,
     _FilterOr,
+    _Filters,
+    _FilterTargets,
     _FilterValue,
     _GeoCoordinateFilter,
-    FilterValues,
-    _FilterTargets,
+    _MultiTargetRef,
+    _SingleTargetRef,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import base_pb2
@@ -44,7 +44,7 @@ class _FilterToGRPC:
             value_text=_FilterToGRPC.__filter_to_text(weav_filter.value),
             value_int=weav_filter.value if isinstance(weav_filter.value, int) else None,
             value_boolean=weav_filter.value if isinstance(weav_filter.value, bool) else None,  # type: ignore
-            value_number=weav_filter.value if isinstance(weav_filter.value, float) else None,
+            value_number=(weav_filter.value if isinstance(weav_filter.value, float) else None),
             value_int_array=_FilterToGRPC.__filter_to_int_list(weav_filter.value),
             value_number_array=_FilterToGRPC.__filter_to_float_list(weav_filter.value),
             value_text_array=_FilterToGRPC.__filter_to_text_list(weav_filter.value),

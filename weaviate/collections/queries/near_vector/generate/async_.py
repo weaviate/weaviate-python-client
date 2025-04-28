@@ -1,8 +1,10 @@
 from typing import Generic
 
-from weaviate.connect import executor
 from weaviate.collections.classes.types import Properties, References
-from weaviate.collections.queries.near_vector.generate.executor import _NearVectorGenerateExecutor
+from weaviate.collections.queries.near_vector.generate.executor import (
+    _NearVectorGenerateExecutor,
+)
+from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync
 
 

@@ -1,4 +1,5 @@
 from typing import Generic, Optional
+
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.connect.v4 import ConnectionType
 from weaviate.util import _capitalize_first_letter

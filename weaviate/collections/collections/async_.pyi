@@ -1,18 +1,18 @@
 from typing import Dict, List, Literal, Optional, Sequence, Type, Union, overload
 
 from weaviate.collections.classes.config import (
-    _NamedVectorConfigCreate,
     CollectionConfig,
     CollectionConfigSimple,
+    Property,
     _GenerativeProvider,
     _InvertedIndexConfigCreate,
     _MultiTenancyConfigCreate,
-    _VectorIndexConfigCreate,
-    Property,
-    _ShardingConfigCreate,
+    _NamedVectorConfigCreate,
     _ReferencePropertyBase,
     _ReplicationConfigCreate,
     _RerankerProvider,
+    _ShardingConfigCreate,
+    _VectorIndexConfigCreate,
     _VectorizerConfigCreate,
 )
 from weaviate.collections.classes.internal import References
@@ -20,7 +20,6 @@ from weaviate.collections.classes.types import (
     Properties,
 )
 from weaviate.collections.collection import CollectionAsync
-
 from weaviate.collections.collections.base import _CollectionsBase
 from weaviate.connect.v4 import ConnectionAsync
 

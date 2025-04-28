@@ -9,7 +9,7 @@ from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
 import weaviate
-from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC, CLIENT_ID
+from mock_tests.conftest import CLIENT_ID, MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
 from weaviate.exceptions import MissingScopeException
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -356,7 +356,9 @@ def test_token_refresh_timeout(
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.auth.AuthBearerToken(
-            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1  # force immediate refresh
+            ACCESS_TOKEN,
+            refresh_token=REFRESH_TOKEN,
+            expires_in=1,  # force immediate refresh
         ),
     ) as client:
         time.sleep(9)  # sleep longer than the timeout, to give client time to retry
@@ -396,7 +398,9 @@ async def test_token_refresh_timeout_async(
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.auth.AuthBearerToken(
-            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1  # force immediate refresh
+            ACCESS_TOKEN,
+            refresh_token=REFRESH_TOKEN,
+            expires_in=1,  # force immediate refresh
         ),
     ) as client:
         await asyncio.sleep(9)  # sleep longer than the timeout, to give client time to retry

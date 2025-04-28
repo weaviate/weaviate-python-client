@@ -3,7 +3,7 @@ import math
 from typing import List
 
 import weaviate
-from weaviate.classes.config import Configure, Property, DataType
+from weaviate.classes.config import Configure, DataType, Property
 from weaviate.classes.data import DataObject
 from weaviate.classes.query import MetadataQuery
 

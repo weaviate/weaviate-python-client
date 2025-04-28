@@ -1,16 +1,14 @@
-from typing import Generic, Optional
+from typing import Optional
+
+from weaviate.backup.backup_location import BackupLocationType
 from weaviate.backup.executor import (
     BackupConfigCreate,
     BackupConfigRestore,
-    BackupReturn,
     BackupStatusReturn,
     BackupStorage,
-    _BackupExecutor,
 )
-from weaviate.backup.backup_location import BackupLocationType
-from weaviate.connect import executor
-from weaviate.connect.v4 import ConnectionType
 from weaviate.connect.v4 import ConnectionSync
+
 from .executor import _CollectionBackupExecutor
 
 class _CollectionBackup(_CollectionBackupExecutor[ConnectionSync]):

@@ -9,8 +9,8 @@ import weaviate
 from integration.conftest import CollectionFactory
 from weaviate.collections.classes.config import (
     Configure,
-    Property,
     DataType,
+    Property,
     ReferenceProperty,
 )
 from weaviate.collections.classes.data import DataObject
