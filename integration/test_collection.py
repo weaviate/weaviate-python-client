@@ -465,7 +465,10 @@ def test_replace_overwrites_vector(collection_factory: CollectionFactory) -> Non
     collection.data.replace(properties={"name": "other name"}, uuid=uuid)
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
     assert obj.properties["name"] == "other name"
-    assert "default" not in obj.vector
+    if collection._connection._weaviate_version.is_lower_than(1, 27, 0):
+        assert len(obj.vector["default"]) == 0
+    else:
+        assert "default" not in obj.vector
 
     collection.data.replace(properties={"name": "real name"}, uuid=uuid, vector=[2, 3, 4])
     obj = collection.query.fetch_object_by_id(uuid, include_vector=True)
@@ -1174,13 +1177,16 @@ def test_near_text_error(collection_factory: CollectionFactory) -> None:
 
 
 def test_near_text_group_by_argument(collection_factory: CollectionFactory) -> None:
+    dummy = collection_factory("dummy")
+    if dummy._connection._weaviate_version.is_lower_than(1, 27, 0):
+        pytest.skip(
+            'Vectors not passed to GroupByHit in servers for versions < 1.27.0. Therefore `assert "default" in ret.objects[i].vector` fails always.'
+        )
+
     collection = collection_factory(
         vector_config=Configure.Vectors.text2vec_contextionary(vectorize_collection_name=False),
         properties=[Property(name="value", data_type=DataType.TEXT)],
     )
-    import json
-
-    print(json.dumps(collection.config.get().to_dict(), indent=2))
 
     batch_return = collection.data.insert_many(
         [
