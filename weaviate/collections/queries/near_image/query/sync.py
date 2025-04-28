@@ -10,6 +10,7 @@ from weaviate.connect.v4 import ConnectionSync
 
 @executor.wrap("sync")
 class _NearImageQuery(
-    Generic[Properties, References], _NearImageQueryExecutor[ConnectionSync, Properties, References]
+    Generic[Properties, References],
+    _NearImageQueryExecutor[ConnectionSync, Properties, References],
 ):
     pass

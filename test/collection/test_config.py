@@ -1158,7 +1158,7 @@ def test_config_with_reranker(
     ],
 )
 def test_config_create_with_properties(
-    vectorizer_config: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]
+    vectorizer_config: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]],
 ) -> None:
     config = _CollectionConfigCreate(
         name="test",

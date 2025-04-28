@@ -36,7 +36,9 @@ class _BatchGRPC(_BaseGRPC):
     """
 
     def __init__(
-        self, weaviate_version: _ServerVersion, consistency_level: Optional[ConsistencyLevel]
+        self,
+        weaviate_version: _ServerVersion,
+        consistency_level: Optional[ConsistencyLevel],
     ):
         super().__init__(weaviate_version, consistency_level, False)
 
@@ -60,7 +62,7 @@ class _BatchGRPC(_BaseGRPC):
         return [
             batch_pb2.BatchObject(
                 collection=obj.collection,
-                uuid=str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4()),
+                uuid=(str(obj.uuid) if obj.uuid is not None else str(uuid_package.uuid4())),
                 properties=(
                     self.__translate_properties_from_python_to_grpc(
                         obj.properties,
@@ -109,7 +111,8 @@ class _BatchGRPC(_BaseGRPC):
 
             elapsed_time = time.time() - start
             all_responses: List[Union[uuid_package.UUID, ErrorObject]] = cast(
-                List[Union[uuid_package.UUID, ErrorObject]], list(range(len(weaviate_objs)))
+                List[Union[uuid_package.UUID, ErrorObject]],
+                list(range(len(weaviate_objs))),
             )
             return_success: Dict[int, uuid_package.UUID] = {}
             return_errors: Dict[int, ErrorObject] = {}
@@ -117,7 +120,9 @@ class _BatchGRPC(_BaseGRPC):
                 obj = objects[idx]
                 if idx in errors:
                     error = ErrorObject(
-                        errors[idx], BatchObject._from_internal(obj), original_uuid=obj.uuid
+                        errors[idx],
+                        BatchObject._from_internal(obj),
+                        original_uuid=obj.uuid,
                     )
                     return_errors[obj.index] = error
                     all_responses[idx] = error
@@ -166,7 +171,9 @@ class _BatchGRPC(_BaseGRPC):
             if isinstance(ref, ReferenceToMulti):
                 multi_target.append(
                     batch_pb2.BatchObject.MultiTargetRefProps(
-                        uuids=ref.uuids_str, target_collection=ref.target_collection, prop_name=key
+                        uuids=ref.uuids_str,
+                        target_collection=ref.target_collection,
+                        prop_name=key,
                     )
                 )
             elif isinstance(ref, str) or isinstance(ref, uuid_package.UUID):

@@ -1,28 +1,13 @@
-import asyncio
-from math import ceil
-from typing import Any, Dict, Generic, List, Optional, Sequence, Union
-from httpx import Response
-from weaviate.collections.classes.tenants import (
-    Tenant,
-    TenantActivityStatus,
-    TenantCreate,
-    TenantCreateActivityStatus,
-    TenantOutput,
-    TenantUpdate,
-    TenantUpdateActivityStatus,
-)
-from weaviate.collections.grpc.tenants import _TenantsGRPC
+from typing import Dict, Optional, Sequence, Union
+
+from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.tenants.types import (
     TenantCreateInputType,
     TenantOutputType,
     TenantUpdateInputType,
 )
-from weaviate.connect import executor
-from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
-from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.proto.v1 import tenants_pb2
-from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.connect.v4 import ConnectionAsync
+
 from .executor import _TenantsExecutor
 
 class _TenantsAsync(_TenantsExecutor[ConnectionAsync]):

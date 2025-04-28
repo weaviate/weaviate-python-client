@@ -93,7 +93,9 @@ class _BackupExecutor(Generic[ConnectionType]):
         if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCreate", str(self._connection._weaviate_version), "1.25.0"
+                    "BackupConfigCreate",
+                    str(self._connection._weaviate_version),
+                    "1.25.0",
                 )
             if not isinstance(config, BackupConfigCreate):
                 raise WeaviateInvalidInputError(
@@ -283,7 +285,9 @@ class _BackupExecutor(Generic[ConnectionType]):
         if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigRestore", str(self._connection._weaviate_version), "1.25.0"
+                    "BackupConfigRestore",
+                    str(self._connection._weaviate_version),
+                    "1.25.0",
                 )
             if not isinstance(config, BackupConfigRestore):
                 raise WeaviateInvalidInputError(
@@ -521,8 +525,7 @@ def _get_and_validate_create_restore_arguments(
             backend = BackupStorage(backend.lower())
         except KeyError:
             raise ValueError(
-                f"'backend' must have one of these values: {STORAGE_NAMES}. "
-                f"Given value: {backend}."
+                f"'backend' must have one of these values: {STORAGE_NAMES}. Given value: {backend}."
             )
 
     if not isinstance(wait_for_completion, bool):
@@ -584,8 +587,7 @@ def _get_and_validate_get_status(
             backend = BackupStorage(backend.lower())
         except KeyError:
             raise ValueError(
-                f"'backend' must have one of these values: {STORAGE_NAMES}. "
-                f"Given value: {backend}."
+                f"'backend' must have one of these values: {STORAGE_NAMES}. Given value: {backend}."
             )
 
     return (backup_id.lower(), backend)

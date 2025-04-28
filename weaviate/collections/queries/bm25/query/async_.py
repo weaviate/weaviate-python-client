@@ -8,6 +8,7 @@ from weaviate.connect.v4 import ConnectionAsync
 
 @executor.wrap("async")
 class _BM25QueryAsync(
-    Generic[Properties, References], _BM25QueryExecutor[ConnectionAsync, Properties, References]
+    Generic[Properties, References],
+    _BM25QueryExecutor[ConnectionAsync, Properties, References],
 ):
     pass

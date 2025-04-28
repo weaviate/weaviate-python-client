@@ -191,7 +191,9 @@ class _BatchClientWrapper(_BatchWrapper):
         return self.__create_batch_and_reset()
 
     def rate_limit(
-        self, requests_per_minute: int, consistency_level: Optional[ConsistencyLevel] = None
+        self,
+        requests_per_minute: int,
+        consistency_level: Optional[ConsistencyLevel] = None,
     ) -> ClientBatchingContextManager:
         """Configure batches with a rate limited vectorizer.
 

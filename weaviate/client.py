@@ -166,7 +166,6 @@ Upgrade your code to use Python client v4 `weaviate.WeaviateClient` connections 
 If you have to use v3 code, install the v3 client and pin the v3 dependency in your requirements file: `weaviate-client>=3.26.7;<4.0.0`"""
 )
 class Client:
-
     def __init__(
         self,
     ) -> None:

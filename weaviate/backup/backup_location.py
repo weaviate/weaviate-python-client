@@ -40,7 +40,10 @@ class _BackupLocationAzure(_BackupLocationConfig):
 
 
 BackupLocationType = Union[
-    _BackupLocationFilesystem, _BackupLocationS3, _BackupLocationGCP, _BackupLocationAzure
+    _BackupLocationFilesystem,
+    _BackupLocationS3,
+    _BackupLocationGCP,
+    _BackupLocationAzure,
 ]
 
 

@@ -421,7 +421,9 @@ class _QueryGRPC(_BaseGRPC):
                         return_properties,
                     ),
                     _ValidateArgument(
-                        [_QueryReference, Sequence, None], "return_references", return_references
+                        [_QueryReference, Sequence, None],
+                        "return_references",
+                        return_references,
                     ),
                 ]
             )
@@ -429,7 +431,9 @@ class _QueryGRPC(_BaseGRPC):
                 for prop in return_properties:
                     _validate_input(
                         _ValidateArgument(
-                            expected=[str, QueryNested], name="return_properties", value=prop
+                            expected=[str, QueryNested],
+                            name="return_properties",
+                            value=prop,
                         )
                     )
 
@@ -437,7 +441,9 @@ class _QueryGRPC(_BaseGRPC):
                 for ref in return_references:
                     _validate_input(
                         _ValidateArgument(
-                            expected=[_QueryReference], name="return_references", value=ref
+                            expected=[_QueryReference],
+                            name="return_references",
+                            value=ref,
                         )
                     )
 

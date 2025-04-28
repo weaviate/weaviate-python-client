@@ -425,14 +425,16 @@ class TargetVectors:
     def average(target_vectors: List[str]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors by averaging them."""
         return _MultiTargetVectorJoin(
-            combination=_MultiTargetVectorJoinEnum.AVERAGE, target_vectors=target_vectors
+            combination=_MultiTargetVectorJoinEnum.AVERAGE,
+            target_vectors=target_vectors,
         )
 
     @staticmethod
     def minimum(target_vectors: List[str]) -> _MultiTargetVectorJoin:
         """Combine the distance from different target vectors by using the minimum distance."""
         return _MultiTargetVectorJoin(
-            combination=_MultiTargetVectorJoinEnum.MINIMUM, target_vectors=target_vectors
+            combination=_MultiTargetVectorJoinEnum.MINIMUM,
+            target_vectors=target_vectors,
         )
 
     @staticmethod

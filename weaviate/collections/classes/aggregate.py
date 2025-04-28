@@ -112,7 +112,16 @@ class GroupedBy:
 
     prop: str
     value: Union[
-        str, int, float, bool, List[str], List[int], List[float], List[bool], GeoCoordinate, None
+        str,
+        int,
+        float,
+        bool,
+        List[str],
+        List[int],
+        List[float],
+        List[bool],
+        GeoCoordinate,
+        None,
     ]
 
 

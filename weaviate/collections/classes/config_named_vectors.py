@@ -169,7 +169,9 @@ class _NamedVectors:
             source_properties=source_properties,
             vector_index_config=vector_index_config,
             vectorizer=_Text2ColbertJinaAIConfig(
-                model=model, dimensions=dimensions, vectorizeClassName=vectorize_collection_name
+                model=model,
+                dimensions=dimensions,
+                vectorizeClassName=vectorize_collection_name,
             ),
         )
 

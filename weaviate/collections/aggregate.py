@@ -7,7 +7,12 @@ from weaviate.collections.aggregations.over_all import _OverAll, _OverAllAsync
 
 
 class _AggregateCollectionAsync(
-    _HybridAsync, _NearImageAsync, _NearObjectAsync, _NearTextAsync, _NearVectorAsync, _OverAllAsync
+    _HybridAsync,
+    _NearImageAsync,
+    _NearObjectAsync,
+    _NearTextAsync,
+    _NearVectorAsync,
+    _OverAllAsync,
 ):
     pass
 

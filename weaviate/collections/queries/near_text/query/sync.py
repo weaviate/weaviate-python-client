@@ -8,6 +8,7 @@ from weaviate.connect.v4 import ConnectionSync
 
 @executor.wrap("sync")
 class _NearTextQuery(
-    Generic[Properties, References], _NearTextQueryExecutor[ConnectionSync, Properties, References]
+    Generic[Properties, References],
+    _NearTextQueryExecutor[ConnectionSync, Properties, References],
 ):
     pass

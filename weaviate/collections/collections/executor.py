@@ -97,7 +97,8 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         data_model_references: Optional[Type[References]] = None,
         skip_argument_validation: bool = False,
     ) -> Union[
-        Collection[Properties, References], Awaitable[CollectionAsync[Properties, References]]
+        Collection[Properties, References],
+        Awaitable[CollectionAsync[Properties, References]],
     ]:
         result = self._connection.post(
             path="/schema",
@@ -165,7 +166,8 @@ class _CollectionsExecutor(Generic[ConnectionType]):
         skip_argument_validation: bool = False,
     ) -> executor.Result[
         Union[
-            Collection[Properties, References], Awaitable[CollectionAsync[Properties, References]]
+            Collection[Properties, References],
+            Awaitable[CollectionAsync[Properties, References]],
         ]
     ]:
         """Use this method to create a collection in Weaviate and immediately return a collection object.

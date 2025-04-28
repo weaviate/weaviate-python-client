@@ -31,7 +31,6 @@ from weaviate.types import INCLUDE_VECTOR
 def test_create_named_vectors(
     collection_factory: CollectionFactory, include_vector: Union[List[str], bool]
 ) -> None:
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -84,7 +83,6 @@ def test_create_named_vectors(
 
 
 def test_insert_many_add(collection_factory: CollectionFactory) -> None:
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -114,7 +112,6 @@ def test_insert_many_add(collection_factory: CollectionFactory) -> None:
 
 
 def test_update(collection_factory: CollectionFactory) -> None:
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -146,7 +143,6 @@ def test_update(collection_factory: CollectionFactory) -> None:
 
 
 def test_replace(collection_factory: CollectionFactory) -> None:
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -179,7 +175,6 @@ def test_replace(collection_factory: CollectionFactory) -> None:
 
 
 def test_query(collection_factory: CollectionFactory) -> None:
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -255,7 +250,6 @@ def test_generate(openai_collection: OpenAICollection) -> None:
 
 
 def test_batch_add(collection_factory: CollectionFactory) -> None:
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -283,7 +277,6 @@ def test_batch_add(collection_factory: CollectionFactory) -> None:
 
 
 def test_named_vector_with_index_config(collection_factory: CollectionFactory) -> None:
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="title", data_type=wvc.config.DataType.TEXT),
@@ -338,7 +331,6 @@ def test_named_vector_with_index_config(collection_factory: CollectionFactory) -
 
 
 def test_aggregation(collection_factory: CollectionFactory) -> None:
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
@@ -414,7 +406,6 @@ def test_aggregation(collection_factory: CollectionFactory) -> None:
 def test_update_to_enable_quantizer_on_specific_named_vector(
     collection_factory: CollectionFactory,
 ) -> None:
-
     collection = collection_factory(
         properties=[
             wvc.config.Property(name="first", data_type=wvc.config.DataType.TEXT),
@@ -507,7 +498,6 @@ def test_update_to_enable_quantizer_on_specific_named_vector(
 
 
 def test_duplicate_named_vectors(collection_factory: CollectionFactory) -> None:
-
     with pytest.raises(WeaviateInvalidInputError) as e:
         collection_factory(
             vector_config=[

@@ -46,7 +46,7 @@ class _FetchObjectsGenerateExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: Literal[None] = None
+        return_references: Literal[None] = None,
     ) -> executor.Result[GenerativeReturn[Properties, References]]: ...
 
     @overload
@@ -65,7 +65,7 @@ class _FetchObjectsGenerateExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: REFERENCES
+        return_references: REFERENCES,
     ) -> executor.Result[GenerativeReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -84,7 +84,7 @@ class _FetchObjectsGenerateExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
-        return_references: Type[TReferences]
+        return_references: Type[TReferences],
     ) -> executor.Result[GenerativeReturn[Properties, TReferences]]: ...
 
     @overload
@@ -103,7 +103,7 @@ class _FetchObjectsGenerateExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: Literal[None] = None
+        return_references: Literal[None] = None,
     ) -> executor.Result[GenerativeReturn[TProperties, References]]: ...
 
     @overload
@@ -122,7 +122,7 @@ class _FetchObjectsGenerateExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: REFERENCES
+        return_references: REFERENCES,
     ) -> executor.Result[GenerativeReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -141,7 +141,7 @@ class _FetchObjectsGenerateExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
-        return_references: Type[TReferences]
+        return_references: Type[TReferences],
     ) -> executor.Result[GenerativeReturn[TProperties, TReferences]]: ...
 
     @overload
@@ -160,7 +160,7 @@ class _FetchObjectsGenerateExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-        return_references: Optional[ReturnReferences[TReferences]] = None
+        return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> executor.Result[
         GenerativeReturnType[Properties, References, TProperties, TReferences]
     ]: ...
@@ -180,7 +180,7 @@ class _FetchObjectsGenerateExecutor(
         include_vector: INCLUDE_VECTOR = False,
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
-        return_references: Optional[ReturnReferences[TReferences]] = None
+        return_references: Optional[ReturnReferences[TReferences]] = None,
     ) -> executor.Result[GenerativeReturnType[Properties, References, TProperties, TReferences]]:
         """Perform retrieval-augmented generation (RaG) on the results of a simple get query of objects in this collection.
 

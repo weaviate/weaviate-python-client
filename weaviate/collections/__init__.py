@@ -4,4 +4,9 @@ from weaviate.collections.batch.collection import (
 )
 from weaviate.collections.collection import Collection, CollectionAsync
 
-__all__ = ["BatchCollection", "Collection", "CollectionAsync", "CollectionBatchingContextManager"]
+__all__ = [
+    "BatchCollection",
+    "Collection",
+    "CollectionAsync",
+    "CollectionBatchingContextManager",
+]

@@ -25,7 +25,8 @@ OIDC_CONFIG = Dict[str, Union[str, List[str]]]
 
 Result = Union[OAuth2Client, Awaitable[AsyncOAuth2Client]]
 MountsMaker = Union[
-    Callable[[], Dict[str, httpx.AsyncHTTPTransport]], Callable[[], Dict[str, httpx.HTTPTransport]]
+    Callable[[], Dict[str, httpx.AsyncHTTPTransport]],
+    Callable[[], Dict[str, httpx.HTTPTransport]],
 ]
 
 
@@ -248,7 +249,7 @@ class _Auth:
             client_id=self._client_id,
             client_secret=config.client_secret,
             token_endpoint_auth_method="client_secret_post",
-            scope=scope if len(scope) > 0 else executor.result(self.__get_common_scopes()),
+            scope=(scope if len(scope) > 0 else executor.result(self.__get_common_scopes())),
             token_endpoint=self._token_endpoint,
             grant_type="client_credentials",
             token={"access_token": None, "expires_in": -100},

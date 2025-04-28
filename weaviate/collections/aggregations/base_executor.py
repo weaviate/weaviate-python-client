@@ -81,8 +81,10 @@ class _BaseExecutor(Generic[ConnectionType]):
         try:
             result: dict = response["data"]["Aggregate"][self._name][0]
             return AggregateReturn(
-                properties=self.__parse_properties(result, metrics) if metrics is not None else {},
-                total_count=result["meta"]["count"] if result.get("meta") is not None else None,
+                properties=(
+                    self.__parse_properties(result, metrics) if metrics is not None else {}
+                ),
+                total_count=(result["meta"]["count"] if result.get("meta") is not None else None),
             )
         except KeyError as e:
             raise ValueError(

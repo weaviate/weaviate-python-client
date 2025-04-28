@@ -7,24 +7,16 @@ repos:
       language: system
       entry: ./tools/stubs_regen.sh
 
-- repo: https://github.com/psf/black-pre-commit-mirror
-  rev: 24.10.0
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+  rev: v0.11.7
   hooks:
-    - id: black
-      language_version: python3.12
-
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.6.0
-  hooks:
-    - id: no-commit-to-branch
-    - id: trailing-whitespace
-
-- repo: https://github.com/myint/autoflake
-  rev: v2.2.1 # autoflake v2.2.1 is the latest version that supports Python 3.12
-  hooks:
-      - id: autoflake
-        args: [--in-place, --remove-all-unused-imports, --exclude=weaviate/proto/*]
-
+    # Run the linter.
+    - id: ruff
+      args: [ weaviate, integration, test, mock_tests, journey_tests, --fix ]
+    # Run the formatter.
+    - id: ruff-format
+      args: [ weaviate, integration, test, mock_tests, journey_tests ]
 
 - repo: https://github.com/PyCQA/flake8
   rev: 7.1.0
@@ -42,6 +34,12 @@ repos:
         'flake8-docstrings==1.7.0',
         'pydoclint==0.6.5',
       ]
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.6.0
+  hooks:
+    - id: no-commit-to-branch
+    - id: trailing-whitespace
 
 - repo: local
   hooks:

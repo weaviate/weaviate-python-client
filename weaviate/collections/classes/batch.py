@@ -162,7 +162,7 @@ class BatchReference(BaseModel):
             from_object_collection=from_[1],
             from_object_uuid=ref.from_uuid,
             from_property_name=ref.from_[-1],
-            to_object_uuid=ref.to_uuid if ref.to_uuid is not None else uuid_package.UUID(to[-1]),
+            to_object_uuid=(ref.to_uuid if ref.to_uuid is not None else uuid_package.UUID(to[-1])),
             to_object_collection=to_object_collection,
             tenant=ref.tenant,
         )

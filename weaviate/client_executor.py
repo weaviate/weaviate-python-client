@@ -69,18 +69,16 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
         )
         config = additional_config or AdditionalConfig()
 
-        self._connection = (
-            self._connection_type(  # pyright: ignore reportIncompatibleVariableOverride
-                connection_params=connection_params,
-                auth_client_secret=auth_client_secret,
-                timeout_config=config.timeout,
-                additional_headers=additional_headers,
-                embedded_db=embedded_db,
-                connection_config=config.connection,
-                proxies=config.proxies,
-                trust_env=config.trust_env,
-                skip_init_checks=skip_init_checks,
-            )
+        self._connection = self._connection_type(  # pyright: ignore reportIncompatibleVariableOverride
+            connection_params=connection_params,
+            auth_client_secret=auth_client_secret,
+            timeout_config=config.timeout,
+            additional_headers=additional_headers,
+            embedded_db=embedded_db,
+            connection_config=config.connection,
+            proxies=config.proxies,
+            trust_env=config.trust_env,
+            skip_init_checks=skip_init_checks,
         )
 
         self.integrations = _Integrations(self._connection)

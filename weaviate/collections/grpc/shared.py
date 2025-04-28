@@ -75,7 +75,9 @@ class _BaseGRPC:
             return base_pb2.ConsistencyLevel.CONSISTENCY_LEVEL_ALL
 
     def _recompute_target_vector_to_grpc(
-        self, target_vector: Optional[TargetVectorJoinType], target_vectors_tmp: List[str]
+        self,
+        target_vector: Optional[TargetVectorJoinType],
+        target_vectors_tmp: List[str],
     ) -> Tuple[Optional[base_search_pb2.Targets], Optional[List[str]]]:
         # reorder input for targets so they match the vectors
         if isinstance(target_vector, _MultiTargetVectorJoin):
@@ -169,7 +171,9 @@ class _BaseGRPC:
         targets: Optional[base_search_pb2.Targets],
         argument_name: str,
     ) -> Tuple[
-        Optional[List[base_search_pb2.VectorForTarget]], Optional[bytes], Optional[List[str]]
+        Optional[List[base_search_pb2.VectorForTarget]],
+        Optional[bytes],
+        Optional[List[str]],
     ]:
         invalid_nv_exception = WeaviateInvalidInputError(
             f"""{argument_name} argument can be:
@@ -287,7 +291,11 @@ class _BaseGRPC:
                 near_vector = _get_vector_v4(vector)
                 if not isinstance(near_vector, list):
                     raise invalid_nv_exception
-                return None, struct.pack("{}f".format(len(near_vector)), *near_vector), None
+                return (
+                    None,
+                    struct.pack("{}f".format(len(near_vector)), *near_vector),
+                    None,
+                )
             else:
                 raise WeaviateInvalidInputError(
                     """This input appears to be a nested list of embeddings.
@@ -336,7 +344,9 @@ class _BaseGRPC:
                         near_vector,
                     ),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -403,7 +413,9 @@ class _BaseGRPC:
         )
 
     @staticmethod
-    def __parse_move(move: Optional[Move]) -> Optional[base_search_pb2.NearTextSearch.Move]:
+    def __parse_move(
+        move: Optional[Move],
+    ) -> Optional[base_search_pb2.NearTextSearch.Move]:
         return (
             base_search_pb2.NearTextSearch.Move(
                 force=move.force,
@@ -430,7 +442,9 @@ class _BaseGRPC:
                     _ValidateArgument([Move, None], "move_away", move_away),
                     _ValidateArgument([Move, None], "move_to", move_to),
                     _ValidateArgument(
-                        [str, List, _MultiTargetVectorJoin, None], "target_vector", target_vector
+                        [str, List, _MultiTargetVectorJoin, None],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -462,7 +476,9 @@ class _BaseGRPC:
                 [
                     _ValidateArgument([str, uuid_lib.UUID], "near_object", near_object),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -492,7 +508,9 @@ class _BaseGRPC:
                 [
                     _ValidateArgument([str], "media", media),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -596,7 +614,9 @@ class _BaseGRPC:
                     _ValidateArgument([List, None], "properties", properties),
                     _ValidateArgument([HybridFusion, None], "fusion_type", fusion_type),
                     _ValidateArgument(
-                        [str, None, List, _MultiTargetVectorJoin], "target_vector", target_vector
+                        [str, None, List, _MultiTargetVectorJoin],
+                        "target_vector",
+                        target_vector,
                     ),
                 ]
             )
@@ -732,11 +752,13 @@ class _Pack:
     def parse_single_or_multi_vec(vector: PrimitiveVectorType) -> _Packing:
         if _is_2d_vector(vector):
             return _Packing(
-                bytes_=_Pack.multi(vector), type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32
+                bytes_=_Pack.multi(vector),
+                type_=base_pb2.Vectors.VECTOR_TYPE_MULTI_FP32,
             )
         elif _is_1d_vector(vector):
             return _Packing(
-                bytes_=_Pack.single(vector), type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32
+                bytes_=_Pack.single(vector),
+                type_=base_pb2.Vectors.VECTOR_TYPE_SINGLE_FP32,
             )
         else:
             raise WeaviateInvalidInputError(f"Invalid vectors: {vector}")

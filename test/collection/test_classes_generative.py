@@ -46,7 +46,7 @@ def test_generative_parameters_images_parsing(
     provider: Union[
         Callable[[BLOB_INPUT], _GroupedTask],
         Callable[[BLOB_INPUT], _SinglePrompt],
-    ]
+    ],
 ) -> None:
     # tests image as a path string
     p = provider(LOGO)

@@ -54,8 +54,7 @@ def image_encoder_b64(image_or_image_path: Union[str, io.BufferedReader]) -> str
         content = image_or_image_path.read()
     else:
         raise TypeError(
-            '"image_or_image_path" should be a image path or a binary read file'
-            " (io.BufferedReader)"
+            '"image_or_image_path" should be a image path or a binary read file (io.BufferedReader)'
         )
     return base64.b64encode(content).decode("utf-8")
 
@@ -617,7 +616,7 @@ def is_weaviate_client_too_old(current_version_str: str, latest_version_str: str
 
 
 def _get_valid_timeout_config(
-    timeout_config: Union[Tuple[NUMBER, NUMBER], NUMBER, None]
+    timeout_config: Union[Tuple[NUMBER, NUMBER], NUMBER, None],
 ) -> Tuple[NUMBER, NUMBER]:
     """Validate and return TimeOut configuration.
 

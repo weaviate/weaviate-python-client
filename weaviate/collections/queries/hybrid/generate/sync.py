@@ -10,6 +10,7 @@ from weaviate.connect.v4 import ConnectionSync
 
 @executor.wrap("sync")
 class _HybridGenerate(
-    Generic[Properties, References], _HybridGenerateExecutor[ConnectionSync, Properties, References]
+    Generic[Properties, References],
+    _HybridGenerateExecutor[ConnectionSync, Properties, References],
 ):
     pass

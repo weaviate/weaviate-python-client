@@ -72,11 +72,13 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
         self._tenant = tenant
         self._validate_arguments = validate_arguments
         self.__batch_grpc = _BatchGRPC(
-            weaviate_version=connection._weaviate_version, consistency_level=consistency_level
+            weaviate_version=connection._weaviate_version,
+            consistency_level=consistency_level,
         )
         self.__batch_rest = _BatchREST(consistency_level=consistency_level)
         self.__batch_delete = _BatchDeleteGRPC(
-            weaviate_version=connection._weaviate_version, consistency_level=consistency_level
+            weaviate_version=connection._weaviate_version,
+            consistency_level=consistency_level,
         )
         self._type = type_
 
@@ -329,7 +331,10 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
             )
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
-        weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
+        weaviate_obj: Dict[str, Any] = {
+            "class": self.name,
+            "properties": {**props, **refs},
+        }
         if vector is not None:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
@@ -643,7 +648,6 @@ class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
     def __apply_context_to_params_and_object(
         self, params: Dict[str, Any], obj: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-
         if self._tenant is not None:
             obj["tenant"] = self._tenant
         if self._consistency_level is not None:

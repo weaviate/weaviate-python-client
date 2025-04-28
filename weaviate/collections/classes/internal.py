@@ -567,7 +567,8 @@ def _extract_types_from_reference(
 
 
 def _extract_types_from_annotated_reference(
-    type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation], field: str
+    type_: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation],
+    field: str,
 ) -> Tuple[Type[Properties], Type["References"]]:
     """Extract inner type from Annotated[CrossReference[Properties, References]]."""
     assert get_origin(type_) is Annotated, f"field: {field} with type: {type_} must be annotated"
@@ -589,14 +590,14 @@ def __create_link_to_from_annotated_reference(
     value: Annotated[CrossReference[Properties, "References"], CrossReferenceAnnotation],
 ) -> Union[_QueryReference, _QueryReferenceMultiTarget]:
     """Create FromReference or FromReferenceMultiTarget from Annotated[CrossReference[Properties], ReferenceAnnotation]."""
-    assert (
-        get_origin(value) is Annotated
-    ), f"field: {link_on} with type: {value} must be Annotated[CrossReference]"
+    assert get_origin(value) is Annotated, (
+        f"field: {link_on} with type: {value} must be Annotated[CrossReference]"
+    )
     args = cast(List[CrossReference[Properties, References]], get_args(value))
     inner_type = args[0]
-    assert (
-        get_origin(inner_type) is _CrossReference
-    ), f"field: {link_on} with inner_type: {inner_type} must be CrossReference"
+    assert get_origin(inner_type) is _CrossReference, (
+        f"field: {link_on} with inner_type: {inner_type} must be CrossReference"
+    )
     inner_type_metadata = cast(
         Tuple[CrossReferenceAnnotation], getattr(value, "__metadata__", None)
     )
@@ -646,7 +647,9 @@ def _extract_properties_from_data_model(type_: Type[Properties]) -> PROPERTIES:
     ]
 
 
-def _extract_references_from_data_model(type_: Type["References"]) -> Optional[REFERENCES]:
+def _extract_references_from_data_model(
+    type_: Type["References"],
+) -> Optional[REFERENCES]:
     """Extract references of References recursively from References.
 
     Checks to see if there is a _Reference[References], Annotated[_Reference[References]], or _Nested[References]

@@ -367,7 +367,7 @@ def test_backup_cancel_while_create_and_restore(
 
 
 def test_grpc_retry_logic(
-    retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService]
+    retries: tuple[weaviate.collections.Collection, MockRetriesWeaviateService],
 ) -> None:
     collection = retries[0]
     service = retries[1]

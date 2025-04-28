@@ -227,7 +227,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
         return tenant
 
     def __map_create_tenants(
-        self, tenants: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]]
+        self,
+        tenants: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]],
     ) -> List[dict]:
         if (
             isinstance(tenants, str)
@@ -249,7 +250,10 @@ class _TenantsExecutor(Generic[ConnectionType]):
                 [
                     self.__map_update_tenant(tenants[i + b * UPDATE_TENANT_BATCH_SIZE]).model_dump()
                     for i in range(
-                        min(len(tenants) - b * UPDATE_TENANT_BATCH_SIZE, UPDATE_TENANT_BATCH_SIZE)
+                        min(
+                            len(tenants) - b * UPDATE_TENANT_BATCH_SIZE,
+                            UPDATE_TENANT_BATCH_SIZE,
+                        )
                     )
                 ]
                 for b in range(batches)
@@ -352,7 +356,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
             path=f"/schema/{self._name}/tenants/{tenant_name}",
             error_msg=f"Could not get tenant {tenant_name} for collection {self._name}",
             status_codes=_ExpectedStatusCodes(
-                ok_in=[200, 404], error=f"Get tenant {tenant_name} for collection {self._name}"
+                ok_in=[200, 404],
+                error=f"Get tenant {tenant_name} for collection {self._name}",
             ),
         )
 
@@ -372,7 +377,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
                                 weaviate_object=mapped_tenants,
                                 error_msg=f"Collection tenants may not have been updated properly for {self._name}",
                                 status_codes=_ExpectedStatusCodes(
-                                    ok_in=200, error=f"Update collection tenants for {self._name}"
+                                    ok_in=200,
+                                    error=f"Update collection tenants for {self._name}",
                                 ),
                             )
                         )
@@ -411,7 +417,11 @@ class _TenantsExecutor(Generic[ConnectionType]):
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(
-                    expected=[Tenant, TenantUpdate, Sequence[Union[Tenant, TenantUpdate]]],
+                    expected=[
+                        Tenant,
+                        TenantUpdate,
+                        Sequence[Union[Tenant, TenantUpdate]],
+                    ],
                     name="tenants",
                     value=tenants,
                 )

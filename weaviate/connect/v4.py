@@ -218,7 +218,7 @@ class _ConnectionBase:
     ) -> Union[Dict[str, AsyncHTTPTransport], Dict[str, HTTPTransport]]:
         if colour == "async":
             return {
-                f"{key}://" if key == "http" or key == "https" else key: AsyncHTTPTransport(
+                (f"{key}://" if key == "http" or key == "https" else key): AsyncHTTPTransport(
                     limits=Limits(
                         max_connections=self.__connection_config.session_pool_maxsize,
                         max_keepalive_connections=self.__connection_config.session_pool_connections,
@@ -301,7 +301,10 @@ class _ConnectionBase:
         access_token = self.get_current_bearer_token()
         self.__refresh_weaviate_embedding_service_auth_grpc_header()
         # auth is last entry in list, rest is static
-        self.__metadata_list[len(self.__metadata_list) - 1] = ("authorization", access_token)
+        self.__metadata_list[len(self.__metadata_list) - 1] = (
+            "authorization",
+            access_token,
+        )
         return tuple(self.__metadata_list)
 
     def __refresh_weaviate_embedding_service_auth_grpc_header(self) -> None:
@@ -378,7 +381,9 @@ class _ConnectionBase:
 
     def open_connection_grpc(self, colour: executor.Colour) -> None:
         channel = self._connection_params._grpc_channel(
-            proxies=self._proxies, grpc_msg_size=self._grpc_max_msg_size, is_async=colour == "async"
+            proxies=self._proxies,
+            grpc_msg_size=self._grpc_max_msg_size,
+            is_async=colour == "async",
         )
         self._grpc_channel = channel
         assert self._grpc_channel is not None
@@ -548,7 +553,8 @@ class _ConnectionBase:
             if isinstance(self._client, AsyncOAuth2Client):
                 assert event_loop is not None
                 self._client.token = event_loop.run_until_complete(
-                    self._client.refresh_token, url=self._client.metadata["token_endpoint"]
+                    self._client.refresh_token,
+                    url=self._client.metadata["token_endpoint"],
                 )
             elif isinstance(self._client, OAuth2Client):
                 self._client.token = self._client.refresh_token(
@@ -624,7 +630,9 @@ class _ConnectionBase:
             headers.update({"x-weaviate-api-key": self.get_current_bearer_token()})
 
     def __get_timeout(
-        self, method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"], is_gql_query: bool
+        self,
+        method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
+        is_gql_query: bool,
     ) -> Timeout:
         """Get the timeout for the request.
 
@@ -647,7 +655,9 @@ class _ConnectionBase:
         elif method == "POST" and not is_gql_query:
             timeout = self.timeout_config.insert
         return Timeout(
-            timeout=5.0, read=timeout, pool=self.__connection_config.session_pool_timeout
+            timeout=5.0,
+            read=timeout,
+            pool=self.__connection_config.session_pool_timeout,
         )
 
     def __handle_exceptions(self, e: Exception, error_msg: str) -> None:
@@ -660,7 +670,10 @@ class _ConnectionBase:
         raise e
 
     def __handle_response(
-        self, response: Response, error_msg: str, status_codes: Optional[_ExpectedStatusCodes]
+        self,
+        response: Response,
+        error_msg: str,
+        status_codes: Optional[_ExpectedStatusCodes],
     ) -> Response:
         if response.status_code == 403:
             raise InsufficientPermissionsError(response)
@@ -887,7 +900,9 @@ class _ConnectionBase:
             raise UnexpectedStatusCodeError("Meta endpoint", res)
 
         return executor.execute(
-            response_callback=resp, method=self.get, path="/.well-known/openid-configuration"
+            response_callback=resp,
+            method=self.get,
+            path="/.well-known/openid-configuration",
         )
 
 
@@ -985,7 +1000,10 @@ class ConnectionSync(_ConnectionBase):
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
     def grpc_batch_objects(
-        self, request: batch_pb2.BatchObjectsRequest, timeout: Union[int, float], max_retries: float
+        self,
+        request: batch_pb2.BatchObjectsRequest,
+        timeout: Union[int, float],
+        max_retries: float,
     ) -> Dict[int, str]:
         try:
             assert self.grpc_stub is not None
@@ -1167,7 +1185,10 @@ class ConnectionAsync(_ConnectionBase):
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
     async def grpc_batch_objects(
-        self, request: batch_pb2.BatchObjectsRequest, timeout: Union[int, float], max_retries: float
+        self,
+        request: batch_pb2.BatchObjectsRequest,
+        timeout: Union[int, float],
+        max_retries: float,
     ) -> Dict[int, str]:
         try:
             assert self.grpc_stub is not None

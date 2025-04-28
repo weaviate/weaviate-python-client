@@ -1,58 +1,23 @@
-import asyncio
-import datetime
 import uuid as uuid_package
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-    cast,
-    overload,
-)
-from httpx import Response
-from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
-from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
-from weaviate.collections.batch.rest import _BatchREST
+from typing import Generic, List, Literal, Optional, Sequence, Union, overload
+
 from weaviate.collections.classes.batch import (
     BatchObjectReturn,
     BatchReferenceReturn,
     DeleteManyObject,
     DeleteManyReturn,
-    _BatchObject,
-    _BatchReference,
 )
-from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.internal import (
     ReferenceInput,
     ReferenceInputs,
-    ReferenceToMulti,
     SingleReferenceInput,
-    _Reference,
 )
-from weaviate.collections.classes.types import (
-    GeoCoordinate,
-    PhoneNumber,
-    Properties,
-    WeaviateField,
-    _PhoneNumber,
-)
-from weaviate.connect import executor
-from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
-from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.logger import logger
-from weaviate.types import BEACON, UUID, VECTORS
-from weaviate.util import _datetime_to_string, _get_vector_v4
-from weaviate.validator import _validate_input, _ValidateArgument
+from weaviate.collections.classes.types import Properties
 from weaviate.connect.v4 import ConnectionAsync
+from weaviate.types import UUID, VECTORS
+
 from .executor import _DataCollectionExecutor
 
 class _DataCollectionAsync(

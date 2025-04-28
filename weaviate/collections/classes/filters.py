@@ -237,7 +237,9 @@ class _FilterByProperty(_FilterBase):
         return _FilterValue(
             target=self._target_path(),
             value=_GeoCoordinateFilter(
-                latitude=coordinate.latitude, longitude=coordinate.longitude, distance=distance
+                latitude=coordinate.latitude,
+                longitude=coordinate.longitude,
+                distance=distance,
             ),
             operator=_Operator.WITHIN_GEO_RANGE,
         )
@@ -337,7 +339,9 @@ class _FilterByTime(_FilterBase):
                 example: on_reference_path=["ref_property", "target_collection"].
         """
         return _FilterValue(
-            target=self._target_path(), value=date, operator=_Operator.GREATER_THAN_EQUAL
+            target=self._target_path(),
+            value=date,
+            operator=_Operator.GREATER_THAN_EQUAL,
         )
 
 
@@ -457,7 +461,9 @@ class _FilterByCount(_FilterBase):
             count: count to filter on.
         """
         return _FilterValue(
-            target=self._target_path(), value=count, operator=_Operator.GREATER_THAN_EQUAL
+            target=self._target_path(),
+            value=count,
+            operator=_Operator.GREATER_THAN_EQUAL,
         )
 
 

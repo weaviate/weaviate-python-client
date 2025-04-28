@@ -8,6 +8,7 @@ from weaviate.connect.v4 import ConnectionSync
 
 @executor.wrap("sync")
 class _HybridQuery(
-    Generic[Properties, References], _HybridQueryExecutor[ConnectionSync, Properties, References]
+    Generic[Properties, References],
+    _HybridQueryExecutor[ConnectionSync, Properties, References],
 ):
     pass

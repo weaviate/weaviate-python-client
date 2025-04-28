@@ -127,7 +127,9 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__executor = ThreadPoolExecutor()
         # define one executor per client with it shared between all child batch contexts
 
-    def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+    def __create_batch_and_reset(
+        self,
+    ) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
         if self._vectorizer_batching is None:
             try:
                 config = self.__config.get(simple=True)

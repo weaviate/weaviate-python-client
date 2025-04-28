@@ -383,7 +383,7 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute(
-                shard_names: Optional[Union[str, List[str]]]
+                shard_names: Optional[Union[str, List[str]]],
             ) -> Dict[str, ShardTypes]:
                 if shard_names is None:
                     shards_config = await executor.aresult(self.__get_shards())

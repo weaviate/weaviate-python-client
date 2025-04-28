@@ -474,7 +474,10 @@ class _BatchBase:
                     self.__concurrent_requests = 2
 
     def __send_batch(
-        self, objs: List[_BatchObject], refs: List[_BatchReference], readd_rate_limit: bool
+        self,
+        objs: List[_BatchObject],
+        refs: List[_BatchReference],
+        readd_rate_limit: bool,
     ) -> None:
         if (n_objs := len(objs)) > 0:
             start = time.time()

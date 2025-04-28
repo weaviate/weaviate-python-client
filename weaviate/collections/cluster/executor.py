@@ -75,7 +75,9 @@ class _ClusterExecutor(Generic[ConnectionType]):
         if output is not None:
             params = {"output": output}
 
-        def resp(res: Response) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]:
+        def resp(
+            res: Response,
+        ) -> Union[List[Node[None, None]], List[Node[Shards, Stats]]]:
             response_typed = _decode_json_response_dict(res, "Nodes status")
             assert response_typed is not None
 

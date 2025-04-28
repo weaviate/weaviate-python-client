@@ -20,7 +20,9 @@ from weaviate.rbac.models import (
 
 
 def _flatten_permissions(
-    permissions: Union[PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]]
+    permissions: Union[
+        PermissionsInputType, PermissionsOutputType, Sequence[PermissionsOutputType]
+    ],
 ) -> List[_Permission]:
     if isinstance(permissions, _Permission):
         return [permissions]
@@ -164,7 +166,8 @@ class _RolesExecutor(Generic[ConnectionType]):
         def resp(res: Response) -> List[UserAssignment]:
             return [
                 UserAssignment(
-                    user_id=assignment["userId"], user_type=UserTypes(assignment["userType"])
+                    user_id=assignment["userId"],
+                    user_type=UserTypes(assignment["userType"]),
                 )
                 for assignment in res.json()
             ]

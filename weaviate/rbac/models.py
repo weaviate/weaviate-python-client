@@ -301,7 +301,6 @@ class _BackupsPermission(_Permission[BackupsAction]):
 
 
 class _ClusterPermission(_Permission[ClusterAction]):
-
     def _to_weaviate(self) -> List[WeaviatePermission]:
         return [
             {
@@ -422,7 +421,8 @@ class Role(RoleBase):
                 if users is not None:
                     users_permissions.append(
                         UsersPermissionOutput(
-                            actions={UsersAction(permission["action"])}, users=users["users"]
+                            actions={UsersAction(permission["action"])},
+                            users=users["users"],
                         )
                     )
             elif permission["action"] in CollectionsAction.values():
@@ -574,7 +574,6 @@ class NodesPermissions:
         *,
         read: bool = False,
     ) -> PermissionsCreateType:
-
         if read:
             permissions: List[_Permission] = [
                 _NodesPermission(collection="*", verbosity="minimal", actions={NodesAction.READ})
