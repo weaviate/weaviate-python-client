@@ -18,7 +18,7 @@ def test_consistency_on_multinode(
     collection_factory: CollectionFactory, level: ConsistencyLevel
 ) -> None:
     collection = collection_factory(
-        vectorizer_config=Configure.Vectorizer.none(),
+        vectorizer_config=Configure.Vectorizer.user_provided(),
         properties=[
             Property(name="name", data_type=DataType.TEXT),
         ],
