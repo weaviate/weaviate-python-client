@@ -1975,11 +1975,13 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     vectorIndexConfig: Optional[_VectorIndexConfigCreate] = Field(
         default=None, alias="vector_index_config"
     )
-    vectorizerConfig: Optional[Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]] = (
-        Field(default=_Vectorizer.none(), alias="vectorizer_config")
+    vectorizerConfig: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate], None] = Field(
+        default=None, alias="vectorizer_config"
     )
-    vectorConfig: Optional[Union[_VectorConfigCreate, List[_VectorConfigCreate]]] = Field(
-        default=_Vectors.none(), alias="vector_config"
+    vectorConfig: Union[_VectorConfigCreate, List[_VectorConfigCreate], None] = Field(
+        default=None,
+        alias="vector_config",
+        validate_default=True,
     )
     generativeSearch: Optional[_GenerativeProvider] = Field(default=None, alias="generative_config")
     rerankerConfig: Optional[_RerankerProvider] = Field(default=None, alias="reranker_config")
@@ -1999,6 +2001,19 @@ class _CollectionConfigCreate(_ConfigCreateModel):
             if len(names) != len(set(names)):
                 dups = {name for name in names if names.count(name) > 1}
                 raise ValueError(f"Vector config names must be unique. Found duplicates: {dups}")
+        return v
+
+    @field_validator("vectorConfig", mode="after")
+    @classmethod
+    def inject_vector_config_none(
+        cls,
+        v: Union[_VectorConfigCreate, List[_VectorConfigCreate], None],
+        info: ValidationInfo,
+    ) -> Union[_VectorConfigCreate, List[_VectorConfigCreate], None]:
+        if v is None and info.data["vectorizerConfig"] is None:
+            return _VectorConfigCreate(
+                name="default", vectorizer=_VectorizerConfigCreate(vectorizer=Vectorizers.NONE)
+            )
         return v
 
     @staticmethod
