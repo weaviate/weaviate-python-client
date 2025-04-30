@@ -2040,17 +2040,6 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         )
         ret_dict["properties"] = existing_props
 
-class _MuveraConfigCreate(_EncodingConfigCreate):
-    enabled: Optional[bool]
-    ksim: Optional[int]
-    dprojections: Optional[int]
-    repetitions: Optional[int]
-
-    @staticmethod
-    def encoding_name() -> str:
-        return "muvera"
-
-
 class _VectorIndexMultivectorEncoding:
     @staticmethod
     def muvera(
