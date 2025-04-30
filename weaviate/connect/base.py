@@ -1,12 +1,12 @@
 import datetime
 import os
 import time
-from typing import Any, Dict, Mapping, Sequence, Tuple, TypeVar, Union, cast, Optional
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, TypeVar, Union, cast
 from urllib.parse import urlparse
 
 import grpc  # type: ignore
-from grpc import ssl_channel_credentials
 from grpc import Channel as SyncChannel
+from grpc import ssl_channel_credentials
 from grpc.aio import Channel as AsyncChannel  # type: ignore
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -148,29 +148,22 @@ class ConnectionParams(BaseModel):
 
 
 def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> Dict[str, str]:
-    """
-    Get proxies as dict, compatible with 'requests' library.
+    """Get proxies as dict, compatible with 'requests' library.
+
     NOTE: 'proxies' has priority over 'trust_env', i.e. if 'proxies' is NOT None, 'trust_env'
     is ignored.
 
-    Parameters
-    ----------
-    proxies : dict, str or None
-        The proxies to use for requests. If it is a dict it should follow 'requests' library
-        format (https://docs.python-requests.org/en/stable/user/advanced/#proxies). If it is
-        a URL (str), a dict will be constructed with both 'http' and 'https' pointing to that
-        URL. If None, no proxies will be used.
-    trust_env : bool
-        If True, the proxies will be read from ENV VARs (case insensitive):
-            HTTP_PROXY/HTTPS_PROXY.
-        NOTE: It is ignored if 'proxies' is NOT None.
+    Args:
+        proxies: The proxies to use for requests. If it is a dict it should follow 'requests' library
+            format (https://docs.python-requests.org/en/stable/user/advanced/#proxies). If it is
+            a URL (str), a dict will be constructed with both 'http' and 'https' pointing to that
+            URL. If None, no proxies will be used.
+        trust_env: If True, the proxies will be read from ENV VARs (case insensitive):
+            HTTP_PROXY/HTTPS_PROXY. NOTE: It is ignored if 'proxies' is NOT None.
 
-    Returns
-    -------
-    dict
+    Returns:
         A dictionary with proxies, either set from 'proxies' or read from ENV VARs.
     """
-
     if proxies is not None:
         if isinstance(proxies, str):
             return {
@@ -209,14 +202,10 @@ def _get_proxies(proxies: Union[dict, str, Proxies, None], trust_env: bool) -> D
 
 
 def _get_epoch_time() -> int:
-    """
-    Get the current epoch time as an integer.
+    """Get the current epoch time as an integer.
 
-    Returns
-    -------
-    int
+    Returns:
         Current epoch time.
     """
-
     dts = datetime.datetime.utcnow()
     return round(time.mktime(dts.timetuple()) + dts.microsecond / 1e6)

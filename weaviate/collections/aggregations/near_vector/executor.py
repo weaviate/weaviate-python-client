@@ -1,16 +1,16 @@
-from typing import Generic, List, Optional, Union, cast
+from typing import Generic, List, Literal, Optional, Union, cast, overload
 
-from weaviate.collections.aggregations.executor import _BaseExecutor
+from weaviate.collections.aggregations.base_executor import _BaseExecutor
 from weaviate.collections.classes.aggregate import (
-    PropertiesMetrics,
-    AggregateReturn,
     AggregateGroupByReturn,
+    AggregateReturn,
     GroupByAggregate,
+    PropertiesMetrics,
 )
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.grpc import (
-    TargetVectorJoinType,
     NearVectorInputType,
+    TargetVectorJoinType,
 )
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect import executor
@@ -20,6 +20,51 @@ from weaviate.types import NUMBER
 
 
 class _NearVectorExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
+    @overload
+    def near_vector(
+        self,
+        near_vector: NearVectorInputType,
+        *,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Literal[None] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateReturn]: ...
+
+    @overload
+    def near_vector(
+        self,
+        near_vector: NearVectorInputType,
+        *,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Union[str, GroupByAggregate],
+        target_vector: Optional[TargetVectorJoinType] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[AggregateGroupByReturn]: ...
+
+    @overload
+    def near_vector(
+        self,
+        near_vector: NearVectorInputType,
+        *,
+        certainty: Optional[NUMBER] = None,
+        distance: Optional[NUMBER] = None,
+        object_limit: Optional[int] = None,
+        filters: Optional[_Filters] = None,
+        group_by: Optional[Union[str, GroupByAggregate]] = None,
+        target_vector: Optional[TargetVectorJoinType] = None,
+        total_count: bool = True,
+        return_metrics: Optional[PropertiesMetrics] = None,
+    ) -> executor.Result[Union[AggregateReturn, AggregateGroupByReturn]]: ...
+
     def near_vector(
         self,
         near_vector: NearVectorInputType,
@@ -39,32 +84,22 @@ class _NearVectorExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]
 
         This method requires that the objects in the collection have associated vectors.
 
-        Arguments:
-            `near_vector`
-                The vector to search on.
-            `certainty`
-                The minimum certainty of the vector search.
-            `distance`
-                The maximum distance of the vector search.
-            `object_limit`
-                The maximum number of objects to return from the vector search prior to the aggregation.
-            `filters`
-                The filters to apply to the search.
-            `group_by`
-                How to group the aggregation by.
-            `total_count`
-                Whether to include the total number of objects that match the query in the response.
-            `return_metrics`
-                A list of property metrics to aggregate together after the text search.
+        Args:
+            near_vector: The vector to search on.
+            certainty: The minimum certainty of the vector search.
+            distance: The maximum distance of the vector search.
+            object_limit: The maximum number of objects to return from the vector search prior to the aggregation.
+            filters: The filters to apply to the search.
+            group_by: How to group the aggregation by.
+            total_count: Whether to include the total number of objects that match the query in the response.
+            return_metrics: A list of property metrics to aggregate together after the text search.
 
         Returns:
             Depending on the presence of the `group_by` argument, either a `AggregateReturn` object or a `AggregateGroupByReturn that includes the aggregation objects.
 
         Raises:
-            `weaviate.exceptions.WeaviateQueryError`:
-                If an error occurs while performing the query against Weaviate.
-            `weaviate.exceptions.WeaviateInvalidInputError`:
-                If any of the input arguments are of the wrong type.
+            weaviate.exceptions.WeaviateQueryError: If an error occurs while performing the query against Weaviate.
+            weaviate.exceptions.WeaviateInvalidInputError: If any of the input arguments are of the wrong type.
         """
         return_metrics = (
             return_metrics

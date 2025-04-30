@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 import weaviate
-
 from journey_tests.journeys import AsyncJourneys, SyncJourneys
 
 # some dependency instantiate a sync client on import/file root

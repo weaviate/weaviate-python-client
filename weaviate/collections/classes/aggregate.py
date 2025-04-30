@@ -5,11 +5,11 @@ from typing import (
     Optional,
     Union,
 )
-from typing_extensions import TypeVar
 
 from pydantic import BaseModel, Field
+from typing_extensions import TypeVar
 
-from weaviate.collections.classes.types import _WeaviateInput, GeoCoordinate
+from weaviate.collections.classes.types import GeoCoordinate, _WeaviateInput
 from weaviate.proto.v1 import aggregate_pb2
 
 N = TypeVar("N", int, float)
@@ -112,7 +112,16 @@ class GroupedBy:
 
     prop: str
     value: Union[
-        str, int, float, bool, List[str], List[int], List[float], List[bool], GeoCoordinate, None
+        str,
+        int,
+        float,
+        bool,
+        List[str],
+        List[int],
+        List[float],
+        List[bool],
+        GeoCoordinate,
+        None,
     ]
 
 
@@ -362,15 +371,11 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `top_occurrences_count`
-                Whether to include the number of the top occurrences of a property's value.
-            `top_occurrences_value`
-                Whether to include the value of the top occurrences of a property's value.
-            `min_occurrences`
-                Only include entries with more occurrences than the given limit.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            top_occurrences_count: Whether to include the number of the top occurrences of a property's value.
+            top_occurrences_value: Whether to include the value of the top occurrences of a property's value.
+            min_occurrences: Only include entries with more occurrences than the given limit.
 
         Returns:
             A `_MetricsStr` object that includes the metrics to be returned.
@@ -401,21 +406,14 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `maximum`
-                Whether to include the maximum value of this property.
-            `mean`
-                Whether to include the mean value of this property.
-            `median`
-                Whether to include the median value of this property.
-            `minimum`
-                Whether to include the minimum value of this property.
-            `mode`
-                Whether to include the mode value of this property.
-            `sum_`
-                Whether to include the sum of this property.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            maximum: Whether to include the maximum value of this property.
+            mean: Whether to include the mean value of this property.
+            median: Whether to include the median value of this property.
+            minimum: Whether to include the minimum value of this property.
+            mode: Whether to include the mode value of this property.
+            sum_: Whether to include the sum of this property.
 
         Returns:
             A `_MetricsInteger` object that includes the metrics to be returned.
@@ -453,21 +451,14 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `maximum`
-                Whether to include the maximum value of this property.
-            `mean`
-                Whether to include the mean value of this property.
-            `median`
-                Whether to include the median value of this property.
-            `minimum`
-                Whether to include the minimum value of this property.
-            `mode`
-                Whether to include the mode value of this property.
-            `sum_`
-                Whether to include the sum of this property.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            maximum: Whether to include the maximum value of this property.
+            mean: Whether to include the mean value of this property.
+            median: Whether to include the median value of this property.
+            minimum: Whether to include the minimum value of this property.
+            mode: Whether to include the mode value of this property.
+            sum_: Whether to include the sum of this property.
 
         Returns:
             A `_MetricsNumber` object that includes the metrics to be returned.
@@ -503,17 +494,12 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `percentage_false`
-                Whether to include the percentage of objects that have a false value for this property.
-            `percentage_true`
-                Whether to include the percentage of objects that have a true value for this property.
-            `total_false`
-                Whether to include the total number of objects that have a false value for this property.
-            `total_true`
-                Whether to include the total number of objects that have a true value for this property.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            percentage_false: Whether to include the percentage of objects that have a false value for this property.
+            percentage_true: Whether to include the percentage of objects that have a true value for this property.
+            total_false: Whether to include the total number of objects that have a false value for this property.
+            total_true: Whether to include the total number of objects that have a true value for this property.
 
         Returns:
             A `_MetricsBoolean` object that includes the metrics to be returned.
@@ -545,17 +531,12 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `count`
-                Whether to include the number of objects that contain this property.
-            `maximum`
-                Whether to include the maximum value of this property.
-            `median`
-                Whether to include the median value of this property.
-            `minimum`
-                Whether to include the minimum value of this property.
-            `mode`
-                Whether to include the mode value of this property.
+        Args:
+            count: Whether to include the number of objects that contain this property.
+            maximum: Whether to include the maximum value of this property.
+            median: Whether to include the median value of this property.
+            minimum: Whether to include the minimum value of this property.
+            mode: Whether to include the mode value of this property.
 
         Returns:
             A `_MetricsDate` object that includes the metrics to be returned.
@@ -584,9 +565,8 @@ class Metrics:
 
         If none of the arguments are provided then all metrics will be returned.
 
-        Arguments:
-            `pointing_to`
-                The UUIDs of the objects that are being pointed to.
+        Args:
+            pointing_to: The UUIDs of the objects that are being pointed to.
 
         Returns:
             A `_MetricsReference` object that includes the metrics to be returned.

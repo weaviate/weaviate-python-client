@@ -1,32 +1,28 @@
-"""
-Client class definition.
-"""
+"""Client class definition."""
 
 from typing import (
     Any,
+    Dict,
     Generic,
     Optional,
     Tuple,
-    Union,
-    Dict,
     Type,
+    Union,
 )
 
 from httpx import Response
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
-
 from weaviate.integrations import _Integrations
 
 from .auth import AuthCredentials
 from .config import AdditionalConfig
 from .connect import executor
-from .connect.v4 import ConnectionAsync
 from .connect.base import (
     ConnectionParams,
     ProtocolParams,
 )
-from .connect.v4 import _ExpectedStatusCodes, ConnectionType
+from .connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from .embedded import EmbeddedOptions, EmbeddedV4
 from .types import NUMBER
 from .util import _decode_json_response_dict
@@ -54,43 +50,35 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
         To simplify connections to Weaviate Cloud or local instances, use the weaviate.connect_to_weaviate_cloud
         or weaviate.connect_to_local helper functions.
 
-        Arguments:
-            - `connection_params`: `weaviate.connect.ConnectionParams` or None, optional
-                - The connection parameters to use for the underlying HTTP requests.
-            - `embedded_options`: `weaviate.EmbeddedOptions` or None, optional
-                - The options to use when provisioning an embedded Weaviate instance.
-            - `auth_client_secret`: `weaviate.AuthCredentials` or None, optional
-                - Authenticate to weaviate by using one of the given authentication modes:
-                    - `weaviate.auth.AuthBearerToken` to use existing access and (optionally, but recommended) refresh tokens
-                    - `weaviate.auth.AuthClientPassword` to use username and password for oidc Resource Owner Password flow
-                    - `weaviate.auth.AuthClientCredentials` to use a client secret for oidc client credential flow
-            - `additional_headers`: `dict` or None, optional
-                - Additional headers to include in the requests.
-                    - Can be used to set OpenAI/HuggingFace/Cohere etc. keys.
-                    - [Here](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai#providing-the-key-to-weaviate) is an
-                    example of how to set API keys within this parameter.
-            - `additional_config`: `weaviate.AdditionalConfig` or None, optional
-                - Additional and advanced configuration options for Weaviate.
-            - `skip_init_checks`: `bool`, optional
-                - If set to `True` then the client will not perform any checks including ensuring that weaviate has started. This is useful for air-gapped environments and high-performance setups.
+        Args:
+            connection_params: The connection parameters to use for the underlying HTTP requests.
+            embedded_options: The options to use when provisioning an embedded Weaviate instance.
+            auth_client_secret: Authenticate to weaviate by using one of the given authentication modes:
+                - `weaviate.auth.AuthBearerToken` to use existing access and (optionally, but recommended) refresh tokens
+                - `weaviate.auth.AuthClientPassword` to use username and password for oidc Resource Owner Password flow
+                - `weaviate.auth.AuthClientCredentials` to use a client secret for oidc client credential flow
+            additional_headers: Additional headers to include in the requests. Can be used to set OpenAI/HuggingFace/Cohere etc. keys.
+                [Here](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai#providing-the-key-to-weaviate) is an
+                example of how to set API keys within this parameter.
+            additional_config: Additional and advanced configuration options for Weaviate.
+            skip_init_checks: If set to `True` then the client will not perform any checks including ensuring that weaviate has started.
+                This is useful for air-gapped environments and high-performance setups.
         """
         connection_params, embedded_db = self.__parse_connection_params_and_embedded_db(
             connection_params, embedded_options
         )
         config = additional_config or AdditionalConfig()
 
-        self._connection = (
-            self._connection_type(  # pyright: ignore reportIncompatibleVariableOverride
-                connection_params=connection_params,
-                auth_client_secret=auth_client_secret,
-                timeout_config=config.timeout,
-                additional_headers=additional_headers,
-                embedded_db=embedded_db,
-                connection_config=config.connection,
-                proxies=config.proxies,
-                trust_env=config.trust_env,
-                skip_init_checks=skip_init_checks,
-            )
+        self._connection = self._connection_type(  # pyright: ignore reportIncompatibleVariableOverride
+            connection_params=connection_params,
+            auth_client_secret=auth_client_secret,
+            timeout_config=config.timeout,
+            additional_headers=additional_headers,
+            embedded_db=embedded_db,
+            connection_config=config.connection,
+            proxies=config.proxies,
+            trust_env=config.trust_env,
+            skip_init_checks=skip_init_checks,
         )
 
         self.integrations = _Integrations(self._connection)
@@ -137,21 +125,26 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
         await executor.aresult(self._connection.close("async"))
 
     def close(self) -> executor.Result[None]:
-        """
-        Close the connection to Weaviate.
+        """In order to clean up any resources used by the client, call this method when you are done with it.
 
-        This method should be called when the client is no longer needed to free up resources.
+        If you do not do this, memory leaks may occur due to stale connections.
+        This method also closes the embedded database if one was started.
         """
         if isinstance(self._connection, ConnectionAsync):
             return self.__close_async()
         return executor.result(self._connection.close("sync"))
 
     def connect(self) -> executor.Result[None]:
-        """
-        Connect to Weaviate.
+        """Connect to the Weaviate instance performing all the necessary checks.
 
-        It is required that this method is called before any other operations can be made successfully.
-        If not done so, exepctions will be raised.
+        If you have specified `skip_init_checks` in the constructor then this method will not perform any runtime checks
+        to ensure that Weaviate is running and ready to accept requests. This is useful for air-gapped environments and high-performance setups.
+
+        This method is idempotent and will only perform the checks once. Any subsequent calls do nothing while `client.is_connected() == True`.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
         """
         return executor.execute(
             response_callback=lambda _: None,
@@ -193,20 +186,16 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
 
         Be cautious of injection risks when generating query strings.
 
-        Arguments:
-            `gql_query`
-                GraphQL query as a string.
+        Args:
+            gql_query: GraphQL query as a string.
 
         Returns:
             A dict with the response from the GraphQL query.
 
-        Raises
-            `TypeError`
-                If 'gql_query' is not of type str.
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
+        Raises:
+            TypeError: If `gql_query` is not of type str.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
         """
         _validate_input(_ValidateArgument([str], "gql_query", gql_query))
         json_query = {"query": gql_query}
@@ -243,16 +232,13 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
         )
 
     def get_meta(self) -> executor.Result[dict]:
-        """
-        Get the meta endpoint description of weaviate.
+        """Get the meta endpoint description of weaviate.
 
         Returns:
-            `dict`
-                The `dict` describing the weaviate configuration.
+            The `dict` describing the weaviate configuration.
 
         Raises:
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
         """
         return executor.execute(
             response_callback=executor.do_nothing,
@@ -262,16 +248,13 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
     def get_open_id_configuration(
         self,
     ) -> executor.Result[Optional[Dict[str, Any]]]:
-        """
-        Get the openid-configuration.
+        """Get the openid-configuration.
 
-        Returns
-            `dict`
-                The configuration or `None` if not configured.
+        Returns:
+            The configuration or `None` if not configured.
 
-        Raises
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a none OK status.
+        Raises:
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a none OK status.
         """
         return executor.execute(
             response_callback=executor.do_nothing,
@@ -283,7 +266,6 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
         """Check if the client is connected to Weaviate.
 
         Returns:
-            `bool`
-                `True` if the client is connected to Weaviate with an open connection pool, `False` otherwise.
+            `True` if the client is connected to Weaviate with an open connection pool, `False` otherwise.
         """
         return self._connection.is_connected()

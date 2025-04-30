@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from typing import Generic, List, Literal, Optional, TypeVar, cast
 
-from weaviate.cluster.types import Node as NodeREST, Shard as ShardREST
+from weaviate.cluster.types import Node as NodeREST
+from weaviate.cluster.types import Shard as ShardREST
 
 
 @dataclass

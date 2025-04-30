@@ -1,7 +1,8 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 
+from deprecation import deprecated as docstring_deprecated
 from pydantic import AnyHttpUrl, Field
-from typing_extensions import deprecated
+from typing_extensions import deprecated as typing_deprecated
 
 from weaviate.collections.classes.config_base import (
     _ConfigCreateModel,
@@ -9,36 +10,14 @@ from weaviate.collections.classes.config_base import (
     _EnumLikeStr,
 )
 from weaviate.collections.classes.config_vector_index import (
-    _VectorIndexConfigCreate,
-    _VectorIndexConfigHNSWUpdate,
-    _VectorIndexConfigFlatUpdate,
-    _VectorIndexConfigDynamicUpdate,
-    _VectorIndexConfigUpdate,
     VectorIndexType,
+    _VectorIndexConfigCreate,
+    _VectorIndexConfigDynamicUpdate,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWUpdate,
+    _VectorIndexConfigUpdate,
 )
 from weaviate.collections.classes.config_vectorizers import (
-    _Img2VecNeuralConfig,
-    _Multi2VecBindConfig,
-    _Multi2VecClipConfig,
-    _Multi2VecVoyageaiConfig,
-    _Multi2VecNvidiaConfig,
-    _Multi2VecGoogleConfig,
-    _Ref2VecCentroidConfig,
-    _Text2ColbertJinaAIConfig,
-    _Text2VecAWSConfig,
-    _Text2VecAzureOpenAIConfig,
-    _Text2VecCohereConfig,
-    _Text2VecContextionaryConfig,
-    _Text2VecGPT4AllConfig,
-    _Text2VecHuggingFaceConfig,
-    _Text2VecJinaConfig,
-    _Text2VecMistralConfig,
-    _Text2VecNvidiaConfig,
-    _Text2VecOllamaConfig,
-    _Text2VecOpenAIConfig,
-    _Text2VecGoogleConfig,
-    _Text2VecTransformersConfig,
-    _VectorizerConfigCreate,
     AWSModel,
     AWSService,
     CohereModel,
@@ -52,15 +31,38 @@ from weaviate.collections.classes.config_vectorizers import (
     Vectorizers,
     VoyageModel,
     VoyageMultimodalModel,
-    _map_multi2vec_fields,
-    _VectorizerCustomConfig,
-    _Text2VecDatabricksConfig,
-    _Text2VecVoyageConfig,
-    _Multi2VecCohereConfig,
-    _Multi2VecJinaConfig,
-    _Text2VecWeaviateConfig,
     WeaviateModel,
+    _Img2VecNeuralConfig,
+    _map_multi2vec_fields,
+    _Multi2VecBindConfig,
+    _Multi2VecClipConfig,
+    _Multi2VecCohereConfig,
+    _Multi2VecGoogleConfig,
+    _Multi2VecJinaConfig,
+    _Multi2VecNvidiaConfig,
+    _Multi2VecVoyageaiConfig,
+    _Ref2VecCentroidConfig,
+    _Text2ColbertJinaAIConfig,
+    _Text2VecAWSConfig,
+    _Text2VecAzureOpenAIConfig,
+    _Text2VecCohereConfig,
+    _Text2VecContextionaryConfig,
+    _Text2VecDatabricksConfig,
+    _Text2VecGoogleConfig,
+    _Text2VecGPT4AllConfig,
+    _Text2VecHuggingFaceConfig,
+    _Text2VecJinaConfig,
+    _Text2VecMistralConfig,
+    _Text2VecNvidiaConfig,
+    _Text2VecOllamaConfig,
+    _Text2VecOpenAIConfig,
+    _Text2VecTransformersConfig,
+    _Text2VecVoyageConfig,
+    _Text2VecWeaviateConfig,
+    _VectorizerConfigCreate,
+    _VectorizerCustomConfig,
 )
+
 from ...warnings import _Warnings
 
 
@@ -113,11 +115,9 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using no vectorizer. You will need to provide the vectors yourself.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -136,17 +136,12 @@ class _NamedVectors:
     ) -> _NamedVectorConfigCreate:
         """Create a named vector using no vectorizer. You will need to provide the vectors yourself.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `module_name`
-                The name of the custom module to use.
-            `module_config`
-                The configuration of the custom module to use.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+        Args:
+            name: The name of the named vector.
+            module_name: The name of the custom module to use.
+            module_config: The configuration of the custom module to use.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -172,26 +167,23 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/colbert)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `dimensions`
-                Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
             source_properties=source_properties,
             vector_index_config=vector_index_config,
             vectorizer=_Text2ColbertJinaAIConfig(
-                model=model, dimensions=dimensions, vectorizeClassName=vectorize_collection_name
+                model=model,
+                dimensions=dimensions,
+                vectorizeClassName=vectorize_collection_name,
             ),
         )
 
@@ -211,24 +203,18 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `truncate`
-                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `CohereModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `CohereModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -259,26 +245,18 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/cohere/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `image_fields`
-                The image fields to use in vectorization.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `text_fields`
-                The text fields to use in vectorization.
-            `truncate`
-                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            truncate: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `CohereMultimodalModel` type or if `truncate` is not a valid value from the `CohereTruncation` type.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -306,15 +284,11 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-contextionary)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -340,19 +314,13 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/databricks/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `endpoint`
-                The endpoint to use.
-            `instruction`
-                The instruction strategy to use. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            endpoint: The endpoint to use.
+            instruction: The instruction strategy to use. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -380,19 +348,13 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/mistral/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -420,20 +382,16 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/ollama/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `api_endpoint`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            api_endpoint: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
                 Docker users may need to specify an alias, such as `http://host.docker.internal:11434` so that the container can access the host machine.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -464,27 +422,20 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `dimensions`
-                Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `model_version`
-                The model version to use. Defaults to `None`, which uses the server-defined default.
-            `type_`
-                The type of model to use. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            model_version: The model version to use. Defaults to `None`, which uses the server-defined default.
+            type_: The type of model to use. Defaults to `None`, which uses the server-defined default.
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: Number of dimensions. Applicable to v3 OpenAI models only. Defaults to `None`, which uses the server-defined default.
+
         Raises:
-            `pydantic.ValidationError` if `type_` is not a valid value from the `OpenAIType` type.
+            pydantic.ValidationError: If `type_` is not a valid value from the `OpenAIType` type.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -517,23 +468,15 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/aws/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `region`
-                The AWS region to run the model from, REQUIRED.
-            `endpoint`
-                The endpoint to use. Defaults to `None`, which uses the server-defined default.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `service`
-                The AWS service to use. Defaults to `bedrock`.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            region: The AWS region to run the model from, REQUIRED.
+            endpoint: The endpoint to use. Defaults to `None`, which uses the server-defined default.
+            model: The model to use.
+            service: The AWS service to use. Defaults to `bedrock`.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -560,17 +503,13 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/img2vec-neural)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `image_fields`
-                The image fields to use. This is a required field and must match the property fields
-                of the collection that are defined as `DataType.BLOB`.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+        Args:
+            name: The name of the named vector.
+            image_fields: The image fields to use. This is a required field and must match the property fields of the collection that are defined as `DataType.BLOB`.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
 
         Raises:
-            `pydantic.ValidationError` if `image_fields` is not a `list`.
+            pydantic.ValidationError: If `image_fields` is not a `list`.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -593,19 +532,13 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `inference_url`
-                The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
+            inference_url: The inference url to use where API requests should go. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -619,8 +552,14 @@ class _NamedVectors:
         )
 
     @staticmethod
-    @deprecated(
-        "This method is deprecated and will be removed in Q2 25. Please use `multi2vec_google` instead."
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="""
+This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._NamedVectors.multi2vec_google` instead.
+""",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '25. Please use `multi2vec_google` instead."
     )
     def multi2vec_palm(
         name: str,
@@ -641,29 +580,18 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `location`
-                Where the model runs. REQUIRED.
-            `project_id`
-                The project ID to use, REQUIRED.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `video_fields`
-                The video fields to use in vectorization.
-            `dimensions`
-                The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
-            `video_interval_seconds`
-                Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            location: Where the model runs. REQUIRED.
+            project_id: The project ID to use, REQUIRED.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
+            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
         """
         _Warnings.palm_to_google_m2v()
         return _NamedVectorConfigCreate(
@@ -702,29 +630,18 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `location`
-                Where the model runs. REQUIRED.
-            `project_id`
-                The project ID to use, REQUIRED.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `video_fields`
-                The video fields to use in vectorization.
-            `dimensions`
-                The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
-            `video_interval_seconds`
-                Length of a video interval. Defaults to `None`, which uses the server-defined default.
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            location: Where the model runs. REQUIRED.
+            project_id: The project ID to use, REQUIRED.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
+            dimensions: The number of dimensions to use. Defaults to `None`, which uses the server-defined default.
+            video_interval_seconds: Length of a video interval. Defaults to `None`, which uses the server-defined default.
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -761,27 +678,17 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/imagebind/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `audio_fields`
-                The audio fields to use in vectorization.
-            `depth_fields`
-                The depth fields to use in vectorization.
-            `image_fields`
-                The image fields to use in vectorization.
-            `imu_fields`
-                The IMU fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `thermal_fields`
-                The thermal fields to use in vectorization.
-            `video_fields`
-                The video fields to use in vectorization.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            audio_fields: The audio fields to use in vectorization.
+            depth_fields: The depth fields to use in vectorization.
+            image_fields: The image fields to use in vectorization.
+            imu_fields: The IMU fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
+            thermal_fields: The thermal fields to use in vectorization.
+            video_fields: The video fields to use in vectorization.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -816,26 +723,18 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `truncation`
-                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `VoyageaiMultimodalModel` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `VoyageaiMultimodalModel` type.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -869,26 +768,18 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `truncation`
-                The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            truncation: The truncation strategy to use. Defaults to `None`, which uses the server-defined default.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `NvidiaMultimodalModel` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `NvidiaMultimodalModel` type.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -917,13 +808,11 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/retriever-vectorizer-modules/text2vec-gpt4all)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `reference_properties`
-                The reference properties to use in vectorization, REQUIRED.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+        Args:
+            name: The name of the named vector.
+            reference_properties: The reference properties to use in vectorization, REQUIRED.
+            method: The method to use. Defaults to `mean`.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -952,25 +841,16 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/openai-azure/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `resource_name`
-                The resource name to use, REQUIRED.
-            `deployment_id`
-                The deployment ID to use, REQUIRED.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `dimensions`
-                The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            resource_name: The resource name to use, REQUIRED.
+            deployment_id: The deployment ID to use, REQUIRED.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: The dimensionality of the vectors. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -999,15 +879,11 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/gpt4all/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1038,34 +914,23 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `passage_model`
-                The passage model to use. Defaults to `None`, which uses the server-defined default.
-            `query_model`
-                The query model to use. Defaults to `None`, which uses the server-defined default.
-            `endpoint_url`
-                The endpoint URL to use. Defaults to `None`, which uses the server-defined default.
-            `wait_for_model`
-                Whether to wait for the model to be loaded. Defaults to `None`, which uses the server-defined default.
-            `use_gpu`
-                Whether to use the GPU. Defaults to `None`, which uses the server-defined default.
-            `use_cache`
-                Whether to use the cache. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            passage_model: The passage model to use. Defaults to `None`, which uses the server-defined default.
+            query_model: The query model to use. Defaults to `None`, which uses the server-defined default.
+            endpoint_url: The endpoint URL to use. Defaults to `None`, which uses the server-defined default.
+            wait_for_model: Whether to wait for the model to be loaded. Defaults to `None`, which uses the server-defined default.
+            use_gpu: Whether to use the GPU. Defaults to `None`, which uses the server-defined default.
+            use_cache: Whether to use the cache. Defaults to `None`, which uses the server-defined default.
 
         Raises:
-            `pydantic.ValidationError` if the arguments passed to the function are invalid.
+            pydantic.ValidationError: If the arguments passed to the function are invalid.
                 It is important to note that some of these variables are mutually exclusive.
-                    See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings#vectorizer-parameters) for more details.
+                See the [documentation](https://weaviate.io/developers/weaviate/model-providers/huggingface/embeddings#vectorizer-parameters) for more details.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1084,8 +949,14 @@ class _NamedVectors:
         )
 
     @staticmethod
-    @deprecated(
-        "This method is deprecated and will be removed in Q2 25. Please use `text2vec_google` instead."
+    @docstring_deprecated(
+        deprecated_in="4.9.0",
+        details="""
+This method is deprecated and will be removed in Q2 '25. Please use :meth:`~weaviate.collections.classes.config._NamedVectors.text2vec_google` instead.
+""",
+    )
+    @typing_deprecated(
+        "This method is deprecated and will be removed in Q2 '25. Please use `text2vec_google` instead."
     )
     def text2vec_palm(
         name: str,
@@ -1103,28 +974,19 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `project_id`
-                The project ID to use, REQUIRED.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
-            `api_endpoint`
-                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `title_property`
-                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            project_id: The project ID to use, REQUIRED.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
 
         Raises:
-            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
         _Warnings.palm_to_google_t2v()
         return _NamedVectorConfigCreate(
@@ -1157,28 +1019,19 @@ class _NamedVectors:
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `project_id`
-                The project ID to use, REQUIRED.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `api_endpoint`
-                The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `title_property`
-                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            project_id: The project ID to use, REQUIRED.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            api_endpoint: The API endpoint to use without a leading scheme such as `http://`. Defaults to `None`, which uses the server-defined default
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
 
         Raises:
-            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1208,22 +1061,17 @@ class _NamedVectors:
         See the [documentation]https://weaviate.io/developers/weaviate/model-providers/google/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `model_id`
-                The model ID to use. Defaults to `None`, which uses the server-defined default.
-            `title_property`
-                The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model_id: The model ID to use. Defaults to `None`, which uses the server-defined default.
+            title_property: The Weaviate property name for the `gecko-002` or `gecko-003` model to use as the title.
 
         Raises:
-            `pydantic.ValidationError` if `api_endpoint` is not a valid URL.
+            pydantic.ValidationError: If `api_endpoint` is not a valid URL.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1255,23 +1103,15 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/transformers/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `pooling_strategy`
-                The pooling strategy to use. Defaults to `masked_mean`.
-            `inference_url`
-                The inferenceUrl to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
-            `passage_inference_url`
-                The inferenceUrl to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
-            `query_inference_url`
-                The inferenceUrl to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            pooling_strategy: The pooling strategy to use. Defaults to `masked_mean`.
+            inference_url: The inferenceUrl to use where API requests should go. You can use either this OR passage/query_inference_url. Defaults to `None`, which uses the server-defined default.
+            passage_inference_url: The inferenceUrl to use where passage API requests should go. You can use either this and query_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
+            query_inference_url: The inferenceUrl to use where query API requests should go. You can use either this and passage_inference_url OR inference_url. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1301,21 +1141,14 @@ class _NamedVectors:
 
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings) for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `base_url`
-                The base URL to send the vectorization requests to. Defaults to `None`, which uses the server-defined default.
-            `dimensions`
-                The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to send the vectorization requests to. Defaults to `None`, which uses the server-defined default.
+            dimensions: The number of dimensions for the generated embeddings. Defaults to `None`, which uses the server-defined default.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1346,26 +1179,18 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/jinaai/embeddings-multimodal)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `dimensions`
-                The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
-            `image_fields`
-                The image fields to use in vectorization.
-            `text_fields`
-                The text fields to use in vectorization.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            dimensions: The number of dimensions for the generated embeddings (only available for some models). Defaults to `None`, which uses the server-defined default.
+            image_fields: The image fields to use in vectorization.
+            text_fields: The text fields to use in vectorization.
 
         Raises:
-            `pydantic.ValidationError` if `model` is not a valid value from the `JinaMultimodalModel` type.
+            pydantic.ValidationError: If `model` is not a valid value from the `JinaMultimodalModel` type.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1396,23 +1221,16 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/model-providers/voyageai/embeddings#available-models) for more details.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `truncate`
-                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1465,23 +1283,16 @@ class _NamedVectors:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings)
         for detailed usage.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default.
+        Args:
+            name: The name of the named vector.
+            source_properties: Which properties should be included when vectorizing. By default all text properties are included.
+            vector_index_config: The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
+            vectorize_collection_name: Whether to vectorize the collection name. Defaults to `True`.
+            model: The model to use. Defaults to `None`, which uses the server-defined default.
                 See the
                 [documentation](https://weaviate.io/developers/weaviate/model-providers/nvidia/embeddings#available-models) for more details.
-            `base_url`
-                The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
-            `truncate`
-                Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
-            `source_properties`
-                Which properties should be included when vectorizing. By default all text properties are included.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use wvc.config.Configure.VectorIndex to create a vector index configuration. None by default
-            `vectorize_collection_name`
-                Whether to vectorize the collection name. Defaults to `True`.
+            base_url: The base URL to use where API requests should go. Defaults to `None`, which uses the server-defined default.
+            truncate: Whether to truncate the input texts to fit within the context length. Defaults to `None`, which uses the server-defined default.
         """
         return _NamedVectorConfigCreate(
             name=name,
@@ -1512,11 +1323,9 @@ class _NamedVectorsUpdate:
         This is the only update operation allowed currently. If you wish to change the vectorization configuration itself, you will have to
         recreate the collection with the new configuration.
 
-        Arguments:
-            `name`
-                The name of the named vector.
-            `vector_index_config`
-                The configuration for Weaviate's vector index. Use `wvc.config.Reconfigure.VectorIndex` to create a vector index configuration. `None` by default
+        Args:
+            name: The name of the named vector.
+            vector_index_config: The configuration for Weaviate's vector index. Use `wvc.config.Reconfigure.VectorIndex` to create a vector index configuration. `None` by default
         """
         return _NamedVectorConfigUpdate(
             name=name,

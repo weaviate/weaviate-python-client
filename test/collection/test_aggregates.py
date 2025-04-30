@@ -1,7 +1,9 @@
-import pytest
 from typing import Awaitable, Callable
-from weaviate.connect import ConnectionV4
+
+import pytest
+
 from weaviate.collections.aggregate import _AggregateCollectionAsync
+from weaviate.connect import ConnectionV4
 from weaviate.exceptions import WeaviateInvalidInputError
 
 

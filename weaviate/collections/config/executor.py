@@ -1,36 +1,49 @@
 import asyncio
-from typing import Any, Dict, Generic, List, Literal, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
 from httpx import Response
 from pydantic_core import ValidationError
 
 from weaviate.collections.classes.config import (
-    _CollectionConfigUpdate,
-    _InvertedIndexConfigUpdate,
-    _ReplicationConfigUpdate,
-    _VectorIndexConfigFlatUpdate,
-    PropertyType,
-    Property,
-    ReferenceProperty,
-    _ReferencePropertyMultiTarget,
-    _VectorIndexConfigHNSWUpdate,
     CollectionConfig,
     CollectionConfigSimple,
+    Property,
+    PropertyType,
+    ReferenceProperty,
     ShardStatus,
-    _ShardStatus,
     ShardTypes,
-    _NamedVectorConfigUpdate,
-    _MultiTenancyConfigUpdate,
+    _CollectionConfigUpdate,
     _GenerativeProvider,
+    _InvertedIndexConfigUpdate,
+    _MultiTenancyConfigUpdate,
+    _NamedVectorConfigUpdate,
+    _ReferencePropertyMultiTarget,
+    _ReplicationConfigUpdate,
     _RerankerProvider,
+    _ShardStatus,
+    _VectorIndexConfigFlatUpdate,
+    _VectorIndexConfigHNSWUpdate,
 )
 from weaviate.collections.classes.config_methods import (
     _collection_config_from_json,
     _collection_config_simple_from_json,
 )
-from weaviate.collections.classes.config_vector_index import _VectorIndexConfigDynamicUpdate
+from weaviate.collections.classes.config_vector_index import (
+    _VectorIndexConfigDynamicUpdate,
+)
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import (
     WeaviateInvalidInputError,
 )
@@ -39,7 +52,7 @@ from weaviate.validator import _validate_input, _ValidateArgument
 from weaviate.warnings import _Warnings
 
 
-class _ConfigExecutor(Generic[ConnectionType]):
+class _ConfigCollectionExecutor(Generic[ConnectionType]):
     def __init__(
         self,
         connection: ConnectionType,
@@ -62,20 +75,36 @@ class _ConfigExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=200, error="Get collection configuration"),
         )
 
+    @overload
+    def get(
+        self,
+        simple: Literal[False] = False,
+    ) -> executor.Result[CollectionConfig]: ...
+
+    @overload
+    def get(
+        self,
+        simple: Literal[True],
+    ) -> executor.Result[CollectionConfigSimple]: ...
+
+    @overload
+    def get(
+        self,
+        simple: bool = False,
+    ) -> executor.Result[Union[CollectionConfig, CollectionConfigSimple]]: ...
+
     def get(
         self,
         simple: bool = False,
     ) -> executor.Result[Union[CollectionConfig, CollectionConfigSimple]]:
         """Get the configuration for this collection from Weaviate.
 
-        Arguments:
-            simple : If True, return a simplified version of the configuration containing only name and properties.
+        Args:
+            simple: If True, return a simplified version of the configuration containing only name and properties.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _validate_input([_ValidateArgument(expected=[bool], name="simple", value=simple)])
 
@@ -118,33 +147,21 @@ class _ConfigExecutor(Generic[ConnectionType]):
 
         Use the `weaviate.classes.Reconfigure` class to generate the necessary configuration objects for this method.
 
-        Arguments:
-            `description`
-                A description of the collection.
-            `property_descriptions`
-                A dictionary of property names and their descriptions.
-            `inverted_index_config`
-                Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
-            `replication_config`
-                Configuration for the replication. Use `Reconfigure.replication` to generate one.
-            `reranker_config`
-                Configuration for the reranker. Use `Reconfigure.replication` to generate one.
-            `vector_index_config` DEPRECATED USE `vectorizer_config` INSTEAD
-                Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
-            `vectorizer_config`
-                Configurations for the vector index (or indices) of your collection.
+        Args:
+            description: A description of the collection.
+            inverted_index_config: Configuration for the inverted index. Use `Reconfigure.inverted_index` to generate one.
+            replication_config: Configuration for the replication. Use `Reconfigure.replication` to generate one.
+            reranker_config: Configuration for the reranker. Use `Reconfigure.replication` to generate one.
+            vector_index_config`: DEPRECATED USE `vectorizer_config` INSTEAD. Configuration for the vector index of the default single vector. Use `Reconfigure.vector_index` to generate one.
+            vectorizer_config: Configurations for the vector index (or indices) of your collection.
                 Use `Reconfigure.vector_index` if there is only one vectorizer and `Reconfigure.NamedVectors` if you have many named vectors to generate them.
-            `multi_tenancy_config`
-                Configuration for multi-tenancy settings. Use `Reconfigure.multi_tenancy` to generate one.
+            multi_tenancy_config: Configuration for multi-tenancy settings. Use `Reconfigure.multi_tenancy` to generate one.
                 Only `auto_tenant_creation` is supported.
 
         Raises:
-            `weaviate.WeaviateInvalidInputError`:
-                If the input parameters are invalid.
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`:
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the input parameters are invalid.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
 
         NOTE:
             - If you wish to update a specific option within the configuration and cannot find it in `CollectionConfigUpdate` then it is an immutable option.
@@ -200,19 +217,25 @@ class _ConfigExecutor(Generic[ConnectionType]):
         obj = additional_property._to_dict()
 
         def resp(schema: Dict[str, Any]) -> executor.Result[None]:
-            if schema.get("moduleConfig"):
-                configured_module = list(schema.get("moduleConfig", {}).keys())[0]
-                modconf = {}
-                if "skip_vectorization" in obj:
-                    modconf["skip"] = obj["skip_vectorization"]
-                    del obj["skip_vectorization"]
+            modconf = {}
+            if "skip_vectorization" in obj:
+                modconf["skip"] = obj["skip_vectorization"]
+                del obj["skip_vectorization"]
 
-                if "vectorize_property_name" in obj:
-                    modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
-                    del obj["vectorize_property_name"]
+            if "vectorize_property_name" in obj:
+                modconf["vectorizePropertyName"] = obj["vectorize_property_name"]
+                del obj["vectorize_property_name"]
 
-                if len(modconf) > 0:
-                    obj["moduleConfig"] = {configured_module: modconf}
+            module_config: Dict[str, Any] = schema.get("moduleConfig", {})
+            legacy_vectorizer = [
+                str(k) for k in module_config if "generative" not in k and "reranker" not in k
+            ]
+            if len(legacy_vectorizer) > 0 and len(modconf) > 0:
+                obj["moduleConfig"] = {legacy_vectorizer[0]: modconf}
+
+            vector_config: Dict[str, Any] = schema.get("vectorConfig", {})
+            if len(vector_config) > 0:
+                obj["vectorConfig"] = {key: modconf for key in vector_config.keys()}
 
             def inner_resp(res: Response) -> None:
                 return None
@@ -294,14 +317,11 @@ class _ConfigExecutor(Generic[ConnectionType]):
         `.with_tenant` on the collection first and you will receive only that single shard.
 
         Returns:
-            `List[_ShardStatus]`:
-                A list of objects containing the statuses of the shards.
+            A list of objects containing the statuses of the shards.
 
         Raises:
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`:
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         return self.__get_shards()
 
@@ -331,26 +351,21 @@ class _ConfigExecutor(Generic[ConnectionType]):
     ) -> executor.Result[Dict[str, ShardTypes]]:
         """Update the status of one or all shards of this collection.
 
-        Returns:
-            `Dict[str, ShardTypes]`:
-                All updated shards indexed by their name.
+        Args:
+            status: The new status of the shard. The available options are: 'READY' and 'READONLY'.
+            shard_name: The shard name for which to update the status of the class of the shard. If None all shards are going to be updated.
 
-        Arguments:
-            `status`:
-                The new status of the shard. The available options are: 'READY' and 'READONLY'.
-            `shard_name`:
-                The shard name for which to update the status of the class of the shard. If None all shards are going to be updated.
+        Returns:
+            All updated shards indexed by their name.
 
         Raises:
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`:
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         if isinstance(self._connection, ConnectionAsync):
 
             async def _execute(
-                shard_names: Optional[Union[str, List[str]]]
+                shard_names: Optional[Union[str, List[str]]],
             ) -> Dict[str, ShardTypes]:
                 if shard_names is None:
                     shards_config = await executor.aresult(self.__get_shards())
@@ -386,16 +401,13 @@ class _ConfigExecutor(Generic[ConnectionType]):
     def add_property(self, prop: Property) -> executor.Result[None]:
         """Add a property to the collection in Weaviate.
 
-        Arguments:
-            prop : The property to add to the collection.
+        Args:
+            prop: The property to add to the collection.
 
         Raises:
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`:
-                If Weaviate reports a non-OK status.
-            `weaviate.WeaviateInvalidInputError`:
-                If the property already exists in the collection.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the property already exists in the collection.
         """
         _validate_input([_ValidateArgument(expected=[Property], name="prop", value=prop)])
 
@@ -422,16 +434,13 @@ class _ConfigExecutor(Generic[ConnectionType]):
     ) -> executor.Result[None]:
         """Add a reference to the collection in Weaviate.
 
-        Arguments:
-            ref : The reference to add to the collection.
+        Args:
+            ref: The reference to add to the collection.
 
         Raises:
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`:
-                If Weaviate reports a non-OK status.
-            `weaviate.WeaviateInvalidInputError`:
-                If the reference already exists in the collection.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the reference already exists in the collection.
         """
         _validate_input(
             [

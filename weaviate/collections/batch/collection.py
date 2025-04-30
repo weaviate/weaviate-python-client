@@ -9,9 +9,12 @@ from weaviate.collections.batch.base import (
     _FixedSizeBatching,
     _RateLimitedBatching,
 )
-from weaviate.collections.batch.batch_wrapper import _BatchWrapper, _ContextManagerWrapper
+from weaviate.collections.batch.batch_wrapper import (
+    _BatchWrapper,
+    _ContextManagerWrapper,
+)
 from weaviate.collections.classes.config import ConsistencyLevel, Vectorizers
-from weaviate.collections.classes.internal import ReferenceInputs, ReferenceInput
+from weaviate.collections.classes.internal import ReferenceInput, ReferenceInputs
 from weaviate.collections.classes.types import Properties
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.exceptions import UnexpectedStatusCodeError
@@ -55,28 +58,21 @@ class _BatchCollection(Generic[Properties], _BatchBase):
 
         NOTE: If the UUID of one of the objects already exists then the existing object will be replaced by the new object.
 
-        Arguments:
-            `properties`
-                The data properties of the object to be added as a dictionary.
-            `references`
-                The references of the object to be added as a dictionary.
-            `uuid`:
-                The UUID of the object as an uuid.UUID object or str. If it is None an UUIDv4 will generated, by default None
-            `vector`:
-                The embedding of the object. Can be used when a collection does not have a vectorization module or the given
+        Args:
+            properties: The data properties of the object to be added as a dictionary.
+            references: The references of the object to be added as a dictionary.
+            uuid: The UUID of the object as an uuid.UUID object or str. If it is None an UUIDv4 will generated, by default None
+            vector: The embedding of the object. Can be used when a collection does not have a vectorization module or the given
                 vector was generated using the _identical_ vectorization module that is configured for the class. In this
-                case this vector takes precedence.
-                Supported types are
+                case this vector takes precedence. Supported types are:
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor` and `tf.Tensor`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
 
         Returns:
-            `str`
-                The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
+            The UUID of the added object. If one was not provided a UUIDv4 will be auto-generated for you and returned here.
 
         Raises:
-            `WeaviateBatchValidationError`
-                If the provided options are in the format required by Weaviate.
+            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
         """
         return self._add_object(
             collection=self.__name,
@@ -92,18 +88,14 @@ class _BatchCollection(Generic[Properties], _BatchBase):
     ) -> None:
         """Add a reference to this batch.
 
-        Arguments:
-            `from_uuid`
-                The UUID of the object, as an uuid.UUID object or str, that should reference another object.
-            `from_property`
-                The name of the property that contains the reference.
-            `to`
-                The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
+        Args:
+            from_uuid: The UUID of the object, as an uuid.UUID object or str, that should reference another object.
+            from_property: The name of the property that contains the reference.
+            to: The UUID of the referenced object, as an uuid.UUID object or str, that is actually referenced.
                 For multi-target references use wvc.Reference.to_multi_target().
 
         Raises:
-            `WeaviateBatchValidationError`
-                If the provided options are in the format required by Weaviate.
+            WeaviateBatchValidationError: If the provided options are in the format required by Weaviate.
         """
         self._add_reference(
             from_uuid,
@@ -135,7 +127,9 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
         self.__executor = ThreadPoolExecutor()
         # define one executor per client with it shared between all child batch contexts
 
-    def __create_batch_and_reset(self) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
+    def __create_batch_and_reset(
+        self,
+    ) -> _ContextManagerWrapper[_BatchCollection[Properties]]:
         if self._vectorizer_batching is None:
             try:
                 config = self.__config.get(simple=True)
@@ -183,11 +177,9 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
         When you exit the context manager, the final batch will be sent automatically.
 
-        Arguments:
-            `batch_size`
-                The number of objects/references to be sent in one batch. If not provided, the default value is 100.
-            `concurrent_requests`
-                The number of concurrent requests when sending batches. This controls the number of concurrent requests
+        Args:
+            batch_size: The number of objects/references to be sent in one batch. If not provided, the default value is 100.
+            concurrent_requests: The number of concurrent requests when sending batches. This controls the number of concurrent requests
                 made to Weaviate and not the speed of batch creation within Python.
         """
         self._batch_mode = _FixedSizeBatching(batch_size, concurrent_requests)
@@ -198,9 +190,8 @@ class _BatchCollectionWrapper(Generic[Properties], _BatchWrapper):
 
         When you exit the context manager, the final batch will be sent automatically.
 
-        Arguments:
-            `requests_per_minute`
-                The number of requests that the vectorizer can process per minute.
+        Args:
+            requests_per_minute: The number of requests that the vectorizer can process per minute.
         """
         self._batch_mode = _RateLimitedBatching(requests_per_minute)
         return self.__create_batch_and_reset()

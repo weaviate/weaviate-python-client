@@ -6,23 +6,24 @@ from httpx import Response
 
 from weaviate.collections.classes.tenants import (
     Tenant,
-    TenantCreate,
-    TenantUpdate,
     TenantActivityStatus,
+    TenantCreate,
     TenantCreateActivityStatus,
-    TenantUpdateActivityStatus,
     TenantOutput,
+    TenantUpdate,
+    TenantUpdateActivityStatus,
 )
 from weaviate.collections.grpc.tenants import _TenantsGRPC
+from weaviate.collections.tenants.types import (
+    TenantCreateInputType,
+    TenantOutputType,
+    TenantUpdateInputType,
+)
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1 import tenants_pb2
 from weaviate.validator import _validate_input, _ValidateArgument
-
-TenantCreateInputType = Union[str, Tenant, TenantCreate]
-TenantUpdateInputType = Union[Tenant, TenantUpdate]
-TenantOutputType = Tenant
 
 UPDATE_TENANT_BATCH_SIZE = 100
 
@@ -50,19 +51,15 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
         The collection must have been created with multi-tenancy enabled.
 
-        Arguments:
-            `tenants`
-                A tenant name, `wvc.config.tenants.Tenant`, `wvc.config.tenants.TenantCreateInput` object, or a list of tenants names
+        Args:
+            tenants: A tenant name, `wvc.config.tenants.Tenant`, `wvc.config.tenants.TenantCreateInput` object, or a list of tenants names
                 and/or `wvc.config.tenants.Tenant` objects to add to the given collection.
                 If a string is provided, the tenant will be added with the default activity status of `HOT`.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
-            `weaviate.WeaviateInvalidInputError`
-                If `tenants` is not a list of `wvc.Tenant` objects.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If `tenants` is not a list of `wvc.Tenant` objects.
         """
         if self._validate_arguments:
             _validate_input(
@@ -103,18 +100,14 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
         The collection must have been created with multi-tenancy enabled.
 
-        Arguments:
-            `tenants`
-                A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+        Args:
+            tenants: A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
                 and/or `wvc.config.tenants.Tenant` objects to remove from the given class.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
-            `weaviate.WeaviateInvalidInputError`
-                If `tenants` is not a list of strings.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If `tenants` is not a list of strings.
         """
         if self._validate_arguments:
             _validate_input(
@@ -234,7 +227,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
         return tenant
 
     def __map_create_tenants(
-        self, tenants: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]]
+        self,
+        tenants: Union[str, Tenant, TenantCreate, Sequence[Union[str, Tenant, TenantCreate]]],
     ) -> List[dict]:
         if (
             isinstance(tenants, str)
@@ -256,7 +250,10 @@ class _TenantsExecutor(Generic[ConnectionType]):
                 [
                     self.__map_update_tenant(tenants[i + b * UPDATE_TENANT_BATCH_SIZE]).model_dump()
                     for i in range(
-                        min(len(tenants) - b * UPDATE_TENANT_BATCH_SIZE, UPDATE_TENANT_BATCH_SIZE)
+                        min(
+                            len(tenants) - b * UPDATE_TENANT_BATCH_SIZE,
+                            UPDATE_TENANT_BATCH_SIZE,
+                        )
                     )
                 ]
                 for b in range(batches)
@@ -268,10 +265,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
         The collection must have been created with multi-tenancy enabled.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
 
         def resp(res: Dict[str, TenantOutputType]) -> Dict[str, TenantOutputType]:
@@ -295,15 +290,12 @@ class _TenantsExecutor(Generic[ConnectionType]):
         If no names are provided, all tenants will be returned.
         The collection must have been created with multi-tenancy enabled.
 
-        Arguments:
-            `tenants`
-                Sequence of tenant names of wvc.tenants.Tenant objects to retrieve. To retrieve all tenants, use the `get` method.
+        Args:
+            tenants: Sequence of tenant names of wvc.tenants.Tenant objects to retrieve. To retrieve all tenants, use the `get` method.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         self._connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_names' method")
         if self._validate_arguments:
@@ -325,15 +317,12 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
         The collection must have been created with multi-tenancy enabled.
 
-        Arguments:
-            `tenant`
-                The tenant to retrieve.
+        Args:
+            tenant: The tenant to retrieve.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         self._connection._weaviate_version.check_is_at_least_1_25_0("The 'get_by_name' method")
         if self._validate_arguments:
@@ -367,7 +356,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
             path=f"/schema/{self._name}/tenants/{tenant_name}",
             error_msg=f"Could not get tenant {tenant_name} for collection {self._name}",
             status_codes=_ExpectedStatusCodes(
-                ok_in=[200, 404], error=f"Get tenant {tenant_name} for collection {self._name}"
+                ok_in=[200, 404],
+                error=f"Get tenant {tenant_name} for collection {self._name}",
             ),
         )
 
@@ -387,7 +377,8 @@ class _TenantsExecutor(Generic[ConnectionType]):
                                 weaviate_object=mapped_tenants,
                                 error_msg=f"Collection tenants may not have been updated properly for {self._name}",
                                 status_codes=_ExpectedStatusCodes(
-                                    ok_in=200, error=f"Update collection tenants for {self._name}"
+                                    ok_in=200,
+                                    error=f"Update collection tenants for {self._name}",
                                 ),
                             )
                         )
@@ -414,23 +405,23 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
         The collection must have been created with multi-tenancy enabled.
 
-        Arguments:
-            `tenants`
-                A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
+        Args:
+            tenants: A tenant name, `wvc.config.tenants.Tenant` object, or a list of tenants names
                 and/or `wvc.config.tenants.Tenant` objects to update for the given collection.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
-            `weaviate.WeaviateInvalidInputError`
-                If `tenants` is not a list of `wvc.Tenant` objects.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If `tenants` is not a list of `wvc.Tenant` objects.
         """
         if self._validate_arguments:
             _validate_input(
                 _ValidateArgument(
-                    expected=[Tenant, TenantUpdate, Sequence[Union[Tenant, TenantUpdate]]],
+                    expected=[
+                        Tenant,
+                        TenantUpdate,
+                        Sequence[Union[Tenant, TenantUpdate]],
+                    ],
                     name="tenants",
                     value=tenants,
                 )
@@ -442,19 +433,15 @@ class _TenantsExecutor(Generic[ConnectionType]):
 
         The collection must have been created with multi-tenancy enabled.
 
-        Arguments:
-            `tenant`
-                Tenant name or `wvc.config.tenants.Tenant` object to check for existence.
+        Args:
+            tenant: Tenant name or `wvc.config.tenants.Tenant` object to check for existence.
 
         Returns:
-            `bool`
-                `True` if the tenant exists, `False` otherwise.
+            `True` if the tenant exists, `False` otherwise.
 
         Raises:
-            `weaviate.WeaviateConnectionError`
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         self._connection._weaviate_version.check_is_at_least_1_25_0("The 'exists' method")
         if self._validate_arguments:

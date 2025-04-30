@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Any, TypedDict, Dict
+from typing import Any, Dict, TypedDict
 
 import pytest
 from _pytest.fixtures import SubRequest
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-from integration.conftest import CollectionFactoryGet, CollectionFactory
+from integration.conftest import CollectionFactory, CollectionFactoryGet
 from weaviate.collections import Collection
 from weaviate.collections.data import _DataCollection
 from weaviate.exceptions import InvalidDataModelException

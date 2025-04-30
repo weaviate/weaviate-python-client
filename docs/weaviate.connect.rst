@@ -1,34 +1,52 @@
-weaviate.connect package
-========================
+weaviate.connect
+================
 
 .. automodule:: weaviate.connect
    :members:
    :undoc-members:
    :show-inheritance:
 
-Submodules
-----------
+.. weaviate.connect.authentication\_async
+.. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-weaviate.connect.authentication module
---------------------------------------
+.. .. automodule:: weaviate.connect.authentication_async
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
+..    :private-members:
 
-.. automodule:: weaviate.connect.authentication
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. weaviate.connect.base
+.. ^^^^^^^^^^^^^^^^^^^^^
 
-weaviate.connect.connection module
-----------------------------------
+.. .. automodule:: weaviate.connect.base
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
+..    :private-members:
 
-.. automodule:: weaviate.connect.connection
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. weaviate.connect.helpers
+.. ^^^^^^^^^^^^^^^^^^^^^^^^
 
-weaviate.connect.helpers module
--------------------------------
+.. .. automodule:: weaviate.connect.helpers
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
+..    :private-members:
 
-.. automodule:: weaviate.connect.helpers
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. weaviate.connect.integrations
+.. ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. .. automodule:: weaviate.connect.integrations
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
+..    :private-members:
+
+.. weaviate.connect.v4
+.. ^^^^^^^^^^^^^^^^^^^
+
+.. .. automodule:: weaviate.connect.v4
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
+..    :private-members:

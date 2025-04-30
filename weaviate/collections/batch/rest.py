@@ -3,10 +3,10 @@ from typing import Dict, List, Optional
 from httpx import Response
 
 from weaviate.collections.classes.batch import (
-    ErrorReference,
     BatchReference,
-    _BatchReference,
     BatchReferenceReturn,
+    ErrorReference,
+    _BatchReference,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.connect import executor

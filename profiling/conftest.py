@@ -1,21 +1,18 @@
 import os
+from typing import Any, Dict, Generator, List, Optional, Protocol, Union
 
 import pytest
-from typing import Any, Optional, List, Generator, Protocol, Dict, Union
-
 from _pytest.fixtures import SubRequest
 
 import weaviate
 from weaviate.collections import Collection
 from weaviate.collections.classes.config import (
-    _InvertedIndexConfigCreate,
     Property,
+    _InvertedIndexConfigCreate,
     _VectorizerConfigCreate,
 )
-from weaviate.config import AdditionalConfig
-
 from weaviate.collections.classes.config_named_vectors import _NamedVectorConfigCreate
-
+from weaviate.config import AdditionalConfig
 from weaviate.connect.integrations import _IntegrationConfig
 
 

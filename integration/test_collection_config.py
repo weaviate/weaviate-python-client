@@ -5,33 +5,32 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
-from integration.conftest import OpenAICollection, CollectionFactory
-from integration.conftest import _sanitize_collection_name
+from integration.conftest import CollectionFactory, OpenAICollection, _sanitize_collection_name
 from weaviate.collections.classes.config import (
+    Configure,
+    DataType,
+    GenerativeSearches,
+    PQEncoderDistribution,
+    PQEncoderType,
+    Property,
+    Reconfigure,
+    ReferenceProperty,
+    Rerankers,
+    StopwordsPreset,
+    Tokenization,
+    VectorDistances,
+    VectorIndexType,
+    Vectorizers,
     _BQConfig,
-    _SQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
+    _RerankerProvider,
+    _SQConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
     _VectorIndexConfigHNSWUpdate,
-    Configure,
-    Reconfigure,
-    Property,
-    ReferenceProperty,
-    DataType,
-    PQEncoderType,
-    PQEncoderDistribution,
-    StopwordsPreset,
-    VectorDistances,
-    VectorIndexType,
-    Vectorizers,
-    GenerativeSearches,
-    Rerankers,
-    _RerankerProvider,
-    Tokenization,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.exceptions import UnexpectedStatusCodeError, WeaviateInvalidInputError
@@ -575,10 +574,6 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
 
 def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
@@ -1199,10 +1194,6 @@ def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None
 
 
 def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -> None:
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named index is not supported in Weaviate versions lower than 1.24.0")
-
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
@@ -1412,3 +1403,39 @@ def test_config_multi_vector_disabled(
     conf = config.vector_config["vec"].vector_index_config
     assert isinstance(conf, _VectorIndexConfigHNSW)
     assert conf.multi_vector is None
+
+
+@pytest.mark.parametrize(
+    "generative_config",
+    [
+        None,
+        Configure.Generative.anyscale(),
+    ],
+)
+@pytest.mark.parametrize(
+    "vectorizer_config",
+    [
+        None,
+        Configure.Vectorizer.none(),
+        Configure.Vectorizer.text2vec_contextionary(vectorize_collection_name=False),
+        [
+            Configure.NamedVectors.text2vec_contextionary(
+                name="vec",
+                vectorize_collection_name=False,
+            )
+        ],
+    ],
+)
+def test_config_add_property(
+    collection_factory: CollectionFactory, generative_config, vectorizer_config
+) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="title", data_type=DataType.TEXT),
+        ],
+        generative_config=generative_config,
+        vectorizer_config=vectorizer_config,
+    )
+    collection.config.add_property(Property(name="description", data_type=DataType.TEXT))
+    config = collection.config.get()
+    assert "description" in [prop.name for prop in config.properties]

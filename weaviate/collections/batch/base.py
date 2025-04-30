@@ -10,36 +10,35 @@ from copy import copy
 from dataclasses import dataclass, field
 from typing import Any, Dict, Generic, List, Optional, Set, TypeVar, Union, cast
 
+from httpx import ConnectError
 from pydantic import ValidationError
 from typing_extensions import TypeAlias
-
-from httpx import ConnectError
 
 from weaviate.cluster.types import Node
 from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
 from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
-    _BatchReference,
     BatchObject,
+    BatchObjectReturn,
     BatchReference,
+    BatchReferenceReturn,
     BatchResult,
     ErrorObject,
     ErrorReference,
-    _BatchObject,
-    BatchObjectReturn,
-    BatchReferenceReturn,
     Shard,
+    _BatchObject,
+    _BatchReference,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.internal import (
-    ReferenceToMulti,
     ReferenceInput,
     ReferenceInputs,
+    ReferenceToMulti,
 )
 from weaviate.collections.classes.types import WeaviateProperties
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
-from weaviate.exceptions import WeaviateBatchValidationError, EmptyResponseException
+from weaviate.exceptions import EmptyResponseException, WeaviateBatchValidationError
 from weaviate.logger import logger
 from weaviate.types import UUID, VECTORS
 from weaviate.util import _decode_json_response_dict
@@ -92,8 +91,8 @@ class ReferencesBatchRequest(BatchRequest[_BatchReference, BatchReferenceReturn]
     def pop_items(self, pop_amount: int, uuid_lookup: Set[str]) -> List[_BatchReference]:
         """Pop the given number of items from the BatchRequest queue.
 
-        Returns
-            `List[_BatchReference]` items from the BatchRequest.
+        Returns:
+            A list of items from the BatchRequest.
         """
         ret: List[_BatchReference] = []
         i = 0
@@ -115,8 +114,8 @@ class ObjectsBatchRequest(BatchRequest[_BatchObject, BatchObjectReturn]):
     def pop_items(self, pop_amount: int) -> List[_BatchObject]:
         """Pop the given number of items from the BatchRequest queue.
 
-        Returns
-            `List[_BatchObject]` items from the BatchRequest.
+        Returns:
+            A list of items from the BatchRequest.
         """
         self._lock.acquire()
         if pop_amount >= len(self._items):
@@ -475,7 +474,10 @@ class _BatchBase:
                     self.__concurrent_requests = 2
 
     def __send_batch(
-        self, objs: List[_BatchObject], refs: List[_BatchReference], readd_rate_limit: bool
+        self,
+        objs: List[_BatchObject],
+        refs: List[_BatchReference],
+        readd_rate_limit: bool,
     ) -> None:
         if (n_objs := len(objs)) > 0:
             start = time.time()

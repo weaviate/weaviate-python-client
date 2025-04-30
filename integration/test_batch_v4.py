@@ -1,15 +1,15 @@
 import concurrent.futures
 import uuid
 from dataclasses import dataclass
-from typing import Generator, List, Optional, Protocol, Tuple, Callable
+from typing import Callable, Generator, List, Optional, Protocol, Tuple
 
 import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
-from weaviate import BatchClient, ClientBatchingContextManager
 import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
+from weaviate import BatchClient, ClientBatchingContextManager
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
     Configure,
@@ -19,8 +19,8 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.grpc import QueryReference
 from weaviate.collections.classes.internal import (
-    _CrossReference,
     ReferenceToMulti,
+    _CrossReference,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID, VECTORS
@@ -177,7 +177,7 @@ def test_add_reference(
     to_object_uuid: UUID,
     to_object_collection: Optional[bool],
 ) -> None:
-    """Test the `add_reference` method"""
+    """Test the `add_reference` method."""
     client, name = client_factory()
     with client.batch.fixed_size() as batch:
         batch.add_object(
@@ -223,7 +223,7 @@ def test_add_data_object_and_get_class_shards_readiness(
 def test_add_data_object_with_tenant_and_get_class_shards_readiness(
     client_factory: ClientFactory,
 ) -> None:
-    """Test the `add_data_object` method"""
+    """Test the `add_data_object` method."""
     client, name = client_factory(multi_tenant=True)
     client.collections.use(name).tenants.create([Tenant(name="tenant1"), Tenant(name="tenant2")])
     with client.batch.fixed_size() as batch:
@@ -372,7 +372,7 @@ def test_add_ten_thousand_data_objects(
     batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
     request: SubRequest,
 ) -> None:
-    """Test adding ten thousand data objects"""
+    """Test adding ten thousand data objects."""
     client, name = client_factory()
 
     nr_objects = 10000
@@ -407,7 +407,7 @@ def make_refs(uuids: List[UUID], name: str) -> List[dict]:
 def test_add_one_hundred_objects_and_references_between_all(
     client_factory: ClientFactory,
 ) -> None:
-    """Test adding one hundred objects and references between all of them"""
+    """Test adding one hundred objects and references between all of them."""
     client, name = client_factory()
     nr_objects = 100
     uuids: List[UUID] = []
@@ -562,7 +562,7 @@ def test_add_one_object_and_a_self_reference(
     client_factory: ClientFactory,
     batching_method: Callable[[weaviate.WeaviateClient], ClientBatchingContextManager],
 ) -> None:
-    """Test adding one object and a self reference"""
+    """Test adding one object and a self reference."""
     client, name = client_factory()
     with batching_method(client) as batch:
         uuid = batch.add_object(collection=name, properties={})

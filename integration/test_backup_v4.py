@@ -1,7 +1,7 @@
 import datetime
 import pathlib
 import time
-from typing import Generator, List, Union, Optional
+from typing import Generator, List, Optional, Union
 
 import pytest
 
@@ -16,9 +16,8 @@ from weaviate.backup.backup import (
 )
 from weaviate.collections.classes.config import DataType, Property, ReferenceProperty
 from weaviate.exceptions import (
-    WeaviateUnsupportedFeatureError,
-    UnexpectedStatusCodeException,
     BackupFailedException,
+    UnexpectedStatusCodeException,
 )
 
 pytestmark = pytest.mark.xdist_group(name="backup")
@@ -250,7 +249,7 @@ def test_create_and_restore_1_of_2_classes(client: weaviate.WeaviateClient) -> N
 
 
 def test_fail_on_non_existing_class(client: weaviate.WeaviateClient) -> None:
-    """Fail backup functions on non-existing class"""
+    """Fail backup functions on non-existing class."""
     backup_id = _create_backup_id()
     class_name = "NonExistingClass"
     for func in [client.backup.create, client.backup.restore]:
@@ -453,37 +452,6 @@ def test_backup_and_restore_with_collection_and_config_1_24_x(
     # check restore status
     restore_status = article.backup.get_restore_status(backup_id, BACKEND)
     assert restore_status.status == BackupStatus.SUCCESS
-
-
-def test_backup_and_restore_with_collection_and_config_1_23_x(
-    client: weaviate.WeaviateClient,
-) -> None:
-    if client._connection._weaviate_version.is_at_least(1, 24, 0):
-        pytest.skip("Backup config is supported from Weaviate 1.24.0")
-
-    backup_id = _create_backup_id()
-
-    article = client.collections.use("Article")
-
-    with pytest.raises(WeaviateUnsupportedFeatureError):
-        article.backup.create(
-            backup_id=backup_id,
-            backend=BACKEND,
-            wait_for_completion=True,
-            config=BackupConfigCreate(
-                cpu_percentage=60,
-                chunk_size=256,
-                compression_level=BackupCompressionLevel.BEST_SPEED,
-            ),
-        )
-
-    with pytest.raises(WeaviateUnsupportedFeatureError):
-        article.backup.restore(
-            backup_id=backup_id,
-            backend=BACKEND,
-            wait_for_completion=True,
-            config=BackupConfigRestore(cpu_percentage=70),
-        )
 
 
 # did not make it into 1.27, will come later

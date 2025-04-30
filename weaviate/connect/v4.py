@@ -23,62 +23,65 @@ from authlib.integrations.httpx_client import (  # type: ignore
     AsyncOAuth2Client,
     OAuth2Client,
 )
-from grpc import Channel as SyncChannel, RpcError, StatusCode, Call  # type: ignore
-from grpc.aio import Channel as AsyncChannel, AioRpcError  # type: ignore
+from grpc import Call, RpcError, StatusCode
+from grpc import Channel as SyncChannel  # type: ignore
+from grpc.aio import AioRpcError
+from grpc.aio import Channel as AsyncChannel  # type: ignore
 from grpc_health.v1 import health_pb2  # type: ignore
 
 # from grpclib.client import Channel
 from httpx import (
     AsyncClient,
     AsyncHTTPTransport,
-    HTTPTransport,
     Client,
     ConnectError,
     HTTPError,
     HTTPStatusError,
+    HTTPTransport,
     Limits,
+    Proxy,
     ReadError,
     ReadTimeout,
     RemoteProtocolError,
     RequestError,
     Response,
-    Proxy,
     Timeout,
 )
 
 from weaviate import __version__ as client_version
-from weaviate.auth import AuthCredentials, AuthApiKey, AuthClientCredentials
-from weaviate.config import ConnectionConfig, Proxies, Timeout as TimeoutConfig
+from weaviate.auth import AuthApiKey, AuthClientCredentials, AuthCredentials
+from weaviate.config import ConnectionConfig, Proxies
+from weaviate.config import Timeout as TimeoutConfig
+from weaviate.connect import executor
 from weaviate.connect.authentication import _Auth
 from weaviate.connect.base import (
     ConnectionParams,
     JSONPayload,
     _get_proxies,
 )
-from weaviate.connect import executor
 from weaviate.connect.event_loop import _EventLoopSingleton
 from weaviate.connect.integrations import _IntegrationConfig
 from weaviate.embedded import EmbeddedV4
 from weaviate.exceptions import (
     AuthenticationFailedError,
+    InsufficientPermissionsError,
     UnexpectedStatusCodeError,
+    WeaviateBatchError,
     WeaviateClosedClientError,
     WeaviateConnectionError,
-    WeaviateGRPCUnavailableError,
-    WeaviateStartUpError,
-    WeaviateTimeoutError,
-    InsufficientPermissionsError,
-    WeaviateBatchError,
-    WeaviateInvalidInputError,
-    WeaviateRetryError,
-    WeaviateQueryError,
     WeaviateDeleteManyError,
+    WeaviateGRPCUnavailableError,
+    WeaviateInvalidInputError,
+    WeaviateQueryError,
+    WeaviateRetryError,
+    WeaviateStartUpError,
     WeaviateTenantGetError,
+    WeaviateTimeoutError,
 )
 from weaviate.proto.v1 import (
     aggregate_pb2,
-    batch_pb2,
     batch_delete_pb2,
+    batch_pb2,
     search_get_pb2,
     tenants_pb2,
     weaviate_pb2_grpc,
@@ -215,7 +218,7 @@ class _ConnectionBase:
     ) -> Union[Dict[str, AsyncHTTPTransport], Dict[str, HTTPTransport]]:
         if colour == "async":
             return {
-                f"{key}://" if key == "http" or key == "https" else key: AsyncHTTPTransport(
+                (f"{key}://" if key == "http" or key == "https" else key): AsyncHTTPTransport(
                     limits=Limits(
                         max_connections=self.__connection_config.session_pool_maxsize,
                         max_keepalive_connections=self.__connection_config.session_pool_connections,
@@ -246,9 +249,6 @@ class _ConnectionBase:
         return self._connected
 
     def get_current_bearer_token(self) -> str:
-        if not self.is_connected():
-            raise WeaviateClosedClientError()
-
         if "authorization" in self._headers:
             return self._headers["authorization"]
         elif isinstance(self._client, (OAuth2Client, AsyncOAuth2Client)):
@@ -301,7 +301,10 @@ class _ConnectionBase:
         access_token = self.get_current_bearer_token()
         self.__refresh_weaviate_embedding_service_auth_grpc_header()
         # auth is last entry in list, rest is static
-        self.__metadata_list[len(self.__metadata_list) - 1] = ("authorization", access_token)
+        self.__metadata_list[len(self.__metadata_list) - 1] = (
+            "authorization",
+            access_token,
+        )
         return tuple(self.__metadata_list)
 
     def __refresh_weaviate_embedding_service_auth_grpc_header(self) -> None:
@@ -314,8 +317,6 @@ class _ConnectionBase:
 
     def _ping_grpc(self, colour: executor.Colour) -> Union[None, Awaitable[None]]:
         """Performs a grpc health check and raises WeaviateGRPCUnavailableError if not."""
-        if not self.is_connected():
-            raise WeaviateClosedClientError()
         assert self._grpc_channel is not None
         try:
             res = self._grpc_channel.unary_unary(
@@ -365,9 +366,7 @@ class _ConnectionBase:
 
     @property
     def server_version(self) -> str:
-        """
-        Version of the weaviate instance.
-        """
+        """Version of the weaviate instance."""
         return str(self._weaviate_version)
 
     def get_proxies(self) -> Dict[str, str]:
@@ -382,7 +381,9 @@ class _ConnectionBase:
 
     def open_connection_grpc(self, colour: executor.Colour) -> None:
         channel = self._connection_params._grpc_channel(
-            proxies=self._proxies, grpc_msg_size=self._grpc_max_msg_size, is_async=colour == "async"
+            proxies=self._proxies,
+            grpc_msg_size=self._grpc_max_msg_size,
+            is_async=colour == "async",
         )
         self._grpc_channel = channel
         assert self._grpc_channel is not None
@@ -530,7 +531,8 @@ class _ConnectionBase:
 
         While the underlying library refreshes tokens, it does not have an internal cronjob that checks every
         X-seconds if a token has expired. If there is no activity for longer than the refresh tokens lifetime, it will
-        expire. Therefore, refresh manually shortly before expiration time is up."""
+        expire. Therefore, refresh manually shortly before expiration time is up.
+        """
         assert isinstance(self._client, (OAuth2Client, AsyncOAuth2Client))
         if "refresh_token" not in self._client.token and _auth is None:
             return
@@ -551,7 +553,8 @@ class _ConnectionBase:
             if isinstance(self._client, AsyncOAuth2Client):
                 assert event_loop is not None
                 self._client.token = event_loop.run_until_complete(
-                    self._client.refresh_token, url=self._client.metadata["token_endpoint"]
+                    self._client.refresh_token,
+                    url=self._client.metadata["token_endpoint"],
                 )
             elif isinstance(self._client, OAuth2Client):
                 self._client.token = self._client.refresh_token(
@@ -627,9 +630,12 @@ class _ConnectionBase:
             headers.update({"x-weaviate-api-key": self.get_current_bearer_token()})
 
     def __get_timeout(
-        self, method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"], is_gql_query: bool
+        self,
+        method: Literal["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT"],
+        is_gql_query: bool,
     ) -> Timeout:
-        """
+        """Get the timeout for the request.
+
         In this way, the client waits the `httpx` default of 5s when connecting to a socket (connect), writing chunks (write), and
         acquiring a connection from the pool (pool), but a custom amount as specified for reading the response (read).
 
@@ -649,7 +655,9 @@ class _ConnectionBase:
         elif method == "POST" and not is_gql_query:
             timeout = self.timeout_config.insert
         return Timeout(
-            timeout=5.0, read=timeout, pool=self.__connection_config.session_pool_timeout
+            timeout=5.0,
+            read=timeout,
+            pool=self.__connection_config.session_pool_timeout,
         )
 
     def __handle_exceptions(self, e: Exception, error_msg: str) -> None:
@@ -662,7 +670,10 @@ class _ConnectionBase:
         raise e
 
     def __handle_response(
-        self, response: Response, error_msg: str, status_codes: Optional[_ExpectedStatusCodes]
+        self,
+        response: Response,
+        error_msg: str,
+        status_codes: Optional[_ExpectedStatusCodes],
     ) -> Response:
         if response.status_code == 403:
             raise InsufficientPermissionsError(response)
@@ -680,8 +691,9 @@ class _ConnectionBase:
         is_gql_query: bool = False,
         weaviate_object: Optional[JSONPayload] = None,
         params: Optional[Dict[str, Any]] = None,
+        check_is_connected: bool = True,
     ) -> executor.Result[Response]:
-        if not self.is_connected():
+        if check_is_connected and not self.is_connected():
             raise WeaviateClosedClientError()
         if self.embedded_db is not None:
             self.embedded_db.ensure_running()
@@ -840,6 +852,7 @@ class _ConnectionBase:
         params: Optional[Dict[str, Any]] = None,
         error_msg: str = "",
         status_codes: Optional[_ExpectedStatusCodes] = None,
+        check_is_connected: bool = True,
     ) -> executor.Result[Response]:
         return self._send(
             "GET",
@@ -847,6 +860,7 @@ class _ConnectionBase:
             params=params,
             error_msg=error_msg,
             status_codes=status_codes,
+            check_is_connected=check_is_connected,
         )
 
     def head(
@@ -864,13 +878,18 @@ class _ConnectionBase:
             status_codes=status_codes,
         )
 
-    def get_meta(self) -> executor.Result[Dict[str, str]]:
+    def get_meta(self, check_is_connected: bool = True) -> executor.Result[Dict[str, str]]:
         def resp(res: Response) -> Dict[str, str]:
             data = _decode_json_response_dict(res, "Meta endpoint")
             assert data is not None
             return data
 
-        return executor.execute(response_callback=resp, method=self.get, path="/meta")
+        return executor.execute(
+            response_callback=resp,
+            method=self.get,
+            path="/meta",
+            check_is_connected=check_is_connected,
+        )
 
     def get_open_id_configuration(self) -> executor.Result[Optional[Dict[str, Any]]]:
         def resp(res: Response) -> Optional[Dict[str, Any]]:
@@ -881,26 +900,24 @@ class _ConnectionBase:
             raise UnexpectedStatusCodeError("Meta endpoint", res)
 
         return executor.execute(
-            response_callback=resp, method=self.get, path="/.well-known/openid-configuration"
+            response_callback=resp,
+            method=self.get,
+            path="/.well-known/openid-configuration",
         )
 
 
 class ConnectionSync(_ConnectionBase):
-    """
-    Connection class used to communicate to a weaviate instance.
-    """
+    """Connection class used to communicate to a weaviate instance."""
 
     def connect(self) -> None:
         if self._connected:
             return None
 
-        self._connected = True
-
         self._open_connections_rest(self._auth, "sync")
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = executor.result(self.get_meta())
+            meta = executor.result(self.get_meta(False))
             self._weaviate_version = _ServerVersion.from_string(meta["version"])
             if "grpcMaxMessageSize" in meta:
                 self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
@@ -940,16 +957,22 @@ class ConnectionSync(_ConnectionBase):
                 self._connected = False
                 raise e
 
+        self._connected = True
+
     def wait_for_weaviate(self, startup_period: int) -> None:
         for _i in range(startup_period):
             try:
-                executor.result(self.get("/.well-known/ready")).raise_for_status()
+                executor.result(
+                    self.get("/.well-known/ready", check_is_connected=False)
+                ).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
-            executor.result(self.get("/.well-known/ready")).raise_for_status()
+            executor.result(
+                self.get("/.well-known/ready", check_is_connected=False)
+            ).raise_for_status()
             return
         except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(
@@ -977,7 +1000,10 @@ class ConnectionSync(_ConnectionBase):
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
     def grpc_batch_objects(
-        self, request: batch_pb2.BatchObjectsRequest, timeout: Union[int, float], max_retries: float
+        self,
+        request: batch_pb2.BatchObjectsRequest,
+        timeout: Union[int, float],
+        max_retries: float,
     ) -> Dict[int, str]:
         try:
             assert self.grpc_stub is not None
@@ -1065,21 +1091,17 @@ class ConnectionSync(_ConnectionBase):
 
 
 class ConnectionAsync(_ConnectionBase):
-    """
-    Connection class used to communicate to a weaviate instance.
-    """
+    """Connection class used to communicate to a weaviate instance."""
 
     async def connect(self) -> None:
         if self._connected:
             return None
 
-        self._connected = True
-
         await executor.aresult(self._open_connections_rest(self._auth, "async"))
 
         # need this to get the version of weaviate for version checks and proper GRPC configuration
         try:
-            meta = await self.get_meta()
+            meta = await self.get_meta(False)
             self._weaviate_version = _ServerVersion.from_string(meta["version"])
             if "grpcMaxMessageSize" in meta:
                 self._grpc_max_msg_size = int(meta["grpcMaxMessageSize"])
@@ -1096,7 +1118,6 @@ class ConnectionAsync(_ConnectionBase):
             raise WeaviateStartUpError(f"Could not connect to Weaviate:{e}.") from e
 
         self.open_connection_grpc("async")
-        self._connected = True
         if self.embedded_db is not None:
             try:
                 await self.wait_for_weaviate(10)
@@ -1125,13 +1146,17 @@ class ConnectionAsync(_ConnectionBase):
     async def wait_for_weaviate(self, startup_period: int) -> None:
         for _i in range(startup_period):
             try:
-                (await executor.aresult(self.get("/.well-known/ready"))).raise_for_status()
+                (
+                    await executor.aresult(self.get("/.well-known/ready", check_is_connected=False))
+                ).raise_for_status()
                 return
             except (ConnectError, ReadError, TimeoutError, HTTPStatusError):
                 time.sleep(1)
 
         try:
-            (await executor.aresult(self.get("/.well-known/ready"))).raise_for_status()
+            (
+                await executor.aresult(self.get("/.well-known/ready", check_is_connected=False))
+            ).raise_for_status()
             return
         except (ConnectError, ReadError, TimeoutError, HTTPStatusError) as error:
             raise WeaviateStartUpError(
@@ -1160,7 +1185,10 @@ class ConnectionAsync(_ConnectionBase):
             raise WeaviateQueryError(str(e), "GRPC search")  # pyright: ignore
 
     async def grpc_batch_objects(
-        self, request: batch_pb2.BatchObjectsRequest, timeout: Union[int, float], max_retries: float
+        self,
+        request: batch_pb2.BatchObjectsRequest,
+        timeout: Union[int, float],
+        max_retries: float,
     ) -> Dict[int, str]:
         try:
             assert self.grpc_stub is not None

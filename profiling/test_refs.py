@@ -2,7 +2,7 @@ import datetime
 import random
 import uuid as uuid_lib
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
+from typing import Any, Dict, List, Optional
 
 import weaviate
 import weaviate.classes as wvc

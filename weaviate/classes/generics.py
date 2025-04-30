@@ -1,7 +1,7 @@
 from weaviate.collections.classes.internal import (
-    Nested,
     CrossReference,
     CrossReferenceAnnotation,
+    Nested,
 )
 
 __all__ = ["CrossReference", "Nested", "CrossReferenceAnnotation"]

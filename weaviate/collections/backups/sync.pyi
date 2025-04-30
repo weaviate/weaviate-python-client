@@ -1,13 +1,15 @@
 from typing import Optional
+
+from weaviate.backup.backup_location import BackupLocationType
 from weaviate.backup.executor import (
     BackupConfigCreate,
     BackupConfigRestore,
     BackupStatusReturn,
     BackupStorage,
-    BackupLocationType,
 )
-from weaviate.collections.backups.executor import _CollectionBackupExecutor
 from weaviate.connect.v4 import ConnectionSync
+
+from .executor import _CollectionBackupExecutor
 
 class _CollectionBackup(_CollectionBackupExecutor[ConnectionSync]):
     def create(

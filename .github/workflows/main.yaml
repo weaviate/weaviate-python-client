@@ -37,8 +37,10 @@ jobs:
           python-version: "3.11"
           cache: 'pip' # caching pip dependencies
       - run: pip install -r requirements-devel.txt
-      - name: "Black"
-        run: black --check weaviate test mock_tests integration
+      - name: "Ruff lint"
+        run: ruff check weaviate test mock_tests integration
+      - name: "Ruff format"
+        run: ruff format --diff weaviate test mock_tests integration
       - name: "Flake 8"
         run: flake8 weaviate test mock_tests integration
       - name: "Check release for pypi"
@@ -57,7 +59,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-        folder: ["weaviate"]
+        folder: ["weaviate", "integration", "integration_embedded"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -67,7 +69,8 @@ jobs:
       - run: pip install -r requirements-devel.txt
       - uses: jakebailey/pyright-action@v2
         with:
-          version: 1.1.398
+          version: 1.1.399
+          working-directory: ${{ matrix.folder }}
 
   unit-tests:
     name: Run Unit Tests

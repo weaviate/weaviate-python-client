@@ -130,7 +130,6 @@ def test_authentication_user_pw(
 
 def test_client_with_authentication_with_anon_weaviate() -> None:
     """Test that we warn users when their client has auth enabled, but weaviate has only anon access."""
-
     assert not is_auth_enabled(f"localhost:{ANON_PORT}")
 
     auth = wvc.init.Auth.client_password(username="someUser", password="SomePw")

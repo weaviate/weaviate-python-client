@@ -1,74 +1,62 @@
 import asyncio
 import datetime
 import uuid as uuid_package
-from dataclasses import dataclass
 from typing import (
     Any,
     Dict,
     Generic,
-    Optional,
     List,
+    Literal,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
     Type,
     Union,
     cast,
+    overload,
 )
 
 from httpx import Response
 
+from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
+from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
+from weaviate.collections.batch.rest import _BatchREST
 from weaviate.collections.classes.batch import (
-    DeleteManyObject,
-    _BatchObject,
-    _BatchReference,
     BatchObjectReturn,
     BatchReferenceReturn,
+    DeleteManyObject,
     DeleteManyReturn,
+    _BatchObject,
+    _BatchReference,
 )
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.internal import (
-    _Reference,
-    ReferenceToMulti,
-    SingleReferenceInput,
     ReferenceInput,
     ReferenceInputs,
+    ReferenceToMulti,
+    SingleReferenceInput,
+    _Reference,
 )
 from weaviate.collections.classes.types import (
     GeoCoordinate,
     PhoneNumber,
-    _PhoneNumber,
     Properties,
     WeaviateField,
+    _PhoneNumber,
 )
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, ConnectionAsync, ConnectionType
+from weaviate.connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
+from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.logger import logger
 from weaviate.types import BEACON, UUID, VECTORS
 from weaviate.util import _datetime_to_string, _get_vector_v4
 from weaviate.validator import _validate_input, _ValidateArgument
 
-from weaviate.collections.batch.grpc_batch_objects import _BatchGRPC
-from weaviate.collections.batch.grpc_batch_delete import _BatchDeleteGRPC
-from weaviate.collections.batch.rest import _BatchREST
-from weaviate.exceptions import WeaviateInvalidInputError
-from weaviate.util import _ServerVersion
 
-
-@dataclass
-class _ExecutorOptions:
-    weaviate_version: _ServerVersion
-    name: str
-    consistency_level: Optional[ConsistencyLevel]
-    tenant: Optional[str]
-    validate_arguments: bool
-    batch_grpc: _BatchGRPC
-    batch_rest: _BatchREST
-
-
-class _DataExecutor(Generic[ConnectionType]):
+class _DataCollectionExecutor(Generic[ConnectionType, Properties]):
     def __init__(
         self,
         connection: ConnectionType,
@@ -84,11 +72,13 @@ class _DataExecutor(Generic[ConnectionType]):
         self._tenant = tenant
         self._validate_arguments = validate_arguments
         self.__batch_grpc = _BatchGRPC(
-            weaviate_version=connection._weaviate_version, consistency_level=consistency_level
+            weaviate_version=connection._weaviate_version,
+            consistency_level=consistency_level,
         )
         self.__batch_rest = _BatchREST(consistency_level=consistency_level)
         self.__batch_delete = _BatchDeleteGRPC(
-            weaviate_version=connection._weaviate_version, consistency_level=consistency_level
+            weaviate_version=connection._weaviate_version,
+            consistency_level=consistency_level,
         )
         self._type = type_
 
@@ -101,25 +91,19 @@ class _DataExecutor(Generic[ConnectionType]):
     ) -> executor.Result[uuid_package.UUID]:
         """Insert a single object into the collection.
 
-        Arguments:
-            `properties`
-                The properties of the object, REQUIRED.
-            `references`
-                Any references to other objects in Weaviate.
-            `uuid`
-                The UUID of the object. If not provided, a random UUID will be generated.
-            `vector`
-                The vector(s) of the object.
-                Supported types are
+        Args:
+            properties: The properties of the object, REQUIRED.
+            references: Any references to other objects in Weaviate.
+            uuid: The UUID of the object. If not provided, a random UUID will be generated.
+            vector: The vector(s) of the object. Supported types are:
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
 
         Returns:
-            `uuid.UUID`, the UUID of the inserted object.
+            The UUID of the inserted object.
 
         Raises:
-            `weaviate.exceptions.UnexpectedStatusCodeError`:
-                If any unexpected error occurs during the insert operation, for example the given UUID already exists.
+            weaviate.exceptions.UnexpectedStatusCodeError: If any unexpected error occurs during the insert operatio, for example the given UUID already exists.
         """
         path = "/objects"
 
@@ -164,19 +148,17 @@ class _DataExecutor(Generic[ConnectionType]):
     ) -> executor.Result[BatchObjectReturn]:
         """Insert multiple objects into the collection.
 
-        Arguments:
-            `objects`
-                The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, ReferenceInputs]`
-                    If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
-                        If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
+        Args:
+            objects: The objects to insert. This can be either a list of `Properties` or `DataObject[Properties, ReferenceInputs]`
+                If you didn't set `data_model` then `Properties` will be `Data[str, Any]` in which case you can insert simple dictionaries here.
+                If you want to insert references, vectors, or UUIDs alongside your properties, you will have to use `DataObject` instead.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCBatchError`:
-                If any unexpected error occurs during the batch operation.
-            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
-                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
-            `weaviate.exceptions.WeaviateInsertManyAllFailedError`:
-                If every object in the batch fails to be inserted. The exception message contains details about the failure.
+            weaviate.exceptions.WeaviateGRPCBatchError: If any unexpected error occurs during the batch operation.
+            weaviate.exceptions.WeaviateInsertInvalidPropertyError: If a property is invalid. I.e., has name `id`
+                or `vector`, which are reserved.
+            weaviate.exceptions.WeaviateInsertManyAllFailedError: If every object in the batch fails to be inserted.
+                The exception message contains details about the failure.
         """
         objs = [
             (
@@ -225,16 +207,14 @@ class _DataExecutor(Generic[ConnectionType]):
     def exists(self, uuid: UUID) -> executor.Result[bool]:
         """Check for existence of a single object in the collection.
 
-        Arguments:
-            `uuid`
-                The UUID of the object.
+        Args:
+            uuid: The UUID of the object.
 
         Returns:
-            `bool`, True if objects exists and False if not.
+            True if objects exists and False if not
 
         Raises:
-            `weaviate.exceptions.UnexpectedStatusCodeError`:
-                If any unexpected error occurs during the operation.
+            weaviate.exceptions.UnexpectedStatusCodeError: If any unexpected error occurs during the operation.
         """
         _validate_input(_ValidateArgument(expected=[UUID], name="uuid", value=uuid))
         path = "/objects/" + self.name + "/" + str(uuid)
@@ -263,28 +243,21 @@ class _DataExecutor(Generic[ConnectionType]):
 
         This is equivalent to a PUT operation.
 
-        Arguments:
-            `uuid`
-                The UUID of the object, REQUIRED.
-            `properties`
-                The properties of the object, REQUIRED.
-            `references`
-                Any references to other objects in Weaviate, REQUIRED.
-            `vector`
-                The vector(s) of the object.
-                Supported types are
+        If the object does not exist yet, it will be created.
+
+        Args:
+            uuid: The UUID of the object, REQUIRED.
+            properties: The properties of the object, REQUIRED.
+            references: Any references to other objects in Weaviate, REQUIRED.
+            vector: The vector(s) of the object. Supported types are:
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
 
         Raises:
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.exceptions.WeaviateInvalidInputError`:
-                If any of the arguments are invalid.
-            `weaviate.UnexpectedStatusCodeError`:
-                If Weaviate reports a non-OK status.
-            `weaviate.exceptions.WeaviateInsertInvalidPropertyError`:
-                If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.WeaviateInvalidInputError: If any of the arguments are invalid.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInsertInvalidPropertyError: If a property is invalid. I.e., has name `id` or `vector`, which are reserved.
         """
         path = f"/objects/{self.name}/{uuid}"
 
@@ -334,18 +307,11 @@ class _DataExecutor(Generic[ConnectionType]):
 
         This is equivalent to a PATCH operation.
 
-        If the object does not exist yet, it will be created.
-
-        Arguments:
-            `uuid`
-                The UUID of the object, REQUIRED.
-            `properties`
-                The properties of the object.
-            `references`
-                Any references to other objects in Weaviate.
-            `vector`
-                The vector(s) of the object.
-                Supported types are
+        Args:
+            uuid: The UUID of the object, REQUIRED.
+            properties: The properties of the object.
+            references: Any references to other objects in Weaviate.
+            vector: The vector(s) of the object. Supported types are:
                 - for single vectors: `list`, 'numpy.ndarray`, `torch.Tensor`, `tf.Tensor`, `pd.Series` and `pl.Series`, by default None.
                 - for named vectors: Dict[str, *list above*], where the string is the name of the vector.
         """
@@ -365,7 +331,10 @@ class _DataExecutor(Generic[ConnectionType]):
             )
         props = self.__serialize_props(properties) if properties is not None else {}
         refs = self.__serialize_refs(references) if references is not None else {}
-        weaviate_obj: Dict[str, Any] = {"class": self.name, "properties": {**props, **refs}}
+        weaviate_obj: Dict[str, Any] = {
+            "class": self.name,
+            "properties": {**props, **refs},
+        }
         if vector is not None:
             weaviate_obj = self.__parse_vector(weaviate_obj, vector)
 
@@ -392,19 +361,14 @@ class _DataExecutor(Generic[ConnectionType]):
     ) -> executor.Result[None]:
         """Create a reference between an object in this collection and any other object in Weaviate.
 
-        Arguments:
-            `from_uuid`
-                The UUID of the object in this collection, REQUIRED.
-            `from_property`
-                The name of the property in the object in this collection, REQUIRED.
-            `to`
-                The reference to add, REQUIRED.
+        Args:
+            from_uuid: The UUID of the object in this collection, REQUIRED.
+            from_property: The name of the property in the object in this collection, REQUIRED.
+            to: The reference to add, REQUIRED.
 
         Raises:
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`:
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         params: Dict[str, str] = {}
 
@@ -467,19 +431,15 @@ class _DataExecutor(Generic[ConnectionType]):
     ) -> executor.Result[BatchReferenceReturn]:
         """Create multiple references on a property in batch between objects in this collection and any other object in Weaviate.
 
-        Arguments:
-            `refs`
-                The references to add including the prop name, from UUID, and to UUID.
+        Args:
+            refs: The references to add including the prop name, from UUID, and to UUID.
 
         Returns:
-            `BatchReferenceReturn`
-                A `BatchReferenceReturn` object containing the results of the batch operation.
+            A `BatchReferenceReturn` object containing the results of the batch operation.
 
         Raises:
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.UnexpectedStatusCodeErro: If Weaviate reports a non-OK status.
         """
         batch = [
             _BatchReference(
@@ -502,13 +462,10 @@ class _DataExecutor(Generic[ConnectionType]):
     ) -> executor.Result[None]:
         """Delete a reference from an object within the collection.
 
-        Arguments:
-            `from_uuid`
-                The UUID of the object in this collection, REQUIRED.
-            `from_property`
-                The name of the property in the object in this collection from which the reference should be deleted, REQUIRED.
-            `to`
-                The reference to delete, REQUIRED.
+        Args:
+            from_uuid: The UUID of the object in this collection, REQUIRED.
+            from_property: The name of the property in the object in this collection from which the reference should be deleted, REQUIRED.
+            to: The reference to delete, REQUIRED.
         """
         params: Dict[str, str] = {}
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -574,13 +531,10 @@ class _DataExecutor(Generic[ConnectionType]):
     ) -> executor.Result[None]:
         """Replace a reference of an object within the collection.
 
-        Arguments:
-            `from_uuid`
-                The UUID of the object in this collection, REQUIRED.
-            `from_property`
-                The name of the property in the object in this collection from which the reference should be replaced, REQUIRED.
-            `to`
-                The reference to replace, REQUIRED.
+        Args:
+            from_uuid: The UUID of the object in this collection, REQUIRED.
+            from_property: The name of the property in the object in this collection from which the reference should be replaced, REQUIRED.
+            to: The reference to replace, REQUIRED.
         """
         params: Dict[str, str] = {}
         path = f"/objects/{self.name}/{from_uuid}/references/{from_property}"
@@ -624,9 +578,8 @@ class _DataExecutor(Generic[ConnectionType]):
     def delete_by_id(self, uuid: UUID) -> executor.Result[bool]:
         """Delete an object from the collection based on its UUID.
 
-        Arguments:
-            `uuid`
-                The UUID of the object to delete, REQUIRED.
+        Args:
+            uuid: The UUID of the object to delete, REQUIRED.
         """
         path = f"/objects/{self.name}/{uuid}"
 
@@ -642,24 +595,38 @@ class _DataExecutor(Generic[ConnectionType]):
             status_codes=_ExpectedStatusCodes(ok_in=[204, 404], error="delete object"),
         )
 
+    @overload
+    def delete_many(
+        self, where: _Filters, *, verbose: Literal[False] = False, dry_run: bool = False
+    ) -> executor.Result[DeleteManyReturn[None]]: ...
+
+    @overload
+    def delete_many(
+        self, where: _Filters, *, verbose: Literal[True], dry_run: bool = False
+    ) -> executor.Result[DeleteManyReturn[List[DeleteManyObject]]]: ...
+
+    @overload
+    def delete_many(
+        self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
+    ) -> executor.Result[
+        Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]
+    ]: ...
+
     def delete_many(
         self, where: _Filters, *, verbose: bool = False, dry_run: bool = False
     ) -> executor.Result[Union[DeleteManyReturn[List[DeleteManyObject]], DeleteManyReturn[None]]]:
         """Delete multiple objects from the collection based on a filter.
 
-        Arguments:
-            `where`
-                The filter to apply. This filter is the same that is used when performing queries and has the same syntax, REQUIRED.
-            `verbose`
-                Whether to return the deleted objects in the response.
-            `dry_run`
-                Whether to perform a dry run. If set to `True`, the objects will not be deleted, but the response will contain the objects that would have been deleted.
+        Args:
+            where: The filter to apply. This filter is the same that is used when performing queries
+                and has the same syntax, REQUIRED.
+            verbose: Whether to return the deleted objects in the response.
+            dry_run: Whether to perform a dry run. If set to `True`, the objects will not be deleted,
+                but the response will contain the objects that would have been deleted.
 
         Raises:
-            `weaviate.WeaviateConnectionError`:
-                If the network connection to Weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`:
-                If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
         """
         _ValidateArgument(expected=[_Filters], name="where", value=where)
         return self.__batch_delete.batch_delete(
@@ -672,7 +639,6 @@ class _DataExecutor(Generic[ConnectionType]):
         )
 
     def __apply_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
-
         if self._tenant is not None:
             params["tenant"] = self._tenant
         if self._consistency_level is not None:
@@ -682,7 +648,6 @@ class _DataExecutor(Generic[ConnectionType]):
     def __apply_context_to_params_and_object(
         self, params: Dict[str, Any], obj: Dict[str, Any]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-
         if self._tenant is not None:
             obj["tenant"] = self._tenant
         if self._consistency_level is not None:

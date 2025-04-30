@@ -8,45 +8,45 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, TypedDict, Uni
 import pytest
 
 from integration.conftest import CollectionFactory, CollectionFactoryGet, _sanitize_collection_name
-from integration.constants import WEAVIATE_LOGO_OLD_ENCODED, WEAVIATE_LOGO_NEW_ENCODED
+from integration.constants import WEAVIATE_LOGO_NEW_ENCODED, WEAVIATE_LOGO_OLD_ENCODED
 from weaviate.collections.classes.batch import ErrorObject
 from weaviate.collections.classes.config import (
     Configure,
+    ConsistencyLevel,
     DataType,
     Property,
     ReferenceProperty,
     Tokenization,
     Vectorizers,
-    ConsistencyLevel,
 )
 from weaviate.collections.classes.data import (
     DataObject,
 )
 from weaviate.collections.classes.grpc import (
-    QueryReference,
-    HybridFusion,
-    GroupBy,
-    MetadataQuery,
-    Move,
-    Sort,
-    _Sorting,
     PROPERTIES,
     PROPERTY,
     REFERENCE,
+    GroupBy,
+    HybridFusion,
+    MetadataQuery,
+    Move,
     NearMediaType,
+    QueryReference,
+    Sort,
+    _Sorting,
 )
 from weaviate.collections.classes.internal import (
-    _CrossReference,
     Object,
     ReferenceToMulti,
+    _CrossReference,
 )
-from weaviate.collections.classes.types import PhoneNumber, _PhoneNumber, WeaviateProperties
+from weaviate.collections.classes.types import PhoneNumber, WeaviateProperties, _PhoneNumber
 from weaviate.exceptions import (
     UnexpectedStatusCodeError,
-    WeaviateInvalidInputError,
-    WeaviateQueryError,
     WeaviateInsertInvalidPropertyError,
     WeaviateInsertManyAllFailedError,
+    WeaviateInvalidInputError,
+    WeaviateQueryError,
     WeaviateUnsupportedFeatureError,
 )
 from weaviate.types import UUID, UUIDS

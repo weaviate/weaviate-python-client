@@ -7,9 +7,9 @@ from typing import List, Optional, Union
 from pydantic import AnyHttpUrl, AnyUrl, BaseModel, Field
 
 from weaviate.collections.classes.config import (
+    AWSService,
     GenerativeSearches,
     _EnumLikeStr,
-    AWSService,
 )
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.proto.v1.base_pb2 import TextArray
@@ -26,12 +26,14 @@ from weaviate.proto.v1.generative_pb2 import (
     GenerativeNvidia,
     GenerativeOllama,
     GenerativeOpenAI,
-    GenerativeXAI,
-    GenerativeProvider as GenerativeProviderGRPC,
     GenerativeSearch,
+    GenerativeXAI,
 )
-from weaviate.util import parse_blob
+from weaviate.proto.v1.generative_pb2 import (
+    GenerativeProvider as GenerativeProviderGRPC,
+)
 from weaviate.types import BLOB_INPUT
+from weaviate.util import parse_blob
 
 
 def _parse_anyhttpurl(url: Optional[AnyHttpUrl]) -> Optional[str]:
@@ -444,22 +446,16 @@ class GenerativeConfig:
         top_k: Optional[int] = None,
         top_p: Optional[float] = None,
     ) -> _GenerativeConfigRuntime:
-        """
-        Create a `_GenerativeAnthropic` object for use when performing dynamic AI generation using the `generative-anthropic` module.
+        """Create a `_GenerativeAnthropic` object for use when performing dynamic AI generation using the `generative-anthropic` module.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `stop_sequences`
-                The stop sequences to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_k`
-                The top K to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            base_url: The base URL to send the API request to. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnthropic(
             base_url=AnyUrl(base_url) if base_url is not None else None,
@@ -480,13 +476,10 @@ class GenerativeConfig:
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeAnyscale` object for use when performing dynamic AI generation using the `generative-anyscale` module.
 
-        Arguments:
-            `base_url`
-                The base URL to send the API request to. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            base_url: The base URL to send the API request to. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAnyscale(
             base_url=AnyUrl(base_url) if base_url is not None else None,
@@ -510,18 +503,14 @@ class GenerativeConfig:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-aws)
         for detailed usage.
 
-        Arguments:
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `region`
-                The AWS region to run the model from. Defaults to `None`, which uses the server-defined default
-            `endpoint`
-                The endpoint to use when requesting the generation. Defaults to `None`, which uses the server-defined default
-            `service`
-                The AWS service to use. Defaults to `None`, which uses the server-defined default
-            TODO: add docs for these new params
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            endpoint: The endpoint to use when requesting the generation. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            region: The AWS region to run the model from. Defaults to `None`, which uses the server-defined default
+            service: The AWS service to use. Defaults to `None`, which uses the server-defined default
+            target_model: The target model to use. Defaults to `None`, which uses the server-defined default
+            target_variant: The target variant to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeAWS(
             model=model,
@@ -550,23 +539,15 @@ class GenerativeConfig:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-cohere)
         for detailed usage.
 
-        Arguments:
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `k`
-                The top K property to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `p`
-                The top P property to use. Defaults to `None`, which uses the server-defined default
-            `presence_penalty`
-                The presence penalty to use. Defaults to `None`, which uses the server-defined default
-            `stop_sequences`
-                The stop sequences to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            k: The top K property to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            p: The top P property to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeCohere(
             base_url=AnyUrl(base_url) if base_url is not None else None,
@@ -596,27 +577,18 @@ class GenerativeConfig:
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeDatabricks` object for use when performing AI generation using the `generative-databricks` module.
 
-        Arguments:
-            `endpoint`
-                The URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `frequency_penalty`
-                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
-            `log_probs`
-                Whether to log probabilities. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `n`
-                The number of sequences to generate. Defaults to `None`, which uses the server-defined default
-            `stop`
-                The stop sequences to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_log_probs`
-                The top log probabilities to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P value to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            endpoint: The URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            log_probs: Whether to log probabilities. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            n: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_log_probs: The top log probabilities to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeDatabricks(
             endpoint=AnyUrl(endpoint),
@@ -647,22 +619,15 @@ class GenerativeConfig:
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
     ) -> _GenerativeConfigRuntime:
-        """
-        Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
+        """Create a `_GenerativeFriendliai` object for use when performing AI generation using the `generative-friendliai` module.
 
-        Arguments:
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `n`
-                The number of sequences to generate. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P value to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            n: The number of sequences to generate. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeFriendliai(
             base_url=AnyUrl(base_url) if base_url is not None else None,
@@ -694,31 +659,19 @@ class GenerativeConfig:
         See the [documentation](https://weaviate.io/developers/weaviate/model-providers/google/generative)
         for detailed usage.
 
-        Arguments:
-            `api_endpoint`
-                The API endpoint to use. Defaults to `None`, which uses the server-defined default
-            `endpoint_id`
-                The endpoint ID to use. Defaults to `None`, which uses the server-defined default
-            `frequency_penalty`
-                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model ID to use. Defaults to `None`, which uses the server-defined default
-            `presence_penalty`
-                The presence penalty to use. Defaults to `None`, which uses the server-defined default
-            `project_id`
-                The project ID to use. Defaults to `None`, which uses the server-defined default
-            `region`
-                The region to use. Defaults to `None`, which uses the server-defined default
-            `stop_sequences`
-                The stop sequences to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_k`
-                The top K to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            api_endpoint: The API endpoint to use. Defaults to `None`, which uses the server-defined default
+            endpoint_id: The endpoint ID to use. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model ID to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            project_id: The project ID to use. Defaults to `None`, which uses the server-defined default
+            region: The region to use. Defaults to `None`, which uses the server-defined default
+            stop_sequences: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_k: The top K to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeGoogle(
             api_endpoint=AnyUrl(api_endpoint) if api_endpoint is not None else None,
@@ -746,17 +699,12 @@ class GenerativeConfig:
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeMistral` object for use when performing AI generation using the `generative-mistral` module.
 
-        Arguments:
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P value to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeMistral(
             base_url=AnyUrl(base_url) if base_url is not None else None,
@@ -777,17 +725,12 @@ class GenerativeConfig:
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeNvidia` object for use when performing AI generation using the `generative-nvidia` module.
 
-        Arguments:
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P value to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P value to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeNvidia(
             base_url=AnyUrl(base_url) if base_url is not None else None,
@@ -806,19 +749,14 @@ class GenerativeConfig:
     ) -> _GenerativeConfigRuntime:
         """Create a `_GenerativeOllama` object for use when performing AI generation using the `generative-ollama` module.
 
-        Arguments:
-            `api_endpoint`
-                The API endpoint to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            api_endpoint: The API endpoint to use. Defaults to `None`, which uses the server-defined default
                 Docker users may need to specify an alias, such as `http://host.docker.internal:11434` so that the container can access the host machine.
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `images`
-                Any query-specific external images to use in the generation. Passing a string will assume a path to the image file and, if not found, will be treated as a base64-encoded string.
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            images: Any query-specific external images to use in the generation. Passing a string will assume a path to the image file and, if not found, will be treated as a base64-encoded string.
                 The number of images passed to the prompt will match the length of this field.
-            `grouped_task_image_properties`
-                Any internal image properties to use in the generation sourced from the object's properties returned by the retrieval step.
+            grouped_task_image_properties: Any internal image properties to use in the generation sourced from the object's properties returned by the retrieval step.
                 The number of images passed to the prompt will match the value of `limit` in the search query.
         """
         return _GenerativeOllama(
@@ -847,30 +785,18 @@ class GenerativeConfig:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
         for detailed usage.
 
-        Arguments:
-            `api_version`
-                The API version to use. Defaults to `None`, which uses the server-defined default
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `deployment_id`
-                The deployment ID to use. Defaults to `None`, which uses the server-defined default
-            `frequency_penalty`
-                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `presence_penalty`
-                The presence penalty to use. Defaults to `None`, which uses the server-defined default
-            `resource_name`
-                The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
-            `stop`
-                The stop sequences to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
-
+        Args:
+            api_version: The API version to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            deployment_id: The deployment ID to use. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            resource_name: The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
+            stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeOpenAI(
             api_version=api_version,
@@ -907,29 +833,18 @@ class GenerativeConfig:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-openai)
         for detailed usage.
 
-        Arguments:
-            `api_version`
-                The API version to use. Defaults to `None`, which uses the server-defined default
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `deployment_id`
-                The deployment ID to use. Defaults to `None`, which uses the server-defined default
-            `frequency_penalty`
-                The frequency penalty to use. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `presence_penalty`
-                The presence penalty to use. Defaults to `None`, which uses the server-defined default
-            `resource_name`
-                The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
-            `stop`
-                The stop sequences to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            api_version: The API version to use. Defaults to `None`, which uses the server-defined default
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            deployment_id: The deployment ID to use. Defaults to `None`, which uses the server-defined default
+            frequency_penalty: The frequency penalty to use. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            presence_penalty: The presence penalty to use. Defaults to `None`, which uses the server-defined default
+            resource_name: The name of the OpenAI resource to use. Defaults to `None`, which uses the server-defined default
+            stop: The stop sequences to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeOpenAI(
             api_version=api_version,
@@ -960,17 +875,12 @@ class GenerativeConfig:
         See the [documentation](https://weaviate.io/developers/weaviate/modules/reader-generator-modules/generative-xai)
         for detailed usage.
 
-        Arguments:
-            `base_url`
-                The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
-            `max_tokens`
-                The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
-            `model`
-                The model to use. Defaults to `None`, which uses the server-defined default
-            `temperature`
-                The temperature to use. Defaults to `None`, which uses the server-defined default
-            `top_p`
-                The top P to use. Defaults to `None`, which uses the server-defined default
+        Args:
+            base_url: The base URL where the API request should go. Defaults to `None`, which uses the server-defined default
+            max_tokens: The maximum number of tokens to generate. Defaults to `None`, which uses the server-defined default
+            model: The model to use. Defaults to `None`, which uses the server-defined default
+            temperature: The temperature to use. Defaults to `None`, which uses the server-defined default
+            top_p: The top P to use. Defaults to `None`, which uses the server-defined default
         """
         return _GenerativeXAI(
             base_url=AnyUrl(base_url) if base_url is not None else None,

@@ -9,7 +9,7 @@ from pytest_httpserver import HTTPServer
 from werkzeug import Request, Response
 
 import weaviate
-from mock_tests.conftest import MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC, CLIENT_ID
+from mock_tests.conftest import CLIENT_ID, MOCK_IP, MOCK_PORT, MOCK_PORT_GRPC
 from weaviate.exceptions import MissingScopeException
 
 ACCESS_TOKEN = "HELLO!IamAnAccessToken"
@@ -20,7 +20,6 @@ REFRESH_TOKEN = "UseMeToRefreshYourAccessToken"
 
 def test_user_password(weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server) -> None:
     """Test that client sends username and pw with the correct body to the token endpoint and uses the correct token."""
-
     user = "AUsername"
     pw = "SomePassWord"
 
@@ -89,7 +88,6 @@ def test_auth_header_priority(
     recwarn, weaviate_auth_mock: HTTPServer, start_grpc_server: grpc.Server, header_name: str
 ) -> None:
     """Test that auth_credentials has priority over the auth header."""
-
     # testing for warnings can be flaky without this as there are open SSL conections
     warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
@@ -358,7 +356,9 @@ def test_token_refresh_timeout(
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.auth.AuthBearerToken(
-            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1  # force immediate refresh
+            ACCESS_TOKEN,
+            refresh_token=REFRESH_TOKEN,
+            expires_in=1,  # force immediate refresh
         ),
     ) as client:
         time.sleep(9)  # sleep longer than the timeout, to give client time to retry
@@ -398,7 +398,9 @@ async def test_token_refresh_timeout_async(
         port=MOCK_PORT,
         grpc_port=MOCK_PORT_GRPC,
         auth_credentials=weaviate.auth.AuthBearerToken(
-            ACCESS_TOKEN, refresh_token=REFRESH_TOKEN, expires_in=1  # force immediate refresh
+            ACCESS_TOKEN,
+            refresh_token=REFRESH_TOKEN,
+            expires_in=1,  # force immediate refresh
         ),
     ) as client:
         await asyncio.sleep(9)  # sleep longer than the timeout, to give client time to retry

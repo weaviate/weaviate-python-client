@@ -2,10 +2,9 @@ import json
 from dataclasses import asdict
 from typing import Generic, List, Literal, Optional, Type, Union, overload
 
-from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.aggregate import _AggregateCollectionAsync
 from weaviate.collections.backups import _CollectionBackupAsync
-from weaviate.collections.cluster import _ClusterAsync
+from weaviate.collections.classes.cluster import Shard
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import METADATA, PROPERTIES, REFERENCES
 from weaviate.collections.classes.internal import (
@@ -17,6 +16,7 @@ from weaviate.collections.classes.internal import (
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.collections.classes.types import Properties, TProperties
+from weaviate.collections.cluster import _ClusterAsync
 from weaviate.collections.config import _ConfigCollectionAsync
 from weaviate.collections.data import _DataCollectionAsync
 from weaviate.collections.generate import _GenerateCollectionAsync
@@ -39,22 +39,14 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
     performing type hinting of functions that depend on a collection object.
 
     Attributes:
-        `aggregate`
-            This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities.
-        `aggregate_group_by`
-            This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities.
-        `config`
-            This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate.
-        `data`
-            This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate.
-        `generate`
-            This namespace includes all the querying methods available to you when using Weaviate's generative capabilities.
-        `query_group_by`
-            This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities.
-        `query`
-            This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities.
-        `tenants`
-            This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate.
+        aggregate: This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities.
+        aggregate_group_by: This namespace includes all the aggregate methods available to you when using Weaviate's aggregation group-by capabilities.
+        config: This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate.
+        data: This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate.
+        generate: This namespace includes all the querying methods available to you when using Weaviate's generative capabilities.
+        query_group_by: This namespace includes all the querying methods available to you when using Weaviate's querying group-by capabilities.
+        query: This namespace includes all the querying methods available to you when using Weaviate's standard query capabilities.
+        tenants: This namespace includes all the CRUD methods available to you when modifying the tenants of a multi-tenancy-enabled collection in Weaviate.
     """
 
     def __init__(
@@ -79,24 +71,21 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
 
         self.__cluster = _ClusterAsync(connection)
 
-        self.aggregate = _AggregateCollectionAsync(
+        self.aggregate: _AggregateCollectionAsync = _AggregateCollectionAsync(
             connection, name, consistency_level, tenant, validate_arguments
         )
         """This namespace includes all the querying methods available to you when using Weaviate's standard aggregation capabilities."""
-        self.backup = _CollectionBackupAsync(connection, name)
+        self.backup: _CollectionBackupAsync = _CollectionBackupAsync(connection, name)
         """This namespace includes all the backup methods available to you when backing up a collection in Weaviate."""
         self.config = _ConfigCollectionAsync(connection, name, tenant)
         """This namespace includes all the CRUD methods available to you when modifying the configuration of the collection in Weaviate."""
         self.data = _DataCollectionAsync[Properties](
-            connection,
-            name,
-            consistency_level,
-            tenant,
-            validate_arguments,
-            # properties
+            connection, name, consistency_level, tenant, validate_arguments, properties
         )
         """This namespace includes all the CUD methods available to you when modifying the data of the collection in Weaviate."""
-        self.generate = _GenerateCollectionAsync[Properties, References](
+        self.generate: _GenerateCollectionAsync[Properties, References] = _GenerateCollectionAsync[
+            Properties, References
+        ](
             connection,
             name,
             consistency_level,
@@ -129,9 +118,8 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         This method does not send a request to Weaviate. It only returns a new collection object that is specific
         to the tenant you specify.
 
-        Arguments:
-            `tenant`
-                The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
+        Args:
+            tenant: The tenant to use. Can be `str` or `wvc.tenants.Tenant`.
         """
         return CollectionAsync(
             connection=self._connection,
@@ -153,9 +141,8 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         This method does not send a request to Weaviate. It only returns a new collection object that is specific
         to the consistency level you specify.
 
-        Arguments:
-            `consistency_level`
-                The consistency level to use.
+        Args:
+            consistency_level: The consistency level to use.
         """
         return CollectionAsync(
             connection=self._connection,
@@ -188,19 +175,15 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
             return False
 
     async def shards(self) -> List[Shard]:
-        """
-        Get the statuses of all the shards of this collection.
+        """Get the statuses of all the shards of this collection.
 
         Returns:
             The list of shards belonging to this collection.
 
-        Raises
-            `weaviate.WeaviateConnectionError`
-                If the network connection to weaviate fails.
-            `weaviate.UnexpectedStatusCodeError`
-                If weaviate reports a none OK status.
-            `weaviate.EmptyResponseError`
-                If the response is empty.
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If weaviate reports a none OK status.
+            weaviate.EmptyResponseError: If the response is empty.
         """
         return [
             shard
@@ -307,23 +290,16 @@ class CollectionAsync(Generic[Properties, References], _CollectionBase[Connectio
         to request the vector back as well. In addition, if `return_references=None` then none of the references
         are returned. Use `wvc.QueryReference` to specify which references to return.
 
-        Arguments:
-            `include_vector`
-                Whether to include the vector in the metadata of the returned objects.
-            `return_metadata`
-                The metadata to return with each object.
-            `return_properties`
-                The properties to return with each object.
-            `return_references`
-                The references to return with each object.
-            `after`
-                The cursor to use to mark the initial starting point of the iterator in the collection.
-            `cache_size`
-                How many objects should be fetched in each request to Weaviate during the iteration. The default is 100.
+        Args:
+            include_vector: Whether to include the vector in the metadata of the returned objects.
+            return_metadata: The metadata to return with each object.
+            return_properties: The properties to return with each object.
+            return_references: The references to return with each object.
+            after: The cursor to use to mark the initial starting point of the iterator in the collection.
+            cache_size: How many objects should be fetched in each request to Weaviate during the iteration. The default is 100.
 
         Raises:
-            `weaviate.exceptions.WeaviateGRPCQueryError`:
-                If the request to the Weaviate server fails.
+            weaviate.exceptions.WeaviateGRPCQueryError: If the request to the Weaviate server fails.
         """
         return _ObjectAIterator(
             self.query,

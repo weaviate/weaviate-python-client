@@ -1,6 +1,6 @@
 import warnings
 from datetime import datetime
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Optional
 
 try:
