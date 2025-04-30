@@ -37,8 +37,10 @@ class VectorIndexType(str, Enum):
     FLAT = "flat"
     DYNAMIC = "dynamic"
 
+
 class _MultiVectorConfigCreateBase(_ConfigCreateModel):
     enabled: bool = Field(default=True)
+
 
 class _MuveraConfigCreate(_ConfigCreateModel):
     enabled: Optional[bool]
@@ -50,6 +52,7 @@ class _MuveraConfigCreate(_ConfigCreateModel):
 class _MultiVectorConfigCreate(_MultiVectorConfigCreateBase):
     muveraConfig: Optional[_MuveraConfigCreate]
     aggregation: Optional[str]
+
 
 class _VectorIndexConfigCreate(_ConfigCreateModel):
     distance: Optional[VectorDistances]

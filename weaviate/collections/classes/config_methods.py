@@ -245,7 +245,7 @@ def __get_vector_config(
                 ),
                 vector_index_config=vector_index_config,
             )
-            
+
         return named_vectors
     else:
         return None
