@@ -21,7 +21,6 @@ from weaviate.collections.classes.config import (
     _InvertedIndexConfig,
     _MultiTenancyConfig,
     _MultiVectorConfig,
-    _MuveraConfig,
     _NamedVectorConfig,
     _NamedVectorizerConfig,
     _NestedProperty,

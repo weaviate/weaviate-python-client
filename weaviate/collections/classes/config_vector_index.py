@@ -42,7 +42,10 @@ class _MultiVectorConfigCreateBase(_ConfigCreateModel):
     enabled: bool = Field(default=True)
 
 
-class _MuveraConfigCreate(_ConfigCreateModel):
+class _EncodingConfigCreate(_MultiVectorConfigCreateBase):
+    enabled: bool = Field(default=True)
+
+class _MuveraConfigCreate(_EncodingConfigCreate):
     enabled: Optional[bool]
     ksim: Optional[int]
     dprojections: Optional[int]
@@ -51,10 +54,6 @@ class _MuveraConfigCreate(_ConfigCreateModel):
     @staticmethod
     def encoding_name() -> str:
         return "muvera"
-
-
-class _EncodingConfigCreate(_MultiVectorConfigCreateBase):
-    enabled: bool = Field(default=True)
 
 class _MultiVectorConfigCreate(_MultiVectorConfigCreateBase):
     encoding: Optional[_EncodingConfigCreate] = Field(exclude=True)
