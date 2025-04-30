@@ -34,6 +34,7 @@ from weaviate.collections.classes.config_named_vectors import (
 from weaviate.collections.classes.config_vector_index import (
     VectorFilterStrategy,
     _MuveraConfigCreate,
+    _EncodingConfigCreate,
     _MultiVectorConfigCreate,
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
@@ -1556,12 +1557,19 @@ class _SQConfig(_ConfigBase):
 BQConfig = _BQConfig
 SQConfig = _SQConfig
 
+@dataclass
+class _MuveraConfig(_ConfigBase):
+    enabled: Optional[bool]
+    ksim: Optional[int]
+    dprojections: Optional[int]
+    repetitions: Optional[int]
+
+MuveraConfig = _MuveraConfig
 
 @dataclass
 class _MultiVectorConfig(_ConfigBase):
-    muvera_config: Optional[_MuveraConfigCreate]
+    encoding: Optional[_EncodingConfigCreate]
     aggregation: str
-
 
 MultiVector = _MultiVectorConfig
 
@@ -2032,30 +2040,43 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         )
         ret_dict["properties"] = existing_props
 
-
-class _VectorIndexMultiVector:
-    @staticmethod
-    def multi_vector(
-        muvera_config: Optional[_MuveraConfigCreate] = None,
-        aggregation: Optional[MultiVectorAggregation] = None,
-    ) -> _MultiVectorConfigCreate:
-        return _MultiVectorConfigCreate(
-            muveraConfig=muvera_config if muvera_config is not None else None,
-            aggregation=aggregation.value if aggregation is not None else None,
-        )
+class _MuveraConfigCreate(_EncodingConfigCreate):
+    enabled: Optional[bool]
+    ksim: Optional[int]
+    dprojections: Optional[int]
+    repetitions: Optional[int]
 
     @staticmethod
-    def muvera_config(
+    def encoding_name() -> str:
+        return "muvera"
+
+
+class _VectorIndexMultivectorEncoding:
+    @staticmethod
+    def muvera(
         enabled: Optional[bool] = None,
         ksim: Optional[int] = None,
         dprojections: Optional[int] = None,
         repetitions: Optional[int] = None,
-    ) -> _MuveraConfigCreate:
+    ) -> _EncodingConfigCreate:
         return _MuveraConfigCreate(
             enabled=enabled,
             ksim=ksim,
             dprojections=dprojections,
             repetitions=repetitions,
+        )
+
+class _VectorIndexMultiVector:
+    Encoding = _VectorIndexMultivectorEncoding
+
+    @staticmethod
+    def multi_vector(
+        encoding: Optional[_EncodingConfigCreate] = None,
+        aggregation: Optional[MultiVectorAggregation] = None,
+    ) -> _MultiVectorConfigCreate:
+        return _MultiVectorConfigCreate(
+            encoding=encoding if encoding is not None else None,
+            aggregation=aggregation.value if aggregation is not None else None,
         )
 
 

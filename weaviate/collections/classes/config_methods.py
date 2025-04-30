@@ -21,6 +21,7 @@ from weaviate.collections.classes.config import (
     _InvertedIndexConfig,
     _MultiTenancyConfig,
     _MultiVectorConfig,
+    _MuveraConfig,
     _NamedVectorConfig,
     _NamedVectorizerConfig,
     _NestedProperty,
@@ -155,7 +156,7 @@ def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
         if config.get("multivector") is None
         or not config.get("multivector", {"enabled": False}).get("enabled")
         else _MultiVectorConfig(
-            muvera_config=config["multivector"]["muveraConfig"],
+            encoding=config["multivector"]["muvera"],
             aggregation=config["multivector"]["aggregation"],
         )
     )
