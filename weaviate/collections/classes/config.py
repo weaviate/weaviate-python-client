@@ -32,7 +32,6 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
-    VectorIndexType as VectorIndexTypeAlias,
     VectorFilterStrategy,
     _MuveraConfigCreate,
     _MultiVectorConfigCreate,
