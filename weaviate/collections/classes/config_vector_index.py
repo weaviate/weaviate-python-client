@@ -45,6 +45,7 @@ class _MultiVectorConfigCreateBase(_ConfigCreateModel):
 class _EncodingConfigCreate(_MultiVectorConfigCreateBase):
     enabled: bool = Field(default=True)
 
+
 class _MuveraConfigCreate(_EncodingConfigCreate):
     enabled: Optional[bool]
     ksim: Optional[int]
@@ -54,6 +55,7 @@ class _MuveraConfigCreate(_EncodingConfigCreate):
     @staticmethod
     def encoding_name() -> str:
         return "muvera"
+
 
 class _MultiVectorConfigCreate(_MultiVectorConfigCreateBase):
     encoding: Optional[_EncodingConfigCreate] = Field(exclude=True)
@@ -76,7 +78,9 @@ class _VectorIndexConfigCreate(_ConfigCreateModel):
         if self.distance is not None:
             ret_dict["distance"] = str(self.distance.value)
         if self.multivector is not None and self.multivector.encoding is not None:
-            ret_dict["multivector"][self.multivector.encoding.encoding_name()] = self.multivector.encoding._to_dict()
+            ret_dict["multivector"][self.multivector.encoding.encoding_name()] = (
+                self.multivector.encoding._to_dict()
+            )
 
         return ret_dict
 

@@ -1557,6 +1557,7 @@ class _SQConfig(_ConfigBase):
 BQConfig = _BQConfig
 SQConfig = _SQConfig
 
+
 @dataclass
 class _MuveraConfig(_ConfigBase):
     enabled: Optional[bool]
@@ -1564,12 +1565,15 @@ class _MuveraConfig(_ConfigBase):
     dprojections: Optional[int]
     repetitions: Optional[int]
 
+
 MuveraConfig = _MuveraConfig
+
 
 @dataclass
 class _MultiVectorConfig(_ConfigBase):
     encoding: Optional[_EncodingConfigCreate]
     aggregation: str
+
 
 MultiVector = _MultiVectorConfig
 
@@ -2040,6 +2044,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         )
         ret_dict["properties"] = existing_props
 
+
 class _VectorIndexMultivectorEncoding:
     @staticmethod
     def muvera(
@@ -2054,6 +2059,7 @@ class _VectorIndexMultivectorEncoding:
             dprojections=dprojections,
             repetitions=repetitions,
         )
+
 
 class _VectorIndexMultiVector:
     Encoding = _VectorIndexMultivectorEncoding
