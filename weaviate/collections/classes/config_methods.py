@@ -155,7 +155,9 @@ def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
         if config.get("multivector") is None
         or not config.get("multivector", {"enabled": False}).get("enabled")
         else _MultiVectorConfig(
-            encoding=config["multivector"]["muvera"],
+            encoding= None
+            if config["multivector"].get("encoding") is None
+            else config["multivector"]["encoding"],
             aggregation=config["multivector"]["aggregation"],
         )
     )
