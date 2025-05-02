@@ -1571,7 +1571,7 @@ MuveraConfig = _MuveraConfig
 
 @dataclass
 class _MultiVectorConfig(_ConfigBase):
-    encoding: Optional[_MuveraConfigCreate]
+    encoding: Optional[_MuveraConfig]
     aggregation: str
 
 
