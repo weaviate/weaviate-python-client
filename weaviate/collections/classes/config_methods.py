@@ -21,6 +21,7 @@ from weaviate.collections.classes.config import (
     _InvertedIndexConfig,
     _MultiTenancyConfig,
     _MultiVectorConfig,
+    _MuveraConfigCreate,
     _NamedVectorConfig,
     _NamedVectorizerConfig,
     _NestedProperty,
@@ -149,6 +150,20 @@ def __get_quantizer_config(
     return quantizer
 
 
+def __get_multivector_encoding(config: Dict[str, Any]) -> Optional[_MuveraConfigCreate]:
+    return (
+        None
+        if config.get("encoding") is None
+        or not config.get("encoding", {"enabled": False}).get("enabled")
+        else _MuveraConfigCreate(
+            enabled=config["encoding"]["enabled"],
+            ksim=config["encoding"]["ksim"],
+            dprojections=config["encoding"]["dprojections"],
+            repetitions=config["encoding"]["repetitions"],
+        )
+    )
+
+
 def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
     return (
         None
@@ -157,7 +172,7 @@ def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
         else _MultiVectorConfig(
             encoding= None
             if config["multivector"].get("encoding") is None
-            else config["multivector"]["encoding"],
+            else __get_multivector_encoding(config["multivector"]["encoding"]),
             aggregation=config["multivector"]["aggregation"],
         )
     )
