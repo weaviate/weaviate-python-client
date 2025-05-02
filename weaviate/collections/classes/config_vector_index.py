@@ -47,7 +47,6 @@ class _EncodingConfigCreate(_MultiVectorConfigCreateBase):
 
 
 class _MuveraConfigCreate(_EncodingConfigCreate):
-    enabled: Optional[bool]
     ksim: Optional[int]
     dprojections: Optional[int]
     repetitions: Optional[int]
