@@ -2048,7 +2048,7 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 class _VectorIndexMultivectorEncoding:
     @staticmethod
     def muvera(
-        enabled: Optional[bool] = None,
+        enabled: bool = True,
         ksim: Optional[int] = None,
         dprojections: Optional[int] = None,
         repetitions: Optional[int] = None,
