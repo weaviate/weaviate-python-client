@@ -49,7 +49,11 @@ def _is_primitive(d_type: str) -> bool:
 def __get_rerank_config(schema: Dict[str, Any]) -> Optional[_RerankerConfig]:
     if (
         len(
-            rerankers := [key for key in schema.get("moduleConfig", {}).keys() if "reranker" in key]
+            rerankers := [
+                key
+                for key in schema.get("moduleConfig", {}).keys()
+                if "reranker" in key
+            ]
         )
         == 1
     ):
@@ -69,7 +73,9 @@ def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfi
     if (
         len(
             generators := [
-                key for key in schema.get("moduleConfig", {}).keys() if "generative" in key
+                key
+                for key in schema.get("moduleConfig", {}).keys()
+                if "generative" in key
             ]
         )
         == 1
@@ -88,7 +94,10 @@ def __get_generative_config(schema: Dict[str, Any]) -> Optional[_GenerativeConfi
 
 
 def __get_vectorizer_config(schema: Dict[str, Any]) -> Optional[_VectorizerConfig]:
-    if __is_vectorizer_present(schema) is not None and schema.get("vectorizer", "none") != "none":
+    if (
+        __is_vectorizer_present(schema) is not None
+        and schema.get("vectorizer", "none") != "none"
+    ):
         vec_config: Dict[str, Any] = schema["moduleConfig"].pop(schema["vectorizer"])
         try:
             vectorizer = Vectorizers(schema["vectorizer"])
@@ -170,9 +179,11 @@ def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
         if config.get("multivector") is None
         or not config.get("multivector", {"enabled": False}).get("enabled")
         else _MultiVectorConfig(
-            encoding= None
-            if config["multivector"].get("encoding") is None
-            else __get_multivector_encoding(config["multivector"]["encoding"]),
+            encoding=(
+                None
+                if config["multivector"].get("encoding") is None
+                else __get_multivector_encoding(config["multivector"]["encoding"])
+            ),
             aggregation=config["multivector"]["aggregation"],
         )
     )
@@ -214,7 +225,9 @@ def __get_flat_config(config: Dict[str, Any]) -> _VectorIndexConfigFlat:
 
 def __get_vector_index_config(
     schema: Dict[str, Any],
-) -> Union[_VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, None]:
+) -> Union[
+    _VectorIndexConfigHNSW, _VectorIndexConfigFlat, _VectorIndexConfigDynamic, None
+]:
     if "vectorIndexConfig" not in schema:
         return None
     if schema["vectorIndexType"] == "hnsw":
@@ -279,16 +292,22 @@ def __get_vectorizer(schema: Dict[str, Any]) -> Optional[Union[str, Vectorizers]
         return vectorizer
 
 
-def _collection_config_simple_from_json(schema: Dict[str, Any]) -> _CollectionConfigSimple:
+def _collection_config_simple_from_json(
+    schema: Dict[str, Any]
+) -> _CollectionConfigSimple:
     return _CollectionConfigSimple(
         name=schema["class"],
         description=schema.get("description"),
         generative_config=__get_generative_config(schema),
         properties=(
-            _properties_from_config(schema) if schema.get("properties") is not None else []
+            _properties_from_config(schema)
+            if schema.get("properties") is not None
+            else []
         ),
         references=(
-            _references_from_config(schema) if schema.get("properties") is not None else []
+            _references_from_config(schema)
+            if schema.get("properties") is not None
+            else []
         ),
         reranker_config=__get_rerank_config(schema),
         vectorizer_config=__get_vectorizer_config(schema),
@@ -307,17 +326,25 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
                 b=schema["invertedIndexConfig"]["bm25"]["b"],
                 k1=schema["invertedIndexConfig"]["bm25"]["k1"],
             ),
-            cleanup_interval_seconds=schema["invertedIndexConfig"]["cleanupIntervalSeconds"],
-            index_null_state=cast(dict, schema["invertedIndexConfig"]).get("indexNullState")
+            cleanup_interval_seconds=schema["invertedIndexConfig"][
+                "cleanupIntervalSeconds"
+            ],
+            index_null_state=cast(dict, schema["invertedIndexConfig"]).get(
+                "indexNullState"
+            )
             is True,
             index_property_length=cast(dict, schema["invertedIndexConfig"]).get(
                 "indexPropertyLength"
             )
             is True,
-            index_timestamps=cast(dict, schema["invertedIndexConfig"]).get("indexTimestamps")
+            index_timestamps=cast(dict, schema["invertedIndexConfig"]).get(
+                "indexTimestamps"
+            )
             is True,
             stopwords=_StopwordsConfig(
-                preset=StopwordsPreset(schema["invertedIndexConfig"]["stopwords"]["preset"]),
+                preset=StopwordsPreset(
+                    schema["invertedIndexConfig"]["stopwords"]["preset"]
+                ),
                 additions=schema["invertedIndexConfig"]["stopwords"]["additions"],
                 removals=schema["invertedIndexConfig"]["stopwords"]["removals"],
             ),
@@ -332,16 +359,22 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
             ),
         ),
         properties=(
-            _properties_from_config(schema) if schema.get("properties") is not None else []
+            _properties_from_config(schema)
+            if schema.get("properties") is not None
+            else []
         ),
         references=(
-            _references_from_config(schema) if schema.get("properties") is not None else []
+            _references_from_config(schema)
+            if schema.get("properties") is not None
+            else []
         ),
         replication_config=_ReplicationConfig(
             factor=schema["replicationConfig"]["factor"],
             async_enabled=schema["replicationConfig"].get("asyncEnabled", False),
             deletion_strategy=(
-                ReplicationDeletionStrategy(schema["replicationConfig"]["deletionStrategy"])
+                ReplicationDeletionStrategy(
+                    schema["replicationConfig"]["deletionStrategy"]
+                )
                 if "deletionStrategy" in schema["replicationConfig"]
                 else ReplicationDeletionStrategy.NO_AUTOMATED_RESOLUTION
             ),
@@ -369,9 +402,12 @@ def _collection_config_from_json(schema: Dict[str, Any]) -> _CollectionConfig:
     )
 
 
-def _collection_configs_from_json(schema: Dict[str, Any]) -> Dict[str, _CollectionConfig]:
+def _collection_configs_from_json(
+    schema: Dict[str, Any]
+) -> Dict[str, _CollectionConfig]:
     configs = {
-        schema["class"]: _collection_config_from_json(schema) for schema in schema["classes"]
+        schema["class"]: _collection_config_from_json(schema)
+        for schema in schema["classes"]
     }
     return dict(sorted(configs.items()))
 
@@ -380,12 +416,15 @@ def _collection_configs_simple_from_json(
     schema: Dict[str, Any],
 ) -> Dict[str, _CollectionConfigSimple]:
     configs = {
-        schema["class"]: _collection_config_simple_from_json(schema) for schema in schema["classes"]
+        schema["class"]: _collection_config_simple_from_json(schema)
+        for schema in schema["classes"]
     }
     return dict(sorted(configs.items()))
 
 
-def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedProperty]:
+def _nested_properties_from_config(
+    props: List[Dict[str, Any]]
+) -> List[_NestedProperty]:
     return [
         _NestedProperty(
             data_type=DataType(prop["dataType"][0]),
@@ -399,7 +438,9 @@ def _nested_properties_from_config(props: List[Dict[str, Any]]) -> List[_NestedP
                 else None
             ),
             tokenization=(
-                Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
+                Tokenization(prop["tokenization"])
+                if prop.get("tokenization") is not None
+                else None
             ),
         )
         for prop in props
@@ -421,14 +462,16 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                 else None
             ),
             tokenization=(
-                Tokenization(prop["tokenization"]) if prop.get("tokenization") is not None else None
+                Tokenization(prop["tokenization"])
+                if prop.get("tokenization") is not None
+                else None
             ),
             vectorizer_config=(
                 _PropertyVectorizerConfig(
                     skip=prop["moduleConfig"][schema["vectorizer"]].get("skip", False),
-                    vectorize_property_name=prop["moduleConfig"][schema["vectorizer"]].get(
-                        "vectorizePropertyName", False
-                    ),
+                    vectorize_property_name=prop["moduleConfig"][
+                        schema["vectorizer"]
+                    ].get("vectorizePropertyName", False),
                 )
                 if schema.get("vectorizer", "none") != "none"
                 and prop.get("moduleConfig", None) is not None
@@ -445,7 +488,11 @@ def _properties_from_config(schema: Dict[str, Any]) -> List[_Property]:
                 if "vectorConfig" in schema
                 else None
             ),
-            vectorizer=(schema.get("vectorizer", "none") if "vectorConfig" not in schema else None),
+            vectorizer=(
+                schema.get("vectorizer", "none")
+                if "vectorConfig" not in schema
+                else None
+            ),
         )
         for prop in schema["properties"]
         if _is_primitive(prop["dataType"])
