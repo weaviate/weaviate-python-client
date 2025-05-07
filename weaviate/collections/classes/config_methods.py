@@ -153,13 +153,13 @@ def __get_quantizer_config(
 def __get_multivector_encoding(config: Dict[str, Any]) -> Optional[_MuveraConfig]:
     return (
         None
-        if config.get("encoding") is None
-        or not config.get("encoding", {"enabled": False}).get("enabled")
+        if config.get("muvera") is None
+        or not config.get("muvera", {"enabled": False}).get("enabled")
         else _MuveraConfig(
-            enabled=config["encoding"]["enabled"],
-            ksim=config["encoding"]["ksim"],
-            dprojections=config["encoding"]["dprojections"],
-            repetitions=config["encoding"]["repetitions"],
+            enabled=config["muvera"]["enabled"],
+            ksim=config["muvera"]["ksim"],
+            dprojections=config["muvera"]["dprojections"],
+            repetitions=config["muvera"]["repetitions"],
         )
     )
 
@@ -172,8 +172,8 @@ def __get_multivector(config: Dict[str, Any]) -> Optional[_MultiVectorConfig]:
         else _MultiVectorConfig(
             encoding=(
                 None
-                if config["multivector"].get("encoding") is None
-                else __get_multivector_encoding(config["multivector"]["encoding"])
+                if config["multivector"].get("muvera") is None
+                else __get_multivector_encoding(config["multivector"])
             ),
             aggregation=config["multivector"]["aggregation"],
         )
