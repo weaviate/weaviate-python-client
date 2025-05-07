@@ -1388,10 +1388,6 @@ def test_config_multi_vector_enabled(
 def test_config_multi_vector_disabled(
     collection_factory: CollectionFactory,
 ) -> None:
-    dummy = collection_factory("dummy", ports=(8086, 50057))
-    if dummy._connection._weaviate_version.is_lower_than(1, 31, 0):
-        pytest.skip("Muvera is not supported in Weaviate versions lower than 1.31.0")
-
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
@@ -1445,6 +1441,10 @@ def test_config_muvera_enabled(
 def test_config_muvera_disabled(
     collection_factory: CollectionFactory,
 ) -> None:
+    dummy = collection_factory("dummy", ports=(8086, 50057))
+    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
+        pytest.skip("Muvera is not supported in Weaviate versions lower than 1.31.0")
+
     collection = collection_factory(
         ports=(8086, 50057),
         properties=[Property(name="name", data_type=DataType.TEXT)],
