@@ -1404,6 +1404,7 @@ def test_config_multi_vector_disabled(
     assert isinstance(conf, _VectorIndexConfigHNSW)
     assert conf.multi_vector is None
 
+
 def test_config_muvera_enabled(
     collection_factory: CollectionFactory,
 ) -> None:
@@ -1436,6 +1437,7 @@ def test_config_muvera_enabled(
         assert conf.multi_vector is not None
         assert conf.multi_vector.encoding is not None
 
+
 def test_config_muvera_disabled(
     collection_factory: CollectionFactory,
 ) -> None:
@@ -1459,6 +1461,7 @@ def test_config_muvera_disabled(
     assert conf.multi_vector is not None
     assert conf.multi_vector.encoding is None
 
+
 @pytest.mark.parametrize(
     "generative_config",
     [
@@ -1480,7 +1483,6 @@ def test_config_muvera_disabled(
         ],
     ],
 )
-
 def test_config_add_property(
     collection_factory: CollectionFactory, generative_config, vectorizer_config
 ) -> None:
