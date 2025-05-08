@@ -1443,7 +1443,7 @@ def test_config_muvera_disabled(
 ) -> None:
     dummy = collection_factory("dummy", ports=(8086, 50057))
     if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
-        pytest.skip("Muvera is not supported in Weaviate versions lower than 1.31.0")
+        pytest.skip("Multivector is not supported in Weaviate versions lower than 1.29.0")
 
     collection = collection_factory(
         ports=(8086, 50057),
