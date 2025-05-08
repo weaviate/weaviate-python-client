@@ -2048,13 +2048,12 @@ class _CollectionConfigCreate(_ConfigCreateModel):
 class _VectorIndexMultivectorEncoding:
     @staticmethod
     def muvera(
-        enabled: bool = True,
         ksim: Optional[int] = None,
         dprojections: Optional[int] = None,
         repetitions: Optional[int] = None,
     ) -> _EncodingConfigCreate:
         return _MuveraConfigCreate(
-            enabled=enabled,
+            enabled=True,
             ksim=ksim,
             dprojections=dprojections,
             repetitions=repetitions,
