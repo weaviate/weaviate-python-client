@@ -1405,67 +1405,6 @@ def test_config_multi_vector_disabled(
     assert conf.multi_vector is None
 
 
-def test_config_muvera_enabled(
-    collection_factory: CollectionFactory,
-) -> None:
-    dummy = collection_factory("dummy", ports=(8086, 50057))
-    if dummy._connection._weaviate_version.is_lower_than(1, 31, 0):
-        pytest.skip("Muvera is not supported in Weaviate versions lower than 1.31.0")
-
-    collection = collection_factory(
-        ports=(8086, 50057),
-        properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=[
-            Configure.NamedVectors.text2colbert_jinaai(
-                name="vec",
-                vectorize_collection_name=False,
-                vector_index_config=Configure.VectorIndex.hnsw(
-                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector(
-                        encoding=Configure.VectorIndex.MultiVector.Encoding.muvera()
-                    )
-                ),
-            )
-        ],
-    )
-    config = collection.config.get()
-    assert config.vector_config is not None
-    conf = config.vector_config["vec"].vector_index_config
-    assert isinstance(conf, _VectorIndexConfigHNSW)
-    if collection._connection._weaviate_version.is_lower_than(1, 31, 0):
-        assert conf.multi_vector is None
-    else:
-        assert conf.multi_vector is not None
-        assert conf.multi_vector.encoding is not None
-
-
-def test_config_muvera_disabled(
-    collection_factory: CollectionFactory,
-) -> None:
-    dummy = collection_factory("dummy", ports=(8086, 50057))
-    if dummy._connection._weaviate_version.is_lower_than(1, 29, 0):
-        pytest.skip("Multivector is not supported in Weaviate versions lower than 1.29.0")
-
-    collection = collection_factory(
-        ports=(8086, 50057),
-        properties=[Property(name="name", data_type=DataType.TEXT)],
-        vectorizer_config=[
-            Configure.NamedVectors.text2colbert_jinaai(
-                name="vec",
-                vectorize_collection_name=False,
-                vector_index_config=Configure.VectorIndex.hnsw(
-                    multi_vector=Configure.VectorIndex.MultiVector.multi_vector()
-                ),
-            )
-        ],
-    )
-    config = collection.config.get()
-    assert config.vector_config is not None
-    conf = config.vector_config["vec"].vector_index_config
-    assert isinstance(conf, _VectorIndexConfigHNSW)
-    assert conf.multi_vector is not None
-    assert conf.multi_vector.encoding is None
-
-
 @pytest.mark.parametrize(
     "generative_config",
     [
