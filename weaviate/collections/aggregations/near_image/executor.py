@@ -13,6 +13,7 @@ from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
 from weaviate.types import BLOB_INPUT, NUMBER
 from weaviate.util import parse_blob
+from weaviate.proto.v1 import aggregate_pb2
 
 
 class _NearImageExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):
@@ -144,8 +145,14 @@ class _NearImageExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType])
                 objects_count=total_count,
                 object_limit=object_limit,
             )
+
+            def respGrpc(
+                res: aggregate_pb2.AggregateReply,
+            ) -> Union[AggregateReturn, AggregateGroupByReturn]:
+                return self._to_result(group_by is not None, res)
+
             return executor.execute(
-                response_callback=self._to_result,
+                response_callback=respGrpc,
                 method=self._connection.grpc_aggregate,
                 request=request,
             )
