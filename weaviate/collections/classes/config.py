@@ -33,8 +33,6 @@ from weaviate.collections.classes.config_named_vectors import (
 )
 from weaviate.collections.classes.config_vector_index import (
     VectorFilterStrategy,
-    _MuveraConfigCreate,
-    _EncodingConfigCreate,
     _MultiVectorConfigCreate,
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
@@ -1559,19 +1557,7 @@ SQConfig = _SQConfig
 
 
 @dataclass
-class _MuveraConfig(_ConfigBase):
-    enabled: Optional[bool]
-    ksim: Optional[int]
-    dprojections: Optional[int]
-    repetitions: Optional[int]
-
-
-MuveraConfig = _MuveraConfig
-
-
-@dataclass
 class _MultiVectorConfig(_ConfigBase):
-    encoding: Optional[_MuveraConfig]
     aggregation: str
 
 
@@ -2045,31 +2031,12 @@ class _CollectionConfigCreate(_ConfigCreateModel):
         ret_dict["properties"] = existing_props
 
 
-class _VectorIndexMultivectorEncoding:
-    @staticmethod
-    def muvera(
-        ksim: Optional[int] = None,
-        dprojections: Optional[int] = None,
-        repetitions: Optional[int] = None,
-    ) -> _EncodingConfigCreate:
-        return _MuveraConfigCreate(
-            enabled=True,
-            ksim=ksim,
-            dprojections=dprojections,
-            repetitions=repetitions,
-        )
-
-
 class _VectorIndexMultiVector:
-    Encoding = _VectorIndexMultivectorEncoding
-
     @staticmethod
     def multi_vector(
-        encoding: Optional[_EncodingConfigCreate] = None,
         aggregation: Optional[MultiVectorAggregation] = None,
     ) -> _MultiVectorConfigCreate:
         return _MultiVectorConfigCreate(
-            encoding=encoding if encoding is not None else None,
             aggregation=aggregation.value if aggregation is not None else None,
         )
 
