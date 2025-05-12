@@ -1,3 +1,5 @@
+import contextvars
+import functools
 import math
 import os
 import threading
@@ -324,11 +326,15 @@ class _BatchBase:
                     uuid_lookup=self.__uuid_lookup,
                 )
                 # do not block the thread - the results are written to a central (locked) list and we want to have multiple concurrent batch-requests
+                ctx = contextvars.copy_context()
                 self.__executor.submit(
-                    self.__send_batch,
-                    objs,
-                    refs,
-                    readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
+                    ctx.run,
+                    functools.partial(
+                        self.__send_batch,
+                        objs,
+                        refs,
+                        readd_rate_limit=isinstance(self.__batching_mode, _RateLimitedBatching),
+                    ),
                 )
 
             time.sleep(refresh_time)
