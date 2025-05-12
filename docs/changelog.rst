@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 4.14.2
+--------------
+This patch version includes:
+    - Fixes return type for aggregate with group_by and zero results
+
 Version 4.14.1
 --------------
 This patch version includes:
