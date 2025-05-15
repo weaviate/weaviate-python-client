@@ -582,6 +582,8 @@ class _BaseGRPC:
         fusion_type: Optional[HybridFusion],
         distance: Optional[NUMBER],
         target_vector: Optional[TargetVectorJoinType],
+        minimum_should_match: Optional[int],
+        search_operator: Optional[Literal["and", "or"]],
     ) -> Union[base_search_pb2.Hybrid, None]:
         if self._weaviate_version.is_lower_than(1, 25, 0) and (
             isinstance(vector, _HybridNearText) or isinstance(vector, _HybridNearVector)
@@ -618,6 +620,8 @@ class _BaseGRPC:
                         "target_vector",
                         target_vector,
                     ),
+                    _ValidateArgument([int, None], "minimum_should_match", minimum_should_match),
+                    _ValidateArgument([Literal["and", "or"], None], "search_operator", search_operator),
                 ]
             )
 
@@ -724,6 +728,8 @@ class _BaseGRPC:
                 vector_bytes=vector_bytes,
                 vector_distance=distance,
                 vectors=vectors,
+                minimum_should_match=minimum_should_match,
+                search_operator=search_operator,
             )
             if query is not None or vector is not None
             else None
