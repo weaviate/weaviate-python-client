@@ -11,9 +11,9 @@ from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.filters import _FilterToGRPC
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionType
+from weaviate.proto.v1 import aggregate_pb2
 from weaviate.types import BLOB_INPUT, NUMBER
 from weaviate.util import parse_blob
-from weaviate.proto.v1 import aggregate_pb2
 
 
 class _NearImageExecutor(Generic[ConnectionType], _BaseExecutor[ConnectionType]):

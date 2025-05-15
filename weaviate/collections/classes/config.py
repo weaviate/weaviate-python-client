@@ -33,9 +33,9 @@ from weaviate.collections.classes.config_named_vectors import (
 )
 from weaviate.collections.classes.config_vector_index import (
     VectorFilterStrategy,
-    _MuveraConfigCreate,
     _EncodingConfigCreate,
     _MultiVectorConfigCreate,
+    _MuveraConfigCreate,
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
     _VectorIndexConfigDynamicCreate,

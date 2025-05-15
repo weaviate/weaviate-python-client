@@ -20,6 +20,7 @@ from .connect.v4 import ConnectionAsync, ConnectionSync
 from .debug import _Debug, _DebugAsync
 from .embedded import EmbeddedOptions
 from .rbac import _Roles, _RolesAsync
+from .replication import _Replication, _ReplicationAsync
 from .types import NUMBER
 from .users import _Users, _UsersAsync
 
@@ -48,6 +49,8 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
         debug (_DebugAsync): Debug object instance connected to the same Weaviate instance as the Client.
             This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
             We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk.
+        replication (_ReplicationAsync): Replication object instance connected to the same Weaviate instance as the Client.
+            This namespace contains all functionality to manage replication operations in Weaviate.
         roles (_RolesAsync): Roles object instance connected to the same Weaviate instance as the Client.
             This namespace contains all functionality to manage Weaviate's RBAC functionality.
         users (_UsersAsync): Users object instance connected to the same Weaviate instance as the Client.
@@ -77,6 +80,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
         self.cluster = _ClusterAsync(self._connection)
         self.collections = _CollectionsAsync(self._connection)
         self.debug = _DebugAsync(self._connection)
+        self.replication = _ReplicationAsync(self._connection)
         self.roles = _RolesAsync(self._connection)
         self.users = _UsersAsync(self._connection)
 
@@ -112,6 +116,8 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         debug (_Debug): Debug object instance connected to the same Weaviate instance as the Client.
             This namespace contains functionality used to debug Weaviate clusters. As such, it is deemed experimental and is subject to change.
             We can make no guarantees about the stability of this namespace nor the potential for future breaking changes. Use at your own risk.
+        replication (_Replication): Replication object instance connected to the same Weaviate instance as the Client.
+            This namespace contains all functionality to manage replication operations in Weaviate.
         roles (_Roles): Roles object instance connected to the same Weaviate instance as the Client.
             This namespace contains all functionality to manage Weaviate's RBAC functionality.
         users (_Users): Users object instance connected to the same Weaviate instance as the Client.
@@ -144,6 +150,7 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
         self.cluster = _Cluster(self._connection)
         self.collections = collections
         self.debug = _Debug(self._connection)
+        self.replication = _Replication(self._connection)
         self.roles = _Roles(self._connection)
         self.users = _Users(self._connection)
 

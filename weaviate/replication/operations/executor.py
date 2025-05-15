@@ -1,0 +1,178 @@
+from typing import Generic, List, Literal, Optional, Union, overload
+
+from httpx import Response
+
+from weaviate.connect import executor
+from weaviate.connect.v4 import ConnectionType, _ExpectedStatusCodes
+from weaviate.replication.models import (
+    ReplicateOperation,
+    ReplicateOperationStatus,
+)
+from weaviate.types import UUID
+
+
+class _OperationsExecutor(Generic[ConnectionType]):
+    def __init__(self, connection: ConnectionType):
+        self._connection = connection
+
+    @overload
+    def get(
+        self, *, uuid: UUID, include_history: Literal[False] = False
+    ) -> executor.Result[Optional[ReplicateOperation[None]]]: ...
+
+    @overload
+    def get(
+        self, *, uuid: UUID, include_history: Literal[True]
+    ) -> executor.Result[Optional[ReplicateOperation[List[ReplicateOperationStatus]]]]: ...
+
+    def get(
+        self, *, uuid: UUID, include_history: bool = False
+    ) -> executor.Result[
+        Union[ReplicateOperation[None], ReplicateOperation[List[ReplicateOperationStatus]], None]
+    ]:
+        """Get the a replicate operation by its UUID.
+
+        Args:
+            uuid: The ID of the replicate operation.
+            include_history: Whether to include the history of the operation.
+
+        Returns:
+            The replicate operation.
+        """
+
+        def resp(response: Response):
+            if response.status_code == 404:
+                return None
+            return ReplicateOperation._from_weaviate(response.json(), include_history)
+
+        params = {}
+        if include_history:
+            params["includeHistory"] = include_history
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path=f"/replication/replicate/{uuid}",
+            params=params,
+            status_codes=_ExpectedStatusCodes([200, 404], "replicate get"),
+            error_msg="Failed to get replicate operation",
+        )
+
+    def list_all(self) -> executor.Result[list[ReplicateOperation]]:
+        """List all replicate operations.
+
+        Returns:
+            A list of replicate operations.
+        """
+
+        def resp(response: Response) -> list[ReplicateOperation]:
+            return [ReplicateOperation._from_weaviate(item) for item in response.json()]
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path="/replication/replicate/list",
+            status_codes=_ExpectedStatusCodes(200, "replicate list"),
+            error_msg="Failed to list replicate operations",
+        )
+
+    def query(
+        self,
+        *,
+        collection: Optional[str] = None,
+        shard: Optional[str] = None,
+        target_node: Optional[str] = None,
+        include_history: bool = False,
+    ) -> executor.Result[list[ReplicateOperation]]:
+        """Query replicate operations by collection, shard, node, or any combination of the three.
+
+        Args:
+            collection: The name of the collection of the operation.
+            shard: The name of the shard of the operation.
+            target_node: The name of the target node of the operation.
+            include_history: Whether to include the history of the operation.
+
+        Returns:
+            A list of replicate operations specific to the provided parameters.
+        """
+
+        def resp(response: Response) -> list[ReplicateOperation]:
+            return [
+                ReplicateOperation._from_weaviate(item, include_history) for item in response.json()
+            ]
+
+        params = {}
+        if collection:
+            params["collectionId"] = collection
+        if shard:
+            params["shardId"] = shard
+        if target_node:
+            params["nodeName"] = target_node
+        if include_history:
+            params["includeHistory"] = include_history
+
+        return executor.execute(
+            response_callback=resp,
+            method=self._connection.get,
+            path="/replication/replicate/list",
+            status_codes=_ExpectedStatusCodes(200, "replicate query"),
+            error_msg="Failed to query replicate operations",
+            params=params,
+        )
+
+    def cancel(
+        self,
+        *,
+        uuid: UUID,
+    ) -> executor.Result[None]:
+        """Cancel a replicate operation by its UUID.
+
+        Args:
+            uuid: The ID of the replicate operation.
+
+        Returns:
+            None
+        """
+        return executor.execute(
+            response_callback=lambda _: None,
+            method=self._connection.post,
+            weaviate_object={},
+            path=f"/replication/replicate/{uuid}/cancel",
+            status_codes=_ExpectedStatusCodes(204, "replicate cancel"),
+            error_msg="Failed to cancel replicate operation",
+        )
+
+    def delete(
+        self,
+        *,
+        uuid: UUID,
+    ) -> executor.Result[None]:
+        """Delete a replicate operation by its UUID.
+
+        Args:
+            uuid: The ID of the replicate operation.
+
+        Returns:
+            None
+        """
+        return executor.execute(
+            response_callback=lambda _: None,
+            method=self._connection.delete,
+            path=f"/replication/replicate/{uuid}",
+            status_codes=_ExpectedStatusCodes(204, "replicate delete"),
+            error_msg="Failed to delete replicate operation",
+        )
+
+    def delete_all(self) -> executor.Result[None]:
+        """Delete all replicate operations.
+
+        Returns:
+            None
+        """
+        return executor.execute(
+            response_callback=lambda _: None,
+            method=self._connection.delete,
+            path="/replication/replicate",
+            status_codes=_ExpectedStatusCodes(204, "replicate delete all"),
+            error_msg="Failed to delete all replicate operations",
+        )
