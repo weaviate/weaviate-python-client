@@ -9,6 +9,7 @@ from typing import (
     Mapping as _Mapping,
     Optional as _Optional,
     Union as _Union,
+    Literal as _Literal,
 )
 
 DESCRIPTOR: _descriptor.FileDescriptor
@@ -93,6 +94,8 @@ class Hybrid(_message.Message):
         "targets",
         "vector_distance",
         "vectors",
+        "minimum_should_match",
+        "search_operator",
     )
 
     class FusionType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -128,6 +131,8 @@ class Hybrid(_message.Message):
     targets: Targets
     vector_distance: float
     vectors: _containers.RepeatedCompositeFieldContainer[_base_pb2.Vectors]
+    minimum_should_match: int
+    search_operator: _Literal["and", "or"]
     def __init__(
         self,
         query: _Optional[str] = ...,
@@ -142,8 +147,11 @@ class Hybrid(_message.Message):
         targets: _Optional[_Union[Targets, _Mapping]] = ...,
         vector_distance: _Optional[float] = ...,
         vectors: _Optional[_Iterable[_Union[_base_pb2.Vectors, _Mapping]]] = ...,
+        minimum_should_match: _Optional[int] = ...,
+        search_operator: _Optional[_Literal["and", "or"]] = ...,
     ) -> None: ...
 
+    
 class NearVector(_message.Message):
     __slots__ = (
         "vector",
@@ -395,11 +403,14 @@ class NearIMUSearch(_message.Message):
     ) -> None: ...
 
 class BM25(_message.Message):
-    __slots__ = ("query", "properties")
+    __slots__ = ("query", "properties", "minimum_should_match", "search_operator")
     QUERY_FIELD_NUMBER: _ClassVar[int]
     PROPERTIES_FIELD_NUMBER: _ClassVar[int]
     query: str
     properties: _containers.RepeatedScalarFieldContainer[str]
+    minimum_should_match: int
+    search_operator: _Literal["and", "or"]
     def __init__(
-        self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ...
+        self, query: _Optional[str] = ..., properties: _Optional[_Iterable[str]] = ..., 
+        minimum_should_match: _Optional[int] = ..., search_operator: _Optional[_Literal["and", "or"]] = ... 
     ) -> None: ...
