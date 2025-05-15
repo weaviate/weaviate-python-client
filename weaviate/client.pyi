@@ -17,6 +17,7 @@ from .collections.batch.client import _BatchClientWrapper
 from .collections.cluster import _Cluster, _ClusterAsync
 from .debug import _Debug, _DebugAsync
 from .rbac import _Roles, _RolesAsync
+from .replication import _Replication, _ReplicationAsync
 from .types import NUMBER
 
 TIMEOUT_TYPE = Union[Tuple[NUMBER, NUMBER], NUMBER]
@@ -27,6 +28,7 @@ class WeaviateAsyncClient(_WeaviateClientExecutor[ConnectionAsync]):
     collections: _CollectionsAsync
     cluster: _ClusterAsync
     debug: _DebugAsync
+    replication: _ReplicationAsync
     roles: _RolesAsync
     users: _UsersAsync
 
@@ -48,6 +50,7 @@ class WeaviateClient(_WeaviateClientExecutor[ConnectionSync]):
     collections: _Collections
     cluster: _Cluster
     debug: _Debug
+    replication: _Replication
     roles: _Roles
     users: _Users
 
