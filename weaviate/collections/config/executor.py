@@ -27,6 +27,7 @@ from weaviate.collections.classes.config import (
     _GenerativeProvider,
     _InvertedIndexConfigUpdate,
     _MultiTenancyConfigUpdate,
+    _NamedVectorConfigCreate,
     _NamedVectorConfigUpdate,
     _ReferencePropertyMultiTarget,
     _ReplicationConfigUpdate,
@@ -468,3 +469,55 @@ class _ConfigCollectionExecutor(Generic[ConnectionType]):
             return _execute()
         exists = executor.result(self.__reference_exists(reference_name=ref.name))
         return executor.result(resp(exists))
+
+    def add_vector(
+        self, *, vector_config: Union[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]]
+    ) -> executor.Result[None]:
+        """Add a vector to the collection in Weaviate.
+
+        Args:
+            vector_config: The vector configuration to add to the collection.
+
+        Raises:
+            weaviate.exceptions.WeaviateConnectionError: If the network connection to Weaviate fails.
+            weaviate.exceptions.UnexpectedStatusCodeError: If Weaviate reports a non-OK status.
+            weaviate.exceptions.WeaviateInvalidInputError: If the vector already exists in the collection.
+        """
+        _validate_input(
+            [
+                _ValidateArgument(
+                    expected=[_NamedVectorConfigCreate, List[_NamedVectorConfigCreate]],
+                    name="vector_config",
+                    value=vector_config,
+                )
+            ]
+        )
+        if isinstance(vector_config, _NamedVectorConfigCreate):
+            vector_config = [vector_config]
+
+        def resp(schema: Dict[str, Any]) -> executor.Result[None]:
+            if "vectorConfig" not in schema:
+                schema["vectorConfig"] = {}
+            for vector in vector_config:
+                schema["vectorConfig"][vector.name] = vector._to_dict()
+
+            return executor.execute(
+                response_callback=lambda _: None,
+                method=self._connection.put,
+                path=f"/schema/{self._name}",
+                weaviate_object=schema,
+                error_msg="Collection configuration may not have been updated.",
+                status_codes=_ExpectedStatusCodes(
+                    ok_in=200, error="Update collection configuration"
+                ),
+            )
+
+        if isinstance(self._connection, ConnectionAsync):
+
+            async def _execute() -> None:
+                schema = await executor.aresult(self.__get())
+                return await executor.aresult(resp(schema))
+
+            return _execute()
+        schema = executor.result(self.__get())
+        return executor.result(resp(schema))
