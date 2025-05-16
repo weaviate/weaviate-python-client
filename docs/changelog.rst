@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 4.14.3
+--------------
+This patch version includes:
+    - Fixes return type for aggregate with group_by and zero results
+    - Fix multi-vector with hybrid search
+
+Version 4.14.2
+--------------
+not released
+
 Version 4.14.1
 --------------
 This patch version includes:

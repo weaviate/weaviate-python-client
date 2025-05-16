@@ -99,6 +99,15 @@ def test_aggregation_groupby_with_limit(collection_factory: CollectionFactory) -
     assert res.groups[1].properties["text"].count == 1
 
 
+def test_aggregation_groupby_no_results(collection_factory: CollectionFactory) -> None:
+    collection = collection_factory(properties=[Property(name="text", data_type=DataType.TEXT)])
+    res = collection.aggregate.over_all(
+        return_metrics=[Metrics("text").text(count=True)],
+        group_by=GroupByAggregate(prop="text", limit=2),
+    )
+    assert len(res.groups) == 0
+
+
 @pytest.mark.parametrize(
     "filter_",
     [
