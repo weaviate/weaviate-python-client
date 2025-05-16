@@ -516,34 +516,77 @@ def test_nested_return_specific_properties(
     assert out.properties["nested"] == expected
 
 
-def test_nested_return_generic_properties(collection_factory: CollectionFactory) -> None:
-    class Child(TypedDict):
-        name: str
-        age: int
+class Child(TypedDict):
+    name: str
+    age: int
 
-    class Parent(TypedDict):
-        child: Nested[Child]
 
-    collection = collection_factory(
-        properties=[
-            Property(
-                name="child",
-                data_type=DataType.OBJECT,
-                nested_properties=[
-                    Property(
-                        name="name",
-                        data_type=DataType.TEXT,
-                    ),
-                    Property(
-                        name="age",
-                        data_type=DataType.INT,
-                    ),
+@pytest.mark.parametrize(
+    "data_model_cls,data_object,properties",
+    [
+        (
+            Child,
+            {"name": "Timmy", "age": 10},
+            [
+                Property(name="name", data_type=DataType.TEXT),
+                Property(name="age", data_type=DataType.INT),
+            ],
+        ),
+        (
+            TypedDict("ParentWithChild", {"name": str, "age": int, "child": Nested[Child]}),
+            {
+                "name": "Bob",
+                "age": 39,
+                "child": {"name": "Timmy", "age": 10},
+            },
+            [
+                Property(name="name", data_type=DataType.TEXT),
+                Property(name="age", data_type=DataType.INT),
+                Property(
+                    name="child",
+                    data_type=DataType.OBJECT,
+                    nested_properties=[
+                        Property(name="name", data_type=DataType.TEXT),
+                        Property(name="age", data_type=DataType.INT),
+                    ],
+                ),
+            ],
+        ),
+        (
+            TypedDict(
+                "ParentWithChildList", {"name": str, "age": int, "children": Nested[list[Child]]}
+            ),
+            {
+                "name": "Bob",
+                "age": 39,
+                "children": [
+                    {"name": "Timmy", "age": 10},
+                    {"name": "Daisy", "age": 8},
                 ],
-            )
-        ],
-        data_model_properties=Parent,
+            },
+            [
+                Property(name="name", data_type=DataType.TEXT),
+                Property(name="age", data_type=DataType.INT),
+                Property(
+                    name="children",
+                    data_type=DataType.OBJECT_ARRAY,
+                    nested_properties=[
+                        Property(name="name", data_type=DataType.TEXT),
+                        Property(name="age", data_type=DataType.INT),
+                    ],
+                ),
+            ],
+        ),
+    ],
+)
+def test_nested_return_generic_properties(
+    collection_factory, data_model_cls, data_object, properties
+):
+    collection = collection_factory(
+        properties=properties,
+        data_model_properties=data_model_cls,
     )
+    collection.data.insert(data_object)
+    results = collection.query.fetch_objects(return_properties=data_model_cls)
 
-    collection.data.insert(Parent(child=Child(name="Timmy", age=10)))
-    results = collection.query.fetch_objects(return_properties=Parent)
-    assert results.objects[0].properties["child"] == {"name": "Timmy", "age": 10}
+    assert results.objects[0].properties == data_object
