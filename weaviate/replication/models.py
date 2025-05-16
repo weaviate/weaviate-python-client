@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, List, Literal, Optional, TypedDict, TypeVar
+from typing import Generic, List, TypedDict, TypeVar
 
 
 class TransferType(str, Enum):
@@ -22,22 +22,6 @@ class ReplicateOperationState(str, Enum):
     CANCELLED = "CANCELLED"
 
 
-class _ReplicationReplicateDetailsReplicaStatus(TypedDict):
-    state: Literal["REGISTERED", "HYDRATING", "FINALIZING", "DEHYDRATING", "READY", "CANCELLED"]
-    errors: List[str]
-
-
-class _ReplicationReplicateDetailsReplicaResponse(TypedDict):
-    collectionId: str
-    shardId: str
-    sourceNodeName: str
-    destinationNodeName: str
-    status: _ReplicationReplicateDetailsReplicaStatus
-    statusHistory: Optional[List[_ReplicationReplicateDetailsReplicaStatus]]
-    transferType: Literal["COPY", "MOVE"]
-    id: str  # noqa: A003
-
-
 @dataclass
 class ReplicateOperationStatus:
     """Class representing the status of a replication operation."""
@@ -46,9 +30,7 @@ class ReplicateOperationStatus:
     errors: List[str]
 
     @classmethod
-    def _from_weaviate(
-        cls, data: _ReplicationReplicateDetailsReplicaStatus
-    ) -> "ReplicateOperationStatus":
+    def _from_weaviate(cls, data: dict) -> "ReplicateOperationStatus":
         return cls(
             state=ReplicateOperationState(data["state"]),
             errors=data["errors"],
@@ -73,7 +55,7 @@ class ReplicateOperation(Generic[H]):
 
     @staticmethod
     def _from_weaviate(
-        data: _ReplicationReplicateDetailsReplicaResponse,
+        data: dict,
         include_history: bool = True,
     ):
         common = {
