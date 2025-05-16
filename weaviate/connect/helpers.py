@@ -6,7 +6,14 @@ from urllib.parse import urlparse
 from deprecation import deprecated as docstring_deprecated
 from typing_extensions import deprecated as typing_deprecated
 
-from weaviate.auth import Auth, AuthCredentials
+from weaviate.auth import (
+    Auth,
+    AuthCredentials,
+    _APIKey,
+    _BearerToken,
+    _ClientCredentials,
+    _ClientPassword,
+)
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
@@ -31,7 +38,9 @@ def __parse_auth_credentials(creds: Union[str, AuthCredentials, None]) -> Option
     if isinstance(creds, str):
         # If the credentials are a string, assume it's an API key.
         return Auth.api_key(creds)
-    elif isinstance(creds, AuthCredentials):
+    elif isinstance(
+        creds, (_BearerToken, _ClientPassword, _ClientCredentials, _APIKey)
+    ):  # use AuthCredentials after python 3.9 has been removed
         # If the credentials are already an AuthCredentials object, return it as is.
         return creds
     elif creds is None:
