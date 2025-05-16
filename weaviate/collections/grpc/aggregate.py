@@ -2,10 +2,10 @@ from typing import List, Literal, Optional, Union
 
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.collections.classes.grpc import (
-    TargetVectorJoinType,
-    NearVectorInputType,
-    Move,
     HybridVectorType,
+    Move,
+    NearVectorInputType,
+    TargetVectorJoinType,
 )
 from weaviate.collections.grpc.shared import _BaseGRPC
 from weaviate.connect import executor

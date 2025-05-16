@@ -5,14 +5,13 @@ from _pytest.fixtures import SubRequest
 
 import weaviate
 import weaviate.classes as wvc
-from integration.conftest import OpenAICollection, CollectionFactory
-from integration.conftest import _sanitize_collection_name
+from integration.conftest import CollectionFactory, OpenAICollection, _sanitize_collection_name
 from weaviate.collections.classes.config import (
     _BQConfig,
-    _SQConfig,
     _CollectionConfig,
     _CollectionConfigSimple,
     _PQConfig,
+    _SQConfig,
     _VectorIndexConfigDynamic,
     _VectorIndexConfigFlat,
     _VectorIndexConfigHNSW,
@@ -408,7 +407,7 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
     assert config.multi_tenancy_config.enabled is True
     assert config.multi_tenancy_config.auto_tenant_activation is False
     assert config.multi_tenancy_config.auto_tenant_creation is False
-
+    assert isinstance(config.vector_index_config, _VectorIndexConfigHNSW)
     assert config.vector_index_config.filter_strategy == wvc.config.VectorFilterStrategy.SWEEPING
 
     collection.config.update(
@@ -577,10 +576,6 @@ def test_collection_config_update(collection_factory: CollectionFactory) -> None
 
 
 def test_hnsw_with_bq(collection_factory: CollectionFactory) -> None:
-    dummy = collection_factory("dummy")
-    if dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("BQ+HNSW is not supported in Weaviate versions lower than 1.24.0")
-
     collection = collection_factory(
         vector_index_config=Configure.VectorIndex.hnsw(
             vector_cache_max_objects=5,
@@ -1137,6 +1132,7 @@ def test_create_custom_generative(collection_factory: CollectionFactory) -> None
     config2 = collection2.config.get()
 
     assert config.generative_config == config2.generative_config
+    assert config.generative_config is not None
     assert isinstance(config.generative_config.generative, str)
     assert config.generative_config.generative == "generative-anyscale"
     assert config.generative_config.model == {"temperature": 0.5}
@@ -1146,6 +1142,7 @@ def test_create_custom_generative(collection_factory: CollectionFactory) -> None
             generative_config=Reconfigure.Generative.custom("generative-dummy"),
         )
         config = collection.config.get()
+        assert config.generative_config is not None
         assert isinstance(config.generative_config.generative, str)
         assert config.generative_config.generative == "generative-dummy"
 
@@ -1164,6 +1161,7 @@ def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
     config2 = collection2.config.get()
 
     assert config.reranker_config == config2.reranker_config
+    assert config.reranker_config is not None
     assert isinstance(config.reranker_config.reranker, str)
     assert config.reranker_config.reranker == "reranker-cohere"
     assert config.reranker_config.model == {"model": "rerank-english-v2.0"}
@@ -1173,6 +1171,7 @@ def test_create_custom_reranker(collection_factory: CollectionFactory) -> None:
             reranker_config=Reconfigure.Reranker.custom("reranker-dummy"),
         )
         config = collection.config.get()
+        assert config.reranker_config is not None
         assert isinstance(config.reranker_config.reranker, str)
         assert config.reranker_config.reranker == "reranker-dummy"
 
@@ -1195,16 +1194,13 @@ def test_create_custom_vectorizer(collection_factory: CollectionFactory) -> None
     config2 = collection2.config.get()
 
     assert config.vectorizer_config == config2.vectorizer_config
+    assert config.vectorizer_config is not None
     assert isinstance(config.vectorizer_config.vectorizer, str)
     assert config.vectorizer_config.vectorizer == "text2vec-contextionary"
     assert not config.vectorizer_config.vectorize_collection_name
 
 
 def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -> None:
-    collection_dummy = collection_factory("dummy")
-    if collection_dummy._connection._weaviate_version.is_lower_than(1, 24, 0):
-        pytest.skip("Named index is not supported in Weaviate versions lower than 1.24.0")
-
     collection = collection_factory(
         properties=[Property(name="text", data_type=DataType.TEXT)],
         vectorizer_config=[
@@ -1226,6 +1222,7 @@ def test_create_custom_vectorizer_named(collection_factory: CollectionFactory) -
     config2 = collection2.config.get()
 
     assert config.vector_config == config2.vector_config
+    assert config.vector_config is not None
     assert len(config.vector_config) == 1
     assert config.vector_config["name"].vectorizer.vectorizer == "text2vec-contextionary"
     assert config.vector_config["name"].vectorizer.model == {"vectorizeClassName": False}
@@ -1446,3 +1443,39 @@ def test_config_add_vector(
     config = collection.config.get()
     assert config.vector_config is not None
     assert "vec" in config.vector_config
+
+
+@pytest.mark.parametrize(
+    "generative_config",
+    [
+        None,
+        Configure.Generative.anyscale(),
+    ],
+)
+@pytest.mark.parametrize(
+    "vectorizer_config",
+    [
+        None,
+        Configure.Vectorizer.none(),
+        Configure.Vectorizer.text2vec_contextionary(vectorize_collection_name=False),
+        [
+            Configure.NamedVectors.text2vec_contextionary(
+                name="vec",
+                vectorize_collection_name=False,
+            )
+        ],
+    ],
+)
+def test_config_add_property(
+    collection_factory: CollectionFactory, generative_config, vectorizer_config
+) -> None:
+    collection = collection_factory(
+        properties=[
+            Property(name="title", data_type=DataType.TEXT),
+        ],
+        generative_config=generative_config,
+        vectorizer_config=vectorizer_config,
+    )
+    collection.config.add_property(Property(name="description", data_type=DataType.TEXT))
+    config = collection.config.get()
+    assert "description" in [prop.name for prop in config.properties]

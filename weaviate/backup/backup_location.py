@@ -1,4 +1,4 @@
-from typing import Dict, Any, cast, Union
+from typing import Any, Dict, Union, cast
 
 from pydantic import BaseModel
 
@@ -40,7 +40,10 @@ class _BackupLocationAzure(_BackupLocationConfig):
 
 
 BackupLocationType = Union[
-    _BackupLocationFilesystem, _BackupLocationS3, _BackupLocationGCP, _BackupLocationAzure
+    _BackupLocationFilesystem,
+    _BackupLocationS3,
+    _BackupLocationGCP,
+    _BackupLocationAzure,
 ]
 
 

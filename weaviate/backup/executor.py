@@ -2,28 +2,33 @@
 
 import asyncio
 import time
-from typing import Generic, Optional, Union, List, Tuple, Dict
+from typing import Dict, Generic, List, Optional, Tuple, Union
 
 from httpx import Response
 
 from weaviate.backup.backup import (
-    BackupStorage,
-    BackupReturn,
-    BackupStatusReturn,
     STORAGE_NAMES,
     BackupConfigCreate,
-    BackupStatus,
     BackupConfigRestore,
+    BackupReturn,
+    BackupStatus,
+    BackupStatusReturn,
+    BackupStorage,
 )
 from weaviate.backup.backup_location import BackupLocationType
 from weaviate.connect import executor
-from weaviate.connect.v4 import _ExpectedStatusCodes, Connection, ConnectionAsync, ConnectionType
+from weaviate.connect.v4 import (
+    Connection,
+    ConnectionAsync,
+    ConnectionType,
+    _ExpectedStatusCodes,
+)
 from weaviate.exceptions import (
-    WeaviateInvalidInputError,
-    WeaviateUnsupportedFeatureError,
+    BackupCanceledError,
     BackupFailedException,
     EmptyResponseException,
-    BackupCanceledError,
+    WeaviateInvalidInputError,
+    WeaviateUnsupportedFeatureError,
 )
 from weaviate.util import (
     _capitalize_first_letter,
@@ -88,7 +93,9 @@ class _BackupExecutor(Generic[ConnectionType]):
         if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigCreate", str(self._connection._weaviate_version), "1.25.0"
+                    "BackupConfigCreate",
+                    str(self._connection._weaviate_version),
+                    "1.25.0",
                 )
             if not isinstance(config, BackupConfigCreate):
                 raise WeaviateInvalidInputError(
@@ -278,7 +285,9 @@ class _BackupExecutor(Generic[ConnectionType]):
         if config is not None:
             if self._connection._weaviate_version.is_lower_than(1, 25, 0):
                 raise WeaviateUnsupportedFeatureError(
-                    "BackupConfigRestore", str(self._connection._weaviate_version), "1.25.0"
+                    "BackupConfigRestore",
+                    str(self._connection._weaviate_version),
+                    "1.25.0",
                 )
             if not isinstance(config, BackupConfigRestore):
                 raise WeaviateInvalidInputError(
@@ -516,8 +525,7 @@ def _get_and_validate_create_restore_arguments(
             backend = BackupStorage(backend.lower())
         except KeyError:
             raise ValueError(
-                f"'backend' must have one of these values: {STORAGE_NAMES}. "
-                f"Given value: {backend}."
+                f"'backend' must have one of these values: {STORAGE_NAMES}. Given value: {backend}."
             )
 
     if not isinstance(wait_for_completion, bool):
@@ -579,8 +587,7 @@ def _get_and_validate_get_status(
             backend = BackupStorage(backend.lower())
         except KeyError:
             raise ValueError(
-                f"'backend' must have one of these values: {STORAGE_NAMES}. "
-                f"Given value: {backend}."
+                f"'backend' must have one of these values: {STORAGE_NAMES}. Given value: {backend}."
             )
 
     return (backup_id.lower(), backend)

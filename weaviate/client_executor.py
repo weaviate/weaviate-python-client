@@ -2,29 +2,27 @@
 
 from typing import (
     Any,
+    Dict,
     Generic,
     Optional,
     Tuple,
-    Union,
-    Dict,
     Type,
+    Union,
 )
 
 from httpx import Response
 
 from weaviate.collections.classes.internal import _GQLEntryReturnType, _RawGQLReturn
-
 from weaviate.integrations import _Integrations
 
 from .auth import AuthCredentials
 from .config import AdditionalConfig
 from .connect import executor
-from .connect.v4 import ConnectionAsync
 from .connect.base import (
     ConnectionParams,
     ProtocolParams,
 )
-from .connect.v4 import _ExpectedStatusCodes, ConnectionType
+from .connect.v4 import ConnectionAsync, ConnectionType, _ExpectedStatusCodes
 from .embedded import EmbeddedOptions, EmbeddedV4
 from .types import NUMBER
 from .util import _decode_json_response_dict
@@ -71,18 +69,16 @@ class _WeaviateClientExecutor(Generic[ConnectionType]):
         )
         config = additional_config or AdditionalConfig()
 
-        self._connection = (
-            self._connection_type(  # pyright: ignore reportIncompatibleVariableOverride
-                connection_params=connection_params,
-                auth_client_secret=auth_client_secret,
-                timeout_config=config.timeout,
-                additional_headers=additional_headers,
-                embedded_db=embedded_db,
-                connection_config=config.connection,
-                proxies=config.proxies,
-                trust_env=config.trust_env,
-                skip_init_checks=skip_init_checks,
-            )
+        self._connection = self._connection_type(  # pyright: ignore reportIncompatibleVariableOverride
+            connection_params=connection_params,
+            auth_client_secret=auth_client_secret,
+            timeout_config=config.timeout,
+            additional_headers=additional_headers,
+            embedded_db=embedded_db,
+            connection_config=config.connection,
+            proxies=config.proxies,
+            trust_env=config.trust_env,
+            skip_init_checks=skip_init_checks,
         )
 
         self.integrations = _Integrations(self._connection)

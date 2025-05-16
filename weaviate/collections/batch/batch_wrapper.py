@@ -1,13 +1,18 @@
 import time
-from typing import Generic, List, Optional, Any, TypeVar, cast
+from typing import Any, Generic, List, Optional, TypeVar, cast
 
 from weaviate.collections.batch.base import (
     _BatchBase,
     _BatchDataWrapper,
-    _DynamicBatching,
     _BatchMode,
+    _DynamicBatching,
 )
-from weaviate.collections.classes.batch import BatchResult, ErrorObject, ErrorReference, Shard
+from weaviate.collections.classes.batch import (
+    BatchResult,
+    ErrorObject,
+    ErrorReference,
+    Shard,
+)
 from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync

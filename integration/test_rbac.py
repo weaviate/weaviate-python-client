@@ -1,24 +1,24 @@
 from typing import List
 
 import pytest
+from _pytest.fixtures import SubRequest
 
 from integration.conftest import ClientFactory, _sanitize_collection_name
 from weaviate.auth import Auth
-from weaviate.classes.rbac import Permissions, Actions, RoleScope
+from weaviate.classes.rbac import Actions, Permissions, RoleScope
 from weaviate.rbac.models import (
-    _Permission,
-    Role,
     BackupsPermissionOutput,
     ClusterPermissionOutput,
     CollectionsPermissionOutput,
     DataPermissionOutput,
-    RolesPermissionOutput,
     NodesPermissionOutput,
+    Role,
+    RolesPermissionOutput,
     TenantsPermissionOutput,
     UsersPermissionOutput,
     UserTypes,
+    _Permission,
 )
-from _pytest.fixtures import SubRequest
 
 RBAC_PORTS = (8092, 50063)
 RBAC_AUTH_CREDS = Auth.api_key("admin-key")

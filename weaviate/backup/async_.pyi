@@ -1,32 +1,24 @@
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
-from weaviate.backup.base import _BackupBase
-from weaviate.backup.executor import (
-    BackupStorage,
-    BackupReturn,
-    BackupStatusReturn,
+from weaviate.backup.backup import (
     BackupConfigCreate,
     BackupConfigRestore,
-    _BackupExecutor,
+    BackupReturn,
+    BackupStatusReturn,
+    BackupStorage,
 )
 from weaviate.backup.backup_location import BackupLocationType
 from weaviate.connect.v4 import ConnectionAsync
 
-class _BackupAsync(_BackupExecutor[ConnectionAsync]):
-    """Backup class used to schedule and/or check the status of a backup process of Weaviate objects."""
+from .executor import _BackupExecutor
 
-    async def cancel(
-        self,
-        backup_id: str,
-        backend: BackupStorage,
-        backup_location: Optional[BackupLocationType] = None,
-    ) -> bool: ...
+class _BackupAsync(_BackupExecutor[ConnectionAsync]):
     async def create(
         self,
         backup_id: str,
         backend: BackupStorage,
-        include_collections: Optional[Union[List[str], str]] = None,
-        exclude_collections: Optional[Union[List[str], str]] = None,
+        include_collections: Union[List[str], str, None] = None,
+        exclude_collections: Union[List[str], str, None] = None,
         wait_for_completion: bool = False,
         config: Optional[BackupConfigCreate] = None,
         backup_location: Optional[BackupLocationType] = None,
@@ -53,3 +45,9 @@ class _BackupAsync(_BackupExecutor[ConnectionAsync]):
         backend: BackupStorage,
         backup_location: Optional[BackupLocationType] = None,
     ) -> BackupStatusReturn: ...
+    async def cancel(
+        self,
+        backup_id: str,
+        backend: BackupStorage,
+        backup_location: Optional[BackupLocationType] = None,
+    ) -> bool: ...

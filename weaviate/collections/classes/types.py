@@ -1,10 +1,9 @@
 import datetime
 import uuid as uuid_package
-
 from typing import Any, Dict, Mapping, Optional, Sequence, Type, Union, get_origin
-from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 from pydantic import BaseModel, ConfigDict, Field
+from typing_extensions import TypeAlias, TypeVar, is_typeddict
 
 from weaviate.exceptions import InvalidDataModelError
 

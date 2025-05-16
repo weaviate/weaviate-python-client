@@ -1,38 +1,26 @@
 import uuid as uuid_package
-from typing import (
-    Optional,
-    List,
-    Literal,
-    Sequence,
-    Generic,
-    Type,
-    Union,
-    overload,
-)
+from typing import Generic, List, Literal, Optional, Sequence, Union, overload
 
 from weaviate.collections.classes.batch import (
-    DeleteManyObject,
     BatchObjectReturn,
     BatchReferenceReturn,
+    DeleteManyObject,
     DeleteManyReturn,
 )
 from weaviate.collections.classes.data import DataObject, DataReferences
 from weaviate.collections.classes.filters import _Filters
 from weaviate.collections.classes.internal import (
-    SingleReferenceInput,
     ReferenceInput,
     ReferenceInputs,
-    TProperties,
+    SingleReferenceInput,
 )
-from weaviate.collections.classes.types import (
-    Properties,
-)
-from weaviate.collections.data.executor import _DataExecutor
+from weaviate.collections.classes.types import Properties
 from weaviate.connect.v4 import ConnectionSync
 from weaviate.types import UUID, VECTORS
 
-class _DataCollection(Generic[Properties], _DataExecutor[ConnectionSync]):
-    def with_data_model(self, data_model: Type[TProperties]) -> "_DataCollection[TProperties]": ...
+from .executor import _DataCollectionExecutor
+
+class _DataCollection(Generic[Properties,], _DataCollectionExecutor[ConnectionSync, Properties]):
     def insert(
         self,
         properties: Properties,
@@ -44,6 +32,7 @@ class _DataCollection(Generic[Properties], _DataExecutor[ConnectionSync]):
         self,
         objects: Sequence[Union[Properties, DataObject[Properties, Optional[ReferenceInputs]]]],
     ) -> BatchObjectReturn: ...
+    def exists(self, uuid: UUID) -> bool: ...
     def replace(
         self,
         uuid: UUID,
@@ -68,7 +57,6 @@ class _DataCollection(Generic[Properties], _DataExecutor[ConnectionSync]):
     def reference_replace(
         self, from_uuid: UUID, from_property: str, to: ReferenceInput
     ) -> None: ...
-    def exists(self, uuid: UUID) -> bool: ...
     def delete_by_id(self, uuid: UUID) -> bool: ...
     @overload
     def delete_many(

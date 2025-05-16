@@ -8,6 +8,7 @@ from _pytest.fixtures import SubRequest
 import weaviate
 import weaviate.classes as wvc
 from weaviate.collections.collection import Collection
+
 from .conftest import get_file_path
 
 # The following code is used to test the performance of the weaviate client.

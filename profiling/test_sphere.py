@@ -2,7 +2,8 @@ import json
 import time
 
 import weaviate.classes as wvc
-from .conftest import get_file_path, CollectionFactory
+
+from .conftest import CollectionFactory, get_file_path
 
 # download sphere dataset from https://weaviate.io/blog/sphere-dataset-in-weaviate#importing-sphere-with-python
 # place file in profiling folder

@@ -44,13 +44,12 @@ types-urllib3==1.26.25.14
 typing_extensions==4.12.2
 
 pre-commit
-
 flake8
 flake8-bugbear==24.12.12
 flake8-comprehensions==3.16.0
 flake8-builtins==2.5.0
 flake8-docstrings==1.7.0
 pydoclint==0.6.5
-black==24.10.0
+ruff==0.11.7
 
 weaviate-agents>=0.3.0,<1.0.0

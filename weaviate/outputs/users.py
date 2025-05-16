@@ -1,3 +1,3 @@
-from weaviate.users.users import UserDB, UserTypes, OwnUser
+from weaviate.users.users import OwnUser, UserDB, UserTypes
 
 __all__ = ["OwnUser", "UserDB", "UserTypes"]

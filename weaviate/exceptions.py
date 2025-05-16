@@ -273,7 +273,9 @@ class WeaviateGRPCUnavailableError(WeaviateBaseError):
     """Is raised when a gRPC-backed query is made with no gRPC connection present."""
 
     def __init__(
-        self, weaviate_version: str = "", grpc_address: Tuple[str, int] = ("not provided", 0)
+        self,
+        weaviate_version: str = "",
+        grpc_address: Tuple[str, int] = ("not provided", 0),
     ) -> None:
         if grpc_address[0] == "not provided":
             grpc_msg = "Please check the server address and port."

@@ -5,11 +5,11 @@ from typing import (
     Optional,
     Union,
 )
-from typing_extensions import TypeVar
 
 from pydantic import BaseModel, Field
+from typing_extensions import TypeVar
 
-from weaviate.collections.classes.types import _WeaviateInput, GeoCoordinate
+from weaviate.collections.classes.types import GeoCoordinate, _WeaviateInput
 from weaviate.proto.v1 import aggregate_pb2
 
 N = TypeVar("N", int, float)
@@ -112,7 +112,16 @@ class GroupedBy:
 
     prop: str
     value: Union[
-        str, int, float, bool, List[str], List[int], List[float], List[bool], GeoCoordinate, None
+        str,
+        int,
+        float,
+        bool,
+        List[str],
+        List[int],
+        List[float],
+        List[bool],
+        GeoCoordinate,
+        None,
     ]
 
 

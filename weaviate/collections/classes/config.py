@@ -22,8 +22,8 @@ from weaviate.collections.classes.config_base import (
     _ConfigBase,
     _ConfigCreateModel,
     _ConfigUpdateModel,
-    _QuantizerConfigUpdate,
     _EnumLikeStr,
+    _QuantizerConfigUpdate,
 )
 from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorConfigCreate,
@@ -32,11 +32,8 @@ from weaviate.collections.classes.config_named_vectors import (
     _NamedVectorsUpdate,
 )
 from weaviate.collections.classes.config_vector_index import (
-    _MultiVectorConfigCreate,
-    VectorIndexType as VectorIndexTypeAlias,
     VectorFilterStrategy,
-)
-from weaviate.collections.classes.config_vector_index import (
+    _MultiVectorConfigCreate,
     _QuantizerConfigCreate,
     _VectorIndexConfigCreate,
     _VectorIndexConfigDynamicCreate,
@@ -48,10 +45,20 @@ from weaviate.collections.classes.config_vector_index import (
     _VectorIndexConfigSkipCreate,
     _VectorIndexConfigUpdate,
 )
-from weaviate.collections.classes.config_vectorizers import CohereModel
-from weaviate.collections.classes.config_vectorizers import VectorDistances as VectorDistancesAlias
-from weaviate.collections.classes.config_vectorizers import Vectorizers as VectorizersAlias
-from weaviate.collections.classes.config_vectorizers import _Vectorizer, _VectorizerConfigCreate
+from weaviate.collections.classes.config_vector_index import (
+    VectorIndexType as VectorIndexTypeAlias,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    CohereModel,
+    _Vectorizer,
+    _VectorizerConfigCreate,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    VectorDistances as VectorDistancesAlias,
+)
+from weaviate.collections.classes.config_vectorizers import (
+    Vectorizers as VectorizersAlias,
+)
 from weaviate.exceptions import WeaviateInvalidInputError
 from weaviate.str_enum import BaseEnum
 from weaviate.util import _capitalize_first_letter
@@ -1281,7 +1288,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                     k: v for k, v in schema["moduleConfig"].items() if "generative" not in k
                 }
             self.__add_to_module_config(
-                schema, self.generativeConfig.generative.value, self.generativeConfig._to_dict()
+                schema,
+                self.generativeConfig.generative.value,
+                self.generativeConfig._to_dict(),
             )
         if self.rerankerConfig is not None:
             # clear any existing reranker config
@@ -1290,7 +1299,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                     k: v for k, v in schema["moduleConfig"].items() if "reranker" not in k
                 }
             self.__add_to_module_config(
-                schema, self.rerankerConfig.reranker.value, self.rerankerConfig._to_dict()
+                schema,
+                self.rerankerConfig.reranker.value,
+                self.rerankerConfig._to_dict(),
             )
         if self.vectorizerConfig is not None:
             if isinstance(self.vectorizerConfig, _VectorIndexConfigUpdate):
@@ -1315,9 +1326,9 @@ class _CollectionConfigUpdate(_ConfigUpdateModel):
                             schema["vectorConfig"][vc.name]["vectorIndexConfig"]
                         )
                     )
-                    schema["vectorConfig"][vc.name][
-                        "vectorIndexType"
-                    ] = vc.vectorIndexConfig.vector_index_type()
+                    schema["vectorConfig"][vc.name]["vectorIndexType"] = (
+                        vc.vectorIndexConfig.vector_index_type()
+                    )
         return schema
 
     @staticmethod
@@ -1926,7 +1937,9 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     @field_validator("vectorizerConfig", mode="after")
     @classmethod
     def validate_vector_names(
-        cls, v: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]], info: ValidationInfo
+        cls,
+        v: Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]],
+        info: ValidationInfo,
     ) -> Union[_VectorizerConfigCreate, List[_NamedVectorConfigCreate]]:
         if isinstance(v, list):
             names = [vc.name for vc in v]
@@ -1987,7 +2000,10 @@ class _CollectionConfigCreate(_ConfigCreateModel):
     def __add_props(
         self,
         props: Optional[
-            Union[Sequence[Union[Property, _ReferencePropertyBase]], List[_ReferencePropertyBase]]
+            Union[
+                Sequence[Union[Property, _ReferencePropertyBase]],
+                List[_ReferencePropertyBase],
+            ]
         ],
         ret_dict: Dict[str, Any],
     ) -> None:
@@ -2501,12 +2517,15 @@ class Reconfigure:
             deletion_strategy: How conflicts between different nodes about deleted objects are resolved.
         """
         return _ReplicationConfigUpdate(
-            factor=factor, asyncEnabled=async_enabled, deletionStrategy=deletion_strategy
+            factor=factor,
+            asyncEnabled=async_enabled,
+            deletionStrategy=deletion_strategy,
         )
 
     @staticmethod
     def multi_tenancy(
-        auto_tenant_creation: Optional[bool] = None, auto_tenant_activation: Optional[bool] = None
+        auto_tenant_creation: Optional[bool] = None,
+        auto_tenant_activation: Optional[bool] = None,
     ) -> _MultiTenancyConfigUpdate:
         """Create a `MultiTenancyConfigUpdate` object.
 
@@ -2517,5 +2536,6 @@ class Reconfigure:
             auto_tenant_activation: Automatically turn tenants implicitly HOT when they are accessed. Defaults to `None`, which uses the server-defined default.
         """
         return _MultiTenancyConfigUpdate(
-            autoTenantCreation=auto_tenant_creation, autoTenantActivation=auto_tenant_activation
+            autoTenantCreation=auto_tenant_creation,
+            autoTenantActivation=auto_tenant_activation,
         )

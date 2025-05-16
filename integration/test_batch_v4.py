@@ -1,15 +1,15 @@
 import concurrent.futures
 import uuid
 from dataclasses import dataclass
-from typing import Generator, List, Optional, Protocol, Tuple, Callable
+from typing import Callable, Generator, List, Optional, Protocol, Tuple
 
 import pytest
 from _pytest.fixtures import SubRequest
 
 import weaviate
-from weaviate import BatchClient, ClientBatchingContextManager
 import weaviate.classes as wvc
 from integration.conftest import _sanitize_collection_name
+from weaviate import BatchClient, ClientBatchingContextManager
 from weaviate.collections.classes.batch import Shard
 from weaviate.collections.classes.config import (
     Configure,
@@ -19,8 +19,8 @@ from weaviate.collections.classes.config import (
 )
 from weaviate.collections.classes.grpc import QueryReference
 from weaviate.collections.classes.internal import (
-    _CrossReference,
     ReferenceToMulti,
+    _CrossReference,
 )
 from weaviate.collections.classes.tenants import Tenant
 from weaviate.types import UUID, VECTORS

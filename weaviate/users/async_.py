@@ -1,24 +1,24 @@
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionAsync
 from weaviate.users.executor import (
-    _DeprecatedExecutor,
-    _DBExecutor,
-    _OIDCExecutor,
+    _UsersDBExecutor,
+    _UsersExecutor,
+    _UsersOIDCExecutor,
 )
 
 
 @executor.wrap("async")
-class _UsersDBAsync(_DBExecutor[ConnectionAsync]):
+class _UsersDBAsync(_UsersDBExecutor[ConnectionAsync]):
     pass
 
 
 @executor.wrap("async")
-class _UsersOIDCAsync(_OIDCExecutor[ConnectionAsync]):
+class _UsersOIDCAsync(_UsersOIDCExecutor[ConnectionAsync]):
     pass
 
 
 @executor.wrap("async")
-class _UsersAsync(_DeprecatedExecutor[ConnectionAsync]):
+class _UsersAsync(_UsersExecutor[ConnectionAsync]):
     def __init__(self, connection: ConnectionAsync):
         super().__init__(connection)
         self.db = _UsersDBAsync(connection)

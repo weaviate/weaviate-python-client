@@ -1,22 +1,36 @@
 from typing import Generic
 
-from weaviate.collections.classes.types import TProperties, References
-
-from weaviate.collections.queries.bm25 import _BM25GenerateAsync, _BM25Generate
+from weaviate.collections.classes.types import References, TProperties
+from weaviate.collections.queries.bm25 import _BM25Generate, _BM25GenerateAsync
 from weaviate.collections.queries.fetch_objects import (
-    _FetchObjectsGenerateAsync,
     _FetchObjectsGenerate,
+    _FetchObjectsGenerateAsync,
 )
 from weaviate.collections.queries.fetch_objects_by_ids import (
-    _FetchObjectsByIDsGenerateAsync,
     _FetchObjectsByIDsGenerate,
+    _FetchObjectsByIDsGenerateAsync,
 )
-from weaviate.collections.queries.hybrid import _HybridGenerateAsync, _HybridGenerate
-from weaviate.collections.queries.near_image import _NearImageGenerateAsync, _NearImageGenerate
-from weaviate.collections.queries.near_media import _NearMediaGenerateAsync, _NearMediaGenerate
-from weaviate.collections.queries.near_object import _NearObjectGenerateAsync, _NearObjectGenerate
-from weaviate.collections.queries.near_text import _NearTextGenerateAsync, _NearTextGenerate
-from weaviate.collections.queries.near_vector import _NearVectorGenerateAsync, _NearVectorGenerate
+from weaviate.collections.queries.hybrid import _HybridGenerate, _HybridGenerateAsync
+from weaviate.collections.queries.near_image import (
+    _NearImageGenerate,
+    _NearImageGenerateAsync,
+)
+from weaviate.collections.queries.near_media import (
+    _NearMediaGenerate,
+    _NearMediaGenerateAsync,
+)
+from weaviate.collections.queries.near_object import (
+    _NearObjectGenerate,
+    _NearObjectGenerateAsync,
+)
+from weaviate.collections.queries.near_text import (
+    _NearTextGenerate,
+    _NearTextGenerateAsync,
+)
+from weaviate.collections.queries.near_vector import (
+    _NearVectorGenerate,
+    _NearVectorGenerateAsync,
+)
 
 
 class _GenerateCollectionAsync(

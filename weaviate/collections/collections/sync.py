@@ -1,8 +1,9 @@
 from typing import Optional, Type
-from weaviate.collections.classes.internal import Properties, References
-from weaviate.collections.collections.base import _CollectionsBase
-from weaviate.collections.collection.sync import Collection
+
 from weaviate.collections.classes.config import CollectionConfig
+from weaviate.collections.classes.internal import Properties, References
+from weaviate.collections.collection.sync import Collection
+from weaviate.collections.collections.base import _CollectionsBase
 from weaviate.connect import executor
 from weaviate.connect.v4 import ConnectionSync
 
