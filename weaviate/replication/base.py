@@ -22,7 +22,7 @@ class _ReplicationExecutor(Generic[ConnectionType]):
         shard: str,
         source_node: str,
         target_node: str,
-        transfer_type: TransferType = TransferType.COPY,
+        transfer_type: TransferType,
     ) -> executor.Result[uuid.UUID]:
         def resp(response: Response) -> uuid.UUID:
             return uuid.UUID(response.json()["id"])
