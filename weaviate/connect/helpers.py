@@ -1,12 +1,19 @@
 """Helper functions for creating new WeaviateClient or WeaviateAsyncClient instances in common scenarios."""
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 from deprecation import deprecated as docstring_deprecated
 from typing_extensions import deprecated as typing_deprecated
 
-from weaviate.auth import AuthCredentials
+from weaviate.auth import (
+    Auth,
+    AuthCredentials,
+    _APIKey,
+    _BearerToken,
+    _ClientCredentials,
+    _ClientPassword,
+)
 from weaviate.client import WeaviateAsyncClient, WeaviateClient
 from weaviate.config import AdditionalConfig
 from weaviate.connect.base import ConnectionParams, ProtocolParams
@@ -27,9 +34,25 @@ def __parse_weaviate_cloud_cluster_url(cluster_url: str) -> Tuple[str, str]:
     return cluster_url, grpc_host
 
 
+def __parse_auth_credentials(creds: Union[str, AuthCredentials, None]) -> Optional[AuthCredentials]:
+    if isinstance(creds, str):
+        # If the credentials are a string, assume it's an API key.
+        return Auth.api_key(creds)
+    elif isinstance(
+        creds, (_BearerToken, _ClientPassword, _ClientCredentials, _APIKey)
+    ):  # use AuthCredentials after python 3.9 has been removed
+        # If the credentials are already an AuthCredentials object, return it as is.
+        return creds
+    elif creds is None:
+        # If no credentials are provided, return None.
+        return None
+    else:
+        raise ValueError("Invalid auth credentials provided.")
+
+
 def connect_to_weaviate_cloud(
     cluster_url: str,
-    auth_credentials: Optional[AuthCredentials],
+    auth_credentials: Union[str, AuthCredentials],
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
@@ -42,7 +65,7 @@ def connect_to_weaviate_cloud(
 
     Args:
         cluster_url: The WCD cluster URL or hostname to connect to. Usually in the form: rAnD0mD1g1t5.something.weaviate.cloud
-        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use
+        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case pass a string or use
             `weaviate.classes.init.Auth.api_key()`, a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret,
             in which case use `weaviate.classes.init.Auth.client_credentials()` or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
         headers: Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorization.
@@ -79,7 +102,7 @@ def connect_to_weaviate_cloud(
                 http=ProtocolParams(host=cluster_url, port=443, secure=True),
                 grpc=ProtocolParams(host=grpc_host, port=443, secure=True),
             ),
-            auth_client_secret=auth_credentials,
+            auth_client_secret=__parse_auth_credentials(auth_credentials),
             additional_headers=headers,
             additional_config=additional_config,
             skip_init_checks=skip_init_checks,
@@ -98,7 +121,7 @@ This method is deprecated and will be removed in a future release. Use :func:`co
 )
 def connect_to_wcs(
     cluster_url: str,
-    auth_credentials: Optional[AuthCredentials],
+    auth_credentials: Union[str, AuthCredentials],
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
@@ -115,7 +138,7 @@ def connect_to_local(
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
-    auth_credentials: Optional[AuthCredentials] = None,
+    auth_credentials: Union[str, AuthCredentials, None] = None,
 ) -> WeaviateClient:
     """Connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
 
@@ -130,7 +153,7 @@ def connect_to_local(
         headers: Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         skip_init_checks: Whether to skip the initialization checks when connecting to Weaviate.
-        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
+        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case pass a string or use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
 
@@ -168,7 +191,7 @@ def connect_to_local(
             additional_headers=headers,
             additional_config=additional_config,
             skip_init_checks=skip_init_checks,
-            auth_client_secret=auth_credentials,
+            auth_client_secret=__parse_auth_credentials(auth_credentials),
         )
     )
 
@@ -277,7 +300,7 @@ def connect_to_custom(
         grpc_secure: Whether to use a secure channel for the underlying gRPC API.
         headers: Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
-        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
+        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case pass a string or use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
         skip_init_checks: Whether to skip the initialization checks when connecting to Weaviate.
@@ -323,7 +346,7 @@ def connect_to_custom(
                 grpc_port=grpc_port,
                 grpc_secure=grpc_secure,
             ),
-            auth_client_secret=auth_credentials,
+            auth_client_secret=__parse_auth_credentials(auth_credentials),
             additional_headers=headers,
             additional_config=additional_config,
             skip_init_checks=skip_init_checks,
@@ -355,7 +378,7 @@ def use_async_with_weaviate_cloud(
 
     Args:
         cluster_url: The WCD cluster URL or hostname to connect to. Usually in the form: rAnD0mD1g1t5.something.weaviate.cloud
-        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
+        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case pass a string or use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
         headers: Additional headers to include in the requests, e.g. API keys for third-party Cloud vectorization.
@@ -393,7 +416,7 @@ def use_async_with_weaviate_cloud(
             http=ProtocolParams(host=cluster_url, port=443, secure=True),
             grpc=ProtocolParams(host=grpc_host, port=443, secure=True),
         ),
-        auth_client_secret=auth_credentials,
+        auth_client_secret=__parse_auth_credentials(auth_credentials),
         additional_headers=headers,
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
@@ -407,7 +430,7 @@ def use_async_with_local(
     headers: Optional[Dict[str, str]] = None,
     additional_config: Optional[AdditionalConfig] = None,
     skip_init_checks: bool = False,
-    auth_credentials: Optional[AuthCredentials] = None,
+    auth_credentials: Union[str, AuthCredentials, None] = None,
 ) -> WeaviateAsyncClient:
     """Create an async client object ready to connect to a local Weaviate instance deployed using Docker compose with standard port configurations.
 
@@ -422,7 +445,7 @@ def use_async_with_local(
         headers: Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
         skip_init_checks: Whether to skip the initialization checks when connecting to Weaviate.
-        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
+        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case pass a string or use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
 
@@ -462,7 +485,7 @@ def use_async_with_local(
         additional_headers=headers,
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
-        auth_client_secret=auth_credentials,
+        auth_client_secret=__parse_auth_credentials(auth_credentials),
     )
 
 
@@ -574,7 +597,7 @@ def use_async_with_custom(
         grpc_secure: Whether to use a secure channel for the underlying gRPC API.
         headers: Additional headers to include in the requests, e.g. API keys for Cloud vectorization.
         additional_config: This includes many additional, rarely used config options. use wvc.init.AdditionalConfig() to configure.
-        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case use `weaviate.classes.init.Auth.api_key()`,
+        auth_credentials: The credentials to use for authentication with your Weaviate instance. This can be an API key, in which case pass a string or use `weaviate.classes.init.Auth.api_key()`,
             a bearer token, in which case use `weaviate.classes.init.Auth.bearer_token()`, a client secret, in which case use `weaviate.classes.init.Auth.client_credentials()`
             or a username and password, in which case use `weaviate.classes.init.Auth.client_password()`.
         skip_init_checks: Whether to skip the initialization checks when connecting to Weaviate.
@@ -622,7 +645,7 @@ def use_async_with_custom(
             grpc_port=grpc_port,
             grpc_secure=grpc_secure,
         ),
-        auth_client_secret=auth_credentials,
+        auth_client_secret=__parse_auth_credentials(auth_credentials),
         additional_headers=headers,
         additional_config=additional_config,
         skip_init_checks=skip_init_checks,
