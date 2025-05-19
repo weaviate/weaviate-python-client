@@ -19,7 +19,7 @@ The Weaviate Python client makes it easy to work with `Weaviate <https://weaviat
 
 The current major version is **v4** while the older **v3** client is deprecated and should be avoided. You can find further documentation for both versions:
 
-* `Python Client v4 <https://weaviate.io/developers/weaviate/client-libraries/python>`_ 
+* `Python Client v4 <https://weaviate.io/developers/weaviate/client-libraries/python>`_
 * `Python Client v3 <https://weaviate.io/developers/weaviate/client-libraries/python_v3>`_ (deprecated)
 
 .. note::
@@ -58,10 +58,13 @@ Client API reference
 Explore the detailed API documentation:
 
 * :doc:`Weaviate Library <modules>`
-    * :class:`~weaviate.WeaviateClient` 
-    * :class:`~weaviate.WeaviateAsyncClient` 
+    * :class:`~weaviate.WeaviateClient`
+    * :class:`~weaviate.WeaviateAsyncClient`
 * :doc:`Weaviate Exceptions <weaviate.exceptions>`
-* :doc:`Weaviate Agents <weaviate.agents>`
+* :doc:`Weaviate Agents <weaviate-agents-python-client/docs/modules>`
+   * :doc:`QueryAgent <weaviate-agents-python-client/docs/weaviate_agents.query>`
+   * :doc:`TransformationAgent <weaviate-agents-python-client/docs/weaviate_agents.transformation>`
+   * :doc:`PersonalizationAgent <weaviate-agents-python-client/docs/weaviate_agents.personalization>`
 
 Support
 -------
