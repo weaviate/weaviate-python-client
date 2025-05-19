@@ -51,6 +51,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[QueryReturn[Properties, References]]: ...
 
     @overload
@@ -69,6 +71,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[QueryReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -87,6 +91,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[QueryReturn[Properties, TReferences]]: ...
 
     @overload
@@ -105,6 +111,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[QueryReturn[TProperties, References]]: ...
 
     @overload
@@ -123,6 +131,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[QueryReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -141,6 +151,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[QueryReturn[TProperties, TReferences]]: ...
 
     ###### GROUP BY ######
@@ -161,6 +173,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[GroupByReturn[Properties, References]]: ...
 
     @overload
@@ -179,6 +193,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[GroupByReturn[Properties, CrossReferences]]: ...
 
     @overload
@@ -197,6 +213,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[GroupByReturn[Properties, TReferences]]: ...
 
     @overload
@@ -215,6 +233,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[GroupByReturn[TProperties, References]]: ...
 
     @overload
@@ -233,6 +253,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[GroupByReturn[TProperties, CrossReferences]]: ...
 
     @overload
@@ -251,6 +273,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[GroupByReturn[TProperties, TReferences]]: ...
 
     @overload
@@ -269,6 +293,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[
         QuerySearchReturnType[Properties, References, TProperties, TReferences]
     ]: ...
@@ -288,6 +314,8 @@ class _BM25QueryExecutor(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> executor.Result[QuerySearchReturnType[Properties, References, TProperties, TReferences]]:
         """Search for objects in this collection using the keyword-based BM25 algorithm.
 
@@ -355,6 +383,8 @@ class _BM25QueryExecutor(
             return_metadata=self._parse_return_metadata(return_metadata, include_vector),
             return_properties=self._parse_return_properties(return_properties),
             return_references=self._parse_return_references(cast(Any, return_references)),
+            minimum_should_match=minimum_should_match,
+            search_operator=search_operator,
         )
         return executor.execute(
             response_callback=resp,

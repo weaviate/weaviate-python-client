@@ -164,6 +164,8 @@ class _QueryGRPC(_BaseGRPC):
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
         target_vector: Optional[TargetVectorJoinType] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> search_get_pb2.SearchRequest:
         return self.__create_request(
             limit=limit,
@@ -184,6 +186,8 @@ class _QueryGRPC(_BaseGRPC):
                 fusion_type,
                 distance,
                 target_vector,
+                minimum_should_match=minimum_should_match,
+                search_operator=search_operator,
             ),
         )
 
@@ -202,6 +206,8 @@ class _QueryGRPC(_BaseGRPC):
         return_references: Optional[REFERENCES] = None,
         generative: Optional[_Generative] = None,
         rerank: Optional[Rerank] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> search_get_pb2.SearchRequest:
         if self._validate_arguments:
             _validate_input(
@@ -224,7 +230,9 @@ class _QueryGRPC(_BaseGRPC):
             autocut=autocut,
             bm25=(
                 base_search_pb2.BM25(
-                    query=query, properties=properties if properties is not None else []
+                    query=query, properties=properties if properties is not None else [],
+                    minimum_should_match=minimum_should_match if minimum_should_match is not None else 1,
+                    search_operator=search_operator if search_operator is not None else "or",
                 )
                 if query is not None
                 else None

@@ -35,6 +35,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> QueryReturn[Properties, References]: ...
     @overload
     def bm25(
@@ -52,6 +54,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> QueryReturn[Properties, CrossReferences]: ...
     @overload
     def bm25(
@@ -69,6 +73,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> QueryReturn[Properties, TReferences]: ...
     @overload
     def bm25(
@@ -86,6 +92,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> QueryReturn[TProperties, References]: ...
     @overload
     def bm25(
@@ -103,6 +111,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> QueryReturn[TProperties, CrossReferences]: ...
     @overload
     def bm25(
@@ -120,6 +130,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> QueryReturn[TProperties, TReferences]: ...
     @overload
     def bm25(
@@ -137,6 +149,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Literal[None] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> GroupByReturn[Properties, References]: ...
     @overload
     def bm25(
@@ -154,6 +168,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: REFERENCES,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> GroupByReturn[Properties, CrossReferences]: ...
     @overload
     def bm25(
@@ -171,6 +187,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Union[PROPERTIES, bool, None] = None,
         return_references: Type[TReferences],
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> GroupByReturn[Properties, TReferences]: ...
     @overload
     def bm25(
@@ -188,6 +206,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Literal[None] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> GroupByReturn[TProperties, References]: ...
     @overload
     def bm25(
@@ -205,6 +225,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: REFERENCES,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> GroupByReturn[TProperties, CrossReferences]: ...
     @overload
     def bm25(
@@ -222,6 +244,8 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Type[TProperties],
         return_references: Type[TReferences],
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> GroupByReturn[TProperties, TReferences]: ...
     @overload
     def bm25(
@@ -239,4 +263,6 @@ class _BM25Query(
         return_metadata: Optional[METADATA] = None,
         return_properties: Optional[ReturnProperties[TProperties]] = None,
         return_references: Optional[ReturnReferences[TReferences]] = None,
+        minimum_should_match: Optional[int] = None,
+        search_operator: Optional[Literal["and", "or"]] = None,
     ) -> QuerySearchReturnType[Properties, References, TProperties, TReferences]: ...
