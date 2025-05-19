@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 4.14.4
+--------------
+
+This patch version includes:
+    - Fixes interfaces for user.db/oidc
+    - If a string is passed into `auth=` we assume that it is an api-key
+    - Fix extracting nested array properties from data models
+
 Version 4.14.3
 --------------
 This patch version includes:
