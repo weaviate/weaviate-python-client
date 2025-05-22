@@ -49,8 +49,8 @@ JinaMultimodalModel: TypeAlias = Literal[
 ]
 VoyageModel: TypeAlias = Literal[
     "voyage-3.5",
-    "voyage-3-lite",
-    "voyage-3.5",
+    "voyage-3.5-lite",
+    "voyage-3",
     "voyage-3-lite",
     "voyage-large-2",
     "voyage-code-2",
