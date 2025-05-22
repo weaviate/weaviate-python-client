@@ -8,6 +8,12 @@ using the Sphinx documentation engine. More about Sphinx engine and how it works
 NOTE: Current setup does not add all the modules/sub-packages to the documentation automatically it needs to be set explicitly.
 All the new modules/sub-packages that are needed to be part ReadTheDocs documentation need to be added manually.
 
+NOTE2: This documentation is useing the `weaviate-agents-python-client` package and publishes both documentations as a single ReadTheDocs page.
+The `weaviate-agents` package is a sub-package of the `weaviate-python-client` package. This means that any changes of the Weaviate Agents
+Python Client will not be reflected right away, it will be update either on a new release of the `weaviate-python-client` or can be triggered
+manually from the readthedocs page directly (maintained by the Weaviate Python Client team).
+The documentation of the `weaviate-agents-python-client` repo is cloned in the `build` step of the `.readthedocs.yaml` file.
+
 Adding and Modifying new modules/sub-packages
 ---------------------------------------------
 

@@ -17,6 +17,9 @@ from importlib.metadata import version as version_func
 
 sys.path.insert(0, os.path.abspath(".."))
 
+# weaviate-agents-python-client as a sub-library (cloned into docs/)
+sys.path.insert(0, os.path.abspath("weaviate-agents-python-client"))
+
 
 @contextlib.contextmanager
 def chdir(directory):
