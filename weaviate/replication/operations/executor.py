@@ -72,6 +72,7 @@ class _OperationsExecutor(Generic[ConnectionType]):
             response_callback=resp,
             method=self._connection.get,
             path="/replication/replicate/list",
+            params={"includeHistory": True},
             status_codes=_ExpectedStatusCodes(200, "replicate list"),
             error_msg="Failed to list replicate operations",
         )
