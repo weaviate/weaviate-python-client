@@ -1,6 +1,5 @@
 import warnings
 
-import grpc_tools.grpc_version
 
 warnings.filterwarnings(
     "ignore",
@@ -11,11 +10,12 @@ warnings.filterwarnings(
 # ref: https://github.com/grpc/grpc/issues/37609 and https://github.com/protocolbuffers/protobuf/pull/17241
 
 from packaging import version
-import grpc_tools
+
+from importlib.metadata import version as metadata_version
 
 def get_protobuf_version() -> version.Version:
     """Get the installed protobuf version."""
-    return version.parse(grpc_tools.grpc_version.VERSION)
+    return version.parse(metadata_version('grpcio-tools'))
 
 
 pb_version = get_protobuf_version()
