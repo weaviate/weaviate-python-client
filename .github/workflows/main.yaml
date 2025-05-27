@@ -132,11 +132,11 @@ jobs:
       fail-fast: false
       matrix:
         versions: [
-          { py: "3.9", weaviate: $WEAVIATE_130, grpc-version: "1.59.0"},
-          { py: "3.10", weaviate: $WEAVIATE_130, grpc-version: "1.66.0"},
-          { py: "3.11", weaviate: $WEAVIATE_130, grpc-version: "1.70.0"},
-          { py: "3.12", weaviate: $WEAVIATE_130, grpc-version: "1.70.0"},
-          { py: "3.13", weaviate: $WEAVIATE_130, grpc-version: "1.70.0"}
+          { py: "3.9", weaviate: $WEAVIATE_130},
+          { py: "3.10", weaviate: $WEAVIATE_130},
+          { py: "3.11", weaviate: $WEAVIATE_130},
+          { py: "3.12", weaviate: $WEAVIATE_130},
+          { py: "3.13", weaviate: $WEAVIATE_130}
         ]
         optional_dependencies: [false]
     steps:
@@ -156,7 +156,6 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - run: |
           pip install -r requirements-devel.txt
-          pip install grpcio==${{ matrix.versions.grpc-version }} grpcio-tools==${{ matrix.versions.grpc-version }} grpcio-health-checking==${{ matrix.versions.grpc-version }}
           pip install .
       - name: start weaviate
         run: /bin/bash ci/start_weaviate.sh ${{ matrix.versions.weaviate }}
@@ -276,14 +275,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        server: [
-          $WEAVIATE_124,
-          $WEAVIATE_125,
-          $WEAVIATE_126,
-          $WEAVIATE_127,
-          $WEAVIATE_128,
-          $WEAVIATE_129,
-          $WEAVIATE_130
+        version: [
+          { extra: "protobuf4", server: $WEAVIATE_124},
+          { extra: "protobuf5", server: $WEAVIATE_125},
+          { extra: "protobuf6", server: $WEAVIATE_126},
+          { extra: "protobuf4", server: $WEAVIATE_127},
+          { extra: "protobuf5", server: $WEAVIATE_128},
+          { extra: "protobuf6", server: $WEAVIATE_129},
+          { extra: "protobuf4", server: $WEAVIATE_130},
         ]
     steps:
       - name: Checkout
@@ -301,11 +300,11 @@ jobs:
         with:
           name: weaviate-python-client-wheel
       - run: |
-          pip install weaviate_client-*.whl
           pip install -r requirements-devel.txt  # install test dependencies
+          pip install weaviate_client-*.whl[${{ matrix.version.extra }}]  # install the built package with the matrix extra
       - run: rm -r weaviate
       - name: start weaviate
-        run: /bin/bash ci/start_weaviate.sh ${{ matrix.server }}
+        run: /bin/bash ci/start_weaviate.sh ${{ matrix.version.server }}
       - name: Run integration tests without auth secrets (auth tests ran in previous job)
         run: pytest -v -n auto --dist loadgroup integration
 
